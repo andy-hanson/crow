@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool
+	../bool: bool, not
 	../compare: <, <=, >
 	../fun-util: subscript
 	../misc: new, void
@@ -146,22 +146,21 @@ Throws if `n > a.size`.
 	res to
 
 +peek[t] t?(a t mut[])
-	unless a is-empty
-		a[end - 1],
+	guard !a.is-empty
+	a[end - 1],
 
 ###
 Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
 +pop[t] t?(a t mut[])
-	unless a is-empty
-		new-size = a.size - 1
-		res = a[new-size]
-		trusted
-			# Ensure GC doesn't hold on to the memory there
-			a[new-size] := zeroed
-			a.size := new-size
-			res,
+	guard !a.is-empty
+	new-size = a.size - 1
+	res = a[new-size]
+	# Ensure GC doesn't hold on to the memory there
+	a[new-size] := trusted zeroed
+	a.size := new-size
+	res,
 
 ###
 Pops `n` times, discarding the result.
@@ -170,9 +169,8 @@ Throws if `n > a.size`.
 +pop-n[t] void(a t mut[], n nat64)
 	assert n <= a.size : "can't pop more than size of array"
 	new-size = a.size - n
-	trusted
-		a.backing[new-size .. a.size] zero-memory
-		a.size := new-size
+	trusted a.backing[new-size .. a.size] zero-memory
+	a.size := new-size
 
 +prepend=[t] void(a t mut[], value t)
 	trusted

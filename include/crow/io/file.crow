@@ -56,8 +56,9 @@ is-file bool(path string) summon
 		attr = path GetFileAttributesA
 		if attr == INVALID_FILE_ATTRIBUTES
 			err = GetLastError
-			unless err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
-				throw "error {err} while testing path {path}: {err show-win32-error}"
+			assert err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND :
+				"error {err} while testing path {path}: {err show-win32-error}"
+			()
 		else
 			if FILE_ATTRIBUTE_DIRECTORY is-in attr
 				directory,
@@ -100,11 +101,9 @@ Use `paths-in-dir` if you want full paths.
 		path-search c-string = "{path}\\*" to
 		file-data mut WIN32_FIND_DATAA = ()
 		file = path-search FindFirstFileA &file-data
-		if file == INVALID_HANDLE_VALUE
-			throw "failed to open dir {path}"
-		else
-			with : (() => file find-close path) finally
-				path names-in-dir-windows file sort
+		forbid file == INVALID_HANDLE_VALUE : "failed to open dir {path}"
+		with : (() => file find-close path) finally
+			path names-in-dir-windows file sort
 	else
 		dirp = path opendir
 		forbid dirp == null : "failed to open dir {path}"
@@ -169,8 +168,7 @@ Use `paths-in-dir` if you want full paths.
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE |
 			(target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
 		ok = link.to CreateSymbolicLinkA target.to, link-flags
-		unless ok
-			throw "Error creating link {link}: {GetLastError show-win32-error}"
+		assert ok : "Error creating link {link}: {GetLastError show-win32-error}"
 	else
 		err = target.to symlink link.to
 		unless err == 0
@@ -217,8 +215,7 @@ Like `read-file`, but returns an empty option if the file does not exist.
 Will still throw on other errors, like permission errors.
 ###
 +try-read-file string?(path string) summon
-	if bytes ?= path.try-read-file :: nat8[]?
-		bytes.as-string,
+	(path.try-read-file :: nat8[]?)?.as-string
 
 # Like `try-read-file` but returns binary data.
 +try-read-file nat8[]?(path string) summon

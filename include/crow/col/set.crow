@@ -55,13 +55,10 @@ to[t] t set(a t frozen-set) t key
 -add-size-left[t] nat64(a t add-node)
 	acc mut nat64 = 0
 	cur mut = a
-	loop
-		if left ?= cur left
-			acc +:= left.here size
-			cur := left
-			continue
-		else
-			break acc
+	while left ?= cur left
+		acc +:= left.here size
+		cur := left
+	acc
 
 # `true` iff `value` is an element of `a`.
 +in[t] bool(value t, a t set) t key

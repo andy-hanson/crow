@@ -16,13 +16,17 @@ import frontend.showModel :
 	writeTypeUnquoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : ExprAst, ExprAstKind, IfAst, IfConditionAst, MatchAst, ModifierKeyword;
+import model.ast : AssertOrForbidAst, ConditionAst, ExprAst, ExprAstKind, IfAst, MatchAst, ModifierKeyword;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
+	AssertOrForbidExpr,
 	BuiltinType,
 	CallExpr,
+	CallOptionExpr,
 	CharType,
+	Condition,
 	EnumOrFlagsMember,
+	Expr,
 	ExprKind,
 	FunDecl,
 	FunPointerExpr,
@@ -30,6 +34,7 @@ import model.model :
 	isSigned,
 	LambdaExpr,
 	Local,
+	LoopWhileOrUntilExpr,
 	NameReferents,
 	MatchEnumExpr,
 	MatchIntegralExpr,
@@ -374,43 +379,75 @@ void getExprKeywordHover(
 				"This does not allocate and so is unsafe. This only works for certain expressions.";
 			break;
 		case ExprKeyword.assert_:
-			writer ~= "Throws if the condition is 'false'.";
+			writer ~= exprKind.as!(AssertOrForbidExpr*).condition.matchIn!string(
+				(in Expr _) => "Throws if the condition is 'false'.",
+				(in Condition.UnpackOption _) => "Throws if the option is empty.");
 			break;
 		case ExprKeyword.colonColon:
 			writer ~= "Provides an expected type for the expression to its left.";
+			break;
+		case ExprKeyword.colon:
+			writer ~= "If the condition is '";
+			if (astKind.isA!IfAst) {
+				writer ~= "'false', returns the expression to the right of the colon.";
+			} else {
+				writer ~= astKind.as!AssertOrForbidAst.isForbid ? "true" : "false";
+				writer ~= "', throws an exception with the message to the right of the ':'.";
+			}
 			break;
 		case ExprKeyword.elif:
 			writer ~= "If the first condition is false, evaluates another 'if'.";
 			break;
 		case ExprKeyword.else_:
-			if (astKind.isA!MatchAst)
-				writer ~= "If no branch was satisfied, the 'match' evaluates to the 'else' branch.";
-			else
-				writer ~= "If the condition is 'false', the 'else' branch is evaluated.";
+			writer ~= astKind.isA!MatchAst
+				? "If no branch was satisfied, the 'match' evaluates to the 'else' branch."
+				: "If the condition is 'false', the 'else' branch is evaluated.";
 			break;
 		case ExprKeyword.forbid:
-			writer ~= "Throws if the condition is 'true'.";
+			writer ~= exprKind.as!(AssertOrForbidExpr*).condition.matchIn!string(
+				(in Expr _) => "Throws if the condition is 'true'.",
+				(in Condition.UnpackOption _) => "Throws if the option is non-empty.");
 			break;
-		case ExprKeyword.ifOrUnless:
+		case ExprKeyword.guardIfOrUnless:
 			IfAst ifAst = astKind.as!IfAst;
+			bool isUnpackOption = ifAst.condition.matchIn!bool(
+				(in ExprAst _) => false,
+				(in ConditionAst.UnpackOption) => true);
 			final switch (ifAst.kind) {
+				case IfAst.Kind.guardWithColon:
+				case IfAst.Kind.guardWithoutColon:
+					writer ~= isUnpackOption
+						? "If the option is non-empty, destructures it and continues."
+						: "If the expression is 'true', continues.";
+					writer ~= '\n';
+					writer ~= ifAst.kind == IfAst.Kind.guardWithColon
+						? "Otherwise, returns the expression after the ':'."
+						: "Otherwise, returns '()'.";
+					break;
 				case IfAst.Kind.ifWithoutElse:
 				case IfAst.Kind.ifElif:
 				case IfAst.Kind.ifElse:
 				case IfAst.Kind.ternaryWithElse:
 				case IfAst.Kind.ternaryWithoutElse:
-					ifAst.condition.matchIn!void(
-						(in IfConditionAst.UnpackOption) {
-							writer ~=
-								"If the value is a non-empty option, destructures it and returns the first branch.";
-						},
-						(in ExprAst _) {
-							writer ~= "If the condition is 'true', returns the first branch.";
-						});
+					writer ~= isUnpackOption
+						? "If the value is a non-empty option, destructures it and returns the first branch."
+						: "If the condition is 'true', returns the first branch.";
 					writer ~= '\n';
-					writer ~= ifAst.hasElse
-						? "Otherwise, returns the second branch."
-						: "Otherwise, returns '()'.";
+					writer ~= () {
+						final switch (ifAst.kind) {
+							case IfAst.Kind.ifWithoutElse:
+							case IfAst.Kind.ternaryWithoutElse:
+								return "Otherwise, returns '()'.";
+							case IfAst.Kind.ifElif:
+							case IfAst.Kind.ifElse:
+							case IfAst.Kind.ternaryWithElse:
+								return "Otherwise, returns the second branch.";
+							case IfAst.Kind.guardWithColon:
+							case IfAst.Kind.guardWithoutColon:
+							case IfAst.Kind.unless:
+								assert(0);
+						}
+					}();
 					break;
 				case IfAst.Kind.unless:
 					writer ~= "Returns the body if the condition is false. If the condition is true, returns '()'.";
@@ -434,6 +471,14 @@ void getExprKeywordHover(
 		case ExprKeyword.match:
 			getMatchHover(writer, ctx, typeContainer, a);
 			break;
+		case ExprKeyword.questionDotOrSubscript:
+			writer ~= "The expression to the left of '?.' or '?[' is an option.\n" ~
+				"The call is only done if it is non-empty.";
+			break;
+		case ExprKeyword.questionEquals:
+			writer ~= "The expression to the right of '?=' should be an option.\n" ~
+				"The expression to the left of '?=' is destructures the value inside the option if it is non-empty.";
+			break;
 		case ExprKeyword.throw_:
 			writer ~= "Throws an exception.";
 			break;
@@ -441,10 +486,15 @@ void getExprKeywordHover(
 			writer ~= "Allows 'unsafe' code to be used anywhere.";
 			break;
 		case ExprKeyword.until:
-			writer ~= "Loop will run as long as the condition is 'false'.";
+			writer ~= exprKind.as!(LoopWhileOrUntilExpr*).condition.isA!(Expr*)
+				? "Loop will run as long as the condition is 'false'."
+				: "Loop will run as long as the option is empty.\n" ~
+					"Then it is destructured and available after the loop.";
 			break;
 		case ExprKeyword.while_:
-			writer ~= "Loop will run as long as the condition is 'true'.";
+			writer ~= exprKind.as!(LoopWhileOrUntilExpr*).condition.isA!(Expr*)
+				? "Loop will run as long as the condition is 'true'."
+				: "Loop will run as long as the option is non-empty.";
 			break;
 	}
 }
@@ -503,6 +553,11 @@ void getExprHover(
 			writer ~= "Calls ";
 			writeCalled(writer, ctx, typeContainer, x.called);
 			writer ~= '.';
+		},
+		(in CallOptionExpr x) {
+			writer ~= "Calls ";
+			writeCalled(writer, ctx, typeContainer, x.called);
+			writer ~= " if the first argument is non-empty.";
 		},
 		(in ExprKeyword x) {
 			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);

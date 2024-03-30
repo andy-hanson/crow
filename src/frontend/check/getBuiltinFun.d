@@ -33,8 +33,8 @@ FunBody getBuiltinFun(ref CheckCtx ctx, FunDecl* fun) {
 	Destructure[] params = paramsArray(fun.params);
 	return inner(
 		ctx, fun.nameRange.range, fun.name, fun.returnType, params.length,
-		params.length >= 1 ? params[0].type : Type(Type.Bogus()),
-		params.length >= 2 ? params[1].type : Type(Type.Bogus()),
+		params.length >= 1 ? params[0].type : Type.bogus,
+		params.length >= 2 ? params[1].type : Type.bogus,
 		fun.specs);
 }
 

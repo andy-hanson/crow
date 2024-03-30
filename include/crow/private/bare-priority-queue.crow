@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: ||, bool
+	../bool: ||, bool, not
 	../compare: <=, >=, compare
 	../misc: new, void
 	../number: ==, *, nat64
@@ -33,27 +33,23 @@ dequeue-if-less-or-equal[k, v] v?(
 	a (k, v) bare-priority-queue mut*,
 	max-key k,
 ) bare, unsafe, k compare
-	if k ?= a.as-const peek-key
-		if k <= max-key
-			a.dequeue!.b,
+	guard k ?= a.as-const peek-key
+	guard k <= max-key
+	a.dequeue!.b,
 
 -dequeue[k, v] (k, v)?(a (k, v) bare-priority-queue mut*) bare, unsafe
-	unless a.as-const is-empty
-		res = *a->begin
-		a->end -:= 1
-		a->begin mem-move a->begin.as-const + 1, a->end - a->begin
-		res,
+	guard !a.as-const.is-empty
+	res = *a->begin
+	a->end -:= 1
+	a->begin mem-move a->begin.as-const + 1, a->end - a->begin
+	res,
 
 enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe, k compare
 	a push pair
 	cur mut = a->end - 1
-	loop
-		if cur == a->begin || cur->a >= (cur - 1)->a
-			break
-		else
-			cur swap cur - 1
-			cur := cur - 1
-			continue
+	until cur == a->begin || cur->a >= (cur - 1)->a
+		cur swap cur - 1
+		cur := cur - 1
 
 -push[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe
 	if a->end == a->alloc-end

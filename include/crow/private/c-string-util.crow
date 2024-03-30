@@ -29,12 +29,9 @@ find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 # Pointer to the end of a c-string.
 find-c-string-end c-string(a c-string) bare, unsafe
 	cur mut = a
-	loop
-		if *cur == "\0"
-			break cur
-		else
-			cur +:= 1
-			continue
+	until *cur == "\0"
+		cur +:= 1
+	cur
 
 # Pointer to the end of a c-string.
 find-c-string-end char8 mut*(a char8 mut*) bare, unsafe

@@ -63,7 +63,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		(in ConcreteExprKind.ClosureCreate) {
 			// TODO: validate 'type' is a record and this creates it
 		},
-		(in ConcreteExprKind.ClosureGet x) @safe {
+		(in ConcreteExprKind.ClosureGet x) {
 			checkType(ctx, type, x.closureRef.type);
 		},
 		(in ConcreteExprKind.ClosureSet x) {
@@ -109,16 +109,12 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, x.local.type, x.value);
 		},
 		(in ConcreteExprKind.Loop x) {
-			checkExpr(ctx, ctx.types.void_, x.body_);
+			checkExpr(ctx, type, x.body_);
 		},
 		(in ConcreteExprKind.LoopBreak x) {
-			assert(isVoid(type));
-			// TODO: use type from loop
-			checkExprAnyType(ctx, x.value);
+			checkExpr(ctx, type, x.value);
 		},
-		(in ConcreteExprKind.LoopContinue) {
-			assert(isVoid(type));
-		},
+		(in ConcreteExprKind.LoopContinue x) {},
 		(in ConcreteExprKind.MatchEnumOrIntegral x) {
 			ConcreteStructBody body_ = mustBeByVal(x.matched.type).body_;
 			assert(

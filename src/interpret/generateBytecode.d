@@ -112,7 +112,7 @@ private ByteCode generateBytecodeInner(
 		mapFullIndexMap!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(LowFunIndex funIndex, in LowFun fun) @safe {
+			(LowFunIndex funIndex, in LowFun fun) {
 				ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc, writer, funToReferences, text.info, vars, modelProgram, program,

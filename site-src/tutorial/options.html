@@ -92,3 +92,91 @@
 			info log empty!
 	</crow-runnable>
 </section>
+<section>
+	<h2>Optional calls</h2>
+	<p>
+		In contrast with forcing an option, <code>x?.f</code> calls <code>f</code> only if <code>x</code> is non-empty.
+	</p>
+	<crow-runnable>
+		main void()
+			empty string? = ()
+			info log "{empty?.reverse}"
+			non-empty string? = "foo",
+			info log "{non-empty?.reverse}"
+			()
+
+		to string(a string?)
+			a ?? "empty"
+	</crow-runnable>
+
+	<p>
+		You can also use <code>x?[y]</code> to optionally subscript.
+	</p>
+	<crow-runnable>
+		main void()
+			empty string[]? = ()
+			info log "{empty?[1]}"
+			non-empty string[]? = ("foo", "bar"),
+			info log "{non-empty?[1]}"
+			()
+
+		to string(a string?)
+			a ?? "empty"
+	</crow-runnable>
+
+</section>
+<section>
+	<h2>Option conditions</h2>
+
+	<p>
+		The left hand side of <code>?=</code> is a destructure.
+		Here <code>_, x</code> destructures a <code>(nat, string)</code>.
+	</p>
+
+	<crow-runnable>
+		main void()
+			opt (nat, string)? = (1, "one"),
+			if _, x ?= opt
+				info log x
+	</crow-runnable>
+
+	<p>
+		Other expressions besides <code class="keyword">if</code> can use option conditions too.
+		<br />
+		Here's an example with <code>guard</code>:
+	</p>
+
+	<crow-runnable>
+		main void()
+			opt nat? = 1,
+			guard x ?= opt
+			info log "got {x}"
+	</crow-runnable>
+
+	<p>
+		It works in <code>while</code> or <code>until</code> loops too.
+	</p>
+
+	<crow-runnable>
+		main void()
+			x mut nat = 111
+			until tenth ?= x divide-exact 10
+				x +:= 1
+			info log "tenth is {tenth}"
+
+			x := tenth
+			while half ?= x divide-exact 2
+				info log "half is {half}"
+				x := half
+
+		divide-exact nat?(a nat, divisor nat)
+			if a is-multiple-of divisor
+				a / divisor,
+	</crow-runnable>
+
+	<p>
+		For a <code>while</code> loop, the variable is only visible <em>inside</em> the loop.
+		<br />
+		For an <code>until</code> loop, the variable is only visible <em>after</em> the loop.
+	</p>
+</section>

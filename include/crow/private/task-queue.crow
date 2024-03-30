@@ -58,12 +58,8 @@ pop-task pop-task-result(a task-queue mut*, cur-time timestamp) bare, unsafe
 
 # Move timed tasks to the non-timed queue if they are ready
 -move-timed-tasks void(a task-queue mut*, cur-time timestamp) bare, unsafe
-	loop
-		if t ?= a.timed dequeue-if-less-or-equal cur-time
-			a.non-timed enqueue t.exclusion, t.action
-			continue
-		else
-			break
+	while t ?= a.timed dequeue-if-less-or-equal cur-time
+		a.non-timed enqueue t.exclusion, t.action
 
 release-exclusion void(a task-queue mut*, exclusion exclusion) bare, unsafe
 	a.non-timed release-exclusion exclusion
@@ -76,10 +72,6 @@ enqueue-task void(a task-queue mut*, task task) bare, unsafe
 
 enqueue-tasks void(a task-queue mut*, tasks task array) bare, unsafe
 	cur mut = tasks begin
-	loop
-		if task, next ?= cur next
-			a enqueue-task task
-			cur := next
-			continue
-		else
-			break
+	while task, next ?= cur next
+		a enqueue-task task
+		cur := next

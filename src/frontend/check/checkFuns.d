@@ -225,7 +225,7 @@ Params checkParams(
 				delayStructInsts, varargs.param, none!Type, DestructureKind.param);
 			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
 				(in Type.Bogus _) =>
-					some(Type(Type.Bogus())),
+					some(Type.bogus),
 				(in TypeParamIndex _) =>
 					none!Type,
 				(in StructInst x) =>
@@ -235,7 +235,7 @@ Params checkParams(
 			if (!has(elementType))
 				addDiag(ctx, varargs.param.range, Diag(Diag.VarargsParamMustBeArray()));
 			return Params(allocate(ctx.alloc,
-				Params.Varargs(param, has(elementType) ? force(elementType) : Type(Type.Bogus()))));
+				Params.Varargs(param, has(elementType) ? force(elementType) : Type.bogus)));
 		});
 
 Symbol getNameFromExternModifier(ref CheckCtx ctx, in FunDeclAst a) {

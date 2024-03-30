@@ -61,12 +61,12 @@ Throws if the result would overflow.
 
 # Throws if the result would overflow.
 +* nat64(a nat64, b nat64) bare
-	# TODO: better safety check
-	if a != 0 && b != 0
-		res = a wrap-mul b
-		assert res / b == a : "integer overflow"
-		assert res / a == b : "integer overflow"
-		res
+	# TODO:PERF better safety check
+	guard a != 0 && b != 0
+	res = a wrap-mul b
+	assert res / b == a : "integer overflow"
+	assert res / a == b : "integer overflow"
+	res
 
 
 ###

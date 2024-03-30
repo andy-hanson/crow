@@ -157,6 +157,7 @@ enum Token {
 	forceCtx, // 'force-ctx'
 	function_, // 'function'
 	global, // 'global'
+	guard, // 'guard'
 	if_, // 'if'
 	import_, // 'import'
 	literalFloat, // Use asLiteralFloat
@@ -184,6 +185,8 @@ enum Token {
 	parenRight, // ')'
 	pure_, // 'pure'
 	question, // '?'
+	questionDot, // '?.'
+	questionBracket, // '?['
 	questionEqual, // '?='
 	quoteDouble, // '"'
 	quoteDouble3, // '"""'
@@ -336,11 +339,22 @@ TokenAndData lexToken(ref MutCString ptr, IndentKind indentKind, ref uint curInd
 		case '/':
 			return operatorToken(ptr, symbol!"/");
 		case '?':
-			return tryTakeChar(ptr, '=')
-				? plainToken(Token.questionEqual)
-				: tryTakeChar(ptr, '?')
-				? operatorToken(ptr, symbol!"??")
-				: plainToken(Token.question);
+			switch (*ptr) {
+				case '=':
+					ptr++;
+					return plainToken(Token.questionEqual);
+				case '.':
+					ptr++;
+					return plainToken(Token.questionDot);
+				case '[':
+					ptr++;
+					return plainToken(Token.questionBracket);
+				case '?':
+					ptr++;
+					return operatorToken(ptr, symbol!"??");
+				default:
+					return plainToken(Token.question);
+			}
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
 			ptr = start;
@@ -542,6 +556,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.function_;
 		case symbol!"global".value:
 			return Token.global;
+		case symbol!"guard".value:
+			return Token.guard;
 		case symbol!"if".value:
 			return Token.if_;
 		case symbol!"import".value:

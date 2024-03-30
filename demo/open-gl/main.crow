@@ -92,11 +92,9 @@ main nat^(_ string[]) summon
 
 		<- for : 25.msec interval
 			SDL_PumpEvents
-			if look-for-quit-event
-				break
-			else
-				<- renderer main-loop-body
-				continue
+			guard !look-for-quit-event : break
+			<- renderer main-loop-body
+			continue
 
 		# SDL_DestroyWindow hangs on Windows if called from a different thread
 		renderer.render-thread-id run-with-thread-id () =>

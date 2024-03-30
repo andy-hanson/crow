@@ -2,14 +2,14 @@
 	<h2>Throwing exceptions</h2>
 
 	Sometimes a function has no correct return value given its inputs and should throw an exception instead.
-	For example, <code class="function">+</code> on <code class="type">nat</code>s will throw an exception if
+	<br />
+	For example, <code class="function">+</code> on integral types will throw an exception if
 	the result is too big to represent.
-
-	There are 3 keywords for throwing exceptions, each having basically the same effect.
+	<br />
 
 	<h3>Assertions</h3>
 	<p>
-		<code class="keyword">assert</code> is the most common way to conditionally throw an exception.
+		<code class="keyword">assert</code> is the most common way to throw an exception.
 		It throws an exception if the condition is false.
 	</p>
 	<crow-runnable>
@@ -24,7 +24,18 @@
 	</p>
 	<crow-runnable>
 		main void()
-			assert 3::nat &lt; 2 : "custom message"
+			assert 3::nat &lt; 2 : "Custom message"
+	</crow-runnable>
+
+	<p>
+		Like a <code class="keyword">guard</code>, an <code class="keyword">assert</code> can take an option condition.
+	</p>
+
+	<crow-runnable>
+		main void()
+			xs nat mut[] = 1,
+			assert x ?= xs pop
+			info log "got {x}"
 	</crow-runnable>
 
 	<p>
@@ -37,8 +48,21 @@
 	</crow-runnable>
 
 	<p>
+		A <code class="keyword">forbid</code> can also take an option condition.
+		<br />
+		The variable will be visible for the custom error message.
+	</p>
+
+	<crow-runnable>
+		main void()
+			xs nat mut[] = 1,
+			forbid x ?= xs pop : "Unexpectedly popped {x}"
+	</crow-runnable>
+
+	<p>
 		<code class="keyword">throw</code> throws an exception unconditionally.
-		It takes the error message. This can be any expression of type <code class="type">string</code>.
+		This time the error message is non-optional.
+		It can be any expression of type <code class="type">string</code>.
 	</p>
 	<crow-runnable>
 		main void()

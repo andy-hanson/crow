@@ -70,13 +70,11 @@ If `a` as a single element, returns that; else throws an exception.
 Useful for arguments that should have a single string as their value.
 ###
 +single-string-or-throw string(a string[]?, option-name string)
-	if strs ?= a
-		match strs size
-		as 0
-			throw "{option-name} needs a value"
-		as 1
-			strs[0]
-		else
-			throw "{option-name} got too many values"
+	assert strs ?= a : "Need {option-name}"
+	match strs size
+	as 0
+		throw "{option-name} needs a value"
+	as 1
+		strs[0]
 	else
-		throw "Need {option-name}"
+		throw "{option-name} got too many values"

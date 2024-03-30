@@ -5,7 +5,6 @@ module lower.generateMarkVisitFun;
 import model.lowModel :
 	AllLowTypes,
 	LowExpr,
-	LowExprKind,
 	LowField,
 	LowFun,
 	LowFunSource,
@@ -159,26 +158,24 @@ LowFun generateMarkVisitArr(
 			LowExpr getCur = genLocalGet(range, cur);
 			LowLocal* end = genLocal(alloc, symbol!"end", 3, LowType(elementPointerType));
 			LowExpr getEnd = genLocalGet(range, end);
-			LowExpr theLoop = genLoop(alloc, range, voidType, (LowExprKind.Loop* loop) {
+			LowExpr loop = genLoop(alloc, range, voidType, genSeq(
+				alloc, range,
 				// mark-ctx mark-visit *cur
-				LowExpr markVisitCur = genCall(alloc, range, force(markVisitElementFun), voidType, [
+				genCall(alloc, range, force(markVisitElementFun), voidType, [
 					getMarkCtx,
-					genDerefRawPtr(alloc, range, getCur)]);
+					genDerefRawPtr(alloc, range, getCur)]),
 				// cur := cur + 1
-				LowExpr incrCur = genLocalSet(alloc, range, cur,
-					genIncrPointer(alloc, range, elementPointerType, getCur));
-				// if cur == end \n break \n else \n continue
-				LowExpr breakOrContinue = genIf(
+				genLocalSet(alloc, range, cur, genIncrPointer(alloc, range, elementPointerType, getCur)),
+				// cur == end ? break : continue
+				genIf(
 					alloc,
 					range,
 					genPtrEq(alloc, range, getCur, getEnd),
-					genLoopBreak(alloc, range, loop, voidValue),
-					genLoopContinue(range, loop));
-				return genSeq(alloc, range, markVisitCur, incrCur, breakOrContinue);
-			});
+					genLoopBreak(alloc, range, voidValue),
+					genLoopContinue(range))));
+
 			LowExpr ifBody = genLet(alloc, range, cur, getData,
-				genLet(alloc, range, end, genAddPtr(alloc, elementPointerType, range, getData, getSize),
-					theLoop));
+				genLet(alloc, range, end, genAddPtr(alloc, elementPointerType, range, getData, getSize), loop));
 			return genIf(alloc, range, callMark, ifBody, voidValue);
 		} else
 			return genDrop(alloc, range, callMark);

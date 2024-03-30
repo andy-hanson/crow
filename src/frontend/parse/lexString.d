@@ -33,7 +33,7 @@ StringPart takeStringPart(
 	in AddDiag addDiag,
 ) {
 	Builder!(immutable char) res = Builder!(immutable char)(&alloc);
-	StringPart.After after = () @safe {
+	StringPart.After after = () {
 		while (true) {
 			CString start = ptr;
 			switch (*ptr) {

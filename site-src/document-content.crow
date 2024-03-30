@@ -74,12 +74,11 @@ module-content string(a module, all-exports all-exports)
 -spec-name-reference string(name symbol, ctx ctx)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
 -type-or-spec-name-reference string(name symbol, map module-path[symbol], kind string, ctx ctx)
-	if module ?= map[name]
-		module-path string = if module != ctx.current-module
-			"/doc/{(module.to::string try-remove-end ".crow")!}.html"
-		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
-	else
-		throw "Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
+	assert module ?= map[name] :
+		"Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
+	module-path string = if module != ctx.current-module
+		"/doc/{(module.to::string try-remove-end ".crow")!}.html"
+	"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 
 -module-top string(path module-path)
 	url string = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
@@ -143,10 +142,10 @@ module-content string(a module, all-exports all-exports)
 		"type"
 
 -type-params-content string(a type-param[])
-	unless a is-empty
-		type-params = ", " join for x : a
-			"""<code class="typeParameter">{x name}</code>"""
-		"""<span class="type-params">[{type-params}]</span>"""
+	guard !a.is-empty
+	type-params = ", " join for x : a
+		"""<code class="typeParameter">{x name}</code>"""
+	"""<span class="type-params">[{type-params}]</span>"""
 
 -export-header-extra string(a module-export-value, ctx ctx)
 	match a
@@ -326,7 +325,7 @@ special-specs symbol set()
 	assert a.size == 1
 	a[0]
 
-format-comment string(a string)
+-format-comment string(a string)
 	match comment-part.many parse a.strip
 	as ok parts
 		parts format-comment-parts

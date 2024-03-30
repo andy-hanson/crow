@@ -21,6 +21,7 @@ import model.ast :
 	CallAst,
 	CaseAst,
 	CaseMemberAst,
+	ConditionAst,
 	DestructureAst,
 	IdentifierAst,
 	EnumOrFlagsMemberAst,
@@ -29,7 +30,6 @@ import model.ast :
 	FunDeclAst,
 	ModifierAst,
 	IfAst,
-	IfConditionAst,
 	ImportOrExportAst,
 	keywordRange,
 	LambdaAst,
@@ -62,9 +62,11 @@ import model.model :
 	BogusExpr,
 	BuiltinType,
 	CallExpr,
+	CallOptionExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
+	Condition,
 	Destructure,
 	EnumOrFlagsMember,
 	Expr,
@@ -73,7 +75,6 @@ import model.model :
 	FunDeclSource,
 	FunPointerExpr,
 	IfExpr,
-	IfOptionExpr,
 	ImportOrExport,
 	ImportOrExportKind,
 	IntegralType,
@@ -127,7 +128,7 @@ import util.col.array :
 	SmallArray;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
-import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
+import util.opt : force, forceNonRef, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : Pos, Range;
 import util.union_ : Union;
 import util.util : enumConvert;
@@ -479,7 +480,9 @@ Opt!PositionKind positionInRecordOrUnionMemberParameter(Member)(
 			Opt!Range mutRange = param.mutRange;
 			return has(mutRange) && hasPos(force(mutRange), pos) ? cbMutabilityPosition(member) : none!PositionKind;
 		},
-		() => positionInType(TypeContainer(decl), member.type, *force(param.type), pos));
+		() => has(param.type)
+			? positionInType(TypeContainer(decl), member.type, *force(param.type), pos)
+			: none!PositionKind);
 
 Opt!PositionKind positionInRecordOrUnionMember(Member)(
 	StructDecl* decl,
@@ -570,32 +573,40 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 		expressionPosition(ExpressionPositionKind(
 			ExpressionPositionKind.LoopKeyword(kind, stackMapMustGet(loops, loop))));
 	return a.expr.kind.match!(Opt!PositionKind)(
-		(ref AssertOrForbidExpr x) =>
-			keywordAt(ast.kind.as!(AssertOrForbidAst*).keywordRange(ast), enumConvert!ExprKeyword(x.kind)),
+		(ref AssertOrForbidExpr x) {
+			AssertOrForbidAst assert_ = ast.kind.as!AssertOrForbidAst;
+			return optOr!PositionKind(
+				keywordAt(assert_.keywordRange(ast), x.isForbid ? ExprKeyword.forbid : ExprKeyword.assert_),
+				() => positionAtCondition(ctx, x.condition, a, assert_.condition, pos),
+				() => has(assert_.thrown)
+					? keywordAt(force(assert_.thrown).colonRange, ExprKeyword.colon)
+					: none!PositionKind);
+		},
 		(BogusExpr _) =>
 			none!PositionKind,
 		(CallExpr x) =>
 			optIf(posIsAtCall(*ast, pos), () =>
 				expressionPosition(ExpressionPositionKind(x))),
+		(ref CallOptionExpr x) =>
+			optOr!PositionKind(
+				keywordAt(forceNonRef(ast.kind.as!CallAst.keywordRange), ExprKeyword.questionDotOrSubscript),
+				() => optIf(posIsAtCall(*ast, pos), () =>
+					expressionPosition(ExpressionPositionKind(x)))),
 		(ClosureGetExpr x) =>
 			some(local(ExpressionPositionKind.LocalRef.Kind.closureGet, x.local)),
-		(ClosureSetExpr x) {
-			return optIf(isAtAssignment(ast, pos), () =>
-				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local));
-		},
+		(ClosureSetExpr x) =>
+			optIf(isAtAssignment(ast, pos), () =>
+				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local)),
 		(FunPointerExpr x) =>
 			some(expressionPosition(ExpressionPositionKind(x))),
 		(ref IfExpr x) {
-			Opt!ExprKeyword k = keywordAtIf(ast, pos);
-			return optIf(has(k), () => keyword(force(k)));
-		},
-		(ref IfOptionExpr x) {
 			IfAst if_ = ast.kind.as!IfAst;
-			IfConditionAst.UnpackOption* cond = if_.condition.as!(IfConditionAst.UnpackOption*);
 			return optOr!PositionKind(
-				keywordAt(if_.firstKeywordRange, ExprKeyword.ifOrUnless),
-				() => inDestructure(x.destructure, cond.destructure),
-				() => keywordAt(cond.questionEqualsRange, ExprKeyword.ifOrUnless));
+				keywordAt(if_.firstKeywordRange, ExprKeyword.guardIfOrUnless),
+				() => positionAtCondition(ctx, x.condition, a, if_.condition, pos),
+				() => has(if_.secondKeywordRange)
+					? keywordAt(forceNonRef(if_.secondKeywordRange), ifSecondKeyword(if_.kind))
+					: none!PositionKind);
 		},
 		(ref LambdaExpr x) {
 			Opt!Range arrowRange = ast.kind.as!(LambdaAst*).arrowRange;
@@ -624,10 +635,14 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				loopKeyword(ExpressionPositionKind.LoopKeyword.Kind.break_, x.loop)),
 		(LoopContinueExpr x) =>
 			some(loopKeyword(ExpressionPositionKind.LoopKeyword.Kind.continue_, x.loop)),
-		(ref LoopWhileOrUntilExpr x) =>
-			keywordAt(
-				ast.kind.as!(LoopWhileOrUntilAst*).keywordRange(ast),
-				x.isUntil ? ExprKeyword.until : ExprKeyword.while_),
+		(ref LoopWhileOrUntilExpr x) {
+			LoopWhileOrUntilAst* loop = ast.kind.as!(LoopWhileOrUntilAst*);
+			return optOr!PositionKind(
+				keywordAt(
+					loop.keywordRange(ast),
+					x.isUntil ? ExprKeyword.until : ExprKeyword.while_),
+				() => positionAtCondition(ctx, x.condition, a, loop.condition, pos));
+		},
 		(ref MatchEnumExpr x) =>
 			positionAtMatchEnum(ctx, a, x, *ast, pos),
 		(ref MatchIntegralExpr x) =>
@@ -656,6 +671,42 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 		});
 }
 
+ExprKeyword ifSecondKeyword(IfAst.Kind kind) {
+	final switch (kind) {
+		case IfAst.Kind.guardWithColon:
+		case IfAst.Kind.ternaryWithElse:
+			return ExprKeyword.colon;
+		case IfAst.Kind.ifElif:
+			return ExprKeyword.elif;
+		case IfAst.Kind.ifElse:
+			return ExprKeyword.else_;
+		case IfAst.Kind.guardWithoutColon:
+		case IfAst.Kind.ifWithoutElse:
+		case IfAst.Kind.ternaryWithoutElse:
+		case IfAst.Kind.unless:
+			assert(0);
+	}
+}
+
+Opt!PositionKind positionAtCondition(
+	in ExprCtx ctx,
+	in Condition condition,
+	ExprRef source,
+	in ConditionAst ast,
+	Pos pos,
+) =>
+	condition.matchIn!(Opt!PositionKind)(
+		(in Expr _) =>
+			none!PositionKind,
+		(in Condition.UnpackOption x) {
+			ConditionAst.UnpackOption* unpackAst = ast.as!(ConditionAst.UnpackOption*);
+			return optOr!PositionKind(
+				positionInDestructure(ctx, x.destructure, unpackAst.destructure, pos),
+				() => optIf(hasPos(unpackAst.questionEqualsRange, pos), () =>
+					PositionKind(ExpressionPosition(ctx.container, source, ExpressionPositionKind(
+						ExprKeyword.questionEquals)))));
+		});
+
 bool isAtAssignment(in ExprAst* ast, Pos pos) {
 	if (ast.kind.isA!(AssignmentAst*)) {
 		AssignmentAst* assign = ast.kind.as!(AssignmentAst*);
@@ -667,26 +718,6 @@ bool isAtAssignment(in ExprAst* ast, Pos pos) {
 		assert(false);
 }
 
-Opt!ExprKeyword keywordAtIf(in ExprAst* ast, Pos pos) {
-	IfAst if_ = ast.kind.as!IfAst;
-	if (hasPos(if_.firstKeywordRange, pos))
-		return some(ExprKeyword.ifOrUnless);
-	else if (hasPos(if_.secondKeywordRange, pos))
-		final switch (if_.kind) {
-			case IfAst.Kind.ifElif:
-				return some(ExprKeyword.elif);
-			case IfAst.Kind.ifElse:
-			case IfAst.Kind.ternaryWithElse:
-				return some(ExprKeyword.else_);
-			case IfAst.Kind.ifWithoutElse:
-			case IfAst.Kind.ternaryWithoutElse:
-			case IfAst.Kind.unless:
-				assert(0);
-		}
-	else
-		return none!ExprKeyword;
-}
-
 bool posIsAtCall(in ExprAst a, Pos pos) {
 	if (a.kind.isA!CallAst) {
 		CallAst call = a.kind.as!CallAst;
@@ -695,11 +726,13 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 			case CallAst.Style.emptyParens:
 			case CallAst.Style.implicit:
 			case CallAst.Style.subscript:
+			case CallAst.Style.questionSubscript:
 				return false;
 			case CallAst.Style.dot:
 			case CallAst.Style.infix:
 			case CallAst.Style.prefixBang:
 			case CallAst.Style.prefixOperator:
+			case CallAst.Style.questionDot:
 			case CallAst.Style.single:
 			case CallAst.Style.suffixBang:
 				return hasPos(call.funName.range, pos);

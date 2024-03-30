@@ -71,14 +71,12 @@ If the performance measure `measure-name` is enabled,
 this contribues to its performance measurement.
 ###
 +with-block[t] t(a perf-measure, f t mut())
-	if index ?= (trusted measure-names) index-of a.measure-name
-		start = perf-now
-		res = f[]
-		nsec = perf-now - start
-		(trusted measure-accums)[index] +:= (1, nsec)
-		res
-	else
-		f[]
+	guard index ?= (trusted measure-names) index-of a.measure-name : f[]
+	start = perf-now
+	res = f[]
+	nsec = perf-now - start
+	(trusted measure-accums)[index] +:= (1, nsec)
+	res
 
 # List of all names being measured
 -measure-names thread-local(symbol array)

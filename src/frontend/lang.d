@@ -22,8 +22,4 @@ enum OptimizationLevel {
 	o2,
 }
 
-size_t maxClosureFields() => 16;
-size_t maxSpecImpls() => 32;
 size_t maxSpecDepth() => 8;
-size_t maxTypeParams() => 10;
-size_t maxTupleSize() => 9;

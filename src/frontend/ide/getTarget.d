@@ -10,6 +10,7 @@ import model.model :
 	Called,
 	CalledSpecSig,
 	CallExpr,
+	CallOptionExpr,
 	Destructure,
 	EnumFunction,
 	EnumOrFlagsMember,
@@ -123,6 +124,8 @@ Opt!Target exprTarget(ExpressionPosition a) =>
 	a.kind.match!(Opt!Target)(
 		(CallExpr x) =>
 			calledTarget(x.called),
+		(CallOptionExpr x) =>
+			calledTarget(x.called),
 		(ExprKeyword x) =>
 			none!Target,
 		(FunPointerExpr x) =>
@@ -178,6 +181,8 @@ Opt!Target calledTarget(ref Called a) =>
 					recordFieldTarget(decl, x.fieldIndex),
 				(FunBody.RecordFieldSet x) =>
 					recordFieldTarget(decl, x.fieldIndex),
+				(FunBody.UnionMemberGet x) =>
+					unionMemberTarget(decl, x.memberIndex),
 				(FunBody.VarGet x) =>
 					Target(x.var),
 				(FunBody.VarSet x) =>
@@ -192,4 +197,9 @@ Target returnTypeTarget(FunDecl* fun) =>
 Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
 	StructDecl* record = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
 	return Target(&record.body_.as!(StructBody.Record).fields[fieldIndex]);
+}
+
+Target unionMemberTarget(FunDecl* fun, size_t memberIndex) {
+	StructDecl* union_ = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
+	return Target(&union_.body_.as!(StructBody.Union*).members[memberIndex]);
 }

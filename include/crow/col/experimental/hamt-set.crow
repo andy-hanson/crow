@@ -4,7 +4,7 @@ import
 	../../fun-util: subscript
 	../../misc: key, new, void
 	../../number: nat64
-	../../option: is-empty, new, option
+	../../option: ??, is-empty, new, option
 	../../tuple: a, b, new
 	../array: array
 	../collection: for-loop
@@ -31,10 +31,7 @@ import
 	!a.inner[value].is-empty
 
 + ~[t] t hamt-set(a t hamt-set, value t) t key
-	if res ?= a try-add value
-		res
-	else
-		a
+	a try-add value ?? a
 
 +try-add[t] t hamt-set?(a t hamt-set, value t) t key
 	match a.inner get-or-add value, () => ()
@@ -44,10 +41,7 @@ import
 		(res.a,),
 
 + -[t] t hamt-set(a t hamt-set, value t) t key
-	if res ?= a try-remove value
-		res
-	else
-		a
+	a try-remove value ?? a
 
 +try-remove[t] t hamt-set?(a t hamt-set, value t) t key
 	if res ?= a.inner try-remove value

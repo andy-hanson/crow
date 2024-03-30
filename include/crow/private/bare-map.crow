@@ -131,9 +131,9 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 			continue
 
 -try-insert[k, v] bool(entry (k, v) map-pair mut*, key k) bare, unsafe, k key, v new
-	if entry->key == invalid
-		*entry := (key, ())
-		true
+	guard entry->key == invalid
+	*entry := (key, ())
+	true
 
 -try-evict[k, v] (k, v) map-pair mut*?(
 	a (k, v) bare-map mut*,
@@ -161,17 +161,17 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 		new-half-capacity *:= 2
 		out := new-half-capacity,
 		# First loop: Move keys only
-		cur mut = a->begin-full.as-const
+		pair mut = a->begin-full.as-const
 		worked bool = loop
-			if cur == a->end-full.as-const
+			if pair == a->end-full.as-const
 				break true
-			elif cur->key == invalid
-				cur +:= 1
+			elif pair->key == invalid
+				pair +:= 1
 				continue
 			else
 				# TODO: should not need type annotation
-				if (&out)::((k, v) bare-map mut*) try-add-key cur->key
-					cur +:= 1
+				if (&out)::((k, v) bare-map mut*) try-add-key pair->key
+					pair +:= 1
 					continue
 				else
 					break false

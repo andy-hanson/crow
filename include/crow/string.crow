@@ -1,7 +1,7 @@
 no-std
 import
 	./bits: ~, &, |, <<, >>, bits-intersect, has-all-bits
-	./bool: ||, bool, false, true
+	./bool: ||, bool, false, not, true
 	./compare: <, compare, comparison, equal
 	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
 	./col/collection:
@@ -285,14 +285,9 @@ Result is only digits, no punctuation.
 	a.to::float64 to
 
 +to string(a float64)
-	if a is-nan
-		"NaN"
-	else
-		pos = a.abs to-string-positive
-		if a < 0
-			"-{pos}"
-		else
-			pos
+	guard !a.is-nan : "NaN"
+	pos = a.abs to-string-positive
+	a < 0 ? "-{pos}" : pos
 
 -to-string-positive string(a float64)
 	# TODO: Use a real float to string algorithm
@@ -317,15 +312,12 @@ region spec impls (see collection.crow)
 +iterate bool(a string, f bool mut(x char32))
 	iter mut = a begin
 	loop
-		if x, next ?= iter next
-			if f[x]
-				break true
-			else
-				iter := next
-				continue
+		guard x, next ?= iter next : break false
+		if f[x]
+			break true
 		else
-			break false
-	#a.inner iterate f
+			iter := next
+			continue
 
 +string-iterator record by-val
 	-inner char8 list-iterator
@@ -346,14 +338,14 @@ region spec impls (see collection.crow)
 	(a.inner slice b.inner),
 
 +next (char32, string-iterator)?(a string-iterator)
-	if x, next ?= a.inner next
-		char, next2 = x unicode-decode next
-		(char, (next2,)),
+	guard x, next ?= a.inner next
+	char, next2 = x unicode-decode next
+	(char, (next2,)),
 
 +prev (string-iterator, char32)?(a string-iterator)
-	if prev, x ?= a.inner prev
-		prev2, char = prev unicode-decode-prev x
-		((prev2,), char),
+	guard prev, x ?= a.inner prev
+	prev2, char = prev unicode-decode-prev x
+	((prev2,), char),
 
 +string-builder record mut
 	-inner char8 list-builder

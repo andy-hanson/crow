@@ -18,6 +18,7 @@ import model.ast :
 	CallNamedAst,
 	CaseAst,
 	CaseMemberAst,
+	ConditionAst,
 	DestructureAst,
 	DoAst,
 	EmptyAst,
@@ -29,7 +30,6 @@ import model.ast :
 	ModifierAst,
 	IdentifierAst,
 	IfAst,
-	IfConditionAst,
 	ImportOrExportAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
@@ -464,9 +464,10 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in AssertOrForbidAst x) {
 			// Only the length matters, and "assert" is same length as "forbid"
 			keyword(ctx.tokens, a.range.start, "assert");
-			addExprTokens(ctx, x.condition);
+			addConditionTokens(ctx, x.condition);
 			if (has(x.thrown))
-				addExprTokens(ctx, force(x.thrown));
+				addExprTokens(ctx, force(x.thrown).expr);
+			addExprTokens(ctx, *x.after);
 		},
 		(in AssignmentAst x) {
 			addExprTokens(ctx, x.left);
@@ -488,6 +489,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			final switch (x.style) {
 				case CallAst.Style.dot:
 				case CallAst.Style.infix:
+				case CallAst.Style.questionDot:
 					addExprTokens(ctx, x.args[0]);
 					addName();
 					addExprsTokens(ctx, x.args[1 .. $]);
@@ -510,6 +512,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				case CallAst.Style.comma:
 				case CallAst.Style.implicit:
 				case CallAst.Style.subscript:
+				case CallAst.Style.questionSubscript:
 					addExprsTokens(ctx, x.args);
 					break;
 			}
@@ -534,16 +537,9 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			reference(ctx.tokens, TokenType.variable, a.range);
 		},
 		(in IfAst x) {
-			x.condition.matchIn!void(
-				(in IfConditionAst.UnpackOption cond) {
-					addDestructureTokens(ctx, cond.destructure);
-					addExprTokens(ctx, *cond.option);
-				},
-				(in ExprAst cond) {
-					addExprTokens(ctx, cond);
-				});
-			addExprTokens(ctx, x.then);
-			addExprTokens(ctx, x.else_);
+			addConditionTokens(ctx, x.condition);
+			foreach (ExprAst branch; x.allBranches)
+				addExprTokens(ctx, branch);
 		},
 		(in InterpolatedAst x) {
 			advanceTo(ctx.tokens, a.range.start);
@@ -583,8 +579,9 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in LoopContinueAst _) {},
 		(in LoopWhileOrUntilAst x) {
-			addExprTokens(ctx, x.condition);
+			addConditionTokens(ctx, x.condition);
 			addExprTokens(ctx, x.body_);
+			addExprTokens(ctx, x.after);
 		},
 		(in MatchAst x) {
 			addExprTokens(ctx, *x.matched);
@@ -639,6 +636,17 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addDestructureTokens(ctx, x.param);
 			addExprTokens(ctx, x.arg);
 			addExprTokens(ctx, x.body_);
+		});
+}
+
+void addConditionTokens(scope ref Ctx ctx, in ConditionAst a) {
+	a.matchIn!void(
+		(in ExprAst x) {
+			addExprTokens(ctx, x);
+		},
+		(in ConditionAst.UnpackOption x) {
+			addDestructureTokens(ctx, x.destructure);
+			addExprTokens(ctx, *x.option);
 		});
 }
 

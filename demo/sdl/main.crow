@@ -25,17 +25,14 @@ main nat^(_ string[]) summon
 		render-thread-id = cur-thread-id
 		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 		window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-		if window == null
-			"SDL_CreateWindow" fail-sdl-error
+		assert window != null : "SDL_CreateWindow" describe-sdl-error
 		renderer = window renderer
 		texture = renderer create-texture
 		<- for : 25.msec interval
 			SDL_PumpEvents
-			if look-for-quit-event
-				break
-			else
-				<- renderer main-loop-body texture, render-thread-id
-				continue
+			guard !look-for-quit-event : break
+			<- renderer main-loop-body texture, render-thread-id
+			continue
 
 		render-thread-id run-with-thread-id () =>
 			# TODO: use 'finally'
@@ -101,24 +98,19 @@ main nat^(_ string[]) summon
 
 -renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
 	res = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	if res == null
-		"SDL_CreateRenderer" fail-sdl-error
+	assert res != null : "SDL_CreateRenderer" describe-sdl-error
 	res
 
 -create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to SDL_LoadBMP_RW 0
-	if bmp == null
-		"sdl-loadbmp-error" fail-sdl-error
+	assert bmp != null : "sdl-loadbmp-error" describe-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
 	bmp SDL_FreeSurface
-	if texture == null
-		"SDL_CreateTextureFromSurface" fail-sdl-error
+	assert texture != null : "SDL_CreateTextureFromSurface" describe-sdl-error
 	texture
 
 -handle-sdl-error void(err c-int, description string) summon, unsafe
-	unless err == 0
-		description fail-sdl-error
+	assert err == 0 : description describe-sdl-error
 
--fail-sdl-error void(description string) summon, unsafe
-	throw "sdl error in {description}: {SDL_GetError}"
-	SDL_Quit
+-describe-sdl-error string(description string) summon, unsafe
+	"sdl error in {description}: {SDL_GetError}"

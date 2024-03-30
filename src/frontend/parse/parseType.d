@@ -41,7 +41,7 @@ import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOr, some;
+import util.opt : force, forceNonRef, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Pos;
 import util.symbol : Symbol, symbol;
 import util.util : optEnumConvert;
@@ -317,19 +317,19 @@ TypeAst parseTypeSuffixesNonName(ref Lexer lexer, TypeAst left) {
 	return has(suffix) ? parseTypeSuffixesNonName(lexer, force(suffix)) : left;
 }
 
-Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe @nogc pure nothrow left) {
+Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe @nogc pure nothrow cbLeft) {
 	Pos suffixPos = curPos(lexer);
-	Opt!TypeAst suffix(TypeAst.SuffixSpecial.Kind kind) =>
-		some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(left(), suffixPos, kind))));
+	Opt!TypeAst suffix(TypeAst.SuffixSpecial.Kind kind, TypeAst left = cbLeft()) =>
+		some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(left, suffixPos, kind))));
 	Opt!TypeAst doubleSuffix(TypeAst.SuffixSpecial.Kind kind1, TypeAst.SuffixSpecial.Kind kind2) =>
 		some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
-			TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(left(), suffixPos, kind2))),
+			TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(cbLeft(), suffixPos, kind2))),
 			suffixPos + 1,
 			kind1))));
-	Opt!TypeAst mapLike(TypeAst.Map.Kind kind) {
+	Opt!TypeAst mapLike(TypeAst.Map.Kind kind, TypeAst left = cbLeft()) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left()]))));
+		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left]))));
 	}
 
 	switch (getPeekToken(lexer)) {
@@ -341,6 +341,12 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 			return tryTakeToken(lexer, Token.bracketRight)
 				? suffix(TypeAst.SuffixSpecial.Kind.list)
 				: mapLike(TypeAst.Map.Kind.data);
+		case Token.questionBracket:
+			mustTakeToken(lexer, Token.questionBracket);
+			TypeAst left = forceNonRef(suffix(TypeAst.SuffixSpecial.Kind.option));
+			return tryTakeToken(lexer, Token.bracketRight)
+				? suffix(TypeAst.SuffixSpecial.Kind.list, left)
+				: mapLike(TypeAst.Map.Kind.data, left);
 		case Token.operator:
 			return tryTakeOperator(lexer, symbol!"^")
 				? suffix(TypeAst.SuffixSpecial.Kind.future)
@@ -350,7 +356,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				? doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr)
 				: none!TypeAst;
 		case Token.mut:
-			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.mut, FunKind.mut, left), () {
+			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.mut, FunKind.mut, cbLeft), () {
 				Pos mutPos = curPos(lexer);
 				mustTakeToken(lexer, Token.mut);
 				return tryTakeToken(lexer, Token.bracketLeft)
@@ -367,11 +373,11 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 					}();
 			});
 		case Token.function_:
-			return tryParseFunType(lexer, suffixPos, Token.function_, FunKind.function_, left);
+			return tryParseFunType(lexer, suffixPos, Token.function_, FunKind.function_, cbLeft);
 		case Token.data:
-			return tryParseFunType(lexer, suffixPos, Token.data, FunKind.data, left);
+			return tryParseFunType(lexer, suffixPos, Token.data, FunKind.data, cbLeft);
 		case Token.shared_:
-			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.shared_, FunKind.shared_, left), () {
+			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.shared_, FunKind.shared_, cbLeft), () {
 				if (lookaheadOpenBracket(lexer)) {
 					mustTakeToken(lexer, Token.shared_);
 					mustTakeToken(lexer, Token.bracketLeft);

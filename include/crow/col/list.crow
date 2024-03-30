@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: &&, ||, bool, false
+	../bool: &&, ||, bool, false, not
 	../compare: !=, <, <=, >, compare, comparison, equal
 	../fun-util: subscript
 	../misc: ==, <=>, new
@@ -46,13 +46,10 @@ export
 -compute-total-size[t] nat64(a t array array) bare
 	total-size mut nat64 = 0
 	iter mut = a begin
-	loop
-		if x, next ?= iter next
-			total-size +:= x size
-			iter := next
-			continue
-		else
-			break total-size
+	while x, next ?= iter next
+		total-size +:= x size
+		iter := next
+	total-size
 -new[t] t array3d() bare
 	0, ()
 -new[t] t array3d(a t array2d)
@@ -74,13 +71,9 @@ export
 -compute-total-size[t] nat64(a t array2d array) bare
 	total-size mut nat64 = 0
 	iter mut = a begin
-	loop
-		if x, next ?= iter next
-			total-size +:= x total-size
-			iter := next
-			continue
-		else
-			break
+	while x, next ?= iter next
+		total-size +:= x total-size
+		iter := next
 	total-size
 
 -new[leaf, lower] (leaf, lower) node() leaf new
@@ -217,22 +210,19 @@ Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
 +~~[t] t[](a t[], b t[])
-	if a is-empty
-		b
-	elif b is-empty
-		a
-	else
-		# Concatenate the smaller list onto the bigger one.
-		match a.depth <=> b.depth
-		as less
+	guard !a.is-empty : b
+	guard !b.is-empty : a
+	# Concatenate the smaller list onto the bigger one.
+	match a.depth <=> b.depth
+	as less
+		(a.root cat-left-node-l1 b.root),
+	as equal
+		if a.size < b.size
 			(a.root cat-left-node-l1 b.root),
-		as equal
-			if a.size < b.size
-				(a.root cat-left-node-l1 b.root),
-			else
-				(a.root cat-right-node-l1 b.root),
-		as greater
+		else
 			(a.root cat-right-node-l1 b.root),
+	as greater
+		(a.root cat-right-node-l1 b.root),
 
 ###
 Prepend an element to a list.
@@ -524,28 +514,21 @@ This is O(n).
 	cur mut = a
 	i mut nat64 = 0
 	loop
-		if i == n
-			break cur
-		elif _, next ?= cur next
-			cur := next
-			i +:= 1
-			continue
-		else
-			break throw "iterator went too far"
+		guard i != n : break cur
+		_, next = cur.next ?? throw "iterator went too far"
+		cur := next
+		i +:= 1
+		continue
 
 + -[t] t list-iterator(a t list-iterator, n nat64) bare
 	# TODO:PERF
 	cur mut = a
 	i mut nat64 = 0
-	loop
-		if i == n
-			break cur
-		elif prev, _ ?= cur prev
-			cur := prev
-			i +:= 1
-			continue
-		else
-			break throw "iterator went too far"
+	until i == n
+		prev, _ = cur.prev ?? throw "iterator went too far"
+		cur := prev
+		i +:= 1
+	cur
 
 + -[t] nat64(a t list-iterator, b t list-iterator) bare
 	# TODO:PERF

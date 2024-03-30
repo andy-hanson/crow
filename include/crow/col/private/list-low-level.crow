@@ -2,7 +2,7 @@ no-std
 import
 	../../bool: ||, bool, false
 	../../fun-util: subscript
-	../../misc: void
+	../../misc: new, void
 	../../pointer: reference-equal
 	../../private/bootstrap: array, new
 	./array-low-level: ~=, ~~=, array-builder, build, iterate, array-reference-equal

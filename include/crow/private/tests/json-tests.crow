@@ -33,3 +33,8 @@ test
 	()::json[symbol] verify "\{}"
 	(("a", 1::float64.to),)::json[symbol] verify "\{\"a\":1}"
 	(("a", 1::float64.to), ("x\ny", true.to))::json[symbol] verify "\{\"a\":1,\"x\\ny\":true}"
+
+test
+	j json = ("a", 1.number),
+	j["a"] is 1.number
+	j["b"] is null

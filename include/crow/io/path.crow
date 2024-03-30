@@ -7,8 +7,8 @@ no-std
 import
 	../col/collection: last-iter-of, slice-left, slice-right
 	../json: to
-	../option: ==, force, new, option
-	../string: ==, begin, collection, end, interpolate, new, next, prev, slice, string, to
+	../option: ==, ??, force, new, option
+	../string: ==, begin, collection, end, interpolate, next, prev, slice, string, to
 	../test-util: is
 	../tuple: b
 
@@ -17,8 +17,7 @@ Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
 ###
 +parent-path string(a string)
-	if x ?= a last-iter-of "/"
-		x slice-left
+	(a last-iter-of "/")?.slice-left ?? ""
 
 # Adds a new path component onto the end.
 +child-path string(a string, child_name string)
@@ -42,10 +41,7 @@ This returns the path without the extension.
 For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
 ###
 +remove-extension string(name string)
-	if x ?= name last-iter-of "."
-		x slice-left
-	else
-		name
+	(name last-iter-of ".")?.slice-left ?? name
 test
 	"birds/crow.txt".remove-extension is "birds/crow"
 

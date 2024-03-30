@@ -39,8 +39,8 @@ main nat^(_ string[]) summon
 		()
 
 -is-up-to-date bool(path string, content string) summon
-	if cur-content ?= path.try-read-file :: string?
-		cur-content == content
+	guard cur-content ?= path.try-read-file :: string?
+	cur-content == content
 
 -ensure-directory-recursive void(path string) summon
 	unless path == "" || path.path-exists
@@ -96,7 +96,6 @@ other-links link[]()
 
 -to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon
 	for path : paths parallel
-		if rel-path ?= path try-remove-start remove-prefix
-			(rel-path, path.read-file),
-		else
-			throw "{path} didn't start with {remove-prefix}"
+		assert rel-path ?= path try-remove-start remove-prefix :
+			"{path} didn't start with {remove-prefix}"
+		(rel-path, path.read-file),

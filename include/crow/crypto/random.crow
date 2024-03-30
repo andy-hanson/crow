@@ -12,11 +12,9 @@ import
 	./private/sodium: ensure-sodium-initialized
 
 +random nat32() summon
-	if trusted is-windows
-		throw "TODO: Windows support"
-	else
-		ensure-sodium-initialized
-		trusted randombytes_random
+	forbid trusted is-windows : "TODO: Windows support"
+	ensure-sodium-initialized
+	trusted randombytes_random
 
 +random bool() summon
 	random::nat32 % 2 == 0

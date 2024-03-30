@@ -9,6 +9,7 @@ import model.ast :
 	ExprAst,
 	FileAst,
 	FunDeclAst,
+	IfAst,
 	ImportOrExportAst,
 	NameAndRange,
 	RecordOrUnionMemberAst,
@@ -101,8 +102,13 @@ immutable struct TypeParamIndex {
 immutable struct Type {
 	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
-
 	mixin TaggedUnion!(Bogus, TypeParamIndex, StructInst*);
+
+	static Type bogus() =>
+		Type(Type.Bogus());
+
+	bool isBogus() scope =>
+		isA!Bogus;
 
 	bool opEquals(scope Type b) scope =>
 		taggedPointerEquals(b);
@@ -628,7 +634,7 @@ immutable struct SpecInst {
 	Symbol name() scope =>
 		decl.name;
 }
-private size_t countSigs(in SpecInst a) =>
+size_t countSigs(in SpecInst a) =>
 	sum(a.parents, (in SpecInst* x) => countSigs(*x)) + a.sigTypes.length;
 
 immutable struct SpecInstBody {
@@ -709,6 +715,7 @@ immutable struct FunBody {
 	immutable struct RecordFieldSet {
 		size_t fieldIndex;
 	}
+	immutable struct UnionMemberGet { size_t memberIndex; }
 	immutable struct VarGet { VarDecl* var; }
 	immutable struct VarSet { VarDecl* var; }
 
@@ -729,6 +736,7 @@ immutable struct FunBody {
 		RecordFieldGet,
 		RecordFieldPointer,
 		RecordFieldSet,
+		UnionMemberGet,
 		VarGet,
 		VarSet);
 }
@@ -1518,6 +1526,9 @@ immutable struct CommonTypes {
 
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
+
+	size_t maxTupleSize() scope =>
+		9;
 }
 
 Type arrayElementType(in CommonTypes commonTypes, Type type) {
@@ -1853,11 +1864,11 @@ immutable struct ExprKind {
 		AssertOrForbidExpr*,
 		BogusExpr,
 		CallExpr,
+		CallOptionExpr*,
 		ClosureGetExpr,
 		ClosureSetExpr,
 		FunPointerExpr,
 		IfExpr*,
-		IfOptionExpr*,
 		LambdaExpr*,
 		LetExpr*,
 		LiteralExpr,
@@ -1886,19 +1897,36 @@ immutable struct ExprAndType {
 	Type type;
 }
 
-immutable struct AssertOrForbidExpr {
-	AssertOrForbidKind kind;
-	Expr condition;
-	Opt!(Expr*) thrown;
+immutable struct Condition {
+	immutable struct UnpackOption {
+		Destructure destructure;
+		ExprAndType option;
+	}
+	mixin TaggedUnion!(Expr*, UnpackOption*);
 }
 
-enum AssertOrForbidKind { assert_, forbid }
+immutable struct AssertOrForbidExpr {
+	bool isForbid;
+	Condition condition;
+	Opt!(Expr*) thrown;
+	Expr after;
+}
 
 immutable struct BogusExpr {}
 
 immutable struct CallExpr {
 	Called called;
 	SmallArray!Expr args;
+}
+
+// Expression for 'x?.y' or 'x?[y]'
+immutable struct CallOptionExpr {
+	// May or may not return an option. If not it will be wrapped after calling.
+	Called called;
+	// Type is an option type. The option is unwrapped before calling.
+	ExprAndType firstArg;
+	// These are non-optional.
+	SmallArray!Expr restArgs;
 }
 
 immutable struct ClosureGetExpr {
@@ -1922,18 +1950,17 @@ immutable struct FunPointerExpr {
 	FunInst* funInst;
 }
 
-// Expression for an 'if', 'unless', or ternary expression.
+// Expression for an IfAst -- see that for all kinds of syntax this corresponds to
 immutable struct IfExpr {
-	Expr cond;
-	Expr then;
-	Expr else_;
-}
+	@safe @nogc pure nothrow:
+	Condition condition;
+	Expr trueBranch;
+	Expr falseBranch;
 
-immutable struct IfOptionExpr {
-	Destructure destructure;
-	ExprAndType option;
-	Expr then;
-	Expr else_;
+	ref Expr firstBranch(ExprAst* ast) return =>
+		ast.kind.as!IfAst.isConditionNegated ? falseBranch : trueBranch;
+	ref Expr secondBranch(ExprAst* ast) return =>
+		ast.kind.as!IfAst.isConditionNegated ? trueBranch : falseBranch;
 }
 
 immutable struct LambdaExpr {
@@ -2008,8 +2035,9 @@ immutable struct LoopContinueExpr {
 
 immutable struct LoopWhileOrUntilExpr {
 	bool isUntil;
-	Expr condition;
-	Expr body_;
+	Condition condition;
+	Expr body_; // Always of type 'void'
+	Expr after;
 }
 
 immutable struct MatchEnumExpr {

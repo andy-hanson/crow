@@ -2,7 +2,6 @@ module app.dyncall;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.lang : maxTupleSize;
 import interpret.bytecode : Operation;
 import interpret.extern_ :
 	AggregateCbs,
@@ -21,12 +20,13 @@ import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : withExactStackArray;
 import util.col.array : isEmpty, map, mapImpure;
 import util.col.arrayBuilder : buildArray, Builder;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
-import util.col.mutMaxArr : MutMaxArr, mutMaxArr;
 import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfInt, bitsOfLong, float32OfBits, float64OfBits;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
@@ -315,24 +315,28 @@ pure FunPointer[] makeSyntheticFunPointers(ref Alloc alloc, in FunPointerInputs[
 	map(alloc, inputs, (ref FunPointerInputs x) =>
 		syntheticFunPointerForSig(alloc, x.sig, x.operationPtr));
 
-@trusted pure FunPointer syntheticFunPointerForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
-	MutMaxArr!(maxTupleSize + 3, char) sigStr = mutMaxArr!(maxTupleSize + 3, char);
-	immutable DCaggr*[] aggrs = buildArray!(immutable DCaggr*)(alloc, (scope ref Builder!(immutable DCaggr*) aggrs) {
-		void writeToSig(DynCallType x) {
-			sigStr ~= dynCallSigChar(x);
-			if (x.isA!(DynCallType.Aggregate*))
-				aggrs ~= x.as!(DynCallType.Aggregate*).dcAggr;
-		}
+pure FunPointer syntheticFunPointerForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) =>
+	withExactStackArray!(FunPointer, char)(
+		sig.returnTypeAndParameterTypes.length + ")\0".length,
+		(scope ref ExactSizeArrayBuilder!char sigStr) @trusted {
+			// Apparently the 'sig' can be temporary, but this can't.
+			immutable DCaggr*[] aggrs = buildArray(alloc, (scope ref Builder!(immutable DCaggr*) aggrsOut) {
+				void writeToSig(DynCallType x) {
+					sigStr ~= dynCallSigChar(x);
+					if (x.isA!(DynCallType.Aggregate*))
+						aggrsOut ~= x.as!(DynCallType.Aggregate*).dcAggr;
+				}
 
-		foreach (DynCallType x; sig.parameterTypes)
-			writeToSig(x);
-		sigStr ~= ')';
-		writeToSig(sig.returnType);
-		sigStr ~= '\0';
-	});
-	UserData* userData = allocate(alloc, UserData(sig, operationPtr));
-	return FunPointer(dcbNewCallback2(sigStr.ptr, &callbackHandler, cast(void*) userData, aggrs.ptr));
-}
+				foreach (DynCallType x; sig.parameterTypes)
+					writeToSig(x);
+				sigStr ~= ')';
+				writeToSig(sig.returnType);
+				sigStr ~= '\0';
+			});
+			UserData* userData = allocate(alloc, UserData(sig, operationPtr));
+			return FunPointer(
+				dcbNewCallback2(finish(sigStr).ptr, &callbackHandler, cast(void*) userData, aggrs.ptr));
+		});
 
 @system extern(C) char callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {
 	UserData userData = *(cast(UserData*) userDataPtr);

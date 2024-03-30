@@ -2,7 +2,7 @@ module util.col.tempSet;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : withTempArrayUninitialized;
+import util.alloc.stackAlloc : withStackArrayUninitialized;
 import util.col.array : contains;
 import util.memory : initMemory;
 
@@ -26,7 +26,7 @@ bool tryAdd(T)(scope ref TempSet!T a, T value) {
 	size_t maxSize,
 	in Out delegate(scope ref TempSet!Elem) @safe @nogc pure nothrow cb,
 ) =>
-	withTempArrayUninitialized!(Out, Elem)(maxSize, (scope Elem[] storage) {
+	withStackArrayUninitialized!(Out, Elem)(maxSize, (scope Elem[] storage) {
 		TempSet!Elem set = TempSet!Elem(0, storage);
 		return cb(set);
 	});

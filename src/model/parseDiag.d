@@ -64,7 +64,6 @@ immutable struct ParseDiag {
 	immutable struct MissingExpression {}
 	immutable struct NeedsBlockCtx {
 		enum Kind {
-			break_,
 			do_,
 			for_,
 			if_,
@@ -75,8 +74,6 @@ immutable struct ParseDiag {
 			throw_,
 			trusted,
 			unless,
-			until,
-			while_,
 			with_,
 		}
 		Kind kind;

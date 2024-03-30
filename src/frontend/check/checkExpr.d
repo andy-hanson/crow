@@ -43,7 +43,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateSpec, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
-	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure;
+	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, tryUnpackOptionType, typeFromDestructure;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -54,6 +54,7 @@ import model.ast :
 	CallNamedAst,
 	CaseAst,
 	CaseMemberAst,
+	ConditionAst,
 	DestructureAst,
 	DoAst,
 	EmptyAst,
@@ -62,7 +63,6 @@ import model.ast :
 	ForAst,
 	IdentifierAst,
 	IfAst,
-	IfConditionAst,
 	InterpolatedAst,
 	keywordRange,
 	LambdaAst,
@@ -102,6 +102,7 @@ import model.model :
 	ClosureRef,
 	ClosureSetExpr,
 	CommonTypes,
+	Condition,
 	Destructure,
 	emptySpecImpls,
 	emptySpecs,
@@ -119,7 +120,6 @@ import model.model :
 	FunKind,
 	FunPointerExpr,
 	IfExpr,
-	IfOptionExpr,
 	IntegralType,
 	IntegralTypes,
 	isDefinitelyByRef,
@@ -161,7 +161,7 @@ import model.model :
 	TypeParams,
 	UnionMember,
 	VariableRef;
-import util.alloc.alloc : Alloc, withTempArray;
+import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray, withStackArray;
 import util.col.array :
 	append,
 	arrayOfSingle,
@@ -182,7 +182,6 @@ import util.col.array :
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
-import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;
@@ -220,7 +219,7 @@ Expr checkFunctionBody(
 		typeParams,
 		flags);
 	Expr res = checkWithParamDestructures(
-		castNonScope_ref(exprCtx), ast, noneMut!(LambdaInfo*), params,
+		castNonScope_ref(exprCtx), ast, params,
 		(ref LocalsInfo innerLocals) =>
 			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, returnType));
 	return res;
@@ -251,7 +250,7 @@ TestBody checkTestBody(
 		emptySpecs,
 		emptyTypeParams,
 		flags);
-	LocalsInfo locals = LocalsInfo(noneMut!(LambdaInfo*), noneMut!(LocalNode*));
+	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	ExprAndType body_ = withExpectAndInfer(
 		[Type(commonTypes.void_), Type(commonTypes.voidFuture)],
 		(ref Expected expected) =>
@@ -268,7 +267,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 	ast.kind.matchWithPointers!Expr(
 		(ArrowAccessAst a) =>
 			checkArrowAccess(ctx, locals, ast, a, expected),
-		(AssertOrForbidAst* a) =>
+		(AssertOrForbidAst a) =>
 			checkAssertOrForbid(ctx, locals, ast, a, expected),
 		(AssignmentAst* a) =>
 			checkAssignment(ctx, locals, ast, a.left, a.keywordRange, &a.right, expected),
@@ -336,11 +335,10 @@ private:
 Expr checkWithParamDestructures(
 	ref ExprCtx ctx,
 	ExprAst* ast,
-	MutOpt!(LambdaInfo*) lambdaInfo,
 	Destructure[] params,
 	in Expr delegate(ref LocalsInfo) @safe @nogc pure nothrow cb,
 ) {
-	LocalsInfo locals = LocalsInfo(lambdaInfo, noneMut!(LocalNode*));
+	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	Opt!Expr res = checkWithParamDestructuresRecur(ctx, locals, params, (ref LocalsInfo innerLocals) =>
 		some(cb(innerLocals)));
 	return has(res) ? force(res) : Expr(ast, ExprKind(BogusExpr()));
@@ -369,15 +367,6 @@ Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type e
 	withExpect(expected, (ref Expected e) =>
 		checkExpr(ctx, locals, ast, e));
 
-Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
-	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.bool_));
-
-Expr checkAndExpectString(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
-	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.string_));
-
-Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
-	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.void_));
-
 Type voidType(ref const ExprCtx ctx) =>
 	Type(ctx.commonTypes.void_);
 
@@ -400,50 +389,67 @@ Expr checkIf(
 	ExprAst* source,
 	IfAst ast,
 	ref Expected expected,
-) =>
-	ast.condition.matchWithPointers!Expr(
-		(IfConditionAst.UnpackOption* condAst) {
-			ExprAndType option = checkAndInfer(ctx, locals, condAst.option);
-			StructInst* inst = option.type.isA!(StructInst*)
-				? option.type.as!(StructInst*)
-				// Arbitrary type that's not 'option'
-				: ctx.commonTypes.void_;
-			if (inst.decl != ctx.commonTypes.option) {
-				addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContainer(ctx, option.type))));
-				return bogus(expected, source);
-			} else {
-				Type nonOptionalType = only(inst.typeArgs);
-				Destructure destructure = checkDestructure2(
-					ctx, condAst.destructure, nonOptionalType, DestructureKind.local);
-				Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then(), expected);
-				Expr else_ = checkExpr(ctx, locals, &ast.else_(), expected);
-				return Expr(source, ExprKind(allocate(ctx.alloc, IfOptionExpr(destructure, option, then, else_))));
-			}
-		},
-		(ExprAst* condAst) {
-			Expr cond = checkAndExpectBool(ctx, locals, condAst);
-			Expr then = checkExpr(ctx, locals, &ast.then(), expected);
-			Expr else_ = checkExpr(ctx, locals, &ast.else_(), expected);
-			final switch (ast.kind) {
-				case IfAst.Kind.ifWithoutElse:
-				case IfAst.Kind.ifElif:
-				case IfAst.Kind.ifElse:
-				case IfAst.Kind.ternaryWithElse:
-				case IfAst.Kind.ternaryWithoutElse:
-					return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
-				case IfAst.Kind.unless:
-					return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, else_, then))));
-			}
-		});
+) {
+	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && ast.kind != IfAst.Kind.ifElif))
+		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
+	Condition condition = checkCondition(ctx, locals, source, ast.condition);
+	Opt!Destructure destructure = optDestructure(condition);
+	bool isNegated = ast.isConditionNegated;
+	Range emptyNewRange = ast.firstKeywordRange;
+	Expr firstBranch = checkExprWithOptDestructureOrEmptyNew(
+		ctx, locals, source, isNegated ? none!Destructure : destructure, ast.firstBranch, emptyNewRange, expected);
+	Expr secondBranch = checkExprWithOptDestructureOrEmptyNew(
+		ctx, locals, source, isNegated ? destructure : none!Destructure, ast.secondBranch, emptyNewRange, expected);
+	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(
+		condition, isNegated ? secondBranch : firstBranch, isNegated ? firstBranch : secondBranch))));
+}
+bool isThrow(Opt!(ExprAst*) a) =>
+	has(a) && force(a).kind.isA!(ThrowAst*);
+
+Opt!Destructure optDestructure(Condition a) =>
+	a.match!(Opt!Destructure)(
+		(ref Expr _) =>
+			none!Destructure,
+		(ref Condition.UnpackOption x) =>
+			some(x.destructure));
+
+Condition checkCondition(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ConditionAst ast) =>
+	ast.matchWithPointers!Condition(
+		(ExprAst* x) =>
+			Condition(allocate(ctx.alloc, checkAndExpect(ctx, locals, x, Type(ctx.commonTypes.bool_)))),
+		(ConditionAst.UnpackOption* x) =>
+			Condition(allocate(ctx.alloc, checkUnpackOption(ctx, locals, source, x))));
+Condition.UnpackOption checkUnpackOption(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ConditionAst.UnpackOption* condAst,
+) {
+	ExprAndType option = checkAndInfer(ctx, locals, condAst.option);
+	Opt!Type innerType = tryUnpackOptionTypeOrDiag(ctx, condAst.questionEqualsRange, option.type);
+	return has(innerType)
+		? Condition.UnpackOption(
+			checkDestructure2(ctx, condAst.destructure, force(innerType), DestructureKind.local),
+			option)
+		: Condition.UnpackOption(
+			checkDestructure2(ctx, condAst.destructure, Type.bogus, DestructureKind.local),
+			ExprAndType(Expr(source, ExprKind(BogusExpr())), Type.bogus));
+}
+
+Opt!Type tryUnpackOptionTypeOrDiag(ref ExprCtx ctx, Range diagRange, Type option) {
+	Opt!Type res = tryUnpackOptionType(ctx.commonTypes, option);
+	if (!has(res) && !option.isBogus)
+		addDiag2(ctx, diagRange, Diag(Diag.ConditionUnpacksNonOption(typeWithContainer(ctx, option))));
+	return res;
+}
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
 	if (isPurelyInferring(expected)) {
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, source);
-	} else {
-		Expr thrown = checkAndExpectString(ctx, locals, &ast.thrown);
-		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
-	}
+	} else
+		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(
+			checkAndExpect(ctx, locals, &ast.thrown, Type(ctx.commonTypes.string_))))));
 }
 
 Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TrustedAst* ast, ref Expected expected) {
@@ -455,16 +461,25 @@ Expr checkAssertOrForbid(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	AssertOrForbidAst* ast,
+	AssertOrForbidAst ast,
 	ref Expected expected,
 ) {
-	Expr condition = checkAndExpectBool(ctx, locals, &ast.condition);
-	Opt!(Expr*) thrown = has(ast.thrown)
-		? some(allocate(ctx.alloc, checkAndExpectString(ctx, locals, &force(ast.thrown))))
-		: none!(Expr*);
-	return check(ctx, source, expected, voidType(ctx), Expr(
-		source,
-		ExprKind(allocate(ctx.alloc, AssertOrForbidExpr(ast.kind, condition, thrown)))));
+	Condition condition = checkCondition(ctx, locals, source, ast.condition);
+	Opt!Destructure destructure = optDestructure(condition);
+	return Expr(source, ExprKind(allocate(ctx.alloc, AssertOrForbidExpr(
+		isForbid: ast.isForbid,
+		condition: condition,
+		thrown: optIf(has(ast.thrown), () {
+			ExprAst* thrownAst = &force(ast.thrown).expr;
+			if (thrownAst.kind.isA!(ThrowAst*))
+				addDiag2(ctx, thrownAst.kind.as!(ThrowAst*).keywordRange(thrownAst), Diag(
+					Diag.AssertOrForbidMessageIsThrow()));
+			return allocate(ctx.alloc, withExpect(Type(ctx.commonTypes.string_), (ref Expected expectString) =>
+				checkExprWithOptDestructure(
+					ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectString)));
+		}),
+		after: checkExprWithOptDestructure(
+			ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected)))));
 }
 
 Expr checkAssignment(
@@ -602,7 +617,7 @@ MutOpt!VariableRefAndType getIdentifierFromLambda(
 	ref LambdaInfo info,
 	LocalAccessKind accessKind,
 ) {
-	foreach (size_t index, ref ClosureFieldBuilder field; asTemporaryArray(info.closureFields))
+	foreach (size_t index, ref ClosureFieldBuilder field; info.closureFields.soFar)
 		if (field.name == name) {
 			field.setIsUsed(accessKind);
 			return someMut(VariableRefAndType(
@@ -616,7 +631,7 @@ MutOpt!VariableRefAndType getIdentifierFromLambda(
 		ctx, *info.outer, source, name, accessKind);
 	if (has(optOuter)) {
 		VariableRefAndType outer = force(optOuter);
-		size_t closureFieldIndex = mutMaxArrSize(info.closureFields);
+		size_t closureFieldIndex = info.closureFields.soFar.length;
 		if (has(source))
 			checkClosureMutability(ctx, force(source), info.lambda.kind, name, outer.mutability, outer.type);
 		info.closureFields ~= ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef);
@@ -686,9 +701,16 @@ Expr checkIdentifier(
 	MutOpt!VariableRefAndType res = getIdentifierNonCall(
 		ctx, locals, some(source), ast.name, LocalAccessKind.getOnStack);
 	return has(res)
-		? check(ctx, source, expected, force(res).type, toExpr(ctx.alloc, source, force(res).variableRef))
+		? check(ctx, expected, force(res).type, source, exprKindForVariableRef(force(res).variableRef))
 		: checkCallIdentifier(ctx, locals, source, ast.name, expected);
 }
+
+ExprKind exprKindForVariableRef(VariableRef a) =>
+	a.matchWithPointers!ExprKind(
+		(Local* x) =>
+			ExprKind(LocalGetExpr(x)),
+		(ClosureRef x) =>
+			ExprKind(ClosureGetExpr(x)));
 
 Expr checkAssignIdentifier(
 	ref ExprCtx ctx,
@@ -705,13 +727,9 @@ Expr checkAssignIdentifier(
 		Expr value = checkAndExpect(ctx, locals, right, var.type);
 		return var.variableRef.matchWithPointers!Expr(
 			(Local* local) =>
-				check(ctx, source, expected, voidType(ctx), Expr(
-					source,
-					ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value))))),
+				check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
 			(ClosureRef x) =>
-				check(ctx, source, expected, voidType(ctx), Expr(
-					source,
-					ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value))))));
+				check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
 	} else
 		return checkCallSpecial(ctx, locals, source, keywordRange, prependSet(left), [*right], expected);
 }
@@ -731,13 +749,6 @@ MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo l
 	} else
 		return noneMut!VariableRefAndType;
 }
-
-Expr toExpr(ref Alloc alloc, ExprAst* source, VariableRef a) =>
-	a.matchWithPointers!Expr(
-		(Local* x) =>
-			Expr(source, ExprKind(LocalGetExpr(x))),
-		(ClosureRef x) =>
-			Expr(source, ExprKind(ClosureGetExpr(x))));
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {
 	immutable StructInst*[2] allowedTypes = [ctx.commonTypes.float32, ctx.commonTypes.float64];
@@ -760,8 +771,7 @@ Expr asFloat(
 ) {
 	if (overflow)
 		addDiag2(ctx, source, Diag(Diag.LiteralFloatAccuracy(floatType, value)));
-	return check(ctx, source, expected, Type(inst), Expr(source, ExprKind(
-		LiteralExpr(Constant(Constant.Float(value))))));
+	return check(ctx, expected, Type(inst), source, ExprKind(LiteralExpr(Constant(Constant.Float(value)))));
 }
 
 immutable IntegralType[4] natTypes = [IntegralType.nat8, IntegralType.nat16, IntegralType.nat32, IntegralType.nat64];
@@ -784,9 +794,9 @@ Expr checkLiteralIntegral(ref ExprCtx ctx, ExprAst* source, in LiteralIntegral a
 		StructInst* numberType = allowedTypes[typeIndex];
 		if (typeIndex < integralTypes.length)
 			return check(
-				ctx, source, expected, Type(numberType),
-				Expr(source, ExprKind(LiteralExpr(Constant(checkLiteralIntegral(
-					ctx.checkCtx, integralTypes[typeIndex], LiteralIntegralAndRange(source.range, ast)))))));
+				ctx, expected, Type(numberType), source,
+				ExprKind(LiteralExpr(Constant(checkLiteralIntegral(
+					ctx.checkCtx, integralTypes[typeIndex], LiteralIntegralAndRange(source.range, ast))))));
 		else {
 			double value = ast.isSigned ? double(ast.value.asSigned) : double(ast.value.asUnsigned);
 			return asFloat(
@@ -823,13 +833,11 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 
 	if (has(opTypeIndex)) {
 		size_t typeIndex = force(opTypeIndex);
-		Expr expr = () {
+		ExprKind expr = () {
 			if (typeIndex == 0) // char8
-				return Expr(source, ExprKind(
-					LiteralExpr(Constant(IntegralValue(char8LiteralValue(ctx, source.range, value))))));
+				return ExprKind(LiteralExpr(Constant(IntegralValue(char8LiteralValue(ctx, source.range, value)))));
 			else if (typeIndex == 1) // CHAR32
-				return Expr(source, ExprKind(
-					LiteralExpr(Constant(IntegralValue(char32LiteralValue(ctx, source.range, value))))));
+				return ExprKind(LiteralExpr(Constant(IntegralValue(char32LiteralValue(ctx, source.range, value)))));
 			else {
 				string checkNoNul(Diag.StringLiteralInvalid.Reason reason) {
 					Opt!size_t index = indexOf(value, '\0');
@@ -855,10 +863,10 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 							return checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
 					}
 				}();
-				return Expr(source, ExprKind(LiteralStringLikeExpr(kind, smallString(fixedValue))));
+				return ExprKind(LiteralStringLikeExpr(kind, smallString(fixedValue)));
 			}
 		}();
-		return check(ctx, source, expected, Type(allowedTypes[typeIndex]), expr);
+		return check(ctx, expected, Type(allowedTypes[typeIndex]), source, expr);
 	} else
 		return bogus(expected, source);
 }
@@ -877,10 +885,21 @@ dchar char32LiteralValue(ref ExprCtx ctx, Range diagRange, string value) =>
 		return 'a';
 	});
 
+Expr checkExprWithOptDestructure(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	Opt!Destructure destructure,
+	ExprAst* ast,
+	ref Expected expected,
+) =>
+	has(destructure)
+		? checkExprWithDestructure(ctx, locals, force(destructure), ast, expected)
+		: checkExpr(ctx, locals, ast, expected);
+
 Expr checkExprWithDestructure(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	ref Destructure destructure,
+	Destructure destructure,
 	ExprAst* ast,
 	ref Expected expected,
 ) =>
@@ -933,7 +952,10 @@ Opt!Expr checkWithLocal(
 		locals.locals,
 		makeEnumMap!(LocalAccessKind, bool)((LocalAccessKind _) => false),
 		local);
-	LocalsInfo newLocals = LocalsInfo(locals.lambda, someMut(ptrTrustMe(localNode)));
+	LocalsInfo newLocals = LocalsInfo(
+		locals.countAllAccessibleLocals + 1,
+		locals.lambda,
+		someMut(ptrTrustMe(localNode)));
 	Opt!Expr res = cb(newLocals);
 	if (localNode.local.mutability == LocalMutability.mutOnStack &&
 		(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
@@ -953,8 +975,8 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 
-Expr checkPointer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAst* ast, ref Expected expected) {
-	return getExpectedPointee(ctx, expected).match!Expr(
+Expr checkPointer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAst* ast, ref Expected expected) =>
+	getExpectedPointee(ctx, expected).match!Expr(
 		(ExpectedPointee.None) {
 			addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.pointer)));
 			return bogus(expected, source);
@@ -963,7 +985,6 @@ Expr checkPointer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAs
 			checkFunPointer(ctx, source, *ast, expected),
 		(ExpectedPointee.Pointer x) =>
 			checkPointerInner(ctx, locals, source, ast, x.pointer, x.pointee, x.mutability, expected));
-}
 
 immutable struct ExpectedPointee {
 	immutable struct None {}
@@ -1014,7 +1035,7 @@ Expr checkPointerInner(
 			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.writeable)
 			markIsUsedSetOnStack(locals, local);
-		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(PtrToLocalExpr(local))));
+		return check(ctx, expected, pointerType, source, ExprKind(PtrToLocalExpr(local)));
 	} else if (inner.kind.isA!CallExpr)
 		return checkPointerOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
@@ -1049,8 +1070,8 @@ Expr checkPointerOfCall(
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
-				return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
-					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
+				return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
+					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
 			} else if (target.kind.isA!CallExpr) {
 				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
@@ -1065,8 +1086,8 @@ Expr checkPointerOfCall(
 						addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByVal)));
 						return bogus(expected, source);
 					} else
-						return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
-							PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
+						return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
+							PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
 				} else
 					return fail();
 			} else
@@ -1110,10 +1131,10 @@ Opt!(FunDecl*) getFunDeclFromExpr(ref ExprCtx ctx, in ExprAst ast) {
 
 Expr checkFunPointerInner(ref ExprCtx ctx, ExprAst* source, FunDecl* funDecl, ref Expected expected) {
 	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
-	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
+	Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, funInst.paramTypes, () => source.range);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
+	return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(funInst)));
 }
 
 Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
@@ -1245,35 +1266,38 @@ LambdaAndReturnType checkLambdaInner(
 	LambdaExpr.Kind kind,
 ) {
 	Destructure param = checkDestructure2(ctx, ast.param, paramType, DestructureKind.param);
-
 	LambdaExpr* lambda = allocate(ctx.alloc, LambdaExpr(kind, param, mutTypeForExplicitShared));
-
-	LambdaInfo lambdaInfo = LambdaInfo(ptrTrustMe(locals), lambda);
-	initializeMutMaxArr(lambdaInfo.closureFields);
-
-	// Checking the body of the lambda may fill in candidate type args
-	// if the expected return type contains candidate's type params
-	LocalsInfo bodyLocals = LocalsInfo(someMut(ptrTrustMe(lambdaInfo)), noneMut!(LocalNode*));
-	Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(expected,
-		nonInstantiatedReturnType,
-		returnTypeContext,
-		(ref Expected returnTypeInferrer) =>
-			checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
-
-	StructInst* instFunStruct = instantiateStructNeverDelay(ctx.instantiateCtx, funStruct, [bodyAndType.b, param.type]);
-	lambda.fillLate(
-		body_: bodyAndType.a,
-		closure: small!VariableRef(
-			map!(VariableRef, ClosureFieldBuilder)(
-				ctx.alloc,
-				asTemporaryArray(lambdaInfo.closureFields),
-				(ref const ClosureFieldBuilder x) =>
-					x.variableRef)),
-		returnType: bodyAndType.b);
-	//TODO: this check should never fail, so could just set inferred directly with no check
-	return LambdaAndReturnType(
-		check(ctx, source, expected, Type(instFunStruct), Expr(source, ExprKind(castImmutable(lambda)))),
-		bodyAndType.b);
+	return withMaxStackArray!(LambdaAndReturnType, ClosureFieldBuilder)(
+		locals.countAllAccessibleLocals,
+		(scope ref MaxStackArray!ClosureFieldBuilder xs) {
+			LambdaInfo lambdaInfo = LambdaInfo(ptrTrustMe(locals), lambda, xs.move);
+			// Checking the body of the lambda may fill in candidate type args
+			// if the expected return type contains candidate's type params
+			LocalsInfo bodyLocals = LocalsInfo(
+				locals.countAllAccessibleLocals,
+				someMut(ptrTrustMe(lambdaInfo)),
+				noneMut!(LocalNode*));
+			Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(expected,
+				nonInstantiatedReturnType,
+				returnTypeContext,
+				(ref Expected returnTypeInferrer) =>
+					checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
+			StructInst* instFunStruct = instantiateStructNeverDelay(
+				ctx.instantiateCtx, funStruct, [bodyAndType.b, param.type]);
+			lambda.fillLate(
+				body_: bodyAndType.a,
+				closure: small!VariableRef(
+					map!(VariableRef, ClosureFieldBuilder)(
+						ctx.alloc,
+						lambdaInfo.closureFields.finish,
+						(ref const ClosureFieldBuilder x) =>
+							x.variableRef)),
+				returnType: bodyAndType.b);
+			return LambdaAndReturnType(
+				//TODO: this check should never fail, so could just set inferred directly with no check
+				check(ctx, expected, Type(instFunStruct), source, ExprKind(castImmutable(lambda))),
+				bodyAndType.b);
+		});
 }
 
 Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
@@ -1350,13 +1374,19 @@ Expr checkLoopWhileOrUntil(
 	ExprAst* source,
 	LoopWhileOrUntilAst* ast,
 	ref Expected expected,
-) =>
-	check(ctx, source, expected, voidType(ctx), Expr(
-		source,
-		ExprKind(allocate(ctx.alloc, LoopWhileOrUntilExpr(
-			isUntil: ast.isUntil,
-			condition: checkAndExpectBool(ctx, locals, &ast.condition),
-			body_: checkAndExpectVoid(ctx, locals, &ast.body_))))));
+) {
+	bool isUntil = ast.isUntil;
+	Condition condition = checkCondition(ctx, locals, source, ast.condition);
+	Opt!Destructure destructure = optDestructure(condition);
+	return Expr(source, ExprKind(allocate(ctx.alloc, LoopWhileOrUntilExpr(
+		isUntil: isUntil,
+		condition: condition,
+		body_: withExpect(voidType(ctx), (ref Expected bodyExpected) =>
+			checkExprWithOptDestructure(
+				ctx, locals, isUntil ? none!Destructure : destructure, &ast.body_, bodyExpected)),
+		after: checkExprWithOptDestructure(
+			ctx, locals, isUntil ? destructure : none!Destructure, &ast.after, expected)))));
+}
 
 Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref MatchAst ast, ref Expected expected) {
 	ExprAndType matched = checkAndInfer(ctx, locals, ast.matched);
@@ -1381,7 +1411,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 		else if (has(stringLike))
 			return checkMatchStringLike(ctx, locals, source, ast, expected, matched, force(stringLike));
 		else {
-			if (!matched.type.isA!(Type.Bogus))
+			if (!matched.type.isBogus)
 				addDiag2(ctx, ast.matched.range, Diag(
 					Diag.MatchOnNonEnumOrUnion(typeWithContainer(ctx, matched.type))));
 			return bogus(expected, ast.matched);
@@ -1484,7 +1514,7 @@ Expr checkMatchChar(
 				} else
 					return none!(MatchIntegralExpr.Case);
 			}));
-	Expr else_ = checkMatchElse(ctx, locals, source, matched.type, ast, expected);
+	Expr else_ = checkMatchElse(ctx, locals, source, ast, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc,
 		MatchIntegralExpr(MatchIntegralExpr.Kind(charType), matched, cases, else_))));
 }
@@ -1535,7 +1565,7 @@ Expr checkMatchIntegral(
 				} else
 					return none!(MatchIntegralExpr.Case);
 			}));
-	Expr else_ = checkMatchElse(ctx, locals, source, matched.type, ast, expected);
+	Expr else_ = checkMatchElse(ctx, locals, source, ast, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc,
 		MatchIntegralExpr(MatchIntegralExpr.Kind(integralType), matched, cases, else_))));
 }
@@ -1587,7 +1617,7 @@ Expr checkMatchStringLike(
 				} else
 					return none!(MatchStringLikeExpr.Case);
 			}));
-	Expr else_ = checkMatchElse(ctx, locals, source, matched.type, ast, expected);
+	Expr else_ = checkMatchElse(ctx, locals, source, ast, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, MatchStringLikeExpr(kind, matched, equals, cases, else_))));
 }
 
@@ -1595,13 +1625,39 @@ Expr checkMatchElse(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	Type matchedType,
 	ref MatchAst ast,
 	ref Expected expected,
 ) =>
-	has(ast.else_)
-		? checkExpr(ctx, locals, &force(ast.else_).expr, expected)
-		: checkEmptyNew(ctx, locals, source, ast.keywordRange(*source), expected);
+	checkExprOrEmptyNew(
+		ctx, locals, source,
+		optIf(has(ast.else_), () => &force(ast.else_).expr),
+		ast.keywordRange(*source),
+		expected);
+
+Expr checkExprOrEmptyNew(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* parent,
+	Opt!(ExprAst*) ast,
+	Range emptyNewRange,
+	ref Expected expected,
+) =>
+	has(ast)
+		? checkExpr(ctx, locals, force(ast), expected)
+		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
+
+Expr checkExprWithOptDestructureOrEmptyNew(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* parent,
+	Opt!Destructure destructure,
+	Opt!(ExprAst*) ast,
+	Range emptyNewRange,
+	ref Expected expected,
+) =>
+	has(ast)
+		? checkExprWithOptDestructure(ctx, locals, destructure, force(ast), expected)
+		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
 
 Opt!string stringFromCaseAst(ref ExprCtx ctx, CaseMemberAst ast) =>
 	ast.match!(Opt!string)(
@@ -1632,7 +1688,7 @@ Expr checkMatchEnumOrUnion(Case, Member, MembersByName)(
 	in Case delegate(size_t, Member*, CaseAst*, CaseMemberAst.Name*) @safe @nogc pure nothrow cbCase,
 	in Expr delegate(SmallArray!Case, Opt!Expr) @safe @nogc pure nothrow cbFinish,
 ) =>
-	withTempArray!(Expr, bool)(members.length, (size_t _) => false, (scope bool[] seen) {
+	withStackArray!(Expr, bool)(members.length, (size_t _) => false, (scope bool[] seen) {
 		bool hasCaseDiag = false;
 		ExactSizeArrayBuilder!Case cases = newExactSizeArrayBuilder!Case(ctx.alloc, ast.cases.length);
 		foreach (ref CaseAst caseAst; ast.cases) {
@@ -1686,7 +1742,7 @@ Expr checkMatchEnumOrUnion(Case, Member, MembersByName)(
 	});
 
 Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SeqAst* ast, ref Expected expected) {
-	Expr first = checkAndExpectVoid(ctx, locals, &ast.first);
+	Expr first = checkAndExpect(ctx, locals, &ast.first, voidType(ctx));
 	Expr then = checkExpr(ctx, locals, &ast.then, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, SeqExpr(first, then))));
 }
@@ -1695,8 +1751,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 	a.kind.matchIn!bool(
 		(in ArrowAccessAst _) =>
 			false,
-		(in AssertOrForbidAst _) =>
-			false,
+		(in AssertOrForbidAst x) =>
+			hasBreakOrContinue(*x.after),
 		(in AssignmentAst _) =>
 			false,
 		(in AssignmentCallAst _) =>
@@ -1716,7 +1772,7 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in IdentifierAst _) =>
 			false,
 		(in IfAst x) =>
-			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
+			exists!ExprAst(x.allBranches, (in ExprAst y) => hasBreakOrContinue(y)),
 		(in InterpolatedAst _) =>
 			false,
 		(in LambdaAst _) =>
@@ -1735,8 +1791,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			true,
 		(in LoopContinueAst _) =>
 			true,
-		(in LoopWhileOrUntilAst _) =>
-			false,
+		(in LoopWhileOrUntilAst x) =>
+			hasBreakOrContinue(x.after),
 		(in MatchAst x) =>
 			exists!(CaseAst)(x.cases, (in CaseAst case_) =>
 				hasBreakOrContinue(case_.then)),
@@ -1798,5 +1854,5 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
-	return check(ctx, source, expected, type, Expr(source, ExprKind(allocate(ctx.alloc, TypedExpr(expr)))));
+	return check(ctx, expected, type, source, ExprKind(allocate(ctx.alloc, TypedExpr(expr))));
 }

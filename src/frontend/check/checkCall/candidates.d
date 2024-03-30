@@ -13,7 +13,6 @@ import frontend.check.inferringType :
 	TypeContext;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.maps : FunsMap;
-import frontend.lang : maxTypeParams;
 import model.model :
 	arityMatches,
 	Called,
@@ -31,30 +30,16 @@ import model.model :
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
-import util.col.array : everyWithIndex, map, makeArray, small;
+import util.alloc.stackAlloc : pushStackArray, StackArrayBuilder, withBuildStackArray, withRestoreStack;
+import util.col.array : everyWithIndex, filterUnordered, map, makeArray, MutSmallArray, small;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToUshort;
-import util.memory : allocate, overwriteMemory;
-import util.col.mutMaxArr :
-	asTemporaryArray,
-	copyToFrom,
-	fillMutMaxArr,
-	filterUnordered,
-	filterUnorderedButDontRemoveAll,
-	initializeMutMaxArr,
-	mustPopAndDrop,
-	MutMaxArr,
-	mutMaxArr,
-	pushUninitialized;
+import util.memory : allocate;
 import util.opt : force, has, Opt, optOrDefault;
 import util.symbol : Symbol;
 
-// Max number of candidates with same return type
-size_t maxCandidates() => 128;
-alias Candidates = MutMaxArr!(maxCandidates, Candidate);
-
-CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
-	map(alloc, asTemporaryArray(candidates), (ref const Candidate c) => c.called);
+CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidate[] candidates) =>
+	map(alloc, candidates, (ref const Candidate c) => c.called);
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
 	buildArray!CalledDecl(ctx.alloc, (scope ref Builder!CalledDecl res) {
@@ -65,50 +50,37 @@ CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
 
 struct Candidate {
 	immutable CalledDecl called;
-	// Note: this is always empty if calling a CalledSpecSig
-	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
+	// This is always empty if calling a CalledSpecSig
+	MutSmallArray!SingleInferringType typeArgs;
 }
 
-inout(TypeContext) typeContextForCandidate(ref inout Candidate a) {
-	// 'match' can't return 'inout' we must do it this way
-	if (a.called.isA!(FunDecl*))
-		return inout TypeContext(small!SingleInferringType(asTemporaryArray(a.typeArgs)));
-	else {
-		assert(a.called.isA!CalledSpecSig);
-		// Spec is instantiated using the caller's types
-		return TypeContext.nonInferring;
-	}
-}
-
-private void initializeCandidate(ref Candidate a, CalledDecl called) {
-	overwriteMemory(&a.called, called);
-	initializeMutMaxArr(a.typeArgs);
-	fillMutMaxArr(a.typeArgs, called.typeParams.length, (size_t i) => SingleInferringType());
-}
-// TODO: 'b' isn't really const since we're getting mutable 'typeArgs' from it
-private void overwriteCandidate(ref Candidate a, ref const Candidate b) {
-	overwriteMemory(&a.called, b.called);
-	copyToFrom(a.typeArgs, b.typeArgs);
-}
+inout(TypeContext) typeContextForCandidate(ref inout Candidate a) =>
+	inout TypeContext(a.typeArgs);
 
 T withCandidates(T)(
 	in FunsInScope funs,
 	Symbol funName,
 	size_t actualArity,
-	// Filter candidates early to avoid a large array
 	in bool delegate(ref Candidate) @safe @nogc pure nothrow cbFilterCandidate,
-	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
-) {
-	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
-	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
-		if (arityMatches(called.arity, actualArity)) {
-			Candidate* candidate = pushUninitialized(candidates);
-			initializeCandidate(*candidate, called);
-			if (!cbFilterCandidate(*candidate))
-				mustPopAndDrop(candidates);
-		}
-	});
-	return cb(candidates);
+	in T delegate(scope Candidate[]) @safe @nogc pure nothrow cb,
+) =>
+	withBuildStackArray!(T, Candidate)(
+		(ref StackArrayBuilder!Candidate out_) {
+			eachFunInScope(funs, funName, (CalledDecl called) {
+				if (arityMatches(called.arity, actualArity))
+					out_ ~= Candidate(called);
+			});
+		},
+		(scope Candidate[] candidates) {
+			foreach (ref Candidate x; candidates)
+				initializeCandidateTypeArgs(x);
+			filterUnordered(candidates, cbFilterCandidate);
+			return cb(candidates);
+		});
+
+private void initializeCandidateTypeArgs(ref Candidate a) {
+	a.typeArgs = small!SingleInferringType(
+		pushStackArray!SingleInferringType(a.called.typeParams.length, (size_t i) => SingleInferringType()));
 }
 
 void eachCandidate(
@@ -117,30 +89,14 @@ void eachCandidate(
 	size_t actualArity,
 	in void delegate(ref Candidate) @safe @nogc pure nothrow cb,
 ) {
-	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
-		if (arityMatches(called.arity, actualArity)) {
-			Candidate candidate = void;
-			initializeCandidate(candidate, called);
-			cb(candidate);
-		}
+	eachFunInScope(funs, funName, (CalledDecl called) {
+		if (arityMatches(called.arity, actualArity))
+			withRestoreStack(() {
+				Candidate candidate = Candidate(called);
+				initializeCandidateTypeArgs(candidate);
+				cb(candidate);
+			});
 	});
-}
-
-void filterCandidates(
-	scope ref Candidates candidates,
-	in bool delegate(ref Candidate) @safe @nogc pure nothrow pred,
-) {
-	filterUnordered!(maxCandidates, Candidate)(candidates, pred, (ref Candidate a, ref const Candidate b) =>
-		overwriteCandidate(a, b));
-}
-
-void filterCandidatesButDontRemoveAll(
-	scope ref Candidates candidates,
-	in bool delegate(ref Candidate) @safe @nogc pure nothrow pred,
-) {
-	filterUnorderedButDontRemoveAll!(maxCandidates, Candidate)(
-		candidates, pred, (ref Candidate a, ref const Candidate b) =>
-			overwriteCandidate(a, b));
 }
 
 immutable struct FunsInScope {
@@ -212,11 +168,11 @@ Called candidateBogusCalled(ref Alloc alloc, ref InstantiateCtx instantiateCtx, 
 }
 
 private Type getCandidateTypeOrBogus(ref InstantiateCtx ctx, ref const Candidate candidate, Type declaredType) {
-	Opt!Type res = tryGetNonInferringType(ctx, TypeAndContext(declaredType, typeContextForCandidate(candidate)));
-	return optOrDefault!Type(res, () => Type(Type.Bogus()));
+	Opt!Type res = tryGetNonInferringType(ctx, const TypeAndContext(declaredType, typeContextForCandidate(candidate)));
+	return optOrDefault!Type(res, () => Type.bogus);
 }
 
-private Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>
+private Type paramTypeAt(CalledDecl called, size_t argIndex) =>
 	called.match!Type(
 		(ref FunDecl f) =>
 			paramTypeAt(f.params, argIndex),

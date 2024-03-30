@@ -8,15 +8,16 @@ import frontend.check.checkCtx : addDiag, CheckCtx, markUsed;
 import frontend.check.exprCtx : addDiag2, allowsUnsafe, ExprCtx, isInDataLambda, isInLambda, LocalsInfo;
 import frontend.check.inferringType : SingleInferringType, tryGetInferred, TypeContext;
 import frontend.check.instantiate :
-	InstantiateCtx, instantiateFun, instantiateSpecInst, noDelaySpecInsts, TypeArgsArray, typeArgsArray;
+	InstantiateCtx, instantiateFun, instantiateSpecInst, noDelaySpecInsts;
 import frontend.check.maps : FunsMap;
-import frontend.lang : maxSpecDepth, maxSpecImpls;
+import frontend.lang : maxSpecDepth;
 import model.diag : Diag, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	Called,
 	CalledDecl,
 	CalledSpecSig,
+	countSigs,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunInst,
@@ -36,15 +37,16 @@ import model.model :
 	Type,
 	TypeArgs;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : MaxStackArray, withExactStackArray, withMapOrNoneToStackArray, withMaxStackArray;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : every, exists, first, firstZipPointerFirst, only, small;
+import util.col.array : every, exists, first, firstZipPointerFirst, newArray, only, small, sum;
 import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, finish;
-import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, toArray;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish, smallFinish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
-import util.util : castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope_ref;
 
 bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 	isPurityAlwaysCompatibleConsideringSpecs(funSpecs, type, Purity.shared_);
@@ -83,21 +85,22 @@ Called checkSpecSingleSigIgnoreParents2(
 ) {
 	FunsInScope funsInScope = FunsInScope(callerSpecs, funsMap, ctx.importsAndReExports);
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, castNonScope_ref(funsInScope));
-	RealTrace trace = RealTrace(&ctx, caller, diagRange);
-	SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-	Opt!(Diag.SpecNoMatch) diag = checkSpecImplInner!(RealTrace*)(specImpls, checkSpecsCtx, ptrTrustMe(trace), *spec);
-	assert(spec.sigTypes.length == 1);
-	if (has(diag)) {
-		addDiag(ctx, diagRange, Diag(force(diag)));
-		CalledSpecSig sig = CalledSpecSig(spec, 0);
-		return Called(allocate(ctx.alloc, Called.Bogus(CalledDecl(sig), sig.returnType, sig.paramTypes)));
-	} else {
-		Called res = specImpls[$ - 1];
-		LocalsInfo locals;
-		checkCalled(ctx, diagRange, res, callerFlags, locals, ArgsKind.nonEmpty, () =>
-			allowsUnsafe(callerFlags.safety));
-		return res;
-	}
+	return withRealTrace!Called(ctx, caller, diagRange, (scope RealTrace* trace) =>
+		withExactStackArray!(Called, Called)(countSigs(*spec), (scope ref SpecImpls specImpls) {
+			Opt!(Diag.SpecNoMatch) diag = checkSpecImplInner!(RealTrace*)(specImpls, checkSpecsCtx, trace, *spec);
+			assert(spec.sigTypes.length == 1);
+			if (has(diag)) {
+				addDiag(ctx, diagRange, Diag(force(diag)));
+				CalledSpecSig sig = CalledSpecSig(spec, 0);
+				return Called(allocate(ctx.alloc, Called.Bogus(CalledDecl(sig), sig.returnType, sig.paramTypes)));
+			} else {
+				Called res = finish(specImpls)[$ - 1];
+				LocalsInfo locals;
+				checkCalled(ctx, diagRange, res, callerFlags, locals, ArgsKind.nonEmpty, () =>
+					allowsUnsafe(callerFlags.safety));
+				return res;
+			}
+		}));
 }
 
 // Additional checks on a call after the overload and spec impls have been chosen.
@@ -151,13 +154,13 @@ void checkCallFlags(
 
 Called checkCallSpecsWithRealTrace(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
-	RealTrace trace = RealTrace(ctx.checkCtxPtr, ctx.typeContainer, range);
-	return getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, ptrTrustMe(trace)).match!Called(
-		(Called x) => x,
-		(Diag.SpecNoMatch x) {
-			addDiag2(ctx, range, Diag(x));
-			return candidateBogusCalled(ctx.alloc, ctx.instantiateCtx, candidate);
-		});
+	return withRealTrace(ctx.checkCtx, ctx.typeContainer, range, (scope RealTrace* trace) =>
+		getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, trace).match!Called(
+			(Called x) => x,
+			(Diag.SpecNoMatch x) {
+				addDiag2(ctx, range, Diag(x));
+				return candidateBogusCalled(ctx.alloc, ctx.instantiateCtx, candidate);
+			}));
 }
 
 struct CheckSpecsCtx {
@@ -172,7 +175,7 @@ struct CheckSpecsCtx {
 		*allocPtr;
 }
 
-alias SpecImpls = MutMaxArr!(maxSpecImpls, Called);
+alias SpecImpls = ExactSizeArrayBuilder!Called;
 
 immutable struct SpecResult(NoMatch) {
 	mixin Union!(Called, NoMatch);
@@ -194,17 +197,22 @@ struct RealTrace {
 	CheckCtx* ctx;
 	TypeContainer typeContainer;
 	Range range;
-	MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs) trace;
+	MaxStackArray!FunDeclAndTypeArgs trace;
 
 	alias MultipleMatches = ArrayBuilder!Called;
-
-	this(return scope CheckCtx* c, TypeContainer t, Range r) {
-		ctx = c;
-		typeContainer = t;
-		range = r;
-		trace = mutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
-	}
 }
+T withRealTrace(T)(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	Range range,
+	in T delegate(scope RealTrace*) @safe @nogc pure nothrow cb,
+) =>
+	withMaxStackArray!(T, FunDeclAndTypeArgs)(
+		maxSpecDepth,
+		(scope ref MaxStackArray!FunDeclAndTypeArgs stack) @trusted {
+			RealTrace trace = RealTrace(&ctx, typeContainer, range, stack.move());
+			return cb(&trace);
+		});
 
 T withTrace(T)(
 	DummyTrace trace,
@@ -219,7 +227,7 @@ T withTrace(T)(
 ) {
 	trace.trace ~= called;
 	T res = cb(trace);
-	mustPop(trace.trace);
+	trace.trace.mustPop;
 	return res;
 }
 
@@ -228,19 +236,19 @@ void specMatchError(ref CheckSpecsCtx ctx, scope DummyTrace, Diag.SpecMatchError
 }
 void specMatchError(ref CheckSpecsCtx ctx, scope RealTrace* a, Diag.SpecMatchError.Reason reason) {
 	ctx.hasErrors = true;
-	addDiag(*a.ctx, a.range, Diag(Diag.SpecMatchError(a.typeContainer, reason, toArray(a.ctx.alloc, a.trace))));
+	addDiag(*a.ctx, a.range, Diag(Diag.SpecMatchError(a.typeContainer, reason, newArray(a.ctx.alloc, a.trace.soFar))));
 }
 
 DummyTrace.NoMatch specNoMatch(scope DummyTrace, Diag.SpecNoMatch.Reason) =>
 	DummyTrace.NoMatch();
 RealTrace.NoMatch specNoMatch(scope RealTrace* a, Diag.SpecNoMatch.Reason reason) =>
-	Diag.SpecNoMatch(a.typeContainer, reason, toArray(a.ctx.alloc, a.trace));
+	Diag.SpecNoMatch(a.typeContainer, reason, newArray(a.ctx.alloc, a.trace.soFar));
 bool isFull(DummyTrace trace) {
 	assert(trace.depth <= maxSpecDepth);
 	return trace.depth == maxSpecDepth;
 }
 bool isFull(in RealTrace* trace) =>
-	isFull(trace.trace);
+	trace.trace.isFull;
 
 Trace.Result checkCandidate(Trace)(
 	ref CheckSpecsCtx ctx,
@@ -258,35 +266,35 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 	ref CheckSpecsCtx ctx,
 	ref const Candidate candidate,
 	scope Trace trace,
-) {
-	TypeArgsArray candidateTypeArgs = typeArgsArray();
-	foreach (ref const SingleInferringType x; candidate.typeArgs) {
-		Opt!Type t = tryGetInferred(x);
-		if (has(t))
-			candidateTypeArgs ~= force(t);
-		else
-			return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(
-				Diag.SpecNoMatch.Reason.CantInferTypeArguments(candidate.called.as!(FunDecl*)))));
-	}
-	return candidate.called.matchWithPointers!(Trace.Result)(
-		(FunDecl* f) {
-			if (isFull(trace))
-				return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
-			else {
-				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-				Opt!(Trace.NoMatch) diag = checkSpecImpls!Trace(
-					specImpls, ctx, f, small!Type(asTemporaryArray(candidateTypeArgs)), trace);
-				return has(diag)
-					? Trace.Result(force(diag))
-					: Trace.Result(Called(instantiateFun(
-						ctx.instantiateCtx, f,
-						small!Type(asTemporaryArray(candidateTypeArgs)),
-						small!Called(asTemporaryArray(specImpls)))));
-			}
-		},
-		(CalledSpecSig s) =>
-			Trace.Result(Called(s)));
-}
+) =>
+	withMapOrNoneToStackArray!(Trace.Result, Type, SingleInferringType)(
+		candidate.typeArgs,
+		(ref const SingleInferringType x) =>
+			tryGetInferred(x),
+		(scope Type[] candidateTypeArgs) =>
+			candidate.called.matchWithPointers!(Trace.Result)(
+				(FunDecl* f) =>
+					isFull(trace)
+						? Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())))
+						: withExactStackArray!(Trace.Result, Called)(countSpecSigs(*f), (scope ref SpecImpls out_) {
+							Opt!(Trace.NoMatch) diag = checkSpecImpls!Trace(
+								out_, ctx, f, small!Type(candidateTypeArgs), trace);
+							return has(diag)
+								? Trace.Result(force(diag))
+								: Trace.Result(Called(instantiateFun(
+									ctx.instantiateCtx, f,
+									small!Type(candidateTypeArgs),
+									smallFinish(out_))));
+						}),
+				(CalledSpecSig s) =>
+					Trace.Result(Called(s))),
+		() =>
+			Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(
+				Diag.SpecNoMatch.Reason.CantInferTypeArguments(candidate.called.as!(FunDecl*))))));
+
+size_t countSpecSigs(in FunDecl a) =>
+	sum(a.specs, (in SpecInst* x) =>
+		countSigs(*x));
 
 bool deeper(DummyTrace.NoMatch, DummyTrace.NoMatch) =>
 	false;
@@ -401,7 +409,7 @@ bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) {
 }
 
 Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
-	ref SpecImpls res,
+	scope ref SpecImpls res,
 	ref CheckSpecsCtx ctx,
 	FunDecl* called,
 	in TypeArgs calledTypeArgs,
@@ -414,7 +422,7 @@ Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 			ctx.instantiateCtx, specInst, calledTypeArgs, noDelaySpecInsts)));
 
 Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
-	ref SpecImpls res,
+	scope ref SpecImpls res,
 	ref CheckSpecsCtx ctx,
 	FunDecl* called,
 	scope Trace outerTrace,
@@ -425,7 +433,7 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 			checkSpecImplInner(res, ctx, trace, specInstInstantiated));
 
 Opt!(Trace.NoMatch) checkSpecImplInner(Trace)(
-	ref SpecImpls res,
+	scope ref SpecImpls res,
 	ref CheckSpecsCtx ctx,
 	scope Trace trace,
 	in SpecInst specInstInstantiated,

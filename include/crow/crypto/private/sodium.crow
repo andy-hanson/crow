@@ -1,9 +1,5 @@
-no-std
 import
 	system/sodium: sodium_init
-	../../bool: ||
-	../../misc: void
-	../../number: ==
 	../../private/runtime: get-global-lock
 	../../private/thread-utils: with-lock
 

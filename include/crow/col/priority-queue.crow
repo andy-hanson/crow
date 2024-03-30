@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool, new, true
+	../bool: bool, new, not, true
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../json: to
@@ -87,13 +87,10 @@ This is O(n).
 +size[k, v] nat64(a (k, v) priority-queue) k priority
 	acc mut nat64 = 0
 	cur mut = a root
-	loop
-		if node ?= cur
-			acc +:= 1 + node.pairs.size
-			cur := node next
-			continue
-		else
-			break acc
+	while node ?= cur
+		acc +:= 1 + node.pairs.size
+		cur := node next
+	acc
 
 ###
 Adds a pair to the queue.
@@ -223,24 +220,20 @@ This is amortized O(log n).
 
 -compact-non-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node?)
 	cur mut = a
-	loop
-		if node ?= cur
-			out ~= node min
-			out ~~= node pairs
-			cur := node next
-			continue
-		else
-			break
+	while node ?= cur
+		out ~= node min
+		out ~~= node pairs
+		cur := node next
 
 -dbg string(a (nat64, string) priority-queue)
 	a.root dbg
 -dbg string(a (nat64, string) node?)
-	if node ?= a
-		pairs = ", " join for k, v : node pairs
-			"{k} {v}"
-		rest string = node.next.is-empty ? "" : "; {node.next dbg}"
-		k, v = node min
-		"{k} {v} [{pairs}]{rest}"
+	guard node ?= a
+	pairs = ", " join for k, v : node pairs
+		"{k} {v}"
+	rest string = node.next.is-empty ? "" : "; {node.next dbg}"
+	k, v = node min
+	"{k} {v} [{pairs}]{rest}"
 
 region spec impls (see collection.crow)
 
@@ -267,26 +260,22 @@ region spec impls (see collection.crow)
 
 -fill-each-arr[k, v] void(out (k, v) each-part mut-array-builder, a (k, v) node?)
 	cur mut = a
-	loop
-		if node ?= cur
-			out ~= (node.min, node.pairs)
-			cur := node next
-			continue
-		else
-			break
+	while node ?= cur
+		out ~= (node.min, node.pairs)
+		cur := node next
 
 -walk[k, v] bool(a (k, v) each-part mut-array, f bool mut(key k, value v)) k compare
-	unless a is-empty
-		head = a[0]
-		if f[head min]
-			true
-		elif head.pairs is-empty
-			a[1 .. end] walk f
-		else
-			head.min := head.pairs[0]
-			head.pairs := head.pairs[1 .. end]
-			a swap-sorted
-			a walk f
+	guard !a.is-empty
+	head = a[0]
+	if f[head min]
+		true
+	elif head.pairs is-empty
+		a[1 .. end] walk f
+	else
+		head.min := head.pairs[0]
+		head.pairs := head.pairs[1 .. end]
+		a swap-sorted
+		a walk f
 
 -swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
 	for i : 0::nat64 .. a.size - 1

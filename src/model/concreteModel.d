@@ -495,15 +495,10 @@ immutable struct ConcreteExprKind {
 	immutable struct Loop {
 		ConcreteExpr body_;
 	}
-
 	immutable struct LoopBreak {
-		ConcreteExprKind.Loop* loop;
 		ConcreteExpr value;
 	}
-
-	immutable struct LoopContinue {
-		ConcreteExprKind.Loop* loop;
-	}
+	immutable struct LoopContinue {}
 
 	immutable struct MatchEnumOrIntegral {
 		@safe @nogc pure nothrow:

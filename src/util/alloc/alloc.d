@@ -21,7 +21,7 @@ import util.alloc.doubleLink :
 	replaceInList;
 import util.col.array : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
-import util.memory : ensureMemoryClear, initMemory, memset;
+import util.memory : ensureMemoryClear, memset;
 import util.opt : ConstOpt, force, has, MutOpt;
 import util.union_ : TaggedUnion;
 import util.util : clamp, divRoundUp, max, ptrTrustMe;
@@ -61,26 +61,6 @@ T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe
 }
 
 pure:
-
-@system Out withTempArrayUninitialized(Out, Elem)(
-	size_t size,
-	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
-) {
-	Elem[0x100] elems = void;
-	assert(size < 0x100);
-	return cb(elems[0 .. size]);
-}
-
-@trusted Out withTempArray(Out, Elem)(
-	size_t size,
-	in Elem delegate(size_t) @safe @nogc pure nothrow init,
-	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
-) =>
-	withTempArrayUninitialized!(Out, Elem)(size, (scope Elem[] xs) {
-		foreach (size_t i, ref Elem x; xs)
-			initMemory(&x, init(i));
-		return cb(xs);
-	});
 
 T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a);

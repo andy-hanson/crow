@@ -8,7 +8,7 @@ Candidates (with 1 arguments):
 	'new[t] t array(...t array)' (from include/crow/col/array.crow line 18)
 	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 10)
 	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 58)
-	'new[t] t[](...t array)' (from include/crow/col/list.crow line 155)
+	'new[t] t[](...t array)' (from include/crow/col/list.crow line 148)
 	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 63)
 	'new[t] t mut-array(...t array)' (from include/crow/col/mut-array.crow line 36)
 	'new[t] t mut[](...t array)' (from include/crow/col/mut-list.crow line 56)
@@ -19,7 +19,7 @@ Candidates (with 1 arguments):
 	'new[k, v] k shared[v](...(k, v) array)' (from include/crow/col/shared-map.crow line 31)
 	'new[t] t^(value t)' (from include/crow/future.crow line 40)
 	'new[col] col parallel-collection(collection col)' (from include/crow/future.crow line 253)
-	'new json(...(symbol, json) array)' (from include/crow/json.crow line 37)
+	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
 	'new[t] t?(a t)' (from include/crow/option.crow line 16)
 Uncaught exception: Reached compile error
 	at main

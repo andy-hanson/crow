@@ -110,33 +110,26 @@ The child process shares stdout and stderr with the parent process.
 	ok1 = stdout-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
 	ok2 = &stderr-read CreatePipe &stderr-write, &sec, 0
 	ok3 = stderr-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
-	unless ok0 && ok1 && ok2 && ok3
-		todo
+	assert ok0 && ok1 && ok2 && ok3
 
 	startup-info STARTUPINFOA = STARTF_USESTDHANDLES, (), stdout-write, stderr-write
 	process-info mut PROCESS_INFORMATION = ()
 	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), &startup-info, &process-info
-	unless ok4
-		todo
+	assert ok4
 
-	unless stdout-write.CloseHandle && stderr-write.CloseHandle
-		todo
+	assert stdout-write.CloseHandle && stderr-write.CloseHandle
 
 	stdout, stderr = stdout-read read-from-pipes-windows stderr-read
-	unless stdout-read CloseHandle
-		todo
-	unless stderr-read CloseHandle
-		todo
+	assert stdout-read CloseHandle
+	assert stderr-read CloseHandle
 
 	_ = process-info.hProcess WaitForSingleObject INFINITE
 
 	exit-code mut DWORD = 0
 	ok5 = process-info.hProcess GetExitCodeProcess &exit-code
-	unless ok5
-		todo
+	assert ok5
 	# TODO: should be in a 'finally'
-	unless process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
-		todo
+	assert process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
 
 	exit-code.wrap-to.exited, stdout, stderr
 
@@ -176,10 +169,9 @@ The child process shares stdout and stderr with the parent process.
 	ok = pipe PeekNamedPipe null, 0, &n-read, &total-available, &bytes-left
 	if ok
 		total-available.to,
-	elif GetLastError == ERROR_BROKEN_PIPE
-		()
 	else
-		throw "Error peeking {desc}: {GetLastError show-win32-error}"
+		assert GetLastError == ERROR_BROKEN_PIPE :
+			"Error peeking {desc}: {GetLastError show-win32-error}"
 
 -read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe
 	old-size = res size

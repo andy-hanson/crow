@@ -10,8 +10,7 @@ import frontend.check.instantiate :
 	instantiateStructNeverDelay,
 	makeConstPointerType,
 	makeMutPointerType,
-	TypeArgsArray,
-	typeArgsArray;
+	makeOptionType;
 import model.model :
 	asTuple,
 	BuiltinType,
@@ -33,14 +32,13 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParamIndex,
-	TypeParams,
 	UnionMember,
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, map, mapWithFirst, small, sum;
+import util.alloc.stackAlloc : withStackArray;
+import util.col.array : count, isEmpty, map, mapWithFirst, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
-import util.col.mutMaxArr : asTemporaryArray;
 import util.conv : safeToUint;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
@@ -71,7 +69,8 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 			return 1 + forGetSet * (recordIsAlwaysByVal(x) ? 2 : 1) + forCall;
 		},
 		(in StructBody.Union x) =>
-			x.members.length);
+			// A constructor and getter for each member
+			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)));
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -230,19 +229,18 @@ void addFunsForRecord(
 	StructDecl* struct_,
 	ref StructBody.Record record,
 ) {
-	scope TypeArgsArray typeArgs = typeArgsArray();
-	typeArgsFromParams(typeArgs, struct_.typeParams);
-	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
+	Type structType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
 	foreach (size_t fieldIndex, ref RecordField field; record.fields)
 		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, &field);
 }
 
-void typeArgsFromParams(scope ref TypeArgsArray out_, in TypeParams typeParams) {
-	foreach (size_t i; 0 .. typeParams.length)
-		out_ ~= Type(TypeParamIndex(safeToUint(i)));
-}
+Type instantiateStructWithTypeArgsFromParams(ref CheckCtx ctx, StructDecl* struct_) =>
+	withStackArray!(Type, Type)(
+		struct_.typeParams.length,
+		(size_t i) => Type(TypeParamIndex(safeToUint(i))),
+		(scope Type[] typeArgs) => Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, typeArgs)));
 
 void addFunsForRecordConstructor(
 	ref CheckCtx ctx,
@@ -396,26 +394,32 @@ Symbol symbolForParam(size_t index) {
 void addFunsForUnion(
 	ref CheckCtx ctx,
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
-	in CommonTypes commonTypes,
+	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Union union_,
 ) {
-	scope TypeArgsArray typeArgs = typeArgsArray();
-	typeArgsFromParams(typeArgs, struct_.typeParams);
-	Type unionType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
-	foreach (ref UnionMember member; union_.members) {
-		Params params = isVoid(commonTypes, member.type)
-			? Params([])
-			: makeParams(ctx.alloc, [param!"a"(member.type)]);
+	Type unionType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
+	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
+		bool voidMember = isVoid(commonTypes, member.type);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(&member),
 			struct_.visibility,
 			member.name,
 			unionType,
-			params,
+			voidMember ? Params([]) : makeParams(ctx.alloc, [param!"a"(member.type)]),
 			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.CreateUnion(&member)));
+		if (!voidMember)
+			funsBuilder ~= funDeclWithBody(
+				FunDeclSource(&member),
+				struct_.visibility,
+				member.name,
+				Type(makeOptionType(ctx.instantiateCtx, commonTypes, member.type)),
+				makeParams(ctx.alloc, [param!"a"(unionType)]),
+				FunFlags.generatedBare,
+				[],
+				FunBody(FunBody.UnionMemberGet(memberIndex)));
 	}
 }
 

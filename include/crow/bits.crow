@@ -8,7 +8,7 @@ So, the number 5 has bits 0 and 2 set, since 5 is `2**0 + 2**2`.
 no-std
 import
 	./bool: &&, bool, false, true
-	./compare: !=, <
+	./compare: !=, <, <=
 	./fun-util: subscript
 	./number: ==, <=>, +, int8, int16, int32, int64, nat8, nat16, nat32, nat64, new, to
 	./private/bootstrap: todo
@@ -67,17 +67,17 @@ Shifts the bits of 'a' left by 'b' bits.
 Does not rotate.
 ###
 +<< nat8(a nat8, b nat8) bare
-	if b < 8
-		trusted a.to unsafe-bit-shift-left b.to unsafe-to
+	guard b < 8
+	trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat16(a nat16, b nat16) bare
-	if b < 16
-		trusted a.to unsafe-bit-shift-left b.to unsafe-to
+	guard b < 16
+	trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat32(a nat32, b nat32) bare
-	if b < 32
-		trusted a.to unsafe-bit-shift-left b.to unsafe-to
+	guard b < 32
+	trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat64(a nat64, b nat64) bare
-	if b < 64
-		trusted a unsafe-bit-shift-left b
+	guard b < 64
+	trusted a unsafe-bit-shift-left b
 
 ###
 Shifts the bits of 'a' right by 'b' bits.
@@ -85,11 +85,11 @@ Shifts the bits of 'a' right by 'b' bits.
 Does not rotate.
 ###
 +>> nat32(a nat32, b nat32) bare
-	if b < 32
-		trusted a.to unsafe-bit-shift-right b.to unsafe-to
+	guard b < 32
+	trusted a.to unsafe-bit-shift-right b.to unsafe-to
 +>> nat64(a nat64, b nat64) bare
-	if b < 64
-		trusted a unsafe-bit-shift-right b
+	guard b < 64
+	trusted a unsafe-bit-shift-right b
 +>> int32(a int32, b int32) bare
 	if a < 0
 		todo
@@ -171,16 +171,10 @@ bits-cat nat64(a nat32, b nat32)
 
 # Number with the highest `n` bits set.
 high-n-bits nat64(n nat64)
-	if n < 64
-		~(64 wrap-sub n).low-n-bits
-	else
-		# TODO: warn if n > 64
-		0xffffffffffffffff
+	assert n <= 64
+	~(64 wrap-sub n).low-n-bits
 
 # Number with the lowest `n` bits set.
-low-n-bits nat64(n nat64)
-	if n < 64
-		(1 << n) wrap-sub 1
-	else
-		# TODO: warn if n > 64
-		0xffffffffffffffff
+low-n-bits nat64(n nat64) bare
+	assert n <= 64
+	(1 << n) wrap-sub 1

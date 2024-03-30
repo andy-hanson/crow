@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool
+	../bool: bool, not
 	../compare: !=, <
 	../json: to
 	../misc: new, void
@@ -48,10 +48,10 @@ This is O(n).
 	trusted a.to.cast-immutable to
 
 -to[t] t mut-array(a t mut-deque)
-	trusted unless a is-empty
-		res t mut-array = a.size uninitialized-mut-array
-		res copy-from-deque a
-		res
+	guard !a.is-empty
+	res t mut-array = trusted a.size uninitialized-mut-array
+	res copy-from-deque a
+	res
 
 # Copy elements to a new deque.
 +copy[t] t mut-deque(a t mut-deque)
@@ -93,8 +93,8 @@ Returns the leftmost element without removing it.
 Returns an empty option iff `a` is empty.
 ###
 +peek-left[t] t?(a t mut-deque)
-	unless a.left == nil
-		a.inner[a left],
+	guard a.left != nil
+	a.inner[a left],
 
 ###
 Returns the rightmost element without removing it.
@@ -102,8 +102,8 @@ Returns the rightmost element without removing it.
 Returns an empty option iff `a` is empty.
 ###
 +peek-right[t] t?(a t mut-deque)
-	unless a.right == nil
-		a.inner[a prev-index a.right],
+	guard a.right != nil
+	a.inner[a prev-index a.right],
 
 ###
 Removes and returns the leftmost element.
@@ -111,15 +111,15 @@ Removes and returns the leftmost element.
 Returns an empty option iff `a` was empty (before calling `pop-left`).
 ###
 +pop-left[t] t?(a t mut-deque)
-	trusted unless a.left == nil
-		res = a.inner[a.left]
-		a.inner[a.left] := zeroed
-		a.left := a next-index a.left
-		if a.left == a.right
-			a.left := nil
-			a.right := nil
-			# Still hold on to `a inner`
-		res,
+	guard a.left != nil
+	res = a.inner[a.left]
+	a.inner[a.left] := trusted zeroed
+	a.left := a next-index a.left
+	if a.left == a.right
+		a.left := nil
+		a.right := nil
+		# Still hold on to `a inner`
+	res,
 
 ###
 Removes and returns the rightmost element.
@@ -127,15 +127,15 @@ Removes and returns the rightmost element.
 Returns an empty option iff `a` was empty (before calling `pop-right`).
 ###
 +pop-right[t] t?(a t mut-deque)
-	trusted unless a.right == nil
-		a.right := a prev-index a.right
-		res = a.inner[a.right]
-		a.inner[a.right] := zeroed
-		if a.right == a.left
-			a.left := nil
-			a.right := nil
-			# Still hold on to `a inner`
-		res,
+	guard a.right != nil
+	a.right := a prev-index a.right
+	res = a.inner[a.right]
+	a.inner[a.right] := trusted zeroed
+	if a.right == a.left
+		a.left := nil
+		a.right := nil
+		# Still hold on to `a inner`
+	res,
 
 ###
 This breaks the invariant that a.left and a.right are null for an empty queue.

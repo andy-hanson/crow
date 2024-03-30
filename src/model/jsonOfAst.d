@@ -12,6 +12,7 @@ import model.ast :
 	CallNamedAst,
 	CaseAst,
 	CaseMemberAst,
+	ConditionAst,
 	DestructureAst,
 	DoAst,
 	EmptyAst,
@@ -25,7 +26,6 @@ import model.ast :
 	ModifierAst,
 	IdentifierAst,
 	IfAst,
-	IfConditionAst,
 	ImportOrExportAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
@@ -403,10 +403,13 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"name"(jsonOfNameAndRange(alloc, ctx, e.name))]),
 		(in AssertOrForbidAst e) =>
 			jsonObject(alloc, [
-				kindField(stringOfEnum(e.kind)),
-				field!"condition"(jsonOfExprAst(alloc, ctx, e.condition)),
-				optionalField!("thrown", ExprAst)(e.thrown, (in ExprAst thrown) =>
-					jsonOfExprAst(alloc, ctx, thrown))]),
+				kindField(e.isForbid ? "forbid" : "assert"),
+				field!"condition"(jsonOfConditionAst(alloc, ctx, e.condition)),
+				optionalField!("thrown", AssertOrForbidAst.Thrown*)(e.thrown, (in AssertOrForbidAst.Thrown* thrown) =>
+					jsonObject(alloc, [
+						field!"colon"(thrown.colonPos),
+						field!"expr"(jsonOfExprAst(alloc, ctx, thrown.expr))])),
+				field!"after"(jsonOfExprAst(alloc, ctx, *e.after))]),
 		(in AssignmentAst e) =>
 			jsonObject(alloc, [
 				kindField!"assign",
@@ -451,21 +454,17 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"identifier",
 				field!"name"(a.name)]),
-		(in IfAst e) =>
+		(in IfAst e) @safe =>
 			jsonObject(alloc, [
 				kindField!"if",
 				field!"if-kind"(stringOfEnum(e.kind)),
-				field!"condition"(e.condition.matchIn!Json(
-					(in IfConditionAst.UnpackOption x) =>
-						jsonObject(alloc, [
-							field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
-							field!"option"(jsonOfExprAst(alloc, ctx, *x.option))]),
-					(in ExprAst x) =>
-						jsonOfExprAst(alloc, ctx, x))),
+				field!"condition"(jsonOfConditionAst(alloc, ctx, e.condition)),
 				field!"first-keyword"(e.firstKeywordPos),
-				field!"then"(jsonOfExprAst(alloc, ctx, e.then)),
-				field!"second-keyword"(e.secondKeywordPos),
-				field!"else"(jsonOfExprAst(alloc, ctx, e.else_))]),
+				optionalField!("first-branch", ExprAst*)(e.firstBranch, (in ExprAst* x) =>
+					jsonOfExprAst(alloc, ctx, *x)),
+				optionalField!("second-keyword", Pos)(e.secondKeywordPos, (in Pos x) => Json(x)),
+				optionalField!("second-branch", ExprAst*)(e.secondBranch, (in ExprAst* x) =>
+					jsonOfExprAst(alloc, ctx, *x))]),
 		(in InterpolatedAst x) =>
 			jsonObject(alloc, [
 				kindField!"interpolated",
@@ -500,8 +499,9 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in LoopWhileOrUntilAst e) =>
 			jsonObject(alloc, [
 				kindField(e.isUntil ? "until" : "while"),
-				field!"condition"(jsonOfExprAst(alloc, ctx, e.condition)),
-				field!"body"(jsonOfExprAst(alloc, ctx, e.body_))]),
+				field!"condition"(jsonOfConditionAst(alloc, ctx, e.condition)),
+				field!"body"(jsonOfExprAst(alloc, ctx, e.body_)),
+				field!"after"(jsonOfExprAst(alloc, ctx, e.after))]),
 		(in MatchAst x) =>
 			jsonObject(alloc, [
 				kindField!"match",
@@ -552,6 +552,15 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"param"(jsonOfDestructureAst(alloc, ctx, x.param)),
 				field!"arg"(jsonOfExprAst(alloc, ctx, x.arg)),
 				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]));
+
+Json jsonOfConditionAst(ref Alloc alloc, in Ctx ctx, in ConditionAst a) =>
+	a.matchIn!Json(
+		(in ExprAst x) =>
+			jsonOfExprAst(alloc, ctx, x),
+		(in ConditionAst.UnpackOption x) =>
+			jsonObject(alloc, [
+				field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
+				field!"option"(jsonOfExprAst(alloc, ctx, *x.option))]));
 
 Json jsonOfCaseAst(ref Alloc alloc, in Ctx ctx, in CaseAst a) =>
 	jsonObject(alloc, [

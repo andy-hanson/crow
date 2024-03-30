@@ -223,10 +223,7 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 				writer ~= stringOfEnum(x.kind);
 				writer ~= '\'';
 			}
-			writer ~= " expression must appear ";
-			writer ~= x.kind == ParseDiag.NeedsBlockCtx.Kind.break_
-				? "on its own line."
-				: "in a context where it can be followed by an indented block.";
+			writer ~= " expression must appear in a context where it can be followed by an indented block.";
 		},
 		(in ReadFileDiag x) {
 			showReadFileDiag(writer, ctx, x, none!Uri);
@@ -431,6 +428,9 @@ void writeCallNoMatch(scope ref Writer writer, in ShowDiagCtx ctx, in Diag.CallN
 
 void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 	diag.matchIn!void(
+		(in Diag.AssertOrForbidMessageIsThrow) {
+			writer ~= "The expression after the ':' for an assert or forbid is always thrown; it doesn't need 'throw'.";
+		},
 		(in Diag.AssignmentNotAllowed) {
 			writer ~= "Can't assign to this kind of expression.";
 		},
@@ -567,6 +567,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Expected to find a type named ";
 			writeName(writer, ctx, x.name);
 			writer ~= " in this module.";
+		},
+		(in Diag.ConditionUnpacksNonOption x) {
+			writer ~= "Expected an option type, but got ";
+			writeTypeQuoted(writer, ctx, x.actualType);
+			writer ~= '.';
 		},
 		(in Diag.DestructureTypeMismatch x) {
 			x.expected.matchIn!void(
@@ -706,10 +711,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			}
 			writer ~= " This is not currently supported for function pointers.";
 		},
-		(in Diag.IfNeedsOpt x) {
-			writer ~= "Expected an option type, but got ";
-			writeTypeQuoted(writer, ctx, x.actualType);
-			writer ~= '.';
+		(in Diag.IfThrow) {
+			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
 		},
 		(in Diag.ImportFileDiag x) {
 			x.matchIn!void(
@@ -1189,6 +1192,12 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				}
 			}();
 		},
+		(in Diag.TupleTooBig x) {
+			writer ~= "This tuple has ";
+			writer ~= x.actual;
+			writer ~= " elements; the maximum allowed is ";
+			writer ~= x.maxAllowed;
+		},
 		(in Diag.TypeAnnotationUnnecessary x) {
 			writer ~= "Type annotation is unnecessary; type ";
 			writeTypeQuoted(writer, ctx, x.type);
@@ -1555,6 +1564,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'function'.";
 		case Token.global:
 			return "Unexpected keyword 'global'.";
+		case Token.guard:
+			return "Unexpected keyword 'guard'.";
 		case Token.if_:
 			return "Unexpected keyword 'if'.";
 		case Token.import_:
@@ -1598,6 +1609,10 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'pure'.";
 		case Token.question:
 			return "Unexpected '?'.";
+		case Token.questionBracket:
+			return "Unexpected '?['.";
+		case Token.questionDot:
+			return "Unexpected '?.'.";
 		case Token.questionEqual:
 			return "Unexpected '?='.";
 		case Token.quoteDouble:

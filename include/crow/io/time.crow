@@ -24,10 +24,8 @@ export
 
 # Get the current Unix timestamp.
 +get-unix-time unix-time() summon
-	if trusted is-windows
-		throw "TODO: Windows support"
-	else
-		trusted null.time,
+	forbid trusted is-windows : "TODO: Windows support"
+	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void^(duration duration) summon

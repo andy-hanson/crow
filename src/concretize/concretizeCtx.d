@@ -4,7 +4,7 @@ module concretize.concretizeCtx;
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
-import concretize.generate : bodyForEnumOrFlagsMembers, concretizeAutoFun, getRecordFieldCall;
+import concretize.generate : bodyForEnumOrFlagsMembers, concretizeAutoFun, getRecordFieldCall, genUnionMemberGet;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	byVal,
@@ -782,6 +782,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.RecordFieldPointer(x.fieldIndex)),
 			(FunBody.RecordFieldSet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
+			(FunBody.UnionMemberGet x) =>
+				ConcreteFunBody(genUnionMemberGet(ctx, cf, x.memberIndex)),
 			(FunBody.VarGet x) =>
 				ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
 			(FunBody.VarSet x) =>

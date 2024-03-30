@@ -21,7 +21,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : mapWithIndex, newArray, newSmallArray;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, integralValuesRange;
-import util.memory : allocate, overwriteMemory;
+import util.memory : allocate;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 
@@ -347,21 +347,13 @@ LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowTy
 	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }
 
-@trusted LowExpr genLoop(
-	ref Alloc alloc,
-	UriAndRange range,
-	LowType type,
-	in LowExpr delegate(LowExprKind.Loop*) @safe @nogc pure nothrow cbBody,
-) {
-	LowExprKind.Loop* res = allocate(alloc, LowExprKind.Loop(
-		// Dummy initial body
-		LowExpr(voidType, UriAndRange.empty, LowExprKind(constantZero))));
-	overwriteMemory(&res.body_, cbBody(res));
-	return LowExpr(type, range, LowExprKind(res));
-}
+@trusted LowExpr genLoop(ref Alloc alloc, UriAndRange range, LowType type, LowExpr body_) =>
+	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.Loop(body_))));
 
-LowExpr genLoopBreak(ref Alloc alloc, UriAndRange range, LowExprKind.Loop* loop, LowExpr value) =>
-	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.LoopBreak(loop, value))));
+LowExpr genLoopBreak(ref Alloc alloc, UriAndRange range, LowExpr value) =>
+	LowExpr(voidType, range, genLoopBreakKind(alloc, value));
+LowExprKind genLoopBreakKind(ref Alloc alloc, LowExpr value) =>
+	LowExprKind(allocate(alloc, LowExprKind.LoopBreak(value)));
 
-LowExpr genLoopContinue(UriAndRange range, LowExprKind.Loop* loop) =>
-	LowExpr(voidType, range, LowExprKind(LowExprKind.LoopContinue(loop)));
+LowExpr genLoopContinue(UriAndRange range) =>
+	LowExpr(voidType, range, LowExprKind(LowExprKind.LoopContinue()));

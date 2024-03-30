@@ -2,7 +2,6 @@ module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : maxTypeParams;
 import frontend.allInsts : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
 	BuiltinType,
@@ -34,10 +33,10 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : withMapToStackArray;
 import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
-import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 
@@ -56,10 +55,6 @@ struct InstantiateCtx {
 		*allInstsPtr;
 }
 
-alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
-TypeArgsArray typeArgsArray() =>
-	mutMaxArr!(maxTypeParams, Type);
-
 alias DelaySpecInsts = MutArrWithAlloc!(SpecInst*);
 alias MayDelaySpecInsts = MutOpt!(DelaySpecInsts*); // delayed due to 'parents' referencing other specs
 MayDelaySpecInsts noDelaySpecInsts() =>
@@ -77,7 +72,7 @@ private Type instantiateType(
 ) =>
 	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
-			Type(Type.Bogus()),
+			Type.bogus,
 		(TypeParamIndex x) =>
 			typeArgs[x.index],
 		(StructInst* x) =>
@@ -157,15 +152,24 @@ private StructInst* instantiateStructInst(
 	ref StructInst structInst,
 	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
-) {
-	scope TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, structInst.typeArgs, (ref Type x) =>
-		instantiateType(ctx, x, typeArgs, delayStructInsts));
-	return instantiateStruct(ctx, structInst.decl, small!Type(asTemporaryArray(itsTypeArgs)), delayStructInsts);
-}
+) =>
+	withMapToStackArray!(StructInst*, Type, Type)(
+		structInst.typeArgs,
+		(ref Type x) => instantiateType(ctx, x, typeArgs, delayStructInsts),
+		(scope Type[] itsTypeArgs) =>
+			instantiateStruct(ctx, structInst.decl, small!Type(itsTypeArgs), delayStructInsts));
 
 StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
 	instantiateStruct(ctx, decl, small!Type(typeArgs), noDelayStructInsts);
+
+StructInst* makeOptionType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type innerType) =>
+	instantiateStructNeverDelay(ctx, commonTypes.option, [innerType]);
+
+Type makeOptionIfNotAlready(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
+	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
+
+private bool isOptionType(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 StructInst* makeConstPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.ptrConst, [pointeeType]);
@@ -206,12 +210,11 @@ SpecInst* instantiateSpecInst(
 	SpecInst* specInst,
 	in TypeArgs typeArgs,
 	scope MayDelaySpecInsts delaySpecInsts,
-) {
-	TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, specInst.typeArgs, (ref Type x) =>
-		instantiateType(ctx, x, typeArgs, noDelayStructInsts));
-	return instantiateSpec(ctx, specInst.decl, small!Type(asTemporaryArray(itsTypeArgs)), delaySpecInsts);
-}
+) =>
+	withMapToStackArray!(SpecInst*, Type, Type)(
+		specInst.typeArgs,
+		(ref Type x) => instantiateType(ctx, x, typeArgs, noDelayStructInsts),
+		(scope Type[] itsTypeArgs) => instantiateSpec(ctx, specInst.decl, small!Type(itsTypeArgs), delaySpecInsts));
 
 private:
 

@@ -91,13 +91,9 @@ test
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, k compare
 	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
 	cur mut = a begin
-	loop
-		if pair ?= cur next
-			cur move-last-sorted pair.a, get-key
-			cur := pair b
-			continue
-		else
-			break
+	while pair ?= cur next
+		cur move-last-sorted pair.a, get-key
+		cur := pair b
 -move-last-sorted[iter, elem, k] void(
 	init iter,
 	value-to-move elem,
@@ -106,17 +102,12 @@ test
 	cur mut = init
 	key-to-move = get-key[value-to-move]
 	loop
-		if prev-pair ?= cur prev
-			if get-key[prev-pair b] > key-to-move
-				cur set-next prev-pair.b
-				cur := prev-pair a
-				continue
-			else
-				cur set-next value-to-move
-				break
-		else
-			cur set-next value-to-move
-			break
+		guard prev-pair ?= cur prev : break
+		guard get-key[prev-pair b] > key-to-move : break
+		cur set-next prev-pair.b
+		cur := prev-pair a
+		continue
+	cur set-next value-to-move
 
 ###
 Sort `a` in place and remove unique elements.
@@ -127,16 +118,12 @@ Returns is a slice of the original `a`, which will be shorter if non-unique elem
 	out mut = a begin
 	in mut = a begin
 	prev mut t? = ()
-	loop
-		if pair ?= in next
-			unless prev == (pair.a,)
-				out set-next pair.a
-				out +:= 1
-				prev := pair.a,
-			in := pair b
-			continue
-		else
-			break
+	while pair ?= in next
+		unless prev == (pair.a,)
+			out set-next pair.a
+			out +:= 1
+			prev := pair.a,
+		in := pair b
 	a.begin slice out
 
 ###
@@ -172,17 +159,17 @@ Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j
 	a t mut-array,
 	b u mut-array,
 	pivot t,
-	l nat64,
-	r nat64,
+	left nat64,
+	right nat64,
 ) t compare
-	assert l <= a.size
-	assert r < a.size
-	if l <= r
+	l mut = left
+	r mut = right
+	while l <= r
+		assert r < a.size
 		if a[l] < pivot
-			a set-partition-by-first b, pivot, (l + 1), r
+			l +:= 1
 		else
 			a swap-at l, r
 			b swap-at l, r
-			a set-partition-by-first b, pivot, l, r - 1
-	else
-		l
+			r -:= 1
+	l

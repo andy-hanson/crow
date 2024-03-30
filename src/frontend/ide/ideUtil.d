@@ -9,16 +9,17 @@ import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
 	CallExpr,
+	CallOptionExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
+	Condition,
 	Expr,
 	ExprAndType,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
 	IfExpr,
-	IfOptionExpr,
 	LambdaExpr,
 	LetExpr,
 	LiteralExpr,
@@ -231,12 +232,20 @@ Opt!T findDirectChildExpr(T)(
 		ExprRef(&x, a.type);
 	ExprRef toRef(ref ExprAndType x) =>
 		ExprRef(&x.expr, x.type);
+
+	ExprRef directChildInCondition(Condition cond) =>
+		cond.matchWithPointers!ExprRef(
+			(Expr* x) =>
+				ExprRef(x, boolType),
+			(Condition.UnpackOption* x) =>
+				toRef(x.option));
+
 	return a.expr.kind.matchWithPointers!(Opt!T)(
-		(AssertOrForbidExpr* x) {
-			assert(a.type == voidType);
-			return optOr!T(cb(ExprRef(&x.condition, boolType)), () =>
-				has(x.thrown) ? cb(ExprRef(force(x.thrown), stringType)) : none!T);
-		},
+		(AssertOrForbidExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), stringType)) : none!T,
+				() => cb(sameType(x.after))),
 		(BogusExpr _) =>
 			none!T,
 		(CallExpr x) {
@@ -248,6 +257,11 @@ Opt!T findDirectChildExpr(T)(
 				return firstZipPointerFirst!(T, Expr, Type)(x.args, x.called.paramTypes, (Expr* e, Type t) =>
 					cb(ExprRef(e, t)));
 		},
+		(CallOptionExpr* x) =>
+			optOr!T(
+				cb(toRef(x.firstArg)),
+				() => firstZipPointerFirst!(T, Expr, Type)(x.restArgs, x.called.paramTypes[1 .. $], (Expr* e, Type t) =>
+					cb(ExprRef(e, t)))),
 		(ClosureGetExpr x) {
 			assert(a.type == x.local.type);
 			return none!T;
@@ -259,9 +273,10 @@ Opt!T findDirectChildExpr(T)(
 		(FunPointerExpr _) =>
 			none!T,
 		(IfExpr* x) =>
-			optOr!T(cb(ExprRef(&x.cond, boolType)), () => cb(sameType(x.then)), () => cb(sameType(x.else_))),
-		(IfOptionExpr* x) =>
-			optOr!T(cb(toRef(x.option)), () => cb(sameType(x.then)), () => cb(sameType(x.else_))),
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(sameType(x.firstBranch(a.expr.ast))),
+				() => cb(sameType(x.secondBranch(a.expr.ast)))),
 		(LambdaExpr* x) =>
 			cb(ExprRef(&x.body_(), x.returnType)),
 		(LetExpr* x) =>
@@ -285,7 +300,10 @@ Opt!T findDirectChildExpr(T)(
 		(LoopContinueExpr _) =>
 			none!T,
 		(LoopWhileOrUntilExpr* x) =>
-			optOr!T(cb(ExprRef(&x.condition, boolType)), () => cb(ExprRef(&x.body_, voidType))),
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(ExprRef(&x.body_, voidType)),
+				() => cb(sameType(x.after))),
 		(MatchEnumExpr* x) =>
 			optOr!T(
 				cb(toRef(x.matched)),

@@ -7,6 +7,8 @@ import model.parseDiag : ParseDiag;
 
 DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 	a.matchIn!DiagnosticSeverity(
+		(in Diag.AssertOrForbidMessageIsThrow) =>
+			DiagnosticSeverity.warning,
 		(in Diag.AssignmentNotAllowed) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.AutoFunError) =>
@@ -29,6 +31,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.commonMissing,
 		(in Diag.CommonTypeMissing) =>
 			DiagnosticSeverity.commonMissing,
+		(in Diag.ConditionUnpacksNonOption) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.DestructureTypeMismatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>
@@ -63,8 +67,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerNotSupported) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.IfNeedsOpt) =>
-			DiagnosticSeverity.checkError,
+		(in Diag.IfThrow) =>
+			DiagnosticSeverity.warning,
 		(in Diag.ImportFileDiag) =>
 			DiagnosticSeverity.importError,
 		(in Diag.ImportRefersToNothing) =>
@@ -179,6 +183,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>
 			DiagnosticSeverity.warning,
+		(in Diag.TupleTooBig) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.TypeAnnotationUnnecessary) =>
 			DiagnosticSeverity.warning,
 		(in Diag.TypeConflict) =>

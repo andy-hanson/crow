@@ -5,7 +5,7 @@ import
 	../col/list: ~=, build, list
 	../fun-util: subscript
 	../future: delay, future, handle-exceptions, then
-	../misc: void
+	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,

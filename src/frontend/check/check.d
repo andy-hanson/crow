@@ -2,6 +2,7 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
+import frontend.allInsts : AllInsts;
 import frontend.check.checkFuns : checkFuns, checkReturnTypeAndParams, getExternLibraryName, ReturnTypeAndParams;
 import frontend.check.checkCtx :
 	addDiag,
@@ -20,6 +21,7 @@ import frontend.check.maps :
 import frontend.check.instantiate :
 	DelaySpecInsts, DelayStructInsts, InstantiateCtx, instantiateSpecBody, instantiateStructTypes, noDelayStructInsts;
 import frontend.check.typeFromAst : checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+import frontend.lang : maxSpecDepth;
 import model.ast :
 	FileAst,
 	ModifierAst,
@@ -33,7 +35,6 @@ import model.ast :
 	SpecUseAst,
 	StructAliasAst,
 	VarDeclAst;
-import frontend.allInsts : AllInsts;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
@@ -63,6 +64,7 @@ import model.model :
 	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	arrayOfSingle,
@@ -75,6 +77,7 @@ import util.col.array :
 	mapOp,
 	mapPointers,
 	mapWithResultPointer,
+	newArray,
 	only,
 	small,
 	SmallArray,
@@ -83,7 +86,6 @@ import util.col.array :
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.hashTable : getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
-import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, toArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -222,22 +224,22 @@ void checkSpecBodies(
 		instantiateSpecBody(ctx.instantiateCtx, mustPop(delaySpecInsts), someMut(&delaySpecInsts));
 }
 
-void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
-	MutMaxArr!(8, immutable SpecDecl*) trace = mutMaxArr!(8, immutable SpecDecl*);
-	if (recurDetectSpecRecursion(decl, trace)) {
-		addDiagAssertSameUri(ctx, decl.range, Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
-		decl.overwriteParentsToEmpty();
-	}
-}
-bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDecl*) trace) {
-	if (!isEmpty(cur.parents) && isFull(trace))
+void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) =>
+	withMaxStackArray(maxSpecDepth, (scope ref MaxStackArray!(immutable SpecDecl*) trace) {
+		if (recurDetectSpecRecursion(decl, trace)) {
+			addDiagAssertSameUri(ctx, decl.range, Diag(Diag.SpecRecursion(newArray(ctx.alloc, trace.finish))));
+			decl.overwriteParentsToEmpty();
+		}
+	});
+bool recurDetectSpecRecursion(SpecDecl* cur, scope ref MaxStackArray!(immutable SpecDecl*) trace) {
+	if (!isEmpty(cur.parents) && trace.isFull)
 		return true;
 	foreach (SpecInst* parent; cur.parents) {
 		trace ~= parent.decl;
 		if (recurDetectSpecRecursion(parent.decl, trace))
 			return true;
 		else
-			mustPop(trace);
+			trace.mustPop();
 	}
 	return false;
 }
@@ -264,7 +266,7 @@ void checkStructAliasTargets(
 			structsAndAliasesMap,
 			ast.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)));
-		assert(type.isA!(StructInst*) || type.isA!(Type.Bogus)); // since type aliases can't have type parameters
+		assert(type.isA!(StructInst*) || type.isBogus); // since type aliases can't have type parameters
 		structAlias.target = type.isA!(StructInst*)
 			? type.as!(StructInst*)
 			: commonTypes.void_;

@@ -30,6 +30,7 @@ import lower.lowExprHelpers :
 	genLetTempKind,
 	genLocalByValue,
 	genLocalGet,
+	genLoopBreakKind,
 	genPtrCast,
 	genPtrCastKind,
 	genRecordFieldGet,
@@ -146,11 +147,11 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr, fullIndexMapSize
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
 import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
-import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, integralValuesRange;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
-import util.memory : allocate, overwriteMemory;
+import util.memory : allocate;
 import util.opt : force, forceNonRef, has, none, Opt, optIf, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
@@ -881,9 +882,8 @@ LowFunBody getLowFunBody(
 				params,
 				false,
 				a.paramsIncludingClosure.length);
-			LowExpr expr = withStackMap2!(
-				LowExpr, ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*
-			)((ref Locals locals) => getLowExpr(exprCtx, locals, x, ExprPos.tail));
+			LowExpr expr = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
+				getLowExpr(exprCtx, locals, x, ExprPos.tail));
 			return LowFunBody(LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ConcreteFunBody.FlagsFn) =>
@@ -924,18 +924,12 @@ struct GetLowExprCtx {
 		*getLowTypeCtxPtr;
 }
 
-alias Locals = immutable StackMap2!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
-alias addLocal = stackMap2Add0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
-alias addLoop = stackMap2Add1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias Locals = StackMap!(ConcreteLocal*, LowLocal*);
+alias addLocal = stackMapAdd!(ConcreteLocal*, LowLocal*);
 LowLocal* getLocal(ref GetLowExprCtx ctx, in Locals locals, in ConcreteLocal* local) {
 	Opt!size_t paramIndex = indexOfPointer(ctx.concreteParams, local);
-	return has(paramIndex)
-		? &ctx.lowParams[force(paramIndex)]
-		: stackMap2MustGet0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*)(
-			castNonScope_ref(locals), local);
+	return has(paramIndex) ? &ctx.lowParams[force(paramIndex)] : stackMapMustGet(castNonScope_ref(locals), local);
 }
-
-alias getLoop = stackMap2MustGet1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 
 Opt!LowFunIndex tryGetLowFunIndex(in GetLowExprCtx ctx, ConcreteFun* it) =>
 	ctx.concreteFunToLowFunIndex[it];
@@ -946,7 +940,7 @@ size_t nextTempLocalIndex(ref GetLowExprCtx ctx) {
 	return res;
 }
 
-enum ExprPos { tail, nonTail }
+enum ExprPos { nonTail, tail, loop }
 
 LowExpr getLowExpr(
 	ref GetLowExprCtx ctx,
@@ -1001,13 +995,17 @@ LowExprKind getLowExprKind(
 			getLocalGetExpr(ctx, locals, type, expr.range, it),
 		(ref ConcreteExprKind.LocalSet it) =>
 			getLocalSetExpr(ctx, locals, expr.range, it),
-		(ref ConcreteExprKind.Loop it) =>
-			getLoopExpr(ctx, locals, exprPos, type, it),
-		(ref ConcreteExprKind.LoopBreak it) =>
-			getLoopBreakExpr(ctx, locals, exprPos, it),
-		(ConcreteExprKind.LoopContinue it) =>
-			// Ignore exprPos, this is always non-tail
-			getLoopContinueExpr(ctx, locals, it),
+		(ref ConcreteExprKind.Loop x) =>
+			LowExprKind(allocate(ctx.alloc, LowExprKind.Loop(getLowExpr(ctx, locals, x.body_, ExprPos.loop)))),
+		(ref ConcreteExprKind.LoopBreak x) {
+			assert(exprPos == ExprPos.loop);
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.LoopBreak(
+				getLowExpr(ctx, locals, x.value, ExprPos.nonTail))));
+		},
+		(ConcreteExprKind.LoopContinue) {
+			assert(exprPos == ExprPos.loop);
+			return LowExprKind(LowExprKind.LoopContinue());
+		},
 		(ref ConcreteExprKind.MatchEnumOrIntegral x) =>
 			getMatchIntegralExpr(ctx, locals, exprPos, type, expr.range, x),
 		(ref ConcreteExprKind.MatchStringLike x) =>
@@ -1025,8 +1023,8 @@ LowExprKind getLowExprKind(
 				ctx.alloc,
 				getLowExpr(ctx, locals, x.first, ExprPos.nonTail),
 				getLowExpr(ctx, locals, x.then, exprPos)),
-		(ref ConcreteExprKind.Throw it) =>
-			getThrowExpr(ctx, locals, expr.range, type, it),
+		(ref ConcreteExprKind.Throw x) =>
+			getThrowExpr(ctx, locals, expr.range, type, x, exprPos),
 		(ConcreteExprKind.UnionAs x) =>
 			LowExprKind(LowExprKind.UnionAs(
 				allocate(ctx.alloc, getLowExpr(ctx, locals, *x.union_, ExprPos.nonTail)), x.memberIndex)),
@@ -1071,39 +1069,6 @@ bool mayHaveSideEffects(in LowExpr a) =>
 	!a.kind.isA!Constant && !a.kind.isA!(LowExprKind.LocalGet) && (
 		!a.kind.isA!(LowExprKind.CreateRecord) ||
 		exists!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => mayHaveSideEffects(x)));
-
-LowExprKind getLoopExpr(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	ExprPos exprPos,
-	LowType type,
-	ref ConcreteExprKind.Loop a,
-) {
-	immutable LowExprKind.Loop* res = allocate(ctx.alloc, LowExprKind.Loop(
-		// Dummy initial body
-		LowExpr(voidType, UriAndRange.empty, LowExprKind(constantZero))));
-	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
-	overwriteMemory(&res.body_, getLowExpr(ctx, addLoop(locals, &a, res), a.body_, exprPos));
-	return LowExprKind(res);
-}
-
-//TODO: not @trusted
-@trusted LowExprKind getLoopBreakExpr(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	ExprPos exprPos,
-	in ConcreteExprKind.LoopBreak a,
-) =>
-	LowExprKind(allocate(ctx.alloc, LowExprKind.LoopBreak(
-		getLoop(locals, a.loop),
-		getLowExpr(ctx, locals, a.value, exprPos))));
-
-@trusted LowExprKind getLoopContinueExpr(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	in ConcreteExprKind.LoopContinue a,
-) =>
-	LowExprKind(LowExprKind.LoopContinue(getLoop(locals, a.loop)));
 
 LowExprKind getCallExpr(
 	ref GetLowExprCtx ctx,
@@ -1754,16 +1719,20 @@ LowExprKind getThrowExpr(
 	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Throw a,
+	ExprPos exprPos,
 ) {
 	if (has(ctx.throwImplFunIndex)) {
 		LowExprKind callThrow = genCallKind(ctx.alloc, force(ctx.throwImplFunIndex), [
 			getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)]);
-		return type == voidType
+		LowExprKind kind = type == voidType
 			? callThrow
 			: genSeqKind(
 				ctx.alloc,
 				LowExpr(voidType, range, callThrow),
 				LowExpr(type, range, LowExprKind(constantZero)));
+		return exprPos == ExprPos.loop
+			? genLoopBreakKind(ctx.alloc, LowExpr(type, range, kind))
+			: kind;
 	} else
 		return LowExprKind(LowExprKind.Abort());
 }

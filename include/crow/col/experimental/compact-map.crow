@@ -154,12 +154,7 @@ region test
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs
-			# TODO: v?.to::string ?? "_"
-			v-str string = if val ?= v
-				"{val}"
-			else
-				"_"
-			"{k} -> {v-str}"
+			"{k} -> {v?.to ?? "_"}"
 		"{o.prev dbg}, [{parts}]"
 	as end-node e
 		parts = ", " join for k, v : e

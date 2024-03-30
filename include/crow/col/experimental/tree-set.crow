@@ -7,7 +7,7 @@ import
 	../../json: to
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, /, nat64, new
-	../../option: force, new, option
+	../../option: ??, force, new, option
 	../../string: ==, <=>, begin, hash-mix, interpolate, join, next, string, to
 	../../test-util: is
 	../../tuple: a
@@ -109,13 +109,9 @@ This is O(n).
 -consume-rest[t] void(a t iter, out t list-builder)
 	for x : a cur
 		out ~= x
-	loop
-		if popped ?= a.stack pop
-			popped each-inner x =>
-				out ~= x
-			continue
-		else
-			break
+	while popped ?= a.stack pop
+		popped each-inner x =>
+			out ~= x
 
 -walk-iter-union[t] void(out t list-builder, value t, a t iter) t key
 	if peek ?= a peek
@@ -154,10 +150,7 @@ If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
 + -[t] t tree-set(a t tree-set, b t) t key
-	if res ?= a try-remove b
-		res
-	else
-		a
+	a try-remove b ?? a
 
 ###
 If `value` is in `a`, returns `a` with the first instance of `value` removed.
@@ -197,15 +190,10 @@ This is O(a.size ln).
 				(i.value, i.left, new-right).inner,
 	as leaf l
 		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary array)
-		if l2 ?= l try-remove b
-			l2.leaf,
+		(l try-remove b)?.leaf
 
 -node-is-empty[t] bool(a t node)
-	match a
-	as inner _
-		false
-	as leaf l
-		l is-empty
+	a.leaf?.is-empty ?? false
 
 -popped[t] record(value t, rest t node)
 
@@ -245,21 +233,20 @@ This is O(a.size ln).
 
 -peek[t] t?(a t iter)
 	if a.cur is-empty
-		if x ?= a.stack peek
-			x.value,
+		a.stack.peek?.value
 	else
 		a.cur[0],
 
 -next[t] t?(a t iter)
 	if a.cur is-empty
-		if node ?= a.stack pop
-			res = node value
-			match node right
-			as inner i
-				a.stack ~= i
-			as leaf l
-				a.cur := l
-			res,
+		guard node ?= a.stack pop
+		res = node value
+		match node right
+		as inner i
+			a.stack ~= i
+		as leaf l
+			a.cur := l
+		res,
 	else
 		res = a.cur[0]
 		a.cur := a.cur[1 .. end]

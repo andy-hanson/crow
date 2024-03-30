@@ -13,6 +13,8 @@ import util.string : CString;
 import util.uri : mustParseUri;
 import util.util : cStringOfEnum;
 
+version (WebAssembly) {} else { static assert(false); }
+
 extern(C) void _start() {}
 
 extern(C) @system pure ubyte* memset(return scope ubyte* dest, int c, size_t n) {

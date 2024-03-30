@@ -120,19 +120,19 @@ region spec impls (see collection.crow)
 	a, a.size
 
 +prev[t] (t array-iterator, t)?(a t array-iterator) bare
-	if a.next-index != 0
-		new-index = a.next-index - 1
-		assert new-index < a.collection.size
-		value = trusted *(a.collection.begin-pointer + new-index)
-		rest t array-iterator = a.collection, new-index
-		(rest, value),
+	guard a.next-index != 0
+	new-index = a.next-index - 1
+	assert new-index < a.collection.size
+	value = trusted *(a.collection.begin-pointer + new-index)
+	rest t array-iterator = a.collection, new-index
+	(rest, value),
 
 +next[t] (t, t array-iterator)?(a t array-iterator) bare
-	if a.next-index != a.collection.size
-		assert a.next-index < a.collection.size
-		value = trusted *(a.collection.begin-pointer + a.next-index)
-		rest t array-iterator = a.collection, a.next-index + 1
-		(value, rest),
+	guard a.next-index != a.collection.size
+	assert a.next-index < a.collection.size
+	value = trusted *(a.collection.begin-pointer + a.next-index)
+	rest t array-iterator = a.collection, a.next-index + 1
+	(value, rest),
 
 +slice[t] t array(begin t array-iterator, end t array-iterator) bare
 	assert begin.next-index <= end.next-index

@@ -4,28 +4,24 @@ module frontend.check.checkCall.checkCall;
 
 import frontend.check.checkCall.candidates :
 	Candidate,
-	Candidates,
 	candidatesForDiag,
-	filterCandidates,
-	filterCandidatesButDontRemoveAll,
 	funsInScope,
 	getAllCandidatesAsCalledDecls,
 	getCandidateExpectedParameterType,
-	maxCandidates,
 	testCandidateForSpecSig,
 	testCandidateParamType,
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
-import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, typeFromDestructure;
+import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, tryUnpackOptionTypeOrDiag, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
-	asInferringTypeArgs,
 	bogus,
 	check,
+	checkWithModifyExpected,
 	Expected,
 	getExpectedForDiag,
-	InferringTypeArgs,
+	inferred,
 	inferTypeArgsFrom,
 	inferTypeArgsFromLambdaParameterType,
 	matchExpectedVsReturnTypeNoDiagnostic,
@@ -36,9 +32,8 @@ import frontend.check.inferringType :
 	TypeAndContext,
 	TypeContext,
 	withExpectCandidates;
-import frontend.check.instantiate : InstantiateCtx;
-import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
-import frontend.lang : maxTypeParams;
+import frontend.check.instantiate : InstantiateCtx, makeOptionIfNotAlready, makeOptionType;
+import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionType, unpackTupleIfNeeded;
 import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag;
 import model.model :
@@ -47,6 +42,7 @@ import model.model :
 	CalledDecl,
 	CalledSpecSig,
 	CallExpr,
+	CallOptionExpr,
 	Destructure,
 	Expr,
 	ExprAndType,
@@ -58,11 +54,23 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
+import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.col.array :
-	arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, small, SmallArray, zipEvery;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
-import util.opt : force, has, none, Opt, optIf, some, some;
+	arraysCorrespond,
+	every,
+	everyWithIndex,
+	exists,
+	filterUnordered,
+	filterUnorderedButDontRemoveAll,
+	isEmpty,
+	newArray,
+	only,
+	zipEvery;
+import util.col.arrayBuilder : finish;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
+import util.late : Late, late, lateGet, lateSet;
+import util.memory : allocate;
+import util.opt : force, forceNonRef, has, none, Opt, optOrDefault, optIf, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
@@ -70,15 +78,17 @@ import util.util : typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	checkCallShouldUseSyntax(ctx, ast);
-	return checkCallCommon(
-		ctx, locals, source,
-		// Show diags at the function name and not at the whole call ast
-		ast.nameRange(source),
-		ast.funName.name,
-		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
-		ast.args,
-		expected,
-		(in CalledDecl _) => true);
+	return ast.style == CallAst.Style.questionSubscript || ast.style == CallAst.Style.questionDot
+		? checkOptionCall(ctx, locals, source, ast, expected)
+		: exprFromCall(ctx, expected, source, checkCallCommon(
+			ctx, locals, source,
+			// Show diags at the function name and not at the whole call ast
+			ast.nameRange(source),
+			ast.funName.name,
+			has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
+			ast.args,
+			expected,
+			(in CalledDecl _) => true));
 }
 
 Expr checkCallNamed(
@@ -88,7 +98,7 @@ Expr checkCallNamed(
 	ref CallNamedAst ast,
 	ref Expected expected,
 ) =>
-	checkCallCommon(
+	exprFromCall(ctx, expected, source, checkCallCommon(
 		ctx,
 		locals,
 		source,
@@ -98,7 +108,12 @@ Expr checkCallNamed(
 		ast.args,
 		expected,
 		(in CalledDecl x) =>
-			parameterNamesAre(x, ast.names));
+			parameterNamesAre(x, ast.names)));
+
+private Expr exprFromCall(ref ExprCtx ctx, ref Expected expected, ExprAst* source, Opt!CallExpr call) =>
+	has(call)
+		? check(ctx, expected, force(call).called.returnType, source, ExprKind(force(call)))
+		: bogus(expected, source);
 
 private bool parameterNamesAre(in CalledDecl a, in NameAndRange[] names) {
 	assert(!isEmpty(names));
@@ -118,39 +133,73 @@ Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	in Range range,
+	Range range,
 	Symbol funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
 	// TODO:NO ALLOC
-	checkCallCommon(
+	exprFromCall(ctx, expected, source, checkCallCommon(
 		ctx, locals, source, range, funName, none!Type, newArray(ctx.alloc, args), expected,
-		(in CalledDecl _) => true);
+		(in CalledDecl _) => true));
 
-private Expr checkCallCommon(
+private Opt!CallExpr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	in Range diagRange,
+	Range diagRange,
 	Symbol funName,
 	Opt!Type typeArg,
-	ExprAst[] args,
+	ExprAst[] argAsts,
 	ref Expected expected,
 	in bool delegate(in CalledDecl) @safe @nogc pure nothrow cbAdditionalFilter,
 ) {
+	ExactSizeArrayBuilder!Expr args = newExactSizeArrayBuilder!Expr(ctx.alloc, argAsts.length);
+	Opt!Called called = checkCallCb(
+		ctx, locals, source, diagRange, funName, typeArg, argAsts.length, expected,
+		(size_t i, ref Expected argExpected) {
+			args ~= checkExpr(ctx, locals, &argAsts[i], argExpected);
+		},
+		cbAdditionalFilter,
+		(scope ref Candidate[] candidates) =>
+			// Apply explicitly typed arguments first
+			everyWithIndex!ExprAst(argAsts, (size_t argIdx, ref ExprAst arg) =>
+				inferCandidateTypeArgsFromExplicitlyTypedArgument(
+					ctx, candidates, argIdx, arg) == ContinueOrAbort.continue_));
+	return has(called)
+		? some(CallExpr(force(called), smallFinish(args)))
+		: none!CallExpr;
+}
+
+private alias CbCheckArg = void delegate(size_t argIndex, ref Expected) @safe @nogc pure nothrow;
+private Opt!Called checkCallCb(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	Opt!Type typeArg,
+	size_t nArgs,
+	ref Expected expected,
+	in CbCheckArg cbCheckArg,
+	in bool delegate(in CalledDecl) @safe @nogc pure nothrow cbAdditionalFilter,
+	in bool delegate(scope ref Candidate[]) @safe @nogc pure nothrow cbBeforeCheck,
+) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
-	Expr res = withCandidates!Expr(
-		funsInScope(ctx), funName, args.length,
+	Opt!Called res = withCandidates!(Opt!Called)(
+		funsInScope(ctx), funName, nArgs,
 		(ref Candidate candidate) =>
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
 				ctx.instantiateCtx, expected,
 				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))) &&
 			cbAdditionalFilter(candidate.called),
-		(ref Candidates candidates) =>
-			checkCallInner(
-				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
+		(scope Candidate[] candidates) =>
+			cbBeforeCheck(candidates)
+				? checkCallInner(
+					ctx, locals, source, diagRange, funName, typeArg,
+					perfMeasurer, candidates, expected, nArgs, cbCheckArg)
+				: none!Called);
 	endMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 	return res;
 }
@@ -162,76 +211,119 @@ Expr checkCallIdentifier(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source
 
 private:
 
-Expr checkCallInner(
+Expr checkOptionCall(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ref CallAst ast,
+	ref Expected outerExpected,
+) =>
+	checkWithModifyExpected!2(
+		ctx, outerExpected,
+		// For the return type:
+		// The whole expression should be expected to be an option, and the call's return type is the non-optional type.
+		(Type option) {
+			Opt!Type res = tryUnpackOptionType(ctx.commonTypes, option);
+			return has(res) ? some!(Type[2])([force(res), option]) : none!(Type[2]);
+		},
+		(ref Expected innerExpected) {
+			Late!ExprAndType firstArg = late!ExprAndType;
+			assert(ast.args.length != 0);
+			ExactSizeArrayBuilder!Expr restArgs = newExactSizeArrayBuilder!Expr(ctx.alloc, ast.args.length - 1);
+			Opt!Called called = checkCallCb(
+				ctx, locals, source, ast.funName.range, ast.funName.name, none!Type, ast.args.length, innerExpected,
+				(size_t index, ref Expected argExpected) {
+					ExprAst* argAst = &ast.args[index];
+					if (index == 0) {
+						// For the first argument: It's opposite of for the return type.
+						// The call is expecting a non-option, but change that to be expecting an option.
+						checkWithModifyExpected!1(
+							ctx, argExpected,
+							(Type x) => some!(Type[1])([Type(makeOptionType(ctx.instantiateCtx, ctx.commonTypes, x))]),
+							(ref Expected optionalArgExpected) {
+								Expr expr = checkExpr(ctx, locals, argAst, optionalArgExpected);
+								Type option = inferred(optionalArgExpected);
+								lateSet(firstArg, ExprAndType(expr, option));
+								return ExprAndType(expr, optOrDefault!Type(
+									tryUnpackOptionTypeOrDiag(ctx, forceNonRef(ast.keywordRange), option),
+									() => Type.bogus));
+							});
+					} else
+						restArgs ~= checkExpr(ctx, locals, argAst, argExpected);
+				},
+				(in CalledDecl _) => true,
+				(scope ref Candidate[] _) => true);
+			return has(called)
+				? ExprAndType(
+					Expr(source, ExprKind(allocate(ctx.alloc,
+						CallOptionExpr(force(called), lateGet(firstArg), smallFinish(restArgs))))),
+					makeOptionIfNotAlready(ctx.instantiateCtx, ctx.commonTypes, force(called).returnType))
+				: ExprAndType(bogus(innerExpected, source), Type.bogus);
+		}).expr;
+
+Opt!Called checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
 	in Range diagRange,
 	Symbol funName,
-	ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
 	scope ref PerfMeasurer perfMeasurer,
-	ref Candidates candidates,
+	scope ref Candidate[] candidates,
 	ref Expected expected,
-) {
-	size_t arity = argAsts.length;
+	size_t nArgs,
+	in CbCheckArg cbCheckArg,
+) =>
+	withMaxStackArray!(Opt!Called, Type)(nArgs, (scope ref MaxStackArray!Type actualArgTypes) {
+		bool someArgIsBogus = false;
+		foreach (size_t argIdx; 0 .. nArgs) {
+			if (isEmpty(candidates))
+				break;
 
-	// Apply explicitly typed arguments first
-	foreach (size_t argIdx, ExprAst arg; argAsts)
-		if (inferCandidateTypeArgsFromExplicitlyTypedArgument(ctx, candidates, argIdx, arg) == ContinueOrAbort.abort)
-			return bogus(expected, source);
+			filterUnorderedButDontRemoveAll(candidates, (ref Candidate x) =>
+				preCheckCandidateSpecs(ctx, x));
 
-	ArrayBuilder!Type actualArgTypes;
-	bool someArgIsBogus = false;
-	Opt!(Expr[]) args = makeArrayOrFail!Expr(ctx.alloc, arity, (size_t argIdx) @safe {
-		if (isEmpty(candidates))
-			return none!Expr;
+			Type argType = withParamExpected(ctx.instantiateCtx, candidates, argIdx, (ref Expected argExpected) {
+				pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
+				cbCheckArg(argIdx, argExpected);
+				resumeMeasure(ctx.perf, ctx.alloc, perfMeasurer);
+			});
+			// If it failed to check, don't continue, just stop there.
+			if (argType.isBogus) {
+				someArgIsBogus = true;
+				candidates = [];
+				break;
+			}
+			actualArgTypes ~= argType;
+			filterUnordered(candidates, (ref Candidate candidate) =>
+				testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, nonInferring(argType)));
+		}
 
-		filterCandidatesButDontRemoveAll(candidates, (ref Candidate x) =>
+		if (someArgIsBogus)
+			return none!Called;
+
+		filterUnorderedButDontRemoveAll(candidates, (ref Candidate x) =>
 			preCheckCandidateSpecs(ctx, x));
 
-		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
-		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
-		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
-		ExprAndType arg = withExpectCandidates(asTemporaryArray(paramExpected), (ref Expected expected) =>
-			checkExpr(ctx, locals, &argAsts[argIdx], expected));
-		resumeMeasure(ctx.perf, ctx.alloc, perfMeasurer);
-		// If it failed to check, don't continue, just stop there.
-		if (arg.type.isA!(Type.Bogus)) {
-			someArgIsBogus = true;
-			return none!Expr;
-		}
-		add(ctx.alloc, actualArgTypes, arg.type);
-		filterCandidates(candidates, (ref Candidate candidate) =>
-			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, nonInferring(arg.type)));
-		return some(arg.expr);
-	});
-
-	if (someArgIsBogus)
-		return bogus(expected, source);
-
-	filterCandidatesButDontRemoveAll(candidates, (ref Candidate x) =>
-		preCheckCandidateSpecs(ctx, x));
-
-	if (!has(args) || mutMaxArrSize(candidates) != 1) {
-		if (isEmpty(candidates)) {
-			CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
-			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
-				ctx.typeContainer,
-				funName,
-				getExpectedForDiag(ctx, expected),
-				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
-				arity,
-				finish(ctx.alloc, actualArgTypes),
-				allCandidates)));
+		if (candidates.length != 1) {
+			if (isEmpty(candidates)) {
+				CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
+				addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
+					ctx.typeContainer,
+					funName,
+					getExpectedForDiag(ctx, expected),
+					getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
+					nArgs,
+					newArray(ctx.alloc, actualArgTypes.finish),
+					allCandidates)));
+			} else
+				addDiag2(ctx, diagRange, Diag(
+					Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
+			return none!Called;
 		} else
-			addDiag2(ctx, diagRange, Diag(
-				Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
-		return bogus(expected, source);
-	} else
-		return checkCallAfterChoosingOverload(
-			ctx, locals, only(candidates), source, diagRange, small!Expr(force(args)), expected);
-}
+			return some(checkCallAfterChoosingOverload(
+				ctx, locals, only(candidates), source, diagRange, nArgs, expected));
+	});
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
 	if (name == symbol!"new")
@@ -277,39 +369,39 @@ bool secondArgIsLambda(in CallAst ast) =>
 	ast.args.length == 2 && ast.args[1].kind.isA!(LambdaAst*);
 
 bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
-	size_t nTypeParams = mutMaxArrSize(candidate.typeArgs);
+	size_t nTypeParams = candidate.typeArgs.length;
 	Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
 	bool ok = args.length == nTypeParams;
 	if (ok)
-		fillMutMaxArr(candidate.typeArgs, size(candidate.typeArgs), (size_t i) =>
-			SingleInferringType(some(args[i])));
+		foreach (size_t i, ref SingleInferringType x; candidate.typeArgs)
+			x.setAndIgnoreExisting(args[i]);
 	return ok;
 }
 
-alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndContext);
-
-void getParamExpected(
+Type withParamExpected(
 	ref InstantiateCtx ctx,
-	ref ParamExpected paramExpected,
-	scope ref Candidates candidates,
+	scope ref Candidate[] candidates,
 	size_t argIdx,
-) {
-	foreach (ref Candidate candidate; candidates) {
-		TypeAndContext expected = getCandidateExpectedParameterType(ctx, candidate, argIdx);
-		bool isDuplicate = !expected.context.isInferring &&
-			exists!TypeAndContext(asTemporaryArray(paramExpected), (in TypeAndContext x) =>
-				!x.context.isInferring && x.type == expected.type);
-		if (!isDuplicate)
-			paramExpected ~= expected;
-	}
-}
+	in void delegate(ref Expected) @safe @nogc pure nothrow cb,
+) =>
+	withMaxStackArray!(Type, TypeAndContext)(candidates.length, (ref MaxStackArray!TypeAndContext out_) {
+		foreach (ref Candidate candidate; candidates) {
+			TypeAndContext expected = getCandidateExpectedParameterType(ctx, candidate, argIdx);
+			bool isDuplicate = !expected.context.isInferring &&
+				exists!TypeAndContext(out_.soFar, (in TypeAndContext x) =>
+					!x.context.isInferring && x.type == expected.type);
+			if (!isDuplicate)
+				out_ ~= expected;
+		}
+		return withExpectCandidates(out_.finish, cb);
+	});
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
 	ref InstantiateCtx ctx,
 	ref const Candidate specCandidate,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes sigTypes,
-	scope InferringTypeArgs callInferringTypeArgs,
+	scope TypeContext callInferringTypeArgs,
 ) {
 	inferTypeArgsFrom(
 		ctx, sigTypes.returnType, callInferringTypeArgs,
@@ -321,7 +413,7 @@ void inferCandidateTypeArgsFromCheckedSpecSig(
 }
 
 enum TypeArgsInferenceState { none, partial, all }
-TypeArgsInferenceState getInferenceState(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
+TypeArgsInferenceState getInferenceState(in SingleInferringType[] typeArgs) {
 	bool hasInferred = false;
 	bool hasUninferred = true;
 	foreach (ref const SingleInferringType x; typeArgs) {
@@ -339,7 +431,7 @@ enum ContinueOrAbort { continue_, abort }
 
 ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 	ref ExprCtx ctx,
-	scope ref Candidates candidates,
+	scope ref Candidate[] candidates,
 	size_t argIndex,
 	in ExprAst arg,
 ) {
@@ -349,7 +441,7 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 		Opt!Type optLambdaParamType = typeFromDestructure(ctx, arg.kind.as!(LambdaAst*).param);
 		if (has(optLambdaParamType)) {
 			Type lambdaParamType = force(optLambdaParamType);
-			if (lambdaParamType.isA!(Type.Bogus))
+			if (lambdaParamType.isBogus)
 				return ContinueOrAbort.abort;
 			else {
 				foreach (ref Candidate candidate; candidates) {
@@ -357,7 +449,7 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 						ctx.instantiateCtx, candidate, argIndex);
 					inferTypeArgsFromLambdaParameterType(
 						ctx.instantiateCtx, ctx.commonTypes,
-						paramType.type, asInferringTypeArgs(typeContextForCandidate(candidate)),
+						paramType.type, typeContextForCandidate(candidate),
 						lambdaParamType);
 				}
 				return ContinueOrAbort.continue_;
@@ -399,7 +491,7 @@ bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in 
 	if (has(spec.decl.builtin)) {
 		bool checkTypeIfInferred(in bool delegate(in Type) @safe @nogc pure nothrow cb) {
 			Opt!Type type = tryGetNonInferringType(
-				ctx.instantiateCtx, TypeAndContext(only(spec.typeArgs), typeContextForCandidate(callCandidate)));
+				ctx.instantiateCtx, const TypeAndContext(only(spec.typeArgs), typeContextForCandidate(callCandidate)));
 			return !has(type) || cb(force(type));
 		}
 
@@ -429,17 +521,13 @@ bool inferCandidateTypeArgsFromSpecSig(
 		specSig.params.length,
 		(ref Candidate x) =>
 			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, callContext),
-		(ref Candidates specCandidates) {
-			switch (size(specCandidates)) {
+		(scope Candidate[] specCandidates) {
+			switch (specCandidates.length) {
 				case 0:
 					return false;
 				case 1:
 					inferCandidateTypeArgsFromCheckedSpecSig(
-						ctx.instantiateCtx,
-						only(specCandidates),
-						specSig,
-						returnAndParamTypes,
-						asInferringTypeArgs(callContext));
+						ctx.instantiateCtx, only(specCandidates), specSig, returnAndParamTypes, callContext);
 					return true;
 				default:
 					return true;
@@ -447,22 +535,19 @@ bool inferCandidateTypeArgsFromSpecSig(
 		});
 }
 
-Expr checkCallAfterChoosingOverload(
+Called checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
 	ExprAst* source,
 	in Range diagRange,
-	SmallArray!Expr args,
+	size_t nArgs,
 	ref Expected expected,
 ) {
 	Called called = checkCallSpecs(ctx, diagRange, candidate);
 	checkCalled(
 		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals,
-		isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty,
+		nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty,
 		() => checkCanDoUnsafe(ctx));
-	Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
-	//TODO: PERF second return type check may be unnecessary
-	// if we already filtered by return type at the beginning
-	return check(ctx, source, expected, called.returnType, calledExpr);
+	return called;
 }

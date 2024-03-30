@@ -194,6 +194,7 @@ struct ExprAfterKind {
 	}
 	struct Loop {
 		immutable ByteCodeIndex loopTop; // used by 'continue'
+		immutable StackEntry stackBeforeLoop;
 		ExprAfter* afterBreak;
 	}
 	immutable struct Return {}
@@ -207,7 +208,7 @@ void handleAfter(
 	ByteCodeSource source,
 	scope ref ExprAfter after,
 ) {
-	handleAfterReturnData(writer, source, after);
+	handleAfterReturnData(writer, source, after.returnValueStackEntries);
 	after.kind.match!void(
 		(ExprAfterKind.Continue) {},
 		(ExprAfterKind.JumpDelayed x) {
@@ -223,9 +224,9 @@ void handleAfter(
 		});
 }
 
-void handleAfterReturnData(ref ByteCodeWriter writer, ByteCodeSource source, in ExprAfter after) {
-	writeReturnData(writer, source, after.returnValueStackEntries);
-	assert(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
+void handleAfterReturnData(ref ByteCodeWriter writer, ByteCodeSource source, StackEntries returnValueStackEntries) {
+	writeReturnData(writer, source, returnValueStackEntries);
+	assert(getNextStackEntry(writer) == stackEntriesEnd(returnValueStackEntries));
 }
 
 struct ExprCtx {
@@ -350,14 +351,14 @@ void generateExpr(
 				writeSet(writer, source, entries);
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.Loop it) {
-			generateLoop(writer, ctx, locals, after, it);
+		(in LowExprKind.Loop x) {
+			generateLoop(writer, ctx, locals, after, x);
 		},
-		(in LowExprKind.LoopBreak it) {
-			generateLoopBreak(writer, ctx, locals, after, it);
+		(in LowExprKind.LoopBreak x) {
+			generateExpr(writer, ctx, locals, *after.kind.as!(ExprAfterKind.Loop*).afterBreak, x.value);
 		},
-		(in LowExprKind.LoopContinue it) {
-			generateLoopContinue(writer, ctx, source, locals, after, it);
+		(in LowExprKind.LoopContinue x) {
+			generateLoopContinue(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.PtrCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
@@ -492,26 +493,13 @@ void generateLet(
 	StackEntry stackBeforeLoop = getNextStackEntry(writer);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
 		ByteCodeIndex loopTop = nextByteCodeIndex(writer);
-		ExprAfterKind.Loop loop = ExprAfterKind.Loop(loopTop, ptrTrustMe(afterBranch));
-		scope ExprAfter loopAfter = ExprAfter(StackEntries(stackBeforeLoop, 0), ExprAfterKind(&loop));
+		ExprAfterKind.Loop loop = ExprAfterKind.Loop(loopTop, stackBeforeLoop, ptrTrustMe(afterBranch));
+		scope ExprAfter loopAfter = ExprAfter(after.returnValueStackEntries, ExprAfterKind(&loop));
 		// the loop always ends in a 'break' or 'continue' which will know what to do
 		generateExpr(writer, ctx, locals, loopAfter, a.body_);
 	});
 	// We're after the 'break' now, so the loop result is on the stack
 	setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
-}
-
-void generateLoopBreak(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	in Locals locals,
-	scope ref ExprAfter after,
-	in LowExprKind.LoopBreak a,
-) {
-	assert(after.returnValueStackEntries.size == 0);
-	ExprAfterKind.Loop* loop = after.kind.as!(ExprAfterKind.Loop*);
-	generateExpr(writer, ctx, locals, *loop.afterBreak, a.value);
-	setNextStackEntry(writer, after.returnValueStackEntries.start);
 }
 
 void generateLoopContinue(
@@ -522,10 +510,11 @@ void generateLoopContinue(
 	scope ref ExprAfter after,
 	in LowExprKind.LoopContinue a,
 ) {
-	assert(after.returnValueStackEntries.size == 0);
 	ExprAfterKind.Loop* loop = after.kind.as!(ExprAfterKind.Loop*);
-	handleAfterReturnData(writer, source, after);
+	// Need to clean up any temporaries before doing the loop again
+	handleAfterReturnData(writer, source, StackEntries(loop.stackBeforeLoop, 0));
 	writeJump(writer, source, loop.loopTop);
+	setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
 }
 
 void generateUnionAs(

@@ -115,5 +115,4 @@ test
 # TODO: these tests should use exact answers, but the compiler needs better float parsing
 -is-about[t] void(a t, b t) t float
 	diff = a - b
-	unless diff.abs < "0.0006".to
-		throw "Expected {a} is-about {b}"
+	assert diff.abs < "0.0006".to : "Expected {a} is-about {b}"

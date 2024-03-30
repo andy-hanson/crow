@@ -1,0 +1,78 @@
+dummy-conditions nat()
+	0
+
+test
+	f void mut() = () =>
+		assert 1::nat < 0
+	f throws "Asserted expression is false: 1::nat < 0"
+test
+	f void mut() = () =>
+		forbid 1::nat > 0
+	f throws "Forbidden expression is true: 1::nat > 0"
+
+test
+	xs nat mut[] = 1,
+	assert x ?= xs pop
+	x is 1
+	forbid y ?= xs pop : "popped {y}"
+	()::void
+
+test
+	f void mut() = () =>
+		xs nat mut[] = ()
+		assert _ ?= xs pop
+	f throws "Asserted option is empty: xs pop"
+
+test
+	f void mut() = () =>
+		xs nat mut[] = 1,
+		forbid x ?= xs pop
+	f throws "Forbidden option is non-empty: xs pop"
+test
+	f void mut() = () =>
+		xs nat mut[] = 1,
+		forbid x ?= xs pop : "popped {x}"
+	f throws "popped 1"
+
+test
+	xs nat mut[] = 1,
+	n = if x ?= xs pop
+		x
+	else
+		2
+	n is 1
+	m = if x ?= xs pop
+		x
+	else
+		2
+	m is 2
+
+	y nat = unless _ ?= xs pop
+		3
+	y is 3
+
+test
+	xs nat mut[] = 1,
+	a nat = do
+		guard x ?= xs pop : 2
+		x
+	a is 1
+	b nat = do
+		guard x ?= xs pop : 2
+		x
+	b is 2
+
+test
+	xs nat mut[] = 1, 2
+	out nat mut[] = ()
+	while x ?= xs pop
+		out ~= x
+	xs.to::nat[] is ()
+	out.to::nat[] is (2, 1)
+
+test
+	xs nat mut[] = 1, 2
+	until x ?= xs pop
+		throw "unreachable"
+	x is 2
+	xs.to::nat[] is (1,)

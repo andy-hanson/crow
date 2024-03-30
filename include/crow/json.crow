@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: ==, bool, false, true
+	./bool: ==, bool, false
 	./compare: equal
 	./col/array: array, iterate, size
 	./col/collection: for-loop
@@ -23,24 +23,21 @@ import
 JSON data.
 ###
 +json union
-	json-null
-	json-bool bool
-	json-number float64
-	json-string string
-	json-list json[]
-	json-object json[symbol]
+	null
+	bool bool
+	number float64
+	string string
+	list json[]
+	object json[symbol]
 +== bool(a json, b json)
 
-+null json()
-	json-null
-
 +new json(...pairs (symbol, json) array)
-	pairs.to json-object
+	pairs.to object
 
 +to json(a json)
 	a
 +to json(a bool)
-	a.json-bool
+	a bool
 +to json(a char8)
 	a.to::string to
 +to json(a char32)
@@ -64,26 +61,26 @@ JSON data.
 +to json(a float32)
 	a.to::float64 to
 +to json(a float64)
-	a json-number
+	a number
 +to json(a string)
-	a json-string
+	a string
 +to json(a symbol)
 	a.to::string to
 +to[t] json(a t array) (json, t) to
-	(for x : a; x to) json-list
+	(for x : a; x to) list
 +to[t] json(a t[]) (json, t) to
-	(for x : a; x to) json-list
+	(for x : a; x to) list
 +to[t] json(a t mut[]) (json, t) to
-	(for x : a; x to) json-list
+	(for x : a; x to) list
 +to[k, v] json(a v[k]) k key, (symbol, k) to, (json, v) to
-	(for k, v : a; k.to, v.to) json-object
+	(for k, v : a; k.to, v.to) object
 to json(a index-set)
-	(for x : a; x to) json-list
+	(for x : a; x to) list
 +to[t] json(a t?) (json, t) to
 	if x ?= a
-		(x.to,) json-list
+		(x.to,) list
 +to[t, u] json(a (t, u)) (json, t) to, (json, u) to
-	(a.a to, a.b to) json-list
+	(a.a to, a.b to) list
 +to[t, u] json(a (t, u) result) (json, t) to, (json, u) to
 	match a
 	as ok v
@@ -91,87 +88,35 @@ to json(a index-set)
 	as error e
 		("err", e to),
 
-+is-null bool(a json) bare
-	match a
-	as json-null
-		true
-	else
-		false
-
-# If `a` is a boolean, returns that, else returns an empty option.
-+as-bool bool?(a json) bare
-	match a
-	as json-bool b
-		b,
-	else
-		()
-# If `a` is a number, returns that, else returns an empty option.
-+as-number float64?(a json) bare
-	match a
-	as json-number n
-		n,
-	else
-		()
-###
-If `a` is a string, returns that, else returns an empty option.
-
-This does not render as JSON; `to::string` does that.
-###
-+as-string string?(a json) bare
-	match a
-	as json-string s
-		s,
-	else
-		()
-+as-symbol symbol?(a json)
-	if x ?= a.as-string
-		x.to,
-# If `a` is a list, returns that, else returns an empty option.
-+as-list json[]?(a json) bare
-	match a
-	as json-list x
-		x,
-	else
-		()
-# If `a` is an object, returns that, else returns an empty option.
-+as-object json[symbol]?(a json) bare
-	match a
-	as json-object o
-		o,
-	else
-		()
-
-+as-bool-allow-null bool?(a json)
-	if a is-null
-		false,
-	else
-		a as-bool
-
-+as-list-allow-null json[]?(a json)
-	if a is-null
-		(),
-	else
-		a as-list
-
-+as-string-allow-null string?(a json)
-	if a is-null
-		"",
-	else
-		a as-string
++symbol symbol?(a json)
+	a.string?.to
 
 ###
 If `a` is an `object` containing the key `key`, returns the associated value.
-Else, returns null.
+Returns `null` if:
+* `a` is not an object
+* `a` is an object but does not have `key`.
+* `a` is an object with the key, and its value is `null`.
+
+Most code does not care about this distinction.
+If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 ###
 +subscript json(a json, key symbol)
-	if o ?= a as-object
-		o[key] ?? json-null
+	a.object?[key] ?? null
+
+# `x.bool-or-null` is like `x.bool`, but treats `null` as `false`.
++bool-or-null bool?(a json)
+	a == null ? false, : a.bool
+
+# `x.list-or-null` is like `x.list`, but treats `null` as `false`.
++list-or-null json[]?(a json)
+	a == null ? (), : a.list
 
 +json json grammar()
 	spaces ~~ json-inner ~~ spaces
 -json-inner json grammar()
 	with : lazy
-		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
+		(json-object map x => x.object) / (json-list map x => x.list) / json-primitive
 -json-object json[symbol] grammar()
 	quoted-symbol symbol grammar = quoted-string map s => s.to
 	pair (symbol, json) grammar = quoted-symbol ~~ spaces ~~ ":" ~~ spaces ~~ json
@@ -187,18 +132,18 @@ Else, returns null.
 # Renders a json value to JSON.
 +to string(a json)
 	match a
-	as json-null
+	as null
 		"null"
-	as json-bool b
+	as bool b
 		"{b}"
-	as json-number f
+	as number f
 		"{f}"
-	as json-string s
+	as string s
 		s quote
-	as json-list xs
+	as list xs
 		parts = "," join for x : xs; "{x}"
 		"[{parts}]"
-	as json-object o
+	as object o
 		parts = "," join for k, v : o
 			"{k.to quote}:{v}"
 		"\{{parts}}"

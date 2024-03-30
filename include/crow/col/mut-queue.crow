@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool, false, new, true
+	../bool: bool, false, new, not, true
 	../compare: <
 	../fun-util: subscript
 	../json: to
@@ -55,12 +55,12 @@ import
 		a ~= x
 
 +dequeue[t] t?(a t mut-queue)
-	unless a is-empty
-		res = a.values[a.begin]
-		a.begin := a advance a.begin
-		if a.begin == a.end
-			a.values := ()
-		res,
+	guard !a.is-empty
+	res = a.values[a.begin]
+	a.begin := a advance a.begin
+	if a.begin == a.end
+		a.values := ()
+	res,
 
 -advance[t] nat64(a t mut-queue, index nat64)
 	res = index + 1
@@ -69,17 +69,17 @@ import
 region spec impls (see collection.crow)
 
 +iterate[t] bool(a t mut-queue, f bool mut(elem t))
-	unless a is-empty
-		cur mut = a begin
-		loop
-			if f[a.values[cur]]
-				break true
+	guard !a.is-empty
+	cur mut = a begin
+	loop
+		if f[a.values[cur]]
+			break true
+		else
+			cur := a advance cur
+			if cur == a.end
+				break false
 			else
-				cur := a advance cur
-				if cur == a.end
-					break false
-				else
-					continue
+				continue
 
 test
 	a nat64 mut-queue = ()

@@ -7,7 +7,7 @@ import
 	../json: to
 	../misc: key, new, void, to
 	../number: ==, <=>, +, -, *, %, nat64
-	../option: ==, is-empty, new, option
+	../option: ==, ??, is-empty, new, option
 	../string: ==, interpolate, join, string, to
 	../test-util: is
 	../tuple: ==, new
@@ -119,15 +119,15 @@ Gets the value associated with a key.
 Returns an empty option if the key is not in the map.
 ###
 +subscript[k, v] v?(a v mut[k], key k) k key
-	unless a is-empty
-		match a.entries[key.hash % a.entries.size]
-		as none
-			()
-		as one k, v
-			k == key ? v,
-		as many m
-			if (_, v) ?= m find (k, _) => k == key
-				v,
+	guard !a.is-empty
+	match a.entries[key.hash % a.entries.size]
+	as none
+		()
+	as one k, v
+		k == key ? v,
+	as many m
+		if (_, v) ?= m find (k, _) => k == key
+			v,
 
 # `true` iff the key is in the map.
 +in[k, v] bool(key k, a v mut[k]) k key
@@ -164,9 +164,7 @@ Returns an empty option if the key was not in the map.
 	a update key, ()
 
 +ensure[k, v] v(a v mut[k], key k, get-value v mut()) k key
-	if v ?= a[key]
-		v
-	else
+	a[key] ?? do
 		value = get-value[]
 		a[key] := value
 		value
@@ -184,9 +182,9 @@ Returns an empty option if the key was not in the map.
 		entry-index = key.hash % a.entries.size
 		match a.entries[entry-index]
 		as none
-			if value ?= new-value
-				a.entries[entry-index] := (key, value) one
-				a.total-size +:= 1
+			guard value ?= new-value
+			a.entries[entry-index] := (key, value) one
+			a.total-size +:= 1
 			()
 		as one k, v
 			if k == key
@@ -197,13 +195,13 @@ Returns an empty option if the key was not in the map.
 					none
 				v,
 			else
-				if value ?= new-value
-					if a should-expand
-						a expand
-						a[key] := value
-					else
-						a.entries[entry-index] := ((k, v), (key, value)) many
-						a.total-size +:= 1
+				guard value ?= new-value
+				if a should-expand
+					a expand
+					a[key] := value
+				else
+					a.entries[entry-index] := ((k, v), (key, value)) many
+					a.total-size +:= 1
 				()
 		as many m
 			if index ?= m find-index (k, _) => k == key
@@ -220,13 +218,13 @@ Returns an empty option if the key was not in the map.
 					a.total-size -:= 1
 				old-value,
 			else
-				if value ?= new-value
-					if (trusted m is-at-capacity) && a.should-expand
-						a expand
-						a[key] := value
-					else
-						m ~= (key, value)
-						a.total-size +:= 1
+				guard value ?= new-value
+				if (trusted m is-at-capacity) && a should-expand
+					a expand
+					a[key] := value
+				else
+					m ~= (key, value)
+					a.total-size +:= 1
 				()
 
 # This is the same as calling `a[b a] := b b`.

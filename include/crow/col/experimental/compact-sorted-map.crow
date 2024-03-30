@@ -225,19 +225,15 @@ region spec impls (see collection.crow)
 	f bool mut(key k, value v?),
 ) k key
 	loop
-		if popped ?= overlays pop
-			(key, _), rest = popped
-			overlays drop-overlays-with-key key
-			overlays maybe-add-back popped
-			if !rest.is-empty
-				if f[key, rest[0] b]
-					break true
-				else
-					continue
-			else
-				continue
+		guard popped ?= overlays pop : break false
+		(key, _), rest = popped
+		overlays drop-overlays-with-key key
+		overlays maybe-add-back popped
+		guard !rest.is-empty : continue
+		if f[key, rest[0] b]
+			break true
 		else
-			break false
+			continue
 
 -maybe-add-back[k, v] void(
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
@@ -251,13 +247,9 @@ region spec impls (see collection.crow)
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
 	key k,
 ) k key
-	loop
-		# TODO: use 'drop-while'
-		if popped2 ?= overlays pop-if pair => pair.a.a == key
-			overlays maybe-add-back popped2
-			continue
-		else
-			break
+	# TODO: use 'drop-while'
+	while popped2 ?= overlays pop-if pair => pair.a.a == key
+		overlays maybe-add-back popped2
 
 -get-end[k, v] (k, v) array(a (k, v) impl)
 	match a
@@ -285,12 +277,8 @@ region test
 -dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
 	match a
 	as overlay o
-		pairs = ", " join for k, v-opt : o pairs
-			vs string = if v ?= v-opt
-				"{v}"
-			else
-				"_"
-			"{k} -> {vs}"
+		pairs = ", " join for k, v : o pairs
+			"{k} -> {v?.to ?? "_"}"
 		"{o.prev dbg}, [{pairs}]"
 	as end-node e
 		pairs = ", " join for k, v : e

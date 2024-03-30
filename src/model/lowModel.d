@@ -407,15 +407,10 @@ immutable struct LowExprKind {
 	immutable struct Loop {
 		LowExpr body_;
 	}
-
 	immutable struct LoopBreak {
-		LowExprKind.Loop* loop;
 		LowExpr value;
 	}
-
-	immutable struct LoopContinue {
-		LowExprKind.Loop* loop;
-	}
+	immutable struct LoopContinue {}
 
 	immutable struct PtrCast {
 		LowExpr target;

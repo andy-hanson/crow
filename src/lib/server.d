@@ -102,6 +102,7 @@ import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
+import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
@@ -149,8 +150,7 @@ ExitCode buildAndInterpret(
 						perf, bytecodeAlloc, programs.program, lowProgram,
 						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
 					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
-					return runBytecode(
-						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs);
+					return runBytecode(perf, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs);
 				});
 			else {
 				writeError("Failed to load external libraries\n");
@@ -348,6 +348,7 @@ private ExitCode runFromLsp(
 private __gshared Server serverStorage = void;
 
 @system Server* setupServer(FetchMemoryCb fetch) {
+	ensureStackAllocInitialized();
 	Server* server = &serverStorage;
 	server.__ctor(fetch);
 	initIntegralValues(server.metaAlloc);

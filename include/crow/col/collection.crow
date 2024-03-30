@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: ==, bool, false, new, not, true
-	../compare: >, compare, comparison, equal, greater, less, min
+	../compare: !=, >, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, *, /, nat64
@@ -67,19 +67,15 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	a col,
 	index nat64,
 ) (iter, col) begin, iter skip-next, (elem, iter) next, bare
-	if x, _ ?= a.begin + index next
-		x
-	else
-		throw "bad index"
+	assert x, _ ?= a.begin + index next : "bad index"
+	x
 
 +subscript[col, iter, elem] elem(
 	a col,
 	index index-relative-to-end,
 ) (iter, col) end, iter skip-prev, (elem, iter) next, bare
-	if x, _ ?= a.end - index.subtract next
-		x
-	else
-		throw "bad index"
+	assert x, _ ?= a.end - index.subtract next : "bad index"
+	x
 
 +set-subscript[col, iter, elem] void(
 	a col,
@@ -99,26 +95,18 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	value elem,
 ) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, bare
 	iter mut = a begin
-	loop
-		if _, next ?= iter next
-			iter set-next value
-			iter := next
-			continue
-		else
-			break
+	while _, next ?= iter next
+		iter set-next value
+		iter := next
 
 +map=[col, iter, elem] void(
 	a col,
 	f elem mut(elem elem),
 ) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
 	iter mut = a begin
-	loop
-		if x, next ?= iter next
-			iter set-next f[x]
-			iter := next
-			continue
-		else
-			break
+	while x, next ?= iter next
+		iter set-next f[x]
+		iter := next
 
 +range-relative-to-end record(low nat64, high index-relative-to-end) by-val
 
@@ -244,21 +232,21 @@ sequence-equal[col, iter, elem] bool(
 	a col,
 	b col,
 ) col size, (iter, col) begin, (elem, iter) next, elem equal, bare
-	if a.size == b.size
-		ai mut = a begin
-		bi mut = b begin
-		loop
-			if na ?= ai next
-				nb = bi.next!
-				if na.a == nb.a
-					ai := na b
-					bi := nb b
-					continue
-				else
-					break false
+	guard a.size == b.size
+	ai mut = a begin
+	bi mut = b begin
+	loop
+		if na ?= ai next
+			nb = bi.next!
+			if na.a == nb.a
+				ai := na b
+				bi := nb b
+				continue
 			else
-				assert bi is-at-end
-				break true
+				break false
+		else
+			assert bi is-at-end
+			break true
 
 sequence-compare[col, iter, elem] comparison(
 	a col,
@@ -337,18 +325,12 @@ For sets, prefer `in`.
 	ai mut = a
 	bi mut = start begin
 	loop
-		if bp ?= bi next
-			if ap ?= ai next
-				if ap.a == bp.a
-					ai := ap b
-					bi := bp b
-					continue
-				else
-					break
-			else
-				break
-		else
-			break ai,
+		guard bp ?= bi next : break ai,
+		guard ap ?= ai next : break
+		guard ap.a == bp.a : break
+		ai := ap b
+		bi := bp b
+		continue
 -iter-ends-with[col, iter, elem] iter?(
 	a iter,
 	end col,
@@ -356,19 +338,12 @@ For sets, prefer `in`.
 	ai mut = a
 	bi mut = end end
 	loop
-		if bp ?= bi prev
-			if ap ?= ai prev
-				if ap.b == bp.b
-					ai := ap a
-					bi := bp a
-					continue
-				else
-					break
-			else
-				break
-		else
-
-			break ai,
+		guard bp ?= bi prev : break ai,
+		guard ap ?= ai prev : break
+		guard ap.b == bp.b : break
+		ai := ap a
+		bi := bp a
+		continue
 
 ###
 `true` iff `b` is contained in `a`.
@@ -470,14 +445,12 @@ Returns an empty option iff `f` returns `false` for every elem of `a`.
 ) (iter, col) end, (elem, iter) prev, elem equal
 	iter mut = a end
 	loop
-		if prev, x ?= iter prev
-			iter := prev
-			if x == value
-				break iter,
-			else
-				continue
+		guard prev, x ?= iter prev : break
+		iter := prev
+		if x == value
+			break iter,
 		else
-			break
+			continue
 
 ###
 If `search-value` is in `a`, return its index.
@@ -513,14 +486,10 @@ If `f` always returns true, this returns an empty collection.
 ) (iter, col) begin-end, (elem, iter) next, (col, iter) slice
 	iter mut = a begin
 	loop
-		if x, next ?= iter next
-			if f[x]
-				iter := next
-				continue
-			else
-				break
-		else
-			break
+		guard x, next ?= iter next : break
+		guard f[x] : break
+		iter := next
+		continue
 	iter slice a.end
 
 # Drops elements from the right that match `f`.
@@ -530,14 +499,10 @@ If `f` always returns true, this returns an empty collection.
 ) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice
 	iter mut = a end
 	loop
-		if prev, x ?= iter prev
-			if f[x]
-				iter := prev
-				continue
-			else
-				break
-		else
-			break
+		guard prev, x ?= iter prev : break
+		guard f[x] : break
+		iter := prev
+		continue
 	a.begin slice iter
 
 +take-while[col, iter, elem] col(
@@ -546,14 +511,10 @@ If `f` always returns true, this returns an empty collection.
 ) (iter, col) begin, (elem, iter) next, (col, iter) slice
 	iter mut = a begin
 	loop
-		if x, next ?= iter next
-			if f[x]
-				iter := next
-				continue
-			else
-				break
-		else
-			break
+		guard x, next ?= iter next : break
+		guard f[x] : break
+		iter := next
+		continue
 	a.begin slice iter
 
 +take-right-while[col, iter, elem] col(
@@ -562,14 +523,10 @@ If `f` always returns true, this returns an empty collection.
 ) (iter, col) end, (elem, iter) prev, (col, iter) slice
 	iter mut = a end
 	loop
-		if prev, x ?= iter prev
-			if f[x]
-				iter := prev
-				continue
-			else
-				break
-		else
-			break
+		guard prev, x ?= iter prev : break
+		guard f[x] : break
+		iter := prev
+		continue
 	iter slice a.end
 
 +groups-of[col, iter] col[](
@@ -583,13 +540,11 @@ If `f` always returns true, this returns an empty collection.
 	with out : out-size build
 		loop
 			diff = a.end - iter
-			if diff == 0
-				break
-			else
-				next-iter = iter + (diff min group-size)
-				out ~= iter slice next-iter
-				iter := next-iter
-				continue
+			guard diff != 0 : break
+			next-iter = iter + (diff min group-size)
+			out ~= iter slice next-iter
+			iter := next-iter
+			continue
 
 +concatenate[t] spec
 	~~ t(a t, b t)
@@ -627,13 +582,9 @@ If `f` always returns true, this returns an empty collection.
 ) (iter, col) end, (elem, iter) prev
 	# TODO: define 'iterate' instead
 	iter mut = a.inner end
-	loop
-		if prev, x ?= iter prev
-			f[x]
-			iter := prev
-			continue
-		else
-			break
+	while prev, x ?= iter prev
+		f[x]
+		iter := prev
 +for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
 	a in-col reversed,
 	f out-elem mut(elem in-elem),
@@ -643,13 +594,9 @@ If `f` always returns true, this returns an empty collection.
 		in-col size
 	with out : a.size build
 		iter mut = a.inner end
-		loop
-			if prev, x ?= iter prev
-				out ~= f[x]
-				iter := prev
-				continue
-			else
-				break
+		while prev, x ?= iter prev
+			out ~= f[x]
+			iter := prev
 
 region with-index
 

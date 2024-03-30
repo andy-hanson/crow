@@ -7,7 +7,7 @@ import
 	./compare: equal
 	./json: json, to
 	./log: warn, log
-	./misc: to, void
+	./misc: new, to, void
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
 	./string: ==, interpolate, string

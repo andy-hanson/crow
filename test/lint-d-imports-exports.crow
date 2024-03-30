@@ -34,10 +34,10 @@ main nat^(_ string[]) summon
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
-			if file.uses[private-member] < 2 &&
-					file.path != "src/util/union_.d" &&
-					!(private-member in allow-private-unused)
-				failures ~= "{file path} private member not used: {private-member}"
+			guard file.uses[private-member] < 2
+			guard file.path != "src/util/union_.d"
+			guard !(private-member in allow-private-unused)
+			failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
 	failures move-to
@@ -73,18 +73,18 @@ main nat^(_ string[]) summon
 	look-for string = "!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
-		unless line == "" || line contains-seq "enum:" || line contains-seq "struct:"
-			parts = line split "\t"
-			name symbol = parts[0] to
-			path = parts[1]
-			members = members-by-path ensure path
-			if line contains-seq "access:public"
-				members.public ~= name
-			elif line contains-seq "access:private"
-				members.private ~= name
-			else
-				unless path == "src/wasm.d" || name in excluded-unknown-access
-					throw "Unexpected non-public, non-private member {name} in {path}"
+		guard !(line == "" || line contains-seq "enum:" || line contains-seq "struct:")
+		parts = line split "\t"
+		name symbol = parts[0] to
+		path = parts[1]
+		members = members-by-path ensure path
+		if line contains-seq "access:public"
+			members.public ~= name
+		elif line contains-seq "access:private"
+			members.private ~= name
+		else
+			assert path == "src/wasm.d" || name in excluded-unknown-access :
+				"Unexpected non-public, non-private member {name} in {path}"
 	for k, v : members-by-path
 		k, v.move-to
 
@@ -106,43 +106,35 @@ main nat^(_ string[]) summon
 	res symbol mut-set = ()
 	since-last-import mut = a
 	rest mut = a
-	loop
-		if pair ?= rest try-split-once "import "
-			if pair.a ends-with "\n" || pair.a ends-with "\n\t"
-				after-colon = (pair.b try-split-once ":")!.b
-				split-semi = (after-colon try-split-once ";")!
-				for word : split-semi.a words
-					res ~= word
-				since-last-import := split-semi b
-				rest := split-semi b
-				continue
-			else
-				# This is an 'import' in a nested scope; don't count it
-				# (since we want only imports at top of file, not later on)
-				rest := pair b
-				continue
+	while pair ?= rest try-split-once "import "
+		if pair.a ends-with "\n" || pair.a ends-with "\n\t"
+			after-colon = (pair.b try-split-once ":")!.b
+			split-semi = (after-colon try-split-once ";")!
+			for word : split-semi.a words
+				res ~= word
+			since-last-import := split-semi b
+			rest := split-semi b
 		else
-			break res.move-to, since-last-import
+			# This is an 'import' in a nested scope; don't count it
+			# (since we want only imports at top of file, not later on)
+			rest := pair b
+	res.move-to, since-last-import
 
 -words symbol[](a string)
 	with out : build
 		iter mut = a begin
 		word-start mut string-iterator? = ()
-		loop
-			if x, i ?= iter next
-				if x is-identifier-char
-					if word-start is-empty
-						word-start := iter,
-				else
-					if start ?= word-start
-						out ~= start slice iter to
-						word-start := ()
-				iter := i
-				continue
+		while x, i ?= iter next
+			if x is-identifier-char
+				if word-start is-empty
+					word-start := iter,
 			else
 				if start ?= word-start
 					out ~= start slice iter to
-				break
+					word-start := ()
+			iter := i
+		if start ?= word-start
+			out ~= start slice iter to
 
 test
 	"a(b)c".words is ("a", "b", "c")

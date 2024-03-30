@@ -70,23 +70,22 @@ main nat^(_ string[]) summon
 				as wrong-password
 					"Wrong password" http-forbidden
 		as "/post"
-			if cookie ?= (req.headers["Cookie"] ?? "") parse-cookie "login"
-				match user-cookie parse cookie
-				as ok user-cookie
-					post = db add-post user-cookie, req.request-body-string
-					(("postId", post.to),)::json.to http-ok
-				as error e
-					"Error parsing 'login' cookie: {e}" http-forbidden
-			else
-				"Missing login cookie" http-forbidden
+			cookie-str = req.headers["Cookie"] ?? ""
+			guard cookie ?= cookie-str parse-cookie "login" : "Missing login cookie" http-forbidden
+			match user-cookie parse cookie
+			as ok user-cookie
+				post = db add-post user-cookie, req.request-body-string
+				(("postId", post.to),)::json.to http-ok
+			as error e
+				"Error parsing 'login' cookie: {e}" http-forbidden
 		else
 			http-not-found
 
 -url record(path string, query string)
 
 -split-url url(url-string string)
-	if split ?= url-string try-split-once "?"
-		split.a, split.b
+	if x, y ?= url-string try-split-once "?"
+		x, y
 	else
 		url-string, ""
 
@@ -94,9 +93,9 @@ main nat^(_ string[]) summon
 -parse-cookies string?[](cookies-string string, cookie-names string[])
 	res string? mut[] = cookie-names.size n-of ()
 	for part : cookies-string split "; "
-		if name, value ?= part try-split-once "="
-			if index ?= cookie-names index-of name
-				res[index] := value,
+		guard name, value ?= part try-split-once "="
+		guard index ?= cookie-names index-of name
+		res[index] := value,
 	res move-to
 
 -parse-cookie string?(cookies-string string, cookie-name string)

@@ -97,7 +97,7 @@ Opt!T optFromMut(T)(MutOpt!T a) =>
 	has(a) ? some(force(a)) : none!T;
 
 Opt!T optIf(T)(bool b, in T delegate() @safe @nogc pure nothrow cb) =>
-	b ? some(cb()) : none!T;
+	b ? some!T(cb()) : none!T;
 
 Opt!T optOr(T)(Opt!T a, in Opt!T delegate() @safe @nogc pure nothrow cb) =>
 	has(a) ? a : cb();

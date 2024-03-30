@@ -108,11 +108,11 @@ empty-board board()
 
 -subscript color?(a board, (x nat, y nat, cur-player color))
 	pos coord = x, y
-	if a.both-players grid-has pos
-		if a.current-player grid-has pos
-			cur-player,
-		else
-			cur-player.opposite,
+	guard a.both-players grid-has pos
+	if a.current-player grid-has pos
+		cur-player,
+	else
+		cur-player.opposite,
 
 show string(a board, cur-player color, last-column nat?)
 	header = "" join for x : 0::nat .. width

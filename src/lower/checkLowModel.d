@@ -41,7 +41,6 @@ import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinUnary, BuiltinUnar
 import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
-import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.json : field, Json, jsonObject, jsonString, kindField;
 import util.opt : force, has, none, Opt, some;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
@@ -84,19 +83,15 @@ struct FunCtx {
 void checkLowFun(ref Ctx ctx, in LowFun fun) {
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern) {},
-		// TODO: not @trusted
-		(in LowFunExprBody x) @trusted {
+		(in LowFunExprBody x) {
 			FunCtx funCtx = FunCtx(ptrTrustMe(ctx), ptrTrustMe(fun));
-			InfoStack info;
-			checkLowExpr(funCtx, info, fun.returnType, x.expr);
+			checkLowExpr(funCtx, fun.returnType, x.expr, ExprPos.tail);
 		});
 }
 
-alias InfoStack = StackMap!(LowExprKind.Loop*, LowType);
-alias addLoop = stackMapAdd!(LowExprKind.Loop*, LowType);
-alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LowType);
+enum ExprPos { nonTail, tail, loop }
 
-void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr expr) {
+void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos exprPos) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
 	expr.kind.matchIn!void(
 		(in LowExprKind.Abort) {},
@@ -105,7 +100,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			assert(sizeEq(fun.params, it.args));
 			zip!(LowLocal, LowExpr)(fun.params, it.args, (ref LowLocal param, ref LowExpr arg) {
-				checkLowExpr(ctx, info, param.type, arg);
+				checkLowExpr(ctx, param.type, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CallFunPointer it) {
@@ -113,53 +108,53 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 			assert(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(LowType, LowExpr)(funPtrType.paramTypes, it.args, (ref LowType paramType, ref LowExpr arg) {
-				checkLowExpr(ctx, info, paramType, arg);
+				checkLowExpr(ctx, paramType, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CreateRecord it) {
 			LowField[] fields = ctx.ctx.program.allRecords[type.as!(LowType.Record)].fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref LowField field, ref LowExpr arg) {
-				checkLowExpr(ctx, info, field.type, arg);
+				checkLowExpr(ctx, field.type, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CreateUnion it) {
 			LowType member = ctx.ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
-			checkLowExpr(ctx, info, member, it.arg);
+			checkLowExpr(ctx, member, it.arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.If it) {
-			checkLowExpr(ctx, info, boolType, it.cond);
-			checkLowExpr(ctx, info, type, it.then);
-			checkLowExpr(ctx, info, type, it.else_);
+			checkLowExpr(ctx, boolType, it.cond, ExprPos.nonTail);
+			checkLowExpr(ctx, type, it.then, exprPos);
+			checkLowExpr(ctx, type, it.else_, exprPos);
 		},
 		(in LowExprKind.InitConstants) {
 			assert(isVoid(type));
 		},
 		(in LowExprKind.Let it) {
-			checkLowExpr(ctx, info, it.local.type, it.value);
-			checkLowExpr(ctx, info, type, it.then);
+			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
+			checkLowExpr(ctx, type, it.then, exprPos);
 		},
 		(in LowExprKind.LocalGet it) {
 			checkTypeEqual(ctx.ctx, type, it.local.type);
 		},
 		(in LowExprKind.LocalSet it) {
 			checkTypeEqual(ctx.ctx, type, voidType);
-			checkLowExpr(ctx, info, it.local.type, it.value);
+			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
 		},
 		(in LowExprKind.Loop x) {
-			checkLowExpr(ctx, addLoop(info, ptrTrustMe(x), type), voidType, x.body_);
+			checkLowExpr(ctx, type, x.body_, ExprPos.loop);
 		},
 		(in LowExprKind.LoopBreak x) {
-			checkLowExpr(ctx, info, getLoop(info, x.loop), x.value);
+			checkLowExpr(ctx, type, x.value, ExprPos.nonTail);
 		},
 		(in LowExprKind.LoopContinue x) {
-			cast(void) getLoop(info, x.loop);
+			assert(exprPos == ExprPos.loop);
 		},
-		(in LowExprKind.PtrCast it) {
+		(in LowExprKind.PtrCast x) {
 			// TODO: there are some limitations on target...
-			checkLowExpr(ctx, info, it.target.type, it.target);
+			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},
 		(in LowExprKind.PtrToField it) {
-			checkLowExpr(ctx, info, it.target.type, it.target);
+			checkLowExpr(ctx, it.target.type, it.target, ExprPos.nonTail);
 			LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), fieldType);
 		},
@@ -168,74 +163,75 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		},
 		(in LowExprKind.RecordFieldGet x) {
 			LowType.Record recordType = targetRecordType(x);
-			checkLowExpr(ctx, info, x.target.type, *x.target);
+			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
 		(in LowExprKind.RecordFieldSet x) {
 			LowType.Record recordType = targetRecordType(x);
 			assert(targetIsPointer(x)); // TODO: then this function doesn't need to exist
-			checkLowExpr(ctx, info, x.target.type, x.target);
+			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
-			checkLowExpr(ctx, info, fieldType, x.value);
+			checkLowExpr(ctx, fieldType, x.value, ExprPos.nonTail);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
 		(in Constant it) {
 			// Constants are untyped, so can't check more
 		},
 		(in LowExprKind.SpecialUnary it) {
-			checkSpecialUnary(ctx, info, type, it);
+			checkSpecialUnary(ctx, type, it);
 		},
 		(in LowExprKind.SpecialUnaryMath x) {
 			LowType actual = unaryMathType(x.kind);
 			checkTypeEqual(ctx.ctx, type, actual);
-			checkLowExpr(ctx, info, actual, x.arg);
+			checkLowExpr(ctx, actual, x.arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.SpecialBinary it) {
-			checkSpecialBinary(ctx, info, type, it);
+			checkSpecialBinary(ctx, type, it, exprPos);
 		},
 		(in LowExprKind.SpecialBinaryMath x) {
 			LowType actual = binaryMathType(x.kind);
 			checkTypeEqual(ctx.ctx, type, actual);
 			foreach (scope ref LowExpr arg; castNonScope(x.args))
-				checkLowExpr(ctx, info, actual, arg);
+				checkLowExpr(ctx, actual, arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.SpecialTernary) {
 			// TODO
 		},
 		(in LowExprKind.Switch x) {
-			checkLowExpr(ctx, info, x.value.type, x.value);
+			checkLowExpr(ctx, x.value.type, x.value, ExprPos.nonTail);
 			foreach (ref LowExpr case_; x.caseExprs)
-				checkLowExpr(ctx, info, type, case_);
+				checkLowExpr(ctx, type, case_, exprPos);
 		},
 		(in LowExprKind.TailRecur it) {
+			assert(exprPos == ExprPos.tail);
 			foreach (ref UpdateParam update; it.updateParams)
-				checkLowExpr(ctx, info, update.param.type, update.newValue);
+				checkLowExpr(ctx, update.param.type, update.newValue, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionAs x) {
 			checkTypeEqual(
 				ctx.ctx, type,
 				ctx.ctx.program.allUnions[x.union_.type.as!(LowType.Union)].members[x.memberIndex]);
-			checkLowExpr(ctx, info, x.union_.type, *x.union_);
+			checkLowExpr(ctx, x.union_.type, *x.union_, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionKind x) {
 			checkTypeEqual(ctx.ctx, type, LowType(PrimitiveType.nat64));
-			checkLowExpr(ctx, info, x.union_.type, *x.union_);
+			checkLowExpr(ctx, x.union_.type, *x.union_, ExprPos.nonTail);
 		},
 		(in LowExprKind.VarGet x) {
 			checkTypeEqual(ctx.ctx, type, ctx.ctx.program.vars[x.varIndex].type);
 		},
 		(in LowExprKind.VarSet x) {
 			checkTypeEqual(ctx.ctx, type, voidType);
-			checkLowExpr(ctx, info, ctx.ctx.program.vars[x.varIndex].type, *x.value);
+			checkLowExpr(ctx, ctx.ctx.program.vars[x.varIndex].type, *x.value, ExprPos.nonTail);
 		});
 }
 
-void checkSpecialUnary(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExprKind.SpecialUnary a) {
+void checkSpecialUnary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialUnary a) {
 	ExpectUnary expected = unaryExpected(a.kind, type, a.arg.type);
 	if (has(expected.return_))
 		checkTypeEqual(ctx.ctx, force(expected.return_), type);
-	checkLowExpr(ctx, info, has(expected.arg) ? force(expected.arg) : a.arg.type, a.arg);
+	checkLowExpr(ctx, has(expected.arg) ? force(expected.arg) : a.arg.type, a.arg, ExprPos.nonTail);
 }
 
 ExpectUnary unaryExpected(
@@ -365,12 +361,25 @@ ExpectUnary expect() =>
 ExpectUnary expect(LowType return_, LowType arg) =>
 	ExpectUnary(some(return_), some(arg));
 
-void checkSpecialBinary(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExprKind.SpecialBinary a) {
+void checkSpecialBinary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialBinary a, in ExprPos exprPos) {
 	ExpectBinary expected = binaryExpected(a.kind, type, a.args[0].type, a.args[1].type);
 	if (has(expected.return_))
 		checkTypeEqual(ctx.ctx, force(expected.return_), type);
 	foreach (size_t i; 0 .. a.args.length)
-		checkLowExpr(ctx, info, has(expected.args[i]) ? force(expected.args[i]) : a.args[i].type, a.args[i]);
+		checkLowExpr(
+			ctx, has(expected.args[i]) ? force(expected.args[i]) : a.args[i].type, a.args[i],
+			i == 1 && canTailRecurse(a.kind) ? exprPos : ExprPos.nonTail);
+}
+
+bool canTailRecurse(BuiltinBinary a) {
+	switch (a) {
+		case BuiltinBinary.and:
+		case BuiltinBinary.orBool:
+		case BuiltinBinary.seq:
+			return true;
+		default:
+			return false;
+	}
 }
 
 ExpectBinary binaryExpected(

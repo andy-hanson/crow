@@ -36,11 +36,6 @@
 		</p>
 	</aside>
 
-	<h3>Creating union values</h3>
-	<p>
-		Declaring the union generates functions <code>verified-id age(a nat)</code> and <code>no-id age()</code>.
-	</p>
-
 	<h3>Long unions</h3>
 	<p>As with records, you can put the members on their own lines instead of in parentheses.</p>
 	<crow-runnable no-run>
@@ -48,6 +43,19 @@
 			verified-id nat
 			no-id
 	</crow-runnable>
+
+	<h3>Creating union values</h3>
+	<p>
+		Declaring the union generates functions <code>verified-id age(a nat)</code> and <code>no-id age()</code>.
+	</p>
+
+	<h3>Getting union values</h3>
+	<p>
+		Declaring the union also generates a function <code>verified-id nat?(a age)</code>
+		(not used in the above example).
+		<br />
+		This works like a record field getter, but the result is optional since the union might not have that member.
+	</p>
 
 	<h2>Matching on union values</h2>
 	<p>

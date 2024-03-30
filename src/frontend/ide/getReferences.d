@@ -17,20 +17,24 @@ import frontend.ide.ideUtil :
 	TypeCb;
 import frontend.ide.position : ExprContainer, ExprRef, Position, PositionKind;
 import model.ast :
+	AssertOrForbidAst,
 	AssignmentAst,
 	AssignmentCallAst,
 	CallAst,
 	CaseAst,
 	CaseMemberAst,
+	ConditionAst,
 	DestructureAst,
 	ExprAst,
 	ExprAstKind,
 	ForAst,
 	FunDeclAst,
+	IfAst,
 	ImportOrExportAst,
 	LambdaAst,
 	LetAst,
 	LiteralIntegralAndRange,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	ModifierAst,
 	ModifierKeyword,
@@ -51,9 +55,11 @@ import model.model :
 	Called,
 	CalledSpecSig,
 	CallExpr,
+	CallOptionExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
+	Condition,
 	Destructure,
 	eachImportOrReExport,
 	EnumOrFlagsMember,
@@ -66,7 +72,6 @@ import model.model :
 	FunPointerExpr,
 	greatestVisibility,
 	IfExpr,
-	IfOptionExpr,
 	ImportOrExport,
 	IntegralType,
 	LambdaExpr,
@@ -110,10 +115,10 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
-import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : prependSet, Symbol;
@@ -425,7 +430,9 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 	ExprAstKind astKind() =>
 		a.expr.ast.kind;
 	a.expr.kind.matchIn!void(
-		(in AssertOrForbidExpr _) {},
+		(in AssertOrForbidExpr x) {
+			eachTypeInCondition(x.condition, astKind.as!AssertOrForbidAst.condition, cb);
+		},
 		(in BogusExpr _) {},
 		(in CallExpr x) {
 			if (astKind.isA!CallAst) {
@@ -434,11 +441,13 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 					eachPackedTypeArg(x.called.as!(FunInst*).typeArgs, *force(typeArg), cb);
 			}
 		},
+		(in CallOptionExpr _) {},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr _) {},
 		(in FunPointerExpr _) {},
-		(in IfExpr _) {},
-		(in IfOptionExpr _) {},
+		(in IfExpr x) {
+			eachTypeInCondition(x.condition, astKind.as!IfAst.condition, cb);
+		},
 		(in LambdaExpr x) {
 			eachTypeInDestructure(x.param, astKind.as!(LambdaAst*).param, cb);
 		},
@@ -452,7 +461,9 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in LoopExpr _) {},
 		(in LoopBreakExpr _) {},
 		(in LoopContinueExpr _) {},
-		(in LoopWhileOrUntilExpr _) {},
+		(in LoopWhileOrUntilExpr x) {
+			eachTypeInCondition(x.condition, astKind.as!(LoopWhileOrUntilAst*).condition, cb);
+		},
 		(in MatchEnumExpr _) {},
 		(in MatchIntegralExpr _) {},
 		(in MatchStringLikeExpr _) {},
@@ -476,6 +487,14 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in TrustedExpr _) {},
 		(in TypedExpr x) =>
 			cb(a.type, astKind.as!(TypedAst*).type));
+}
+
+void eachTypeInCondition(in Condition condition, in ConditionAst ast, in TypeCb cb) {
+	condition.matchIn!void(
+		(in Expr _) {},
+		(in Condition.UnpackOption x) {
+			eachTypeInDestructure(x.destructure, ast.as!(ConditionAst.UnpackOption*).destructure, cb);
+		});
 }
 
 void referencesForFunDecl(in Program program, FunDecl* decl, in ReferenceCb cb) {
@@ -608,18 +627,18 @@ void withRecordFieldFunctions(
 	in Program program,
 	in RecordField field,
 	in void delegate(in FunDecl*[]) @safe @nogc pure nothrow cb,
-) {
-	MutMaxArr!(3, FunDecl*) res = mutMaxArr!(3, FunDecl*);
-	eachFunNamed(moduleOf(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
-		if (isRecordFieldFunction(fun.body_)) {
-			Type paramType = only(fun.params.as!(Destructure[])).type;
-			// TODO: for RecordFieldPointer we need to look for pointer to the struct
-			if (paramType.isA!(StructInst*) && paramType.as!(StructInst*).decl == field.containingRecord)
-				res ~= fun;
-		}
+) =>
+	withMaxStackArray!(void, FunDecl*)(3, (scope ref MaxStackArray!(FunDecl*) res) {
+		eachFunNamed(moduleOf(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
+			if (isRecordFieldFunction(fun.body_)) {
+				Type paramType = only(fun.params.as!(Destructure[])).type;
+				// TODO: for RecordFieldPointer we need to look for pointer to the struct
+				if (paramType.isA!(StructInst*) && paramType.as!(StructInst*).decl == field.containingRecord)
+					res ~= fun;
+			}
+		});
+		cb(res.finish);
 	});
-	cb(asTemporaryArray(res));
-}
 
 FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
 	mustFindPointer!FunDecl(module_.funs, (in FunDecl fun) => fun.name == name && cb(fun));
@@ -704,7 +723,7 @@ void eachModuleReferencing(
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable Module* importingModule; program.allModules)
-		eachImportOrReExport(*importingModule, (in ImportOrExport x) @safe {
+		eachImportOrReExport(*importingModule, (in ImportOrExport x) {
 			if (x.modulePtr == exportingModule)
 				cb(*importingModule, x);
 		});

@@ -172,7 +172,8 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison mut(
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
-	trusted unless b is-empty
+	guard !b.is-empty
+	trusted
 		a-old-size = a size
 		a unsafe-set-size a-old-size + b.size
 		a-read mut = a.begin-pointer.as-const + a-old-size - 1

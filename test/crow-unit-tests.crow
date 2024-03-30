@@ -56,6 +56,7 @@ import
 	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
 	./unit/auto-funs: dummy-auto-funs
+	./unit/conditions: dummy-conditions
 
 main nat^(_ string[]) summon
 	license is "public domain"
@@ -68,6 +69,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
 	_ = dummy-auto-funs
+	_ = dummy-conditions
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests

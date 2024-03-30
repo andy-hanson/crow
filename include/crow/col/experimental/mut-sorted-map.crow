@@ -201,13 +201,13 @@ Else, returns an empty option.
 			break acc
 
 -compact[k, v] void(a (k, v) mut-sorted-map) k key
-	if next ?= a next
-		next compact
-		a.pairs filter= (_, v) => !v.is-empty
-		a.pairs merge-no-duplicates next.pairs, ((k0, _), (k1, _)) =>
-			k0 <=> k1 assert-comparison-not-equal
-		a.next := ()
-		a.node-size := a.pairs size
+	guard next ?= a next
+	next compact
+	a.pairs filter= (_, v) => !v.is-empty
+	a.pairs merge-no-duplicates next.pairs, ((k0, _), (k1, _)) =>
+		k0 <=> k1 assert-comparison-not-equal
+	a.next := ()
+	a.node-size := a.pairs size
 
 -find-exact[k, v] (k, v?) mut-list-iterator?(a (k, v) mut-sorted-map, key k) k key
 	a.pairs binary-search-exact (k, _) => key <=> k
@@ -257,12 +257,8 @@ region spec impls (see collection.crow)
 region test
 
 -dbg[k, v] string(a (k, v) mut-sorted-map) (string, k) to, (string, v) to
-	pairs = ", " join for k, v-opt : a pairs
-		vs string = if v ?= v-opt
-			"{v}"
-		else
-			"_"
-		"{k} -> {vs}"
+	pairs = ", " join for k, v : a pairs
+		"{k} -> {v?.to ?? "_"}"
 	if next ?= a next
 		"[{pairs}], {next dbg}"
 	else
@@ -277,8 +273,7 @@ region test
 	for _, v : a pairs
 		res +:= v size
 	a.node-size is res
-	if next ?= a next
-		next verify-node-size
+	a.next?.verify-node-size ?? ()
 
 test
 	a (nat64, string) mut-sorted-map = (3, "3"), (5, "5"), (7, "7"), (8, "8"), (9, "9"), (10, "10")

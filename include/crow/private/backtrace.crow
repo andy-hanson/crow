@@ -7,9 +7,9 @@ import
 		AddrPC, FileName, IMAGEHLP_LINE64, IMAGEHLP_SYMBOL64, LineNumber, Name, new, Offset,
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
-	../bool: ||, true
+	../bool: &&, true
 	../col/array: as-array, new
-	../compare: <=
+	../compare: !=, >
 	../misc: new, void
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
@@ -32,18 +32,17 @@ export
 
 # Taking 'gc' explicitly to avoid accidental uses
 get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe
-	if is-stack-trace-enabled
-		max-entries nat64 = 16
-		opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
-		if entries ?= opt-entries
-			if is-interpreted
-				end = entries interpreter-backtrace max-entries, skip
-				gc copy-strings entries, end
-				(entries .. end).as-array,
-			elif is-windows
-				gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
-			else
-				gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
+	guard is-stack-trace-enabled
+	max-entries nat64 = 16
+	guard entries ?= (gc try-alloc-uninitialized max-entries)::backtrace-entry mut*?
+	if is-interpreted
+		end = entries interpreter-backtrace max-entries, skip
+		gc copy-strings entries, end
+		(entries .. end).as-array,
+	elif is-windows
+		gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
+	else
+		gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
 
 ###
 Implemented by interpreter only.
@@ -72,8 +71,8 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 ) bare, unsafe
-	if vars ?= gc try-alloc-windows-backtrace-vars
-		gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
+	guard vars ?= gc try-alloc-windows-backtrace-vars
+	gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
 
 -get-windows-backtrace-with-vars backtrace(
 	gc gc-ctx,
@@ -107,16 +106,16 @@ Result entries are temporary, must copy!
 	line IMAGEHLP_LINE64 mut*
 
 -try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe
-	if offset ?= gc.try-alloc-uninitialized :: nat64 mut*?
-		if displacement ?= gc.try-alloc-uninitialized :: nat32 mut*?
-			symbol-max-name-length nat64 = 255
-			symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
-			if symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
-				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
-				*symbol := symbol-max-name-length.unsafe-to,
-				if line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
-					*line := ()
-					(offset, displacement, symbol, line),
+	guard offset ?= gc.try-alloc-uninitialized :: nat64 mut*?
+	guard displacement ?= gc.try-alloc-uninitialized :: nat32 mut*?
+	symbol-max-name-length nat64 = 255
+	symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
+	guard symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
+	symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
+	*symbol := symbol-max-name-length.unsafe-to,
+	guard line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
+	*line := ()
+	(offset, displacement, symbol, line),
 
 -windows-walk-backtrace backtrace-entry mut*(
 	gc gc-ctx,
@@ -196,21 +195,19 @@ Result entries are temporary, must copy!
 ) bare, unsafe
 	out-cur mut = out-begin
 	loop
-		if out-cur == out-end || cursor.unw_step <= 0
-			break out-cur
-		else
-			offset mut unw_word_t = 0
-			buf-size nat64 = 256
-			buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
-			if buf ?= buf-try
-				err = cursor unw_get_proc_name buf, buf-size, &offset
-				*out-cur := if err == 0
-					# TODO: get filename and line number too
-					buf.as-const, "", 0, 0
-				else
-					"", "", 0, 0
-				out-cur +:= 1
-				continue
+		guard out-cur != out-end && cursor.unw_step > 0 : break out-cur
+		offset mut unw_word_t = 0
+		buf-size nat64 = 256
+		buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
+		if buf ?= buf-try
+			err = cursor unw_get_proc_name buf, buf-size, &offset
+			*out-cur := if err == 0
+				# TODO: get filename and line number too
+				buf.as-const, "", 0, 0
 			else
-				*out-cur := "<<out of memory for backtrace>>", "", 0, 0
-				break out-cur + 1
+				"", "", 0, 0
+			out-cur +:= 1
+			continue
+		else
+			*out-cur := "<<out of memory for backtrace>>", "", 0, 0
+			break out-cur + 1

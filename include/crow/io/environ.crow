@@ -4,6 +4,7 @@ import
 	../col/array: as-array
 	../col/collection: build, with-block
 	../col/map: ~=, build, map
+	../misc: new
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../pointer: ==, <=>, +, *, const-pointer, null
@@ -17,15 +18,13 @@ get-environ-raw c-string*() summon, unsafe
 
 # Get all environment variables for this process.
 +get-environ string[string]() summon
-	if trusted is-windows
-		throw "TODO: Windows support"
-	else
-		with out : build
-			trusted
-				env mut = get-environ-raw
-				until *env == null
-					out ~= env->parse-environ-entry
-					env +:= 1
+	forbid trusted is-windows : "TODO: Windows support"
+	with out : build
+		trusted
+			env mut = get-environ-raw
+			until *env == null
+				out ~= env->parse-environ-entry
+				env +:= 1
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="

@@ -93,18 +93,18 @@ CPU: CPU vs CPU
 		board human-player-move-recur
 
 -column-of-string nat?(a string)
-	if n ?= a.strip letter-to-number
-		if n < width
-			n,
+	guard n ?= a.strip letter-to-number
+	guard n < width
+	n,
 
 -letter-to-number nat?(a string)
 	chars char8[] = a to
-	if chars.size == 1
-		n nat = chars[0] to
-		if "A"::char8.to::nat <= n && n < "Z"::char8.to
-			(n - "A"::char8.to),
-		elif "a"::char8.to::nat <= n && n < "z"::char8.to
-			(n - "a"::char8.to),
+	guard chars.size == 1
+	n nat = chars[0] to
+	if "A"::char8.to::nat <= n && n < "Z"::char8.to
+		(n - "A"::char8.to),
+	elif "a"::char8.to::nat <= n && n < "z"::char8.to
+		(n - "a"::char8.to),
 
 -strategy record(x nat, score int32)
 
@@ -119,9 +119,7 @@ score-cache alias
 	(cache strategy-recur board, ai-depth, (0, min-value), 0, 0 x),
 
 -strategy-score int32(cache score-cache, board board, ai-depth nat)
-	if cached ?= cache[board]
-		cached
-	else
+	cache[board] ?? do
 		res = cache strategy-recur board, ai-depth, (0, min-value), 0, 0 score
 		cache[board] := res
 		res

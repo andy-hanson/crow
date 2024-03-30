@@ -34,7 +34,7 @@ T* pushUninitialized(T)(ref ExactSizeArrayBuilder!T a) @trusted {
 	return res;
 }
 
-@trusted T[] finish(T)(ref ExactSizeArrayBuilder!T a) {
+@trusted T[] finish(T)(return scope ref ExactSizeArrayBuilder!T a) {
 	assert(a.cur == endPtr(a.inner));
 	T[] res = a.inner;
 	a.inner = [];

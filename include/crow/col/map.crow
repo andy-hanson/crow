@@ -124,12 +124,10 @@ Returns an empty option if the key is not in `a`.
 		match cur
 		as inner-node i
 			which = remaining-hash low-bits
-			if which < i.size
-				cur := i[which]
-				remaining-hash >>:= inner-node-n-bits
-				continue
-			else
-				break
+			guard which < i.size : break
+			cur := i[which]
+			remaining-hash >>:= inner-node-n-bits
+			continue
 		as leaf-node l
 			break for k, v : l
 				if k == key

@@ -6,13 +6,12 @@ import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : InstantiateCtx, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
-import frontend.lang : maxClosureFields;
 import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	CommonTypes, FunFlags, LambdaExpr, Local, Mutability, Specs, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
-import util.col.mutMaxArr : MutMaxArr;
+import util.alloc.stackAlloc : MaxStackArray;
 import util.col.enumMap : EnumMap;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
@@ -41,10 +40,11 @@ struct LambdaInfo {
 	LocalsInfo* outer;
 	// WARN: Only 'lambda.kind' will be initialized while checking the lambda
 	immutable LambdaExpr* lambda;
-	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
+	MaxStackArray!ClosureFieldBuilder closureFields;
 }
 
 struct LocalsInfo {
+	size_t countAllAccessibleLocals; // all locals in outer lambdas, even those not yet closed over
 	MutOpt!(LambdaInfo*) lambda;
 	MutOpt!(LocalNode*) locals;
 }

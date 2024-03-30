@@ -56,34 +56,34 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		assert state.unparsed.size <= state.content-length
 		state.unparsed.size == state.content-length
 
-	if finished-request
-		request = state finish-request
-		_ = (client-states remove sock)!
-		with : fire-and-forget
-			handler-response <- handler[request] future-catch
-			response = match handler-response
-			as ok o
-				o
-			as error e
-				error log "{e}"
-				http-internal-server-error
-			<- sock write-until-finished response.response-to-array
-			sock close-client
-			()
+	guard finished-request
+	request = state finish-request
+	_ = (client-states remove sock)!
+	with : fire-and-forget
+		handler-response <- handler[request] future-catch
+		response = match handler-response
+		as ok o
+			o
+		as error e
+			error log "{e}"
+			http-internal-server-error
+		<- sock write-until-finished response.response-to-array
+		sock close-client
+		()
 
 -write-until-finished void^(sock SOCKET, content nat8 array) summon, unsafe
-	unless content is-empty
-		wrote = sock.as-fd write content.begin-pointer, content.size
-		unless wrote == content.size.to
-			if wrote == -1
-				err = errno
-				assert err == EAGAIN : "can't write to socket, errno {err}"
-				<- delay
-				sock write-until-finished content
-			else
-				assert wrote > 0
-				<- delay
-				sock write-until-finished content[wrote.to .. end]
+	guard !content.is-empty
+	wrote = sock.as-fd write content.begin-pointer, content.size
+	unless wrote == content.size.to
+		if wrote == -1
+			err = errno
+			assert err == EAGAIN : "can't write to socket, errno {err}"
+			<- delay
+			sock write-until-finished content
+		else
+			assert wrote > 0
+			<- delay
+			sock write-until-finished content[wrote.to .. end]
 
 -finish-request http-request(state http-parse-state)
 	state.method, state.url, state.headers.move-to::(string, string)[].to, state.unparsed.move-to
@@ -106,40 +106,36 @@ Starts running an HTTP server. Stops it when `cb` returns.
 # returns true if ready to call handler
 -handle-http-initial bool(state http-parse-state)
 	loop
-		if line ?= state.unparsed try-take-first-line
-			if line is-empty
-				break state.content-length == 0
-			elif state.url is-empty
-				# Expect something like "GET / HTTP/1.1"
-				parts string[] = line split " "
-				assert parts.size == 3
-				state.method := parts[0].to ?? todo
-				state.url := parts[1]
-				assert parts[2] == "HTTP/1.1"
-				forbid state.url is-empty
-				continue
-			else
-				parts string[] = line split ": "
-				assert parts.size == 2 : "Bad header line for {state.url}: '{line}'"
-				key = parts[0]
-				value = parts[1]
-				state.headers ~= (key, value)
-				if key == "content-length"
-					match nat parse value
-					as ok content-length
-						state.content-length := content-length
-					as error _
-						# invalid content-length
-						todo
-				continue
+		guard line ?= state.unparsed try-take-first-line : break false
+		guard !line.is-empty : break state.content-length == 0
+		if state.url is-empty
+			# Expect something like "GET / HTTP/1.1"
+			parts string[] = line split " "
+			assert parts.size == 3
+			state.method := parts[0].to ?? todo
+			state.url := parts[1]
+			assert parts[2] == "HTTP/1.1"
+			forbid state.url is-empty
 		else
-			break false
+			parts string[] = line split ": "
+			assert parts.size == 2 : "Bad header line for {state.url}: '{line}'"
+			key = parts[0]
+			value = parts[1]
+			state.headers ~= (key, value)
+			if key == "content-length"
+				match nat parse value
+				as ok content-length
+					state.content-length := content-length
+				as error _
+					# invalid content-length
+					todo
+		continue
 
 -try-take-first-line string?(a nat8 mut[])
-	if index ?= a index-of "\n"::char8.to
-		bytes = (a pop-n-from-start index + 1)[0 .. end - 1]
-		line = bytes as-string
-		(line try-remove-end "\r" ?? line),
+	guard index ?= a index-of "\n"::char8.to
+	bytes = (a pop-n-from-start index + 1)[0 .. end - 1]
+	line = bytes as-string
+	(line try-remove-end "\r" ?? line),
 
 -http-parse-state record mut
 	method mut http-method

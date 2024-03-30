@@ -6,6 +6,7 @@ import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	CallExpr,
+	CallOptionExpr,
 	EnumOrFlagsMember,
 	Expr,
 	FunDecl,
@@ -230,19 +231,22 @@ immutable struct ExpressionPositionKind {
 		Kind kind;
 		ExprRef loop;
 	}
-	mixin Union!(CallExpr, ExprKeyword, FunPointerExpr, Literal, LocalRef, LoopKeyword);
+	mixin Union!(CallExpr, CallOptionExpr, ExprKeyword, FunPointerExpr, Literal, LocalRef, LoopKeyword);
 }
 
 enum ExprKeyword {
 	ampersand,
 	assert_,
+	colon,
 	colonColon,
 	elif,
 	else_,
 	forbid,
-	ifOrUnless,
+	guardIfOrUnless,
 	lambdaArrow,
 	match,
+	questionDotOrSubscript,
+	questionEquals,
 	throw_,
 	trusted,
 	until,

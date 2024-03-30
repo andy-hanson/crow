@@ -694,7 +694,7 @@ RecordField checkRecordField(
 			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: () {
 			addDiag(ctx, ast.name.range, Diag(Diag.RecordFieldNeedsType(name)));
-			return Type(Type.Bogus());
+			return Type.bogus;
 		}();
 	checkReferenceLinkageAndPurity(ctx, record, ast.source.range, memberType);
 

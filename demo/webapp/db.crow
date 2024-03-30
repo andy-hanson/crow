@@ -107,38 +107,30 @@ register-user-result union
 == bool(a register-user-result, b register-user-result)
 
 register-user register-user-result(db db, user-name string, password string) summon
-	if user-name.size < 4 || user-name.size > 64
+	guard !(user-name.size < 4 || user-name.size > 64) :
 		"user name must be 4-64 characters" bad-user-name
-	else
-		with txn : db.env abortable-write-transaction
-			new-user-id = txn count db.user-from-name
-			user-count-check = txn count db.user-name
-			assert new-user-id == user-count-check
-			if txn try-add db.user-from-name, user-name, new-user-id
-				txn add db.user-name, new-user-id, user-name
-				hash = password password-hash quality-moderate
-				txn add db.user-password-hash, new-user-id, hash
-				new-user-id.register-user-success, transaction-commit
-			else
-				user-already-exists, transaction-abort
+	with txn : db.env abortable-write-transaction
+		new-user-id = txn count db.user-from-name
+		user-count-check = txn count db.user-name
+		assert new-user-id == user-count-check
+		guard txn try-add db.user-from-name, user-name, new-user-id :
+			user-already-exists, transaction-abort
+		txn add db.user-name, new-user-id, user-name
+		hash = password password-hash quality-moderate
+		txn add db.user-password-hash, new-user-id, hash
+		new-user-id.register-user-success, transaction-commit
 
 login-error enum(empty-name-or-password, user-does-not-exist, wrong-password)
 
 login (user-cookie, login-error) result(db db, user-name string, password string) summon
-	if user-name.is-empty || password.is-empty
-		empty-name-or-password error
-	else
-		with txn : db.env write-transaction
-			if user ?= db get-user txn, user-name
-				hash = (txn get db.user-password-hash, user)!
-				if password password-matches-hash hash
-					cookie = generate-login-cookie
-					txn set db.user-login-cookie, user, cookie
-					(user, cookie) ok
-				else
-					wrong-password error
-			else
-				user-does-not-exist error
+	guard user-name.is-empty || password.is-empty : empty-name-or-password error
+	with txn : db.env write-transaction
+		guard user ?= db get-user txn, user-name : user-does-not-exist error
+		hash = (txn get db.user-password-hash, user)!
+		guard password password-matches-hash hash : wrong-password error
+		cookie = generate-login-cookie
+		txn set db.user-login-cookie, user, cookie
+		(user, cookie) ok
 
 -get-post-info post-info(db db, post post) summon
 	with txn : db.env read-transaction
@@ -159,14 +151,12 @@ add-post post(db db, cookie user-cookie, content string) summon
 	txn get db.user-from-name, user-name
 
 -authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
-	if db try-authenticate txn, cookie
-		cookie user
-	else
-		throw "Login cookie invalid (may have expired)"
+	assert db try-authenticate txn, cookie : "Login cookie invalid (may have expired)"
+	cookie user
 
 -try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
-	if login-cookie ?= txn get db.user-login-cookie, cookie.user
-		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
+	guard login-cookie ?= txn get db.user-login-cookie, cookie.user
+	login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 
 -db-path string()
 	"demo/webapp/db"

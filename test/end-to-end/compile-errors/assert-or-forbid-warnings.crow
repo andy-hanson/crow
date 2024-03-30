@@ -1,0 +1,3 @@
+main void()
+	assert true : throw "true is not true"
+	guard true : throw "true is not true"

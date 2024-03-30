@@ -2,12 +2,13 @@ module model.ast;
 
 @safe @nogc pure nothrow:
 
-import model.model : AssertOrForbidKind, FunKind, stringOfVarKindLowerCase, VarKind, Visibility;
+import model.model : FunKind, stringOfVarKindLowerCase, VarKind, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
+import util.col.array : arrayOfSingle, exists, isEmpty, newArray, newSmallArray, sizeEq, SmallArray;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
@@ -233,12 +234,21 @@ immutable struct ArrowAccessAst {
 
 immutable struct AssertOrForbidAst {
 	@safe @nogc pure nothrow:
-	AssertOrForbidKind kind;
-	ExprAst condition;
-	Opt!ExprAst thrown;
+	immutable struct Thrown {
+		@safe @nogc pure nothrow:
+		Pos colonPos;
+		ExprAst expr;
+
+		Range colonRange() scope =>
+			rangeOfStartAndLength(colonPos, ":".length);
+	}
+
+	bool isForbid;
+	ConditionAst condition;
+	Opt!(Thrown*) thrown;
+	ExprAst* after;
 
 	Range keywordRange(in ExprAst* ast) scope {
-		assert(ast.kind.as!(AssertOrForbidAst*) == &this);
 		static assert("assert".length == "forbid".length);
 		return ast.range[0 .. "assert".length];
 	}
@@ -285,13 +295,48 @@ immutable struct CallAst {
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
 		single, // `a@t` (without the type arg, it would just be an Identifier)
-		subscript, // a[b]
-		suffixBang, // 'x!'
+		subscript, // `a[b]`
+		suffixBang, // `x!`
+		questionSubscript, // `a?[b]``
+		questionDot, // `a?.b``
 	}
 	Style style;
+	Pos keywordPos; // Position of '.' or '?'
 	NameAndRange funName;
 	SmallArray!ExprAst args;
 	Opt!(TypeAst*) typeArg;
+
+	this(Style s, NameAndRange fn, SmallArray!ExprAst a, Opt!(TypeAst*) ta = none!(TypeAst*)) {
+		this(s, Pos.max, fn, a, ta);
+	}
+	this(Style s, Pos kp, NameAndRange fn, SmallArray!ExprAst a, Opt!(TypeAst*) ta = none!(TypeAst*)) {
+		style = s;
+		keywordPos = kp;
+		funName = fn;
+		args = a;
+		typeArg = ta;
+		assert(has(keywordRange) == (keywordPos != Pos.max));
+	}
+
+	Opt!Range keywordRange() scope {
+		final switch (style) {
+			case Style.comma:
+			case Style.dot:
+			case Style.subscript:
+				return some(rangeOfStartAndLength(keywordPos, 1));
+			case Style.questionDot:
+			case Style.questionSubscript:
+				return some(rangeOfStartAndLength(keywordPos, 2));
+			case Style.emptyParens:
+			case Style.implicit:
+			case Style.infix:
+			case Style.prefixBang:
+			case Style.prefixOperator:
+			case Style.single:
+			case Style.suffixBang:
+				return none!Range;
+		}
+	}
 
 	Range nameRange(in ExprAst* ast) scope =>
 		style == Style.comma ? ast.range : funName.range;
@@ -338,22 +383,34 @@ immutable struct IdentifierAst {
 	Symbol name;
 }
 
-immutable struct IfConditionAst {
+immutable struct ConditionAst {
+	@safe @nogc pure nothrow:
 	immutable struct UnpackOption {
 		@safe @nogc pure nothrow:
 		DestructureAst destructure;
 		Pos questionEqualsPos;
 		ExprAst* option;
 
+		Range range() scope =>
+			combineRanges(destructure.range, option.range);
 		Range questionEqualsRange() scope =>
 			rangeOfStartAndLength(questionEqualsPos, "?=".length);
 	}
-	mixin TaggedUnion!(UnpackOption*, ExprAst*);
+	mixin TaggedUnion!(ExprAst*, UnpackOption*);
+
+	Range range() scope =>
+		matchIn!Range(
+			(in ExprAst x) =>
+				x.range,
+			(in UnpackOption x) =>
+				x.range);
 }
 
 immutable struct IfAst {
 	@safe @nogc pure nothrow:
 	enum Kind {
+		guardWithColon,
+		guardWithoutColon,
 		ifWithoutElse, // 'if' with no 'else'
 		ifElif, // In this case, the 'else' expression will be another IfAst
 		ifElse, // Has 'if' and 'else' keywords
@@ -364,20 +421,66 @@ immutable struct IfAst {
 
 	Kind kind;
 	Pos firstKeywordPos; // Position of 'if' or '?' or 'unless'
-	Pos secondKeywordPos; // Position of 'elif' or 'else' or ':' keyword
-	IfConditionAst condition;
-	// For an 'unless', the 'then' is still the first branch syntactically.
-	// 'else' is often an EmptyAst.
-	private ExprAst[2]* thenElse;
+	Pos secondKeywordPos_; // Position of 'elif' or 'else' or ':' keyword
+	ConditionAst condition;
+	// How many branches this points to depends on 'kind'. See 'countIfBranches'.
+	private ExprAst* branchesPtr;
 
-	ref ExprAst then() return scope =>
-		(*thenElse)[0];
-	ref ExprAst else_() return scope =>
-		(*thenElse)[1];
+	@trusted ExprAst[] allBranches() return scope =>
+		branchesPtr[0 .. countIfBranches(kind)];
+
+	bool isConditionNegated() scope {
+		final switch (kind) {
+			case IfAst.Kind.ifWithoutElse:
+			case IfAst.Kind.ifElif:
+			case IfAst.Kind.ifElse:
+			case IfAst.Kind.ternaryWithElse:
+			case IfAst.Kind.ternaryWithoutElse:
+				return false;
+			case IfAst.Kind.guardWithColon:
+			case IfAst.Kind.guardWithoutColon:
+			case IfAst.Kind.unless:
+				return true;
+		}
+	}
+
+	// For a 'guard', this is optional.
+	Opt!(ExprAst*) firstBranch() return scope {
+		final switch (kind) {
+			case Kind.guardWithColon:
+			case Kind.ifWithoutElse:
+			case Kind.ifElif:
+			case Kind.ifElse:
+			case Kind.ternaryWithElse:
+			case Kind.ternaryWithoutElse:
+			case Kind.unless:
+				return some(branchesPtr);
+			case Kind.guardWithoutColon:
+				return none!(ExprAst*);
+		}
+	}
+	@trusted Opt!(ExprAst*) secondBranch() return scope {
+		final switch (kind) {
+			case Kind.guardWithColon:
+			case Kind.ifElif:
+			case Kind.ifElse:
+			case Kind.ternaryWithElse:
+				return some(&branchesPtr[1]);
+			case Kind.guardWithoutColon:
+				return some(branchesPtr);
+			case Kind.ifWithoutElse:
+			case Kind.ternaryWithoutElse:
+			case Kind.unless:
+				return none!(ExprAst*);
+		}
+	}
 
 	Range firstKeywordRange() scope {
 		size_t length = () {
 			final switch (kind) {
+				case Kind.guardWithColon:
+				case Kind.guardWithoutColon:
+					return "guard".length;
 				case Kind.ifWithoutElse:
 				case Kind.ifElif:
 				case Kind.ifElse:
@@ -391,9 +494,12 @@ immutable struct IfAst {
 		}();
 		return rangeOfStartAndLength(firstKeywordPos, length);
 	}
-	Range secondKeywordRange() {
+	Opt!Pos secondKeywordPos() scope =>
+		optIf(has(secondBranch), () => secondKeywordPos_);
+	Opt!Range secondKeywordRange() scope {
 		size_t length = () {
 			final switch (kind) {
+				case Kind.guardWithoutColon:
 				case Kind.ifWithoutElse:
 				case Kind.ternaryWithoutElse:
 				case Kind.unless:
@@ -401,25 +507,51 @@ immutable struct IfAst {
 				case Kind.ifElif:
 				case Kind.ifElse:
 					return "else".length;
+				case Kind.guardWithColon:
 				case Kind.ternaryWithElse:
 					return ":".length;
 			}
 		}();
-		return rangeOfStartAndLength(secondKeywordPos, length);
+		return optIf(length != 0, () => rangeOfStartAndLength(secondKeywordPos_, length));
 	}
+}
 
-	bool hasElse() scope {
-		final switch (kind) {
-			case Kind.ifWithoutElse:
-			case Kind.ternaryWithoutElse:
-			case Kind.unless:
-				return false;
-			case Kind.ifElif:
-			case Kind.ifElse:
-			case Kind.ternaryWithElse:
-				return true;
-		}
+private size_t countIfBranches(IfAst.Kind kind) {
+	final switch (kind) {
+		case IfAst.Kind.guardWithoutColon:
+		case IfAst.Kind.ifWithoutElse:
+		case IfAst.Kind.ternaryWithoutElse:
+		case IfAst.Kind.unless:
+			return 1;
+		case IfAst.Kind.guardWithColon:
+		case IfAst.Kind.ifElif:
+		case IfAst.Kind.ifElse:
+		case IfAst.Kind.ternaryWithElse:
+			return 2;
 	}
+}
+
+// Have to move this out of the struct due to forward reference error
+IfAst createIfAst(
+	ref Alloc alloc,
+	IfAst.Kind kind,
+	Pos firstKeywordPos,
+	ConditionAst condition,
+	Opt!ExprAst firstBranch,
+	Opt!Pos secondKeywordPos,
+	Opt!ExprAst secondBranch,
+) {
+	assert(countIfBranches(kind) == has(firstBranch) + has(secondBranch));
+	return IfAst(
+		kind: kind,
+		firstKeywordPos: firstKeywordPos,
+		secondKeywordPos_: optOrDefault!Pos(secondKeywordPos, () => 0),
+		condition: condition,
+		branchesPtr: has(firstBranch)
+			? has(secondBranch)
+				? &newArray!ExprAst(alloc, [force(firstBranch), force(secondBranch)])[0]
+				: allocate!ExprAst(alloc, force(firstBranch))
+			: allocate!ExprAst(alloc, force(secondBranch)));
 }
 
 immutable struct InterpolatedAst {
@@ -541,8 +673,9 @@ immutable struct LoopContinueAst {
 immutable struct LoopWhileOrUntilAst {
 	@safe @nogc pure nothrow:
 	bool isUntil;
-	ExprAst condition;
+	ConditionAst condition;
 	ExprAst body_;
+	ExprAst after;
 
 	Range keywordRange(in ExprAst* source) scope {
 		assert(source.kind.as!(LoopWhileOrUntilAst*) == &this);
@@ -697,7 +830,7 @@ immutable struct WithAst {
 immutable struct ExprAstKind {
 	mixin Union!(
 		ArrowAccessAst,
-		AssertOrForbidAst*,
+		AssertOrForbidAst,
 		AssignmentAst*,
 		AssignmentCallAst,
 		BogusAst,

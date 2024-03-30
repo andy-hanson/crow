@@ -31,7 +31,7 @@ import interpret.stacks :
 	withStacks;
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
-import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : indexOf;
 import util.conv : safeToSizeT;
 import util.exitCode : ExitCode;
@@ -44,14 +44,13 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 
 @safe ExitCode runBytecode(
 	scope ref Perf perf,
-	ref Alloc alloc, // for thread locals
 	in ShowCtx printCtx,
 	in DoDynCall doDynCall,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in CString[] allArgs,
 ) =>
-	withInterpreter!ExitCode(alloc, doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
+	withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
 		dataPush(stacks, allArgs.length);
 		dataPush(stacks, cast(ulong) allArgs.ptr);
 		return withMeasureNoAlloc!(ExitCode, () @trusted =>
@@ -88,10 +87,8 @@ void syntheticCallWithStacks(scope ref Stacks stacks, Operation* operationPtr) {
 void stepUntilExit(ref Stacks stacks, ref Operation* operation) {
 	setNext(stacks, operation);
 	do {
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
+		static foreach (size_t i; 0 .. 4)
+			nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
 	} while (nextOperationPtr.fn != &opStopInterpretation);
 	stacks = nextStacks;
 	operation = nextOperationPtr;
@@ -112,7 +109,6 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 }
 
 @safe T withInterpreter(T)(
-	ref Alloc alloc,
 	in DoDynCall doDynCall_,
 	in ShowCtx printCtx,
 	in LowProgram lowProgram,
@@ -418,6 +414,7 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 	size_t skip = safeToSizeT(dataPop(stacks));
 	size_t max = safeToSizeT(dataPop(stacks));
 	BacktraceEntry* out_ = cast(BacktraceEntry*) dataPop(stacks);
+	ensureStackAllocInitialized();
 	BacktraceEntry* res = fillBacktrace(debugInfo, out_, max, skip, stacks);
 	dataPush(stacks, cast(size_t) res);
 }

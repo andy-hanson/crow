@@ -3,6 +3,7 @@ import
 	../bool: ||, bool, new, true, false
 	../fun-util: subscript
 	../json: to
+	../misc: new
 	../number: ==, +, nat64
 	../option: ==, force, is-empty, new, option
 	../test-util: is
@@ -95,14 +96,12 @@ region spec impls (see collection.crow)
 iterate-reverse[t] bool(a t stack, f bool mut(elem t))
 	cur mut = a last-node
 	loop
-		if c ?= cur
-			if f[c value]
-				break true
-			else
-				cur := c prev
-				continue
+		guard c ?= cur : break false
+		if f[c value]
+			break true
 		else
-			break false
+			cur := c prev
+			continue
 
 ~to-array-reverse[t] t array(a t stack)
 	with out : a.size build

@@ -3,10 +3,10 @@ module util.uri;
 @safe @nogc nothrow: // not pure
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : fold, indexOf, indexOfStartingAt, isEmpty, sum;
+import util.col.array : fold, indexOf, indexOfStartingAt, isEmpty, reverseInPlace, sum;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutMaxArr : asTemporaryArray, isEmpty, MutMaxArr, mutMaxArr, reverseInPlace;
 import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
@@ -350,24 +350,28 @@ private T withComponentsPreferRelative(T)(
 	Path a,
 	in T delegate(bool isRelative, in Symbol[]) @safe @nogc pure nothrow cb,
 ) {
-	MutMaxArr!(0x100, Symbol) stack = mutMaxArr!(0x100, Symbol);
-	Cell!Path cur = Cell!Path(a);
 	bool isRelative = false;
-	while (true) {
-		stack ~= baseName(cellGet(cur));
-		Opt!Path par = parent(cellGet(cur));
-		if (!has(par))
-			break;
-		else if (has(cwd) && force(cwd) == force(par)) {
-			isRelative = true;
-			break;
-		} else {
-			cellSet(cur, force(par));
-			continue;
-		}
-	}
-	reverseInPlace(stack);
-	return cb(isRelative, asTemporaryArray(stack));
+	return withBuildStackArray!(T, Symbol)(
+		(ref StackArrayBuilder!Symbol stack) {
+			Cell!Path cur = Cell!Path(a);
+			while (true) {
+				stack ~= baseName(cellGet(cur));
+				Opt!Path par = parent(cellGet(cur));
+				if (!has(par))
+					break;
+				else if (has(cwd) && force(cwd) == force(par)) {
+					isRelative = true;
+					break;
+				} else {
+					cellSet(cur, force(par));
+					continue;
+				}
+			}
+		},
+		(scope Symbol[] stack) {
+			reverseInPlace(stack);
+			return cb(isRelative, stack);
+		});
 }
 
 size_t pathLength(Path path) =>

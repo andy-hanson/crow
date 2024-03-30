@@ -187,8 +187,7 @@ This may add the key or overwrite the value if the key is already in the databas
 
 # Like `set`, but throws if `key` is already in the `db`.
 +add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
-	unless txn try-add db, key, value
-		throw "key already exists"
+	assert txn try-add db, key, value : "key already exists"
 
 ###
 If `key` is already in `db`, returns `false`.

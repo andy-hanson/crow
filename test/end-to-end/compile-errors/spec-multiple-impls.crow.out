@@ -1,10 +1,26 @@
-exit code: 0
-stdout:
-info: ["a"]
+exit code: 1
 stderr:
+test/end-to-end/compile-errors/spec-multiple-impls.crow 3:7-3:18 There is no function named 'json-string'.
 test/end-to-end/compile-errors/spec-multiple-impls.crow 9:31-9:45 Multiple implementations found for spec signature 'to':
-	'to json(a string)' (from include/crow/json.crow line 68)
+	'to json(a string)' (from include/crow/json.crow line 65)
 	'to json(a string)' (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 2)
 	Calling:
 	to-json-string@(json, string[]) (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 5)
-	to@(json, string) (from include/crow/json.crow line 74)
+	to@(json, string) (from include/crow/json.crow line 71)
+Uncaught exception: Reached compile error
+	at to
+	at to
+	at call
+	at for
+	at call
+	at for
+	at call
+	at iterate
+	at iterate
+	at call
+	at iterate
+	at iterate
+	at iterate
+	at for
+	at for
+	at call

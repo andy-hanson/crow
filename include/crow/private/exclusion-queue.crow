@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: ==, bool
+	../bool: ==, bool, not
 	../compare: !=
 	../misc: new, void
 	../number: ==, max-value, nat64
@@ -107,15 +107,15 @@ Takes the first runnable value out of the queue.
 This acquires the exclusion; call `release-exclusion` when done.
 ###
 dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe
-	unless a.as-const queue-is-empty
-		first = a.queue.value->next
-		value = first.value.values.dequeue!
-		a.queue.value->next := first.value->next
-		a.queue.value->next.value->prev := a.queue
-		first.value->prev := null
-		first.value->next := null
-		forbid first.as-const.value is-in-queue
-		(first->key, value),
+	guard !a.as-const.queue-is-empty
+	first = a.queue.value->next
+	value = first.value.values.dequeue!
+	a.queue.value->next := first.value->next
+	a.queue.value->next.value->prev := a.queue
+	first.value->prev := null
+	first.value->next := null
+	forbid first.as-const.value is-in-queue
+	(first->key, value),
 
 # Make the exclusion available so that `dequeue` can call it.
 release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe

@@ -32,12 +32,12 @@ region iteration
 	a, a.high
 
 +prev[t] (t range-iterator, t)?(a t range-iterator) bare, t rangeable
-	if a.next-value > a.collection.low
-		value = a.next-value - 1::nat64
-		((a.collection, value), value),
+	guard a.next-value > a.collection.low
+	value = a.next-value - 1::nat64
+	((a.collection, value), value),
 +next[t] (t, t range-iterator)?(a t range-iterator) bare, t forward-rangeable
-	if a.next-value < a.collection.high
-		(a.next-value, (a.collection, a.next-value + 1)),
+	guard a.next-value < a.collection.high
+	(a.next-value, (a.collection, a.next-value + 1)),
 
 +in[t] bool(a t, b t range) bare, t compare
 	b.low <= a && a < b.high

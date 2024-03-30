@@ -222,13 +222,13 @@ region spec impls (see collection.crow)
 	a.next-index - b.next-index
 
 +prev[t] (t mut-array-iterator, t)?(a t mut-array-iterator) bare
-	unless a.next-index == 0
-		assert a.next-index <= a.collection.size
-		((a.collection, a.next-index - 1), trusted a.collection.begin-pointer[a.next-index - 1]),
+	guard a.next-index != 0
+	assert a.next-index <= a.collection.size
+	((a.collection, a.next-index - 1), trusted a.collection.begin-pointer[a.next-index - 1]),
 
 +next[t] (t, t mut-array-iterator)?(a t mut-array-iterator) bare
-	if a.next-index < a.collection.size
-		(trusted a.collection.begin-pointer[a next-index], (a.collection, a.next-index + 1)),
+	guard a.next-index < a.collection.size
+	(trusted a.collection.begin-pointer[a next-index], (a.collection, a.next-index + 1)),
 
 +set-prev[t] void(a t mut-array-iterator, value t) bare
 	assert a.next-index <= a.collection.size

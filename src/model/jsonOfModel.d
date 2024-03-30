@@ -13,8 +13,10 @@ import model.model :
 	Called,
 	CalledSpecSig,
 	CallExpr,
+	CallOptionExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
+	Condition,
 	Destructure,
 	emptyTypeParams,
 	EnumFunction,
@@ -28,7 +30,6 @@ import model.model :
 	FunInst,
 	FunPointerExpr,
 	IfExpr,
-	IfOptionExpr,
 	ImportOrExport,
 	ImportOrExportKind,
 	LambdaExpr,
@@ -305,6 +306,10 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonObject(alloc, [
 				kindField!"field-set",
 				field!"field-index"(x.fieldIndex)]),
+		(in FunBody.UnionMemberGet x) =>
+			jsonObject(alloc, [
+				kindField!"member-get",
+				field!"member-index"(x.memberIndex)]),
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
 		(in FunBody.VarSet) =>
@@ -345,8 +350,8 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 	a.matchIn!Json(
 		(in AssertOrForbidExpr x) =>
 			jsonObject(alloc, [
-				kindField(stringOfEnum(x.kind)),
-				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
+				kindField(x.isForbid ? "forbid" : "assert"),
+				field!"condition"(jsonOfCondition(alloc, ctx, x.condition)),
 				optionalField!("thrown", Expr*)(x.thrown, (in Expr* thrown) =>
 					jsonOfExpr(alloc, ctx, *thrown))]),
 		(in BogusExpr _) =>
@@ -356,6 +361,13 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				kindField!"call",
 				field!"called"(jsonOfCalled(alloc, ctx, x.called)),
 				field!"args"(jsonOfExprs(alloc, ctx, x.args))]),
+		(in CallOptionExpr x) =>
+			jsonObject(alloc, [
+				kindField!"option-call",
+				field!"first-arg"(jsonOfExprAndType(alloc, ctx, x.firstArg)),
+				field!"rest-args"(jsonList!Expr(alloc, x.restArgs, (in Expr arg) =>
+					jsonOfExpr(alloc, ctx, arg))),
+				field!"called"(jsonOfCalled(alloc, ctx, x.called))]),
 		(in ClosureGetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"closure-get",
@@ -371,16 +383,9 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in IfExpr x) =>
 			jsonObject(alloc, [
 				kindField!"if",
-				field!"condition"(jsonOfExpr(alloc, ctx, x.cond)),
-				field!"then"(jsonOfExpr(alloc, ctx, x.then)),
-				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
-		(in IfOptionExpr x) =>
-			jsonObject(alloc, [
-				kindField!"if-option",
-				field!"destructure"(jsonOfDestructure(alloc, ctx, x.destructure)),
-				field!"option"(jsonOfExprAndType(alloc, ctx, x.option)),
-				field!"then"(jsonOfExpr(alloc, ctx, x.then)),
-				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
+				field!"condition"(jsonOfCondition(alloc, ctx, x.condition)),
+				field!"true-branch"(jsonOfExpr(alloc, ctx, x.trueBranch)),
+				field!"false-branch"(jsonOfExpr(alloc, ctx, x.falseBranch))]),
 		(in LambdaExpr x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",
@@ -427,8 +432,9 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in LoopWhileOrUntilExpr x) =>
 			jsonObject(alloc, [
 				kindField(x.isUntil ? "until" : "while"),
-				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
-				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
+				field!"condition"(jsonOfCondition(alloc, ctx, x.condition)),
+				field!"body"(jsonOfExpr(alloc, ctx, x.body_)),
+				field!"after"(jsonOfExpr(alloc, ctx, x.after))]),
 		(in MatchEnumExpr x) =>
 			jsonObject(alloc, [
 				kindField!"match-enum",
@@ -491,6 +497,15 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"typed",
 				field!"inner"(jsonOfExpr(alloc, ctx, a.inner))]));
+
+Json jsonOfCondition(ref Alloc alloc, in Ctx ctx, in Condition a) =>
+	a.matchIn!Json(
+		(in Expr x) =>
+			jsonOfExpr(alloc, ctx, x),
+		(in Condition.UnpackOption x) =>
+			jsonObject(alloc, [
+				field!"destructure"(jsonOfDestructure(alloc, ctx, x.destructure)),
+				field!"option"(jsonOfExprAndType(alloc, ctx, x.option))]));
 
 Json jsonOfDestructure(ref Alloc alloc, in Ctx ctx, in Destructure a) =>
 	a.matchIn!Json(

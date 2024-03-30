@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: bool
+	./bool: bool, not
 	./col/collection:
 		begin, build, concatenate, flatten, for-loop, iterate, next, size, subscript, with-block,
 		with-index
@@ -79,16 +79,16 @@ Returns a future that is resolved once all inputs are resolved.
 WARN: This resolves successfully even if an input is rejected.
 ###
 -wait-all-complete[t] void^(futures t^[]) t shared
-	unless futures is-empty
-		res void^ = trusted unresolved
-		count mut nat64 = futures.size
-		task task = trusted cur-exclusion, () =>
-			count -:= 1
-			if count == 0
-				res resolve ()
-		for x : futures
-			trusted x add-task task
-		res
+	guard !futures.is-empty
+	res void^ = trusted unresolved
+	count mut nat64 = futures.size
+	task task = trusted cur-exclusion, () =>
+		count -:= 1
+		if count == 0
+			res resolve ()
+	for x : futures
+		trusted x add-task task
+	res
 
 ###
 Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.

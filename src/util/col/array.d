@@ -1,6 +1,7 @@
 module util.col.array;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
+import util.alloc.stackAlloc : withStackArray;
 import util.comparison : Comparer, Comparison;
 import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
@@ -157,24 +158,6 @@ SmallArray!T newSmallArray(T)(ref Alloc alloc, scope T[] values) =>
 	foreach (size_t i; 0 .. size)
 		initMemory(&res[i], cb(i));
 	return res;
-}
-
-@trusted Opt!(Out[]) makeArrayOrFail(Out)(
-	ref Alloc alloc,
-	size_t size,
-	in Opt!Out delegate(size_t) @safe @nogc pure nothrow cb,
-) {
-	Out[] res = allocateElements!Out(alloc, size);
-	foreach (size_t i; 0 .. size) {
-		Opt!Out op = cb(i);
-		if (has(op))
-			initMemory(&res[i], force(op));
-		else {
-			freeElements(alloc, res);
-			return none!(Out[]);
-		}
-	}
-	return some(res);
 }
 
 @trusted T[] fillArray(T)(ref Alloc alloc, size_t size, T value) =>
@@ -335,6 +318,18 @@ SmallArray!Out map(Out, In)(ref Alloc alloc, in SmallArray!In a, in Out delegate
 		initMemory!Out(&res[1 + i], cb(i, x));
 	return res;
 }
+
+@trusted Out[n] mapStatic(size_t n, Out, In)(ref In[n] a, in Out delegate(In) @safe @nogc pure nothrow cb) {
+	static if (n == 0)
+		return [];
+	else static if (n == 1)
+		return [cb(a[0])];
+	else static if (n == 2)
+		return [cb(a[0]), cb(a[1])];
+	else
+		static assert(false, "TODO");
+}
+
 size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	size_t res = 0;
 	foreach (ref const T x; a)
@@ -370,6 +365,63 @@ NoneOneOrMany noneOneOrMany(T)(in T[] a, in bool delegate(in T) @safe @nogc pure
 @trusted T[] filter(T)(ref Alloc alloc, in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	mapOp!(T, T)(alloc, a, (ref T x) =>
 		cb(x) ? some(x) : none!T);
+
+@trusted void filterUnordered(T)(
+	scope ref T[] a,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+) {
+	T* newEnd = filterUnorderedRecur!T(a.ptr, endPtr(a), pred);
+	a = a[0 .. newEnd - a.ptr];
+}
+private @system T* filterUnorderedRecur(T)(
+	T* begin,
+	T* end,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+) {
+	assert(begin <= end);
+	return begin == end
+		? end
+		: pred(*begin)
+		? filterUnorderedRecur!T(begin + 1, end, pred)
+		: filterUnorderedFillHole!T(begin, end, pred);
+}
+// 'pred' is false for 'begin', so fill the hole
+private @system T* filterUnorderedFillHole(T)(
+	T* begin,
+	T* end,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+) {
+	if (begin + 1 == end)
+		return begin;
+	else if (pred(*(end - 1))) {
+		overwriteMemory(begin, *(end - 1));
+		return filterUnorderedRecur!T(begin + 1, end - 1, pred);
+	} else
+		return filterUnorderedFillHole!T(begin, end - 1, pred);
+}
+
+void filterUnorderedButDontRemoveAll(T)(
+	scope ref T[] a,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+) {
+	withStackArray!(void, size_t)(
+		a.length,
+		(size_t i) => 0,
+		(scope size_t[] keep) {
+			size_t nToKeep;
+			foreach (size_t i, ref T x; a)
+				if (pred(x)) {
+					keep[nToKeep] = i;
+					nToKeep++;
+				}
+			if (nToKeep != 0) {
+				foreach (size_t outI, size_t inI; keep)
+					if (inI != outI)
+						overwriteMemory(&a[outI], a[inI]);
+				a = a[0 .. nToKeep];
+			}
+		});
+}
 
 @trusted Out[] mapOp(Out, In)(
 	ref Alloc alloc,
@@ -494,18 +546,18 @@ T[] concatenate(T)(ref Alloc alloc, T[] a, T[] b) =>
 		? a
 		: concatenateIn!T(alloc, a, b);
 
-@trusted SmallArray!T concatenateIn(T)(ref Alloc alloc, in T[] a, in T[] b) {
+@trusted immutable(T[]) concatenateIn(T)(ref Alloc alloc, in T[] a, in T[] b) {
 	T[] res = allocateElements!T(alloc, a.length + b.length);
 	copyToFrom!T(res[0 .. a.length], a);
 	copyToFrom!T(res[a.length .. $], b);
-	return small!T(castImmutable(res));
+	return castImmutable(res);
 }
 
 SmallArray!T append(T)(scope ref Alloc alloc, in T[] a, T b) =>
-	concatenateIn!T(alloc, a, [b]);
+	small!T(concatenateIn!T(alloc, a, [b]));
 
 SmallArray!T prepend(T)(scope ref Alloc alloc, T a, in T[] b) =>
-	concatenateIn!T(alloc, [a], b);
+	small!T(concatenateIn!T(alloc, [a], b));
 
 bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));

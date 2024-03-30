@@ -16,7 +16,7 @@ import
 	system/win32: new, MAKEWORD, WSADATA, WSAStartup
 	../../compare: !=
 	../../number: ==, int32, nat16, to
-	../../option: force, new, option
+	../../option: ??, force, new, option
 	../../pointer: ==, *, as-const, const-pointer, mut-pointer, null
 	../../string: interpolate, string, to
 	../../private/bootstrap: todo
@@ -52,22 +52,22 @@ connect-to-uri SOCKET(u uri) summon, unsafe
 		todo
 
 -find-and-connect-working-socket SOCKET?(ap addrinfo*) summon, unsafe
-	unless ap == null
-		a = *ap
-		sock = a.ai_family socket a.ai_socktype, a.ai_protocol
-		if sock == INVALID_SOCKET
+	guard ap != null
+	a = *ap
+	sock = a.ai_family socket a.ai_socktype, a.ai_protocol
+	if sock == INVALID_SOCKET
+		# Ignore error and try again
+		a.ai_next find-and-connect-working-socket
+	else
+		error = sock connect a.ai_addr, a.ai_addrlen
+		if error == -1
+			err print "connect() failed: "
+			sock close-socket
 			# Ignore error and try again
 			a.ai_next find-and-connect-working-socket
 		else
-			error = sock connect a.ai_addr, a.ai_addrlen
-			if error == -1
-				err print "connect() failed: "
-				sock close-socket
-				# Ignore error and try again
-				a.ai_next find-and-connect-working-socket
-			else
-				assert error == 0
-				sock,
+			assert error == 0
+			sock,
 
 # Returns a file descriptor bound to the given port.
 bind-to-port SOCKET(port nat16) summon, unsafe
@@ -79,10 +79,7 @@ bind-to-port SOCKET(port nat16) summon, unsafe
 	null getaddrinfo "{port}", &hints, &result check-getaddrinfo-error
 	op-sock = result.as-const find-and-bind-working-socket
 	result freeaddrinfo
-	if res ?= op-sock
-		res
-	else
-		throw "Failed to bind to port {port}"
+	op-sock ?? throw "Failed to bind to port {port}"
 
 close-socket void(sock SOCKET) summon, unsafe
 	if is-windows
@@ -106,6 +103,5 @@ close-socket void(sock SOCKET) summon, unsafe
 				a.ai_next find-and-bind-working-socket
 
 -check-getaddrinfo-error void(err int32) summon, unsafe
-	if err != 0
-		# TODO: convert to appropriate enum
-		throw "getaddrinfo error: {err}"
+	# TODO: convert to appropriate enum
+	assert err == 0 : "getaddrinfo error: {err}"

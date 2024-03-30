@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: bool, false, true
+	./bool: bool, new, true
 	./compare: compare, comparison, equal
 	./misc: ==, <=>
 	./number: nat64, new
@@ -21,9 +21,7 @@ export
 
 # True iff `a` is an empty option.
 +is-empty[t] bool(a t?) bare
-	if _ ?= a
-		false
-	else
+	unless _ ?= a
 		true
 
 # 1 if `a` has a value, else 0.

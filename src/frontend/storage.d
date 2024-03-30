@@ -19,7 +19,7 @@ import util.alloc.alloc :
 	newAlloc,
 	withAlloc,
 	withTempAlloc;
-import util.col.array : append, contains;
+import util.col.array : concatenateIn, contains;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.memory : allocate;
@@ -184,7 +184,7 @@ private AllocAndValue!FileInfo initFileInfo(
 	bool assumeUtf8
 ) =>
 	withAlloc!FileInfo(AllocKind.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
-		FileContent content = FileContent(cast(immutable) append(alloc, input, cast(ubyte) '\0'));
+		FileContent content = FileContent(concatenateIn(alloc, input, [ubyte('\0')]));
 		Opt!CString cString = assumeUtf8 ? some(content.assumeUtf8) : unicodeValidateAsCString(content);
 		TextFileContent textFileContent() =>
 			has(cString)

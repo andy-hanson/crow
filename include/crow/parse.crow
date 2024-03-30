@@ -4,9 +4,9 @@ import
 	./col/collection: build, exists, for-break, for-loop, is-at-end, with-block
 	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
-	./compare: !=, <=, equal
+	./compare: <=, equal
 	./fun-util: subscript
-	./misc: loop-break, new, void
+	./misc: loop-break, loop-continue, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat32, nat64, to
 	./option: is-empty, new, option
 	./result: error, ok, result
@@ -135,25 +135,17 @@ region basic building blocks
 # Grammar for a single character matching the predicate.
 -char-matching-predicate char32 grammar(description string, predicate bool data(x char32))
 	with start : make-grammar
-		if x, rest ?= start next
-			if predicate[x]
-				rest, x.ok
-			else
-				rest, (description,) error
-		else
-			start, (description,) error
+		guard x, rest ?= start next : start, (description,) error
+		guard predicate[x] : rest, (description,) error
+		rest, x.ok
 
 -try-take-exact string-iterator?(iter string-iterator, expect string)
 	cur mut = iter
 	for expected : expect
-		if x, rest ?= cur next
-			if x != expected
-				break
-			else
-				cur := rest
-				()
-		else
-			break
+		guard x, rest ?= cur next : break
+		guard x == expected : break
+		cur := rest
+		continue
 	else
 		cur,
 
@@ -362,15 +354,13 @@ region basic elements
 				as "\""
 					break
 				as "\\"
-					if x2, rest2 ?= iter next
-						iter := rest2
-						if esc ?= x2 escape
-							out ~= esc
-							continue
-						else
-							error := true
-							break
+					guard x2, rest2 ?= iter next : break
+					iter := rest2
+					if esc ?= x2 escape
+						out ~= esc
+						continue
 					else
+						error := true
 						break
 				else
 					out ~= x
@@ -439,21 +429,17 @@ This allows e.g. "1", "+23", "-45".
 	acc mut nat64 = 0
 	count-digits mut nat64 = 0
 	iter mut = start
-	loop
-		if x, rest ?= iter next-digit
-			iter := rest
-			acc *:= 10
-			acc +:= x
-			count-digits := count-digits + 1
-			continue
-		else
-			break
+	while x, rest ?= iter next-digit
+		iter := rest
+		acc *:= 10
+		acc +:= x
+		count-digits := count-digits + 1
 	unless count-digits == 0
 		(iter, acc, count-digits),
 -next-digit (nat64, string-iterator)?(a string-iterator)
-	if x, rest ?= a next
-		if digit ?= x char-to-nat64
-			(digit, rest),
+	guard x, rest ?= a next
+	guard digit ?= x char-to-nat64
+	(digit, rest),
 
 -char-to-nat64 nat64?(c char32)
 	if "0"::char32.to::nat32 <= c.to && c.to::nat32 <= "9"::char32.to
@@ -473,21 +459,19 @@ This allows e.g. "+1.23".
 			if n ?= iter try-take "+"
 				iter := n
 			1
-		if whole-nat ?= iter take-nat-and-count-digits
-			iter := whole-nat end
-			whole-part float64 = whole-nat.value to
-			if after-dot ?= iter try-take "."
-				if nd ?= after-dot take-nat-and-count-digits
-					# TODO: more accurate methods exist
-					nd.end, sign * (whole-part + nd.value.to * 0.1 ** nd.count-digits) ok
-				else
-					iter, sign * whole-part ok
+		guard whole-nat ?= iter take-nat-and-count-digits : start, ("float",) error
+		iter := whole-nat end
+		whole-part float64 = whole-nat.value to
+		if after-dot ?= iter try-take "."
+			if nd ?= after-dot take-nat-and-count-digits
+				# TODO: more accurate methods exist
+				nd.end, sign * (whole-part + nd.value.to * 0.1 ** nd.count-digits) ok
 			else
 				iter, sign * whole-part ok
 		else
-			start, ("float",) error
+			iter, sign * whole-part ok
 
 -try-take string-iterator?(a string-iterator, c char32)
-	if x, rest ?= a next
-		if x == c
-			rest,
+	guard x, rest ?= a next
+	guard x == c
+	rest,

@@ -110,6 +110,7 @@ alias ReadFileDiag = immutable ReadFileDiag_;
 immutable struct Diag {
 	@safe @nogc pure nothrow:
 
+	immutable struct AssertOrForbidMessageIsThrow {}
 	immutable struct AssignmentNotAllowed {}
 
 	immutable struct AutoFunError {
@@ -205,6 +206,9 @@ immutable struct Diag {
 	immutable struct CommonTypeMissing {
 		Symbol name;
 	}
+	immutable struct ConditionUnpacksNonOption {
+		TypeWithContainer actualType;
+	}
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
 			immutable struct Tuple { size_t size; }
@@ -276,9 +280,7 @@ immutable struct Diag {
 		Reason reason;
 		Symbol name;
 	}
-	immutable struct IfNeedsOpt {
-		TypeWithContainer actualType;
-	}
+	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
 		immutable struct CircularImport {
@@ -519,6 +521,10 @@ immutable struct Diag {
 		}
 		Reason reason;
 	}
+	immutable struct TupleTooBig {
+		size_t actual;
+		size_t maxAllowed;
+	}
 	immutable struct TypeAnnotationUnnecessary {
 		TypeWithContainer type;
 	}
@@ -593,6 +599,7 @@ immutable struct Diag {
 	}
 
 	mixin Union!(
+		AssertOrForbidMessageIsThrow,
 		AssignmentNotAllowed,
 		AutoFunError,
 		BuiltinUnsupported,
@@ -604,6 +611,7 @@ immutable struct Diag {
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,
+		ConditionUnpacksNonOption,
 		DestructureTypeMismatch,
 		DuplicateDeclaration,
 		DuplicateExports,
@@ -621,7 +629,7 @@ immutable struct Diag {
 		FunModifierTrustedOnNonExtern,
 		FunPointerExprMustBeName,
 		FunPointerNotSupported,
-		IfNeedsOpt,
+		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,
 		LambdaCantBeFunctionPointer,
@@ -679,6 +687,7 @@ immutable struct Diag {
 		StructParamsSyntaxError,
 		TestMissingBody,
 		TrustedUnnecessary,
+		TupleTooBig,
 		TypeAnnotationUnnecessary,
 		TypeConflict,
 		TypeParamCantHaveTypeArgs,
