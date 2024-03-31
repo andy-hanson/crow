@@ -255,19 +255,22 @@ region iteration
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
-		cursor mdb_cursor_get &key, &value, MDB_FIRST check-lmdb-error
+		guard cursor mdb_cursor_get &key, &value, MDB_FIRST is-found
 		loop
 			cursor mdb_cursor_get &key, &value, MDB_GET_CURRENT check-lmdb-error
 			if f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
 				break true
 			else
 				value := empty-val
-				err = cursor mdb_cursor_get &key, &value, MDB_NEXT
-				if err == MDB_NOTFOUND
-					break false
-				else
-					err check-lmdb-error
+				if cursor mdb_cursor_get &key, &value, MDB_NEXT is-found
 					continue
+				else
+					break false
+
+is-found bool(a mdb-error)
+	unless a == MDB_NOTFOUND
+		a check-lmdb-error
+		true
 
 ###
 `db0` and `db1` shuld have exactly the same keys.

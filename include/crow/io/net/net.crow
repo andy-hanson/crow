@@ -11,38 +11,17 @@ import
 		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
 		freeaddrinfo, getaddrinfo, new
 	system/sys/socket:
-		AF_INET, AF_UNSPEC, as-fd, bind, closesocket, connect, INVALID_SOCKET, socket, SOCKET
+		AF_INET, as-fd, bind, closesocket, connect, INVALID_SOCKET, socket, SOCKET
 	system/unistd: close
 	system/win32: new, MAKEWORD, WSADATA, WSAStartup
 	../../compare: !=
-	../../number: ==, int32, nat16, to
-	../../option: ??, force, new, option
+	../../number: ==, int32, nat16
+	../../option: ??, new, option
 	../../pointer: ==, *, as-const, const-pointer, mut-pointer, null
-	../../string: interpolate, string, to
+	../../string: interpolate, to
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error
 	../print: err, out, print
-
-# Parsed Uniform Resource Identifier
-uri record
-	host string
-	port nat16
-	path-and-query string
-	# Basically just ignored
-	after-hash string
-
-# Opens a socket, connects to the URI, and returns the fd.
-connect-to-uri SOCKET(u uri) summon, unsafe
-	if is-windows
-		wsa-init
-
-	hints addrinfo = 0, AF_UNSPEC.to, SOCK_STREAM, 0, 0, null, null, null
-	result mut addrinfo mut* = null
-	u.host.to getaddrinfo "{u port}".to, &hints, &result check-getaddrinfo-error
-	op-sock = result.as-const find-and-connect-working-socket
-	result freeaddrinfo
-	# TODO: handle failure
-	op-sock!
 
 -wsa-init void() summon, unsafe
 	wsa-data mut WSADATA = ()

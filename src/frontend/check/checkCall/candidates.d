@@ -125,7 +125,7 @@ void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDec
 }
 
 bool testCandidateForSpecSig(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref Candidate specCandidate,
 	in ReturnAndParamTypes returnAndParamTypes,
 	const TypeContext callTypeContext,
@@ -140,7 +140,7 @@ bool testCandidateForSpecSig(
 
 // Also does type inference on the candidate
 bool testCandidateParamType(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref Candidate candidate,
 	size_t argIdx,
 	const TypeAndContext actualArgType,
@@ -148,7 +148,7 @@ bool testCandidateParamType(
 	matchTypes(ctx, getCandidateExpectedParameterType(ctx, candidate, argIdx), actualArgType);
 
 @trusted inout(TypeAndContext) getCandidateExpectedParameterType(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref inout Candidate candidate,
 	size_t argIndex,
 ) {
@@ -160,14 +160,14 @@ bool testCandidateParamType(
 		: inout TypeAndContext(declType, typeContextForCandidate(candidate));
 }
 
-Called candidateBogusCalled(ref Alloc alloc, ref InstantiateCtx instantiateCtx, ref const Candidate candidate) {
+Called candidateBogusCalled(ref Alloc alloc, InstantiateCtx instantiateCtx, ref const Candidate candidate) {
 	Type returnType = getCandidateTypeOrBogus(instantiateCtx, candidate, candidate.called.returnType);
 	Type[] paramTypes = makeArray(alloc, candidate.called.arity.countParamDecls, (size_t i) =>
 		getCandidateTypeOrBogus(instantiateCtx, candidate, paramTypeAt(candidate.called, i)));
 	return Called(allocate(alloc, Called.Bogus(candidate.called, returnType, paramTypes)));
 }
 
-private Type getCandidateTypeOrBogus(ref InstantiateCtx ctx, ref const Candidate candidate, Type declaredType) {
+private Type getCandidateTypeOrBogus(InstantiateCtx ctx, ref const Candidate candidate, Type declaredType) {
 	Opt!Type res = tryGetNonInferringType(ctx, const TypeAndContext(declaredType, typeContextForCandidate(candidate)));
 	return optOrDefault!Type(res, () => Type.bogus);
 }

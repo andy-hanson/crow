@@ -196,6 +196,26 @@ Expr withExpect(Type type, in Expr delegate(ref Expected) @safe @nogc pure nothr
 	return cb(expected);
 }
 
+struct ExprAndOptionType {
+	ExprAndType option;
+	Type nonOptionType;
+}
+ExprAndOptionType withExpectOption(
+	InstantiateCtx instantiateCtx,
+	in CommonTypes commonTypes,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cb,
+) {
+	Type[1] typeArgs = [Type(TypeParamIndex(0))];
+	Type optionT = instantiateStructNeverDelay(instantiateCtx, commonTypes.option, small!Type(typeArgs));
+	SingleInferringType[1] inferringTypes = [SingleInferringType()];
+	TypeAndContext[1] expectedTypes = [TypeAndContext(optionT, TypeContext(small!SingleInferringType(inferringTypes)))];
+	Expected expected = Expected(expectedTypes);
+	Expr option = cb(expected);
+	Type optionType = inferred(expected);
+	Type innerType = optOrDefault!Type(tryGetInferred(inferringTypes[0]), () => Type.bogus);
+	return ExprAndOptionType(ExprAndType(option, optionType), innerType);
+}
+
 Type withExpectCandidates(
 	scope TypeAndContext[] candidates,
 	in void delegate(ref Expected) @safe @nogc pure nothrow cb,
@@ -493,7 +513,7 @@ private void eachChoiceConst(
 
 // This will return a result if there are no references to inferring type parameters.
 // (There may be references to the current function's type parameters.)
-private Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, ref const Expected expected) =>
+private Opt!Type tryGetNonInferringType(InstantiateCtx ctx, ref const Expected expected) =>
 	expected.matchCombineTypeConst!(Opt!Type)(
 		(Expected.Infer) =>
 			none!Type,
@@ -505,7 +525,7 @@ private Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, ref const Expect
 			none!Type);
 
 bool matchExpectedVsReturnTypeNoDiagnostic(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref const Expected expected,
 	TypeAndContext candidateReturnType,
 ) =>
@@ -580,7 +600,7 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 			ExpectedForDiag(ExpectedForDiag.Loop()));
 
 // Note: this may infer type parameters
-private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, Type actual) =>
+private bool setTypeNoDiagnostic(InstantiateCtx ctx, ref Expected expected, Type actual) =>
 	expected.matchCombineType!bool(
 		(Expected.Infer) {
 			setToType(expected, actual);
@@ -599,7 +619,7 @@ private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, 
 		(LoopInfo* loop) =>
 			false);
 
-Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, const TypeAndContext a) =>
+Opt!Type tryGetNonInferringType(InstantiateCtx ctx, const TypeAndContext a) =>
 	a.type.matchWithPointers!(Opt!Type)(
 		(Type.Bogus) =>
 			some(Type.bogus),
@@ -643,7 +663,7 @@ private:
 
 // For diagnostics. Applies types that have been inferred, otherwise uses Bogus.
 // This is like 'tryGetNonInferringType' but returns a type with Boguses in it instead of `none`.
-Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
+Type applyInferred(InstantiateCtx ctx, in TypeAndContext a) =>
 	a.type.match!Type(
 		(Type.Bogus) =>
 			Type.bogus,
@@ -665,7 +685,7 @@ Tries to find a way for 'a' and 'b' to be the same type.
 It can fill in type arguments for 'a'. But unknown types in 'b' it will assume compatibility.
 Returns true if it succeeds.
 */
-public bool matchTypes(ref InstantiateCtx ctx, TypeAndContext a, const TypeAndContext b) =>
+public bool matchTypes(InstantiateCtx ctx, TypeAndContext a, const TypeAndContext b) =>
 	a.type.matchWithPointers!bool(
 		(Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
@@ -684,7 +704,7 @@ public bool matchTypes(ref InstantiateCtx ctx, TypeAndContext a, const TypeAndCo
 						matchTypes(
 							ctx, TypeAndContext(argA, a.context), const TypeAndContext(argB, b.context)))));
 
-bool matchTypes_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
+bool matchTypes_TypeParam(InstantiateCtx ctx, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
 	MutOpt!(SingleInferringType*) aInferring = tryGetInferring(aContext, a);
 	if (has(aInferring)) {
 		Opt!Type inferred = tryGetInferred(*force(aInferring));
@@ -713,7 +733,7 @@ bool matchTypes_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext 
 				false);
 }
 
-bool matchTypes_TypeParamB(ref InstantiateCtx ctx, TypeAndContext a, TypeParamIndex b, in TypeContext bContext) {
+bool matchTypes_TypeParamB(InstantiateCtx ctx, TypeAndContext a, TypeParamIndex b, in TypeContext bContext) {
 	const MutOpt!(SingleInferringType*) bInferred = tryGetInferring(bContext, b);
 	if (has(bInferred)) {
 		Opt!Type inferred = tryGetInferred(*force(bInferred));
@@ -723,7 +743,7 @@ bool matchTypes_TypeParamB(ref InstantiateCtx ctx, TypeAndContext a, TypeParamIn
 }
 
 public void inferTypeArgsFromLambdaParameterType(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	in CommonTypes commonTypes,
 	Type a,
 	scope TypeContext aContext,
@@ -735,7 +755,7 @@ public void inferTypeArgsFromLambdaParameterType(
 }
 
 public void inferTypeArgsFrom(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	Type a,
 	scope TypeContext aContext,
 	const TypeAndContext b,

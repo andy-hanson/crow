@@ -1,12 +1,10 @@
 import
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, http-server, with-block
-	crow/io/net/http-types:
-		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
-		http-response, method, request-body-string, url
+	crow/io/net/http-types
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
-	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to
+	crow/parse: nat, parse, to
 	./db:
 		add-post, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db, post-info,
 		register-user, to, user-cookie, user-info, user-name, with-block
@@ -14,14 +12,13 @@ import
 main nat^(_ string[]) summon
 	with db : open-real-db
 		handler http-handler = shared req => (req handle-request db),
-		with _ : 8080 http-server handler
+		with _ : 8081 http-server handler
 			out print "Serving at http://localhost:8080; press enter to stop"
 			_ <- read-stdin
 
 -handle-request http-response(req http-request, db db) summon
-	su = req.url split-url
-	path = su path
-	query = su query
+	path = req path
+	query = req query
 	match req method
 	as GET
 		match path
@@ -32,12 +29,9 @@ main nat^(_ string[]) summon
 		as "/posts"
 			(("posts", db.list-posts.to),)::json.to http-ok
 		as "/user-name"
-			user = query.parse-query["user"] ?? ""
-			match nat parse user
-			as ok user-id
-				db user-name user-id http-ok
-			as error e
-				"{e}" http-bad-query
+			user = query["user"] ?? ""
+			guard user-id ?= nat parse user ok : "Bad user" http-bad-query
+			db user-name user-id http-ok
 		as "/users"
 			(("users", db.list-users.to),)::json.to http-ok
 		else
@@ -45,8 +39,10 @@ main nat^(_ string[]) summon
 	as POST
 		match path
 		as "/register"
-			args = req.request-body-string parse-query
-			match db register-user (args["user-name"] ?? ""), (args["password"] ?? "")
+			guard args ?= req.body-json : "Body must be JSON" http-bad-query
+			guard user-name ?= args["userName"].string : "Missing userName" http-bad-query
+			guard password ?= args["password"].string : "Missing password" http-bad-query
+			match db register-user user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
 				(("userId", user-id.to),)::json.to http-ok
@@ -55,12 +51,13 @@ main nat^(_ string[]) summon
 			as user-already-exists
 				"User already exists" http-bad-query
 		as "/login"
-			args = req.request-body-string parse-query
-			user-name = args["user-name"] ?? ""
-			match db login user-name, (args["password"] ?? "")
+			guard args ?= req.body-json : "Body must be JSON" http-bad-query
+			guard user-name ?= args["userName"].string : "Missing userName" http-bad-query
+			guard password ?= args["password"].string : "Missing password" http-bad-query
+			match db login user-name, password
 			as ok cookie
-				"Logged in as {user-name}" http-ok \
-					(("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
+				cookies cookies = ("login", cookie.to), ("max-age", cookie-expire-seconds.to)
+				"Logged in as {user-name}" http-ok (cookies.set-cookie-header,)
 			as error e
 				match e
 				as empty-name-or-password
@@ -70,50 +67,18 @@ main nat^(_ string[]) summon
 				as wrong-password
 					"Wrong password" http-forbidden
 		as "/post"
-			cookie-str = req.headers["Cookie"] ?? ""
-			guard cookie ?= cookie-str parse-cookie "login" : "Missing login cookie" http-forbidden
+			cookies = req parse-cookies
+			guard cookie ?= cookies["login"] : "Missing login cookie" http-forbidden
 			match user-cookie parse cookie
 			as ok user-cookie
-				post = db add-post user-cookie, req.request-body-string
+				guard args ?= req.body-json : "Body must be JSON" http-bad-query
+				guard content ?= args["content"].string : "Missing content" http-bad-query
+				post = db add-post user-cookie, content
 				(("postId", post.to),)::json.to http-ok
 			as error e
 				"Error parsing 'login' cookie: {e}" http-forbidden
 		else
 			http-not-found
-
--url record(path string, query string)
-
--split-url url(url-string string)
-	if x, y ?= url-string try-split-once "?"
-		x, y
-	else
-		url-string, ""
-
-# Extra cookies are ignored
--parse-cookies string?[](cookies-string string, cookie-names string[])
-	res string? mut[] = cookie-names.size n-of ()
-	for part : cookies-string split "; "
-		guard name, value ?= part try-split-once "="
-		guard index ?= cookie-names index-of name
-		res[index] := value,
-	res move-to
-
--parse-cookie string?(cookies-string string, cookie-name string)
-	(cookies-string parse-cookies (cookie-name,))[0]
-
--parse-query string[string](s string)
-	match query parse s
-	as ok pairs
-		pairs to
-	as error err
-		error log "failed to parse query {s} with error {err}"
-		()
-
--query (string, string)[] grammar()
-	query-part separated-by "&"
--query-part (string, string) grammar()
-	identifier = ("=", "&") text-not-containing-any
-	identifier ~~ "=" ~~ identifier
 
 -to json(a user-info)
 -to json(a post-info)

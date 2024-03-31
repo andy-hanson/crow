@@ -1,8 +1,8 @@
 #!/usr/bin/env crow
 import
 	crow/io/file: try-read-file
-	crow/io/net/http-server: http-handler, http-server, with-block
-	crow/io/net/http-types: http-not-found, http-request, http-response, new, status, url
+	crow/io/net/http-server
+	crow/io/net/http-types
 	crow/io/path: child-path
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
@@ -11,15 +11,19 @@ main nat^(_ string[]) summon
 	port nat16 = 8080
 	handler http-handler = req =>
 		res = req handle-request
-		info log "{req url} {res status}"
+		info log "{req.path} {req.query} {res status}"
 		res,
 	with _ : port http-server handler
 		out print "serving on http://localhost:{port}/"
 		out print "press enter to stop"
 		_ <- read-stdin
 
+to string(a string[symbol])
+	"&" join for x, y : a
+		"{x}={y}"
+
 -handle-request http-response(a http-request) summon
-	path = "site" child-path a.url
+	path = "site" child-path a.path
 	if content ?= path.try-read-file :: nat8[]?
 		path file-response content
 	else

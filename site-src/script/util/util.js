@@ -20,6 +20,14 @@ export const nonNull = x => {
 }
 
 /**
+ * @template T
+ * @param {T | null} x
+ * @return {T[]}
+ */
+export const optionToList = x =>
+	x === null ? [] : [x]
+
+/**
  * @typedef CreateNodeOptions
  * @property {{[name: string]: string}} [attr]
  * @property {string} [className]
@@ -44,9 +52,9 @@ export const createNode = (tagName, options = {}) => {
 	return node
 }
 
-/** @type {function(CreateNodeOptions): HTMLButtonElement} */
-export const createButton = options =>
-	createNode("button", options)
+/** @type {function(string, CreateNodeOptions): HTMLButtonElement} */
+export const createButton = (title, options) =>
+	createNode("button", {attr:{title}, ...options})
 
 /** @type {function({oninput:(event: Event) => void, value:string}): HTMLInputElement} */
 export const createInputText = ({oninput, value}) => {

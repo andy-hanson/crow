@@ -65,7 +65,7 @@ MayDelayStructInsts noDelayStructInsts() =>
 	noneMut!(DelayStructInsts*);
 
 private Type instantiateType(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	Type type,
 	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
@@ -78,16 +78,16 @@ private Type instantiateType(
 		(StructInst* x) =>
 			Type(instantiateStructInst(ctx, *x, typeArgs, delayStructInsts)));
 
-private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeArgs typeArgs) =>
+private Type instantiateTypeNoDelay(InstantiateCtx ctx, Type type, in TypeArgs typeArgs) =>
 	instantiateType(ctx, type, typeArgs, noDelayStructInsts);
 
-FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in TypeArgs typeArgs, in SpecImpls specImpls) =>
+FunInst* instantiateFun(InstantiateCtx ctx, FunDecl* decl, in TypeArgs typeArgs, in SpecImpls specImpls) =>
 	withMeasure!(FunInst*, () =>
 		getOrAddFunInst(ctx.allInsts, decl, typeArgs, specImpls, () =>
 			instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), typeArgs))
 	)(ctx.perf, ctx.alloc, PerfMeasure.instantiateFun);
 
-void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
+void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
 	TypeArgs typeArgs = inst.typeArgs;
 	inst.instantiatedTypes = inst.decl.body_.match!(SmallArray!Type)(
 		(StructBody.Bogus) =>
@@ -109,7 +109,7 @@ void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayD
 }
 
 StructInst* instantiateStruct(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	StructDecl* decl,
 	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
@@ -148,7 +148,7 @@ private PurityRange combinedPurityRange(Purity declPurity, in Type[] typeArgs) =
 		combinePurityRange(cur, purityRange(typeArg)));
 
 private StructInst* instantiateStructInst(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref StructInst structInst,
 	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
@@ -159,28 +159,28 @@ private StructInst* instantiateStructInst(
 		(scope Type[] itsTypeArgs) =>
 			instantiateStruct(ctx, structInst.decl, small!Type(itsTypeArgs), delayStructInsts));
 
-StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
+StructInst* instantiateStructNeverDelay(InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
 	instantiateStruct(ctx, decl, small!Type(typeArgs), noDelayStructInsts);
 
-StructInst* makeOptionType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type innerType) =>
+StructInst* makeOptionType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type innerType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.option, [innerType]);
 
-Type makeOptionIfNotAlready(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
+Type makeOptionIfNotAlready(InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
 	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
 
 private bool isOptionType(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
-StructInst* makeConstPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
+StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.ptrConst, [pointeeType]);
 
-StructInst* makeMutPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
+StructInst* makeMutPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.ptrMut, [pointeeType]);
 
-SpecInst* instantiateSpec(ref InstantiateCtx ctx, SpecDecl* decl, in Type[] typeArgs) =>
+SpecInst* instantiateSpec(InstantiateCtx ctx, SpecDecl* decl, in Type[] typeArgs) =>
 	instantiateSpec(ctx, decl, small!Type(typeArgs), noneMut!(DelaySpecInsts*));
 SpecInst* instantiateSpec(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	SpecDecl* decl,
 	in TypeArgs typeArgs,
 	scope MayDelaySpecInsts delaySpecInsts,
@@ -196,7 +196,7 @@ SpecInst* instantiateSpec(
 		return res.value;
 	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateSpec);
 
-void instantiateSpecBody(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
+void instantiateSpecBody(InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
 	a.body_ = SpecInstBody(
 		small!(immutable SpecInst*)(map!(immutable SpecInst*, immutable SpecInst*)(
 			ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
@@ -206,7 +206,7 @@ void instantiateSpecBody(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpec
 }
 
 SpecInst* instantiateSpecInst(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	SpecInst* specInst,
 	in TypeArgs typeArgs,
 	scope MayDelaySpecInsts delaySpecInsts,
@@ -219,7 +219,7 @@ SpecInst* instantiateSpecInst(
 private:
 
 ReturnAndParamTypes instantiateReturnAndParamTypes(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	Type declReturnType,
 	Destructure[] declParams,
 	in TypeArgs typeArgs,

@@ -1,15 +1,16 @@
 import { CrowServer, getCrowServer, LineAndCharacter, SemanticTokensLegend, Write } from "./crow.js"
-import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
+import { copyIcon, downloadIcon, linkIcon, playIcon, upIcon } from "./CrowIcon.js"
 import { CrowText, Token, TokensAndDiagnostics } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
 import {
-	assert, createButton, createDiv, createSpan, getChildText, nonNull, removeAllChildren, setStyleSheet
+	assert, createButton, createDiv, createSpan, getChildText, nonNull, optionToList as listOfOption, removeAllChildren, setStyleSheet
 } from "./util/util.js"
 
-const css = `
+/** @type {function(boolean): string} */
+const css = play => `
 .outer-container {
-	max-width: 40em;
+	max-width: ${play ? 60 : 40}em;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -48,21 +49,41 @@ button.collapsed { display: none; }
 export class CrowRunnable extends HTMLElement {
 	constructor() {
 		super()
-		setStyleSheet(this.attachShadow({ mode: "open" }), css)
+		const play = this.getAttribute("play") !== undefined
+		setStyleSheet(this.attachShadow({ mode: "open" }), css(play))
 	}
 
 	connectedCallback() {
 		getCrowServer().then(crow => {
+			const play = this.getAttribute("play") !== undefined
 			connected(
 				nonNull(this.shadowRoot),
 				getCrowRunnableName(this.getAttribute("name")),
 				this.getAttribute("no-run") !== null,
 				crow,
-				getChildText(this.childNodes))
+				play,
+				getCrowRunnableInitialText(play, this.childNodes))
 		})
 	}
 }
 customElements.define("crow-runnable", CrowRunnable)
+
+/** @type {function(boolean, NodeListOf<ChildNode>): string} */
+const getCrowRunnableInitialText = (play, childNodes) =>
+	(play ? getCodeFromUrl() : null) ?? getChildText(childNodes)
+
+/** @type {function(): string | null} */
+const getCodeFromUrl = () => {
+	const code = new URLSearchParams(window.location.search).get('code')
+	return code === null ? null : atob(code)
+}
+
+/** @type {function(string): void} */
+const copyPlayLinkFromText = text => {
+	const url = `${window.location.origin}${window.location.pathname}?code=${btoa(text)}`
+	window.history.pushState({path:url}, '', url)
+	copyTextToClipboard(url)
+}
 
 /** @type {Set<string>} */
 const seenNames = new Set()
@@ -84,8 +105,8 @@ const getDefaultName = () => {
 	return res
 }
 
-/** @type {function(ShadowRoot, string, boolean, CrowServer, string): void} */
-const connected = (shadowRoot, name, noRun, crow, initialText) => {
+/** @type {function(ShadowRoot, string, boolean, CrowServer, boolean, string): void} */
+const connected = (shadowRoot, name, noRun, crow, play, initialText) => {
 	const mainUri = `file:///${name}`
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
@@ -112,7 +133,7 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 
 	const output = makeOutput()
 
-	const runButton = noRun ? null : createButton({className:"run", children:[playIcon()]})
+	const runButton = noRun ? null : createButton("Run", {className:"run", children:[playIcon()]})
 	if (runButton) runButton.onclick = () => {
 		try {
 			// Put behind a timeout so loading will show
@@ -126,14 +147,12 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 		}
 	}
 
-	const copyButton = createButton({children:[copyIcon()]})
+	const copyButton = createButton("Copy to clipboard", {children:[copyIcon()]})
 	copyButton.onclick = () => {
-		navigator.clipboard.writeText(text.get()).catch(e => {
-			console.error(e)
-		})
+		copyTextToClipboard(text.get())
 	}
 
-	const downloadButton = createButton({children:[downloadIcon()]})
+	const downloadButton = createButton("Download", {children:[downloadIcon()]})
 	downloadButton.onclick = () => {
 		const a = document.createElement("a")
 		a.href = URL.createObjectURL(new Blob([text.get()], {type:"text/crow"}))
@@ -142,7 +161,13 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 		a.click()
 	}
 
-	const collapseButton = createButton({children:[upIcon()]})
+	const linkButton = play ? createButton("Copy link to clipboard", {children:[linkIcon()]}) : null
+	if (linkButton)
+		linkButton.onclick = () => {
+			copyPlayLinkFromText(text.get())
+		}
+
+	const collapseButton = createButton("Hide output", {children:[upIcon()]})
 	collapseButton.classList.add("collapsed")
 	collapseButton.style.float = "right"
 	collapseButton.onclick = () => {
@@ -150,10 +175,14 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 		collapseButton.classList.add("collapsed")
 	}
 
-	const bottom = createDiv({
-		className: "bottom",
-		children: [...(runButton ? [runButton] : []), copyButton, downloadButton, collapseButton],
-	})
+	const buttons = [
+		...listOfOption(runButton),
+		copyButton,
+		downloadButton,
+		...listOfOption(linkButton),
+		collapseButton,
+	]
+	const bottom = createDiv({className: "bottom", children: buttons})
 	shadowRoot.append(createDiv({className:"outer-container", children:[crowText, output.container, bottom]}))
 }
 
@@ -253,4 +282,11 @@ const decodeModifiers = (encoded, legend) => {
 	assert(legend.length === 1)
 	assert(encoded === 0 || encoded === 1)
 	return encoded === 0 ? [] : legend
+}
+
+/** @type {function(string): void} */
+const copyTextToClipboard = text => {
+	navigator.clipboard.writeText(text).catch(e => {
+		console.error(e)
+	})
 }

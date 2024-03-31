@@ -568,11 +568,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= " in this module.";
 		},
-		(in Diag.ConditionUnpacksNonOption x) {
-			writer ~= "Expected an option type, but got ";
-			writeTypeQuoted(writer, ctx, x.actualType);
-			writer ~= '.';
-		},
 		(in Diag.DestructureTypeMismatch x) {
 			x.expected.matchIn!void(
 				(in Diag.DestructureTypeMismatch.Expected.Tuple t) {

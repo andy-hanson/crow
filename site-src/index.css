@@ -232,6 +232,9 @@ main {
 	border-radius: 2em;
 	border: 2px solid #80808080;
 }
+main.play {
+	width: 64em;
+}
 
 main h1, main h2, main h3 {
 	font-family: murecho-bold;

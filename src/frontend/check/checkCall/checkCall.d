@@ -13,7 +13,7 @@ import frontend.check.checkCall.candidates :
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
-import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, tryUnpackOptionTypeOrDiag, typeFromDestructure;
+import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
 	bogus,
@@ -70,7 +70,7 @@ import util.col.arrayBuilder : finish;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
-import util.opt : force, forceNonRef, has, none, Opt, optOrDefault, optIf, some, some;
+import util.opt : force, forceNonRef, has, none, Opt, optIf, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
@@ -244,9 +244,9 @@ Expr checkOptionCall(
 								Expr expr = checkExpr(ctx, locals, argAst, optionalArgExpected);
 								Type option = inferred(optionalArgExpected);
 								lateSet(firstArg, ExprAndType(expr, option));
-								return ExprAndType(expr, optOrDefault!Type(
-									tryUnpackOptionTypeOrDiag(ctx, forceNonRef(ast.keywordRange), option),
-									() => Type.bogus));
+								// We wrapped expected types in diagnostics, so it must unpack to an option
+								Type nonOption = forceNonRef(tryUnpackOptionType(ctx.commonTypes, option));
+								return ExprAndType(expr, nonOption);
 							});
 					} else
 						restArgs ~= checkExpr(ctx, locals, argAst, argExpected);
@@ -379,7 +379,7 @@ bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candi
 }
 
 Type withParamExpected(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	scope ref Candidate[] candidates,
 	size_t argIdx,
 	in void delegate(ref Expected) @safe @nogc pure nothrow cb,
@@ -397,7 +397,7 @@ Type withParamExpected(
 	});
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref const Candidate specCandidate,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes sigTypes,

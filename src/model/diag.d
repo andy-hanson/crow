@@ -206,9 +206,6 @@ immutable struct Diag {
 	immutable struct CommonTypeMissing {
 		Symbol name;
 	}
-	immutable struct ConditionUnpacksNonOption {
-		TypeWithContainer actualType;
-	}
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
 			immutable struct Tuple { size_t size; }
@@ -611,7 +608,6 @@ immutable struct Diag {
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,
-		ConditionUnpacksNonOption,
 		DestructureTypeMismatch,
 		DuplicateDeclaration,
 		DuplicateExports,

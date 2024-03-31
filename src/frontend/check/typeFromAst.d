@@ -104,7 +104,9 @@ Opt!Type tryUnpackOptionType(in CommonTypes commonTypes, Type optionType) {
 	if (optionType.isA!(StructInst*)) {
 		StructInst* inst = optionType.as!(StructInst*);
 		return optIf(inst.decl == commonTypes.option, () => only(inst.typeArgs));
-	} else
+	} else if (optionType.isBogus)
+		return some(Type.bogus);
+	else
 		return none!Type;
 }
 

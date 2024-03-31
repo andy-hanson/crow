@@ -10,7 +10,7 @@ const getUserName = async () => {
 
 const showLoggedIn = async () => {
 	const name = await getUserName()
-	nonNull(document.getElementById("showLoggedIn")).textContent = name ? `Logged in as ${name}` : "Not logged in"
+	document.getElementById("showLoggedIn").textContent = name ? `Logged in as ${name}` : "Not logged in"
 }
 
 /** @type {function(string): string | null} */
@@ -18,7 +18,7 @@ const getCookie = cookieName => {
 	for (const part of document.cookie.split(";")) {
 		const [name, value] = part.split("=")
 		if (name === cookieName)
-			return nonNull(value)
+			return value
 	}
 	return null
 }
@@ -26,32 +26,31 @@ const getCookie = cookieName => {
 window.onload = () => {
 	run(() => showLoggedIn())
 
-	const register = typeAs(document.querySelector('form[name="register"]'), HTMLFormElement)
-	typeAs(register.querySelector('input[type="submit"]'), HTMLInputElement).onclick = () => run(async () => {
-		const userName = typeAs(register.querySelector('input[name="user-name"]'), HTMLInputElement).value
-		const password = typeAs(register.querySelector('input[name="password"]'), HTMLInputElement).value
-		const body = toForm({"user-name":userName, password})
+	const register = document.querySelector('form[name="register"]')
+	register.querySelector('input[type="submit"]').onclick = () => run(async () => {
+		const userName = register.querySelector('input[name="user-name"]').value
+		const password = register.querySelector('input[name="password"]').value
+		const body = JSON.stringify({userName, password})
 		const response = await (await fetch("/register", {method:"POST", body})).text()
 		await loadUsers()
 		alert(response)
 	})
 
-	const login = typeAs(document.querySelector('form[name="login"]'), HTMLFormElement)
-	typeAs(login.querySelector('input[type="submit"]'), HTMLInputElement).onclick = () => run(async () => {
-		const userName = typeAs(login.querySelector('input[name="user-name"]'), HTMLInputElement).value
-		const password = typeAs(login.querySelector('input[name="password"]'), HTMLInputElement).value
-		const body = toForm({"user-name":userName, password})
-		console.log("BEFORE COOKIE IS", document.cookie)
+	const login = document.querySelector('form[name="login"]')
+	login.querySelector('input[type="submit"]').onclick = () => run(async () => {
+		const userName = login.querySelector('input[name="user-name"]').value
+		const password = login.querySelector('input[name="password"]').value
+		const body = JSON.stringify({userName, password})
 		const response = await (await fetch("/login", {method:"POST", body})).text()
-		console.log("NOW COOKIE IS", document.cookie)
 		await showLoggedIn()
 		alert(response)
 	})
 
-	const post = typeAs(document.querySelector('form[name="post"]'), HTMLFormElement)
-	typeAs(post.querySelector('input[type="submit"]'), HTMLInputElement).onclick = () => run(async () => {
-		const content = typeAs(post.querySelector('input[name="content"]'), HTMLInputElement).value
-		const response = await (await fetch("/post", {method:"POST", credentials: "include", body:content})).text()
+	const post = document.querySelector('form[name="post"]')
+	post.querySelector('input[type="submit"]').onclick = () => run(async () => {
+		const content = post.querySelector('input[name="content"]').value
+		const body = JSON.stringify({content})
+		const response = await (await fetch("/post", {method:"POST", credentials: "include", body})).text()
 		await loadPosts()
 		alert(response)
 	})
@@ -67,7 +66,7 @@ const loadUsersAndPosts = async () => {
 
 /** @type {function(): Promise<void>} */
 const loadUsers = async () => {
-	const usersDiv = nonNull(document.getElementById("users"))
+	const usersDiv = document.getElementById("users")
 	clear(usersDiv)
 	const {users} = await (await fetch("/users")).json()
 	for (const {user, "user-name":userName} of users) {
@@ -79,7 +78,7 @@ const loadUsers = async () => {
 
 /** @type {function(): Promise<void>} */
 const loadPosts = async () => {
-	const postsDiv = nonNull(document.getElementById("posts"))
+	const postsDiv = document.getElementById("posts")
 	clear(postsDiv)
 	const {posts} = await (await fetch("/posts")).json()
 	for (const {post, "user-name":userName, content} of posts) {
@@ -101,34 +100,4 @@ const run = f => {
 const clear = node => {
 	while (node.lastChild)
 		node.removeChild(node.lastChild)
-}
-
-/** @type {function(Record<string, string>): string} */
-const toForm = data =>
-	Object.entries(data)
-		.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-		.join("&")
-
-
-/**
- * @template T
- * @param {T | null | undefined} x
- * @return {T}
- */
-const nonNull = x => {
-	if (x == null)
-		throw new Error("Null value")
-	return x
-}
-
-/**
- * @template T
- * @param {unknown} x
- * @param {new () => T} type
- * @return {T}
- */
-const typeAs = (x, type) => {
-	if (!(x instanceof type))
-		throw new Error("Not instance of type")
-	return /** @type {T} */ (x)
 }

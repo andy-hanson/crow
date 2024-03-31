@@ -2,7 +2,7 @@ import
 	system/errno: EAGAIN, errno
 	system/sys/socket: as-fd, SOCKET
 	system/unistd: write
-	../../parse: nat, parse
+	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
 		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
@@ -86,16 +86,15 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			sock write-until-finished content[wrote.to .. end]
 
 -finish-request http-request(state http-parse-state)
-	state.method, state.url, state.headers.move-to::(string, string)[].to, state.unparsed.move-to
+	path, query = state.path-and-query parse-path-and-query
+	state.method, path, query, state.headers.move-to::(symbol, string)[].to, state.unparsed.move-to
 
 -response-to-array nat8 array(a http-response)
 	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive,
 	# maybe forbid any upper-case letters in headers to be consistent
-	forbid "Content-Length"::string in a.headers
+	forbid "Content-Length"::symbol in a.headers
 	headers = "" join for k, v : a headers
-		forbid k contains "\n"
-		forbid v contains "\n"
 		"\r\n{k}: {v}"
 	head string = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
@@ -108,20 +107,20 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	loop
 		guard line ?= state.unparsed try-take-first-line : break false
 		guard !line.is-empty : break state.content-length == 0
-		if state.url is-empty
+		if state.path-and-query is-empty
 			# Expect something like "GET / HTTP/1.1"
 			parts string[] = line split " "
 			assert parts.size == 3
 			state.method := parts[0].to ?? todo
-			state.url := parts[1]
+			state.path-and-query := parts[1]
 			assert parts[2] == "HTTP/1.1"
-			forbid state.url is-empty
+			forbid state.path-and-query is-empty
 		else
 			parts string[] = line split ": "
-			assert parts.size == 2 : "Bad header line for {state.url}: '{line}'"
+			assert parts.size == 2 : "Bad header line for {state.path-and-query}: '{line}'"
 			key = parts[0]
 			value = parts[1]
-			state.headers ~= (key, value)
+			state.headers ~= (key.lower-case.to, value)
 			if key == "content-length"
 				match nat parse value
 				as ok content-length
@@ -139,8 +138,8 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 -http-parse-state record mut
 	method mut http-method
-	url mut string
-	headers (string, string) mut[]
+	path-and-query mut string
+	headers (symbol, string) mut[]
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front
@@ -148,3 +147,19 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 -new http-parse-state()
 	GET, "", (), 0, ()
+
+-parse-path-and-query (string, string[symbol])(a string)
+	if path, query ?= a try-split-once "?"
+		path, query.parse-query
+	else
+		a, ()
+
+-parse-query string[symbol](a string)
+	(query parse a).ok ?? ()
+
+-query string[symbol] grammar()
+	query-part separated-by "&" map parts =>
+		for part : parts; part
+-query-part (symbol, string) grammar()
+	identifier = ("=", "&") text-not-containing-any
+	(identifier map x => x.to::symbol) ~~ "=" ~~ identifier

@@ -1,27 +1,49 @@
-no-std
 import
-	../../col/list: list
-	../../col/map: map, new
-	../../number: nat8, nat64
-	../../string: ==, <=>, as-string, hash-mix, string, to-bytes
+	crow/parse: parse
+
+region request
 
 # Parsed HTTP request.
 +http-request record
 	method http-method
-	url string
-	headers string[string]
-	request-body nat8[]
+	path string
+	# Parse URI query components, e.g. "?a=b" parses to `("a", "b"),`
+	query string[symbol]
+	headers string[symbol]
+	body nat8[]
 
-# TODO: should this be trusted?
-# Request body as as string.
-+request-body-string string(a http-request)
-	a.request-body as-string
++body string(a http-request)
+	a.body as-string
+
++body-json json?(a http-request)
+	json parse a.body ok
+
++cookies alias
+	string[symbol]
+
++parse-cookies cookies(a http-request)
+	(a.headers["cookie"] ?? "") parse-cookies
+
+-parse-cookies cookies(cookies-string string)
+	with out : build
+		for part : cookies-string split "; "
+			if name, value ?= part try-split-once "="
+				out ~= (name.to, value)
+
++set-cookie-header (symbol, string)(cookies cookies)
+	"set-cookie", cookies.cookies-string
+
++cookies-string string(cookies cookies)
+	"; " join for key, value : cookies
+		"{key}={value}"
+
+region response
 
 # Response to an HTTP request.
 +http-response record
 	status nat64
 	status-desc string
-	headers string[string]
+	headers string[symbol]
 	response-body nat8[]
 
 # Creates a 400 response with the message "Bad query".
@@ -63,7 +85,7 @@ import
 	message http-ok ()
 
 # Creates a 200 response with the given message and headers.
-+http-ok http-response(message string, headers string[string])
++http-ok http-response(message string, headers string[symbol])
 	200, "OK", headers, message.to-bytes
 
 # Method used by an HTTP request.

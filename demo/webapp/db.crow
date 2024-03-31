@@ -123,7 +123,7 @@ register-user register-user-result(db db, user-name string, password string) sum
 login-error enum(empty-name-or-password, user-does-not-exist, wrong-password)
 
 login (user-cookie, login-error) result(db db, user-name string, password string) summon
-	guard user-name.is-empty || password.is-empty : empty-name-or-password error
+	guard !user-name.is-empty && !password.is-empty : empty-name-or-password error
 	with txn : db.env write-transaction
 		guard user ?= db get-user txn, user-name : user-does-not-exist error
 		hash = (txn get db.user-password-hash, user)!

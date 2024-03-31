@@ -31,8 +31,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.commonMissing,
 		(in Diag.CommonTypeMissing) =>
 			DiagnosticSeverity.commonMissing,
-		(in Diag.ConditionUnpacksNonOption) =>
-			DiagnosticSeverity.checkError,
 		(in Diag.DestructureTypeMismatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>

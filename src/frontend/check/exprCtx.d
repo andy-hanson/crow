@@ -102,7 +102,7 @@ struct ExprCtx {
 	ref const(CheckCtx) checkCtx() return scope const =>
 		*checkCtxPtr;
 
-	ref InstantiateCtx instantiateCtx() return scope =>
+	InstantiateCtx instantiateCtx() return scope =>
 		checkCtx.instantiateCtx;
 
 	ref CommonTypes commonTypes() return scope const =>

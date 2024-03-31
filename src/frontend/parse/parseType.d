@@ -326,7 +326,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 			TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(cbLeft(), suffixPos, kind2))),
 			suffixPos + 1,
 			kind1))));
-	Opt!TypeAst mapLike(TypeAst.Map.Kind kind, TypeAst left = cbLeft()) {
+	Opt!TypeAst mapLike(TypeAst.Map.Kind kind, Pos bracketPos = suffixPos, TypeAst left = cbLeft()) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
 		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left]))));
@@ -345,8 +345,9 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 			mustTakeToken(lexer, Token.questionBracket);
 			TypeAst left = forceNonRef(suffix(TypeAst.SuffixSpecial.Kind.option));
 			return tryTakeToken(lexer, Token.bracketRight)
-				? suffix(TypeAst.SuffixSpecial.Kind.list, left)
-				: mapLike(TypeAst.Map.Kind.data, left);
+				? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
+					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.list))))
+				: mapLike(TypeAst.Map.Kind.data, suffixPos + 1, left);
 		case Token.operator:
 			return tryTakeOperator(lexer, symbol!"^")
 				? suffix(TypeAst.SuffixSpecial.Kind.future)

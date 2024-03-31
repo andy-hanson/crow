@@ -166,7 +166,7 @@ Opt!(StructDecl*) getCommonTemplateType(
 }
 
 Opt!(StructInst*) getCommonNonTemplateType(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	Symbol name,
 	scope ref DelayStructInsts delayedStructInsts,
@@ -178,7 +178,7 @@ Opt!(StructInst*) getCommonNonTemplateType(
 }
 
 StructInst* instantiateNonTemplateStructOrAlias(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
@@ -191,7 +191,7 @@ StructInst* instantiateNonTemplateStructOrAlias(
 }
 
 StructInst* instantiateNonTemplateStructDecl(
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	scope ref DelayStructInsts delayedStructInsts,
 	StructDecl* structDecl,
 ) =>

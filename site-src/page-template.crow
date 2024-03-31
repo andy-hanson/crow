@@ -55,5 +55,6 @@ nav-links string(path string)
 	<li><a href="/download.html"{path starts-with "download" ? current}>download</a></li>
 	<li><a href="/tutorial"{path starts-with "tutorial" ? current}>tutorial</a></li>
 	<li><a href="/doc"{path starts-with "doc" ? current}>documentation</a></li>
+	<li><a href="/play.html"{path starts-with "play" ? current}>play</a></li>
 	"""
 

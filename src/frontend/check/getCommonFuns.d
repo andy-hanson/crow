@@ -237,7 +237,7 @@ FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 
 Type getNonTemplateType(
 	ref Alloc alloc,
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
@@ -319,7 +319,7 @@ FunDecl* getFunDecl(
 
 MainFun getMainFun(
 	ref Alloc alloc,
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module mainModule,
 	Type nat64FutureType,
@@ -398,5 +398,5 @@ immutable(FunDecl*[]) getFuns(ref Module a, Symbol name) {
 	return has(optReferents) ? force(optReferents).funs : [];
 }
 
-FunInst* instantiateNonTemplateFun(ref InstantiateCtx ctx, FunDecl* decl) =>
+FunInst* instantiateNonTemplateFun(InstantiateCtx ctx, FunDecl* decl) =>
 	instantiateFun(ctx, decl, emptyTypeArgs, emptySpecImpls);

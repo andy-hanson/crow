@@ -154,7 +154,7 @@ FunDecl basicFunDecl(
 ) =>
 	funDeclWithBody(source, visibility, name, returnType, params, flags, [], body_);
 
-FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
+FunDecl newExtern(InstantiateCtx ctx, StructDecl* struct_) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
@@ -164,7 +164,7 @@ FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
 		FunFlags.generatedBareUnsafe,
 		FunBody(FunBody.CreateExtern()));
 
-StructInst* instantiateNonTemplateStructDeclNeverDelay(ref InstantiateCtx ctx, StructDecl* structDecl) =>
+StructInst* instantiateNonTemplateStructDeclNeverDelay(InstantiateCtx ctx, StructDecl* structDecl) =>
 	instantiateStructNeverDelay(ctx, structDecl, []);
 
 bool recordIsAlwaysByVal(in StructBody.Record record) =>

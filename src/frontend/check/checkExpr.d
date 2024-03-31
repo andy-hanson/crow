@@ -26,6 +26,7 @@ import frontend.check.inferringType :
 	check,
 	Expected,
 	ExpectedLambdaType,
+	ExprAndOptionType,
 	findExpectedStructForLiteral,
 	getExpectedForDiag,
 	getExpectedLambda,
@@ -39,11 +40,12 @@ import frontend.check.inferringType :
 	withExpect,
 	withExpectAndInfer,
 	withExpectLoop,
+	withExpectOption,
 	withInfer;
 import frontend.check.instantiate : instantiateFun, instantiateSpec, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
-	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, tryUnpackOptionType, typeFromDestructure;
+	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -425,22 +427,11 @@ Condition.UnpackOption checkUnpackOption(
 	ExprAst* source,
 	ConditionAst.UnpackOption* condAst,
 ) {
-	ExprAndType option = checkAndInfer(ctx, locals, condAst.option);
-	Opt!Type innerType = tryUnpackOptionTypeOrDiag(ctx, condAst.questionEqualsRange, option.type);
-	return has(innerType)
-		? Condition.UnpackOption(
-			checkDestructure2(ctx, condAst.destructure, force(innerType), DestructureKind.local),
-			option)
-		: Condition.UnpackOption(
-			checkDestructure2(ctx, condAst.destructure, Type.bogus, DestructureKind.local),
-			ExprAndType(Expr(source, ExprKind(BogusExpr())), Type.bogus));
-}
-
-Opt!Type tryUnpackOptionTypeOrDiag(ref ExprCtx ctx, Range diagRange, Type option) {
-	Opt!Type res = tryUnpackOptionType(ctx.commonTypes, option);
-	if (!has(res) && !option.isBogus)
-		addDiag2(ctx, diagRange, Diag(Diag.ConditionUnpacksNonOption(typeWithContainer(ctx, option))));
-	return res;
+	ExprAndOptionType res = withExpectOption(ctx.instantiateCtx, ctx.commonTypes, (ref Expected expected) =>
+		checkExpr(ctx, locals, condAst.option, expected));
+	return Condition.UnpackOption(
+		checkDestructure2(ctx, condAst.destructure, res.nonOptionType, DestructureKind.local),
+		res.option);
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
