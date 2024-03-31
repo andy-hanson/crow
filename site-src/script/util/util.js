@@ -24,7 +24,7 @@ export const nonNull = x => {
  * @param {T | null} x
  * @return {T[]}
  */
-export const optionToList = x =>
+export const listOfOption = x =>
 	x === null ? [] : [x]
 
 /**

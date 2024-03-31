@@ -441,24 +441,6 @@ void filterUnorderedButDontRemoveAll(T)(
 	return res[0 .. outI];
 }
 
-@trusted Opt!(Out[]) mapOrNone(Out, In)(
-	ref Alloc alloc,
-	in In[] a,
-	in Opt!Out delegate(ref In) @safe @nogc pure nothrow cb,
-) {
-	Out[] res = allocateElements!Out(alloc, a.length);
-	foreach (size_t i, ref In x; a) {
-		Opt!Out o = cb(x);
-		if (has(o))
-			initMemory(&res[i], force(o));
-		else {
-			freeElements(alloc, res);
-			return none!(Out[]);
-		}
-	}
-	return some(res);
-}
-
 @trusted Out[] mapWithIndexAndAppend(Out, In)(
 	ref Alloc alloc,
 	In[] a,

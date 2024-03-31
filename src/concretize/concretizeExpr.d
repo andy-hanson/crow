@@ -11,22 +11,21 @@ import concretize.concretizeCtx :
 	char32ArrayExpr,
 	char32ListExpr,
 	ConcretizeCtx,
-	ConcreteFunKey,
 	concreteTypeFromClosure,
 	concretizeLambdaParams,
 	constantCString,
 	constantSymbol,
 	ContainingFunInfo,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
-	getConcreteFunForLambdaAndFillBody,
-	getOrAddConcreteFunAndFillBody,
-	getOrAddNonTemplateConcreteFunAndFillBody,
+	getConcreteFunForLambda,
+	getConcreteFun,
+	getNonTemplateConcreteFun,
 	stringLiteralConcreteExpr,
 	stringType,
 	typeArgsScope,
 	TypeArgsScope,
-	typesToConcreteTypes,
-	voidType;
+	voidType,
+	withConcreteTypes;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.generate : genCall, genNone, genSome, genLocalGet;
 import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
@@ -102,12 +101,11 @@ import model.model :
 	TypedExpr,
 	VariableRef;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
 	concatenate,
-	emptySmallArray,
 	isEmpty,
 	map,
-	mapOrNone,
 	mapWithFirst,
 	mapZip,
 	mustFind,
@@ -354,16 +352,13 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	return false;
 }
 
-Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
-	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx.concretizeCtx, funInst.typeArgs, typeScope(ctx));
-	// TODO: NO ALLOC
-	Opt!(immutable ConcreteFun*[]) specImpls = mapOrNone!(immutable ConcreteFun*, Called)(
-		ctx.alloc, funInst.specImpls, (ref Called x) =>
-			getConcreteFunFromCalled(ctx, x));
-	return optIf(has(specImpls), () =>
-		getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(
-			funInst.decl, typeArgs, small!(immutable ConcreteFun*)(force(specImpls)))));
-}
+Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) =>
+	withMapOrNoneToStackArray!(ConcreteFun*, immutable ConcreteFun*, Called)(
+		funInst.specImpls,
+		(ref Called x) => getConcreteFunFromCalled(ctx, x),
+		(scope immutable ConcreteFun*[] specImpls) =>
+			withConcreteTypes(ctx.concretizeCtx, funInst.typeArgs, typeScope(ctx), (scope ConcreteType[] typeArgs) =>
+				getConcreteFun(ctx.concretizeCtx, funInst.decl, typeArgs, specImpls)));
 
 ConcreteExpr concretizeClosureGet(
 	ref ConcretizeExprCtx ctx,
@@ -478,7 +473,7 @@ ConcreteExpr concretizeFunPointer(
 	FunPointerExpr e,
 ) =>
 	ConcreteExpr(type, range, ConcreteExprKind(
-		Constant(Constant.FunPointer(getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst)))));
+		Constant(Constant.FunPointer(getNonTemplateConcreteFun(ctx.concretizeCtx, e.funInst)))));
 
 ConcreteExpr concretizeLambda(
 	ref ConcretizeExprCtx ctx,
@@ -491,15 +486,11 @@ ConcreteExpr concretizeLambda(
 		ConcreteType innerType = getConcreteType(ctx, Type(force(e.mutTypeForExplicitShared)));
 		ConcreteExpr inner = concretizeLambdaInner(ctx, innerType, range, locals, e);
 		ConcreteType[2] lambdaTypeArgs = only2(innerType.struct_.source.as!(ConcreteStructSource.Inst).typeArgs);
-		ConcreteFun* sharedOfMutLambda = getOrAddConcreteFunAndFillBody(
+		ConcreteFun* sharedOfMutLambda = getConcreteFun(
 			ctx.concretizeCtx,
-			ConcreteFunKey(
-				ctx.concretizeCtx.program.commonFuns.sharedOfMutLambda,
-				// TODO: NO ALLOC
-				small!ConcreteType(newArray(ctx.alloc, [
-					unwrapFuture(ctx.concretizeCtx, lambdaTypeArgs[0]),
-					lambdaTypeArgs[1]])),
-				emptySmallArray!(immutable ConcreteFun*)));
+			ctx.concretizeCtx.program.commonFuns.sharedOfMutLambda,
+			[unwrapFuture(ctx.concretizeCtx, lambdaTypeArgs[0]), lambdaTypeArgs[1]],
+			[]);
 		return genCall(ctx.alloc, range, sharedOfMutLambda, [inner]);
 	} else
 		return concretizeLambdaInner(ctx, type, range, locals, e);
@@ -548,7 +539,7 @@ ConcreteExpr concretizeLambdaInner(
 	if (isBogus(returnType))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
 
-	ConcreteFun* fun = getConcreteFunForLambdaAndFillBody(
+	ConcreteFun* fun = getConcreteFunForLambda(
 		ctx.concretizeCtx,
 		ctx.currentConcreteFunPointer,
 		lambdaIndex,

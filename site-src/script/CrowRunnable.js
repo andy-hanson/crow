@@ -4,7 +4,7 @@ import { CrowText, Token, TokensAndDiagnostics } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
 import {
-	assert, createButton, createDiv, createSpan, getChildText, nonNull, optionToList as listOfOption, removeAllChildren, setStyleSheet
+	assert, createButton, createDiv, createSpan, getChildText, nonNull, listOfOption, removeAllChildren, setStyleSheet
 } from "./util/util.js"
 
 /** @type {function(boolean): string} */

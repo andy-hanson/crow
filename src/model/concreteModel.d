@@ -315,8 +315,6 @@ immutable struct ConcreteFun {
 
 	ref ConcreteFunBody body_() return scope =>
 		lateGet(lateBody);
-	bool bodyIsSet() =>
-		lateIsSet(lateBody);
 
 	void body_(ConcreteFunBody value) {
 		lateSet(lateBody, value);

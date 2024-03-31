@@ -4,7 +4,6 @@ module util.late;
 
 import util.memory : initMemory;
 import util.opt : force, has, MutOpt, Opt, none, some, someMut;
-import util.util : castNonScope_ref;
 
 struct MutLate(T) {
 	private MutOpt!T value_;
@@ -14,6 +13,7 @@ inout(T) lateGet(T)(ref inout MutLate!T a) =>
 	force(a.value_);
 
 void lateSet(T)(ref MutLate!T a, T value) {
+	assert(!has(a.value_));
 	a.value_ = someMut(value);
 }
 
@@ -32,8 +32,7 @@ bool lateIsSet(T)(ref Late!T a) =>
 
 @trusted ref immutable(T) lateGet(T)(return scope ref Late!T a) {
 	assert(lateIsSet(a));
-	// TODO: castNonScope_ref not needed in newer dmd
-	return force(castNonScope_ref(a.value_));
+	return force(a.value_);
 }
 
 @trusted void lateSet(T)(ref Late!T a, T value) {

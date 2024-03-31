@@ -12,8 +12,8 @@ import concretize.concretizeCtx :
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
 	finishConcreteVars,
-	getOrAddConcreteFunAndFillBody,
-	getOrAddNonTemplateConcreteFunAndFillBody,
+	getConcreteFun,
+	getNonTemplateConcreteFun,
 	nat64Type,
 	stringType,
 	symbolType,
@@ -21,11 +21,9 @@ import concretize.concretizeCtx :
 	voidType;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
-import model.concreteModel :
-	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, ConcreteType;
+import model.concreteModel : ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : emptySmallArray, newSmallArray;
 import util.col.arrayBuilder : finish;
 import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
@@ -65,41 +63,23 @@ ConcreteProgram concretizeInner(
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
-	lateSet(ctx.char8ArrayTrustAsString_, getOrAddNonTemplateConcreteFunAndFillBody(
-		ctx, commonFuns.char8ArrayTrustAsString));
-	lateSet(ctx.equalNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.equalNat64));
-	lateSet(ctx.lessNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.lessNat64));
-	lateSet(ctx.newNat64FutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newTFuture,
-		//TODO:avoid alloc
-		newSmallArray(ctx.alloc, [nat64Type(ctx)]),
-		emptySmallArray!(immutable ConcreteFun*))));
-	lateSet(ctx.newVoidFutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		commonFuns.newTFuture,
-		//TODO:avoid alloc
-		newSmallArray(ctx.alloc, [voidType(ctx)]),
-		emptySmallArray!(immutable ConcreteFun*))));
-	lateSet(ctx.andFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		commonFuns.and.decl,
-		emptySmallArray!ConcreteType,
-		emptySmallArray!(immutable ConcreteFun*))));
-	lateSet(ctx.newChar8ListFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newTList,
-		newSmallArray(ctx.alloc, [char8Type(ctx)]),
-		emptySmallArray!(immutable ConcreteFun*))));
-	lateSet(ctx.newChar32ListFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newTList,
-		newSmallArray(ctx.alloc, [char32Type(ctx)]),
-		emptySmallArray!(immutable ConcreteFun*))));
-	lateSet(ctx.newJsonFromPairsFunction_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.newJsonFromPairs));
-	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
-	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
+	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));
+	lateSet(ctx.equalNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.equalNat64));
+	lateSet(ctx.lessNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.lessNat64));
+	lateSet(ctx.newNat64FutureFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTFuture, [nat64Type(ctx)], []));
+	lateSet(ctx.newVoidFutureFunction_, getConcreteFun(ctx, commonFuns.newTFuture, [voidType(ctx)], []));
+	lateSet(ctx.andFunction_, getNonTemplateConcreteFun(ctx, commonFuns.and));
+	lateSet(ctx.newChar8ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char8Type(ctx)], []));
+	lateSet(ctx.newChar32ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char32Type(ctx)], []));
+	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
+	ConcreteFun* markFun = getNonTemplateConcreteFun(ctx, commonFuns.mark);
+	ConcreteFun* rtMainConcreteFun = getNonTemplateConcreteFun(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, program.mainFun);
-	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
+	ConcreteFun* allocFun = getNonTemplateConcreteFun(ctx, commonFuns.alloc);
 	Opt!(ConcreteFun*) throwImplFun = optIf(!isVersion(versionInfo, VersionFun.isAbortOnThrow), () =>
-		getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl));
+		getNonTemplateConcreteFun(ctx, commonFuns.throwImpl));
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 
@@ -134,6 +114,6 @@ ConcreteProgram concretizeInner(
 ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
 	main.match!(ConcreteFun*)(
 		(MainFun.Nat64Future x) =>
-			getOrAddNonTemplateConcreteFunAndFillBody(ctx, x.fun),
+			getNonTemplateConcreteFun(ctx, x.fun),
 		(MainFun.Void x) =>
 			concreteFunForWrapMain(ctx, x.stringList, x.fun));

@@ -7,7 +7,7 @@ import concretize.concretizeCtx :
 	arrayElementType,
 	ConcretizeCtx,
 	constantSymbol,
-	getOrAddConcreteFunAndFillBody,
+	getConcreteFun,
 	getConcreteType,
 	getFunKey,
 	nat64Type,
@@ -21,7 +21,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunKey,
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteStruct,
@@ -34,7 +33,6 @@ import model.model : AutoFun, BuiltinType, Called, EnumOrFlagsMember, FunKind, R
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
-	emptySmallArray,
 	map,
 	mapWithIndex,
 	mapZipWithIndex,
@@ -44,7 +42,6 @@ import util.col.array :
 	only2,
 	sizeEq,
 	sizeEq3,
-	small,
 	SmallArray;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, integralValuesRange;
@@ -86,12 +83,9 @@ ConcreteFunBody.RecordFieldCall getRecordFieldCall(
 ) {
 	ConcreteStruct* fieldType = mustBeByVal(
 		recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
-	ConcreteType[2] typeArgs = only2(fieldType.source.as!(ConcreteStructSource.Inst).typeArgs);
-	ConcreteFun* callFun = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.lambdaSubscript[funKind],
-		// TODO: don't always allocate, only on create
-		small!ConcreteType(newArray!ConcreteType(ctx.alloc, typeArgs)),
-		emptySmallArray!(immutable ConcreteFun*)));
+	ConcreteType[] typeArgs = fieldType.source.as!(ConcreteStructSource.Inst).typeArgs;
+	assert(typeArgs.length == 2);
+	ConcreteFun* callFun = getConcreteFun(ctx, ctx.program.commonFuns.lambdaSubscript[funKind], typeArgs, []);
 	return ConcreteFunBody.RecordFieldCall(fieldIndex, fieldType, typeArgs[1], callFun);
 }
 
