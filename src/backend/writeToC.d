@@ -2006,7 +2006,9 @@ WriteExprResult writeLoop(
 	writeNewline(writer, indent);
 	writer ~= "__loop";
 	writer ~= index;
-	writer ~= ":";
+	// Since the next line might declare a variable,
+	// use ';' to avoid the error 'A label can only be part of a statement and a declaration is not a statement'.
+	writer ~= ":;";
 	writeNewline(writer, indent);
 
 	WriteKind bodyWriteKind = WriteKind(&loopInfo);
