@@ -1042,7 +1042,7 @@ WriteExprResult writeNonInlineable(
 
 WriteExprResult writeVoid(in WriteKind writeKind) {
 	assert(writeKind.isA!(WriteKind.Void));
-	return WriteExprResult(WriteExprResult.Done());
+	return writeExprDone;
 }
 
 WriteExprResult writeInlineable(
@@ -1148,18 +1148,41 @@ WriteExprResult writeAbort(
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
 	in LowType type,
-) =>
-	writeInlineableSimple(writer, indent, ctx, writeKind, type, () {
-		bool needValue = !isEmptyType(ctx, type);
-		if (needValue)
-			writer ~= '(';
-		writer ~= "abort()";
-		if (needValue) {
-			writer ~= ", ";
-			writeZeroedValue(writer, ctx.ctx, type);
-			writer ~= ')';
-		}
-	});
+) {
+	if (writeKind.isA!(LoopInfo*) || writeKind.isA!(WriteKind.Return) || writeKind.isA!(WriteKind.Void)) {
+		writeNewline(writer, indent);
+		writer ~= "abort();";
+		if (ctx.ctx.isMSVC) { // MSVC doesn't recognize abort as aborting, so need a fake return
+			if (writeKind.isA!(LoopInfo*)) {
+				writeNewline(writer, indent);
+				return writeLoopContinue(writer, indent, writeKind);
+			} else if (writeKind.isA!(WriteKind.Return)) {
+				writeNewline(writer, indent);
+				bool needValue = !isEmptyType(ctx, type);
+				if (needValue) {
+					writer ~= "return ";
+					writeZeroedValue(writer, ctx.ctx, type);
+					writer ~= ';';
+				} else
+					writer ~= "return;";
+				return writeExprDone();
+			} else
+				return writeExprDone();
+		} else
+			return writeExprDone();
+	} else
+		return writeInlineableSimple(writer, indent, ctx, writeKind, type, () {
+			bool needValue = !isEmptyType(ctx, type);
+			if (needValue)
+				writer ~= '(';
+			writer ~= "abort()";
+			if (needValue) {
+				writer ~= ", ";
+				writeZeroedValue(writer, ctx.ctx, type);
+				writer ~= ')';
+			}
+		});
+}
 
 WriteExprResult writeCallExpr(
 	scope ref Writer writer,
@@ -2025,7 +2048,7 @@ WriteExprResult writeLoopBreak(
 	in LowExprKind.LoopBreak a,
 ) {
 	cast(void) writeExpr(writer, indent, ctx, writeKind.as!(LoopInfo*).writeKind, a.value);
-	return WriteExprResult(WriteExprResult.Done());
+	return writeExprDone;
 }
 
 WriteExprResult writeLoopContinue(scope ref Writer writer, size_t indent, in WriteKind writeKind) {
@@ -2033,7 +2056,7 @@ WriteExprResult writeLoopContinue(scope ref Writer writer, size_t indent, in Wri
 	writer ~= "goto __loop";
 	writer ~= writeKind.as!(LoopInfo*).index;
 	writer ~= ';';
-	return WriteExprResult(WriteExprResult.Done());
+	return writeExprDone;
 }
 
 void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
