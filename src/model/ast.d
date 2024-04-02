@@ -228,8 +228,10 @@ immutable struct ArrowAccessAst {
 	Pos keywordPos;
 	NameAndRange name;
 
-	Range keywordRange() =>
+	Range arrowRange() scope =>
 		rangeOfStartAndLength(keywordPos, "->".length);
+	Range arrowAndNameRange() scope =>
+		combineRanges(arrowRange, name.range);
 }
 
 immutable struct AssertOrForbidAst {
@@ -290,7 +292,6 @@ immutable struct CallAst {
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		emptyParens, // `()`
-		implicit,
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
@@ -328,7 +329,6 @@ immutable struct CallAst {
 			case Style.questionSubscript:
 				return some(rangeOfStartAndLength(keywordPos, 2));
 			case Style.emptyParens:
-			case Style.implicit:
 			case Style.infix:
 			case Style.prefixBang:
 			case Style.prefixOperator:
@@ -561,11 +561,11 @@ immutable struct InterpolatedAst {
 immutable struct LambdaAst {
 	@safe @nogc pure nothrow:
 	DestructureAst param;
-	Opt!Pos arrowPos; // None for synthetic LambdaAst, in a 'for' or 'with' or '<-'
+	Pos arrowPos;
 	ExprAst body_;
 
-	Opt!Range arrowRange() scope =>
-		has(arrowPos) ? some(rangeOfStartAndLength(force(arrowPos), "=>".length)) : none!Range;
+	Range arrowRange() scope =>
+		rangeOfStartAndLength(arrowPos, "=>".length);
 }
 
 immutable struct DestructureAst {

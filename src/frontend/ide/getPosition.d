@@ -15,6 +15,7 @@ import frontend.ide.position :
 	PositionKind,
 	VisibilityContainer;
 import model.ast :
+	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,
 	AssignmentCallAst,
@@ -579,7 +580,7 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				keywordAt(assert_.keywordRange(ast), x.isForbid ? ExprKeyword.forbid : ExprKeyword.assert_),
 				() => positionAtCondition(ctx, x.condition, a, assert_.condition, pos),
 				() => has(assert_.thrown)
-					? keywordAt(force(assert_.thrown).colonRange, ExprKeyword.colon)
+					? keywordAt(force(assert_.thrown).colonRange, ExprKeyword.colonInAssertOrForbid)
 					: none!PositionKind);
 		},
 		(BogusExpr _) =>
@@ -609,10 +610,25 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 					: none!PositionKind);
 		},
 		(ref LambdaExpr x) {
-			Opt!Range arrowRange = ast.kind.as!(LambdaAst*).arrowRange;
-			return optOr!PositionKind(
-				has(arrowRange) ? keywordAt(force(arrowRange), ExprKeyword.lambdaArrow) : none!PositionKind,
-				() => inDestructure(x.param, ast.kind.as!(LambdaAst*).param));
+			if (ast.kind.isA!(LambdaAst*)) {
+				LambdaAst* lambda = ast.kind.as!(LambdaAst*);
+				return optOr!PositionKind(
+					keywordAt(lambda.arrowRange, ExprKeyword.lambdaArrow),
+					() => inDestructure(x.param, lambda.param));
+			} else if (ast.kind.isA!(ForAst*)) {
+				ForAst* for_ = ast.kind.as!(ForAst*);
+				// 'for' keyword is handled in the CallExpr
+				return optOr!PositionKind(
+					inDestructure(x.param, for_.param),
+					() => keywordAt(for_.colonRange, ExprKeyword.colonInFor));
+			} else if (ast.kind.isA!(WithAst*)) {
+				// 'with' keyword is handled in the CallExpr
+				WithAst* with_ = ast.kind.as!(WithAst*);
+				return optOr!PositionKind(
+					inDestructure(x.param, with_.param),
+					() => keywordAt(with_.colonRange, ExprKeyword.colonInWith));
+			} else
+				return none!PositionKind;
 		},
 		(ref LetExpr x) =>
 			inDestructure(x.destructure, ast.kind.as!(LetAst*).destructure),
@@ -675,7 +691,7 @@ ExprKeyword ifSecondKeyword(IfAst.Kind kind) {
 	final switch (kind) {
 		case IfAst.Kind.guardWithColon:
 		case IfAst.Kind.ternaryWithElse:
-			return ExprKeyword.colon;
+			return ExprKeyword.colonInIf;
 		case IfAst.Kind.ifElif:
 			return ExprKeyword.elif;
 		case IfAst.Kind.ifElse:
@@ -724,7 +740,6 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 		final switch (call.style) {
 			case CallAst.Style.comma:
 			case CallAst.Style.emptyParens:
-			case CallAst.Style.implicit:
 			case CallAst.Style.subscript:
 			case CallAst.Style.questionSubscript:
 				return false;
@@ -737,15 +752,17 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 			case CallAst.Style.suffixBang:
 				return hasPos(call.funName.range, pos);
 		}
-	} else if (a.kind.isA!(ForAst*)) {
-		ForAst* for_ = a.kind.as!(ForAst*);
-		return hasPos(for_.forKeywordRange(a), pos) || hasPos(for_.colonRange, pos);
-	} else if (a.kind.isA!(WithAst*)) {
-		WithAst* with_ = a.kind.as!(WithAst*);
-		return hasPos(with_.withKeywordRange(a), pos) || hasPos(with_.colonRange, pos);
 	} else if (a.kind.isA!IdentifierAst)
 		return hasPos(a.range, pos);
+	else if (a.kind.isA!(ForAst*))
+		// Handle the colon when handling the LambdaExpr
+		return hasPos(a.kind.as!(ForAst*).forKeywordRange(a), pos);
+	else if (a.kind.isA!(WithAst*))
+		return hasPos(a.kind.as!(WithAst*).withKeywordRange(a), pos);
+	else if (a.kind.isA!ArrowAccessAst)
+		return hasPos(a.kind.as!ArrowAccessAst.arrowAndNameRange, pos);
 	else
+		// For InterpolatedAst, we don't want to get the call position, we want position at the args instead.
 		return false;
 }
 

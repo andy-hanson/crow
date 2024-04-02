@@ -13,7 +13,7 @@ import frontend.check.checkCall.candidates :
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
-import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, typeFromDestructure;
+import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, checkLambda, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
 	bogus,
@@ -34,7 +34,7 @@ import frontend.check.inferringType :
 	withExpectCandidates;
 import frontend.check.instantiate : InstantiateCtx, makeOptionIfNotAlready, makeOptionType;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionType, unpackTupleIfNeeded;
-import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange;
+import model.ast : CallAst, CallNamedAst, DestructureAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag;
 import model.model :
 	BuiltinSpec,
@@ -81,7 +81,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 	return ast.style == CallAst.Style.questionSubscript || ast.style == CallAst.Style.questionDot
 		? checkOptionCall(ctx, locals, source, ast, expected)
 		: exprFromCall(ctx, expected, source, checkCallCommon(
-			ctx, locals, source,
+			ctx, locals,
 			// Show diags at the function name and not at the whole call ast
 			ast.nameRange(source),
 			ast.funName.name,
@@ -101,7 +101,6 @@ Expr checkCallNamed(
 	exprFromCall(ctx, expected, source, checkCallCommon(
 		ctx,
 		locals,
-		source,
 		source.range,
 		symbol!"new",
 		none!Type,
@@ -138,15 +137,13 @@ Expr checkCallSpecial(
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
-	// TODO:NO ALLOC
 	exprFromCall(ctx, expected, source, checkCallCommon(
-		ctx, locals, source, range, funName, none!Type, newArray(ctx.alloc, args), expected,
+		ctx, locals, range, funName, none!Type, newArray(ctx.alloc, args), expected,
 		(in CalledDecl _) => true));
 
 private Opt!CallExpr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	ExprAst* source,
 	Range diagRange,
 	Symbol funName,
 	Opt!Type typeArg,
@@ -156,26 +153,147 @@ private Opt!CallExpr checkCallCommon(
 ) {
 	ExactSizeArrayBuilder!Expr args = newExactSizeArrayBuilder!Expr(ctx.alloc, argAsts.length);
 	Opt!Called called = checkCallCb(
-		ctx, locals, source, diagRange, funName, typeArg, argAsts.length, expected,
+		ctx, locals, diagRange, funName, typeArg, argAsts.length, expected,
 		(size_t i, ref Expected argExpected) {
 			args ~= checkExpr(ctx, locals, &argAsts[i], argExpected);
 		},
 		cbAdditionalFilter,
 		(scope ref Candidate[] candidates) =>
-			// Apply explicitly typed arguments first
 			everyWithIndex!ExprAst(argAsts, (size_t argIdx, ref ExprAst arg) =>
 				inferCandidateTypeArgsFromExplicitlyTypedArgument(
-					ctx, candidates, argIdx, arg) == ContinueOrAbort.continue_));
-	return has(called)
-		? some(CallExpr(force(called), smallFinish(args)))
-		: none!CallExpr;
+					ctx, candidates, argIdx, arg
+				) == ContinueOrAbort.continue_));
+	return optIf(has(called), () => CallExpr(force(called), smallFinish(args)));
+}
+
+Expr checkCallArgAndLambda(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ExprAst* argAst,
+	ref DestructureAst paramAst,
+	ExprAst* bodyAst,
+	ref Expected expected,
+) =>
+	checkCallSpecialCb2(
+		ctx, locals, source, diagRange, funName, expected,
+		(ref Expected argExpected) =>
+			checkExpr(ctx, locals, argAst, argExpected),
+		(ref Expected argExpected) =>
+			checkLambda(ctx, locals, source, paramAst, bodyAst, argExpected),
+		(scope ref Candidate[] candidates) =>
+			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, paramAst) == ContinueOrAbort.continue_);
+
+Expr checkCallArgAnd2Lambdas(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ExprAst* argAst,
+	ref DestructureAst paramAst,
+	ExprAst* bodyAst,
+	ExprAst* body2Ast, // second lambda has no param
+	ref Expected expected,
+) =>
+	checkCallSpecialCbN(
+		ctx, locals, source, diagRange, funName, expected, 3,
+		(size_t i, ref Expected argExpected) {
+			final switch (i) {
+				case 0:
+					return checkExpr(ctx, locals, argAst, argExpected);
+				case 1:
+					return checkLambda(ctx, locals, source, paramAst, bodyAst, argExpected);
+				case 2:
+					DestructureAst param2Ast = DestructureAst(DestructureAst.Void(body2Ast.range));
+					return checkLambda(ctx, locals, source, param2Ast, body2Ast, argExpected);
+			}
+		},
+		(scope ref Candidate[] candidates) =>
+			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, paramAst) == ContinueOrAbort.continue_);
+
+Expr checkCallSpecialCb1(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ref Expected expected,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbArg,
+) =>
+	checkCallSpecialCbN(
+		ctx, locals, source, diagRange, funName, expected, 1,
+		(size_t i, ref Expected argExpected) {
+			assert(i == 0);
+			return cbArg(argExpected);
+		},
+		(scope ref Candidate[] candidates) => true);
+
+private Expr checkCallSpecialCb2(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ref Expected expected,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbArg0,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbArg1,
+	in bool delegate(scope ref Candidate[]) @safe @nogc pure nothrow cbBeforeCheck,
+) =>
+	checkCallSpecialCbN(
+		ctx, locals, source, diagRange, funName, expected, 2,
+		(size_t i, ref Expected argExpected) {
+			final switch (i) {
+				case 0:
+					return cbArg0(argExpected);
+				case 1:
+					return cbArg1(argExpected);
+			}
+		},
+		cbBeforeCheck);
+
+Expr checkCallSpecialCbN(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ref Expected expected,
+	size_t nArgs,
+	in Expr delegate(size_t, ref Expected) @safe @nogc pure nothrow cbCheckArg,
+) =>
+	checkCallSpecialCbN(
+		ctx, locals, source, diagRange, funName, expected, nArgs, cbCheckArg,
+		(scope ref Candidate[]) => true);
+Expr checkCallSpecialCbN(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	Range diagRange,
+	Symbol funName,
+	ref Expected expected,
+	size_t nArgs,
+	in Expr delegate(size_t, ref Expected) @safe @nogc pure nothrow cbCheckArg,
+	in bool delegate(scope ref Candidate[]) @safe @nogc pure nothrow cbBeforeCheck,
+) {
+	ExactSizeArrayBuilder!Expr args = newExactSizeArrayBuilder!Expr(ctx.alloc, nArgs);
+	Opt!Called called = checkCallCb(
+		ctx, locals, diagRange, funName, none!Type, nArgs, expected,
+		(size_t i, ref Expected argExpected) {
+			args ~= cbCheckArg(i, argExpected);
+		},
+		(in CalledDecl) => true,
+		cbBeforeCheck);
+	Opt!CallExpr call = optIf(has(called), () => CallExpr(force(called), smallFinish(args)));
+	return exprFromCall(ctx, expected, source, call);
 }
 
 private alias CbCheckArg = void delegate(size_t argIndex, ref Expected) @safe @nogc pure nothrow;
 private Opt!Called checkCallCb(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	ExprAst* source,
 	Range diagRange,
 	Symbol funName,
 	Opt!Type typeArg,
@@ -197,7 +315,7 @@ private Opt!Called checkCallCb(
 		(scope Candidate[] candidates) =>
 			cbBeforeCheck(candidates)
 				? checkCallInner(
-					ctx, locals, source, diagRange, funName, typeArg,
+					ctx, locals, diagRange, funName, typeArg,
 					perfMeasurer, candidates, expected, nArgs, cbCheckArg)
 				: none!Called);
 	endMeasure(ctx.perf, ctx.alloc, perfMeasurer);
@@ -231,7 +349,7 @@ Expr checkOptionCall(
 			assert(ast.args.length != 0);
 			ExactSizeArrayBuilder!Expr restArgs = newExactSizeArrayBuilder!Expr(ctx.alloc, ast.args.length - 1);
 			Opt!Called called = checkCallCb(
-				ctx, locals, source, ast.funName.range, ast.funName.name, none!Type, ast.args.length, innerExpected,
+				ctx, locals, ast.funName.range, ast.funName.name, none!Type, ast.args.length, innerExpected,
 				(size_t index, ref Expected argExpected) {
 					ExprAst* argAst = &ast.args[index];
 					if (index == 0) {
@@ -264,7 +382,6 @@ Expr checkOptionCall(
 Opt!Called checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	ExprAst* source,
 	in Range diagRange,
 	Symbol funName,
 	in Opt!Type explicitTypeArg,
@@ -321,8 +438,7 @@ Opt!Called checkCallInner(
 					Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 			return none!Called;
 		} else
-			return some(checkCallAfterChoosingOverload(
-				ctx, locals, only(candidates), source, diagRange, nArgs, expected));
+			return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), diagRange, nArgs, expected));
 	});
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
@@ -434,28 +550,35 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 	scope ref Candidate[] candidates,
 	size_t argIndex,
 	in ExprAst arg,
+) =>
+	arg.kind.isA!(LambdaAst*)
+		? inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, argIndex, arg.kind.as!(LambdaAst*).param)
+		: ContinueOrAbort.continue_;
+
+ContinueOrAbort inferCandidateTypeArgsFromLambdaParameter(
+	ref ExprCtx ctx,
+	scope ref Candidate[] candidates,
+	size_t argIndex,
+	ref DestructureAst paramAst,
 ) {
-	if (arg.kind.isA!(LambdaAst*)) {
-		// TODO: this means we may do 'typeFromDestructure' twice, once here and once when checking,
-		// leading to duplicate diagnostics
-		Opt!Type optLambdaParamType = typeFromDestructure(ctx, arg.kind.as!(LambdaAst*).param);
-		if (has(optLambdaParamType)) {
-			Type lambdaParamType = force(optLambdaParamType);
-			if (lambdaParamType.isBogus)
-				return ContinueOrAbort.abort;
-			else {
-				foreach (ref Candidate candidate; candidates) {
-					TypeAndContext paramType = getCandidateExpectedParameterType(
-						ctx.instantiateCtx, candidate, argIndex);
-					inferTypeArgsFromLambdaParameterType(
-						ctx.instantiateCtx, ctx.commonTypes,
-						paramType.type, typeContextForCandidate(candidate),
-						lambdaParamType);
-				}
-				return ContinueOrAbort.continue_;
+	// TODO: this means we may do 'typeFromDestructure' twice, once here and once when checking,
+	// leading to duplicate diagnostics
+	Opt!Type optLambdaParamType = typeFromDestructure(ctx, paramAst);
+	if (has(optLambdaParamType)) {
+		Type lambdaParamType = force(optLambdaParamType);
+		if (lambdaParamType.isBogus)
+			return ContinueOrAbort.abort;
+		else {
+			foreach (ref Candidate candidate; candidates) {
+				TypeAndContext paramType = getCandidateExpectedParameterType(
+					ctx.instantiateCtx, candidate, argIndex);
+				inferTypeArgsFromLambdaParameterType(
+					ctx.instantiateCtx, ctx.commonTypes,
+					paramType.type, typeContextForCandidate(candidate),
+					lambdaParamType);
 			}
-		} else
 			return ContinueOrAbort.continue_;
+		}
 	} else
 		return ContinueOrAbort.continue_;
 }
@@ -539,7 +662,6 @@ Called checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
-	ExprAst* source,
 	in Range diagRange,
 	size_t nArgs,
 	ref Expected expected,

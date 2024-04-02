@@ -3,7 +3,15 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
-import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallNamed, checkCallSpecial;
+import frontend.check.checkCall.checkCall :
+	checkCall,
+	checkCallArgAnd2Lambdas,
+	checkCallArgAndLambda,
+	checkCallIdentifier,
+	checkCallNamed,
+	checkCallSpecial,
+	checkCallSpecialCb1,
+	checkCallSpecialCbN;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
 import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
@@ -78,7 +86,6 @@ import model.ast :
 	LoopContinueAst,
 	LoopWhileOrUntilAst,
 	MatchAst,
-	NameAndRange,
 	ParenthesizedAst,
 	PtrAst,
 	SeqAst,
@@ -165,7 +172,6 @@ import model.model :
 	VariableRef;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray, withStackArray;
 import util.col.array :
-	append,
 	arrayOfSingle,
 	contains,
 	every,
@@ -175,7 +181,6 @@ import util.col.array :
 	map,
 	mapOpPointers,
 	mustHaveIndexOfPointer,
-	newSmallArray,
 	only,
 	PtrAndSmallNumber,
 	small,
@@ -189,7 +194,7 @@ import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, someMut, some;
-import util.sourceRange : Pos, Range;
+import util.sourceRange : Range;
 import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
 import util.unicode : decodeAsSingleUnicodeChar;
@@ -286,7 +291,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(EmptyAst a) =>
 			checkEmptyNew(ctx, locals, ast, ast.range, expected),
 		(ForAst* a) =>
-			checkFor(ctx, locals, ast, *a, expected),
+			checkFor(ctx, locals, ast, a, expected),
 		(IdentifierAst a) =>
 			checkIdentifier(ctx, locals, ast, a, expected),
 		(IfAst a) =>
@@ -294,7 +299,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(InterpolatedAst a) =>
 			checkInterpolated(ctx, locals, ast, a, expected),
 		(LambdaAst* a) =>
-			checkLambda(ctx, locals, ast, *a, expected),
+			checkLambda(ctx, locals, ast, a.param, &a.body_, expected),
 		(LetAst* a) =>
 			checkLet(ctx, locals, ast, a, expected),
 		(LiteralFloatAst a) =>
@@ -322,7 +327,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(SharedAst* a) =>
 			checkShared(ctx, locals, ast, a, expected),
 		(ThenAst* a) =>
-			checkThen(ctx, locals, ast, *a, expected),
+			checkThen(ctx, locals, ast, a, expected),
 		(ThrowAst* a) =>
 			checkThrow(ctx, locals, ast, a, expected),
 		(TrustedAst* a) =>
@@ -330,7 +335,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(TypedAst* a) =>
 			checkTyped(ctx, locals, ast, a, expected),
 		(WithAst* a) =>
-			checkWith(ctx, locals, ast, *a, expected));
+			checkWith(ctx, locals, ast, a, expected));
 
 private:
 
@@ -378,12 +383,11 @@ Expr checkArrowAccess(
 	ExprAst* source,
 	ref ArrowAccessAst ast,
 	ref Expected expected,
-) {
-	SmallArray!ExprAst derefArgs = small!ExprAst(arrayOfSingle(ast.left));
-	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, symbol!"*"), derefArgs);
-	ExprAst deref = ExprAst(Range(source.range.start, ast.name.start), ExprAstKind(callDeref));
-	return checkCallSpecial(ctx, locals, source, ast.keywordRange, ast.name.name, [deref], expected);
-}
+) =>
+	checkCallSpecialCb1(
+		ctx, locals, source, ast.arrowRange, ast.name.name, expected,
+		(ref Expected argExpected) =>
+			checkCallSpecial(ctx, locals, source, ast.arrowRange, symbol!"*", arrayOfSingle(ast.left), argExpected));
 
 Expr checkIf(
 	ref ExprCtx ctx,
@@ -477,8 +481,8 @@ Expr checkAssignment(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	in ExprAst left,
-	in Range keywordRange,
+	ref ExprAst left,
+	Range keywordRange,
 	ExprAst* right,
 	ref Expected expected,
 ) {
@@ -499,11 +503,12 @@ Expr checkAssignment(
 					return none!Symbol;
 			}
 		}();
-		if (has(name)) {
-			//TODO:PERF use temp alloc
-			ExprAst[] args = append(ctx.alloc, leftCall.args, *right);
-			return checkCallSpecial(ctx, locals, source, keywordRange, force(name), args, expected);
-		} else {
+		if (has(name))
+			return checkCallSpecialCbN(
+				ctx, locals, source, keywordRange, force(name), expected, leftCall.args.length + 1,
+				(size_t i, ref Expected argExpected) =>
+					checkExpr(ctx, locals, i == leftCall.args.length ? right : &leftCall.args[i], argExpected));
+		else {
 			addDiag2(ctx, source, Diag(Diag.AssignmentNotAllowed()));
 			return bogus(expected, source);
 		}
@@ -541,19 +546,17 @@ Expr checkInterpolated(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	in InterpolatedAst ast,
+	ref InterpolatedAst ast,
 	ref Expected expected,
-) {
-	SmallArray!ExprAst args = map(ctx.alloc, ast.parts, (ref ExprAst part) =>
-		part.kind.isA!LiteralStringAst
-			? part
-			: ExprAst(part.range, ExprAstKind(CallAst(
-				CallAst.Style.implicit,
-				NameAndRange(source.range.start, symbol!"to"),
-				newSmallArray(ctx.alloc, [part])))));
-	CallAst call = CallAst(CallAst.style.implicit, NameAndRange(source.range.start, symbol!"interpolate"), args);
-	return checkCall(ctx, locals, source, call, expected);
-}
+) =>
+	checkCallSpecialCbN(
+		ctx, locals, source, source.range[0 .. 1], symbol!"interpolate", expected, ast.parts.length,
+		(size_t i, ref Expected argExpected) {
+			ExprAst* part = &ast.parts[i];
+			return part.kind.isA!LiteralStringAst
+				? checkLiteralString(ctx, part, part.kind.as!LiteralStringAst.value, argExpected)
+				: checkCallSpecial(ctx, locals, source, part.range, symbol!"to", arrayOfSingle(part), argExpected);
+		});
 
 struct VariableRefAndType {
 	@safe @nogc pure nothrow:
@@ -1183,7 +1186,7 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 	}
 
 	LambdaAndReturnType res = checkLambdaInner(
-		ctx, locals, &ast.inner, *inner, expected,
+		ctx, locals, &ast.inner, inner.param, &inner.body_, expected,
 		some(instantiateStructNeverDelay(
 			ctx.instantiateCtx, ctx.commonTypes.funStructs[FunKind.mut], et.funType.structInst.typeArgs)),
 		et.instantiatedParamType,
@@ -1209,8 +1212,15 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 bool isFuture(in ExprCtx ctx, in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == ctx.commonTypes.future;
 
-Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {
-	MutOpt!ExpectedLambdaType opEt = getExpectedLambda(ctx, source, typeFromDestructure(ctx, ast.param), expected);
+Expr checkLambda(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ref DestructureAst paramAst,
+	ExprAst* bodyAst,
+	ref Expected expected,
+) {
+	MutOpt!ExpectedLambdaType opEt = getExpectedLambda(ctx, source, typeFromDestructure(ctx, paramAst), expected);
 	if (!has(opEt))
 		return bogus(expected, source);
 
@@ -1221,7 +1231,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 		return bogus(expected, source);
 	}
 	return checkLambdaInner(
-		ctx, locals, source, ast, expected, none!(StructInst*),
+		ctx, locals, source, paramAst, bodyAst, expected, none!(StructInst*),
 		et.instantiatedParamType,
 		et.funType.returnType,
 		et.typeContext,
@@ -1247,7 +1257,8 @@ LambdaAndReturnType checkLambdaInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	ref LambdaAst ast,
+	ref DestructureAst paramAst,
+	ExprAst* bodyAst,
 	ref Expected expected,
 	Opt!(StructInst*) mutTypeForExplicitShared,
 	Type paramType,
@@ -1256,7 +1267,7 @@ LambdaAndReturnType checkLambdaInner(
 	StructDecl* funStruct,
 	LambdaExpr.Kind kind,
 ) {
-	Destructure param = checkDestructure2(ctx, ast.param, paramType, DestructureKind.param);
+	Destructure param = checkDestructure2(ctx, paramAst, paramType, DestructureKind.param);
 	LambdaExpr* lambda = allocate(ctx.alloc, LambdaExpr(kind, param, mutTypeForExplicitShared));
 	return withMaxStackArray!(LambdaAndReturnType, ClosureFieldBuilder)(
 		locals.countAllAccessibleLocals,
@@ -1272,7 +1283,7 @@ LambdaAndReturnType checkLambdaInner(
 				nonInstantiatedReturnType,
 				returnTypeContext,
 				(ref Expected returnTypeInferrer) =>
-					checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
+					checkExprWithDestructure(ctx, bodyLocals, param, bodyAst, returnTypeInferrer));
 			StructInst* instFunStruct = instantiateStructNeverDelay(
 				ctx.instantiateCtx, funStruct, [bodyAndType.b, param.type]);
 			lambda.fillLate(
@@ -1807,36 +1818,27 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in WithAst _) =>
 			false);
 
-Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAst ast, ref Expected expected) {
-	// TODO: NO ALLOC
-	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(
-		allocate(ctx.alloc, LambdaAst(ast.param, none!Pos, ast.body_))));
+Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ForAst* ast, ref Expected expected) {
 	Symbol funName = hasBreakOrContinue(ast.body_) ? symbol!"for-break" : symbol!"for-loop";
 	Range keywordRange = ast.forKeywordRange(*source);
-	if (!ast.else_.kind.isA!EmptyAst) {
-		// TODO: NO ALLOC
-		ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(
-			allocate(ctx.alloc, LambdaAst(DestructureAst(DestructureAst.Void(source.range)), none!Pos, ast.else_))));
-		return checkCallSpecial(
-			ctx, locals, source, keywordRange, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
-	} else
-		return checkCallSpecial(ctx, locals, source, keywordRange, funName, [ast.collection, lambdaBody], expected);
+	return ast.else_.kind.isA!EmptyAst
+		? checkCallArgAndLambda(
+			ctx, locals, source, keywordRange, funName, &ast.collection, ast.param, &ast.body_, expected)
+		: checkCallArgAnd2Lambdas(
+			ctx, locals, source, keywordRange, funName, &ast.collection, ast.param, &ast.body_, &ast.else_, expected);
 }
 
-Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref WithAst ast, ref Expected expected) {
+Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, WithAst* ast, ref Expected expected) {
 	Range keywordRange = ast.withKeywordRange(*source);
 	if (!ast.else_.kind.isA!(EmptyAst))
 		addDiag2(ctx, keywordRange, Diag(Diag.WithHasElse()));
-	// TODO: NO ALLOC
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, none!Pos, ast.body_))));
-	return checkCallSpecial(ctx, locals, source, keywordRange, symbol!"with-block", [ast.arg, lambda], expected);
+	return checkCallArgAndLambda(
+		ctx, locals, source, keywordRange, symbol!"with-block", &ast.arg, ast.param, &ast.body_, expected);
 }
 
-Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ThenAst ast, ref Expected expected) {
-	// TODO: NO ALLOC
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, none!Pos, ast.then))));
-	return checkCallSpecial(ctx, locals, source, ast.keywordRange, symbol!"then", [ast.futExpr, lambda], expected);
-}
+Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThenAst* ast, ref Expected expected) =>
+	checkCallArgAndLambda(
+		ctx, locals, source, ast.keywordRange, symbol!"then", &ast.futExpr, ast.left, &ast.then, expected);
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {
 	Type type = typeFromAst2(ctx, ast.type);

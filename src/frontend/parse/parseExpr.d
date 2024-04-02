@@ -783,8 +783,7 @@ ExprAst parseLambdaAfterArrow(
 	Pos arrowPos,
 ) {
 	ExprAst body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
-	return ExprAst(range(lexer, start), ExprAstKind(
-		allocate(lexer.alloc, LambdaAst(parameter, some(arrowPos), body_))));
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LambdaAst(parameter, arrowPos, body_))));
 }
 
 ExprAst parseExprInlineOrBlock(

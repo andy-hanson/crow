@@ -237,8 +237,11 @@ immutable struct ExpressionPositionKind {
 enum ExprKeyword {
 	ampersand,
 	assert_,
-	colon,
 	colonColon,
+	colonInAssertOrForbid,
+	colonInFor,
+	colonInIf,
+	colonInWith,
 	elif,
 	else_,
 	forbid,

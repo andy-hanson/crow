@@ -386,14 +386,19 @@ void getExprKeywordHover(
 		case ExprKeyword.colonColon:
 			writer ~= "Provides an expected type for the expression to its left.";
 			break;
-		case ExprKeyword.colon:
+		case ExprKeyword.colonInAssertOrForbid:
 			writer ~= "If the condition is '";
-			if (astKind.isA!IfAst) {
-				writer ~= "'false', returns the expression to the right of the colon.";
-			} else {
-				writer ~= astKind.as!AssertOrForbidAst.isForbid ? "true" : "false";
-				writer ~= "', throws an exception with the message to the right of the ':'.";
-			}
+			writer ~= astKind.as!AssertOrForbidAst.isForbid ? "true" : "false";
+			writer ~= "', throws an exception with the message to the right of the ':'.";
+			break;
+		case ExprKeyword.colonInFor:
+			writer ~= "The expression to the right of the ':' is the first argument to 'for-loop' or 'for-break'.";
+			break;
+		case ExprKeyword.colonInIf:
+			writer ~= "If the condition is 'false', returns the expression to the right of the colon.";
+			break;
+		case ExprKeyword.colonInWith:
+			writer ~= "The expression to the right of the ':' is the first argument to 'with-block'.";
 			break;
 		case ExprKeyword.elif:
 			writer ~= "If the first condition is false, evaluates another 'if'.";

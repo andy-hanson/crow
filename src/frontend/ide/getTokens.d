@@ -510,7 +510,6 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					addExprsTokens(ctx, x.args);
 					break;
 				case CallAst.Style.comma:
-				case CallAst.Style.implicit:
 				case CallAst.Style.subscript:
 				case CallAst.Style.questionSubscript:
 					addExprsTokens(ctx, x.args);
@@ -547,8 +546,10 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				if (!part.kind.isA!LiteralStringAst) {
 					stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, part.range.start - 1));
 					addExprTokens(ctx, part);
-					// use 'min' since '}' may be missing
-					advanceTo(ctx.tokens, min(part.range.end + 1, a.range.end));
+					advanceTo(ctx.tokens, i == x.parts.length - 1
+						// use 'min' since '}' may be missing
+						? min(part.range.end + 1, a.range.end)
+						: x.parts[i + 1].range.start);
 				}
 			}
 			stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, a.range.end));
