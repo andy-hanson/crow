@@ -17,7 +17,6 @@ import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import frontend.lang : CCompileOptions, CVersion, OptimizationLevel;
 import frontend.showModel : ShowCtx;
-import lower.lowExprHelpers : boolType;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
 import model.constant : Constant;
 import model.lowModel :
@@ -1741,8 +1740,6 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapAddNat32:
 		case BuiltinBinary.wrapAddNat64:
 			return operator("+");
-		case BuiltinBinary.and:
-			return writeLogicalOperator(writer, indent, ctx, writeKind, LogicalOperator.and, left, right);
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseAndInt16:
 		case BuiltinBinary.bitwiseAndInt32:
@@ -1808,8 +1805,6 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			return operator("*");
-		case BuiltinBinary.orBool:
-			return writeLogicalOperator(writer, indent, ctx, writeKind, LogicalOperator.or, left, right);
 		case BuiltinBinary.seq:
 			if (!writeKind.isA!(WriteKind.Inline))
 				writeExprVoid(writer, indent, ctx, left);
@@ -1857,8 +1852,6 @@ WriteExprResult writeSpecialBinary(
 	}
 }
 
-enum LogicalOperator { and, or }
-
 immutable struct WriteExprResultAndNested {
 	WriteExprResult result;
 	WriteKind writeKind;
@@ -1886,52 +1879,6 @@ WriteExprResultAndNested getNestedWriteKind(
 		return WriteExprResultAndNested(WriteExprResult(temp), WriteKind(WriteKind.UseTemp(temp)));
 	} else
 		return WriteExprResultAndNested(writeExprDone(), writeKind);
-}
-
-WriteExprResult writeLogicalOperator(
-	scope ref Writer writer,
-	size_t indent,
-	scope ref FunBodyCtx ctx,
-	in WriteKind writeKind,
-	LogicalOperator operator,
-	in LowExpr left,
-	in LowExpr right,
-) {
-	/*
-	`a && b` ==> `if (a) { return b; } else { return 0; }`
-	`a || b` ==> `if (a) { return 1; } else { return b; }`
-	*/
-	WriteExprResult cond = writeExprTempOrInline(writer, indent, ctx, left);
-	WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, boolType, castNonScope_ref(writeKind));
-	writeNewline(writer, indent);
-	writer ~= "if (";
-	writeTempOrInline(writer, ctx, left, cond);
-	writer ~= ") {";
-	final switch (operator) {
-		case LogicalOperator.and:
-			cast(void) writeExpr(writer, indent + 1, ctx, nested.writeKind, right);
-			break;
-		case LogicalOperator.or:
-			cast(void) writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
-				writer ~= '1';
-			});
-			break;
-	}
-	writeNewline(writer, indent);
-	writer ~= "} else {";
-	final switch (operator) {
-		case LogicalOperator.and:
-			cast(void) writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
-				writer ~= '0';
-			});
-			break;
-		case LogicalOperator.or:
-			cast(void) writeExpr(writer, indent + 1, ctx, nested.writeKind, right);
-			break;
-	}
-	writeNewline(writer, indent);
-	writer ~= '}';
-	return nested.result;
 }
 
 WriteExprResult writeIf(

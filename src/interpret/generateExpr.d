@@ -1024,17 +1024,6 @@ void generateSpecialBinary(
 		case BuiltinBinary.addFloat64:
 			fn(&fnAddFloat64);
 			break;
-		case BuiltinBinary.and:
-			generateIf(
-				writer, ctx, source, locals, after, left,
-				(ref ExprAfter innerAfter) {
-					generateExpr(writer, ctx, locals, innerAfter, right);
-				},
-				(ref ExprAfter innerAfter) {
-					writePushConstant(writer, source, false);
-					handleAfter(writer, ctx, source, innerAfter);
-				});
-			break;
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			fn(&fnUnsafeBitShiftLeftNat64);
 			break;
@@ -1133,17 +1122,6 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.mulFloat64:
 			fn(&fnMulFloat64);
-			break;
-		case BuiltinBinary.orBool:
-			generateIf(
-				writer, ctx, source, locals, after, left,
-				(ref ExprAfter innerAfter) {
-					writePushConstant(writer, source, true);
-					handleAfter(writer, ctx, source, innerAfter);
-				},
-				(ref ExprAfter innerAfter) {
-					generateExpr(writer, ctx, locals, innerAfter, right);
-				});
 			break;
 		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);

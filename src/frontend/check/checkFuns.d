@@ -553,7 +553,7 @@ void checkFunsWithAsts(
 				case FunFlags.SpecialBody.builtin:
 					if (!funAst.body_.kind.isA!EmptyAst)
 						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
-					return getBuiltinFun(ctx, fun);
+					return getBuiltinFun(ctx, commonTypes, fun);
 				case FunFlags.SpecialBody.extern_:
 					if (!funAst.body_.kind.isA!EmptyAst)
 						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));

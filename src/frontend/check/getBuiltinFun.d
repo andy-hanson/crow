@@ -4,16 +4,19 @@ module frontend.check.getBuiltinFun;
 
 import frontend.check.checkCall.checkCallSpecs : isEnumOrFlags, isFlags;
 import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.instantiate : isOptionType;
 import model.constant : constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
 	BuiltinBinary,
+	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
 	BuiltinUnaryMath,
 	BuiltinTernary,
+	CommonTypes,
 	Destructure,
 	EnumFunction,
 	FlagsFunction,
@@ -29,10 +32,10 @@ import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import versionInfo : VersionFun;
 
-FunBody getBuiltinFun(ref CheckCtx ctx, FunDecl* fun) {
+FunBody getBuiltinFun(ref CheckCtx ctx, in CommonTypes commonTypes, FunDecl* fun) {
 	Destructure[] params = paramsArray(fun.params);
 	return inner(
-		ctx, fun.nameRange.range, fun.name, fun.returnType, params.length,
+		ctx, commonTypes, fun.nameRange.range, fun.name, fun.returnType, params.length,
 		params.length >= 1 ? params[0].type : Type.bogus,
 		params.length >= 2 ? params[1].type : Type.bogus,
 		fun.specs);
@@ -42,6 +45,7 @@ private:
 
 FunBody inner(
 	ref CheckCtx ctx,
+	in CommonTypes commonTypes,
 	in Range range,
 	Symbol name,
 	Type rt,
@@ -50,8 +54,9 @@ FunBody inner(
 	Type p1,
 	in SpecInst*[] specs,
 ) {
-	BuiltinUnary failUnary = cast(BuiltinUnary) 0xff;
-	BuiltinBinary failBinary = cast(BuiltinBinary) 0xff;
+	BuiltinUnary failUnary() => cast(BuiltinUnary) 0xffffffff;
+	BuiltinBinary failBinary() => cast(BuiltinBinary) 0xffffffff;
+	BuiltinBinaryLazy failBinaryLazy() => cast(BuiltinBinaryLazy) 0xffffffff;
 
 	FunBody fail() {
 		addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.function_, name)));
@@ -91,6 +96,8 @@ FunBody inner(
 			: isBinaryFloat64()
 			? FunBody(BuiltinFun(kind64))
 			: fail();
+	FunBody binaryLazy(BuiltinBinaryLazy kind) =>
+		arity == 2 && kind != failBinaryLazy ? FunBody(BuiltinFun(kind)) : fail();
 
 	switch (name.value) {
 		case symbol!"+".value:
@@ -135,13 +142,16 @@ FunBody inner(
 				isPointerConstOrMut(p0) ? BuiltinBinary.eqPtr :
 				failBinary);
 		case symbol!"&&".value:
-			return binary(BuiltinBinary.and);
+			return binaryLazy(isBool(rt) && isBool(p0) && isBool(p1) ? BuiltinBinaryLazy.boolAnd : failBinaryLazy);
 		case symbol!"||".value:
-			return isBool(rt)
-				? binary(BuiltinBinary.orBool)
-				: FunBody(BuiltinFun(BuiltinFun.OptOr()));
+			return binaryLazy(
+				isBool(rt) && isBool(p0) && isBool(p1)
+				? BuiltinBinaryLazy.boolOr
+				: isOptionType(commonTypes, rt) && isOptionType(commonTypes, p0) && isOptionType(commonTypes, p1)
+				? BuiltinBinaryLazy.optionOr
+				: failBinaryLazy);
 		case symbol!"??".value:
-			return FunBody(BuiltinFun(BuiltinFun.OptQuestion2()));
+			return binaryLazy(isOptionType(commonTypes, p0) ? BuiltinBinaryLazy.optionQuestion2 : failBinaryLazy);
 		case symbol!"&".value:
 			return isFlags(specs, rt) ? FunBody(EnumFunction.intersect) : binary(isInt8(rt)
 				? BuiltinBinary.bitwiseAndInt8

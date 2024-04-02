@@ -112,10 +112,15 @@ private LowExpr genUnary(
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(kind, arg))));
 
 LowExpr genIf(ref Alloc alloc, UriAndRange range, LowExpr cond, LowExpr then, LowExpr else_) =>
-	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.If(cond, then, else_))));
+	LowExpr(then.type, range, genIfKind(alloc, cond, then, else_));
+LowExprKind genIfKind(ref Alloc alloc, LowExpr cond, LowExpr then, LowExpr else_) =>
+	LowExprKind(allocate(alloc, LowExprKind.If(cond, then, else_)));
 
 LowExpr genIncrPointer(ref Alloc alloc, UriAndRange range, LowType.PtrRawConst ptrType, LowExpr ptr) =>
 	genAddPtr(alloc, ptrType, range, ptr, genConstantNat64(range, 1));
+
+LowExpr genConstantBool(UriAndRange range, bool value) =>
+	LowExpr(boolType, range, LowExprKind(Constant(IntegralValue(value))));
 
 LowExpr genConstantNat64(UriAndRange range, ulong value) =>
 	LowExpr(nat64Type, range, genConstantNat64Kind(value));
@@ -218,6 +223,10 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 			return BuiltinBinary.eqNat64;
 	}
 }
+
+LowExpr genUnionKindEquals(ref Alloc alloc, UriAndRange range, LowExpr a, ulong value) =>
+	LowExpr(boolType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(
+		BuiltinBinary.eqNat64, [genUnionKind(range, allocate(alloc, a)), genConstantNat64(range, value)]))));
 
 private BuiltinBinary intersectForType(PrimitiveType a) {
 	final switch (a) {

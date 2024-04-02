@@ -371,16 +371,8 @@ void checkSpecialBinary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialB
 			i == 1 && canTailRecurse(a.kind) ? exprPos : ExprPos.nonTail);
 }
 
-bool canTailRecurse(BuiltinBinary a) {
-	switch (a) {
-		case BuiltinBinary.and:
-		case BuiltinBinary.orBool:
-		case BuiltinBinary.seq:
-			return true;
-		default:
-			return false;
-	}
-}
+bool canTailRecurse(BuiltinBinary a) =>
+	a == BuiltinBinary.seq;
 
 ExpectBinary binaryExpected(
 	in BuiltinBinary kind,
@@ -404,9 +396,6 @@ ExpectBinary binaryExpected(
 			assert(returnType == arg0Type);
 			assert(isPtrGcOrRaw(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
-		case BuiltinBinary.and:
-		case BuiltinBinary.orBool:
-			return expect(boolType, boolType, boolType);
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseOrInt8:
 		case BuiltinBinary.bitwiseXorInt8:

@@ -16,6 +16,7 @@ import lower.lowExprHelpers :
 	genCall,
 	genCallKind,
 	genCreateRecord,
+	genConstantBool,
 	genConstantNat64,
 	genDerefGcPtr,
 	genDrop,
@@ -25,6 +26,7 @@ import lower.lowExprHelpers :
 	genEnumToIntegral,
 	genEnumUnion,
 	genIf,
+	genIfKind,
 	genLet,
 	genLetTemp,
 	genLetTempKind,
@@ -40,6 +42,7 @@ import lower.lowExprHelpers :
 	genSizeOfKind,
 	genUnionAs,
 	genUnionKind,
+	genUnionKindEquals,
 	genVoid,
 	genWrapMulNat64,
 	genWriteToPtr,
@@ -105,6 +108,7 @@ import model.lowModel :
 	UpdateParam;
 import model.model :
 	BuiltinBinary,
+	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
 	BuiltinFun,
 	BuiltinTernary,
@@ -149,7 +153,7 @@ import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
-import util.integralValues : IntegralValue, integralValuesRange;
+import util.integralValues : IntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, forceNonRef, has, none, Opt, optIf, optOrDefault, some;
@@ -1325,53 +1329,40 @@ LowExprKind getCallBuiltinExpr(
 	in ConcreteExpr[] args,
 	BuiltinFun kind,
 ) {
-	LowType paramType(size_t index) {
-		return index < args.length
-			? lowTypeFromConcreteType(ctx.typeCtx, called.paramsIncludingClosure[index].type)
-			: voidType;
-	}
-	LowExpr getArg(ref ConcreteExpr arg, ExprPos argPos) =>
+	LowExpr getArg(ref ConcreteExpr arg, ExprPos argPos = ExprPos.nonTail) =>
 		getLowExpr(ctx, locals, arg, argPos);
-	LowType p0 = paramType(0);
-	LowType p1 = paramType(1);
+	LowExpr getArg0() =>
+		getArg(args[0]);
+	LowExpr getArg1() =>
+		getArg(args[1]);
 	return kind.match!LowExprKind(
 		(BuiltinFun.AllTests) =>
 			assert(false), // handled in concretize
 		(BuiltinUnary kind) {
 			assert(args.length == 1);
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg(args[0], ExprPos.nonTail))));
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg0)));
 		},
 		(BuiltinUnaryMath kind) {
 			assert(args.length == 1);
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnaryMath(
-				kind, getArg(args[0], ExprPos.nonTail))));
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnaryMath(kind, getArg0)));
 		},
 		(BuiltinBinary kind) {
 			assert(args.length == 2);
-			ExprPos arg1Pos = () {
-				switch (kind) {
-					case BuiltinBinary.and:
-					case BuiltinBinary.orBool:
-						return exprPos;
-					default:
-						return ExprPos.nonTail;
-				}
-			}();
-			return maybeOptimizeSpecialBinary(
-				ctx, range, kind, getArg(args[0], ExprPos.nonTail), getArg(args[1], arg1Pos));
+			return maybeOptimizeSpecialBinary(ctx, range, kind, getArg0, getArg1);
+		},
+		(BuiltinBinaryLazy kind) {
+			assert(args.length == 2);
+			return genBuiltinBinaryLazy(ctx, type, range, kind, getArg0, getArg(args[1], ExprPos.tail));
 		},
 		(BuiltinBinaryMath kind) {
 			assert(args.length == 2);
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(kind, [
-				getArg(args[0], ExprPos.nonTail),
-				getArg(args[1], ExprPos.nonTail)])));
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(
+				kind, [getArg0,getArg1])));
 		},
 		(BuiltinTernary kind) {
 			assert(args.length == 3);
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(kind, [
-				getArg(args[0], ExprPos.nonTail),
-				getArg(args[1], ExprPos.nonTail),
-				getArg(args[2], ExprPos.nonTail)])));
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(
+				kind, [getArg0, getArg1, getArg(args[2])])));
 		},
 		(BuiltinFun.CallLambda) =>
 			assert(false), // handled in concretize
@@ -1384,29 +1375,6 @@ LowExprKind getCallBuiltinExpr(
 		(BuiltinFun.MarkVisit) =>
 			// Handled in concretize
 			assert(false),
-		(BuiltinFun.OptOr) {
-			assert(args.length == 2);
-			assert(p0 == p1);
-			return withLetTemp(ctx, locals, args[0], (LowExpr getLhs) =>
-				LowExpr(p0, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Switch(
-					genUnionKind(range, allocate(ctx.alloc, getLhs)),
-					integralValuesRange(2),
-					newArray!LowExpr(ctx.alloc, [getArg(args[1], exprPos), getLhs]),
-					genAbort(type, range))))));
-		},
-		(BuiltinFun.OptQuestion2) {
-			assert(args.length == 2);
-			return withLetTemp(ctx, locals, args[0], (LowExpr getArg0) {
-				LowExpr* getArg0Ptr = allocate(ctx.alloc, getArg0);
-				return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Switch(
-					genUnionKind(range, getArg0Ptr),
-					integralValuesRange(2),
-					newArray!LowExpr(ctx.alloc, [
-						getArg(args[1], exprPos),
-						genUnionAs(type, range, getArg0Ptr, 1)]),
-					genAbort(type, range)))));
-		 	});
-		},
 		(BuiltinFun.PointerCast) {
 			assert(args.length == 1);
 			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail));
@@ -1457,6 +1425,37 @@ LowExprKind maybeOptimizeSpecialBinary(
 			return unopt();
 	}
 }
+
+LowExprKind genBuiltinBinaryLazy(
+	ref GetLowExprCtx ctx,
+	LowType type,
+	UriAndRange range,
+	BuiltinBinaryLazy kind,
+	LowExpr arg0,
+	LowExpr arg1,
+) {
+	final switch (kind) {
+		case BuiltinBinaryLazy.boolAnd:
+			return genIfKind(ctx.alloc, arg0, arg1, genConstantBool(range, false));
+		case BuiltinBinaryLazy.boolOr:
+			return genIfKind(ctx.alloc, arg0, genConstantBool(range, true), arg1);
+		case BuiltinBinaryLazy.optionOr:
+			return genOptionOrLike(ctx, range, arg0, arg1, (LowExpr x) => x);
+		case BuiltinBinaryLazy.optionQuestion2:
+			return genOptionOrLike(ctx, range, arg0, arg1, (LowExpr x) =>
+				genUnionAs(type, range, allocate(ctx.alloc, x), 1));
+	}
+}
+LowExprKind genOptionOrLike(
+	ref GetLowExprCtx ctx,
+	UriAndRange range,
+	LowExpr arg0,
+	LowExpr arg1,
+	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbArg0NonEmpty,
+) =>
+	// x = arg0; x.kind == 1 ? cbArg0NonEmpty(x) : arg1
+	genLetTempKind(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getArg0) =>
+		genIf(ctx.alloc, range, genUnionKindEquals(ctx.alloc, range, getArg0, 1), cbArg0NonEmpty(getArg0), arg1));
 
 LowExprKind getCreateArrayExpr(
 	ref GetLowExprCtx ctx,

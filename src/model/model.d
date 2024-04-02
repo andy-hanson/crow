@@ -748,8 +748,6 @@ immutable struct BuiltinFun {
 	immutable struct CallFunPointer {}
 	immutable struct InitConstants {}
 	immutable struct MarkVisit {}
-	immutable struct OptOr {}
-	immutable struct OptQuestion2 {}
 	immutable struct PointerCast {}
 	immutable struct SizeOf {}
 	immutable struct StaticSymbols {}
@@ -759,6 +757,7 @@ immutable struct BuiltinFun {
 		BuiltinUnary,
 		BuiltinUnaryMath,
 		BuiltinBinary,
+		BuiltinBinaryLazy,
 		BuiltinBinaryMath,
 		BuiltinTernary,
 		CallLambda,
@@ -766,8 +765,6 @@ immutable struct BuiltinFun {
 		Constant,
 		InitConstants,
 		MarkVisit,
-		OptOr,
-		OptQuestion2,
 		PointerCast,
 		SizeOf,
 		StaticSymbols,
@@ -846,12 +843,10 @@ private enum BuiltinUnaryMath_ {
 	tanhFloat64,
 }
 
-alias BuiltinBinary = immutable BuiltinBinary_;
-private enum BuiltinBinary_ {
+enum BuiltinBinary {
 	addFloat32,
 	addFloat64,
 	addPtrAndNat64, // RHS is multiplied by size of pointee first
-	and,
 	bitwiseAndInt8,
 	bitwiseAndInt16,
 	bitwiseAndInt32,
@@ -903,7 +898,6 @@ private enum BuiltinBinary_ {
 	lessPtr,
 	mulFloat32,
 	mulFloat64,
-	orBool,
 	seq,
 	subFloat32,
 	subFloat64,
@@ -948,8 +942,15 @@ private enum BuiltinBinary_ {
 	writeToPtr,
 }
 
-alias BuiltinBinaryMath = immutable BuiltinBinaryMath_;
-private enum BuiltinBinaryMath_ {
+// These all have a lazy second argument
+enum BuiltinBinaryLazy {
+	boolAnd,
+	boolOr,
+	optionOr,
+	optionQuestion2,
+}
+
+enum BuiltinBinaryMath {
 	atan2Float32,
 	atan2Float64,
 }

@@ -168,7 +168,7 @@ StructInst* makeOptionType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type
 Type makeOptionIfNotAlready(InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
 	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
 
-private bool isOptionType(in CommonTypes commonTypes, in Type a) =>
+bool isOptionType(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
