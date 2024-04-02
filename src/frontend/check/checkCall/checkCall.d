@@ -70,7 +70,7 @@ import util.col.arrayBuilder : finish;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
-import util.opt : force, forceNonRef, has, none, Opt, optIf, some, some;
+import util.opt : force, has, none, Opt, optIf, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
@@ -363,7 +363,7 @@ Expr checkOptionCall(
 								Type option = inferred(optionalArgExpected);
 								lateSet(firstArg, ExprAndType(expr, option));
 								// We wrapped expected types in diagnostics, so it must unpack to an option
-								Type nonOption = forceNonRef(tryUnpackOptionType(ctx.commonTypes, option));
+								Type nonOption = force(tryUnpackOptionType(ctx.commonTypes, option));
 								return ExprAndType(expr, nonOption);
 							});
 					} else

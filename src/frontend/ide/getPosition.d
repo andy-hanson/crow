@@ -129,7 +129,7 @@ import util.col.array :
 	SmallArray;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
-import util.opt : force, forceNonRef, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : Pos, Range;
 import util.union_ : Union;
 import util.util : enumConvert;
@@ -590,7 +590,7 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				expressionPosition(ExpressionPositionKind(x))),
 		(ref CallOptionExpr x) =>
 			optOr!PositionKind(
-				keywordAt(forceNonRef(ast.kind.as!CallAst.keywordRange), ExprKeyword.questionDotOrSubscript),
+				keywordAt(force(ast.kind.as!CallAst.keywordRange), ExprKeyword.questionDotOrSubscript),
 				() => optIf(posIsAtCall(*ast, pos), () =>
 					expressionPosition(ExpressionPositionKind(x)))),
 		(ClosureGetExpr x) =>
@@ -606,7 +606,7 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				keywordAt(if_.firstKeywordRange, ExprKeyword.guardIfOrUnless),
 				() => positionAtCondition(ctx, x.condition, a, if_.condition, pos),
 				() => has(if_.secondKeywordRange)
-					? keywordAt(forceNonRef(if_.secondKeywordRange), ifSecondKeyword(if_.kind))
+					? keywordAt(force(if_.secondKeywordRange), ifSecondKeyword(if_.kind))
 					: none!PositionKind);
 		},
 		(ref LambdaExpr x) {

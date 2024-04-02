@@ -41,7 +41,7 @@ import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
-import util.opt : force, forceNonRef, has, none, Opt, optIf, optOr, some;
+import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Pos;
 import util.symbol : Symbol, symbol;
 import util.util : optEnumConvert;
@@ -343,7 +343,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				: mapLike(TypeAst.Map.Kind.data);
 		case Token.questionBracket:
 			mustTakeToken(lexer, Token.questionBracket);
-			TypeAst left = forceNonRef(suffix(TypeAst.SuffixSpecial.Kind.option));
+			TypeAst left = force(suffix(TypeAst.SuffixSpecial.Kind.option));
 			return tryTakeToken(lexer, Token.bracketRight)
 				? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
 					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.list))))

@@ -156,7 +156,7 @@ import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, forceNonRef, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
@@ -695,7 +695,7 @@ AllLowFuns getAllLowFuns(
 	LowFunIndex markFunIndex = mustGet(concreteFunToLowFunIndex, program.markFun);
 	LowFunIndex allocFunIndex = mustGet(concreteFunToLowFunIndex, program.allocFun);
 	Opt!LowFunIndex throwImplFunIndex = optIf(has(program.throwImplFun), () =>
-		mustGet(concreteFunToLowFunIndex, forceNonRef(program.throwImplFun)));
+		mustGet(concreteFunToLowFunIndex, force(program.throwImplFun)));
 	FullIndexMap!(LowFunIndex, LowFun) allLowFuns = fullIndexMapOfArr!(LowFunIndex, LowFun)(
 		mapWithIndexAndAppend(
 			getLowTypeCtx.alloc,
