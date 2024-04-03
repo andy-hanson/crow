@@ -867,7 +867,7 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 					case StringPart.After.quote:
 						return ExprAst(range(lexer, start), ExprAstKind(LiteralStringAst(part.text)));
 					case StringPart.After.lbrace:
-						return takeInterpolated(lexer, start, part.text, quoteKind);
+						return takeInterpolated(lexer, start, part, quoteKind);
 				}
 			}();
 			return tryParseDotsAndSubscripts(lexer, quoted);
@@ -949,10 +949,10 @@ ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 		: tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(name.name))));
 }
 
-ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind quoteKind) {
+ExprAst takeInterpolated(ref Lexer lexer, Pos start, StringPart firstPart, QuoteKind quoteKind) {
 	ExprAst[] parts = buildArray!ExprAst(lexer.alloc, (scope ref Builder!ExprAst res) {
-		if (!isEmpty(firstText))
-			res ~= ExprAst(range(lexer, start), ExprAstKind(LiteralStringAst(firstText)));
+		if (!isEmpty(firstPart.text))
+			res ~= ExprAst(firstPart.range, ExprAstKind(LiteralStringAst(firstPart.text)));
 		while (true) {
 			res ~= () {
 				if (peekToken(lexer, Token.braceRight)) {
@@ -963,10 +963,9 @@ ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind
 				} else
 					return parseExprNoBlock(lexer);
 			}();
-			Pos stringStart = curPos(lexer);
 			StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
 			if (!isEmpty(part.text))
-				res ~= ExprAst(range(lexer, stringStart), ExprAstKind(LiteralStringAst(part.text)));
+				res ~= ExprAst(part.range, ExprAstKind(LiteralStringAst(part.text)));
 			final switch (part.after) {
 				case StringPart.After.quote:
 					return;

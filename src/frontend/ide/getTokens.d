@@ -84,7 +84,7 @@ import util.sourceRange :
 	Range;
 import util.string : CString, cStringSize;
 import util.symbol : symbol;
-import util.util : min, stringOfEnum;
+import util.util : stringOfEnum;
 
 SemanticTokens tokensOfAst(ref Alloc alloc, in CrowFileInfo file) {
 	scope Ctx ctx = Ctx(TokensBuilder(file.content.content, &alloc, file.content.lineAndCharacterGetter));
@@ -541,18 +541,15 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				addExprTokens(ctx, branch);
 		},
 		(in InterpolatedAst x) {
-			advanceTo(ctx.tokens, a.range.start);
 			foreach (size_t i, ref ExprAst part; x.parts) {
-				if (!part.kind.isA!LiteralStringAst) {
-					stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, part.range.start - 1));
+				if (part.kind.isA!LiteralStringAst)
+					// Extend the range to include the opening or closing '"'
+					stringLiteral(ctx.tokens, Range(
+						i == 0 ? a.range.start : part.range.start,
+						i == x.parts.length - 1 ? a.range.end : part.range.end));
+				else
 					addExprTokens(ctx, part);
-					advanceTo(ctx.tokens, i == x.parts.length - 1
-						// use 'min' since '}' may be missing
-						? min(part.range.end + 1, a.range.end)
-						: x.parts[i + 1].range.start);
-				}
 			}
-			stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, a.range.end));
 		},
 		(in LambdaAst x) {
 			addDestructureTokens(ctx, x.param);

@@ -7,11 +7,13 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : Builder, finish;
 import util.opt : force, has, none, Opt, optIf;
+import util.sourceRange : Pos, Range, rangeOfStartAndLength;
 import util.string : CString, decodeHexDigit, MutCString, stringOfRange, takeChar, tryTakeChars;
 import util.unicode : safeToChar, tryUnicodeEncode;
 import util.util : enumConvert;
 
 immutable struct StringPart {
+	Range range;
 	string text;
 	After after;
 
@@ -29,54 +31,55 @@ enum QuoteKind {
 StringPart takeStringPart(
 	ref Alloc alloc,
 	return scope ref MutCString ptr,
+	Pos startPos,
 	QuoteKind quoteKind,
 	in AddDiag addDiag,
 ) {
+	CString partStart = ptr;
 	Builder!(immutable char) res = Builder!(immutable char)(&alloc);
-	StringPart.After after = () {
-		while (true) {
-			CString start = ptr;
-			switch (*ptr) {
-				case '"':
-					ptr++;
-					final switch (quoteKind) {
-						case QuoteKind.quoteDouble:
-							return StringPart.After.quote;
-						case QuoteKind.quoteDouble3:
-							if (tryTakeChars(ptr, "\"\""))
-								return StringPart.After.quote;
-							else
-								res ~= '"';
-							break;
-					}
-					break;
-				case '{':
-					ptr++;
-					return StringPart.After.lbrace;
-				case '\\':
-					ptr++;
-					takeStringEscape(res, start, ptr, addDiag);
-					break;
-				case '\r':
-				case '\n':
-					final switch (quoteKind) {
-						case QuoteKind.quoteDouble:
-							addDiag(start, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
-							return StringPart.After.quote;
-						case QuoteKind.quoteDouble3:
-							res ~= takeChar(ptr);
-							break;
-					}
-					break;
-				case '\0':
-					addDiag(start, ParseDiag(ParseDiag.Expected(enumConvert!(ParseDiag.Expected.Kind)(quoteKind))));
-					return StringPart.After.quote;
-				default:
-					res ~= takeChar(ptr);
-			}
+	while (true) {
+		CString start = ptr;
+		StringPart finishHere(StringPart.After after) =>
+			StringPart(rangeOfStartAndLength(startPos, start - partStart), finish(res), after);
+		switch (*ptr) {
+			case '"':
+				ptr++;
+				final switch (quoteKind) {
+					case QuoteKind.quoteDouble:
+						return finishHere(StringPart.After.quote);
+					case QuoteKind.quoteDouble3:
+						if (tryTakeChars(ptr, "\"\""))
+							return finishHere(StringPart.After.quote);
+						else
+							res ~= '"';
+						break;
+				}
+				break;
+			case '{':
+				ptr++;
+				return finishHere(StringPart.After.lbrace);
+			case '\\':
+				ptr++;
+				takeStringEscape(res, start, ptr, addDiag);
+				break;
+			case '\r':
+			case '\n':
+				final switch (quoteKind) {
+					case QuoteKind.quoteDouble:
+						addDiag(start, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
+						return finishHere(StringPart.After.quote);
+					case QuoteKind.quoteDouble3:
+						res ~= takeChar(ptr);
+						break;
+				}
+				break;
+			case '\0':
+				addDiag(start, ParseDiag(ParseDiag.Expected(enumConvert!(ParseDiag.Expected.Kind)(quoteKind))));
+				return finishHere(StringPart.After.quote);
+			default:
+				res ~= takeChar(ptr);
 		}
-	}();
-	return StringPart(finish(res), after);
+	}
 }
 
 private:

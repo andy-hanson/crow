@@ -68,11 +68,13 @@ uint getCurIndent(in Lexer lexer) =>
 	lexer.curIndent;
 
 private void addDiagFromPointer(scope ref Lexer lexer, CString start, ParseDiag diag) {
-	addDiag(lexer, Range(posOf(lexer, start), posOf(lexer, lexer.ptr)), diag);
+	addDiag(lexer, Range(posOf(lexer, start), posAtPtr(lexer)), diag);
 }
 
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
+private Pos posAtPtr(in Lexer lexer) =>
+	posOf(lexer, lexer.ptr);
 
 private Pos posOf(in Lexer lexer, in CString ptr) =>
 	ptr - lexer.sourceBegin;
@@ -124,7 +126,7 @@ Range range(in Lexer lexer, Pos start) =>
 	Range(start, posOf(lexer, lexer.prevTokenEnd));
 
 Range rangeForCurToken(in Lexer lexer, Pos start) =>
-	Range(start, posOf(lexer, lexer.ptr));
+	Range(start, posAtPtr(lexer));
 
 void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	if (!isNewlineToken(getPeekToken(lexer))) {
@@ -199,7 +201,7 @@ private void readNextToken(ref Lexer lexer) {
 	lexer.prevTokenEnd = lexer.ptr;
 	skipSpacesAndComments(lexer.ptr, (CString _, string _2) {}, (CString start, ParseDiag x) =>
 		addDiagFromPointer(lexer, start, x));
-	lexer.nextTokenPos = posOf(lexer, lexer.ptr);
+	lexer.nextTokenPos = posAtPtr(lexer);
 	cellSet(lexer.nextToken, lexToken(
 		lexer.ptr, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
 			addDiagFromPointer(lexer, start, x)));
@@ -215,9 +217,10 @@ private Range range(in Lexer lexer, CString begin) =>
 
 StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 	if (getPeekToken(lexer) != Token.braceRight) {
+		Pos start = posAtPtr(lexer);
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.closeInterpolated)));
 		skipUntilNewlineNoDiag(lexer);
-		return StringPart("", StringPart.After.quote);
+		return StringPart(Range(start, posAtPtr(lexer)), "", StringPart.After.quote);
 	} else
 		return takeStringPartCommon(lexer, quoteKind);
 }
@@ -228,7 +231,7 @@ StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 }
 
 private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
-	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (CString start, ParseDiag x) =>
+	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, posAtPtr(lexer), quoteKind, (CString start, ParseDiag x) =>
 		addDiagFromPointer(lexer, start, x));
 	// Don't skip newline token (which is a parse error)
 	if (!isNewlineToken(getPeekToken(lexer)))
