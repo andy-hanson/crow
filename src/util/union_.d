@@ -150,6 +150,7 @@ mixin template TaggedUnion(ReprTypes...) {
 	}
 
 	static foreach (i, Ty; MemberTypes) {
+		// TODO: this should be 'return scope'
 		@trusted T as(T : Ty)() {
 			assert(kind == i);
 			return getFromValueWithoutTag!Ty(valueWithoutTag);
@@ -284,12 +285,12 @@ mixin template Union(ReprTypes...) {
 
 	static foreach (i, Ty; ReprTypes) {
 		static if (is(Ty == toMemberType!Ty)) {
-			@trusted ref immutable(T) as(T : Ty)() immutable {
+			@trusted ref immutable(T) as(T : Ty)() immutable return scope {
 				assert(kind == i);
 				mixin("return as", i, ";");
 			}
 		} else {
-			@trusted immutable(T) as(T : toMemberType!Ty)() immutable {
+			@trusted immutable(T) as(T : toMemberType!Ty)() immutable return scope {
 				assert(kind == i);
 				mixin("return as", i, ";");
 			}

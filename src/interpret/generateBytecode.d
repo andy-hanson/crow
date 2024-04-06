@@ -240,6 +240,7 @@ void generateExternCall(
 			writeLongjmp(writer, source);
 			break;
 		case symbol!"setjmp".value:
+		case symbol!"_setjmp".value:
 			writeSetjmp(writer, source);
 			break;
 		default:

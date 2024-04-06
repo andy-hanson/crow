@@ -2,10 +2,15 @@ no-std
 import
 	./bool: bool, false, true
 	./compare: equal
-	./exception: exception, rethrow
 	./fun-util: subscript
-export
-	./private/bootstrap: error, ok, result
+
+###
+A `result` is either a success (`ok`) or failure (`error`) value.
+
+This provides a more explicit alternative to throwing an exception.
+Prefer this over throwing an exception if failure is likely.
+###
++result[ok, error] union(ok ok, error error)
 
 +==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
 
@@ -15,13 +20,6 @@ export
 		f[v]
 	as error e
 		e error
-
-+force[t] t(a (t, exception) result)
-	match a
-	as ok v
-		v
-	as error e
-		e rethrow
 
 +is-ok[t, u] bool(a (t, u) result)
 	match a

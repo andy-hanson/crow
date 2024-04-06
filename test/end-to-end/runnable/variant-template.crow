@@ -1,0 +1,22 @@
+main void()
+	info log "{1.x f}"
+	info log "{2::nat.x2 g}"
+	()
+
+v[t] variant mut
+x[t] variant-member(t v, t)
+f nat(a nat v)
+	match a
+	as x value
+		value
+	else
+		0
+
+v2 variant mut
+x2[t] variant-member(v2, t)
+g nat(a v2)
+	match a
+	as x2 value nat
+		value
+	else
+		0

@@ -7,6 +7,7 @@ import
 		WriteFile
 	../col/array: array, begin-pointer, size
 	../c-types: fd-t
+	../exception: exception
 	../misc: new, void
 	../number: ==, nat8, nat32, to
 	../pointer: null, size-of
@@ -14,6 +15,8 @@ import
 	../version: is-windows
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
+
++print-error variant-member(exception, string)
 
 +pipe enum(out, err)
 
@@ -43,7 +46,7 @@ import
 	written mut DWORD = 0
 	size32 nat32 = bytes.size to
 	ok = console WriteFile bytes.begin-pointer, size32, &written, null
-	assert ok : "{GetLastError show-win32-error}"
+	assert ok : "{GetLastError show-win32-error}".print-error
 	unless written == size32
 		# TODO: maybe retry
 		todo

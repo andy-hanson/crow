@@ -48,7 +48,6 @@ import model.model :
 	minValue,
 	nameOfEnumOrFlagsMember,
 	nameOfUnionMember,
-	nameRange,
 	Purity,
 	purityRange,
 	RecordField,
@@ -134,6 +133,10 @@ void checkStructBodies(
 				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
 				return StructBody(allocate(ctx.alloc,
 					checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts)));
+			},
+			(StructBodyAst.Variant x) {
+				checkOnlyStructModifiers(ctx, DeclKind.variant, ast.modifiers);
+				return StructBody(StructBody.Variant());
 			});
 	});
 }
@@ -255,26 +258,8 @@ LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAs
 		purityAndForced: optFromMut!(ModifierAst.Keyword*)(purityAndForced));
 }
 
-Linkage defaultLinkage(DeclKind a) {
-	final switch (a) {
-		case DeclKind.builtin:
-		case DeclKind.enum_:
-		case DeclKind.flags:
-		case DeclKind.record:
-		case DeclKind.union_:
-			return Linkage.internal;
-		case DeclKind.extern_:
-			return Linkage.extern_;
-		case DeclKind.alias_:
-		case DeclKind.externFunction:
-		case DeclKind.function_:
-		case DeclKind.global:
-		case DeclKind.spec:
-		case DeclKind.test:
-		case DeclKind.threadLocal:
-			assert(false);
-	}
-}
+Linkage defaultLinkage(DeclKind a) =>
+	a == DeclKind.extern_ ? Linkage.extern_ : Linkage.internal;
 
 Purity defaultPurity(DeclKind a) {
 	final switch (a) {
@@ -283,6 +268,7 @@ Purity defaultPurity(DeclKind a) {
 		case DeclKind.flags:
 		case DeclKind.record:
 		case DeclKind.union_:
+		case DeclKind.variant:
 			return Purity.data;
 		case DeclKind.extern_:
 			return Purity.mut;
@@ -293,6 +279,7 @@ Purity defaultPurity(DeclKind a) {
 		case DeclKind.test:
 		case DeclKind.spec:
 		case DeclKind.threadLocal:
+		case DeclKind.variantMember:
 			assert(false);
 	}
 }
@@ -310,7 +297,9 @@ DeclKind getDeclKind(in StructBodyAst a) =>
 		(in StructBodyAst.Record) =>
 			DeclKind.record,
 		(in StructBodyAst.Union) =>
-			DeclKind.union_);
+			DeclKind.union_,
+		(in StructBodyAst.Variant) =>
+			DeclKind.variant);
 
 Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 	switch (a) {

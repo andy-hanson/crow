@@ -36,7 +36,7 @@ import
 	crow/perf: measure-performance
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
-	crow/version: is-abort-on-throw, is-windows
+	crow/version: is-windows
 	../include/crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
 	../include/crow/col/experimental/private/index-set-tests: dummy-index-set-tests
 	../include/crow/col/private/array-tests: dummy-array-tests
@@ -57,6 +57,7 @@ import
 	../editor/vscode/license.txt as license string
 	./unit/auto-funs: dummy-auto-funs
 	./unit/conditions: dummy-conditions
+	./unit/exceptions: dummy-exceptions
 
 main nat^(_ string[]) summon
 	license is "public domain"
@@ -69,10 +70,11 @@ main nat^(_ string[]) summon
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
 	_ = dummy-auto-funs
-	_ = dummy-conditions
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
+	_ = dummy-conditions
+	_ = dummy-exceptions
 	_ = dummy-future-tests
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
@@ -91,11 +93,9 @@ main nat^(_ string[]) summon
 	_ = () :: (nat frozen-set)
 	# TODO: Windows support
 	unless trusted is-windows
-		# '!is-abort-on-throw' is how I detect using 'c2m' which can't use external libraries
-		unless trusted is-abort-on-throw
-			_ = generate-login-cookie
-			_ = quality-moderate
-			_ = get-environ
+		_ = generate-login-cookie
+		_ = quality-moderate
+		_ = get-environ
 	_ = () :: grammar-skip
 	_ = () :: http-server
 	_ = () :: (nat hamt-set)

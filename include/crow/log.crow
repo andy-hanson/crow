@@ -1,6 +1,5 @@
 no-std
 import
-	./exception: finally, with-block
 	./fun-util: subscript
 	./io/print: err, out, pipe, print
 	./misc: new, void
@@ -25,9 +24,9 @@ that task will still have the default log handler.
 ###
 +with-block[t] t(a temp-log-handler, cb t mut())
 	original-handler = get-log-handler
-	with : (() => trusted original-handler set-log-handler) finally
-		trusted a.handler set-log-handler
-		cb[]
+	trusted a.handler set-log-handler
+	finally trusted original-handler set-log-handler
+	cb[]
 
 ###
 Log severity.

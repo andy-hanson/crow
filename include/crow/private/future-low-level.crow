@@ -6,8 +6,8 @@ import
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		empty, exception, forwarded, future, future-state, hard-unreachable, lk, new, one-task,
-		rejected, resolved, set-state, state, tasks
+		empty, exception-and-backtrace, forwarded, future, future-state, hard-unreachable, lk, new,
+		one-task, rejected, resolved, set-state, state, tasks
 	./runtime: enqueue-task, enqueue-tasks, get-global-ctx, new-exclusion
 	./task-queue: exclusion, task
 	./thread-utils: acquire, init, lock, release, uninit
@@ -23,7 +23,7 @@ unresolved[t] t^() unsafe
 resolve[t] void(a t^, value t) unsafe
 	a resolve-or-reject value.resolved
 
-reject[t] void(a t^, error exception) unsafe
+reject[t] void(a t^, error exception-and-backtrace) unsafe
 	a resolve-or-reject error.rejected
 
 is-completed[t] bool(a t^)
@@ -149,9 +149,9 @@ add-task[t] void(a t^, task task) unsafe
 -add-tasks-choice[t] union(added, forward t^, tasks-are-ready) shared
 
 # Assuming the future is resolved, get the result.
-get-result[t] (t, exception) result(a t^) bare, unsafe
+get-result[t] (t, exception-and-backtrace) result(a t^) bare, unsafe
 	a.lock acquire
-	res ((t, exception) result, t) or-forwarded = match a state
+	res ((t, exception-and-backtrace) result, t) or-forwarded = match a state
 	as empty
 		hard-unreachable
 	as one-task _

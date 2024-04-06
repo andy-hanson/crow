@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: bool
-	../exception: finally, with-block
 	../fun-util: subscript
 	../misc: void
 	../number: ==, nat64
@@ -26,8 +25,8 @@ and iterate it at your leisure.
 	&a.lk
 -with-lock[out, t] out(a t shared[], cb out mut(a t mut[])) unsafe
 	a.lock acquire
-	with : (() => a.lock release) finally
-		cb[a.inner]
+	finally a.lock release
+	cb[a.inner]
 
 +new[t] t shared[](...a t array)
 	a.to new-from-new-mut-list

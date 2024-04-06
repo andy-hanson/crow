@@ -40,6 +40,7 @@ import model.model :
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
 	MatchUnionExpr,
+	MatchVariantExpr,
 	RecordField,
 	StructAlias,
 	StructBody,
@@ -48,10 +49,12 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
+	TryExpr,
 	Type,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl;
+	VarDecl,
+	VariantMember;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint;
 import util.opt : force, has;
@@ -114,6 +117,11 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "Ignores the value.";
 					case PositionKind.Keyword.Kind.union_:
 						return "Declares a type where a value will be one of the listed choices.";
+					case PositionKind.Keyword.Kind.variant:
+						return "Declares a union-like type with an unlimited set of members, " ~
+							"created by 'variant-member' declarations.";
+					case PositionKind.Keyword.Kind.variantMember:
+						return "Adds a member to a variant type.";
 				}
 			}();
 		},
@@ -155,6 +163,12 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		(PositionKind.MatchUnionCase x) {
 			writer ~= "Handler for union ";
 			writeName(writer, ctx, x.member.containingUnion.name);
+			writer ~= " member ";
+			writeName(writer, ctx, x.member.name);
+		},
+		(PositionKind.MatchVariantCase x) {
+			writer ~= "Handler for variant ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
 			writer ~= " member ";
 			writeName(writer, ctx, x.member.name);
 		},
@@ -280,6 +294,18 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= " :: ";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
 		},
+		(VariantMember* x) {
+			writer ~= "Variant member ";
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x)));
+			writer ~= '.';
+			writer ~= x.name;
+			if (x.type == Type(ctx.commonTypes.void_))
+				writer ~= " (no associated value)";
+			else {
+				writer ~= " :: ";
+				writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
+			}
+		},
 		(PositionKind.VisibilityMark x) {
 			writer ~= "Marks ";
 			writeName(writer, ctx, x.container.name);
@@ -310,7 +336,9 @@ void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in Struc
 		(in StructBody.Record) =>
 			"Record type ",
 		(in StructBody.Union) =>
-			"Union type ");
+			"Union type ",
+		(in StructBody.Variant) =>
+			"Variant type ");
 	writeName(writer, ctx, a.name);
 }
 
@@ -408,6 +436,11 @@ void getExprKeywordHover(
 				? "If no branch was satisfied, the 'match' evaluates to the 'else' branch."
 				: "If the condition is 'false', the 'else' branch is evaluated.";
 			break;
+		case ExprKeyword.finally_:
+			writer ~= "The expression below 'finally' runs first.\n" ~
+				"The expression to the right of 'finally' runs second, even if there was an exception.\n" ~
+				"The result is from the below expression; the right expression must be 'void'.";
+			break;
 		case ExprKeyword.forbid:
 			writer ~= exprKind.as!(AssertOrForbidExpr*).condition.matchIn!string(
 				(in Expr _) => "Throws if the condition is 'true'.",
@@ -490,6 +523,13 @@ void getExprKeywordHover(
 		case ExprKeyword.trusted:
 			writer ~= "Allows 'unsafe' code to be used anywhere.";
 			break;
+		case ExprKeyword.try_:
+			writer ~= exprKind.isA!(TryExpr*)
+				? "Evaluates and returns the 'try' block, " ~
+					"but if it throws is an exception matching a 'catch' block, returns that instead."
+				: "Runs the initializer (between '=' and 'catch'). If it succeeds, destructures it and continues.\n" ~
+					"If it throws the handled exception, returns the expression after the ':'.";
+			break;
 		case ExprKeyword.until:
 			writer ~= exprKind.as!(LoopWhileOrUntilExpr*).condition.isA!(Expr*)
 				? "Loop will run as long as the condition is 'false'."
@@ -520,6 +560,8 @@ void getMatchHover(
 				return "Evaluates the branch with the selected member of the enum";
 			case MatchInfo.Kind.union_:
 				return "Evaluates the branch with the selected member of the union";
+			case MatchInfo.Kind.variant:
+				return "Evaluates the branch with the selected member of the variant";
 			case MatchInfo.Kind.other:
 				return "Evaluates the branch with a matching value";
 		}
@@ -531,7 +573,7 @@ void getMatchHover(
 		: ".";
 }
 immutable struct MatchInfo {
-	enum Kind { enum_, union_, other }
+	enum Kind { enum_, union_, variant, other }
 	Kind kind;
 	Type matchedType;
 }
@@ -544,6 +586,8 @@ MatchInfo getMatchInfo(ExprKind a) =>
 		? MatchInfo(MatchInfo.Kind.other, a.as!(MatchStringLikeExpr*).matched.type)
 		: a.isA!(MatchUnionExpr*)
 		? MatchInfo(MatchInfo.Kind.union_, a.as!(MatchUnionExpr*).matched.type)
+		: a.isA!(MatchVariantExpr*)
+		? MatchInfo(MatchInfo.Kind.variant, a.as!(MatchVariantExpr*).matched.type)
 		: assert(false);
 
 void getExprHover(

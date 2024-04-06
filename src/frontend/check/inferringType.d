@@ -309,9 +309,6 @@ private void debugLogExpectedChoice(
 MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.isA!(LoopInfo*) ? someMut(expected.as!(LoopInfo*)) : noneMut!(LoopInfo*);
 
-bool isPurelyInferring(in Expected expected) =>
-	expected.isA!(Expected.Infer);
-
 /**
 Returns an index into 'choices' if it is the only allowed choice.
 If there is no unambiguous choice, adds a diagnostic and returns 'none'.
@@ -510,6 +507,11 @@ private void eachChoiceConst(
 				cb(choice);
 		},
 		(const LoopInfo*) {});
+
+
+// True if there is an unambiguous, non-inferring expected type.
+bool hasInferredType(InstantiateCtx ctx, ref const Expected expected) =>
+	has(tryGetNonInferringType(ctx, expected)) || expected.isA!(LoopInfo*);
 
 // This will return a result if there are no references to inferring type parameters.
 // (There may be references to the current function's type parameters.)

@@ -342,7 +342,7 @@ private ExitCode runFromLsp(
 		buildAndInterpret(
 			perf, server, extern_,
 			(in string x) { writeCb(Pipe.stderr, x); },
-			main, VersionOptions(), diagnosticsOnlyForUris, allArgs));
+			main, VersionOptions(isSingleThreaded: true, stackTraceEnabled: true), diagnosticsOnlyForUris, allArgs));
 }
 
 private __gshared Server serverStorage = void;

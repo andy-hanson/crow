@@ -14,8 +14,8 @@ import
 		# Create empty file if not exist
 		err = a.db-path.to sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
 		assert err == SQLITE_OK
-		with : (() => db close) finally
-			cb[db,]
+		finally db close
+		cb[db,]
 
 -close void(db sqlite3 mut*) summon, unsafe
 	err2 = db sqlite3_close
@@ -41,7 +41,7 @@ import
 		if err != SQLITE_OK
 			error-string string = error-message to
 			error-message.as-mut.pointer-cast sqlite3_free
-			throw "ERROR {err}: {error-string}"
+			throw "ERROR {err}: {error-string}" error
 
 -callback-ctx record by-val, mut
 	cb-row bool mut(row string[symbol])

@@ -64,6 +64,21 @@ TypeAst parseTypeArgForVarDecl(ref Lexer lexer) {
 		return TypeAst(TypeAst.Bogus(rangeAtChar(lexer)));
 }
 
+immutable struct VariantMemberArgs {
+	TypeAst variant;
+	Opt!TypeAst type;
+}
+VariantMemberArgs parseVariantMemberArgs(ref Lexer lexer) {
+	if (takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
+		TypeAst variant = parseType(lexer);
+		Opt!TypeAst type = optIf(tryTakeToken(lexer, Token.comma), () => parseType(lexer));
+		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+		return VariantMemberArgs(variant, type);
+	} else
+		return VariantMemberArgs(TypeAst(TypeAst.Bogus(rangeAtChar(lexer))));
+}
+
+
 Opt!(TypeAst*) tryParseTypeArgForExpr(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.at)
 		? some(allocate(lexer.alloc, parseTypeForTypedExpr(lexer)))

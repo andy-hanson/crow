@@ -1,7 +1,13 @@
 import
 	SDL2/SDL_video: SDL_GL_GetProcAddress
-	./headers:
-		GLbitfield, GLboolean, GLchar, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint
+	./headers
+
++gl-error record(action string, error GLenum, description string)
++new gl-error(action string, error GLenum)
+	action, error, ""
++new gl-error(action string, error string)
+	action, GL_NO_ERROR, error
++gl-error variant-member(exception, gl-error)
 
 +gl-ext record mut
 	glActiveTexture void function(texture GLenum)
@@ -99,5 +105,5 @@ import
 
 -load any-const-pointer(name c-string) summon, unsafe
 	proc = name SDL_GL_GetProcAddress
-	forbid proc == null : "Could not find {name}"
+	forbid proc == null : ("Loading GL library", name.to) gl-error
 	proc

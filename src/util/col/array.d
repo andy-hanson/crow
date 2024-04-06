@@ -67,7 +67,7 @@ struct MutSmallArray(T) {
 	@safe @nogc pure nothrow:
 	alias toArray this;
 
-	private this(inout PtrAndSmallNumber!T v) inout {
+	this(inout PtrAndSmallNumber!T v) inout {
 		sizeAndBegin = v;
 	}
 
@@ -88,7 +88,6 @@ struct MutSmallArray(T) {
 
 	@disable bool opEquals(in MutSmallArray!T rhs) scope const;
 
-	private:
 	PtrAndSmallNumber!T sizeAndBegin;
 }
 alias SmallArray(T) = immutable MutSmallArray!T;
@@ -193,17 +192,10 @@ bool allSame(Out, T)(in T[] arr, in Out delegate(in T) @safe @nogc pure nothrow 
 bool contains(T)(in T[] xs, in T value) =>
 	exists!T(xs, (in T x) => x == value);
 
-ref const(T) mustFind(T)(return in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+ref const(T) mustFind(T)(return in T[] a, in bool delegate(ref T) @safe @nogc pure nothrow cb) {
 	foreach (ref const T x; a)
 		if (cb(x))
 			return x;
-	assert(false);
-}
-
-T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
-	foreach (ref T x; a)
-		if (cb(x))
-			return &x;
 	assert(false);
 }
 
@@ -212,6 +204,16 @@ Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 		if (cb(x))
 			return some(x);
 	return none!T;
+}
+
+T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
+	force(findPointer!T(a, cb));
+
+Opt!(T*) findPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+	foreach (ref T x; a)
+		if (cb(x))
+			return some(&x);
+	return none!(T*);
 }
 
 Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
@@ -555,6 +557,11 @@ void zip(T, U)(scope T[] a, scope U[] b, in void delegate(ref T, ref U) @safe @n
 		cb(a[i], b[i]);
 }
 
+void zipIfSizeEq(T, U)(in T[] a, in U[] b, in void delegate(ref T, ref U) @safe @nogc pure nothrow cb) {
+	if (sizeEq(a, b))
+		zip(a, b, cb);
+}
+
 void zipPointers(T, U)(T[] a, U[] b, in void delegate(T*, U*) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
@@ -596,15 +603,15 @@ SmallArray!Out mapZip(Out, In0, In1)(
 		cb(i, in0[i], in1[i]));
 }
 
-@trusted Out[] mapZipPtrFirst(Out, In0, In1)(
+@trusted SmallArray!Out mapZipPtrFirst(Out, In0, In1)(
 	ref Alloc alloc,
 	In0[] in0,
 	in In1[] in1,
-	in Out delegate(In0*, in In1) @safe @nogc pure nothrow cb,
+	in Out delegate(In0*, In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return makeArray(alloc, in0.length, (size_t i) =>
-		cb(&in0[i], in1[i]));
+	return small!Out(makeArray(alloc, in0.length, (size_t i) =>
+		cb(&in0[i], in1[i])));
 }
 
 bool arraysCorrespond(T, U)(

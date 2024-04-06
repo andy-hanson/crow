@@ -4,11 +4,15 @@ import
 	./col/array: array, iterate, size
 	./col/collection: for-break, for-loop
 	./col/list: ~=, build, list
+	./exception: exception, error
 	./json: json, to
 	./misc: loop-break, new
 	./option: ??, option
-	./string: ==, interpolate, string, to
+	./string: ==, string
 	./symbol: ==, symbol, to
+
+# Attempted to convert a symbol/string to an enum, but it's not a valid enum member.
++not-in-enum variant-member(exception, symbol)
 
 ###
 Spec that is satisfied if 't' is an 'enum' type
@@ -29,7 +33,7 @@ Spec that is satisfied if 't' is an 'enum' type
 		if value == a
 			break name
 	else
-		throw "Invalid enum value"
+		throw "Invalid enum value" error
 
 +to[t] string(a t) t enum
 	a.to::symbol to
@@ -48,7 +52,7 @@ Returns an empty option if `a` is not the name of an enum member.
 			break value
 
 +to[t] t(a symbol) t enum
-	a.to ?? throw "unexpected enum member {a}"
+	a.to ?? throw a.not-in-enum
 
 +to[t] t?(a string) t enum
 	for name, value : enum-members@t
@@ -56,5 +60,4 @@ Returns an empty option if `a` is not the name of an enum member.
 			break value
 
 +to[t] t(a string) t enum
-	opt t? = a to
-	opt ?? throw "unexpected enum member {a}"
+	a.to ?? throw a.to.not-in-enum

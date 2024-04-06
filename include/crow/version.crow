@@ -16,13 +16,6 @@ import
 	./bool: bool
 
 ###
-True if the program was run with '--abort-on-throw'.
-
-If this is true, exceptions can't be caught and always instantly abort the program.
-###
-+is-abort-on-throw bool() builtin, bare, unsafe
-
-###
 This will be true unless the program was run with '--no-stack-trace'.
 
 When this is true, Crow will collect a stack trace when an exception is thrown.

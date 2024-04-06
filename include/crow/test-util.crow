@@ -6,33 +6,24 @@ no-std
 import
 	./compare: equal
 	./json: json, to
-	./log: warn, log
 	./misc: new, to, void
-	./number: ==, nat64
-	./private/exception-low-level: catch, message
-	./string: ==, interpolate, string
-	./tuple: ==, new
-	./version: is-abort-on-throw
+	./string: interpolate
+export
+	./private/exception-low-level: test-failure
 
 ###
 Asserts the the values are equal.
 ###
 +is[t] void(a t, b t) t equal, (json, t) to
-	assert a == b : "Test failure: Expected {a to} is {b to}"
+	assert a == b : "Expected {a to} is {b to}" test-failure
 
 ###
-Calls `f` and asserts that it throws an exception with the specified `message`.
+Use this like so:
+try
+	<< some code >>
+	should-throw
+catch expected-exception x
+	<< assertions, or just '()' >>
 ###
-+throws[t] void(f t mut(), message string)
-	if trusted is-abort-on-throw
-		warn log "Skipping 'throws' test due to '--abort-on-throw'"
-	else
-		match f catch
-		as ok _
-			throw "Expected to throw an exception"
-		as error e
-			e.message is message
-
-test
-	x (nat64, string) = 1, "foo"
-	(() => x is (1, "bar")) throws """Test failure: Expected [1,"foo"] is [1,"bar"]"""
++should-throw void()
+	throw "Should have thrown a different exception before getting here" test-failure

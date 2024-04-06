@@ -28,6 +28,7 @@ import frontend.parse.lexer :
 	Token,
 	TokenAndData,
 	tryTakeNewlineThenAs,
+	tryTakeNewlineThenCatch,
 	tryTakeNewlineThenElifOrElse,
 	tryTakeNewlineThenElse;
 import frontend.parse.lexToken : isNewlineToken;
@@ -63,6 +64,7 @@ import model.ast :
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
+	FinallyAst,
 	ForAst,
 	IdentifierAst,
 	IfAst,
@@ -85,6 +87,8 @@ import model.ast :
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
+	TryAst,
+	TryLetAst,
 	TypeAst,
 	TypedAst,
 	WithAst;
@@ -159,6 +163,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.bracketRight:
 		case Token.byRef:
 		case Token.byVal:
+		case Token.catch_:
 		case Token.colon:
 		case Token.colon2:
 		case Token.colonEqual:
@@ -207,6 +212,8 @@ bool isExpressionStartToken(Token a) {
 		case Token.unexpectedCharacter:
 		case Token.union_:
 		case Token.unsafe:
+		case Token.variant:
+		case Token.variantMember:
 			return false;
 		case Token.assert_:
 		case Token.bang:
@@ -217,6 +224,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.forbid:
 		case Token.guard:
 		case Token.if_:
+		case Token.finally_:
 		case Token.for_:
 		case Token.literalFloat:
 		case Token.literalIntegral:
@@ -230,6 +238,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.shared_:
 		case Token.throw_:
 		case Token.trusted:
+		case Token.try_:
 		case Token.underscore:
 		case Token.unless:
 		case Token.until:
@@ -518,7 +527,7 @@ ExprAst parseMatch(ref Lexer lexer, Pos start) {
 CaseMemberAst parseCaseMember(ref Lexer lexer) {
 	Opt!NameAndRange name = tryTakeNameAndRange(lexer);
 	if (has(name)) {
-		Opt!DestructureAst destructure = peekEndOfLine(lexer)
+		Opt!DestructureAst destructure = peekEndOfLine(lexer) || peekToken(lexer, Token.colon)
 			? none!DestructureAst
 			: some(parseDestructureNoRequireParens(lexer));
 		return CaseMemberAst(CaseMemberAst.Name(force(name), destructure));
@@ -646,6 +655,12 @@ ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, bool isForbid) {
 	ExprAst* after = allocate(lexer.alloc, parseNextLinesOrEmpty(lexer));
 	return ExprAst(range(lexer, start), ExprAstKind(
 		AssertOrForbidAst(isForbid, condition, thrown, after)));
+}
+
+ExprAst parseFinally(ref Lexer lexer, Pos start) {
+	ExprAst right = parseExprNoBlock(lexer);
+	ExprAst below = parseNextLinesOrEmpty(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, FinallyAst(right, below))));
 }
 
 ExprAst parseGuard(ref Lexer lexer, Pos start) {
@@ -916,6 +931,8 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return parseThrow(lexer, start, allowedBlock);
 		case Token.trusted:
 			return parseTrusted(lexer, start, allowedBlock);
+		case Token.try_:
+			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.try_, () => parseTryBlock(lexer, start));
 		case Token.underscore:
 			Pos arrowPos = curPos(lexer);
 			return tryTakeToken(lexer, Token.arrowLambda)
@@ -1000,6 +1017,9 @@ public ExprAst parseSingleStatementLine(ref Lexer lexer) {
 		case Token.forbid:
 			takeNextToken(lexer);
 			return parseAssertOrForbid(lexer, start, isForbid: token == Token.forbid);
+		case Token.finally_:
+			takeNextToken(lexer);
+			return parseFinally(lexer, start);
 		case Token.guard:
 			takeNextToken(lexer);
 			return parseGuard(lexer, start);
@@ -1042,21 +1062,41 @@ ExprAst parseNamedCall(ref Lexer lexer, Pos start) {
 
 ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
 	Pos start = curPos(lexer);
-	final switch (kind) {
-		case EqualsOrThen.equals:
-			DestructureAst left = parseDestructureNoRequireParens(lexer);
-			takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
-			ExprAst init = parseExprNoLet(lexer);
-			ExprAst then = parseNextLinesOrEmpty(lexer);
-			return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
-		case EqualsOrThen.then:
-			DestructureAndEndTokenPos param =
-				parseForThenOrWithParameter(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
-			ExprAst future = parseExprNoLet(lexer);
-			ExprAst then = parseNextLinesOrEmpty(lexer);
-			return ExprAst(range(lexer, start), ExprAstKind(
-				allocate(lexer.alloc, ThenAst(param.destructure, param.endTokenPos, future, then))));
+	if (tryTakeToken(lexer, Token.try_))
+		return parseTryLet(lexer, start);
+	else {
+		final switch (kind) {
+			case EqualsOrThen.equals:
+				DestructureAst left = parseDestructureNoRequireParens(lexer);
+				takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(
+					lexer, Token.equal, ParseDiag.Expected.Kind.equals);
+				ExprAst init = parseExprNoLet(lexer);
+				ExprAst then = parseNextLinesOrEmpty(lexer);
+				return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
+			case EqualsOrThen.then:
+				DestructureAndEndTokenPos param =
+					parseForThenOrWithParameter(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
+				ExprAst future = parseExprNoLet(lexer);
+				ExprAst then = parseNextLinesOrEmpty(lexer);
+				return ExprAst(range(lexer, start), ExprAstKind(
+					allocate(lexer.alloc, ThenAst(param.destructure, param.endTokenPos, future, then))));
+		}
 	}
+}
+
+ExprAst parseTryLet(ref Lexer lexer, Pos start) {
+	DestructureAst destructure = parseDestructureNoRequireParens(lexer);
+	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
+	ExprAst value = parseExprNoBlock(lexer);
+	Pos catchPos = curPos(lexer);
+	takeOrAddDiagExpectedToken(lexer, Token.catch_, ParseDiag.Expected.Kind.catch_);
+	CaseMemberAst catchMember = parseCaseMember(lexer);
+	ExprAst catch_ = tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colon)
+		? parseExprNoBlock(lexer)
+		: emptyAst(lexer);
+	ExprAst then = parseNextLinesOrEmpty(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc,
+		TryLetAst(destructure, value, catchPos, catchMember, catch_, then))));
 }
 
 ExprAst parseStatements(ref Lexer lexer) {
@@ -1081,4 +1121,20 @@ ExprAst parseStatementsAndDedent(ref Lexer lexer) {
 	ExprAst res = parseStatements(lexer);
 	takeDedent(lexer);
 	return res;
+}
+
+ExprAst parseTryBlock(ref Lexer lexer, Pos start) {
+	ExprAst* body_ = allocate(lexer.alloc, parseIndentedStatements(lexer));
+	SmallArray!CaseAst catches = buildSmallArray(lexer.alloc, (scope ref Builder!CaseAst out_) {
+		while (true) {
+			Opt!Pos catchPos = tryTakeNewlineThenCatch(lexer);
+			if (has(catchPos)) {
+				CaseMemberAst member = parseCaseMember(lexer);
+				ExprAst then = parseIndentedStatements(lexer);
+				out_ ~= CaseAst(force(catchPos), member, then);
+			} else
+				break;
+		}
+	});
+	return ExprAst(range(lexer, start), ExprAstKind(TryAst(body_, catches)));
 }

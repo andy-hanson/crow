@@ -1,7 +1,7 @@
 #!/usr/bin/env crow
 import
 	crow/io/net/http-server: http-handler, http-server, with-block
-	crow/io/net/http-types: request-body, headers, http-request, method, new, url
+	crow/io/net/http-types
 	crow/io/stdin: read-stdin
 
 main nat^(_ string[]) summon
@@ -17,4 +17,10 @@ main nat^(_ string[]) summon
 -describe-request string(a http-request)
 	headers = "\n" join for k, v : a headers
 		"{k}: {v}"
-	"{a method} {a url}\n{headers}\n\n{a.request-body as-string}"
+	"{a method} {a path}{a query}\n{headers}\n\n{a.body as-string}"
+
+to string(a string[symbol])
+	if a is-empty
+		""
+	else
+		"?" ~~ ("&" join for k, v : a; "{k}={v}")

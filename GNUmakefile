@@ -136,7 +136,8 @@ bin/crow: $(d_dependencies)
 
 # This isn't used anywhere, but you can rename the result to 'crow.wasm' to help debugging in the browser
 bin/crow-debug.wasm: $(d_dependencies)
-	ldc2 -ofbin/crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) src/wasm.d -I=src -i
+	# Need at least -O1 to keep it from using too much stack space
+	ldc2 -ofbin/crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) -O1 src/wasm.d -I=src -i
 	rm bin/crow-debug.o
 
 bin/crow.wasm: $(d_dependencies)

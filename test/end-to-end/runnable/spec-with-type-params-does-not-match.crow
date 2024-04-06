@@ -2,7 +2,7 @@ main void()
 	()
 
 loop-it[t1, b1] t1() (t1, b1) build2
-	throw "TODO"
+	throw todo
 
 build2[t2, b2] spec
 	build2 t2(a b2)

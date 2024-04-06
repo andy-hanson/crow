@@ -23,6 +23,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	FinallyExpr,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
@@ -47,6 +48,7 @@ import model.model :
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
 	MatchUnionExpr,
+	MatchVariantExpr,
 	Module,
 	NameReferents,
 	Params,
@@ -63,6 +65,8 @@ import model.model :
 	Test,
 	ThrowExpr,
 	TrustedExpr,
+	TryExpr,
+	TryLetExpr,
 	Type,
 	TypedExpr,
 	TypeParamIndex,
@@ -271,9 +275,10 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonString!"new-extern",
 		(in FunBody.CreateRecord) =>
 			jsonString!"new-record" ,
-		(in FunBody.CreateUnion) =>
-			//TODO: more detail
-			jsonString!"new-union" ,
+		(in FunBody.CreateUnion x) =>
+			jsonObject(alloc, [kindField!"create-union", field!"member"(x.member.name)]),
+		(in FunBody.CreateVariant x) =>
+			jsonObject(alloc, [kindField!"create-variant", field!"member"(x.member.name)]),
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
@@ -312,6 +317,8 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 				field!"member-index"(x.memberIndex)]),
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
+		(in FunBody.VariantMemberGet x) =>
+			jsonObject(alloc, [kindField!"variant-member-get", field!"member"(x.member.name)]),
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 
@@ -376,6 +383,11 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
+		(in FinallyExpr x) =>
+			jsonObject(alloc, [
+				kindField!"finally",
+				field!"right"(jsonOfExpr(alloc, ctx, x.right)),
+				field!"below"(jsonOfExpr(alloc, ctx, x.below))]),
 		(in FunPointerExpr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
@@ -471,6 +483,12 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				field!"cases"(jsonList!(MatchUnionExpr.Case)(alloc, x.cases, (in MatchUnionExpr.Case case_) =>
 					jsonOfMatchUnionCase(alloc, ctx, case_))),
 				optionalField!("else", Expr*)(x.else_, (in Expr* y) => jsonOfExpr(alloc, ctx, *y))]),
+		(in MatchVariantExpr x) =>
+			jsonObject(alloc, [
+				kindField!"match-variant",
+				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
+				field!"cases"(jsonOfMatchVariantCases(alloc, ctx, x.cases)),
+				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
 		(in PtrToFieldExpr x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
@@ -493,6 +511,18 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"trusted",
 				field!"inner"(jsonOfExpr(alloc, ctx, a.inner))]),
+		(in TryExpr a) =>
+			jsonObject(alloc, [
+				kindField!"try",
+				field!"tried"(jsonOfExpr(alloc, ctx, a.tried)),
+				field!"catches"(jsonOfMatchVariantCases(alloc, ctx, a.catches))]),
+		(in TryLetExpr a) =>
+			jsonObject(alloc, [
+				kindField!"try-let",
+				field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
+				field!"value"(jsonOfExpr(alloc, ctx, a.value)),
+				field!"catch"(jsonOfMatchVariantCase(alloc, ctx, a.catch_)),
+				field!"then"(jsonOfExpr(alloc, ctx, a.then))]),
 		(in TypedExpr a) =>
 			jsonObject(alloc, [
 				kindField!"typed",
@@ -561,3 +591,13 @@ Json jsonOfCalledSpecSig(ref Alloc alloc, in Ctx ctx, in CalledSpecSig a) =>
 		kindField!"spec-sig",
 		field!"spec"(a.specInst.decl.name),
 		field!"name"(a.name)]);
+
+Json jsonOfMatchVariantCases(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Case[] cases) =>
+	jsonList!(MatchVariantExpr.Case)(alloc, cases, (in MatchVariantExpr.Case x) =>
+		jsonOfMatchVariantCase(alloc, ctx, x));
+
+Json jsonOfMatchVariantCase(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Case a) =>
+	jsonObject(alloc, [
+		field!"member"(a.member.name),
+		field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
+		field!"then"(jsonOfExpr(alloc, ctx, a.then))]);

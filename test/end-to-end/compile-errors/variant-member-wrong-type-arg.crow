@@ -1,0 +1,13 @@
+main void()
+	info log match bar
+	as foo
+		x
+	as bar
+		"bar"
+	else
+		"other"
+
+v[t] variant
+
+foo variant-member(string v)
+bar variant-member(nat v)

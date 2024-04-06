@@ -3,8 +3,14 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
-import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
-import concretize.generate : bodyForEnumOrFlagsMembers, concretizeAutoFun, getRecordFieldCall, genUnionMemberGet;
+import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody, ensureVariantMember;
+import concretize.generate :
+	bodyForEnumOrFlagsMembers,
+	concretizeAutoFun,
+	genStringLiteralKind,
+	getRecordFieldCall,
+	genUnionMemberGet,
+	unwrapOptionType;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	byVal,
@@ -65,6 +71,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
+	VariantMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray;
@@ -90,13 +97,11 @@ import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAddAndDidAdd, mustAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
 import util.hash : HashCode, Hasher;
-import util.late : Late, lateGet, lazilySet;
+import util.late : Late, late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none, optOrDefault;
 import util.sourceRange : UriAndRange;
-import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
-import util.unicode : mustUnicodeDecode;
 import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
@@ -161,19 +166,6 @@ private ConcreteType[] typeArgs(ref ConcreteFunBodyInputs a) =>
 TypeArgsScope typeArgsScope(ref ConcreteFunBodyInputs a) =>
 	typeArgsScope(a.containing);
 
-private immutable struct DeferredRecordBody {
-	ConcreteStruct* struct_;
-	bool packed;
-	bool isSelfMutable;
-	ConcreteField[] fields;
-	FieldsType fieldsType;
-}
-
-private struct DeferredUnionBody {
-	ConcreteStruct* struct_;
-	immutable ConcreteType[] members;
-}
-
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
@@ -182,6 +174,7 @@ struct ConcretizeCtx {
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
+	Late!(ConcreteFun*) createErrorFunction_;
 	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
@@ -196,20 +189,21 @@ struct ConcretizeCtx {
 	ArrayBuilder!(ConcreteStruct*) allConcreteStructs;
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
-	MutArr!DeferredRecordBody deferredRecords;
-	MutArr!DeferredUnionBody deferredUnions;
+	MutArr!(ConcreteStruct*) deferredTypeSize;
 	ArrayBuilder!(ConcreteFun*) allConcreteFuns;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutMap!(ConcreteFun*, ConcreteFunBodyInputs) concreteFunToBodyInputs;
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
-	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) funStructToImpls;
+	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) lambdaStructToImpls;
+	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMember) variantStructToMembers;
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _char8Type;
 	Late!ConcreteType _char8ArrayType;
 	Late!ConcreteType _char32Type;
 	Late!ConcreteType _char32ArrayType;
+	Late!ConcreteType _exceptionType;
 	Late!ConcreteType _voidType;
 	Late!ConcreteType _nat64Type;
 	Late!ConcreteType _ctxType;
@@ -239,8 +233,15 @@ struct ConcretizeCtx {
 		lateGet(newVoidFutureFunction_);
 	ConcreteFun* andFunction() return scope const =>
 		lateGet(andFunction_);
+	ConcreteFun* createErrorFunction() return scope const =>
+		lateGet(createErrorFunction_);
 	ref Program program() return scope const =>
 		*programPtr;
+}
+
+immutable struct ConcreteVariantMember {
+	VariantMember* member;
+	ConcreteType type;
 }
 
 immutable(ConcreteVar*[]) finishConcreteVars(ref ConcretizeCtx ctx) =>
@@ -274,7 +275,7 @@ ConcreteType char8Type(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8Type, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8, emptySmallArray!ConcreteType));
 
-private ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
+ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
 
@@ -282,7 +283,7 @@ ConcreteType char32Type(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char32Type, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char32, emptySmallArray!ConcreteType));
 
-private ConcreteType char32ArrayType(ref ConcretizeCtx a) =>
+ConcreteType char32ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char32ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char32Array, emptySmallArray!ConcreteType));
 
@@ -290,6 +291,9 @@ ConcreteType nat64Type(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._nat64Type, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.integrals.nat64, emptySmallArray!ConcreteType));
 
+ConcreteType exceptionType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._exceptionType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.exception, emptySmallArray!ConcreteType));
 ConcreteType stringType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._stringType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.string_, emptySmallArray!ConcreteType));
@@ -420,35 +424,33 @@ ConcreteType concreteTypeFromClosure(
 		});
 		ConcreteStruct* cs = allocate(ctx.alloc, ConcreteStruct(purity, ConcreteStruct.SpecialKind.none, source));
 		cs.info = getConcreteStructInfoForFields(closureFields);
-		setConcreteStructRecordSizeOrDefer(
-			ctx, cs, false, closureFields, false, FieldsType.closure);
+		setConcreteStructRecordSizeOrDefer(ctx, cs);
 		add(ctx.alloc, ctx.allConcreteStructs, cs);
 		// TODO: consider passing closure by value
 		return ConcreteType(ReferenceKind.byRef, cs);
 	}
 }
 
-private void setConcreteStructRecordSizeOrDefer(
-	ref ConcretizeCtx ctx,
-	ConcreteStruct* cs,
-	bool packed,
-	ConcreteField[] fields,
-	bool isSelfMutable,
-	FieldsType fieldsType,
-) {
-	DeferredRecordBody deferred = DeferredRecordBody(cs, packed, isSelfMutable, fields, fieldsType);
-	if (canGetRecordSize(fields))
-		setConcreteStructRecordSize(ctx.alloc, deferred);
+private void setConcreteStructRecordSizeOrDefer(ref ConcretizeCtx ctx, ConcreteStruct* cs) {
+	if (canGetRecordSize(cs))
+		setConcreteStructRecordSize(ctx.alloc, cs);
 	else
-		push(ctx.alloc, ctx.deferredRecords, deferred);
+		push(ctx.alloc, ctx.deferredTypeSize, cs);
 }
 
-private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) {
-	TypeSizeAndFieldOffsets size = recordSize(alloc, a.packed, a.fields);
-	if (!a.struct_.defaultReferenceKindIsSet)
-		a.struct_.defaultReferenceKind = getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, a.fieldsType);
-	a.struct_.typeSize = size.typeSize;
-	a.struct_.fieldOffsets = size.fieldOffsets;
+private bool canGetRecordSize(in ConcreteStruct* a) =>
+	every!ConcreteField(a.body_.as!(ConcreteStructBody.Record).fields, (in ConcreteField field) =>
+		hasSizeOrPointerSizeBytes(field.type));
+
+private void setConcreteStructRecordSize(ref Alloc alloc, ConcreteStruct* a) {
+	FieldsType fieldsType = a.source.isA!(ConcreteStructSource.Lambda) ? FieldsType.closure : FieldsType.record;
+	bool packed = fieldsType == FieldsType.record &&
+		a.source.as!(ConcreteStructSource.Inst).inst.decl.body_.as!(StructBody.Record).flags.packed;
+	TypeSizeAndFieldOffsets size = recordSize(alloc, packed, a.body_.as!(ConcreteStructBody.Record).fields);
+	if (!a.defaultReferenceKindIsSet)
+		a.defaultReferenceKind = getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, fieldsType);
+	a.typeSize = size.typeSize;
+	a.fieldOffsets = size.fieldOffsets;
 }
 
 private:
@@ -576,7 +578,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 }
 
 bool canGetUnionSize(in ConcreteType[] members) =>
-	every!(ConcreteType)(members, (in ConcreteType type) =>
+	every!ConcreteType(members, (in ConcreteType type) =>
 		hasSizeOrPointerSizeBytes(type));
 
 TypeSize unionSize(in ConcreteType[] members) {
@@ -600,10 +602,6 @@ ReferenceKind getDefaultReferenceKindForFields(TypeSize typeSize, bool isSelfMut
 }
 
 enum FieldsType { record, closure }
-
-bool canGetRecordSize(in ConcreteField[] fields) =>
-	every!ConcreteField(fields, (in ConcreteField field) =>
-		hasSizeOrPointerSizeBytes(field.type));
 
 ConcreteStructInfo getConcreteStructInfoForFields(SmallArray!ConcreteField fields) =>
 	ConcreteStructInfo(
@@ -680,21 +678,27 @@ void initializeConcreteStruct(
 						f.name,
 						has(f.mutability) ? ConcreteMutability.mutable : ConcreteMutability.const_,
 						getConcreteType(ctx, type, typeArgsScope)));
-			bool packed = r.flags.packed;
 			ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			res.info = info;
-			setConcreteStructRecordSizeOrDefer(ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
+			setConcreteStructRecordSizeOrDefer(ctx, res);
 		},
 		(ref StructBody.Union u) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
 			SmallArray!ConcreteType members = mapZip(
 				ctx.alloc, u.members, i.instantiatedTypes, (ref UnionMember x, ref Type type) =>
 					getConcreteType(ctx, type, typeArgsScope));
-			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(members)), false);
+			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(late(members))), false);
 			if (canGetUnionSize(members))
 				res.typeSize = unionSize(members);
 			else
-				push(ctx.alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
+				push(ctx.alloc, ctx.deferredTypeSize, res);
+		},
+		(StructBody.Variant) {
+			res.defaultReferenceKind = ReferenceKind.byVal;
+			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union()), false);
+			// Always defer since we need to wait to know all variant members
+			push(ctx.alloc, ctx.deferredTypeSize, res);
+			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteVariantMember());
 		});
 }
 
@@ -720,26 +724,22 @@ uint sizeForEnumOrFlags(IntegralType a) {
 }
 
 public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
-	if (!mutArrIsEmpty(ctx.deferredRecords) || !mutArrIsEmpty(ctx.deferredUnions)) {
+	while (!mutArrIsEmpty(ctx.deferredTypeSize)) {
 		bool couldGetSomething = false;
-		filterUnordered!DeferredRecordBody(ctx.deferredRecords, (ref DeferredRecordBody deferred) {
-			bool canGet = canGetRecordSize(deferred.fields);
-			if (canGet) {
-				setConcreteStructRecordSize(ctx.alloc, deferred);
-				couldGetSomething = true;
+		filterUnordered!(ConcreteStruct*)(ctx.deferredTypeSize, (ref ConcreteStruct* struct_) {
+			bool canGet;
+			if (struct_.body_.isA!(ConcreteStructBody.Record)) {
+				canGet = canGetRecordSize(struct_);
+				if (canGet) setConcreteStructRecordSize(ctx.alloc, struct_);
+			} else {
+				ConcreteType[] members = struct_.body_.as!(ConcreteStructBody.Union).members;
+				canGet = canGetUnionSize(members);
+				if (canGet) struct_.typeSize = unionSize(members);
 			}
-			return !canGet;
-		});
-		filterUnordered!DeferredUnionBody(ctx.deferredUnions, (ref DeferredUnionBody deferred) {
-			bool canGet = canGetUnionSize(deferred.members);
-			if (canGet) {
-				deferred.struct_.typeSize = unionSize(deferred.members);
-				couldGetSomething = true;
-			}
+			if (canGet) couldGetSomething = true;
 			return !canGet;
 		});
 		assert(couldGetSomething);
-		deferredFillRecordAndUnionBodies(ctx);
 	}
 }
 
@@ -764,6 +764,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(ConcreteFunBody.CreateRecord()),
 		(FunBody.CreateUnion x) =>
 			ConcreteFunBody(ConcreteFunBody.CreateUnion(x.member.memberIndex)),
+		(FunBody.CreateVariant x) =>
+			ConcreteFunBody(ConcreteFunBody.CreateUnion(
+				ensureVariantMember(
+					ctx, cf.returnType, x.member,
+					cf.paramsIncludingClosure.length == 0 ? voidType(ctx) : only(cf.paramsIncludingClosure).type))),
 		(EnumFunction it) {
 			final switch (it) {
 				case EnumFunction.equal:
@@ -797,6 +802,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(genUnionMemberGet(ctx, cf, x.memberIndex)),
 		(FunBody.VarGet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
+		(FunBody.VariantMemberGet x) =>
+			ConcreteFunBody(genUnionMemberGet(
+				ctx, cf,
+				ensureVariantMember(
+					ctx, only(cf.paramsIncludingClosure).type, x.member, unwrapOptionType(ctx, cf.returnType)))),
 		(FunBody.VarSet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);
@@ -807,7 +817,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref Fu
 		(immutable ubyte[] x) =>
 			ConcreteExprKind(constantOfBytes(ctx, cf.returnType, x)),
 		(string x) =>
-			stringLiteralConcreteExprKind(ctx, cf.range, x),
+			genStringLiteralKind(ctx, cf.range, x),
 		(ImportFileContent.Bogus) =>
 			concretizeBogusKind(ctx, cf.range));
 	return ConcreteExpr(cf.returnType, cf.range, exprKind);
@@ -820,41 +830,7 @@ Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte
 	return getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), elements);
 }
 
-public ConcreteExpr stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
-	ConcreteExpr(stringType(ctx), range, stringLiteralConcreteExprKind(ctx, range, value));
-
-ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
-	ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayTrustAsString, newSmallArray(ctx.alloc, [
-		char8ArrayExpr(ctx, range, value)])));
-
-public ConcreteExpr char8ArrayExpr(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
-	ConcreteType type = char8ArrayType(ctx);
-	return ConcreteExpr(type, range, ConcreteExprKind(constantOfBytes(ctx, type, bytesOfString(value))));
-}
-
-public ConcreteExpr char32ArrayExpr(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
-	ConcreteType type = char32ArrayType(ctx);
-	return ConcreteExpr(type, range, ConcreteExprKind(char32ArrayConstant(ctx, type, value)));
-}
-Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string value) =>
-	getConstantArray(
-		ctx.alloc, ctx.allConstants, mustBeByVal(type),
-		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
-			mustUnicodeDecode(value, (dchar x) {
-				out_ ~= Constant(IntegralValue(x));
-			});
-		}));
-
-public ConcreteExpr char8ListExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		ConcreteExprKind.Call(ctx.newChar8ListFunction, newSmallArray(ctx.alloc, [
-			char8ArrayExpr(ctx, range, value)]))));
-public ConcreteExpr char32ListExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		ConcreteExprKind.Call(ctx.newChar32ListFunction, newSmallArray(ctx.alloc, [
-			char32ArrayExpr(ctx, range, value)]))));
-
-ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
+public ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
 		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, emptySmallArray!ConcreteType))));
 

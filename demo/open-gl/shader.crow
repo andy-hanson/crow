@@ -1,11 +1,6 @@
 import
-	OpenGL/gl:
-		glAttachShader, glCompileShader, glCreateProgram, glCreateShader, glDeleteProgram,
-		glDeleteShader, gl-ext, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog,
-		glGetShaderiv, glLinkProgram, glShaderSource
-	OpenGL/headers:
-		GLchar, GL_COMPILE_STATUS, GLenum, GL_FALSE, GL_FRAGMENT_SHADER, GL_INFO_LOG_LENGTH, GLint,
-		GL_LINK_STATUS, GL_TRUE, GLuint, GL_VERTEX_SHADER
+	OpenGL/gl
+	OpenGL/headers
 
 shader-prog-load GLuint(
 	gl gl-ext,
@@ -31,7 +26,7 @@ shader-prog-load GLuint(
 		err-log GLchar mut-array = log-length.to uninitialized-mut-array
 		gl glGetProgramInfoLog shader-prog, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
-		throw "Error loading shaders: {err-log.to::(char8 array)}"
+		throw ("Loading shaders", err-log.to::(char8 array).to) gl-error
 
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	gl glDeleteProgram shader-prog
@@ -49,7 +44,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 		err-log GLchar mut-array = log-length.to uninitialized-mut-array
 		gl glGetShaderInfoLog shader, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteShader shader
-		throw "error compiling GLSL {name}: {err-log.to::(char8 array)}"
+		throw ("Compiling GLSL {name}", err-log.to::(char8 array).to) gl-error
 
 -create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
 	shader = gl glCreateShader shader-type

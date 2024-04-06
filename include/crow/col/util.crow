@@ -1,0 +1,41 @@
+no-std
+import
+	../compare: !=, equal, min
+	../misc: new
+	../number: ==, <=>, +, *, /, nat64
+	../private/range-low-level: subtract-to-nat
+	./collection: begin-end, next, size, skip-next, slice, try-split-once, with-block
+	./list: ~=, build, list
+	./private/build: build
+
++split[col, iter, elem] col[](
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
+	with out : build
+		cur mut = a
+		loop
+			if l, r ?= cur try-split-once b
+				out ~= l
+				# TODO: just reuse the iterator instead of getting a slice of the rest
+				cur := r
+				continue
+			else
+				out ~= cur
+				break
+
++groups-of[col, iter] col[](
+	a col,
+	group-size nat64,
+) (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
+	div = a.size / group-size
+	out-size = div * group-size == a.size ? div : div + 1
+	iter mut = a begin
+	with out : out-size build
+		loop
+			diff = a.end - iter
+			guard diff != 0 : break
+			next-iter = iter + (diff min group-size)
+			out ~= iter slice next-iter
+			iter := next-iter
+			continue

@@ -31,6 +31,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.commonMissing,
 		(in Diag.CommonTypeMissing) =>
 			DiagnosticSeverity.commonMissing,
+		(in Diag.CommonVarMissing) =>
+			DiagnosticSeverity.commonMissing,
 		(in Diag.DestructureTypeMismatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>
@@ -58,8 +60,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunCantHaveBody) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.FunModifierTrustedOnNonExtern) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerExprMustBeName) =>
 			DiagnosticSeverity.checkError,
@@ -101,6 +101,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.warning,
 		(in Diag.LocalNotMutable) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.LoopDisallowedBody) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
 			DiagnosticSeverity.warning,
 		(in Diag.MatchCaseDuplicate) =>
@@ -113,12 +115,20 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchCaseShouldUseIgnore) =>
 			DiagnosticSeverity.warning,
-		(in Diag.MatchOnNonEnumOrUnion) =>
+		(in Diag.MatchNeedsElse) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchOnNonMatchable) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchUnhandledCases) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchUnnecessaryElse) =>
 			DiagnosticSeverity.unusedCode,
+		(in Diag.MatchVariantCantInferTypeArgs) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchVariantMultipleMembersWithName) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchVariantNoMember) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.ModifierConflict) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierDuplicate) =>
@@ -150,6 +160,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.PointerUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.PurityWorseThanVariant) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.RecordFieldNeedsType) =>
 			DiagnosticSeverity.checkError,
@@ -198,6 +210,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.Unused) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.VariantMemberOfNonVariant) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.unusedCode,

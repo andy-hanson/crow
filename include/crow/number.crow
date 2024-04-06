@@ -1,14 +1,16 @@
 ###
-Oter functions are in 'math.crow'
+Other functions are in 'math.crow'
 ###
 
 no-std
 import
 	./bool: &&, bool, false, new, true
 	./compare: !=, <, <=, >, >=
+	./private/bootstrap: exception
 	./private/number-low-level:
 		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul,
 		wrap-sub
+	./tuple: new
 export
 	./private/number-low-level:
 		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-value, min-value,
@@ -23,6 +25,31 @@ export
 
 region arithmetic
 
+# Used to store values for exceptions
++integral-value union
+	unsigned nat64
+	signed int64
++to integral-value(a nat8) bare
+	a.to unsigned
++to integral-value(a nat16) bare
+	a.to unsigned
++to integral-value(a nat32) bare
+	a.to unsigned
++to integral-value(a nat64) bare
+	a unsigned
++to integral-value(a int8) bare
+	a.to signed
++to integral-value(a int16) bare
+	a.to signed
++to integral-value(a int32) bare
+	a.to signed
++to integral-value(a int64) bare
+	a signed
+
++unary-out-of-range variant-member(exception, integral-value)
++binary-out-of-range variant-member(exception, (integral-value, integral-value))
++divide-by-0 variant-member(exception)
+
 ###
 Throws if the result would overflow.
 
@@ -30,33 +57,33 @@ Throws if the result would overflow.
 ###
 + + nat8(a nat8, b nat8) bare
 	res = a wrap-add b
-	assert res >= a && res >= b : "integer overflow"
+	assert res >= a && res >= b : (a.to, b.to) binary-out-of-range
 	res
 + + nat16(a nat16, b nat16) bare
 	res = a wrap-add b
-	assert res >= a && res >= b : "integer overflow"
+	assert res >= a && res >= b : (a.to, b.to) binary-out-of-range
 	res
 + + nat32(a nat32, b nat32) bare
 	res = a wrap-add b
-	assert res >= a && res >= b : "integer overflow"
+	assert res >= a && res >= b : (a.to, b.to) binary-out-of-range
 	res
 + + nat64(a nat64, b nat64) bare
 	res = a wrap-add b
-	assert res >= a && res >= b : "integer overflow"
+	assert res >= a && res >= b : (a.to, b.to) binary-out-of-range
 	res
 
 # Throws if the result would be negative.
 +- nat8(a nat8, b nat8) bare
-	assert a >= b : "integer overflow"
+	assert a >= b : (a.to, b.to) binary-out-of-range
 	a wrap-sub b
 +- nat16(a nat16, b nat16) bare
-	assert a >= b : "integer overflow"
+	assert a >= b : (a.to, b.to) binary-out-of-range
 	a wrap-sub b
 +- nat32(a nat32, b nat32) bare
-	assert a >= b : "integer overflow"
+	assert a >= b : (a.to, b.to) binary-out-of-range
 	a wrap-sub b
 +- nat64(a nat64, b nat64) bare
-	assert a >= b : "integer overflow"
+	assert a >= b : (a.to, b.to) binary-out-of-range
 	a wrap-sub b
 
 # Throws if the result would overflow.
@@ -64,8 +91,8 @@ Throws if the result would overflow.
 	# TODO:PERF better safety check
 	guard a != 0 && b != 0
 	res = a wrap-mul b
-	assert res / b == a : "integer overflow"
-	assert res / a == b : "integer overflow"
+	assert res / b == a : (a.to, b.to) binary-out-of-range
+	assert res / a == b : (a.to, b.to) binary-out-of-range
 	res
 
 
@@ -74,7 +101,7 @@ Flooring division of `a` divided by `b`.
 Throws if `b == 0`.
 ###
 +/ nat64(a nat64, b nat64) bare
-	forbid b == 0 : "divide by 0"
+	forbid b == 0 : divide-by-0
 	trusted a unsafe-div b
 
 # Like 'a / b' but takes the ceil instead of the floor.
@@ -88,15 +115,15 @@ Result will be in the range `0 .. b`.
 Throws if `b == 0`.
 ###
 +% nat64(a nat64, b nat64) bare
-	forbid b == 0 : "modulo by 0"
+	forbid b == 0 : divide-by-0
 	trusted a unsafe-mod b
 +% nat32(a nat32, b nat32) bare
-	forbid b == 0 : "modulo by 0"
+	forbid b == 0 : divide-by-0
 	trusted (a.to unsafe-mod b.to) to
 
 # This returns a `nat64` since modulo always returns a non-negative number.
 +% nat64(a int64, b nat64) bare
-	forbid b == 0 : "modulo by 0"
+	forbid b == 0 : divide-by-0
 	if a < 0
 		abs-mod = a.abs % b
 		if abs-mod != 0
@@ -131,7 +158,7 @@ Be less than the least possible value or greater than the greatest possible valu
 		a > (trusted max-value unsafe-sub b)
 	else
 		a < (trusted min-value unsafe-sub b)
-	forbid overflow : "integer overflow"
+	forbid overflow : (a.to, b.to) binary-out-of-range
 	trusted a unsafe-add b
 
 +- int32(a int32, b int32) bare
@@ -141,7 +168,7 @@ Be less than the least possible value or greater than the greatest possible valu
 		a < (trusted min-value unsafe-add b)
 	else
 		a > (trusted max-value unsafe-add b)
-	forbid overflow : "integer overflow"
+	forbid overflow : (a.to, b.to) binary-out-of-range
 	trusted a unsafe-sub b
 
 +* int8(a int8, b int8) bare
@@ -161,7 +188,7 @@ Be less than the least possible value or greater than the greatest possible valu
 		true
 	elif a < min-value / b
 		true
-	forbid overflow : "integer overflow"
+	forbid overflow : (a.to, b.to) binary-out-of-range
 	trusted a unsafe-mul b
 
 ###
@@ -186,12 +213,12 @@ Throws if the result would overflow, which only happens if
 `a` is the least possible value and `b` is `-1`.
 ###
 +/ int32(a int32, b int32) bare
-	forbid b == 0 : "divide by 0"
-	forbid a == min-value && b == -1 : "integer overflow"
+	forbid b == 0 : divide-by-0
+	forbid a == min-value && b == -1 : (a.to, b.to) binary-out-of-range
 	trusted a unsafe-div b
 +/ int64(a int64, b int64) bare
-	forbid b == 0 : "divide by 0"
-	forbid a == min-value && b == -1 : "integer overflow"
+	forbid b == 0 : divide-by-0
+	forbid a == min-value && b == -1 : (a.to, b.to) binary-out-of-range
 	trusted a unsafe-div b
 
 region misc
@@ -240,10 +267,10 @@ unsafe-div float64(a float64, b float64) builtin, bare, unsafe
 
 # Throws if `b == 0`.
 +/ float32(a float32, b float32) bare
-	forbid b == 0 : "divide by 0"
+	forbid b == 0 : divide-by-0
 	trusted a unsafe-div b
 +/ float64(a float64, b float64) bare
-	forbid b == 0 : "divide by 0"
+	forbid b == 0 : divide-by-0
 	trusted a unsafe-div b
 
 # `a` to the power of `b`. Never throws.
@@ -292,23 +319,23 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 # Throws if the result would overflow.
 +to int64(a nat64) bare
-	assert a < max-value::int64.to : "integer overflow"
+	assert a < max-value::int64.to : a.to unary-out-of-range
 	trusted a unsafe-to
 
 +to int8(a int64) bare
-	assert a >= min-value::int8.to : "integer overflow"
-	assert a <= max-value::int8.to : "integer overflow"
+	assert a >= min-value::int8.to : a.to unary-out-of-range
+	assert a <= max-value::int8.to : a.to unary-out-of-range
 	trusted a unsafe-to
 
 +to int16(a int64) bare
-	assert a >= min-value::int16.to : "integer overflow"
-	assert a <= max-value::int16.to : "integer overflow"
+	assert a >= min-value::int16.to : a.to unary-out-of-range
+	assert a <= max-value::int16.to : a.to unary-out-of-range
 	trusted a unsafe-to
 
 # Convert an int to 32 bits. Fail if the result would overflow.
 +to int32(a int64) bare
-	assert a >= min-value::int32.to : "integer overflow"
-	assert a <= max-value::int32.to : "integer overflow"
+	assert a >= min-value::int32.to : a.to unary-out-of-range
+	assert a <= max-value::int32.to : a.to unary-out-of-range
 	trusted a unsafe-to
 +to int32(a nat32) bare
 	a.to::nat64 to
@@ -347,14 +374,14 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 # Throws if the result would not have the same value as the input (due to overflow or underflow)
 +to nat64(a int64) bare
-	assert a >= 0 : "integer overflow"
+	assert a >= 0 : a.to unary-out-of-range
 	trusted a unsafe-to
 +to nat64(a int32) bare
 	a.to::int64 to
 +to nat8(a nat32) bare
 	a.to::nat64 to
 +to nat8(a nat64) bare
-	assert a <= max-value::nat8.to : "integer overflow"
+	assert a <= max-value::nat8.to : a.to unary-out-of-range
 	trusted a unsafe-to
 +to nat8(a float64) bare
 	a.to clamp-to
@@ -363,7 +390,7 @@ Conversions involving floats (in either direction) are approximate and never thr
 +to nat32(a nat16) bare
 	trusted a.to::nat64 unsafe-to
 +to nat32(a nat64) bare
-	assert a < max-value::nat32.to : "integer overflow"
+	assert a < max-value::nat32.to : a.to unary-out-of-range
 	trusted a unsafe-to
 
 +truncate-to int64(a float64) builtin, bare

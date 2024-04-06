@@ -258,12 +258,14 @@ CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 			cString!"-std=c17",
 			cString!"-Wno-address-of-packed-member",
 			cString!"-Wno-builtin-declaration-mismatch",
+			cString!"-Wno-clobbered",
 			cString!"-Wno-maybe-uninitialized",
 			cString!"-Wno-missing-field-initializers",
 			cString!"-Wno-unused-but-set-parameter",
 			cString!"-Wno-unused-but-set-variable",
 			cString!"-Wno-unused-function",
 			cString!"-Wno-unused-parameter",
+			cString!"-Wno-unused-label",
 			cString!"-Wno-unused-variable",
 			cString!"-Wno-unused-value",
 			cString!"-Ofast",
@@ -1263,6 +1265,7 @@ WriteExprResult writeSwitch(
 ) {
 	WriteExprResult valueResult = writeExprTempOrInline(writer, indent, ctx, a.value);
 	WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, castNonScope_ref(writeKind));
+	writeNewline(writer, indent);
 	writer ~= "switch (";
 	writeTempOrInline(writer, ctx, a.value, valueResult);
 	writer ~= ") {";

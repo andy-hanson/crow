@@ -17,7 +17,13 @@ import frontend.check.checkCtx :
 import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps :
-	FunsAndMap, FunsMap, ImportOrExportFile, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
+	FunsAndMap,
+	FunsMap,
+	ImportOrExportFile,
+	specDeclName,
+	SpecsMap,
+	structOrAliasName,
+	StructsAndAliasesMap;
 import frontend.check.instantiate :
 	DelaySpecInsts, DelayStructInsts, InstantiateCtx, instantiateSpecBody, instantiateStructTypes, noDelayStructInsts;
 import frontend.check.typeFromAst : checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
@@ -34,6 +40,7 @@ import model.ast :
 	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
+	VariantMemberAst,
 	VarDeclAst;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
@@ -45,22 +52,25 @@ import model.model :
 	importCanSee,
 	ImportOrExport,
 	ImportOrExportKind,
+	isPurityAlwaysCompatible,
 	Module,
 	nameFromNameReferents,
-	nameRange,
 	NameReferents,
 	Params,
+	purityRange,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
+	StructBody,
 	StructDecl,
 	StructInst,
 	StructOrAlias,
 	Type,
 	TypeParams,
 	VarDecl,
+	VariantMember,
 	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
@@ -302,6 +312,41 @@ VarDecl checkVarDecl(
 		checkVarModifiers(ctx, ast.kind, ast.modifiers));
 }
 
+VariantMember checkVariantMember(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	VariantMemberAst* ast,
+	VariantMember* result,
+) {
+	foreach (ModifierAst mod; ast.modifiers)
+		mod.matchIn!void(
+			(in ModifierAst.Keyword x) {
+				addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.variantMember)));
+			},
+			(in SpecUseAst x) {
+				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.variantMember)));
+			});
+
+	Type variantType = typeFromAst(
+		ctx, commonTypes, ast.variant, structsAndAliasesMap, ast.typeParams, noDelayStructInsts);
+	StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
+	StructInst* variant = variantInst.decl.body_.isA!(StructBody.Variant)
+		? variantInst
+		: () {
+			if (!variantType.isBogus)
+				addDiag(ctx, ast.variant.range, Diag(Diag.VariantMemberOfNonVariant(result, variantType)));
+			return commonTypes.exception;
+		}();
+	Type type = has(ast.type)
+		? typeFromAst(ctx, commonTypes, force(ast.type), structsAndAliasesMap, ast.typeParams, noDelayStructInsts)
+		: Type(commonTypes.void_);
+
+	if (!isPurityAlwaysCompatible(variant.purityRange.bestCase, purityRange(type)))
+		addDiag(ctx, ast.name.range, Diag(Diag.PurityWorseThanVariant(result)));
+	return VariantMember(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility), variant, type);
+}
+
 Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] modifiers) {
 	Cell!(Opt!Symbol) externLibraryName;
 	foreach (ref ModifierAst modifier; modifiers)
@@ -406,6 +451,10 @@ Module* checkWorkerAfterCommonTypes(
 	while (!mutArrIsEmpty(delayStructInsts))
 		instantiateStructTypes(ctx.instantiateCtx, mustPop(delayStructInsts), someMut(ptrTrustMe(delayStructInsts)));
 
+	SmallArray!VariantMember variantMembers = (() @trusted =>
+		mapWithResultPointer(ctx.alloc, ast.variantMembers, (VariantMemberAst* ast, VariantMember* result) =>
+			checkVariantMember(ctx, commonTypes, structsAndAliasesMap, ast, result))
+	)();
 	VarDecl[] vars = mapPointers(ctx.alloc, ast.vars, (VarDeclAst* ast) =>
 		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesMap, ast.specs);
@@ -417,6 +466,7 @@ Module* checkWorkerAfterCommonTypes(
 		specsMap,
 		structs,
 		structsAndAliasesMap,
+		variantMembers,
 		vars,
 		importsAndReExports.fileImports,
 		importsAndReExports.fileExports,
@@ -431,6 +481,7 @@ Module* checkWorkerAfterCommonTypes(
 		importsAndReExports.moduleReExports,
 		small!StructAlias(structAliases),
 		small!StructDecl(structs),
+		variantMembers,
 		small!VarDecl(vars),
 		small!SpecDecl(specs),
 		funsAndMap.funs,

@@ -2,6 +2,7 @@ no-std
 import
 	system/time: time, time_t
 	../compare: max
+	../exception: todo
 	../fun-util: subscript
 	../future: future, then
 	../misc: break-or-continue, new, shared, void
@@ -24,7 +25,7 @@ export
 
 # Get the current Unix timestamp.
 +get-unix-time unix-time() summon
-	forbid trusted is-windows : "TODO: Windows support"
+	forbid trusted is-windows : todo
 	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.

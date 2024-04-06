@@ -19,7 +19,7 @@ import
 	./collection:
 		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, n-of,
 		set-subscript, subscript, with-block, with-index
-	./mut-array: ~=, +, begin, build, cast-immutable, mut-array, next, set-next
+	./mut-array: ~=, +, begin, build, cast-immutable, mut-array, next, set-next, size
 	./list:
 		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
 

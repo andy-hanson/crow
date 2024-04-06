@@ -1,0 +1,12 @@
+main void()
+	info log match x
+	as w
+		"w"
+	as x
+		"x"
+	else
+		"other"
+
+v variant
+x variant-member(v)
+

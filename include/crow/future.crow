@@ -6,7 +6,7 @@ import
 		with-index
 	./col/list: ~~, +, ~=, begin, build, is-empty, iterate, list, new, next, size
 	./col/mut-list: ~=, hint-size, move-to, mut-list, new
-	./exception: catch, exception
+	./exception: catch-all, exception-and-backtrace, force
 	./fun-util: subscript
 	./misc: break-or-continue, shared, loop-break, loop-continue, new, void
 	./number: ==, -, nat64
@@ -19,7 +19,7 @@ import
 		cur-exclusion, enqueue-task, enqueue-task-no-exclusion, exception-handler, get-global-ctx
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
-	./result: force, result
+	./result: result
 export
 	./private/bootstrap: future
 
@@ -47,7 +47,7 @@ This can be useful for breaking up big tasks.
 	(),
 
 # Future resolved with an exception.
-+rejected[t] t^(err exception)
++rejected[t] t^(err exception-and-backtrace)
 	res t^ = trusted uninit, err.rejected
 	trusted res.lock init
 	res
@@ -93,8 +93,8 @@ WARN: This resolves successfully even if an input is rejected.
 ###
 Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-+future-catch[t] (t, exception) result^(a t^) t shared
-	res (t, exception) result^ = trusted unresolved
++future-catch[t] (t, exception-and-backtrace) result^(a t^) t shared
+	res (t, exception-and-backtrace) result^ = trusted unresolved
 	trusted a add-task-no-exclusion () =>
 		res resolve a.get-result
 	res
@@ -130,7 +130,7 @@ and the result of `then` will have the same exception as `a`.
 	trusted a add-task cur-exclusion, () =>
 		match a get-result
 		as ok value
-			match (() => action[value]) catch
+			match (() => action[value]) catch-all
 			as ok fut
 				res forward-to fut
 			as error e
@@ -158,7 +158,7 @@ shared-of-mut-lambda[r, p] r^ shared(param p)(a r^ mut(param p)) r shared, p sha
 		param =>
 			res r^ = unresolved
 			get-global-ctx enqueue-task exclusion, () =>
-				match (() => wrapper.fn[param]) catch
+				match (() => wrapper.fn[param]) catch-all
 				as ok fut
 					res forward-to fut
 				as error e
@@ -198,7 +198,7 @@ which allows it to run in parallel.
 	res t^ = trusted unresolved
 	gctx = trusted get-global-ctx
 	trusted gctx enqueue-task-no-exclusion () =>
-		match (() => f[]) catch
+		match (() => f[]) catch-all
 		as ok fut
 			res forward-to fut
 		as error e

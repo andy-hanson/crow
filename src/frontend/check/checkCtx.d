@@ -68,6 +68,7 @@ enum CommonModule {
 	list,
 	misc,
 	numberLowLevel,
+	setjmp,
 	std,
 	string_,
 	symbolLowLevel,

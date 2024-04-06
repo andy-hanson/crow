@@ -9,6 +9,7 @@ import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
+import test.testIntegralValues : testIntegralValues;
 import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testMemory : testMemory;
@@ -60,6 +61,7 @@ immutable NameAndTest[] allTests = [
 	NameAndTest("apply-fn", &testApplyFn),
 	NameAndTest("fake-extern", &testFakeExtern),
 	NameAndTest("hover", &testHover),
+	NameAndTest("integral-values", &testIntegralValues),
 	NameAndTest("interpreter", &testInterpreter),
 	NameAndTest("json", &testJson),
 	NameAndTest("map", &testMap),

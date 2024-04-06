@@ -3,6 +3,7 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
+import util.col.array : arrayOfRange, endPtr, small, SmallArray;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
 
 struct MutArr(T) {
@@ -77,6 +78,9 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	return a.inner[a.size_];
 }
 
+SmallArray!T moveToSmallArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
+	small!T(moveToArray(alloc, a));
+
 @trusted immutable(T[]) moveToArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
 	cast(immutable) moveToArr_mut(alloc, a);
 @trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
@@ -85,6 +89,22 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	a.inner = [];
 	a.size_ = 0;
 	return res;
+}
+
+@trusted SmallArray!Out moveAndMapToArray(Out, In)(
+	ref Alloc alloc,
+	scope ref MutArr!In a,
+	in Out delegate(ref In) @safe @nogc pure nothrow cb,
+) {
+	static assert(Out.sizeof <= In.sizeof);
+	In[] in_ = a.inner[0 .. a.size_];
+	Out[] out_ = (cast(Out*) in_.ptr)[0 .. in_.length];
+	foreach (size_t i; 0 .. in_.length)
+		initMemory(&out_[i], cb(in_[i]));
+	freeElements(alloc, arrayOfRange(cast(ubyte*) endPtr(out_), cast(ubyte*) endPtr(a.inner)));
+	a.inner = [];
+	a.size_ = 0;
+	return small!Out(out_);
 }
 
 @trusted const(T[]) asTemporaryArray(T)(ref const MutArr!T a) =>

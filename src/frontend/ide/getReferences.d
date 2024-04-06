@@ -45,6 +45,9 @@ import model.ast :
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
+	ThenAst,
+	TryAst,
+	TryLetAst,
 	TypeAst,
 	TypedAst,
 	WithAst;
@@ -65,6 +68,7 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
+	FinallyExpr,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -89,6 +93,7 @@ import model.model :
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
 	MatchUnionExpr,
+	MatchVariantExpr,
 	Module,
 	NameReferents,
 	Params,
@@ -109,19 +114,22 @@ import model.model :
 	Test,
 	ThrowExpr,
 	TrustedExpr,
+	TryExpr,
+	TryLetExpr,
 	Type,
 	TypedExpr,
 	UnionMember,
 	VarDecl,
+	VariantMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
-import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip;
+import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip, zipIfSizeEq;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : prependSet, Symbol;
+import util.symbol : Symbol;
 import util.uri : Uri;
 
 UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
@@ -185,6 +193,9 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 		},
 		(VarDecl* x) {
 			referencesForVarDecl(program, x, cb);
+		},
+		(VariantMember* x) {
+			referencesForVariantMember(program, x, cb);
 		});
 
 void referencesForStructAlias(in Program program, in StructAlias* a, in ReferenceCb cb) {
@@ -291,7 +302,9 @@ void referencesForTypeParam(
 		(ref Test _) =>
 			assert(false),
 		(ref VarDecl _) =>
-			assert(false));
+			assert(false),
+		(ref VariantMember x) =>
+			eachTypeInVariantMember(x, typeCb));
 }
 
 void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
@@ -305,6 +318,8 @@ void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
 		eachTypeInFun(commonTypes, x, cb);
 	foreach (ref Test x; a.tests)
 		eachTypeInExpr(commonTypes, ExprRef(&x.body_, x.returnType(commonTypes)), cb);
+	foreach (ref VariantMember x; a.variantMembers)
+		eachTypeInVariantMember(x, cb);
 }
 
 void eachTypeInFun(ref CommonTypes commonTypes, ref FunDecl a, in TypeCb cb) {
@@ -360,7 +375,8 @@ void eachTypeInStructBody(
 		(in StructBody.Union x) {
 			eachTypeInRecordOrUnion!UnionMember(
 				x.members, ast.as!(StructBodyAst.Union).params, ast.as!(StructBodyAst.Union).members, cb);
-		});
+		},
+		(in StructBody.Variant) {});
 }
 void eachTypeInEnumOrFlags(ref CommonTypes commonTypes, in StructDeclAst struct_, IntegralType storage, in TypeCb cb) {
 	foreach (ref ModifierAst modifier; struct_.modifiers)
@@ -390,6 +406,12 @@ void eachTypeInRecordOrUnion(Member)(
 			if (has(ast.type))
 				cb(member.type, force(ast.type));
 		});
+}
+
+void eachTypeInVariantMember(in VariantMember a, in TypeCb cb) {
+	cb(Type(a.variant), a.ast.variant);
+	if (has(a.ast.type))
+		cb(a.type, force(a.ast.type));
 }
 
 void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
@@ -444,12 +466,16 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in CallOptionExpr _) {},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr _) {},
+		(in FinallyExpr _) {},
 		(in FunPointerExpr _) {},
 		(in IfExpr x) {
 			eachTypeInCondition(x.condition, astKind.as!IfAst.condition, cb);
 		},
 		(in LambdaExpr x) {
-			eachTypeInDestructure(x.param, astKind.as!(LambdaAst*).param, cb);
+			eachTypeInDestructure(
+				x.param,
+				astKind.isA!(ThenAst*) ? astKind.as!(ThenAst*).left : astKind.as!(LambdaAst*).param,
+				cb);
 		},
 		(in LetExpr x) {
 			eachTypeInDestructure(x.destructure, astKind.as!(LetAst*).destructure, cb);
@@ -468,25 +494,43 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in MatchIntegralExpr _) {},
 		(in MatchStringLikeExpr _) {},
 		(in MatchUnionExpr x) {
-			zip(x.cases, astKind.as!MatchAst.cases, (ref MatchUnionExpr.Case case_, ref CaseAst caseAst) {
-				caseAst.member.matchIn!void(
-					(in CaseMemberAst.Name x) {
-						if (has(x.destructure)) {
-							eachTypeInDestructure(case_.destructure, force(x.destructure), cb);
-						}
-					},
-					(in LiteralIntegralAndRange _) {},
-					(in CaseMemberAst.String _) {},
-					(in CaseMemberAst.Bogus) {});
-			});
+			eachTypeInMatchUnionOrVariant!(MatchUnionExpr.Case)(x.cases, astKind.as!MatchAst.cases, cb);
+		},
+		(in MatchVariantExpr x) {
+			eachTypeInMatchUnionOrVariant!(MatchVariantExpr.Case)(x.cases, astKind.as!MatchAst.cases, cb);
 		},
 		(in PtrToFieldExpr _) {},
 		(in PtrToLocalExpr _) {},
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {},
 		(in TrustedExpr _) {},
+		(in TryExpr x) {
+			eachTypeInMatchUnionOrVariant!(MatchVariantExpr.Case)(x.catches, astKind.as!(TryAst).catches, cb);
+		},
+		(in TryLetExpr x) {
+			eachTypeInMatchUnionOrVariantCase!(MatchVariantExpr.Case)(
+				x.catch_, astKind.as!(TryLetAst*).catchMember, cb);
+		},
 		(in TypedExpr x) =>
 			cb(a.type, astKind.as!(TypedAst*).type));
+}
+
+void eachTypeInMatchUnionOrVariant(Case)(in Case[] cases, in CaseAst[] caseAsts, in TypeCb cb) {
+	zipIfSizeEq!(Case, CaseAst)(cases, caseAsts, (ref Case case_, ref CaseAst caseAst) {
+		eachTypeInMatchUnionOrVariantCase(case_, caseAst.member, cb);
+	});
+}
+
+void eachTypeInMatchUnionOrVariantCase(Case)(in Case case_, in CaseMemberAst memberAst, in TypeCb cb) {
+	memberAst.matchIn!void(
+			(in CaseMemberAst.Name x) {
+				if (has(x.destructure)) {
+					eachTypeInDestructure(case_.destructure, force(x.destructure), cb);
+				}
+			},
+			(in LiteralIntegralAndRange _) {},
+			(in CaseMemberAst.String _) {},
+			(in CaseMemberAst.Bogus) {});
 }
 
 void eachTypeInCondition(in Condition condition, in ConditionAst ast, in TypeCb cb) {
@@ -615,12 +659,39 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 
 void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) {
 	// Find references to get/set
-	Module* module_ = moduleOf(program, a.moduleUri);
-	FunDecl* getter = mustFindFunNamed(module_, a.name, (in FunDecl x) =>
-		x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a);
-	FunDecl* setter = mustFindFunNamed(module_, prependSet(a.name), (in FunDecl x) =>
-		x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a);
-	referencesForFunDecls(program, [getter, setter], cb);
+	Module* declaringModule = moduleOf(program, a.moduleUri);
+	FunDecl*[2] funs = mustFindFunsNamed(declaringModule, a.name, (in FunDecl x) =>
+		(x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a) ||
+		(x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a));
+	referencesForFunDecls(program, funs, cb);
+}
+
+void referencesForVariantMember(in Program program, in VariantMember* member, in ReferenceCb cb) {
+	StructDecl* variant = member.variant.decl;
+	Module* declaringModule = moduleOf(program, member.moduleUri);
+	FunDecl*[2] funs = mustFindFunsNamed(declaringModule, member.name, (in FunDecl x) =>
+		(x.body_.isA!(FunBody.VariantMemberGet) && x.body_.as!(FunBody.VariantMemberGet).member == member) ||
+		(x.body_.isA!(FunBody.CreateVariant) && x.body_.as!(FunBody.CreateVariant).member == member));
+
+	bool isException = member.variant == program.commonTypes.exception;
+
+	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
+		if (x.expr.kind.isA!(MatchVariantExpr*)) {
+			if (x.expr.kind.as!(MatchVariantExpr*).variant.decl == variant) {
+				foreach (size_t caseIndex, ref MatchVariantExpr.Case case_; x.expr.kind.as!(MatchVariantExpr*).cases)
+					if (case_.member == member)
+						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+			}
+		} else if (isException && x.expr.kind.isA!(TryExpr*)) {
+			foreach (size_t catchIndex, MatchVariantExpr.Case catch_; x.expr.kind.as!(TryExpr*).catches)
+				if (catch_.member == member)
+					cb(UriAndRange(m.uri, x.expr.ast.kind.as!TryAst.catches[catchIndex].member.nameRange));
+		} else if (isException && x.expr.kind.isA!(TryLetExpr*)) {
+			if (x.expr.kind.as!(TryLetExpr*).catch_.member == member)
+				cb(UriAndRange(m.uri, x.expr.ast.kind.as!(TryLetAst*).catchMember.nameRange));
+		} else
+			eachFunReferenceAtExpr(m, x, funs, cb);
+	});
 }
 
 void withRecordFieldFunctions(
@@ -639,6 +710,23 @@ void withRecordFieldFunctions(
 		});
 		cb(res.finish);
 	});
+
+FunDecl*[2] mustFindFunsNamed(
+	in Module* module_,
+	Symbol name,
+	in bool delegate(in FunDecl) @safe @nogc pure nothrow cb,
+) {
+	FunDecl*[2] res;
+	size_t found;
+	foreach (ref FunDecl x; module_.funs) {
+		if (cb(x)) {
+			res[found] = &x;
+			found++;
+		}
+	}
+	assert(found == 2);
+	return res;
+}
 
 FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
 	mustFindPointer!FunDecl(module_.funs, (in FunDecl fun) => fun.name == name && cb(fun));

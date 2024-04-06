@@ -5,6 +5,7 @@ import
 	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
 	./compare: <=, equal
+	./exception: exception
 	./fun-util: subscript
 	./misc: loop-break, loop-continue, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat32, nat64, to
@@ -46,7 +47,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 	as ok v
 		v
 	as error e
-		throw "{e}"
+		throw e parse-error
 
 +parse-error record
 	# The argument passed to 'parse'.
@@ -59,6 +60,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 	# Description of what was expected.
 	expected string
 +== bool(a parse-error, b parse-error)
++parse-error variant-member(exception, parse-error)
 
 -inner-parse-result[t] union(ok t, error inner-parse-error)
 

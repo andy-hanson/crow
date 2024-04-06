@@ -6,8 +6,10 @@ import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	BuiltinType,
+	CommonTypes,
 	Destructure,
 	EnumOrFlagsMember,
+	FunBody,
 	FunDecl,
 	Module,
 	NameReferents,
@@ -28,6 +30,8 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	UnionMember,
+	VarDecl,
+	VariantMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
@@ -63,14 +67,23 @@ Json documentRootModules(ref Alloc alloc, in Program program) =>
 
 Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 	DocExport[] exports = buildArray!DocExport(alloc, (scope ref Builder!DocExport res) {
+		// Use 'exports' instead of direct module members so it accounts for re-exports
 		foreach (NameReferents referents; a.exports) {
 			if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
 				res ~= documentStructOrAlias(alloc, force(referents.structOrAlias));
 			if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
 				res ~= documentSpec(alloc, *force(referents.spec));
 			foreach (FunDecl* fun; referents.funs)
-				if (fun.visibility == Visibility.public_ && !fun.isGenerated)
-					res ~= documentFun(alloc, *fun);
+				if (fun.visibility == Visibility.public_) {
+					if (fun.isGenerated) {
+						if (fun.body_.isA!(FunBody.VarGet))
+							res ~= documentVarDecl(alloc, *fun.body_.as!(FunBody.VarGet).var);
+						else if (fun.body_.isA!(FunBody.VariantMemberGet))
+							res ~= documentVariantMember(
+								alloc, *program.commonTypes, *fun.body_.as!(FunBody.VariantMemberGet).member);
+					} else
+						res ~= documentFun(alloc, *fun);
+				}
 		}
 		arrayBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
 			compareUriAndRange(x.range, y.range));
@@ -133,7 +146,9 @@ DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 		(in StructBody.Record x) =>
 			documentRecord(alloc, a, x),
 		(in StructBody.Union x) =>
-			documentUnion(alloc, a, x)));
+			documentUnion(alloc, a, x),
+		(in StructBody.Variant x) =>
+			documentVariant(alloc, a, x)));
 
 Json jsonOfEnumMembers(ref Alloc alloc, in EnumOrFlagsMember[] members) =>
 	jsonList!EnumOrFlagsMember(alloc, members, (in EnumOrFlagsMember member) =>
@@ -170,6 +185,9 @@ Json documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) =
 		field!"members"(jsonList!UnionMember(alloc, a.members, (in UnionMember member) =>
 			documentUnionMember(alloc, decl.typeParams, member)))]);
 
+Json documentVariant(ref Alloc alloc, in StructDecl decl, in StructBody.Variant a) =>
+	jsonObject(alloc, [kindField!"variant", maybePurity(alloc, decl)]);
+
 Opt!Json documentRecordField(ref Alloc alloc, in TypeParams typeParams, in RecordField a) {
 	final switch (a.visibility) {
 		case Visibility.private_:
@@ -203,6 +221,18 @@ Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclS
 		field!"name"(a.name),
 		field!"return-type"(documentTypeRef(alloc, typeParams, a.returnType)),
 		field!"params"(documentParamDestructures(alloc, typeParams, a.params))]);
+
+DocExport documentVarDecl(ref Alloc alloc, in VarDecl a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+		kindField(stringOfEnum(a.kind)),
+		field!"type"(documentTypeRef(alloc, a.typeParams, a.type))]));
+
+DocExport documentVariantMember(ref Alloc alloc, in CommonTypes commonTypes, in VariantMember a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+		kindField!"variant-member",
+		field!"variant"(documentStructInst(alloc, a.typeParams, *a.variant)),
+		optionalField!"type"(a.type != Type(commonTypes.void_), () =>
+			documentTypeRef(alloc, a.typeParams, a.type))]));
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [

@@ -1,6 +1,6 @@
 #!/usr/bin/env crow
 import
-	crow/io/file: try-read-file
+	crow/io/file
 	crow/io/net/http-server
 	crow/io/net/http-types
 	crow/io/path: child-path
@@ -24,14 +24,11 @@ to string(a string[symbol])
 
 -handle-request http-response(a http-request) summon
 	path = "site" child-path a.path
-	if content ?= path.try-read-file :: nat8[]?
-		path file-response content
-	else
-		index = path child-path "index.html"
-		if content ?= index.try-read-file :: nat8[]?
-			index file-response content
-		else
-			http-not-found
+	full-path = path.is-directory ? path child-path "index.html" : path
+	try
+		full-path file-response full-path.read-file
+	catch path-not-found _
+		http-not-found
 
 file-response http-response(path string, content nat8[])
 	200, "OK", (("Content-Type", path.content-type),), content

@@ -1,9 +1,5 @@
-no-std
 import
-	../../json: to
-	../number-low-level: wrap-add
-	../../number: ==, +, -, *, /, int64, max-value, min-value, nat32, nat64, to
-	../../test-util: is, throws
+	crow/private/number-low-level: wrap-add
 
 dummy-number-tests nat64()
 	0
@@ -14,25 +10,30 @@ test
 
 test
 	1::int64 + 1 is 2
-	(() => max-value::int64 + 1) throws "integer overflow"
-	(() => min-value::int64 + -1) throws "integer overflow"
-	(() => min-value::int64 + min-value) throws "integer overflow"
+	(() => max-value + 1) throws-out-of-range
+	(() => min-value + -1) throws-out-of-range
+	(() => min-value + min-value) throws-out-of-range
 
+-throws-out-of-range void(f int64 mut())
+	try
+		_ = f[]
+		should-throw
+	catch binary-out-of-range _
+		()
 test
 	1::int64 - 2 is -1
-	(() => max-value::int64 - -1) throws "integer overflow"
-	(() => min-value::int64 - 1) throws "integer overflow"
+	(() => max-value - -1) throws-out-of-range
+	(() => min-value - 1) throws-out-of-range
 	min-value::int64 - min-value is 0
 
 test
 	# TODO: should not need parens
 	(max-value::int64) * 0 is 0
 	(-1::int64) * -1 is 1
-	(() => (max-value::int64 / 3) * 4) throws "integer overflow"
-	(() => (4::int64) * (max-value / 3)) throws "integer overflow"
-	# TODO: should not need parens
-	(() => (min-value::int64) * -1) throws "integer overflow"
-	(() => (-1::int64) * min-value) throws "integer overflow"
+	(() => max-value / 3 * 4) throws-out-of-range
+	(() => 4 * (max-value / 3)) throws-out-of-range
+	(() => min-value * -1) throws-out-of-range
+	(() => -1 * min-value) throws-out-of-range
 
 test
 	-1.5.to::int64 is -2

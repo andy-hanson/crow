@@ -32,6 +32,8 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariableRef,
+	VariantMember,
+	VarKind,
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.col.array : SmallArray;
@@ -97,6 +99,8 @@ enum DeclKind {
 	test,
 	threadLocal,
 	union_,
+	variant,
+	variantMember,
 }
 
 enum ReadFileDiag_ {
@@ -206,6 +210,10 @@ immutable struct Diag {
 	immutable struct CommonTypeMissing {
 		Symbol name;
 	}
+	immutable struct CommonVarMissing {
+		VarKind varKind;
+		Symbol name;
+	}
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
 			immutable struct Tuple { size_t size; }
@@ -270,7 +278,6 @@ immutable struct Diag {
 		enum Reason { builtin, extern_ }
 		Reason reason;
 	}
-	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct FunPointerExprMustBeName {}
 	immutable struct FunPointerNotSupported {
 		enum Reason { multiple, spec, template_ }
@@ -352,6 +359,10 @@ immutable struct Diag {
 	immutable struct LocalNotMutable {
 		VariableRef local;
 	}
+	immutable struct LoopDisallowedBody {
+		enum Kind { finally_, try_ }
+		Kind kind;
+	}
 	immutable struct LoopWithoutBreak {}
 	immutable struct MatchCaseDuplicate {
 		immutable struct Kind {
@@ -364,22 +375,40 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct MatchCaseNameDoesNotMatch {
-		Opt!Symbol actual; // None for non-name case
+		Symbol actual;
 		StructDecl* enumOrUnion;
 	}
 	immutable struct MatchCaseNoValueForEnumOrSymbol {
 		Opt!(StructDecl*) enum_;
 	}
 	immutable struct MatchCaseShouldUseIgnore {
-		UnionMember* member;
+		immutable struct Member {
+			mixin TaggedUnion!(UnionMember*, VariantMember*);
+		}
+		Member member;
 	}
-	immutable struct MatchOnNonEnumOrUnion {
+	// For an enum/union this would be 'MatchUnhandledCases'
+	immutable struct MatchNeedsElse {
+		enum Kind { variant }
+		Kind kind;
+	}
+	immutable struct MatchOnNonMatchable {
 		TypeWithContainer type;
 	}
 	immutable struct MatchUnhandledCases {
 		mixin Union!(immutable EnumOrFlagsMember*[], immutable UnionMember*[]);
 	}
 	immutable struct MatchUnnecessaryElse {}
+	immutable struct MatchVariantCantInferTypeArgs {
+		VariantMember* member;
+	}
+	immutable struct MatchVariantMultipleMembersWithName {
+		VariantMember*[2] members;
+	}
+	immutable struct MatchVariantNoMember {
+		TypeWithContainer variant;
+		Symbol name;
+	}
 
 	immutable struct ModifierConflict {
 		ModifierKeyword prevModifier;
@@ -438,6 +467,9 @@ immutable struct Diag {
 	immutable struct PurityWorseThanParent {
 		StructDecl* parent;
 		Type child;
+	}
+	immutable struct PurityWorseThanVariant {
+		VariantMember* member;
 	}
 	immutable struct RecordFieldNeedsType {
 		Symbol fieldName;
@@ -576,6 +608,10 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VariantMemberOfNonVariant {
+		VariantMember* member;
+		Type actual;
+	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
 	immutable struct VisibilityWarning {
 		immutable struct Kind {
@@ -608,6 +644,7 @@ immutable struct Diag {
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,
+		CommonVarMissing,
 		DestructureTypeMismatch,
 		DuplicateDeclaration,
 		DuplicateExports,
@@ -622,7 +659,6 @@ immutable struct Diag {
 		ExternTypeError,
 		ExternUnion,
 		FunCantHaveBody,
-		FunModifierTrustedOnNonExtern,
 		FunPointerExprMustBeName,
 		FunPointerNotSupported,
 		IfThrow,
@@ -643,15 +679,20 @@ immutable struct Diag {
 		LiteralOverflow,
 		LocalIgnoredButMutable,
 		LocalNotMutable,
+		LoopDisallowedBody,
 		LoopWithoutBreak,
 		MatchCaseDuplicate,
 		MatchCaseForType,
 		MatchCaseNameDoesNotMatch,
 		MatchCaseNoValueForEnumOrSymbol,
 		MatchCaseShouldUseIgnore,
-		MatchOnNonEnumOrUnion,
+		MatchNeedsElse,
+		MatchOnNonMatchable,
 		MatchUnhandledCases,
 		MatchUnnecessaryElse,
+		MatchVariantCantInferTypeArgs,
+		MatchVariantMultipleMembersWithName,
+		MatchVariantNoMember,
 		ModifierConflict,
 		ModifierDuplicate,
 		ModifierInvalid,
@@ -668,6 +709,7 @@ immutable struct Diag {
 		PointerMutToConst,
 		PointerUnsupported,
 		PurityWorseThanParent,
+		PurityWorseThanVariant,
 		RecordFieldNeedsType,
 		SharedArgIsNotLambda,
 		SharedLambdaTypeIsNotShared,
@@ -692,6 +734,7 @@ immutable struct Diag {
 		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VariantMemberOfNonVariant,
 		VisibilityWarning,
 		WithHasElse,
 		WrongNumberTypeArgs);
@@ -716,7 +759,7 @@ immutable struct TypeWithContainer {
 immutable struct TypeContainer {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*);
+	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*, VariantMember*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -731,6 +774,8 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
+				x.moduleUri,
+			(in VariantMember x) =>
 				x.moduleUri);
 
 	TypeParams typeParams() scope =>
@@ -746,5 +791,7 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				emptyTypeParams,
 			(in VarDecl x) =>
-				emptyTypeParams);
+				x.typeParams,
+			(in VariantMember x) =>
+				x.typeParams);
 }

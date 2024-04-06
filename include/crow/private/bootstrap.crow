@@ -20,16 +20,6 @@ You never need to `match` on this union; use the `if x ?= y` syntax instead.
 ###
 +option[t] union(none, some t)
 
-region result.crow
-
-###
-A `result` is either a success (`ok`) or failure (`error`) value.
-
-This provides a more explicit alternative to throwing an exception.
-Prefer this over throwing an exception if failure is likely.
-###
-+result[ok, error] union(ok ok, error error)
-
 region pointer.crow
 
 ###
@@ -285,10 +275,10 @@ An `act` can have anything in its closure, including mutable data, so it's consi
 
 region future
 
-~backtrace record(entries backtrace-entry array) by-val
++backtrace record(entries backtrace-entry array) by-val
 
 # 'extern' because interpreter also declares this type
-~backtrace-entry record extern
++backtrace-entry record extern
 	# These point into either GC or permanent memory. May be empty strings, never null.
 	function-name c-string
 	file-path c-string
@@ -298,19 +288,32 @@ region future
 	column-number nat32
 
 ###
+Describes the reason there is a 'throw'.
+For common exceptions, see `exception.crow`.
+
+This does not include a backtrace; see 'exception-and-backtrace' for that.
+
+This is a variant type, meaning anything can declare a `variant-member` that is an exception.
+###
++exception variant
+
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
++error variant-member(exception, string)
+
+###
 Type of a thrown exception.
 
 There is no exception subtyping in crow, so all exceptions have this type.
 ###
-+exception record by-val
++exception-and-backtrace record by-val
 	# Message passed to `throw`.
-	~message string
+	exception exception
 	# TODO: accessing backtrace should be unsafe
 	###
 	Backtrace when the exception was created.
 	Catching and rethrowing the exception doesn't affect this.
 	###
-	~backtrace backtrace
+	backtrace backtrace
 
 +future[t] record by-ref, force-shared
 	lk mut lock
@@ -328,7 +331,7 @@ future-state[t] union mut
 	# The future was resolved successfully.
 	resolved t
 	# The future resolved with an exception.
-	rejected exception
+	rejected exception-and-backtrace
 
 region lock
 

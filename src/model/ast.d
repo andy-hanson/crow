@@ -363,6 +363,18 @@ immutable struct DoAst {
 // Used for implicit 'else ()' or implicit '()' after a Let
 immutable struct EmptyAst {}
 
+immutable struct FinallyAst {
+	@safe @nogc pure nothrow:
+
+	ExprAst right;
+	ExprAst below;
+
+	Range finallyKeywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(FinallyAst*) == &this);
+		return ast.range[0 .. "finally".length];
+	}
+}
+
 immutable struct ForAst {
 	@safe @nogc pure nothrow:
 	DestructureAst param;
@@ -690,10 +702,10 @@ immutable struct MatchAst {
 	ExprAst* matched;
 	SmallArray!CaseAst cases;
 	Opt!(MatchElseAst*) else_;
-}
 
-Range keywordRange(in MatchAst ast, in ExprAst source) =>
-	rangeOfStartAndLength(source.range.start, "match".length);
+	Range keywordRange(in ExprAst* source) scope =>
+		rangeOfStartAndLength(source.range.start, "match".length);
+}
 
 immutable struct CaseAst {
 	@safe @nogc pure nothrow:
@@ -799,6 +811,32 @@ immutable struct TrustedAst {
 	}
 }
 
+immutable struct TryAst {
+	@safe @nogc pure nothrow:
+
+	ExprAst* tried;
+	SmallArray!CaseAst catches;
+
+	Range tryKeywordRange(in ExprAst* ast) scope =>
+		ast.range[0 .. "try".length];
+}
+
+immutable struct TryLetAst {
+	@safe @nogc pure nothrow:
+
+	DestructureAst destructure;
+	ExprAst value;
+	Pos catchKeywordPos;
+	CaseMemberAst catchMember;
+	ExprAst catch_;
+	ExprAst then;
+
+	Range tryKeywordRange(in ExprAst* ast) scope =>
+		ast.range[0 .. "try".length];
+	Range catchKeywordRange() scope =>
+		rangeOfStartAndLength(catchKeywordPos, "catch".length);
+}
+
 // expr :: t
 immutable struct TypedAst {
 	@safe @nogc pure nothrow:
@@ -838,6 +876,7 @@ immutable struct ExprAstKind {
 		CallNamedAst,
 		DoAst,
 		EmptyAst,
+		FinallyAst*,
 		ForAst*,
 		IdentifierAst,
 		IfAst,
@@ -859,6 +898,8 @@ immutable struct ExprAstKind {
 		ThenAst*,
 		ThrowAst*,
 		TrustedAst*,
+		TryAst,
+		TryLetAst*,
 		TypedAst*,
 		WithAst*);
 }
@@ -1015,8 +1056,9 @@ immutable struct StructBodyAst {
 		Opt!ParamsAst params;
 		SmallArray!RecordOrUnionMemberAst members;
 	}
+	immutable struct Variant {}
 
-	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
+	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union, Variant);
 }
 static assert(StructBodyAst.sizeof <= 24);
 
@@ -1083,7 +1125,9 @@ private string keywordForStructBody(in StructBodyAst a) =>
 		(in StructBodyAst.Record) =>
 			"record",
 		(in StructBodyAst.Union) =>
-			"union");
+			"union",
+		(in StructBodyAst.Variant) =>
+			"variant");
 
 immutable struct SpecDeclAst {
 	@safe @nogc pure nothrow:
@@ -1181,6 +1225,25 @@ immutable struct TestAst {
 		rangeOfStartAndLength(range.start, "test".length);
 }
 
+immutable struct VariantMemberAst {
+	@safe @nogc pure nothrow:
+
+	Range range;
+	SmallString docComment;
+	Opt!Visibility visibility_;
+	NameAndRange name;
+	SmallArray!NameAndRange typeParams;
+	Pos keywordPos;
+	TypeAst variant;
+	Opt!TypeAst type;
+	SmallArray!ModifierAst modifiers; // These will be compile errors
+
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
+	Range keywordRange() scope =>
+		rangeOfStartAndLength(range.start, "variant-member".length);
+}
+
 // 'global' or 'thread-local'
 immutable struct VarDeclAst {
 	@safe @nogc pure nothrow:
@@ -1252,6 +1315,7 @@ immutable struct FileAst {
 	SmallArray!StructDeclAst structs;
 	SmallArray!FunDeclAst funs;
 	SmallArray!TestAst tests;
+	SmallArray!VariantMemberAst variantMembers;
 	SmallArray!VarDeclAst vars;
 }
 

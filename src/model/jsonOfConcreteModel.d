@@ -41,9 +41,7 @@ Json jsonOfConcreteProgram(ref Alloc alloc, in LineAndColumnGetters lcg, in Conc
 		field!"vars"(jsonList!(ConcreteVar*)(alloc, a.allVars, (in ConcreteVar* x) =>
 			jsonOfConcreteVar(alloc, *x))),
 		field!"funs"(jsonList!(ConcreteFun*)(alloc, a.allFuns, (in ConcreteFun* x) =>
-			jsonOfConcreteFun(alloc, ctx, *x))),
-		field!"rt-main"(jsonOfConcreteFunRef(alloc, *a.rtMain)),
-		field!"user-main"(jsonOfConcreteFunRef(alloc, *a.userMain))]);
+			jsonOfConcreteFun(alloc, ctx, *x)))]);
 }
 
 private:
@@ -279,6 +277,11 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 			jsonObject(alloc, [
 				kindField!"drop",
 				field!"arg"(jsonOfConcreteExpr(alloc, ctx, x.arg))]),
+		(in ConcreteExprKind.Finally x) =>
+			jsonObject(alloc, [
+				kindField!"finally",
+				field!"right"(jsonOfConcreteExpr(alloc, ctx, x.right)),
+				field!"below"(jsonOfConcreteExpr(alloc, ctx, x.below))]),
 		(in ConcreteExprKind.If x) =>
 			jsonObject(alloc, [
 				kindField!"if",
@@ -334,20 +337,14 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 					(in ConcreteExprKind.MatchStringLike.Case case_) =>
 						jsonObject(alloc, [
 							field!"value"(jsonOfConcreteExpr(alloc, ctx, case_.value)),
-							field!"then"(jsonOfConcreteExpr(alloc, ctx, case_.then))]))),
+						field!"then"(jsonOfConcreteExpr(alloc, ctx, case_.then))]))),
 				field!"else"(jsonOfConcreteExpr(alloc, ctx, x.else_))]),
 		(in ConcreteExprKind.MatchUnion x) =>
 			jsonObject(alloc, [
 				kindField!"match-union",
 				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matched)),
-				field!"cases"(jsonList!(ConcreteExprKind.MatchUnion.Case)(
-					alloc,
-					x.cases,
-					(in ConcreteExprKind.MatchUnion.Case case_) =>
-						jsonObject(alloc, [
-							optionalField!("local", ConcreteLocal*)(case_.local, (in ConcreteLocal* local) =>
-								jsonOfConcreteLocalDeclare(alloc, *local)),
-							field!"then"(jsonOfConcreteExpr(alloc, ctx, case_.then))])))]),
+				field!"member-indices"(jsonOfIntegralValues(alloc, x.memberIndices)),
+				field!"cases"(jsonOfMatchUnionCases(alloc, ctx, x.cases))]),
 		(in ConcreteExprKind.PtrToField x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
@@ -371,6 +368,21 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 			jsonObject(alloc, [
 				kindField!"throw",
 				field!"thrown"(jsonOfConcreteExpr(alloc, ctx, x.thrown))]),
+		(in ConcreteExprKind.Try x) =>
+			jsonObject(alloc, [
+				kindField!"try",
+				field!"tried"(jsonOfConcreteExpr(alloc, ctx, x.tried)),
+				field!"member-indices"(jsonOfIntegralValues(alloc, x.exceptionMemberIndices)),
+				field!"catch-cases"(jsonOfMatchUnionCases(alloc, ctx, x.catchCases))]),
+		(in ConcreteExprKind.TryLet x) =>
+			jsonObject(alloc, [
+				kindField!"try-let",
+				optionalField!("local", ConcreteLocal*)(x.local, (in ConcreteLocal* local) =>
+					jsonOfConcreteLocalDeclare(alloc, *local)),
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value)),
+				field!"exception-member-index"(x.exceptionMemberIndex.asUnsigned),
+				field!"catch"(jsonOfMatchUnionCase(alloc, ctx, x.catch_)),
+				field!"then"(jsonOfConcreteExpr(alloc, ctx, x.then))]),
 		(in ConcreteExprKind.UnionAs x) =>
 			jsonObject(alloc, [
 				kindField!"union-as",
@@ -392,6 +404,16 @@ Json jsonOfConcreteVariableRef(ref Alloc alloc, in ConcreteVariableRef a) =>
 			jsonOfConcreteLocalRef(x),
 		(in ConcreteClosureRef x) =>
 			jsonOfConcreteClosureRef(alloc, x));
+
+Json jsonOfMatchUnionCases(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind.MatchUnion.Case[] cases) =>
+	jsonList!(ConcreteExprKind.MatchUnion.Case)(alloc, cases, (in ConcreteExprKind.MatchUnion.Case x) =>
+		jsonOfMatchUnionCase(alloc, ctx, x));
+
+Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind.MatchUnion.Case a) =>
+	jsonObject(alloc, [
+		optionalField!("local", ConcreteLocal*)(a.local, (in ConcreteLocal* local) =>
+			jsonOfConcreteLocalDeclare(alloc, *local)),
+		field!"then"(jsonOfConcreteExpr(alloc, ctx, a.then))]);
 
 public Json jsonOfIntegralValues(ref Alloc alloc, in IntegralValues a) =>
 	a.isRange0ToN

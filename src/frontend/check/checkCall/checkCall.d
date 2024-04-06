@@ -173,7 +173,7 @@ Expr checkCallArgAndLambda(
 	Range diagRange,
 	Symbol funName,
 	ExprAst* argAst,
-	ref DestructureAst paramAst,
+	DestructureAst* paramAst,
 	ExprAst* bodyAst,
 	ref Expected expected,
 ) =>
@@ -184,7 +184,7 @@ Expr checkCallArgAndLambda(
 		(ref Expected argExpected) =>
 			checkLambda(ctx, locals, source, paramAst, bodyAst, argExpected),
 		(scope ref Candidate[] candidates) =>
-			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, paramAst) == ContinueOrAbort.continue_);
+			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, *paramAst) == ContinueOrAbort.continue_);
 
 Expr checkCallArgAnd2Lambdas(
 	ref ExprCtx ctx,
@@ -193,7 +193,7 @@ Expr checkCallArgAnd2Lambdas(
 	Range diagRange,
 	Symbol funName,
 	ExprAst* argAst,
-	ref DestructureAst paramAst,
+	DestructureAst* paramAst,
 	ExprAst* bodyAst,
 	ExprAst* body2Ast, // second lambda has no param
 	ref Expected expected,
@@ -207,12 +207,13 @@ Expr checkCallArgAnd2Lambdas(
 				case 1:
 					return checkLambda(ctx, locals, source, paramAst, bodyAst, argExpected);
 				case 2:
-					DestructureAst param2Ast = DestructureAst(DestructureAst.Void(body2Ast.range));
-					return checkLambda(ctx, locals, source, param2Ast, body2Ast, argExpected);
+					return checkLambda(ctx, locals, source, &voidDestructure, body2Ast, argExpected);
 			}
 		},
 		(scope ref Candidate[] candidates) =>
-			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, paramAst) == ContinueOrAbort.continue_);
+			inferCandidateTypeArgsFromLambdaParameter(ctx, candidates, 1, *paramAst) == ContinueOrAbort.continue_);
+
+private immutable DestructureAst voidDestructure = DestructureAst(DestructureAst.Void(Range.empty));
 
 Expr checkCallSpecialCb1(
 	ref ExprCtx ctx,
