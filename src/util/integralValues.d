@@ -2,13 +2,15 @@ module util.integralValues;
 
 @safe @nogc nothrow:
 
-import util.alloc.alloc : Alloc, AllocKind, freeElements, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
+import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
 import util.comparison : compareUlong;
-import util.col.array : arraysEqual, everyWithIndex, makeArray, map, SmallArray;
-import util.col.hashTable : ValueAndDidAdd;
-import util.col.mutSet : getOrAddToMutSet, MutSet;
-import util.col.sortUtil : sortInPlace;
+import util.col.array : arraysEqual, copyArray, isEmpty, only, SmallArray;
+import util.col.mutSet : getOrAddLazyAlloc, MutSet;
+import util.col.sortUtil : assertSortedAndUnique, sortInPlace;
+import util.conv : safeToUint;
 import util.hash : HashCode, Hasher;
+import util.memory : initMemory;
 
 // A value of some contextually-known integral type.
 immutable struct IntegralValue {
@@ -23,7 +25,10 @@ immutable struct IntegralValue {
 		value;
 }
 
-// Integral values, in sorted order. This is used to store the values used by a 'match'.
+/*
+Integral values, in sorted order with no repeats.
+This is used to store the values used by a 'match'.
+*/
 immutable struct IntegralValues {
 	@safe @nogc pure nothrow:
 	SmallArray!IntegralValue values;
@@ -34,13 +39,8 @@ immutable struct IntegralValues {
 
 	alias values this;
 
-	void assertIsRange(size_t size) scope {
-		assert(values.length == size && isRange0ToN);
-	}
-
 	bool isRange0ToN() scope =>
-		everyWithIndex!IntegralValue(values, (size_t i, ref IntegralValue value) =>
-			value.asUnsigned == i);
+		isEmpty(values) || values[$ - 1].asUnsigned == values.length - 1;
 
 	HashCode hash() scope {
 		Hasher hasher;
@@ -55,38 +55,61 @@ immutable struct IntegralValues {
 
 @trusted void initIntegralValues(MetaAlloc* metaAlloc) {
 	integralValuesAlloc = newAlloc(AllocKind.integralValues, metaAlloc);
+	foreach (size_t i; 0 .. linear.length)
+		initMemory(&linear[i], IntegralValue(i));
 }
 
 private __gshared Alloc* integralValuesAlloc;
 private __gshared MutSet!IntegralValues cache;
+private immutable IntegralValue[0x100] linear;
 
-@trusted pure IntegralValues integralValuesRange(size_t n) =>
-	makeIntegralValues((ref Alloc alloc) => makeArray!IntegralValue(alloc, n, (size_t i) => IntegralValue(i)));
+@trusted pure IntegralValues integralValuesRange(size_t n) {
+	if (n <= linear.length) {
+		IntegralValues res = IntegralValues(linear[0 .. n]);
+		assert(res.isRange0ToN);
+		return res;
+	} else
+		return withStackArray!(IntegralValues, IntegralValue)(
+			n,
+			(size_t x) => IntegralValue(x),
+			(scope IntegralValue[] xs) => getOrAddIntegralValues(xs));
+}
+
+pure IntegralValues singleIntegralValue(in IntegralValue a) {
+	ulong x = a.asUnsigned;
+	return x < linear.length
+		? IntegralValues(linear[safeToUint(x) .. safeToUint(x) + 1])
+		: getOrAddIntegralValues([IntegralValue(x)]);
+}
 
 @trusted pure IntegralValues mapToIntegralValues(T)(
 	in T[] xs,
-	in IntegralValue delegate(in T) @safe @nogc pure nothrow cb,
-) =>
-	makeIntegralValues((ref Alloc alloc) {
-		IntegralValue[] values = map!(IntegralValue, T)(alloc, xs, (ref T x) => cb(x));
-		sortInPlace!IntegralValue(values, (in IntegralValue x, in IntegralValue y) =>
-			compareUlong(x.asUnsigned, y.asUnsigned));
-		return values;
-	});
-
-private @system pure IntegralValues makeIntegralValues(
-	in IntegralValue[] delegate(ref Alloc) @safe @nogc pure nothrow cb,
-) =>
-	(cast(IntegralValues function(
-		in IntegralValue[] delegate(ref Alloc) @safe @nogc pure nothrow
-	) @safe @nogc pure nothrow) &makeIntegralValues_impure)(cb);
-
-private @system IntegralValues makeIntegralValues_impure(
-	in IntegralValue[] delegate(ref Alloc) @safe @nogc pure nothrow cb,
+	in IntegralValue delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
-	IntegralValue[] values = cb(*integralValuesAlloc);
-	ValueAndDidAdd!IntegralValues res = getOrAddToMutSet(*integralValuesAlloc, cache, IntegralValues(values));
-	if (!res.didAdd)
-		freeElements(*integralValuesAlloc, values);
-	return res.value;
+	switch (xs.length) {
+		case 0:
+			return integralValuesRange(0);
+		case 1:
+			return singleIntegralValue(cb(only(xs)));
+		default:
+			return withMapToStackArray!(IntegralValues, IntegralValue, const T)(xs, cb, (scope IntegralValue[] values) {
+				sortInPlace!IntegralValue(values, (in IntegralValue x, in IntegralValue y) =>
+					compareUlong(x.asUnsigned, y.asUnsigned));
+				assertSortedAndUnique!(IntegralValue, ulong)(values, (in IntegralValue x) => x.asUnsigned);
+				return (values[$ - 1].asUnsigned == values.length)
+					? integralValuesRange(xs.length)
+					: getOrAddIntegralValues(values);
+			});
+	}
 }
+
+private @trusted pure IntegralValues getOrAddIntegralValues(in IntegralValue[] values) =>
+	(cast(IntegralValues function(in IntegralValue[]) @safe @nogc pure nothrow) &getOrAddIntegralValues_impure)(values);
+
+private @system IntegralValues getOrAddIntegralValues_impure(
+	in IntegralValue[] values,
+) =>
+	getOrAddLazyAlloc!IntegralValues(
+		*integralValuesAlloc, cache, IntegralValues(values),
+		cast(IntegralValues delegate() @safe @nogc pure nothrow) () =>
+			IntegralValues(copyArray(*integralValuesAlloc, values)));

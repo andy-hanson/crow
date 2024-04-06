@@ -59,7 +59,11 @@ test
 	one + two is three
 
 	4::float64.square-root is 2
-	(() => -1::float64 square-root) throws "Can't get square-root of negative number"
+	try
+		_ float64 = -1 square-root
+		should-throw
+	catch float-out-of-range x
+		x is -1
 
 	(-one).acos is-about pi
 	zero.acos is-about pi_2
@@ -115,4 +119,4 @@ test
 # TODO: these tests should use exact answers, but the compiler needs better float parsing
 -is-about[t] void(a t, b t) t float
 	diff = a - b
-	assert diff.abs < "0.0006".to : "Expected {a} is-about {b}"
+	assert diff.abs < "0.0006".to : "Expected {a} is-about {b}".test-failure

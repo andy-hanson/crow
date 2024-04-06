@@ -22,7 +22,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.hash : HashCode, Hasher, hashPtr;
-import util.integralValues : IntegralValues;
+import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
@@ -47,10 +47,15 @@ immutable struct ConcreteStructBody {
 	immutable struct Record {
 		SmallArray!ConcreteField fields;
 	}
+	// Both StructBody.Union and StructBody.Variant compile to this
 	immutable struct Union {
+		@safe @nogc pure nothrow:
 		// In the concrete model we identify members by index, so don't care about their names.
 		// This may be empty for a lambda type with no implementations.
-		SmallArray!ConcreteType members;
+		Late!(SmallArray!ConcreteType) members_;
+
+		SmallArray!ConcreteType members() return scope =>
+			lateGet(members_);
 	}
 
 	mixin .Union!(Builtin*, Enum, Extern, Flags, Record, Union);
@@ -462,6 +467,11 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr arg;
 	}
 
+	immutable struct Finally {
+		ConcreteExpr right;
+		ConcreteExpr below;
+	}
+
 	immutable struct If {
 		ConcreteExpr cond;
 		ConcreteExpr then;
@@ -524,7 +534,6 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct MatchUnion {
-		@safe @nogc pure nothrow:
 		immutable struct Case {
 			Opt!(ConcreteLocal*) local;
 			ConcreteExpr then;
@@ -534,11 +543,6 @@ immutable struct ConcreteExprKind {
 		IntegralValues memberIndices;
 		SmallArray!Case cases;
 		Opt!(ConcreteExpr*) else_;
-
-		this(ConcreteExpr m, IntegralValues mi, SmallArray!Case c, Opt!(ConcreteExpr*) e) {
-			matched = m; memberIndices = mi; cases = c; else_ = e;
-			assert(cases.length == memberIndices.length);
-		}
 	}
 
 	immutable struct PtrToField {
@@ -567,6 +571,20 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr thrown;
 	}
 
+	immutable struct Try {
+		ConcreteExpr tried;
+		IntegralValues exceptionMemberIndices;
+		SmallArray!(MatchUnion.Case) catchCases;
+	}
+
+	immutable struct TryLet {
+		Opt!(ConcreteLocal*) local;
+		ConcreteExpr value;
+		IntegralValue exceptionMemberIndex;
+		MatchUnion.Case catch_;
+		ConcreteExpr then;
+	}
+
 	// Unsafe internal operation for casting a union to a member. Does not check the kind!
 	immutable struct UnionAs {
 		ConcreteExpr* union_;
@@ -589,6 +607,7 @@ immutable struct ConcreteExprKind {
 		CreateRecord,
 		CreateUnion*,
 		Drop*,
+		Finally*,
 		If*,
 		Lambda,
 		Let*,
@@ -605,6 +624,8 @@ immutable struct ConcreteExprKind {
 		RecordFieldGet,
 		Seq*,
 		Throw*,
+		Try*,
+		TryLet*,
 		UnionAs,
 		UnionKind);
 }
@@ -652,26 +673,19 @@ immutable struct ConcreteProgram {
 	ConcreteStruct*[] allStructs;
 	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
-	Map!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
+	Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl) lambdaStructToImpls;
 	ConcreteCommonFuns commonFuns;
-
-	ConcreteFun* markFun() return scope =>
-		commonFuns.markFun;
-	ConcreteFun* rtMain() return scope =>
-		commonFuns.rtMain;
-	ConcreteFun* userMain() return scope =>
-		commonFuns.userMain;
-	ConcreteFun* allocFun() return scope =>
-		commonFuns.allocFun;
-	Opt!(ConcreteFun*) throwImplFun() return scope =>
-		commonFuns.throwImpl;
 }
 
 immutable struct ConcreteCommonFuns {
-	ConcreteFun* allocFun;
-	ConcreteFun* markFun;
+	ConcreteFun* alloc;
+	ConcreteVar* curJmpBuf;
+	ConcreteVar* curThrown;
+	ConcreteFun* mark;
+	ConcreteFun* rethrowCurrentException;
 	ConcreteFun* rtMain;
-	Opt!(ConcreteFun*) throwImpl; // None if '--abort-on-throw'
+	ConcreteFun* setjmp;
+	ConcreteFun* throwImpl;
 	ConcreteFun* userMain;
 }
 

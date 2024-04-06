@@ -6,79 +6,88 @@ import
 	system/sys/types: mode_t
 	system/unistd: getcwd, readlink, rmdir, symlink, unlink
 	system/win32:
-		cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
+		cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND,
 		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
 		FindFirstFileA, FindNextFileA, _getcwd, GetFileAttributesA, GetLastError, HANDLE,
 		INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
-	../private/bootstrap: todo
 	../version: is-windows
 	./path: child-path
-	./posix-util: check-errno, check-posix-error, throw-posix-error
-	./print: err, print
 	./win32-util: show-win32-error
+
++path-already-exists variant-member(exception, string)
+
++path-not-found variant-member(exception, string)
+
++file-system-error record(path string, description string)
++file-system-error variant-member(exception, file-system-error)
 
 # `true` iff anything (like a file or directory) exists at the path.
 +path-exists bool(path string) summon
-	!path.get-path-kind.is-empty
+	try _ = path get-path-kind catch path-not-found _ : false
+	true
 
 ###
-`true` iff `path` is the path of a directory.
+`true` if `path` is the path of a directory.
 `false` if the path is a file.
 `true` if the path is a symlink to a directory.
 `false` if nothing exists at the path.
 ###
-+is-dir bool(path string) summon
-	if kind ?= path get-path-kind
-		kind == directory
++is-directory bool(path string) summon
+	try kind = path get-path-kind catch path-not-found _ : false
+	kind == directory
 
 ###
-`true` iff `path` is the path of a file.
+`true` if `path` is the path of a file.
 `false` if the path is a directory.
 `true` if the path is a symlink to a file.
 `false` if nothing exists at the path.
 ###
 is-file bool(path string) summon
-	if kind ?= path get-path-kind
-		kind == file
--is-file bool(path c-string) summon, unsafe
-	if kind ?= path get-path-kind
-		kind == file
+	try kind = path get-path-kind catch path-not-found _ : false
+	kind == file
 
--path-kind enum(file, directory, other)
++path-kind enum(file, directory, other)
 
-# Returns an empty option iff nothing exists at the path.
--get-path-kind path-kind?(path string) summon
-	trusted path.to::c-string get-path-kind
--get-path-kind path-kind?(path c-string) summon, unsafe
-	if is-windows
-		attr = path GetFileAttributesA
-		if attr == INVALID_FILE_ATTRIBUTES
-			err = GetLastError
-			assert err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND :
-				"error {err} while testing path {path}: {err show-win32-error}"
-			()
-		else
-			if FILE_ATTRIBUTE_DIRECTORY is-in attr
-				directory,
-			else
-				file,
++get-path-kind path-kind(path string) summon
+	trusted if is-windows
+		attr = path.to GetFileAttributesA
+		forbid attr == INVALID_FILE_ATTRIBUTES : path exception-for-last
+		FILE_ATTRIBUTE_DIRECTORY is-in attr ? directory : file
 	else
 		s mut stat = ()
-		err = path stat &s
+		err = path.to stat &s
 		if err == 0
 			if s.st_mode & S_IFMT == S_IFDIR
-				directory,
+				directory
 			elif s.st_mode & S_IFMT == S_IFREG
-				file,
+				file
 			else
-				other,
+				other
 		else
 			assert err == -1
-			# TODO: show error message
-			assert errno == ENOENT : "error while testing path {path}"
-			()
+			throw path exception-for-last
+
+-exception-for-last exception(path string) summon, unsafe
+	if is-windows
+		err = GetLastError
+		if err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
+			path path-not-found
+		elif err == ERROR_ALREADY_EXISTS
+			path path-already-exists
+		else
+			(path, err.show-win32-error) file-system-error
+	else
+		if errno == ENOENT
+			path path-not-found
+		elif errno == EEXIST
+			path path-already-exists
+		else
+			(path, "{errno}") file-system-error # TODO: better error description
+
+-exception-for-last-no-path exception() summon, unsafe
+	"<<no path>>" exception-for-last
 
 ###
 Returns all children of the directory `path`, as full paths.
@@ -94,31 +103,26 @@ Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
 +names-in-dir string[](path string) summon
-	trusted path.to::c-string names-in-dir
-
--names-in-dir string[](path c-string) summon, unsafe
-	if is-windows
+	trusted if is-windows
 		path-search c-string = "{path}\\*" to
 		file-data mut WIN32_FIND_DATAA = ()
 		file = path-search FindFirstFileA &file-data
-		forbid file == INVALID_HANDLE_VALUE : "failed to open dir {path}"
-		with : (() => file find-close path) finally
-			path names-in-dir-windows file sort
+		forbid file == INVALID_HANDLE_VALUE : path exception-for-last
+		finally file find-close path.to
+		path names-in-dir-windows file sort
 	else
-		dirp = path opendir
-		forbid dirp == null : "failed to open dir {path}"
-		with : (() => dirp close-dir path) finally
-			dirp.names-in-dir-posix sort
+		dirp = path.to opendir
+		forbid dirp == null : path exception-for-last
+		finally dirp close-dir path
+		dirp.names-in-dir-posix sort
 
--find-close void(file HANDLE, path c-string) summon, unsafe
-	ok = file FindClose
-	assert ok : "failed to close dir {path}"
+-find-close void(file HANDLE, path string) summon, unsafe
+	assert file.FindClose : path exception-for-last
 
--close-dir void(dirp DIR mut*, path c-string) summon, unsafe
-	err = dirp closedir
-	assert err == 0 : "failed to close dir {path}"
+-close-dir void(dirp DIR mut*, path string) summon, unsafe
+	assert dirp.closedir == 0 : path exception-for-last
 
--names-in-dir-windows string[](dir-path c-string, file HANDLE) summon, unsafe
+-names-in-dir-windows string[](dir-path string, file HANDLE) summon, unsafe
 	with out : build
 		loop
 			file-data mut WIN32_FIND_DATAA = ()
@@ -130,8 +134,7 @@ Use `paths-in-dir` if you want full paths.
 				continue
 			else
 				err = GetLastError
-				assert err == ERROR_NO_MORE_FILES :
-					"Error while reading directory {dir-path}: {err show-win32-error}"
+				assert err == ERROR_NO_MORE_FILES : dir-path exception-for-last
 				break
 
 -names-in-dir-posix string[](dirp DIR mut*) summon, unsafe
@@ -158,22 +161,20 @@ Use `paths-in-dir` if you want full paths.
 		# TODO: smart small and retry if necessAry
 		buff char8 mut-array = 1000 uninitialized-mut-array
 		size = path.to readlink buff.begin-pointer, buff.size
-		if size == -1
-			check-errno
+		forbid size == -1 : path exception-for-last
 		buff.cast-immutable[0 .. size.to] to
 
 # Create a symbolic link at `link` with the target `target`.
 +make-symlink-to void(link string, target string) summon
 	trusted if is-windows
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE |
-			(target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
-		ok = link.to CreateSymbolicLinkA target.to, link-flags
-		assert ok : "Error creating link {link}: {GetLastError show-win32-error}"
+			(target.is-directory ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
+		assert link.to CreateSymbolicLinkA target.to, link-flags : link exception-for-last
 	else
 		err = target.to symlink link.to
 		unless err == 0
 			assert err == -1
-			check-errno
+			throw link exception-for-last
 
 ###
 Gets the path of the current executable.
@@ -185,90 +186,63 @@ Otherwise, this will be the path where `crow` is installed.
 
 # Reads the full contents of the file.
 +read-file string(path string) summon
-	content nat8[] = path read-file
-	with : "Reading file {path}" augment-exceptions
-		content as-string
+	path.read-file::nat8[] as-string
 
-# Reads the full contents of the file as bytes.
-+read-file nat8[](path string) summon
-	path.try-read-file ?? throw "file does not exist: {path}"
+# Like 'read-file', but returns an empty string instead of throwing 'path-not-found'.
++read-file-or-empty string(path string) summon
+	try
+		path read-file
+	catch path-not-found _
+		""
 
 ###
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-+write-file void(path string, content string) summon
-	trusted path.to::c-string write-file content
-
--write-file void(path c-string, content string) summon, unsafe
-	fd = path fopen "wb"
-	forbid fd == null : "failed to open file for write: {path}"
-	with : (() => fd close-fd path) finally
-		fd write-fd path, content.to-bytes
-
--write-fd void(fd FILE mut*, path c-string, bytes nat8 array) summon, unsafe
++write-file void(path string, content string) summon, trusted
+	fd = path.to fopen "wb"
+	forbid fd == null : path exception-for-last
+	finally fd close-fd path
+	bytes nat8 array = content to-bytes
 	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
-	assert wrote-bytes == bytes.size : "error writing file {path}"
+	assert wrote-bytes == bytes.size : path exception-for-last
 
-###
-Like `read-file`, but returns an empty option if the file does not exist.
-Will still throw on other errors, like permission errors.
-###
-+try-read-file string?(path string) summon
-	(path.try-read-file :: nat8[]?)?.as-string
++read-file nat8[](path string) summon, trusted
+	fd = path.to fopen "rb"
+	forbid fd == null : path exception-for-last
+	finally fd close-fd path
 
-# Like `try-read-file` but returns binary data.
-+try-read-file nat8[]?(path string) summon
-	trusted path.to::c-string try-read-file
-
--try-read-file nat8[]?(path c-string) summon, unsafe
-	if path is-file
-		fd = path fopen "rb"
-		if fd == null
-			unless errno == ENOENT
-				err print "failed to open file {path}"
-				todo
-		else
-			with : (() => fd close-fd path) finally
-				(fd read-fd path),
-
--read-fd nat8[](fd FILE mut*, path c-string) summon, unsafe
 	err = fd fseek 0, SEEK_END
-	assert err == 0 : "Error reading {path}"
+	assert err == 0 : path exception-for-last
 
 	file-size = fd ftell
-	# TODO: handle errors
-	forbid file-size == -1
+	forbid file-size == -1 : todo
 	if file-size != 0
 		# Go back to beginning
 		err2 = fd fseek 0, SEEK_SET
-		# TODO: handle errors
-		assert err2 == 0
+		assert err2 == 0 : todo
 
-		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 		file-size-nat nat64 = file-size to
 		res nat8 mut-array = file-size-nat uninitialized-mut-array
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
-		forbid fd ferror : "Error reading {path}"
+		forbid fd ferror : path exception-for-last
 		res.cast-immutable to
 
--close-fd void(fd FILE mut*, path c-string) summon, unsafe
-	err = fd fclose
-	assert err == 0 : "Error closing {path}"
+-close-fd void(fd FILE mut*, path string) summon, unsafe
+	assert fd.fclose == 0 : path exception-for-last
 
 # Gets the current directory (of the user that ran the program).
-+current-directory string() summon
-	trusted
-		buff char8 mut-array = 256 uninitialized-mut-array
-		b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
-		forbid b == null : "Error getting current directory"
-		assert b == buff.begin-pointer
-		res string = b.as-const to
-		if is-windows
-			res replace-all "\\", "/"
-		else
-			res
++current-directory string() summon, trusted
+	buff char8 mut-array = 256 uninitialized-mut-array
+	b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
+	forbid b == null : exception-for-last-no-path
+	assert b == buff.begin-pointer
+	res string = b.as-const to
+	if is-windows
+		res replace-all "\\", "/"
+	else
+		res
 
 ###
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.
@@ -286,7 +260,7 @@ and skips them if `filter` returns false.
 	filter bool mut(path string),
 	f void mut(path string),
 ) summon
-	if path is-dir
+	if path is-directory
 		for child-name : path names-in-dir
 			if filter[child-name]
 				path child-path child-name each-child-recursive filter, f
@@ -321,15 +295,14 @@ and skips them if `filter` returns false.
 	path make-directory all-permissions.user-only
 
 +make-directory void(path string, permissions file-permissions) summon
-	unless path make-directory-inner permissions
-		trusted check-errno
+	assert path make-directory-inner permissions : trusted path exception-for-last
 
 # Like 'make-directory', but OK if it already exists.
 +ensure-directory void(path string) summon
-	unless path make-directory-inner all-permissions.user-only
-		err = trusted errno
-		if err != EEXIST
-			err throw-posix-error
+	try
+		path make-directory all-permissions.user-only
+	catch path-already-exists _
+		()
 
 -make-directory-inner bool(path string, permissions file-permissions) summon
 	trusted
@@ -341,16 +314,17 @@ and skips them if `filter` returns false.
 +remove-file void(path string) summon
 	trusted if is-windows
 		ok = path.to DeleteFileA
-		assert ok : "error removing file at {path}: {GetLastError show-win32-error}"
+		assert ok : path exception-for-last
 	else
-		path.to.unlink check-posix-error
+		assert path.to.unlink == 0 : path exception-for-last
 
 ###
 Deletes the directory at `path`.
 It should be empty.
 ###
 +remove-directory void(path string) summon
-	trusted path.to.rmdir check-posix-error
+	trusted
+		assert path.to.rmdir == 0 : path exception-for-last
 
 # "/dev/null" or "NUL" on windows
 +null-path string() unsafe

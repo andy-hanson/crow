@@ -43,7 +43,7 @@ CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidate[] candidates) =>
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
 	buildArray!CalledDecl(ctx.alloc, (scope ref Builder!CalledDecl res) {
-		eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
+		eachFunInScope(ctx, funName, (CalledDecl called) {
 			res ~= called;
 		});
 	});
@@ -106,6 +106,10 @@ immutable struct FunsInScope {
 }
 FunsInScope funsInScope(ref const ExprCtx ctx) {
 	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
+}
+
+void eachFunInScope(ref ExprCtx ctx, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+	eachFunInScope(funsInScope(ctx), funName, cb);
 }
 
 void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {

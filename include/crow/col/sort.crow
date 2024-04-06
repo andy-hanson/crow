@@ -11,7 +11,7 @@ import
 	../string: ==, <=>, char32
 	../test-util: is
 	../tuple: a, b, new
-	./array: ==, +, begin, array, new, next
+	./array: ==, +, begin, array, new, next, size
 	./collection:
 		.., begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
 		subscript, swap-at

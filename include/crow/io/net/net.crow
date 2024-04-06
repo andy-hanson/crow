@@ -2,9 +2,7 @@
 Module for low-level networking.
 ###
 
-no-std
 import
-	crow/misc: new, void
 	crow/version: is-windows
 	system/bits/socket_type: SOCK_STREAM
 	system/netdb:
@@ -14,11 +12,6 @@ import
 		AF_INET, as-fd, bind, closesocket, connect, INVALID_SOCKET, socket, SOCKET
 	system/unistd: close
 	system/win32: new, MAKEWORD, WSADATA, WSAStartup
-	../../compare: !=
-	../../number: ==, int32, nat16
-	../../option: ??, new, option
-	../../pointer: ==, *, as-const, const-pointer, mut-pointer, null
-	../../string: interpolate, to
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error
 	../print: err, out, print
@@ -58,7 +51,7 @@ bind-to-port SOCKET(port nat16) summon, unsafe
 	null getaddrinfo "{port}", &hints, &result check-getaddrinfo-error
 	op-sock = result.as-const find-and-bind-working-socket
 	result freeaddrinfo
-	op-sock ?? throw "Failed to bind to port {port}"
+	op-sock ?? throw "Failed to bind to port {port}".error
 
 close-socket void(sock SOCKET) summon, unsafe
 	if is-windows
@@ -83,4 +76,4 @@ close-socket void(sock SOCKET) summon, unsafe
 
 -check-getaddrinfo-error void(err int32) summon, unsafe
 	# TODO: convert to appropriate enum
-	assert err == 0 : "getaddrinfo error: {err}"
+	assert err == 0 : "getaddrinfo error: {err}".error

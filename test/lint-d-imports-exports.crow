@@ -84,7 +84,7 @@ main nat^(_ string[]) summon
 			members.private ~= name
 		else
 			assert path == "src/wasm.d" || name in excluded-unknown-access :
-				"Unexpected non-public, non-private member {name} in {path}"
+				"Unexpected non-public, non-private member {name} in {path}" error
 	for k, v : members-by-path
 		k, v.move-to
 

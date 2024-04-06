@@ -15,7 +15,13 @@ import frontend.check.checkStructBodies : modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
 	funDeclsName, FunsAndMap, FunsMap, ImportOrExportFile, SpecsMap, StructsAndAliasesMap;
-import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
+import frontend.check.funsForStruct :
+	addFunsForStruct,
+	addFunsForVar,
+	addFunsForVariantMember,
+	countFunsForStructs,
+	countFunsForVariantMembers,
+	countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
 	checkDestructure,
@@ -55,7 +61,6 @@ import model.model :
 	isLinkageAlwaysCompatible,
 	Linkage,
 	linkageRange,
-	nameRange,
 	Params,
 	paramsArray,
 	RecordField,
@@ -70,6 +75,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
+	VariantMember,
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -80,6 +86,7 @@ import util.col.array :
 	isEmpty,
 	map,
 	mapOp,
+	mapPointers,
 	mapWithResultPointer,
 	mustFind,
 	only,
@@ -103,6 +110,7 @@ FunsAndMap checkFuns(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
+	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -110,7 +118,8 @@ FunsAndMap checkFuns(
 	TestAst[] testAsts,
 ) {
 	FunDecl[] funs = checkFunsInitial(
-		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
+		ctx, commonTypes, specsMap, structs, structsAndAliasesMap,
+		variantMembers, vars, fileImports, fileExports, asts);
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
@@ -157,6 +166,7 @@ FunDecl[] checkFunsInitial(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
+	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -164,8 +174,12 @@ FunDecl[] checkFunsInitial(
 ) =>
 	buildArrayExact!FunDecl(
 		ctx.alloc,
-		asts.length + fileImports.length + fileExports.length +
-			countFunsForStructs(commonTypes, structs) + countFunsForVars(vars),
+		asts.length +
+			fileImports.length +
+			fileExports.length +
+			countFunsForStructs(commonTypes, structs) +
+			countFunsForVariantMembers(variantMembers) +
+			countFunsForVars(vars),
 		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
 			foreach (ref FunDeclAst funAst; asts) {
 				FunDecl* fun = pushUninitialized(funsBuilder);
@@ -200,6 +214,8 @@ FunDecl[] checkFunsInitial(
 
 			foreach (ref StructDecl struct_; structs)
 				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
+			foreach (ref VariantMember member; variantMembers)
+				addFunsForVariantMember(ctx, funsBuilder, commonTypes, &member);
 			foreach (ref VarDecl var; vars)
 				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
 		});
@@ -213,16 +229,16 @@ Params checkParams(
 	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
-	ast.match!Params(
+	ast.matchWithPointers!Params(
 		(DestructureAst[] asts) =>
-			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
+			Params(mapPointers!(Destructure, DestructureAst)(ctx.alloc, asts, (DestructureAst* ast) =>
 				checkDestructure(
 					ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 					ast, none!Type, DestructureKind.param))),
-		(ref ParamsAst.Varargs varargs) {
+		(ParamsAst.Varargs* varargs) {
 			Destructure param = checkDestructure(
 				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope,
-				delayStructInsts, varargs.param, none!Type, DestructureKind.param);
+				delayStructInsts, &varargs.param, none!Type, DestructureKind.param);
 			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
 				(in Type.Bogus _) =>
 					some(Type.bogus),
@@ -313,7 +329,7 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast) 
 
 	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
 	if (!isEmpty(fun.specs)) {
-		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range;
+		Range range = mustFind!ModifierAst(ast.modifiers, (ref ModifierAst x) => x.isA!SpecUseAst).range;
 		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
 	}
 
@@ -499,8 +515,6 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		warnRedundant(bodyModifier(), ModifierKeyword.bare);
 	if (implicitUnsafe && explicitUnsafe)
 		warnRedundant(bodyModifier(), ModifierKeyword.unsafe);
-	if (trusted && !extern_ && !isTest)
-		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
 	FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
 		: extern_

@@ -64,7 +64,7 @@ alias MayDelayStructInsts = MutOpt!(DelayStructInsts*);
 MayDelayStructInsts noDelayStructInsts() =>
 	noneMut!(DelayStructInsts*);
 
-private Type instantiateType(
+Type instantiateType(
 	InstantiateCtx ctx,
 	Type type,
 	in TypeArgs typeArgs,
@@ -105,7 +105,9 @@ void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelay
 				instantiateType(ctx, field.type, typeArgs, delayStructInsts)),
 		(ref StructBody.Union u) =>
 			map!(Type, UnionMember)(ctx.alloc, u.members, (ref UnionMember member) =>
-				instantiateType(ctx, member.type, typeArgs, delayStructInsts)));
+				instantiateType(ctx, member.type, typeArgs, delayStructInsts)),
+		(StructBody.Variant) =>
+			emptySmallArray!Type);
 }
 
 StructInst* instantiateStruct(

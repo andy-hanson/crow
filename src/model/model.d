@@ -18,7 +18,8 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	VarDeclAst;
+	VarDeclAst,
+	VariantMemberAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
@@ -126,6 +127,9 @@ PurityRange purityRange(Type a) =>
 Purity bestCasePurity(Type a) =>
 	purityRange(a).bestCase;
 
+Purity worstCasePurity(Type a) =>
+	purityRange(a).worstCase;
+
 LinkageRange linkageRange(Type a) =>
 	a.matchIn!LinkageRange(
 		(in Type.Bogus) =>
@@ -193,10 +197,9 @@ immutable struct SpecDeclSig {
 		ast.name;
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, ast.nameAndRange.range);
 }
-
-UriAndRange nameRange(in SpecDeclSig a) =>
-	UriAndRange(a.moduleUri, a.ast.nameAndRange.range);
 
 immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
@@ -279,6 +282,27 @@ immutable struct UnionMember {
 		UriAndRange(moduleUri, source.nameRange);
 }
 
+immutable struct VariantMember {
+	@safe @nogc pure nothrow:
+
+	VariantMemberAst* ast;
+	Uri moduleUri;
+	Visibility visibility;
+	StructInst* variant;
+	Type type;
+
+	SmallString docComment() return scope =>
+		ast.docComment;
+	Symbol name() scope =>
+		ast.name.name;
+	TypeParams typeParams() return scope =>
+		ast.typeParams;
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, ast.range);
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, ast.name.range);
+}
+
 alias ByValOrRef = immutable ByValOrRef_;
 private enum ByValOrRef_ : ubyte {
 	byVal,
@@ -354,8 +378,9 @@ immutable struct StructBody {
 		SmallArray!UnionMember members;
 		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
+	immutable struct Variant {}
 
-	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*);
+	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*, Variant);
 }
 static assert(StructBody.sizeof == StructBody.Record.sizeof + size_t.sizeof);
 
@@ -696,6 +721,9 @@ immutable struct FunBody {
 	immutable struct CreateUnion {
 		UnionMember* member;
 	}
+	immutable struct CreateVariant {
+		VariantMember* member;
+	}
 	immutable struct Extern {
 		Symbol libraryName;
 	}
@@ -717,6 +745,7 @@ immutable struct FunBody {
 	}
 	immutable struct UnionMemberGet { size_t memberIndex; }
 	immutable struct VarGet { VarDecl* var; }
+	immutable struct VariantMemberGet { VariantMember* member; }
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -727,6 +756,7 @@ immutable struct FunBody {
 		CreateExtern,
 		CreateRecord,
 		CreateUnion,
+		CreateVariant,
 		EnumFunction,
 		Expr,
 		Extern,
@@ -738,6 +768,7 @@ immutable struct FunBody {
 		RecordFieldSet,
 		UnionMemberGet,
 		VarGet,
+		VariantMemberGet,
 		VarSet);
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
@@ -1006,7 +1037,16 @@ immutable struct FunDeclSource {
 		ImportOrExportAst* ast;
 	}
 
-	mixin Union!(Bogus, Ast, EnumOrFlagsMember*, FileImport, RecordField*, StructDecl*, UnionMember*, VarDecl*);
+	mixin Union!(
+		Bogus,
+		Ast,
+		EnumOrFlagsMember*,
+		FileImport,
+		RecordField*,
+		StructDecl*,
+		UnionMember*,
+		VarDecl*,
+		VariantMember*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -1025,6 +1065,8 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
+				x.moduleUri,
+			(in VariantMember x) =>
 				x.moduleUri);
 
 	UriAndRange range() scope =>
@@ -1044,7 +1086,9 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				UriAndRange(x.moduleUri, x.range),
 			(in VarDecl x) =>
-				x.range);
+				x.range,
+			(in VariantMember x) =>
+			 	x.range);
 	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
@@ -1062,6 +1106,8 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.nameRange,
 			(in VarDecl x) =>
+				x.nameRange,
+			(in VariantMember x) =>
 				x.nameRange);
 }
 
@@ -1101,6 +1147,8 @@ immutable struct FunDecl {
 			(ref UnionMember x) =>
 				x.containingUnion.typeParams,
 			(ref VarDecl x) =>
+				x.typeParams,
+			(ref VariantMember x) =>
 				x.typeParams);
 
 	Uri moduleUri() scope =>
@@ -1376,6 +1424,8 @@ immutable struct VarDecl {
 	Type type;
 	Opt!Symbol externLibraryName;
 
+	SmallString docComment() return scope =>
+		ast.docComment;
 	Symbol name() scope =>
 		ast.name.name;
 	TypeParams typeParams() return scope =>
@@ -1399,6 +1449,7 @@ immutable struct Module {
 	SmallArray!ImportOrExport reExports;
 	SmallArray!StructAlias aliases;
 	SmallArray!StructDecl structs;
+	SmallArray!VariantMember variantMembers;
 	SmallArray!VarDecl vars;
 	SmallArray!SpecDecl specs;
 	SmallArray!FunDecl funs;
@@ -1476,8 +1527,11 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
+	VarDecl* curJmpBuf;
+	VarDecl* curThrown;
 	FunInst* alloc;
 	FunInst* and;
+	FunInst* createError;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
@@ -1489,6 +1543,8 @@ immutable struct CommonFuns {
 	FunInst* char8ArrayTrustAsString;
 	FunInst* equalNat64;
 	FunInst* lessNat64;
+	FunInst* rethrowCurrentException;
+	FunInst* setjmp;
 }
 
 immutable struct CommonTypes {
@@ -1498,6 +1554,7 @@ immutable struct CommonTypes {
 	StructInst* char8;
 	StructInst* char32;
 	StructInst* cString;
+	StructInst* exception;
 	StructInst* float32;
 	StructInst* float64;
 	IntegralTypes integrals;
@@ -1868,6 +1925,7 @@ immutable struct ExprKind {
 		CallOptionExpr*,
 		ClosureGetExpr,
 		ClosureSetExpr,
+		FinallyExpr*,
 		FunPointerExpr,
 		IfExpr*,
 		LambdaExpr*,
@@ -1884,11 +1942,14 @@ immutable struct ExprKind {
 		MatchIntegralExpr*,
 		MatchStringLikeExpr*,
 		MatchUnionExpr*,
+		MatchVariantExpr*,
 		PtrToFieldExpr*,
 		PtrToLocalExpr,
 		SeqExpr*,
 		ThrowExpr*,
 		TrustedExpr*,
+		TryExpr*,
+		TryLetExpr*,
 		TypedExpr*);
 }
 static assert(ExprKind.sizeof == CallExpr.sizeof + ulong.sizeof);
@@ -1945,6 +2006,11 @@ immutable struct ClosureSetExpr {
 
 	Local* local() return scope =>
 		closureRef.local;
+}
+
+immutable struct FinallyExpr {
+	Expr right;
+	Expr below;
 }
 
 immutable struct FunPointerExpr {
@@ -2117,6 +2183,23 @@ immutable struct MatchUnionExpr {
 		union_.decl.body_.as!(StructBody.Union*).members;
 }
 
+immutable struct MatchVariantExpr {
+	@safe @nogc pure nothrow:
+
+	immutable struct Case {
+		VariantMember* member;
+		Destructure destructure;
+		Expr then;
+	}
+
+	ExprAndType matched;
+	SmallArray!Case cases;
+	Expr else_;
+
+	StructInst* variant() return scope =>
+		matched.type.as!(StructInst*);
+}
+
 immutable struct PtrToFieldExpr {
 	@safe @nogc pure nothrow:
 
@@ -2149,6 +2232,18 @@ immutable struct ThrowExpr {
 
 immutable struct TrustedExpr {
 	Expr inner;
+}
+
+immutable struct TryExpr {
+	Expr tried;
+	SmallArray!(MatchVariantExpr.Case) catches;
+}
+
+immutable struct TryLetExpr {
+	Destructure destructure;
+	Expr value;
+	MatchVariantExpr.Case catch_;
+	Expr then;
 }
 
 immutable struct TypedExpr {

@@ -1,9 +1,4 @@
-no-std
 import
-	../col/array: array, new
-	../number: +, -, *, /, float32, float64, to
-	../string: interpolate, string, to
-	../test-util: throws
 	./math: square-root
 
 # 2-dimensional vector with 32-bit elements.
@@ -179,7 +174,11 @@ Throws if length is 0.
 +normalize vec3-64(a vec3-64)
 	a / a.length
 test
-	(() => ()::vec2-32.normalize) throws "divide by 0"
+	try
+		_ vec2-32 = () normalize
+		should-throw
+	catch divide-by-0
+		()
 
 +dot float32(a vec2-32, b vec2-32) bare
 	a.x * b.x + a.y * b.y

@@ -1,7 +1,5 @@
 import
-	crow/io/file:
-		current-directory, ensure-directory, make-symlink-to, path-exists, read-file, try-read-file,
-		write-file
+	crow/io/file
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/test-util/test-runner: run-all-tests
@@ -39,8 +37,7 @@ main nat^(_ string[]) summon
 		()
 
 -is-up-to-date bool(path string, content string) summon
-	guard cur-content ?= path.try-read-file :: string?
-	cur-content == content
+	path.read-file-or-empty == content
 
 -ensure-directory-recursive void(path string) summon
 	unless path == "" || path.path-exists
@@ -92,10 +89,10 @@ other-links link[]()
 -to-links link[](targets string[], remove-prefix string)
 	for target : targets
 		target, target try-remove-start remove-prefix ??
-			throw "{target} didn't start with {remove-prefix}"
+			throw "{target} didn't start with {remove-prefix}" error
 
 -to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon
 	for path : paths parallel
 		assert rel-path ?= path try-remove-start remove-prefix :
-			"{path} didn't start with {remove-prefix}"
+			"{path} didn't start with {remove-prefix}".error
 		(rel-path, path.read-file),

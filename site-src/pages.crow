@@ -31,6 +31,7 @@ tutorial-pages path-and-content[]() summon
 	options: Options
 	records: Records
 	unions: Unions
+	variants: Variants
 	purity: Purity
 	collections: Collections
 	lambdas: Lambdas
@@ -103,14 +104,14 @@ tutorial-pages path-and-content[]() summon
 		"<a href=\"/doc/crow/{link name}.html\">{link name}</a>"
 	as "tutorial"
 		title = tutorial-title-lookup[link name] ??
-			throw "Linked to '{link name}' but no tutorial page has that name."
+			throw "Linked to '{link name}' but no tutorial page has that name.".error
 		"<a href=\"/tutorial/{link name}.html{link hash}\">{title}</a>"
 	else
-		throw "Unexpected link kind {link kind}"
+		throw "Unexpected link kind {link kind}" error
 
 -link record(kind symbol, name symbol, hash string)
 -parse-link link(a string)
 	kind, rest = a try-split-once "/" ??
-		throw """Link "{a}" needs to begin with "doc/" or "tutorial/"."""
+		throw """Link "{a}" needs to begin with "doc/" or "tutorial/".""".error
 	name, hash = rest try-split-once "#" ?? (rest, "")
 	kind.to, name.to, hash.is-empty ? "" : "#{hash}"

@@ -1,5 +1,6 @@
-main void()
-	with : (() => info log "done") finally
+main nat^(_ string[])
+	with : parallel
 		info log "inner"
+		()
 	else
 		info log "else"

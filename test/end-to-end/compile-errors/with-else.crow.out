@@ -1,6 +1,5 @@
 exit code: 0
 stdout:
 info: inner
-info: done
 stderr:
 test/end-to-end/compile-errors/with-else.crow 2:5-2:9 'with' statement can't have 'else'.

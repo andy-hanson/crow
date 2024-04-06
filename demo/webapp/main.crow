@@ -5,18 +5,23 @@ import
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 	crow/parse: nat, parse, to
-	./db:
-		add-post, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db, post-info,
-		register-user, to, user-cookie, user-info, user-name, with-block
+	./db
 
 main nat^(_ string[]) summon
 	with db : open-real-db
 		handler http-handler = shared req => (req handle-request db),
-		with _ : 8081 http-server handler
-			out print "Serving at http://localhost:8080; press enter to stop"
+		port nat16 = 8080
+		with _ : port http-server handler
+			out print "Serving at http://localhost:{port}; press enter to stop"
 			_ <- read-stdin
 
 -handle-request http-response(req http-request, db db) summon
+	try
+		req handle-request-inner db
+	catch user-not-authorized
+		http-forbidden
+
+-handle-request-inner http-response(req http-request, db db) summon
 	path = req path
 	query = req query
 	match req method
@@ -54,18 +59,9 @@ main nat^(_ string[]) summon
 			guard args ?= req.body-json : "Body must be JSON" http-bad-query
 			guard user-name ?= args["userName"].string : "Missing userName" http-bad-query
 			guard password ?= args["password"].string : "Missing password" http-bad-query
-			match db login user-name, password
-			as ok cookie
-				cookies cookies = ("login", cookie.to), ("max-age", cookie-expire-seconds.to)
-				"Logged in as {user-name}" http-ok (cookies.set-cookie-header,)
-			as error e
-				match e
-				as empty-name-or-password
-					"Invalid user or password" http-bad-query
-				as user-does-not-exist
-					"User does not exist" http-not-found
-				as wrong-password
-					"Wrong password" http-forbidden
+			guard cookie ?= db login user-name, password : http-forbidden
+			cookies cookies = ("login", cookie.to), ("max-age", cookie-expire-seconds.to)
+			"Logged in as {user-name}" http-ok (cookies.set-cookie-header,)
 		as "/post"
 			cookies = req parse-cookies
 			guard cookie ?= cookies["login"] : "Missing login cookie" http-forbidden

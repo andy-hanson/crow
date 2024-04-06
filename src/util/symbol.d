@@ -477,6 +477,8 @@ immutable string[] specialSymbols = [
 	"concrete-model",
 	"const-pointer",
 	"crow-config.json",
+	"cur-jmp-buf",
+	"cur-thrown",
 	"exception-low-level",
 	"extern-pointer",
 	"extern-pointers",
@@ -486,11 +488,11 @@ immutable string[] specialSymbols = [
 	"has-non-public-fields",
 	"init-constants",
 	"interpreter-backtrace",
-	"is-abort-on-throw",
 	"is-big-endian",
 	"is-interpreted",
 	"is-single-threaded",
 	"is-stack-trace-enabled",
+	"jmp_buf",
 	"loop-continue",
 	"mutAllocated",
 	"number-low-level",
@@ -501,6 +503,8 @@ immutable string[] specialSymbols = [
 	"pointer-to-local",
 	"reference-equal",
 	"reference-kind",
+	"rethrow-current-exception",
+	"_setjmp",
 	"set-subscript",
 	"shared-of-mut-lambda",
 	"static-symbols",
@@ -510,6 +514,8 @@ immutable string[] specialSymbols = [
 	"trust-as-string",
 	"unsafe-bit-shift-left",
 	"unsafe-bit-shift-right",
+	"variant",
+	"variant-member",
 
 	// from perf
 	"buildToLowProgram",
@@ -528,6 +534,9 @@ immutable string[] specialSymbols = [
 
 	// from compile
 	"vc140.pdb",
+
+	// From JSON output
+	"variant-members",
 
 	// from LSP
 	"contentChanges",
@@ -561,6 +570,9 @@ immutable string[] specialSymbols = [
 	"capabilities",
 	"case-exprs",
 	"case-values",
+	"catch-cases",
+	"catch-member",
+	"catches",
 	"changes",
 	"char32",
 	"character",
@@ -589,6 +601,8 @@ immutable string[] specialSymbols = [
 	"destructure",
 	"diagnostics",
 	"enum-members",
+	"exception",
+	"exception-member-index",
 	"exitCode",
 	"exports",
 	"expr-kind",
@@ -596,6 +610,7 @@ immutable string[] specialSymbols = [
 	"false-branch",
 	"field-index",
 	"file-type",
+	"finally",
 	"first-arg",
 	"first-branch",
 	"first-keyword",
@@ -653,6 +668,7 @@ immutable string[] specialSymbols = [
 	"mark-visit",
 	"matched",
 	"member-index",
+	"member-indices",
 	"member-name",
 	"members",
 	"memmove",
@@ -750,6 +766,7 @@ immutable string[] specialSymbols = [
 	"user-main",
 	"re-exports",
 	"variadic",
+	"variant-member-get",
 	"var-kind",
 	"visibility",
 	"with-block",

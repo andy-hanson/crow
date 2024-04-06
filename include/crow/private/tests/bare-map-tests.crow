@@ -8,8 +8,8 @@ dummy-bare-map-tests nat()
 -with-block void(_ bm, cb void mut(map (nat, value) bare-map mut*)) unsafe
 	map mut (nat, value) bare-map = 1,
 	a (nat, value) bare-map mut* = &map
-	with : (() => a destroy) finally
-		cb[a]
+	finally a destroy
+	cb[a]
 
 -invalid nat()
 	max-value

@@ -22,7 +22,6 @@ import model.model :
 	FlagsFunction,
 	FunBody,
 	FunDecl,
-	nameRange,
 	paramsArray,
 	SpecInst,
 	StructInst,
@@ -560,8 +559,6 @@ bool isVoid(in Type a) =>
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
 	switch (name.value) {
-		case symbol!"is-abort-on-throw".value:
-			return some(VersionFun.isAbortOnThrow);
 		case symbol!"is-big-endian".value:
 			return some(VersionFun.isBigEndian);
 		case symbol!"is-interpreted".value:

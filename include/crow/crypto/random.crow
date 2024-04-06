@@ -2,17 +2,14 @@
 Functions for generating cryptographically random numbers.
 ###
 
-no-std
 import
 	system/sodium: randombytes_random
 	../bits: bits-cat
-	../bool: bool
-	../number: ==, %, nat32, nat64
 	../version: is-windows
 	./private/sodium: ensure-sodium-initialized
 
 +random nat32() summon
-	forbid trusted is-windows : "TODO: Windows support"
+	forbid trusted is-windows : todo
 	ensure-sodium-initialized
 	trusted randombytes_random
 

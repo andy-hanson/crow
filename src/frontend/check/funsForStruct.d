@@ -34,6 +34,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
+	VariantMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withStackArray;
@@ -70,7 +71,12 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		},
 		(in StructBody.Union x) =>
 			// A constructor and getter for each member
-			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)));
+			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
+		(in StructBody.Variant) =>
+			0);
+
+size_t countFunsForVariantMembers(in VariantMember[] a) =>
+	a.length * 2;
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -99,7 +105,8 @@ void addFunsForStruct(
 		},
 		(ref StructBody.Union x) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, x);
-		});
+		},
+		(StructBody.Variant) {});
 }
 
 void addFunsForVar(
@@ -421,6 +428,33 @@ void addFunsForUnion(
 				[],
 				FunBody(FunBody.UnionMemberGet(memberIndex)));
 	}
+}
+
+public void addFunsForVariantMember(
+	ref CheckCtx ctx,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	VariantMember* member,
+) {
+	bool voidMember = isVoid(commonTypes, member.type);
+	funsBuilder ~= funDeclWithBody(
+		FunDeclSource(member),
+		member.visibility,
+		member.name,
+		Type(member.variant),
+		voidMember ? Params([]) : makeParams(ctx.alloc, [param!"a"(member.type)]),
+		FunFlags.generatedBare,
+		[],
+		FunBody(FunBody.CreateVariant(member)));
+	funsBuilder ~= funDeclWithBody(
+		FunDeclSource(member),
+		member.visibility,
+		member.name,
+		Type(makeOptionType(ctx.instantiateCtx, commonTypes, member.type)),
+		makeParams(ctx.alloc, [param!"a"(Type(member.variant))]),
+		FunFlags.generatedBare,
+		[],
+		FunBody(FunBody.VariantMemberGet(member)));
 }
 
 bool isVoid(in CommonTypes commonTypes, Type a) =>

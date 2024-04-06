@@ -5,12 +5,14 @@ For the raw library, import from `lmdb/headers` instead of `lmdb`.
 ###
 
 import
-	crow/c-types: err-t
 	crow/io/file: make-directory, path-exists
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes
 	./headers
 
 region env
+
++lmdb-error variant-member(exception, mdb-error)
++key-already-exists variant-member(exception)
 
 # LMDB environment.
 +lmdb-env record mut
@@ -149,14 +151,16 @@ Aborts the transaction iff `f` throws an exception.
 	trusted
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
-		(() => transaction mdb_txn_abort) do-if-error () =>
-			pair = f[transaction,]
-			match pair.b
-			as transaction-abort
-				transaction mdb_txn_abort
-			as transaction-commit
-				transaction.mdb_txn_commit check-lmdb-error
-			pair a
+		success mut = false
+		finally success ? () : transaction mdb_txn_abort
+		pair = f[transaction,]
+		match pair.b
+		as transaction-abort
+			transaction mdb_txn_abort
+		as transaction-commit
+			transaction.mdb_txn_commit check-lmdb-error
+		success := true
+		pair a
 
 region get / set
 
@@ -168,15 +172,19 @@ Returns an empty option iff `key` is not in `db`.
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
-		forbid lmdb-key is-empty : "empty key is not allowed"
+		forbid lmdb-key is-empty
 		trusted
 			key-val = lmdb-key val-of-bytes
 			value mut = empty-val
 			err = txn.txn mdb_get db.dbi, &key-val, &value
-			unless err == MDB_NOTFOUND
-				err check-lmdb-error
+			match err
+			as MDB_SUCCESS
 				# TODO:PERF For some v types, the copy in 'bytes-of-val' is unnecessary.
 				value.bytes-of-val.from-bytes,
+			as MDB_NOTFOUND
+				()
+			else
+				throw err lmdb-error
 
 ###
 Associates the value with the key.
@@ -185,19 +193,13 @@ This may add the key or overwrite the value if the key is already in the databas
 +set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	txn put-inner db, key, value, () check-lmdb-error
 
-# Like `set`, but throws if `key` is already in the `db`.
+###
+Like `set`, but throws 'key-already-exists' if `key` is already in the `db`.
+###
 +add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
-	assert txn try-add db, key, value : "key already exists"
-
-###
-If `key` is already in `db`, returns `false`.
-Else, adds the `key` and `value` and returns `true`.
-###
-+try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
-	unless err == MDB_KEYEXIST
-		err check-lmdb-error
-		true
+	assert err == MDB_SUCCESS :
+		err == MDB_KEYEXIST ? key-already-exists : err lmdb-error
 
 -put-inner[k, v] mdb-error(
 	txn lmdb-txn,
@@ -339,9 +341,9 @@ Returns an array of the results.
 ) summon, unsafe
 	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
-	with : (() => cursor mdb_cursor_close) finally
-		open-err check-lmdb-error
-		f[cursor]
+	finally cursor mdb_cursor_close
+	open-err check-lmdb-error
+	f[cursor]
 
 -empty-val MDB_val() unsafe
 	0, null
@@ -354,4 +356,4 @@ Returns an array of the results.
 	a.mv_data .. a.mv_data + a.mv_size as-list
 
 -check-lmdb-error void(a mdb-error)
-	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a.to::err-t})"
+	assert a == MDB_SUCCESS : a lmdb-error

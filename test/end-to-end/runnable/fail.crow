@@ -5,4 +5,4 @@ foo void()
 	bar
 
 bar void()
-	throw "FOO"
+	throw "FOO" error

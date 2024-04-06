@@ -1,6 +1,7 @@
 no-std
 import
 	./bool: &&, bool
+	./col/collection: iterator-not-comparable
 	./compare: <, <=, >, compare, comparison, equal
 	./number: nat64
 	./option: new, option
@@ -20,10 +21,10 @@ region iteration
 	-collection t range
 	-next-value t
 +==[t] bool(a t range-iterator, b t range-iterator) bare, t equal
-	assert a.collection == b.collection : "can't compare iterators from different ranges"
+	assert a.collection == b.collection : iterator-not-comparable
 	a.next-value == b.next-value
 +<=>[t] comparison(a t range-iterator, b t range-iterator) bare, t compare
-	assert a.collection == b.collection : "can't compare iterators from different ranges"
+	assert a.collection == b.collection : iterator-not-comparable
 	a.next-value <=> b.next-value
 
 +begin[t] t range-iterator(a t range) bare

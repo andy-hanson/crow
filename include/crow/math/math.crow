@@ -1,6 +1,7 @@
 no-std
 import
 	../compare: >=
+	../exception: exception
 	../number: ==, <=>, float32, float64, to
 
 +pi float64() bare
@@ -20,11 +21,14 @@ import
 +pi_4 float32() bare
 	pi_4::float64.to
 
+# Used for a non-total function like 'square-root'
++float-out-of-range variant-member(exception, float64)
+
 +square-root float32(a float32) bare
-	assert a >= 0 : "Can't get square-root of negative number"
+	assert a >= 0 : a.to float-out-of-range
 	trusted a sqrt
 +square-root float64(a float64) bare
-	assert a >= 0 : "Can't get square-root of negative number"
+	assert a >= 0 : a float-out-of-range
 	trusted a sqrt
 
 # Unsafe for negative inputs (NaN in debug builds but not in optimized builds)

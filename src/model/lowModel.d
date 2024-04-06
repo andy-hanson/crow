@@ -39,7 +39,7 @@ immutable struct LowRecord {
 	@safe @nogc pure nothrow:
 
 	ConcreteStruct* source;
-	LowField[] fields;
+	SmallArray!LowField fields;
 
 	//TODO:MOVE
 	bool packed() scope =>
@@ -64,7 +64,7 @@ immutable struct LowUnion {
 	@safe @nogc pure nothrow:
 
 	ConcreteStruct* source;
-	LowType[] members;
+	SmallArray!LowType members;
 
 	// This might change if we use tagged pointers
 	size_t membersOffset() =>
@@ -467,10 +467,10 @@ immutable struct LowExprKind {
 		@safe @nogc pure nothrow:
 		LowExpr value;
 		IntegralValues caseValues;
-		LowExpr[] caseExprs;
+		SmallArray!LowExpr caseExprs;
 		LowExpr default_; // This is often Abort
 
-		this(LowExpr value, IntegralValues caseValues, LowExpr[] caseExprs, LowExpr default_) {
+		this(LowExpr value, IntegralValues caseValues, SmallArray!LowExpr caseExprs, LowExpr default_) {
 			this.value = value; this.caseValues = caseValues; this.caseExprs = caseExprs; this.default_ = default_;
 			assert(caseValues.length == caseExprs.length);
 		}

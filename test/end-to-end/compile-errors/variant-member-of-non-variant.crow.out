@@ -1,0 +1,10 @@
+exit code: 1
+stderr:
+test/end-to-end/compile-errors/variant-member-of-non-variant.crow 2:14-2:15 There are functions named 'm', but they do not match the expected return type and actual argument types.
+Expected return type 'bool'.
+Actual argument types: 
+Candidates (with 0 arguments):
+	'm exception()' (from test/end-to-end/compile-errors/variant-member-of-non-variant.crow line 4)
+test/end-to-end/compile-errors/variant-member-of-non-variant.crow 4:18-4:22 Not a variant: bool
+Uncaught exception: Error: Reached compile error
+	at main

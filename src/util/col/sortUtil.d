@@ -85,9 +85,12 @@ void eachSorted(K, Ctx, Iters...)(scope ref Ctx ctx, scope Iters iters) {
 		assert(iters[i].isEmpty);
 }
 
-private:
-
-void assertSorted(T, K, alias getComparable)(in T[] xs) {
+private void assertSorted(T, K, alias getComparable)(in T[] xs) {
 	foreach (size_t i; 1 .. xs.length)
 		assert(getComparable(xs[i - 1]) <= getComparable(xs[i]));
+}
+
+void assertSortedAndUnique(T, K)(in T[] xs, in K delegate(in T) @safe @nogc pure nothrow getComparable) {
+	foreach (size_t i; 1 .. xs.length)
+		assert(getComparable(xs[i - 1]) < getComparable(xs[i]));
 }

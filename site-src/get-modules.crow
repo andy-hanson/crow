@@ -2,14 +2,11 @@ import
 	crow/io/process: has-error, spawn-and-wait-result, stderr, stdout
 	crow/parse: ~~, force, parse, spaces
 	crow/version: is-windows
-	./module:
-		alias-decl, builtin-decl, data_, enum-decl, exports, extern-decl, flags-decl, fun-decl,
-		module, module-export, module-export-value, mut_, new, param, purity, spec-decl, spec-ref,
-		type-param, type-ref, record-decl, record-field, shared_, spec-sig, union-decl, union-member
+	./module
 
 get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "document" ~ paths
-	forbid result has-error : "Could not get documentation. stderr: {result stderr}"
+	forbid result has-error : "Could not get documentation. stderr: {result stderr}" error
 	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
 
 -crow-path string()
@@ -62,8 +59,12 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		a.to-record-decl record-decl
 	as "union"
 		a.to-union-decl union-decl
+	as "variant"
+		a.to-variant-decl variant-decl
+	as "variant-member"
+		a.to-variant-member-decl variant-member-decl
 	else
-		throw "Unexpected export kind {kind}"
+		throw "Unexpected export kind {kind}" error
 
 -to-alias-decl alias-decl(a json)
 	target = a["target"] to-type-ref
@@ -96,7 +97,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	as "data"
 		data_
 	else
-		throw "Bad purity for {a}"
+		throw "Bad purity for {a}" error
 
 -to-record-field record-field(a json)
 	a.get-name, a.get-type, a["mut"].bool-or-null!
@@ -108,6 +109,12 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 -to-union-member union-member(a json)
 	t = a["type"]
 	a.get-name, (t != null ? t.to-type-ref,)
+
+-to-variant-decl variant-decl(a json)
+	a.get-purity,
+
+to-variant-member-decl variant-member-decl(a json)
+	a["variant"].to-type-ref, (a["type"] != null ? a.get-type,)
 
 -get-name symbol(a json)
 	a["name"].symbol!
@@ -156,7 +163,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	as struct
 		name, a.get-type-args
 	else
-		throw "bad type-ref {a}"
+		throw "bad type-ref {a}" error
 
 -to-spec-ref spec-ref(a json)
 	name symbol = a["name"].symbol!
@@ -166,4 +173,4 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	as "spec"
 		name, a.get-type-args
 	else
-		throw "bad spec-ref {a}"
+		throw "bad spec-ref {a}" error

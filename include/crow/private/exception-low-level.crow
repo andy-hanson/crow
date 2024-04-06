@@ -3,33 +3,31 @@ import
 	system/setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, int32, nat64
+	../number: ==, nat64
 	../pointer: ==, null, zeroed
-	../version: is-abort-on-throw, is-interpreted, is-windows
+	../result: error, ok, result
+	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, error, hard-assert, new, ok, result, string
+	./bootstrap: abort, array, new, string
 export
-	./bootstrap: exception, message
+	./bootstrap: backtrace, error, exception, exception-and-backtrace
+
++test-failure variant-member(exception, string)
 
 -cur-jmp-buf thread-local(jmp_buf)
 -cur-thrown thread-local(exception)
+-cur-backtrace thread-local(backtrace)
 
-###
-Fail unconditionally.
-This function is used to mark part of an `if` or `match` that should not be possible.
-###
-+unreachable[t] t() bare
-	throw "should be unreachable"
-
-###
-Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
-(An exception thrown by `catcher` will not be caught.)
-###
-+catch[t] t(try t mut(), catcher t mut(x exception))
-	trusted if is-abort-on-throw
-		try[]
+# Used by the compiler when implementing 'try-catch' and 'finally'
+rethrow-current-exception void() bare, unsafe
+	if cur-jmp-buf == null
+		abort
 	else
+		cur-jmp-buf longjmp 1
+
++catch-all[t] (t, exception-and-backtrace) result(tried t mut())
+	trusted
 		old-jmp-buf = cur-jmp-buf
 		store mut __jmp_buf_tag = ()
 		setjmp-result = if is-interpreted
@@ -42,37 +40,34 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 			# Get here after setting the jump
 			cur-jmp-buf := &store
 			# If it throws, we'll go to the above branch.
-			res = try[]
+			res = tried[]
 			cur-jmp-buf := old-jmp-buf
-			res
+			res ok
 		else
-			# Get here after throwing from inside `try[]`
-			setjmp-result == number-to-throw hard-assert
+			cur-jmp-buf := old-jmp-buf
 			thrown = cur-thrown
 			cur-thrown := zeroed
-			cur-jmp-buf := old-jmp-buf
-			catcher[thrown]
+			backtrace = cur-backtrace
+			cur-backtrace := zeroed
+			(thrown, backtrace) error
 
 ###
-Run `try` and return `ok` containing its return value,
-or `err` containing an exception if it threw one.
+Fail unconditionally.
+This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-+catch[t] (t, exception) result(try t mut())
-	(() => try[] ok) catch e => e error
++unreachable[t] t() bare
+	throw "Should be unreachable" error
 
 # This is called by the compiler on 'throw'
-throw-impl void(message string) bare
-	message throw-with-skip 2
+throw-impl void(a exception) bare
+	a throw-with-skip 2
 
-throw-with-skip void(message string, skip nat64) bare
-	trusted if is-abort-on-throw
-		abort
+throw-with-skip void(a exception, skip nat64) bare
+	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
+		ctx get-backtrace skip
 	else
-		backtrace = if ctx ?= try-get-cur-gc-ctx
-			ctx get-backtrace skip
-		else
-			(),
-		(message, backtrace) rethrow
+		(),
+	(a, backtrace) rethrow
 
 -new[t] t array(...a t array) bare
 	a
@@ -83,25 +78,10 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-+rethrow[t] t(e exception) bare
++rethrow[t] t(e exception-and-backtrace) bare
 	trusted
-		jmp-buf = cur-jmp-buf
-		if jmp-buf == null
-			abort
-		else
-			cur-thrown := e
-			jmp-buf longjmp number-to-throw
+		cur-thrown := e exception
+		cur-backtrace := e backtrace
+		rethrow-current-exception
 		# unreachable
 		zeroed
-
-abort-on-exceptions record nominal
-# Makes exceptions in callback non-catchable.
-with-block[t] t(_ abort-on-exceptions, cb t mut()) unsafe
-	jmp-buf = cur-jmp-buf
-	cur-jmp-buf := null
-	res = cb[]
-	cur-jmp-buf := jmp-buf
-	res
-
--number-to-throw int32() bare, unsafe
-	7

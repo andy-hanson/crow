@@ -23,7 +23,6 @@ pure:
 
 immutable struct VersionOptions {
 	bool isSingleThreaded;
-	bool abortOnThrow;
 	bool stackTraceEnabled;
 }
 
@@ -45,7 +44,6 @@ VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
 	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
 
 enum VersionFun {
-	isAbortOnThrow,
 	isBigEndian,
 	isInterpreted,
 	isJit,
@@ -57,8 +55,6 @@ enum VersionFun {
 
 bool isVersion(in VersionInfo a, VersionFun fun) {
 	final switch (fun) {
-		case VersionFun.isAbortOnThrow:
-			return a.options.abortOnThrow;
 		case VersionFun.isBigEndian:
 			version (BigEndian) {
 				return true;

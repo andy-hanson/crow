@@ -3,7 +3,7 @@ import
 	../bool: &&, ||, bool, false, true
 	../col/array: array
 	../col/map: empty-map, map
-	../exception: exception, to
+	../exception: exception-and-backtrace, to
 	../fun-util: subscript
 	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
@@ -50,7 +50,7 @@ global-ctx record by-val, mut
 	symbols-table mut symbol[string]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
-	exception-handler mut void shared(x exception)
+	exception-handler mut void shared(x exception-and-backtrace)
 	# TODO: this should be a `global`. But need to atomically set.
 	default-log-handler mut log-handler
 
@@ -106,7 +106,7 @@ destroy void(a global-ctx mut*) bare, unsafe
 new-exclusion exclusion(a global-ctx mut*) bare
 	trusted a.next-exclusion get-and-increment
 
-default-exception-handler void(e exception) summon, unsafe
+default-exception-handler void(e exception-and-backtrace) summon, unsafe
 	err print-no-newline "Uncaught exception: "
 	err print "{e}"
 	get-global-ctx->any-unhandled-exceptions := true

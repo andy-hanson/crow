@@ -43,7 +43,7 @@ import lower.lowExprHelpers :
 	genWrapMulNat64,
 	voidType;
 import util.alloc.alloc : Alloc;
-import util.col.array : newArray;
+import util.col.array : newArray, SmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
@@ -223,7 +223,7 @@ LowFunExprBody visitUnionBody(
 	ref Alloc alloc,
 	UriAndRange range,
 	in MarkVisitFuns markVisitFuns,
-	LowType[] unionMembers,
+	SmallArray!LowType unionMembers,
 	LowExpr markCtx,
 	LowExpr value,
 ) =>

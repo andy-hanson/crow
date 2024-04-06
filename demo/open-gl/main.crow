@@ -8,16 +8,9 @@ import
 	crow/math/math: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
-	OpenGL/gl:
-		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
-		glClearColor, glCullFace, glDeleteBuffers, glDrawArrays, glEnable,
-		glEnableVertexAttribArray, gl-ext, glGenBuffers, glGetError, glGetUniformLocation,
-		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
-	OpenGL/headers:
-		GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GLenum, GL_FLOAT, GLint,
-		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint
-	SDL2/SDL:
-		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
+	OpenGL/gl
+	OpenGL/headers
+	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events: new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
@@ -220,9 +213,12 @@ main nat^(_ string[]) summon
 	unless err == 0
 		description fail-sdl-error
 
+-sdl-error record(action string, error string)
+-sdl-error variant-member(exception, sdl-error)
+
 -fail-sdl-error void(description string) summon, unsafe
-	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
+	throw (description, SDL_GetError.to) sdl-error
 
 -vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
 	vbo mut GLuint = 0
@@ -235,7 +231,7 @@ main nat^(_ string[]) summon
 	err GLenum = gl glGetError
 	unless err == GL_NO_ERROR
 		gl glDeleteBuffers n-buffers, &vbo
-		throw "Creating VBO failed: Code {err}"
+		throw ("Creating VBO", err) gl-error
 	vbo
 
 size-bytes nat(vertices vertex array) unsafe
@@ -246,4 +242,4 @@ size-bytes nat(vertices vertex array) unsafe
 
 -gl-check-error void(gl gl-ext, desc string) summon
 	err GLenum = gl glGetError
-	assert err == GL_NO_ERROR : "Gl error at {desc}: code {err}"
+	assert err == GL_NO_ERROR : (desc, err) gl-error

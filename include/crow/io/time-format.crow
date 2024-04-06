@@ -4,17 +4,8 @@ Functions for formatting time values as strings.
 Most of these take a `unix-time`; see `get-unix-time` in `crow/io/time`.
 ###
 
-no-std
 import
 	system/time: gmtime, localtime, strftime
-	../bool: bool, false, true
-	../col/array: +, begin, slice
-	../col/collection: subscript
-	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../number: ==, <=>, +, nat64
-	../pointer: as-const
-	../range: ..
-	../string: char8, string, to
 	../version: is-windows
 	./time: seconds-since-epoch, unix-time
 
@@ -122,7 +113,7 @@ Second from 00 to 60 inclusive.
 	locale format time, "%S", 2
 
 -format string(locale time-locale, time unix-time, format string, max-size nat64) summon
-	forbid trusted is-windows : "TODO: Windows support"
+	forbid trusted is-windows : todo
 	seconds = time seconds-since-epoch
 	trusted
 		tm = if locale is-local-time

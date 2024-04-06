@@ -25,7 +25,7 @@ main nat^(_ string[]) summon
 		render-thread-id = cur-thread-id
 		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 		window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-		assert window != null : "SDL_CreateWindow" describe-sdl-error
+		assert window != null : "SDL_CreateWindow" sdl-last-error
 		renderer = window renderer
 		texture = renderer create-texture
 		<- for : 25.msec interval
@@ -98,19 +98,19 @@ main nat^(_ string[]) summon
 
 -renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
 	res = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	assert res != null : "SDL_CreateRenderer" describe-sdl-error
+	assert res != null : "SDL_CreateRenderer" sdl-last-error
 	res
 
 -create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to SDL_LoadBMP_RW 0
-	assert bmp != null : "sdl-loadbmp-error" describe-sdl-error
+	assert bmp != null : "sdl-loadbmp-error" sdl-last-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
 	bmp SDL_FreeSurface
-	assert texture != null : "SDL_CreateTextureFromSurface" describe-sdl-error
+	assert texture != null : "SDL_CreateTextureFromSurface" sdl-last-error
 	texture
 
 -handle-sdl-error void(err c-int, description string) summon, unsafe
-	assert err == 0 : description describe-sdl-error
+	assert err == 0 : description sdl-last-error
 
--describe-sdl-error string(description string) summon, unsafe
-	"sdl error in {description}: {SDL_GetError}"
+-sdl-last-error exception(description string) summon, unsafe
+	"SDL error in {description}: {SDL_GetError}" error

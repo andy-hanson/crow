@@ -18,6 +18,8 @@ all-exports all-exports(modules module[])
 				specs add-or-warn x.name, module.path
 			as export-fun
 				()
+			as export-variant-member
+				()
 	types.move-to, specs.move-to
 
 -add-or-warn void(map module-path mut[symbol], key symbol, value module-path)
@@ -26,7 +28,7 @@ all-exports all-exports(modules module[])
 	else
 		map[key] := value
 
--export-kind enum(export-type, export-spec, export-fun)
+-export-kind enum(export-type, export-spec, export-fun, export-variant-member)
 
 -export-kind export-kind(a module-export-value)
 	match a
@@ -48,6 +50,10 @@ all-exports all-exports(modules module[])
 		export-spec
 	as union-decl _
 		export-type
+	as variant-decl _
+		export-type
+	as variant-member-decl _
+		export-variant-member
 
 module-content string(a module, all-exports all-exports)
 	exports = "" join for x : a exports
@@ -75,7 +81,7 @@ module-content string(a module, all-exports all-exports)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
 -type-or-spec-name-reference string(name symbol, map module-path[symbol], kind string, ctx ctx)
 	assert module ?= map[name] :
-		"Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
+		"Could not find {kind} {name} in {ctx current-module} member {ctx current-export}" error
 	module-path string = if module != ctx.current-module
 		"/doc/{(module.to::string try-remove-end ".crow")!}.html"
 	"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
@@ -119,6 +125,10 @@ module-content string(a module, all-exports all-exports)
 		"spec"
 	as union-decl _
 		"union"
+	as variant-decl _
+		"variant"
+	as variant-member-decl _
+		"variant-member"
 
 -name-class string(a module-export-value)
 	match a
@@ -140,6 +150,10 @@ module-content string(a module, all-exports all-exports)
 		"interface"
 	as union-decl _
 		"type"
+	as variant-decl _
+		"type"
+	as variant-member-decl _
+		"enumMember"
 
 -type-params-content string(a type-param[])
 	guard !a.is-empty
@@ -180,6 +194,12 @@ module-content string(a module, all-exports all-exports)
 		"{(s.is-builtin ? "spec builtin" : "spec") keyword}{s.parents spec-refs-content ctx}"
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
+	as variant-decl x
+		"{"variant" keyword}{x.purity purity-content}"
+	as variant-member-decl x
+		type string = if t ?= x type
+			", {t type-ref-content ctx}"
+		"{"variant-member" keyword}({x.variant-decl type-ref-content ctx}{type})"
 
 -purity-content string(a purity)
 	match a
@@ -195,15 +215,15 @@ module-content string(a module, all-exports all-exports)
 	as alias-decl al
 		"""<div class="alias-target">{al.target type-ref-content ctx}</div>"""
 	as builtin-decl
-		()
+		""
 	as enum-decl e
 		e.members enum-flags-members-content
 	as extern-decl
-		()
+		""
 	as flags-decl f
 		f.members enum-flags-members-content
 	as fun-decl _
-		()
+		""
 	as record-decl r
 		pre string = if r.has-non-public-fields
 			"""<p class="has-non-public-fields">(has non-public fields)</p>"""
@@ -218,6 +238,10 @@ module-content string(a module, all-exports all-exports)
 		members = "" join for x : u members
 			x union-member-content ctx
 		"""<ul class="members">{members}</ul>"""
+	as variant-decl _
+		""
+	as variant-member-decl _
+		""
 
 -enum-flags-members-content string(a symbol[])
 	members = "" join for x : a
@@ -330,7 +354,7 @@ special-specs symbol set()
 	as ok parts
 		parts format-comment-parts
 	as error e
-		throw "Could not parse doc comment:\n{a}\n\nReason: {e}"
+		throw "Could not parse doc comment:\n{a}\n\nReason: {e}" error
 
 -format-comment-parts string(parts comment-part[])
 	res mut string = "<p>"

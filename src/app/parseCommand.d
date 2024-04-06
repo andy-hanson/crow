@@ -387,7 +387,6 @@ RunOptions parseRunOptions(
 	scope ref Diags diags,
 	in ArgsPart[] argParts,
 ) {
-	bool abortOnThrow = false;
 	bool noStackTrace = false;
 	bool aot = false;
 	bool jit = false;
@@ -396,10 +395,6 @@ RunOptions parseRunOptions(
 	foreach (ArgsPart part; argParts) {
 		expectFlag(diags, part);
 		switch (stringOfCString(part.tag)) {
-			case "--abort-on-throw":
-				if (abortOnThrow) diags ~= Diag(Diag.DuplicatePart(part.tag));
-				abortOnThrow = true;
-				break;
 			case "--no-stack-trace":
 				if (noStackTrace) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				noStackTrace = true;
@@ -430,10 +425,7 @@ RunOptions parseRunOptions(
 	if (!aot && !jit && optimize)
 		diags ~= Diag(Diag.RunOptimizeNeedsAotOrJit());
 
-	VersionOptions version_ = VersionOptions(
-		isSingleThreaded: singleThreaded,
-		abortOnThrow: abortOnThrow,
-		stackTraceEnabled: !noStackTrace);
+	VersionOptions version_ = VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace);
 	return aot
 		? RunOptions(RunOptions.Aot(
 			version_,
@@ -460,7 +452,6 @@ BuildOptions parseBuildOptions(
 	Cell!(Opt!BuildOut) out_;
 	bool optimize = false;
 	bool c99 = false;
-	bool abortOnThrow = false;
 	bool noStackTrace = false;
 	bool singleThreaded = false;
 	foreach (ArgsPart part; argParts) {
@@ -469,10 +460,6 @@ BuildOptions parseBuildOptions(
 				if (c99)
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				c99 = true;
-				break;
-			case "--abort-on-throw":
-				if (abortOnThrow) diags ~= Diag(Diag.DuplicatePart(part.tag));
-				abortOnThrow = true;
 				break;
 			case "--no-stack-trace":
 				if (noStackTrace) diags ~= Diag(Diag.DuplicatePart(part.tag));
@@ -510,7 +497,7 @@ BuildOptions parseBuildOptions(
 				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
 				defaultExeExtension));
 	return BuildOptions(
-		VersionOptions(isSingleThreaded: singleThreaded, abortOnThrow: abortOnThrow, stackTraceEnabled: !noStackTrace),
+		VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace),
 		resOut,
 		CCompileOptions(
 			optimize ? OptimizationLevel.o2 : OptimizationLevel.none,
@@ -751,5 +738,4 @@ string commandDescription(CommandName name) {
 
 enum buildRunCommonOptions =
 	"\n\t--single-threaded : See documentation for 'is-single-threaded' in 'crow/version'." ~
-	"\n\t--abort-on-throw : See documentation for 'is-abort-on-throw' in 'crow/version'." ~
 	"\n\t--no-stack-trace : See documentation for 'is-stack-trace-enabled' in 'crow/version'.";

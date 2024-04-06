@@ -59,6 +59,9 @@ struct Writer {
 			this ~= c;
 		});
 	}
+	void opOpAssign(string op : "~")(ubyte a) {
+		writeNat(this, a);
+	}
 	void opOpAssign(string op : "~")(int a) {
 		this ~= long(a);
 	}

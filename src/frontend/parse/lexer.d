@@ -8,13 +8,11 @@ import frontend.parse.lexToken :
 	isNewlineToken,
 	lexInitialToken,
 	lexToken,
-	lookaheadAs,
 	lookaheadColon,
 	lookaheadElifOrElse,
-	lookaheadElse,
+	lookaheadKeyword,
 	lookaheadEqualsOrThen,
 	lookaheadLambdaAfterParenLeft,
-	lookaheadNew,
 	lookaheadQuestionEquals,
 	plainToken;
 import frontend.parse.lexWhitespace :
@@ -251,7 +249,7 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 }
 
 bool lookaheadNewVisibility(in Lexer lexer) =>
-	isVisibility(getPeekTokenAndData(lexer)) && lookaheadNew(lexer.ptr);
+	isVisibility(getPeekTokenAndData(lexer)) && lookaheadKeyword(lexer.ptr, "new");
 
 private bool isVisibility(in TokenAndData a) {
 	if (a.token == Token.operator) {
@@ -283,23 +281,22 @@ bool lookaheadOpenBracket(in Lexer lexer) =>
 	*lexer.ptr == '[';
 
 // Returns position of 'as'
-Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
-	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadAs(lexer.ptr)) {
-		mustTakeToken(lexer, Token.newlineSameIndent);
-		Pos asPos = curPos(lexer);
-		mustTakeToken(lexer, Token.as);
-		return some(asPos);
-	} else
-		return none!Pos;
-}
+Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) =>
+	tryTakeNewlineThenKeyword(lexer, Token.as, "as");
+
+Opt!Pos tryTakeNewlineThenCatch(ref Lexer lexer) =>
+	tryTakeNewlineThenKeyword(lexer, Token.catch_, "catch");
 
 // Returns position of 'else'
-Opt!Pos tryTakeNewlineThenElse(ref Lexer lexer) {
-	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadElse(lexer.ptr)) {
+Opt!Pos tryTakeNewlineThenElse(ref Lexer lexer) =>
+	tryTakeNewlineThenKeyword(lexer, Token.else_, "else");
+
+private Opt!Pos tryTakeNewlineThenKeyword(scope ref Lexer lexer, Token keyword, in string keywordString) {
+	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadKeyword(lexer.ptr, keywordString)) {
 		mustTakeToken(lexer, Token.newlineSameIndent);
-		Pos elsePos = curPos(lexer);
-		mustTakeToken(lexer, Token.else_);
-		return some(elsePos);
+		Pos keywordPos = curPos(lexer);
+		mustTakeToken(lexer, keyword);
+		return some(keywordPos);
 	} else
 		return none!Pos;
 }

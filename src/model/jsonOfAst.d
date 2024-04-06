@@ -21,6 +21,7 @@ import model.ast :
 	ExprAstKind,
 	FieldMutabilityAst,
 	FileAst,
+	FinallyAst,
 	ForAst,
 	FunDeclAst,
 	ModifierAst,
@@ -62,8 +63,12 @@ import model.ast :
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
+	TryAst,
+	TryLetAst,
 	TypeAst,
 	TypedAst,
+	VarDeclAst,
+	VariantMemberAst,
 	WithAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
@@ -101,7 +106,11 @@ Json jsonOfAst(ref Alloc alloc, in LineAndColumnGetter lineAndColumnGetter, in F
 		optionalArrayField!("structs", StructDeclAst)(alloc, ast.structs, (in StructDeclAst a) =>
 			jsonOfStructDeclAst(alloc, ctx, a)),
 		optionalArrayField!("funs", FunDeclAst)(alloc, ast.funs, (in FunDeclAst a) =>
-			jsonOfFunDeclAst(alloc, ctx, a))]);
+			jsonOfFunDeclAst(alloc, ctx, a)),
+		optionalArrayField!("variant-members", VariantMemberAst)(alloc, ast.variantMembers, (in VariantMemberAst a) =>
+			jsonOfVariantMemberAst(alloc, ctx, a)),
+		optionalArrayField!("vars", VarDeclAst)(alloc, ast.vars, (in VarDeclAst a) =>
+			jsonOfVarDeclAst(alloc, ctx, a))]);
 }
 
 private:
@@ -146,7 +155,7 @@ Json pathOrRelPathToJson(ref Alloc alloc, in PathOrRelPath a) =>
 Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		field!"comment"(jsonString(alloc, a.docComment)),
+		optionalStringField!"doc"(alloc, a.docComment),
 		visibilityField(a.visibility_),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
@@ -160,7 +169,7 @@ Json.ObjectField visibilityField(Opt!Visibility a) =>
 Json jsonOfSpecSig(ref Alloc alloc, in Ctx ctx, in SpecSigAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		field!"doc"(jsonString(alloc, a.docComment)),
+		optionalStringField!"doc"(alloc, a.docComment),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfTypeAst(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfParamsAst(alloc, ctx, a.params))]);
@@ -224,7 +233,7 @@ Json jsonOfLiteralIntegral(ref Alloc alloc, in LiteralIntegral a) =>
 Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		field!"doc"(jsonString(alloc, a.docComment)),
+		optionalStringField!"doc"(alloc, a.docComment),
 		visibilityField(a.visibility_),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
@@ -243,7 +252,9 @@ Json jsonOfStructBodyAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst a) =>
 		(in StructBodyAst.Record a) =>
 			jsonOfRecordOrUnion(alloc, ctx, "record", a.params, a.fields),
 		(in StructBodyAst.Union a) =>
-			jsonOfRecordOrUnion(alloc, ctx, "union", a.params, a.members));
+			jsonOfRecordOrUnion(alloc, ctx, "union", a.params, a.members),
+		(in StructBodyAst.Variant a) =>
+			jsonString!"variant");
 
 Json jsonOfRecordOrUnion(
 	ref Alloc alloc,
@@ -443,6 +454,11 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"body"(jsonOfExprAst(alloc, ctx, *x.body_))]),
 		(in EmptyAst e) =>
 			jsonObject(alloc, [kindField!"empty"]),
+		(in FinallyAst x) =>
+			jsonObject(alloc, [
+				kindField!"finally",
+				field!"right"(jsonOfExprAst(alloc, ctx, x.right)),
+				field!"below"(jsonOfExprAst(alloc, ctx, x.below))]),
 		(in ForAst x) =>
 			jsonObject(alloc, [
 				kindField!"for",
@@ -506,8 +522,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"match",
 				field!"matched"(jsonOfExprAst(alloc, ctx, *x.matched)),
-				field!"cases"(jsonList!CaseAst(alloc, x.cases, (in CaseAst case_) =>
-					jsonOfCaseAst(alloc, ctx, case_))),
+				field!"cases"(jsonOfCaseAsts(alloc, ctx, x.cases)),
 				optionalField!("else", MatchElseAst*)(x.else_, (in MatchElseAst* y) =>
 					jsonObject(alloc, [
 						field!"keyword-pos"(y.keywordPos),
@@ -541,6 +556,19 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"trusted",
 				field!"inner"(jsonOfExprAst(alloc, ctx, x.inner))]),
+		(in TryAst x) =>
+			jsonObject(alloc, [
+				kindField!"try",
+				field!"tried"(jsonOfExprAst(alloc, ctx, *x.tried)),
+				field!"catches"(jsonOfCaseAsts(alloc, ctx, x.catches))]),
+		(in TryLetAst x) =>
+			jsonObject(alloc, [
+				kindField!"try-let",
+				field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
+				field!"value"(jsonOfExprAst(alloc, ctx, x.value)),
+				field!"catch-member"(jsonOfCaseMemberAst(alloc, ctx, x.catchMember)),
+				field!"catch"(jsonOfExprAst(alloc, ctx, x.catch_)),
+				field!"then"(jsonOfExprAst(alloc, ctx, x.then))]),
 		(in TypedAst x) =>
 			jsonObject(alloc, [
 				kindField!"typed",
@@ -561,6 +589,10 @@ Json jsonOfConditionAst(ref Alloc alloc, in Ctx ctx, in ConditionAst a) =>
 			jsonObject(alloc, [
 				field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
 				field!"option"(jsonOfExprAst(alloc, ctx, *x.option))]));
+
+Json jsonOfCaseAsts(ref Alloc alloc, in Ctx ctx, in CaseAst[] a) =>
+	jsonList!CaseAst(alloc, a, (in CaseAst x) =>
+		jsonOfCaseAst(alloc, ctx, x));
 
 Json jsonOfCaseAst(ref Alloc alloc, in Ctx ctx, in CaseAst a) =>
 	jsonObject(alloc, [
@@ -588,3 +620,27 @@ Json jsonOfCaseMemberAst(ref Alloc alloc, in Ctx ctx, in CaseMemberAst a) =>
 			jsonObject(alloc, [
 				kindField!"bogus",
 				field!"range"(jsonOfRange(alloc, ctx, x.range))]));
+
+Json jsonOfVarDeclAst(ref Alloc alloc, in Ctx ctx, in VarDeclAst a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
+		optionalStringField!"doc"(alloc, a.docComment),
+		visibilityField(a.visibility_),
+		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
+		maybeTypeParams(alloc, ctx, a.typeParams),
+		field!"keyword-pos"(a.keywordPos),
+		field!"kind"(stringOfEnum(a.kind)),
+		field!"type"(jsonOfTypeAst(alloc, ctx, a.type)),
+		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers))]);
+
+Json jsonOfVariantMemberAst(ref Alloc alloc, in Ctx ctx, in VariantMemberAst a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
+		optionalStringField!"doc"(alloc, a.docComment),
+		visibilityField(a.visibility_),
+		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
+		maybeTypeParams(alloc, ctx, a.typeParams),
+		field!"keyword-pos"(a.keywordPos),
+		field!"variant"(jsonOfTypeAst(alloc, ctx, a.variant)),
+		optionalField!("type", TypeAst)(a.type, (in TypeAst x) => jsonOfTypeAst(alloc, ctx, x)),
+		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers))]);

@@ -27,6 +27,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
+	VariantMember,
 	Visibility;
 import util.integralValues : IntegralValue;
 import util.opt : Opt;
@@ -81,7 +82,7 @@ immutable struct LocalContainer {
 immutable struct VisibilityContainer {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
+	mixin TaggedUnion!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*, VariantMember*);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
@@ -90,7 +91,8 @@ immutable struct VisibilityContainer {
 			(in SpecDecl x) => x.name,
 			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name,
-			(in VarDecl x) => x.name);
+			(in VarDecl x) => x.name,
+			(in VariantMember x) => x.name);
 
 	Visibility visibility() scope =>
 		matchIn!Visibility(
@@ -99,7 +101,8 @@ immutable struct VisibilityContainer {
 			(in SpecDecl x) => x.visibility,
 			(in StructAlias x) => x.visibility,
 			(in StructDecl x) => x.visibility,
-			(in VarDecl x) => x.visibility);
+			(in VarDecl x) => x.visibility,
+			(in VariantMember x) => x.visibility);
 }
 
 immutable struct PositionKind {
@@ -132,6 +135,8 @@ immutable struct PositionKind {
 			threadLocal,
 			underscore,
 			union_,
+			variant,
+			variantMember,
 		}
 		Kind kind;
 	}
@@ -152,6 +157,9 @@ immutable struct PositionKind {
 	}
 	immutable struct MatchUnionCase {
 		UnionMember* member;
+	}
+	immutable struct MatchVariantCase {
+		VariantMember* member;
 	}
 	immutable struct Modifier {
 		TypeContainer container;
@@ -191,6 +199,7 @@ immutable struct PositionKind {
 		MatchIntegralCase,
 		MatchStringLikeCase,
 		MatchUnionCase,
+		MatchVariantCase,
 		Modifier,
 		ModifierExtern,
 		RecordField*,
@@ -205,6 +214,7 @@ immutable struct PositionKind {
 		TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
+		VariantMember*,
 		VisibilityMark);
 }
 
@@ -244,6 +254,7 @@ enum ExprKeyword {
 	colonInWith,
 	elif,
 	else_,
+	finally_,
 	forbid,
 	guardIfOrUnless,
 	lambdaArrow,
@@ -252,6 +263,7 @@ enum ExprKeyword {
 	questionEquals,
 	throw_,
 	trusted,
+	try_,
 	until,
 	while_,
 }

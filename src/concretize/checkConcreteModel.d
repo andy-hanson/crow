@@ -20,8 +20,9 @@ import model.showLowModel : writeConcreteType;
 import util.alloc.alloc : Alloc;
 import util.col.array : every, zip;
 import util.conv : safeToSizeT;
+import util.integralValues : IntegralValues, singleIntegralValue;
 import util.opt : force, has;
-import util.util : ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
@@ -33,8 +34,8 @@ void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in 
 
 immutable struct ConcreteCommonTypes {
 	ConcreteType bool_;
+	ConcreteType exception;
 	ConcreteType nat64;
-	ConcreteType string_;
 	ConcreteType symbol;
 	ConcreteType void_;
 }
@@ -88,6 +89,10 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			assert(isVoid(type));
 			checkExprAnyType(ctx, x.arg);
 		},
+		(in ConcreteExprKind.Finally x) {
+			checkExpr(ctx, ctx.types.void_, x.right);
+			checkExpr(ctx, type, x.below);
+		},
 		(in ConcreteExprKind.If x) {
 			checkExpr(ctx, ctx.types.bool_, x.cond);
 			checkExpr(ctx, type, x.then);
@@ -137,20 +142,10 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, type, x.else_);
 		},
 		(in ConcreteExprKind.MatchUnion x) {
-			ConcreteType[] members = mustBeByVal(x.matched.type).body_.as!(ConcreteStructBody.Union).members;
-			if (members.length == x.memberIndices.length)
-				assert(!has(x.else_));
-			else {
-				assert(x.memberIndices.length < members.length);
-				assert(has(x.else_));
-			}
 			checkExprAnyType(ctx, x.matched);
-			foreach (size_t caseIndex, ConcreteExprKind.MatchUnion.Case case_; x.cases) {
-				assert(
-					!has(case_.local) ||
-					force(case_.local).type == members[safeToSizeT(x.memberIndices[caseIndex].value)]);
-				checkExpr(ctx, type, case_.then);
-			}
+			ConcreteType[] members = unionMembers(ctx, x.matched.type);
+			assert(x.memberIndices.length <= members.length);
+			checkMatchUnionCases(ctx, type, x.matched.type, x.memberIndices, x.cases);
 			if (has(x.else_))
 				checkExpr(ctx, type, *force(x.else_));
 		},
@@ -168,17 +163,51 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, type, x.then);
 		},
 		(in ConcreteExprKind.Throw x) {
-			checkExpr(ctx, ctx.types.string_, x.thrown);
+			checkExpr(ctx, ctx.types.exception, x.thrown);
+		},
+		(in ConcreteExprKind.Try x) {
+			checkExpr(ctx, type, x.tried);
+			checkMatchUnionCases(ctx, type, ctx.types.exception, x.exceptionMemberIndices, x.catchCases);
+		},
+		(in ConcreteExprKind.TryLet x) {
+			checkExpr(ctx, has(x.local) ? force(x.local).type : x.value.type, x.value);
+			checkMatchUnionCases(
+				ctx, type, ctx.types.exception,
+				singleIntegralValue(x.exceptionMemberIndex),
+				[castNonScope_ref(x.catch_)]);
+			checkExpr(ctx, type, x.then);
 		},
 		(in ConcreteExprKind.UnionAs x) {
-			checkType(ctx, type, mustBeByVal(x.union_.type).body_.as!(ConcreteStructBody.Union).members[x.memberIndex]);
+			ConcreteType actualType = unionMembers(ctx, x.union_.type)[x.memberIndex];
+			checkType(ctx, type, actualType);
 			checkExprAnyType(ctx, *x.union_);
 		},
 		(in ConcreteExprKind.UnionKind x) {
 			checkType(ctx, type, ctx.types.nat64);
-			assert(mustBeByVal(x.union_.type).body_.isA!(ConcreteStructBody.Union));
+			ConcreteStructBody body_ = mustBeByVal(x.union_.type).body_;
+			assert(body_.isA!(ConcreteStructBody.Union));
 		});
 }
+
+void checkMatchUnionCases(
+	ref Ctx ctx,
+	in ConcreteType type,
+	in ConcreteType unionOrVariant,
+	in IntegralValues memberIndices,
+	in ConcreteExprKind.MatchUnion.Case[] cases,
+) {
+	assert(cases.length == memberIndices.length);
+	ConcreteType[] members = unionMembers(ctx, unionOrVariant);
+	foreach (size_t caseIndex, ConcreteExprKind.MatchUnion.Case case_; cases) {
+		assert(
+			!has(case_.local) ||
+			force(case_.local).type == members[safeToSizeT(memberIndices[caseIndex].value)]);
+		checkExpr(ctx, type, case_.then);
+	}
+}
+
+ConcreteType[] unionMembers(ref Ctx ctx, in ConcreteType type) =>
+	mustBeByVal(type).body_.as!(ConcreteStructBody.Union).members;
 
 void checkExprAnyType(ref Ctx ctx, in ConcreteExpr expr) {
 	checkExpr(ctx, expr.type, expr);

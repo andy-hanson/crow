@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: bool
-	../exception: finally, with-block
 	../fun-util: subscript
 	../misc: key, void
 	../number: nat64
@@ -25,8 +24,8 @@ Iteration is not supported; since operations on this take a lock, they need to b
 	&a.lk
 -with-lock[out, k, v] out(a v shared[k], cb out mut(a v mut[k])) unsafe
 	a.lock acquire
-	with : (() => a.lock release) finally
-		cb[a.inner]
+	finally a.lock release
+	cb[a.inner]
 
 +new[k, v] v shared[k](...a (k, v) array) k key
 	a.to new-from-mut-map

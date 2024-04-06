@@ -14,6 +14,7 @@ export
 	./col/shared-list
 	./col/shared-map
 	./col/sort
+	./col/util
 	./compare
 	./enum-util
 	./exception

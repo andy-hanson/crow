@@ -22,7 +22,7 @@ import
 	../private/c-string-util: find-c-string-end
 	../version: is-windows
 	./environ: get-environ-raw
-	./file: is-file
+	./file: file-system-error, is-file, new
 	./posix-util: check-errno, check-posix-error
 	./print: err, print
 	./win32-util: show-win32-error
@@ -46,8 +46,7 @@ not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
 +spawn-and-wait-result process-result(exe string, args string[]) summon
-	# TODO: kill, handle that error properly
-	assert exe is-file : "{exe} is not a file"
+	assert exe is-file : (exe, "{exe} is not a file") file-system-error
 	trusted
 		exe-c-string c-string = exe to
 		if is-windows
@@ -76,7 +75,7 @@ The child process shares stdout and stderr with the parent process.
 ###
 +spawn-and-wait process-exit(exe string, args string[]) summon
 	# TODO: kill, handle that error properly
-	assert exe is-file : "{exe} is not a file"
+	assert exe is-file : (exe, "{exe} is not a file") file-system-error
 	# First argument should be the executable path
 	trusted
 		exe-c-string c-string = exe to
@@ -171,7 +170,7 @@ The child process shares stdout and stderr with the parent process.
 		total-available.to,
 	else
 		assert GetLastError == ERROR_BROKEN_PIPE :
-			"Error peeking {desc}: {GetLastError show-win32-error}"
+			"Error peeking {desc}: {GetLastError show-win32-error}".error
 
 -read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe
 	old-size = res size
@@ -186,7 +185,7 @@ The child process shares stdout and stderr with the parent process.
 	else
 		res unsafe-set-size old-size
 		err = GetLastError
-		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
+		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}".error
 		closed
 
 -spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe

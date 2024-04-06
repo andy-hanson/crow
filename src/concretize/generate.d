@@ -5,12 +5,16 @@ module concretize.generate;
 import concretize.allConstantsBuilder : getConstantArray;
 import concretize.concretizeCtx :
 	arrayElementType,
+	char8ArrayType,
+	char32ArrayType,
 	ConcretizeCtx,
+	constantOfBytes,
 	constantSymbol,
 	getConcreteFun,
 	getConcreteType,
 	getFunKey,
 	nat64Type,
+	stringType,
 	symbolType,
 	toContainingFunInfo,
 	voidType;
@@ -29,7 +33,7 @@ import model.concreteModel :
 	ConcreteType,
 	mustBeByVal;
 import model.constant : Constant, constantBool, constantZero;
-import model.model : AutoFun, BuiltinType, Called, EnumOrFlagsMember, FunKind, RecordField, StructBody, UnionMember;
+import model.model : AutoFun, Called, EnumOrFlagsMember, FunKind, RecordField, StructBody, UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
@@ -43,12 +47,15 @@ import util.col.array :
 	sizeEq,
 	sizeEq3,
 	SmallArray;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, integralValuesRange;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
+import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
+import util.unicode : mustUnicodeDecode;
 import util.util : ptrTrustMe;
 
 ConcreteExpr genCall(ref Alloc alloc, in UriAndRange range, ConcreteFun* called, in ConcreteExpr[] args) =>
@@ -65,6 +72,10 @@ ConcreteExpr genNone(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteType o
 	assertIsOptionType(ctx, optionType);
 	return ConcreteExpr(optionType, range, ConcreteExprKind(allocate(ctx.alloc,
 		ConcreteExprKind.CreateUnion(0, genVoid(ctx, range)))));
+}
+ConcreteType unwrapOptionType(in ConcretizeCtx ctx, ConcreteType optionType) {
+	assertIsOptionType(ctx, optionType);
+	return only(mustBeByVal(optionType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
 private void assertIsOptionType(in ConcretizeCtx ctx, ConcreteType optionType) {
 	assert(mustBeByVal(optionType).source.as!(ConcreteStructSource.Inst).inst.decl == ctx.commonTypes.option);
@@ -92,7 +103,7 @@ ConcreteFunBody.RecordFieldCall getRecordFieldCall(
 ConcreteExpr genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {
 	UriAndRange range = cf.range;
 	ConcreteExpr* param = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &only(cf.paramsIncludingClosure)));
-	ConcreteType memberType = mustBeByVal(param.type).body_.as!(ConcreteStructBody.Union).members[memberIndex];
+	ConcreteType memberType = unwrapOptionType(ctx, cf.returnType);
 	return genIf(
 		ctx.alloc,
 		range,
@@ -113,22 +124,10 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
-private SmallArray!EnumOrFlagsMember enumOrFlagsMembers(ConcreteType type) =>
-	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(SmallArray!EnumOrFlagsMember)(
-		(StructBody.Bogus) =>
-			assert(false),
-		(BuiltinType _) =>
-			assert(false),
-		(ref StructBody.Enum x) =>
-			x.members,
-		(StructBody.Extern) =>
-			assert(false),
-		(StructBody.Flags x) =>
-			x.members,
-		(StructBody.Record) =>
-			assert(false),
-		(ref StructBody.Union) =>
-			assert(false));
+private SmallArray!EnumOrFlagsMember enumOrFlagsMembers(ConcreteType type) {
+	StructBody body_ = mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_;
+	return body_.isA!(StructBody.Enum*) ? body_.as!(StructBody.Enum*).members : body_.as!(StructBody.Flags).members;
+}
 
 ConcreteExpr concretizeAutoFun(ref ConcretizeCtx ctx, ConcreteFun* fun, ref AutoFun a) {
 	final switch (a.kind) {
@@ -155,6 +154,52 @@ ConcreteExpr concretizeAutoFun(ref ConcretizeCtx ctx, ConcreteFun* fun, ref Auto
 					concretizeUnionToJson(ctx, fun, x.members, a.members));
 	}
 }
+
+ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, ConcreteExpr thrown) =>
+	ConcreteExpr(type, range, genThrowKind(alloc, thrown));
+
+private ConcreteExprKind genThrowKind(ref Alloc alloc, ConcreteExpr thrown) =>
+	ConcreteExprKind(allocate(alloc, ConcreteExprKind.Throw(thrown)));
+
+ConcreteExpr genError(ref ConcretizeCtx ctx, UriAndRange range, string message) =>
+	genCall(ctx.alloc, range, ctx.createErrorFunction, [genStringLiteral(ctx, range, message)]);
+
+ConcreteExprKind genThrowStringKind(ref ConcretizeCtx ctx, UriAndRange range, string message) =>
+	genThrowKind(ctx.alloc, genError(ctx, range, message));
+
+ConcreteExpr genStringLiteral(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
+	ConcreteExpr(stringType(ctx), range, genStringLiteralKind(ctx, range, value));
+
+ConcreteExprKind genStringLiteralKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
+	ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayTrustAsString, newSmallArray(ctx.alloc, [
+		genChar8Array(ctx, range, value)])));
+
+ConcreteExpr genChar8Array(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
+	ConcreteType type = char8ArrayType(ctx);
+	return ConcreteExpr(type, range, ConcreteExprKind(constantOfBytes(ctx, type, bytesOfString(value))));
+}
+
+ConcreteExpr genChar32Array(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
+	ConcreteType type = char32ArrayType(ctx);
+	return ConcreteExpr(type, range, ConcreteExprKind(char32ArrayConstant(ctx, type, value)));
+}
+private Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string value) =>
+	getConstantArray(
+		ctx.alloc, ctx.allConstants, mustBeByVal(type),
+		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
+			mustUnicodeDecode(value, (dchar x) {
+				out_ ~= Constant(IntegralValue(x));
+			});
+		}));
+
+ConcreteExpr genChar8List(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(
+		ConcreteExprKind.Call(ctx.newChar8ListFunction, newSmallArray(ctx.alloc, [
+			genChar8Array(ctx, range, value)]))));
+ConcreteExpr genChar32List(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(
+		ConcreteExprKind.Call(ctx.newChar32ListFunction, newSmallArray(ctx.alloc, [
+			genChar32Array(ctx, range, value)]))));
 
 private:
 

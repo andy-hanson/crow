@@ -1,16 +1,6 @@
-no-std
 import
 	system/unistd: __environ
-	../col/array: as-array
-	../col/collection: build, with-block
-	../col/map: ~=, build, map
-	../misc: new
-	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
-	../pointer: ==, <=>, +, *, const-pointer, null
-	../range: ..
-	../string: ==, <=>, c-string, hash-mix, string, to
-	../tuple: new
 	../version: is-windows
 
 get-environ-raw c-string*() summon, unsafe
@@ -18,7 +8,7 @@ get-environ-raw c-string*() summon, unsafe
 
 # Get all environment variables for this process.
 +get-environ string[string]() summon
-	forbid trusted is-windows : "TODO: Windows support"
+	forbid trusted is-windows : todo
 	with out : build
 		trusted
 			env mut = get-environ-raw
@@ -27,11 +17,9 @@ get-environ-raw c-string*() summon, unsafe
 				env +:= 1
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
-	if key-end ?= entry find-char-in-c-string "="
-		key string = (entry .. key-end).as-array to
-		value-begin = key-end + 1
-		value-end = value-begin find-c-string-end
-		value string = (value-begin .. value-end).as-array to
-		key, value
-	else
-		todo
+	assert key-end ?= entry find-char-in-c-string "=" : todo
+	key string = (entry .. key-end).as-array to
+	value-begin = key-end + 1
+	value-end = value-begin find-c-string-end
+	value string = (value-begin .. value-end).as-array to
+	key, value

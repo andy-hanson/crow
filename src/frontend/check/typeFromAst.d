@@ -37,7 +37,7 @@ import model.model :
 	TypeParams;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray, withMapToStackArray;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : arrayOfSingle, eachPair, findIndex, isEmpty, map, mapZip, only, small;
+import util.col.array : arrayOfSingle, eachPair, findIndex, isEmpty, map, mapPointers, mapZipPtrFirst, only, small;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
@@ -439,7 +439,7 @@ Destructure checkDestructure(
 	// 'typeContainer' may be uninitialized, so pass 'typeParamsScope' separately
 	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
-	ref DestructureAst ast,
+	DestructureAst* ast,
 	// This is for the type coming from the RHS of a 'let', or the expected type of a lambda
 	Opt!Type destructuredType,
 	DestructureKind kind,
@@ -496,8 +496,8 @@ Destructure checkDestructure(
 				if (has(fieldTypes) && force(fieldTypes).length == partAsts.length)
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						tupleType,
-						small!Destructure(mapZip!(Destructure, Type, DestructureAst)(
-							ctx.alloc, force(fieldTypes), partAsts, (ref Type fieldType, ref DestructureAst part) =>
+						small!Destructure(mapZipPtrFirst!(Destructure, DestructureAst, Type)(
+							ctx.alloc, partAsts, force(fieldTypes), (DestructureAst* part, Type fieldType) =>
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesMap,
 									typeContainer, typeParamsScope, delayStructInsts,
@@ -510,15 +510,15 @@ Destructure checkDestructure(
 							typeWithContainer(tupleType))));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						Type.bogus,
-						small!Destructure(map!(Destructure, DestructureAst)(
-							ctx.alloc, partAsts, (ref DestructureAst part) =>
+						mapPointers!(Destructure, DestructureAst)(
+							ctx.alloc, small!DestructureAst(partAsts), (DestructureAst* part) =>
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesMap,
 									typeContainer, typeParamsScope, delayStructInsts,
-									part, some(Type.bogus), kind))))));
+									part, some(Type.bogus), kind)))));
 				}
 			} else {
-				Destructure[] parts = map(ctx. alloc, partAsts, (ref DestructureAst part) =>
+				Destructure[] parts = mapPointers(ctx. alloc, partAsts, (DestructureAst* part) =>
 					checkDestructure(
 						ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 						part, none!Type, kind));

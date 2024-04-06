@@ -30,7 +30,8 @@ import model.model :
 	Test,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl;
+	VarDecl,
+	VariantMember;
 import util.opt : none, Opt, some;
 import util.union_ : Union;
 
@@ -54,6 +55,7 @@ immutable struct Target {
 		PositionKind.TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
+		VariantMember*,
 	);
 }
 
@@ -80,6 +82,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 		(PositionKind.MatchStringLikeCase x) =>
 			none!Target,
 		(PositionKind.MatchUnionCase x) =>
+			some(Target(x.member)),
+		(PositionKind.MatchVariantCase x) =>
 			some(Target(x.member)),
 		(PositionKind.Modifier) =>
 			none!Target,
@@ -114,6 +118,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 		(UnionMember* x) =>
 			some(Target(x)),
 		(VarDecl* x) =>
+			some(Target(x)),
+		(VariantMember* x) =>
 			some(Target(x)),
 		(PositionKind.VisibilityMark) =>
 			none!Target);
@@ -161,6 +167,8 @@ Opt!Target calledTarget(ref Called a) =>
 				(FunBody.CreateUnion) =>
 					// TODO: goto the particular union member
 					returnTypeTarget(decl),
+				(FunBody.CreateVariant x) =>
+					Target(x.member),
 				(EnumFunction x) =>
 					// goto the type
 					returnTypeTarget(decl),
@@ -185,6 +193,8 @@ Opt!Target calledTarget(ref Called a) =>
 					unionMemberTarget(decl, x.memberIndex),
 				(FunBody.VarGet x) =>
 					Target(x.var),
+				(FunBody.VariantMemberGet x) =>
+					Target(x.member),
 				(FunBody.VarSet x) =>
 					Target(x.var)));
 		},

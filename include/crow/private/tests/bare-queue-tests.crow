@@ -8,8 +8,8 @@ dummy-bare-queue-tests nat()
 -with-block void(_ queue, cb void mut(queue nat bare-queue mut*)) unsafe
 	queue mut nat bare-queue = ()
 	a nat bare-queue mut* = &queue
-	with : (() => a destroy) finally
-		cb[a]
+	finally a destroy
+	cb[a]
 
 test
 	trusted with a : queue

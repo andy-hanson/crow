@@ -9,8 +9,8 @@ dummy-exclusion-queue-tests nat()
 	queue mut string exclusion-queue = uninit
 	a string exclusion-queue mut* = &queue
 	a init
-	with : (() => a destroy) finally
-		cb[a]
+	finally a destroy
+	cb[a]
 
 test
 	trusted with a : eq

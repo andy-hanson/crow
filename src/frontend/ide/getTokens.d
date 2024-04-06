@@ -25,6 +25,7 @@ import model.ast :
 	EnumOrFlagsMemberAst,
 	ExprAst,
 	FileAst,
+	FinallyAst,
 	ForAst,
 	FunDeclAst,
 	ModifierAst,
@@ -62,9 +63,12 @@ import model.ast :
 	TestAst,
 	ThrowAst,
 	TrustedAst,
+	TryAst,
+	TryLetAst,
 	TypeAst,
 	TypedAst,
 	VarDeclAst,
+	VariantMemberAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, only, zip;
@@ -103,7 +107,9 @@ SemanticTokens tokensOfAst(ref Alloc alloc, in CrowFileInfo file) {
 		sortedIter!(StructDeclAst, Pos, Ctx, (in StructDeclAst x) => x.range.start, addStructTokens)(ast.structs),
 		sortedIter!(FunDeclAst, Pos, Ctx, (in FunDeclAst x) => x.range.start, addFunTokens)(ast.funs),
 		sortedIter!(TestAst, Pos, Ctx, (in TestAst x) => x.range.start, addTestTokens)(ast.tests),
-		sortedIter!(VarDeclAst, Pos, Ctx, (in VarDeclAst x) => x.range.start, addVarDeclTokens)(ast.vars));
+		sortedIter!(VarDeclAst, Pos, Ctx, (in VarDeclAst x) => x.range.start, addVarDeclTokens)(ast.vars),
+		sortedIter!(VariantMemberAst, Pos, Ctx, (in VariantMemberAst x) => x.range.start, addVariantMemberTokens)(
+			ast.variantMembers));
 	addLastTokens(ctx.tokens);
 	return SemanticTokens(finish(alloc, ctx.tokens.encoded));
 }
@@ -382,10 +388,13 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 			addEnumOrFlagsTokens(ctx, a, x.params, x.members);
 		},
 		(in StructBodyAst.Record x) {
-			addRecordOrUnionTokens(ctx, a, x.params, x.fields);
+			addRecordOrUnionTokens(ctx, a, x.params, x.fields, TokenType.property);
 		},
 		(in StructBodyAst.Union x) {
-			addRecordOrUnionTokens(ctx, a, x.params, x.members);
+			addRecordOrUnionTokens(ctx, a, x.params, x.members, TokenType.enumMember);
+		},
+		(in StructBodyAst.Variant) {
+			addModifierTokens(ctx, a.modifiers);
 		});
 }
 
@@ -394,12 +403,13 @@ void addRecordOrUnionTokens(
 	in StructDeclAst a,
 	in Opt!ParamsAst params,
 	in RecordOrUnionMemberAst[] members,
+	TokenType memberTokenType,
 ) {
 	if (has(params))
 		addParamsTokens(ctx, force(params));
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref RecordOrUnionMemberAst x; members) {
-		declare(ctx.tokens, TokenType.property, x.name.range);
+		declare(ctx.tokens, memberTokenType, x.name.range);
 		if (has(x.type))
 			addTypeTokens(ctx, force(x.type));
 	}
@@ -440,6 +450,15 @@ void addVarDeclTokens(scope ref Ctx ctx, in VarDeclAst a) {
 	declare(ctx.tokens, TokenType.variable, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.type);
+	addModifierTokens(ctx, a.modifiers);
+}
+
+void addVariantMemberTokens(scope ref Ctx ctx, in VariantMemberAst a) {
+	declare(ctx.tokens, TokenType.enumMember, a.name.range);
+	addTypeParamsTokens(ctx, a.typeParams);
+	addTypeTokens(ctx, a.variant);
+	if (has(a.type))
+		addTypeTokens(ctx, force(a.type));
 	addModifierTokens(ctx, a.modifiers);
 }
 
@@ -526,6 +545,10 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, *x.body_);
 		},
 		(in EmptyAst x) {},
+		(in FinallyAst x) {
+			addExprTokens(ctx, x.right);
+			addExprTokens(ctx, x.below);
+		},
 		(in ForAst x) {
 			addDestructureTokens(ctx, x.param);
 			addExprTokens(ctx, x.collection);
@@ -583,22 +606,8 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in MatchAst x) {
 			addExprTokens(ctx, *x.matched);
-			foreach (ref CaseAst case_; x.cases) {
-				case_.member.matchIn!void(
-					(in CaseMemberAst.Name x) {
-						reference(ctx.tokens, TokenType.enumMember, x.name.range);
-						if (has(x.destructure))
-							addDestructureTokens(ctx, force(x.destructure));
-					},
-					(in LiteralIntegralAndRange x) {
-						numberLiteral(ctx.tokens, x.range);
-					},
-					(in CaseMemberAst.String x) {
-						stringLiteral(ctx.tokens, x.range);
-					},
-					(in CaseMemberAst.Bogus) {});
-				addExprTokens(ctx, case_.then);
-			}
+			foreach (ref CaseAst case_; x.cases)
+				addCaseTokens(ctx, case_);
 			if (has(x.else_))
 				addExprTokens(ctx, force(x.else_).expr);
 		},
@@ -626,6 +635,18 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in TrustedAst x) {
 			addExprTokens(ctx, x.inner);
 		},
+		(in TryAst x) {
+			addExprTokens(ctx, *x.tried);
+			foreach (ref CaseAst case_; x.catches)
+				addCaseTokens(ctx, case_);
+		},
+		(in TryLetAst x) {
+			addDestructureTokens(ctx, x.destructure);
+			addExprTokens(ctx, x.value);
+			addCaseMemberTokens(ctx, x.catchMember);
+			addExprTokens(ctx, x.catch_);
+			addExprTokens(ctx, x.then);
+		},
 		(in TypedAst x) {
 			addExprTokens(ctx, x.expr);
 			addTypeTokens(ctx, x.type);
@@ -635,6 +656,27 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.arg);
 			addExprTokens(ctx, x.body_);
 		});
+}
+
+void addCaseTokens(scope ref Ctx ctx, in CaseAst a) {
+	addCaseMemberTokens(ctx, a.member);
+	addExprTokens(ctx, a.then);
+}
+
+void addCaseMemberTokens(scope ref Ctx ctx, in CaseMemberAst a) {
+	a.matchIn!void(
+		(in CaseMemberAst.Name x) {
+			reference(ctx.tokens, TokenType.enumMember, x.name.range);
+			if (has(x.destructure))
+				addDestructureTokens(ctx, force(x.destructure));
+		},
+		(in LiteralIntegralAndRange x) {
+			numberLiteral(ctx.tokens, x.range);
+		},
+		(in CaseMemberAst.String x) {
+			stringLiteral(ctx.tokens, x.range);
+		},
+		(in CaseMemberAst.Bogus) {});
 }
 
 void addConditionTokens(scope ref Ctx ctx, in ConditionAst a) {

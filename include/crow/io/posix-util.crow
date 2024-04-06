@@ -2,6 +2,7 @@ no-std
 import
 	system/errno: errno
 	../c-types: err-t
+	../exception: error
 	../misc: new, void
 	../number: ==
 	../string: interpolate, to
@@ -12,8 +13,4 @@ check-errno void() summon, unsafe
 
 # Fail if `e != 0`.
 check-posix-error void(e err-t)
-	unless e == 0
-		e throw-posix-error
-
-throw-posix-error void(e err-t)
-	throw "posix error {e}"
+	assert e == 0 : "posix error {e}" error

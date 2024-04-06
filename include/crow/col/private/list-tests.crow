@@ -12,12 +12,13 @@ import
 	../../test-util: is
 	../../tuple: a, b
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice
-	../collection: .., end, for-loop, groups-of, reversed, subscript, try-split-once
+	../collection: .., end, for-loop, reversed, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
 		slice, to
 	../private/list-low-level:
 		array2d, array3d, arrays, down, l1, l2, l3, left, node, nodes, right, root, total-size
+	../util: groups-of
 
 dummy-list-tests nat64()
 	0

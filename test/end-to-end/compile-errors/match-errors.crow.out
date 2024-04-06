@@ -1,18 +1,23 @@
 exit code: 0
+stdout:
+info: first
+info: divided by 0
 stderr:
-test/end-to-end/compile-errors/match-errors.crow 5:11-5:12 Can only match on enum, union, integral, symbol, string, or character type, not 't'.
-test/end-to-end/compile-errors/match-errors.crow 10:13-10:17 There is no function or variable named 'asdf'.
-test/end-to-end/compile-errors/match-errors.crow 26:9-26:10 Expected type 'nat64'.
+test/end-to-end/compile-errors/match-errors.crow 5:8-5:9 Duplicate branch 'x'
+test/end-to-end/compile-errors/match-errors.crow 14:11-14:22 Duplicate branch 'divide-by-0'
+test/end-to-end/compile-errors/match-errors.crow 21:11-21:12 Can only match on enum, union, variant, integral, symbol, string, or character type, not 't'.
+test/end-to-end/compile-errors/match-errors.crow 26:13-26:17 There is no function or variable named 'asdf'.
+test/end-to-end/compile-errors/match-errors.crow 42:9-42:10 Expected type 'nat64'.
 Actual: 'void'.
-test/end-to-end/compile-errors/match-errors.crow 32:10-32:11 Matching on enum 'e', so case should not expect a value.
-test/end-to-end/compile-errors/match-errors.crow 39:10-39:11 Matching on 'symbol', so case should not expect a value.
-test/end-to-end/compile-errors/match-errors.crow 45:5-45:10 'match' is missing case: 'm'
-test/end-to-end/compile-errors/match-errors.crow 50:5-50:10 'match' is missing case: 'm'
-test/end-to-end/compile-errors/match-errors.crow 56:8-56:10 To match a string-like type, branches must use identifiers or string literals.
-test/end-to-end/compile-errors/match-errors.crow 61:8-61:13 Value of 'char' type must be a single character
-test/end-to-end/compile-errors/match-errors.crow 66:8-66:12 To match a number, branches must use number literals.
-test/end-to-end/compile-errors/match-errors.crow 75:8-75:9 Duplicate branch 'm'
-test/end-to-end/compile-errors/match-errors.crow 84:8-84:9 Duplicate branch 'm'
-test/end-to-end/compile-errors/match-errors.crow 91:8-91:16 Duplicate branch "foo"
-test/end-to-end/compile-errors/match-errors.crow 100:8-100:14 Duplicate branch "o"
-test/end-to-end/compile-errors/match-errors.crow 109:8-109:12 Duplicate branch 16
+test/end-to-end/compile-errors/match-errors.crow 48:10-48:11 Matching on enum 'e', so case should not expect a value.
+test/end-to-end/compile-errors/match-errors.crow 55:10-55:11 Matching on 'symbol', so case should not expect a value.
+test/end-to-end/compile-errors/match-errors.crow 61:5-61:10 'match' is missing case 'm'
+test/end-to-end/compile-errors/match-errors.crow 66:5-66:10 'match' is missing case 'm'
+test/end-to-end/compile-errors/match-errors.crow 72:8-72:10 To match a string-like type, branches must use identifiers or string literals.
+test/end-to-end/compile-errors/match-errors.crow 77:8-77:13 Value of 'char' type must be a single character
+test/end-to-end/compile-errors/match-errors.crow 82:8-82:12 To match a number, branches must use number literals.
+test/end-to-end/compile-errors/match-errors.crow 91:8-91:9 Duplicate branch 'm'
+test/end-to-end/compile-errors/match-errors.crow 100:8-100:9 Duplicate branch 'm'
+test/end-to-end/compile-errors/match-errors.crow 107:8-107:16 Duplicate branch "foo"
+test/end-to-end/compile-errors/match-errors.crow 116:8-116:14 Duplicate branch "o"
+test/end-to-end/compile-errors/match-errors.crow 125:8-125:12 Duplicate branch 16

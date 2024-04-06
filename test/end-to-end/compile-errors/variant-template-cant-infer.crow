@@ -1,0 +1,14 @@
+main void()
+	info log "{7::nat.x f}"
+	()
+
+v variant mut
+
+x[t] variant-member(v, t)
+
+f nat(a v)
+	match a
+	as x value
+		value
+	else
+		0

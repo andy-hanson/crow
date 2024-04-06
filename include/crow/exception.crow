@@ -5,59 +5,49 @@ import
 	./col/collection: find-index, for-loop, starts-with, subscript
 	./col/list: ~=, build
 	./compare: >
-	./fun-util: subscript
-	./misc: new, void
-	./number: ==, <=>, -
-	./private/bootstrap: new
+	./number: ==, <=>, -, binary-out-of-range, divide-by-0, integral-value, unary-out-of-range
+	./private/exception-low-level: test-failure
 	./range: ..
+	./result: result
 	./string: ==, begin, interpolate, is-empty, join, next, string, to
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
-	./private/exception-low-level: catch, exception, message, rethrow, unreachable
+	./private/exception-low-level:
+		catch-all, error, exception, exception-and-backtrace, rethrow, unreachable
 
 region handling
 
-+finally record mut, nominal
-	cleanup void mut()
-###
-Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
-
-If there was an exception, it will be rethrown after `after` finishes.
-If `after` throws an exception, the original exception will be lost.
-###
-+with-block[t] t(a finally, try t mut())
-	res = a.cleanup do-if-error () => try[]
-	a cleanup
-	res
-
-###
-Rus `try`, and if it throws an exception, runs `on-error`.
-
-This is like `finally`, but does not run in the successful case.
-###
-+do-if-error[t] t(on-error void mut(), try t mut())
-	try catch err =>
-		on-error[]
-		err rethrow
++todo variant-member(exception)
 
 # Outputs the exception's message and backtrace to a string.
-+to string(a exception) unsafe
-	"{a.message}{a.backtrace}"
++to string(a exception-and-backtrace) unsafe
+	description string = match a exception
+	as error message
+		"Error: {message}"
+	as binary-out-of-range x, y
+		"Result would be out of range given arguments {x}, {y}."
+	as divide-by-0
+		"Division by 0."
+	as test-failure message
+		"Test failure: {message}"
+	as unary-out-of-range x
+		"Result would be out of range given argument {x}."
+	else
+		"Other exception"
+	"{description}{a backtrace}"
 
-###
-Prepends 'description' to any thrown exception messages.
-(Does not change the stack trace.)
-###
-+augment-exceptions record(description string) nominal
-+with-block[t] t(a augment-exceptions, f t mut())
-	f catch err =>
-		("{a.description}: {err.message}", err.backtrace) rethrow
+-to string(a integral-value)
+	match a
+	as unsigned x
+		"{x}"
+	as signed x
+		"{x}"
 
--to string(a backtrace)
++to string(a backtrace) unsafe
 	# Don't include entries from runtime, only at start of function
 	kept-entries = if idx ?= a.entries find-index x => x is-runtime-function-entry
 		if idx > 0
-			if trusted a.entries[idx - 1].function-name.to::string == "call"
+			if a.entries[idx - 1].function-name.to::string == "call"
 				a.entries[0 .. idx - 1]
 			else
 				a.entries[0 .. idx]
@@ -98,3 +88,10 @@ Prepends 'description' to any thrown exception messages.
 		"{name} ({path})"
 	else
 		"{name} ({path}:{a line-number})"
+
++force[t] t(a (t, exception-and-backtrace) result)
+	match a
+	as ok v
+		v
+	as error e
+		e rethrow

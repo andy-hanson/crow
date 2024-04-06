@@ -15,8 +15,9 @@ import
 		~~, ~=, +, -, array, array-cast, as-array, begin, build, end, is-empty, iterate, new, next,
 		size, slice
 	./collection:
-		.., -, concatenate, end, for-loop, index-relative-to-end, is-empty, range-relative-to-end,
-		sequence-compare, sequence-equal, subscript
+		.., -, concatenate, end, for-loop, index-relative-to-end, is-empty, iterator-not-comparable,
+		iterator-out-of-bounds, range-relative-to-end, sequence-compare, sequence-equal,
+		slice-right-to-left, subscript
 	./mut-array: ~=, build, mut-array, to
 	./private/array-low-level: array-reference-equal
 	./private/list-low-level:
@@ -413,7 +414,7 @@ This is O(n).
 	l3-leaf t array-3d-iterator
 
 +==[t] bool(a t list-iterator, b t list-iterator) t equal
-	assert a.list == b.list : "can't compare iterators from different lists"
+	assert a.list == b.list : iterator-not-comparable
 	if trusted a.list list-reference-equal b.list
 		# No need to test position since that determines cur-chunk
 		same-chunk = trusted a.cur-chunk array-reference-equal b.cur-chunk
@@ -421,7 +422,7 @@ This is O(n).
 	else
 		a.next-index == b.next-index
 +<=>[t] comparison(a t list-iterator, b t list-iterator) t equal
-	assert a.list == b.list : "can't compare iterators from different lists"
+	assert a.list == b.list : iterator-not-comparable
 	a.next-index <=> b.next-index
 
 -level[t] t level(a t position) bare
@@ -515,7 +516,7 @@ This is O(n).
 	i mut nat64 = 0
 	loop
 		guard i != n : break cur
-		_, next = cur.next ?? throw "iterator went too far"
+		_, next = cur.next ?? throw iterator-out-of-bounds
 		cur := next
 		i +:= 1
 		continue
@@ -525,7 +526,7 @@ This is O(n).
 	cur mut = a
 	i mut nat64 = 0
 	until i == n
-		prev, _ = cur.prev ?? throw "iterator went too far"
+		prev, _ = cur.prev ?? throw iterator-out-of-bounds
 		cur := prev
 		i +:= 1
 	cur
@@ -660,10 +661,9 @@ This is O(n).
 		end
 	else
 		begin.list.begin + end.next-index
-	begin slice-same-list end-of-same-list ?? throw "Invalid slice: begin > end"
+	begin slice-same-list end-of-same-list
 
-# returns empty option if a > b
--slice-same-list[t] t[]?(a t list-iterator, b t list-iterator)
+-slice-same-list[t] t[](a t list-iterator, b t list-iterator)
 	a-level = a.pos level
 	b-level = b.pos level
 	a-side = a.pos side
@@ -674,25 +674,25 @@ This is O(n).
 		as l1
 			match a-side <=> b-side
 			as less
-				(a.slice-right-cur-chunk make-l1 a.list.get-l2, b.slice-left-cur-chunk),
+				a.slice-right-cur-chunk make-l1 a.list.get-l2, b.slice-left-cur-chunk
 			as equal
 				a slice-same-array1d b
 			as greater
-				()
+				throw slice-right-to-left
 		as l2 bi
 			if a-side == left
-				if b-side == right
+				l2 = if b-side == right
 					branch = a.list get-l2-branch
-					l2 = branch.left make-l2 branch.down, bi.slice-left
-					(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+					branch.left make-l2 branch.down, bi.slice-left
 				else
-					(a.slice-right-cur-chunk make-l1 (bi.slice-left.leaf,), b.slice-left-cur-chunk),
+					(bi.slice-left.leaf,)
+				a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 		as l3 bi
-			if a-side == left
-				branch = a.list get-l2-branch
-				left, cur = bi slice-left
-				l2 = branch.left make-l2 (left,), cur
-				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+			assert a-side == left : slice-right-to-left
+			branch = a.list get-l2-branch
+			left, cur = bi slice-left
+			l2 = branch.left make-l2 (left,), cur
+			a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 	as l2 ai
 		match b.pos level
 		as l1
@@ -700,38 +700,38 @@ This is O(n).
 				if a-side == left
 					branch = a.list get-l2-branch
 					l2 = ai.slice-right make-l2 branch.down, branch.right
-					(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+					a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 				else
 					down t l2 = ai.slice-right.leaf,
-					(a.slice-right-cur-chunk make-l1 down, b.slice-left-cur-chunk),
+					a.slice-right-cur-chunk make-l1 down, b.slice-left-cur-chunk
 		as l2 bi
 			match a-side <=> b-side
 			as less
 				assert a-side == left && b-side == right
 				l2 = ai.slice-right make-l2 a.list.get-l3, bi.slice-left
-				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+				a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 			as equal
 				a slice-same-array2d ai, b, bi
 			as greater
-				()
+				throw slice-right-to-left
 		as l3 bi
-			if a-side == left
-				left, cur = bi slice-left
-				l2 = ai.slice-right make-l2 (left,), cur
-				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+			assert a-side == left : slice-right-to-left
+			left, cur = bi slice-left
+			l2 = ai.slice-right make-l2 (left,), cur
+			a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 	as l3 ai
 		match b.pos level
 		as l1
-			if b-side == right
-				branch = a.list get-l2-branch
-				cur, right = ai slice-right
-				l2 = cur make-l2 (right,), branch.right
-				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+			assert b-side == right : slice-right-to-left
+			branch = a.list get-l2-branch
+			cur, right = ai slice-right
+			l2 = cur make-l2 (right,), branch.right
+			a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 		as l2 bi
-			if b-side == right
-				cur, right = ai slice-right
-				l2 t l2 = cur make-l2 (right,), bi.slice-left
-				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+			assert b-side == right : slice-right-to-left
+			cur, right = ai slice-right
+			l2 t l2 = cur make-l2 (right,), bi.slice-left
+			a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 		as l3 bi
 			a slice-both-l3 ai, b, bi
 
@@ -740,12 +740,12 @@ This is O(n).
 -slice-right-cur-chunk[t] t array(a t list-iterator)
 	a.cur-chunk[a.next-index-in-chunk .. end]
 
--slice-same-array1d[t] t[]?(a t list-iterator, b t list-iterator)
+-slice-same-array1d[t] t[](a t list-iterator, b t list-iterator)
 	assert trusted a.cur-chunk array-reference-equal b.cur-chunk
-	if a.next-index-in-chunk <= b.next-index-in-chunk
-		a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to,
+	assert a.next-index-in-chunk <= b.next-index-in-chunk : slice-right-to-left
+	a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to
 
--slice-same-array2d[t] t[]?(
+-slice-same-array2d[t] t[](
 	a t list-iterator,
 	ai t array-2d-iterator,
 	b t list-iterator,
@@ -756,13 +756,13 @@ This is O(n).
 	match ai.index-2d <=> bi.index-2d
 	as less
 		l2 t l2 = arrays[ai.index-2d + 1 .. bi.index-2d].leaf,
-		(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+		a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 	as equal
 		a slice-same-array1d b
 	as greater
-		()
+		throw slice-right-to-left
 
--slice-both-l3[t] t[]?(
+-slice-both-l3[t] t[](
 	a t list-iterator,
 	ai t array-3d-iterator,
 	b t list-iterator,
@@ -776,12 +776,12 @@ This is O(n).
 		l2l = arrays[ai index-3d][ai.index-2d + 1 .. end]
 		l2r = arrays[bi index-3d][0 .. bi.index-2d]
 		l2 = l2l make-l2 l3, l2r
-		(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+		a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk
 	as equal
 		array2d = arrays[ai index-3d]
 		a slice-same-array2d (array2d, ai.index-2d), b, (array2d, bi.index-2d)
 	as greater
-		()
+		throw slice-right-to-left
 
 -level[l, leaf] spec
 	is-empty bool(level l)

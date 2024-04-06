@@ -6,7 +6,7 @@ import frontend.check.checkCtx : CommonModule;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
-import model.ast : NameAndRange;
+import model.ast : ModifierAst, NameAndRange, VarDeclAst, TypeAst;
 import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,
@@ -33,6 +33,7 @@ import model.model :
 	ParamShort,
 	ParamsShort,
 	Purity,
+	StructAlias,
 	StructBody,
 	StructInst,
 	StructOrAlias,
@@ -42,16 +43,29 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig,
+	VarDecl,
+	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
-	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small, SmallArray;
+	arraysCorrespond,
+	copyArray,
+	emptySmallArray,
+	findIndex,
+	findPointer,
+	isEmpty,
+	makeArray,
+	map,
+	sizeEq,
+	small,
+	SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
+import util.string : emptySmallString;
 import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref;
 
@@ -89,6 +103,8 @@ CommonFunsAndMain getCommonFuns(
 		instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params, 0));
 	FunInst* getFun(CommonModule module_, Symbol name, Type returnType, in ParamShort[] params) =>
 		getFunInner(*modules[module_], name, returnType, params);
+	VarDecl* getVar(CommonModule module_, Symbol name, VarKind kind) =>
+		getVarDecl(alloc, diagsBuilder, *modules[module_], name, kind);
 
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
@@ -122,13 +138,20 @@ CommonFunsAndMain getCommonFuns(
 	Type symbolType = Type(commonTypes.symbol);
 	Type symbolJsonTuple = instantiateType(tuple2Decl, [symbolType, jsonType]);
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
+
+	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.setjmp], symbol!"jmp_buf");
+
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
+		curJmpBuf: getVar(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", VarKind.threadLocal),
+		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
 		alloc: getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),
+		createError: getFun(
+			CommonModule.bootstrap, symbol!"error", Type(commonTypes.exception), [param!"a"(stringType)]),
 		lambdaSubscript: getLambdaSubscriptFuns(
 			alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]),
 		sharedOfMutLambda: getFunDeclInner(
@@ -165,7 +188,7 @@ CommonFunsAndMain getCommonFuns(
 			CommonModule.exceptionLowLevel,
 			symbol!"throw-impl",
 			voidType,
-			[param!"message"(stringType)]),
+			[param!"a"(Type(commonTypes.exception))]),
 		char8ArrayTrustAsString: getFun(
 			CommonModule.string_,
 			symbol!"trust-as-string",
@@ -177,11 +200,23 @@ CommonFunsAndMain getCommonFuns(
 			boolType,
 			[param!"a"(nat64Type), param!"b"(nat64Type)]),
 		lessNat64: getFun(
-			CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]));
+			CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]),
+		rethrowCurrentException: getFun(
+			CommonModule.exceptionLowLevel, symbol!"rethrow-current-exception", voidType, []),
+		setjmp: getFun(CommonModule.setjmp, setjmpName, int32Type, [
+			param!"a"(jmpBuf)]));
 	Opt!MainFun main = has(mainModule)
 		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
 		: none!MainFun;
 	return CommonFunsAndMain(smallFinish(alloc, diagsBuilder), commonFuns, main);
+}
+
+private Symbol setjmpName() {
+	version (Windows) {
+		return symbol!"_setjmp";
+	} else {
+		return symbol!"setjmp";
+	}
 }
 
 Destructure makeParam(ref Alloc alloc, ParamShort param) =>
@@ -247,6 +282,23 @@ Type getNonTemplateType(
 	return Type(instantiateStructNeverDelay(ctx, decl, []));
 }
 
+Type getTypeAlias(
+	ref Alloc alloc,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
+	ref Module module_,
+	Symbol name,
+) {
+	Opt!(StructAlias*) alias_ = findPointer!StructAlias(module_.aliases, (in StructAlias x) => x.name == name);
+	if (has(alias_))
+		return Type(force(alias_).target);
+	else {
+		add(alloc, diagsBuilder, UriAndDiagnostic(
+			UriAndRange(module_.uri, Range.empty),
+			Diag(Diag.CommonTypeMissing(name))));
+		return Type.bogus;
+	}
+}
+
 StructDecl* getStructDeclOrAddDiag(
 	ref Alloc alloc,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
@@ -307,6 +359,37 @@ bool typesMatch(in Type a, in TypeParams typeParamsA, in Type b, in TypeParams t
 	|| a.isA!(TypeParamIndex) && b.isA!(TypeParamIndex) && a.as!(TypeParamIndex).index == b.as!(TypeParamIndex).index
 	|| typesAreCorrespondingStructInsts(a, b, (ref Type x, ref Type y) =>
 		typesMatch(x, typeParamsA, y, typeParamsB));
+
+VarDecl* getVarDecl(
+	ref Alloc alloc,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
+	ref Module module_,
+	Symbol name,
+	VarKind kind,
+) {
+	Late!(VarDecl*) res = late!(VarDecl*);
+	foreach (ref VarDecl x; module_.vars)
+		if (x.name == name && x.kind == kind)
+			lateSet(res, &x);
+	if (lateIsSet(res))
+		return lateGet(res);
+	else {
+		add(alloc, diagsBuilder, UriAndDiagnostic(
+			UriAndRange(module_.uri, Range.empty),
+			Diag(Diag.CommonVarMissing(kind, name))));
+		VarDeclAst* ast = allocate(alloc, VarDeclAst(
+			Range.empty,
+			emptySmallString,
+			none!Visibility,
+			NameAndRange(0, name),
+			emptySmallArray!NameAndRange,
+			0,
+			kind,
+			TypeAst(TypeAst.Bogus(Range.empty)),
+			emptySmallArray!ModifierAst));
+		return allocate(alloc, VarDecl(ast, module_.uri, Visibility.public_, Type(Type.Bogus()), none!Symbol));
+	}
+}
 
 FunDecl* getFunDecl(
 	ref Alloc alloc,

@@ -27,15 +27,14 @@ import model.ast :
 	IdentifierAst,
 	EnumOrFlagsMemberAst,
 	ExprAst,
+	FinallyAst,
 	ForAst,
 	FunDeclAst,
 	ModifierAst,
 	IfAst,
 	ImportOrExportAst,
-	keywordRange,
 	LambdaAst,
 	LetAst,
-	LiteralIntegralAndRange,
 	LoopAst,
 	LoopBreakAst,
 	LoopWhileOrUntilAst,
@@ -53,6 +52,8 @@ import model.ast :
 	TestAst,
 	ThrowAst,
 	TrustedAst,
+	TryAst,
+	TryLetAst,
 	TypeAst,
 	TypedAst,
 	VisibilityAndRange,
@@ -71,6 +72,7 @@ import model.model :
 	Destructure,
 	EnumOrFlagsMember,
 	Expr,
+	FinallyExpr,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -94,8 +96,8 @@ import model.model :
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
 	MatchUnionExpr,
+	MatchVariantExpr,
 	Module,
-	nameRange,
 	NameReferents,
 	Params,
 	Program,
@@ -113,11 +115,14 @@ import model.model :
 	Test,
 	ThrowExpr,
 	TrustedExpr,
+	TryExpr,
+	TryLetExpr,
 	Type,
 	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl;
+	VarDecl,
+	VariantMember;
 import model.model : paramsArray, StructDeclSource;
 import util.col.array :
 	findIndex,
@@ -130,7 +135,7 @@ import util.col.array :
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
-import util.sourceRange : Pos, Range;
+import util.sourceRange : combineRanges, Pos, Range;
 import util.union_ : Union;
 import util.util : enumConvert;
 
@@ -179,7 +184,11 @@ Opt!PositionKind getPositionKind(in Ctx ctx, ref Module module_, Pos pos) =>
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, Test)(module_.tests, (Test* x) =>
 			hasPos(x.ast.range, pos)
-				? some(positionInTest(ctx, x, *x.ast, pos))
+				? positionInTest(ctx, x, *x.ast, pos)
+				: none!PositionKind),
+		() => firstPointer!(PositionKind, VariantMember)(module_.variantMembers, (VariantMember* x) =>
+			hasPos(x.ast.range, pos)
+				? positionInVariantMember(x, pos)
 				: none!PositionKind));
 
 Opt!PositionKind positionInFun(in Ctx ctx, FunDecl* a, in FunDeclAst* ast, Pos pos) =>
@@ -194,10 +203,10 @@ Opt!PositionKind positionInFun(in Ctx ctx, FunDecl* a, in FunDeclAst* ast, Pos p
 			? positionInExpr(ctx, ExprContainer(a), funBodyExprRef(a), pos)
 			: none!PositionKind);
 
-PositionKind positionInTest(ref Ctx ctx, Test* a, in TestAst ast, Pos pos) =>
-	optOrDefault!PositionKind(
-		positionInExpr(ctx, ExprContainer(a), testBodyExprRef(ctx.commonTypes, a), pos),
-		() => PositionKind(a));
+Opt!PositionKind positionInTest(ref Ctx ctx, Test* a, in TestAst ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.keywordRange, pos), () => PositionKind(a)),
+		() => positionInExpr(ctx, ExprContainer(a), testBodyExprRef(ctx.commonTypes, a), pos));
 
 Opt!PositionKind positionInParams(LocalContainer container, in Params params, in ParamsAst ast, Pos pos) =>
 	firstZip!(PositionKind, Destructure, DestructureAst)(
@@ -320,6 +329,17 @@ Opt!PositionKind positionInVar(VarDecl* a, Pos pos) =>
 			PositionKind(PositionKind.Keyword(enumConvert!(PositionKind.Keyword.Kind)(a.kind)))),
 		() => positionInType(TypeContainer(a), a.type, a.ast.type, pos));
 
+Opt!PositionKind positionInVariantMember(VariantMember* a, Pos pos) =>
+	optOr!PositionKind(
+		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
+		() => optIf(hasPos(a.nameRange.range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
+			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.variantMember))),
+		() => positionInType(TypeContainer(a), Type(a.variant), a.ast.variant, pos),
+		() => has(a.ast.type)
+			? positionInType(TypeContainer(a), a.type, force(a.ast.type), pos)
+			: none!PositionKind);
+
 Opt!PositionKind positionInAlias(StructAlias* a, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
@@ -358,7 +378,9 @@ PositionKind.Keyword.Kind keywordKindForStructBody(in StructBodyAst a) =>
 		(in StructBodyAst.Record) =>
 			PositionKind.Keyword.Kind.record,
 		(in StructBodyAst.Union) =>
-			PositionKind.Keyword.Kind.union_);
+			PositionKind.Keyword.Kind.union_,
+		(in StructBodyAst.Variant) =>
+			PositionKind.Keyword.Kind.variant);
 
 Opt!PositionKind positionInVisibility(VisibilityContainer a, in Opt!VisibilityAndRange visibility, Pos pos) =>
 	has(visibility) && hasPos(force(visibility).range, pos)
@@ -442,7 +464,9 @@ Opt!PositionKind positionInStructBody(
 				cbVisibilityContainer: (UnionMember*) =>
 					none!VisibilityContainer,
 				cbMutabilityPosition: (UnionMember*) =>
-					none!PositionKind));
+					none!PositionKind),
+		(StructBody.Variant) =>
+			none!PositionKind);
 
 Opt!PositionKind positionInRecordOrUnionBody(Member)(
 	in Ctx ctx,
@@ -598,6 +622,8 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 		(ClosureSetExpr x) =>
 			optIf(isAtAssignment(ast, pos), () =>
 				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local)),
+		(ref FinallyExpr x) =>
+			keywordAt(ast.kind.as!(FinallyAst*).finallyKeywordRange(ast), ExprKeyword.finally_),
 		(FunPointerExpr x) =>
 			some(expressionPosition(ExpressionPositionKind(x))),
 		(ref IfExpr x) {
@@ -660,13 +686,15 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				() => positionAtCondition(ctx, x.condition, a, loop.condition, pos));
 		},
 		(ref MatchEnumExpr x) =>
-			positionAtMatchEnum(ctx, a, x, *ast, pos),
+			positionAtMatchEnum(ctx, a, x, ast.kind.as!MatchAst, pos),
 		(ref MatchIntegralExpr x) =>
-			positionAtMatchIntegral(ctx, a, x, *ast, pos),
+			positionAtMatchIntegral(ctx, a, x, ast.kind.as!MatchAst, pos),
 		(ref MatchStringLikeExpr x) =>
-			positionAtMatchStringLike(ctx, a, x, *ast, pos),
+			positionAtMatchStringLike(ctx, a, x, ast.kind.as!MatchAst, pos),
 		(ref MatchUnionExpr x) =>
-			positionAtMatchUnion(ctx, a, x, *ast, pos),
+			positionAtMatchUnion(ctx, a, x, ast.kind.as!MatchAst, pos),
+		(ref MatchVariantExpr x) =>
+			positionAtMatchVariant(ctx, a, x, ast.kind.as!MatchAst, pos),
 		(ref PtrToFieldExpr x) =>
 			keywordAt(ast.kind.as!(PtrAst*).keywordRange(ast), ExprKeyword.ampersand),
 		(PtrToLocalExpr x) =>
@@ -679,6 +707,10 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 			keywordAt(ast.kind.as!(ThrowAst*).keywordRange(ast), ExprKeyword.throw_),
 		(ref TrustedExpr x) =>
 			keywordAt(ast.kind.as!(TrustedAst*).keywordRange(ast), ExprKeyword.trusted),
+		(ref TryExpr x) =>
+			positionAtTry(ctx, a, x, ast.kind.as!TryAst, pos),
+		(ref TryLetExpr x) =>
+			positionAtTryLet(ctx, a, x, ast.kind.as!(TryLetAst*), pos),
 		(ref TypedExpr x) {
 			TypedAst* tAst = ast.kind.as!(TypedAst*);
 			return optOr!PositionKind(
@@ -766,11 +798,11 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 		return false;
 }
 
-Opt!PositionKind positionAtMatchEnum(in ExprCtx ctx, ExprRef expr, ref MatchEnumExpr a, ref ExprAst ast, Pos pos) =>
+Opt!PositionKind positionAtMatchEnum(in ExprCtx ctx, ExprRef expr, ref MatchEnumExpr a, ref MatchAst ast, Pos pos) =>
 	optOr!PositionKind(
 		positionAtMatchKeyword(ctx, expr, ast, pos),
 		() => firstZipIfSizeEq!(PositionKind, MatchEnumExpr.Case, CaseAst)(
-			a.cases, ast.kind.as!MatchAst.cases,
+			a.cases, ast.cases,
 			(MatchEnumExpr.Case case_, CaseAst caseAst) =>
 				optIf(hasPos(caseAst.keywordAndMemberNameRange, pos), () =>
 					PositionKind(PositionKind.MatchEnumCase(case_.member)))));
@@ -779,13 +811,13 @@ Opt!PositionKind positionAtMatchIntegral(
 	in ExprCtx ctx,
 	ExprRef expr,
 	ref MatchIntegralExpr a,
-	ref ExprAst ast,
+	ref MatchAst ast,
 	Pos pos,
 ) =>
 	optOr!PositionKind(
 		positionAtMatchKeyword(ctx, expr, ast, pos),
 		() => firstZipIfSizeEq!(PositionKind, MatchIntegralExpr.Case, CaseAst)(
-			a.cases, ast.kind.as!MatchAst.cases,
+			a.cases, ast.cases,
 			(MatchIntegralExpr.Case case_, CaseAst caseAst) =>
 				optIf(hasPos(caseAst.keywordAndMemberNameRange, pos), () =>
 					PositionKind(PositionKind.MatchIntegralCase(a.kind, case_.value)))));
@@ -794,53 +826,92 @@ Opt!PositionKind positionAtMatchStringLike(
 	in ExprCtx ctx,
 	ExprRef expr,
 	ref MatchStringLikeExpr a,
-	ref ExprAst ast,
+	ref MatchAst ast,
 	Pos pos,
 ) =>
 	optOr!PositionKind(
 		positionAtMatchKeyword(ctx, expr, ast, pos),
 		() => firstZipIfSizeEq!(PositionKind, MatchStringLikeExpr.Case, CaseAst)(
-			a.cases, ast.kind.as!MatchAst.cases,
+			a.cases, ast.cases,
 			(MatchStringLikeExpr.Case case_, CaseAst caseAst) =>
 				optIf(hasPos(caseAst.keywordAndMemberNameRange, pos), () =>
 					PositionKind(PositionKind.MatchStringLikeCase(
 						TypeWithContainer(a.matched.type, ctx.container.toTypeContainer),
 						case_.value)))));
 
-Opt!PositionKind positionAtMatchUnion(in ExprCtx ctx, ExprRef expr, ref MatchUnionExpr a, ref ExprAst ast, Pos pos) =>
+Opt!PositionKind positionAtMatchUnion(ref ExprCtx ctx, ExprRef expr, ref MatchUnionExpr a, ref MatchAst ast, Pos pos) =>
 	optOr!PositionKind(
 		positionAtMatchKeyword(ctx, expr, ast, pos),
 		() => firstZipIfSizeEq!(PositionKind, MatchUnionExpr.Case, CaseAst)(
-			a.cases, ast.kind.as!MatchAst.cases,
+			a.cases, ast.cases,
 			(MatchUnionExpr.Case case_, CaseAst caseAst) =>
 				positionAtMatchUnionCase(ctx, case_, caseAst, pos)));
 
-Opt!PositionKind positionAtMatchUnionCase(in ExprCtx ctx, MatchUnionExpr.Case case_, CaseAst ast, Pos pos) =>
+Opt!PositionKind positionAtMatchUnionCase(ref ExprCtx ctx, MatchUnionExpr.Case case_, CaseAst ast, Pos pos) =>
 	optOr!PositionKind(
 		optIf(hasPos(ast.keywordAndMemberNameRange, pos), () =>
 			PositionKind(PositionKind.MatchUnionCase(case_.member))),
-		() => ast.member.matchIn!(Opt!PositionKind)(
-			(in CaseMemberAst.Name x) =>
-				has(x.destructure)
-					? positionInDestructure(ctx, case_.destructure, force(x.destructure), pos)
-					: none!PositionKind,
-			(in LiteralIntegralAndRange _) => none!PositionKind,
-			(in CaseMemberAst.String) => none!PositionKind,
-			(in CaseMemberAst.Bogus) => none!PositionKind));
+		() => positionInMatchCaseDestructure(ctx, case_.destructure, ast.member, pos));
 
-Opt!PositionKind positionAtMatchKeyword(
-	in ExprCtx ctx,
-	ExprRef matchExpr,
-	ref ExprAst ast,
+Opt!PositionKind positionAtMatchVariant(
+	ref ExprCtx ctx,
+	ExprRef expr,
+	ref MatchVariantExpr a,
+	in MatchAst ast,
 	Pos pos,
-) {
-	MatchAst matchAst = ast.kind.as!MatchAst;
-	return optOr!PositionKind(
-		optIf(hasPos(matchAst.keywordRange(ast), pos), () =>
+) =>
+	optOr!PositionKind(
+		positionAtMatchKeyword(ctx, expr, ast, pos),
+		() => positionAtMatchVariantCases(ctx, a.cases, ast.cases, pos));
+
+Opt!PositionKind positionAtMatchVariantCases(
+	ref ExprCtx ctx,
+	in MatchVariantExpr.Case[] cases,
+	in CaseAst[] caseAsts,
+	Pos pos,
+) =>
+	firstZipIfSizeEq!(PositionKind, MatchVariantExpr.Case, CaseAst)(
+		cases, caseAsts,
+		(MatchVariantExpr.Case case_, CaseAst caseAst) =>
+			positionAtMatchVariantCase(ctx, case_, caseAst, pos));
+
+Opt!PositionKind positionAtMatchVariantCase(ref ExprCtx ctx, MatchVariantExpr.Case case_, CaseAst ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.keywordAndMemberNameRange, pos), () =>
+			PositionKind(PositionKind.MatchVariantCase(case_.member))),
+		() => positionInMatchCaseDestructure(ctx, case_.destructure, ast.member, pos));
+
+Opt!PositionKind positionInMatchCaseDestructure(
+	ref ExprCtx ctx,
+	in Destructure destructure,
+	in CaseMemberAst ast,
+	Pos pos,
+) =>
+	ast.isA!(CaseMemberAst.Name) && has(ast.as!(CaseMemberAst.Name).destructure)
+		? positionInDestructure(ctx, destructure, force(ast.as!(CaseMemberAst.Name).destructure), pos)
+		: none!PositionKind;
+
+Opt!PositionKind positionAtMatchKeyword(in ExprCtx ctx, ExprRef matchExpr, in MatchAst ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.keywordRange(matchExpr.expr.ast), pos), () =>
 			PositionKind(ExpressionPosition(ctx.container, matchExpr, ExpressionPositionKind(ExprKeyword.match)))),
-		() => optIf(has(matchAst.else_) && hasPos(force(matchAst.else_).keywordRange, pos), () =>
+		() => optIf(has(ast.else_) && hasPos(force(ast.else_).keywordRange, pos), () =>
 			PositionKind(ExpressionPosition(ctx.container, matchExpr, ExpressionPositionKind(ExprKeyword.else_)))));
-}
+
+Opt!PositionKind positionAtTry(in ExprCtx ctx, ExprRef expr, ref TryExpr a, TryAst ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.tryKeywordRange(expr.expr.ast), pos), () =>
+			PositionKind(ExpressionPosition(ctx.container, expr, ExpressionPositionKind(ExprKeyword.try_)))),
+		() => positionAtMatchVariantCases(ctx, a.catches, ast.catches, pos));
+
+Opt!PositionKind positionAtTryLet(in ExprCtx ctx, ExprRef expr, ref TryLetExpr a, TryLetAst* ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.tryKeywordRange(expr.expr.ast), pos), () =>
+			PositionKind(ExpressionPosition(ctx.container, expr, ExpressionPositionKind(ExprKeyword.try_)))),
+		() => positionInDestructure(ctx, a.destructure, ast.destructure, pos),
+		() => optIf(hasPos(combineRanges(ast.catchKeywordRange, ast.catchMember.nameRange), pos), () =>
+			PositionKind(PositionKind.MatchVariantCase(a.catch_.member))),
+		() => positionInMatchCaseDestructure(ctx, a.catch_.destructure, ast.catchMember, pos));
 
 Opt!PositionKind positionInType(TypeContainer container, Type type, in TypeAst ast, Pos pos) =>
 	hasPos(ast.range, pos)

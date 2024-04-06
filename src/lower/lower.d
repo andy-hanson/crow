@@ -16,7 +16,7 @@ import lower.lowExprHelpers :
 	genCall,
 	genCallKind,
 	genCreateRecord,
-	genConstantBool,
+	genConstantInt32,
 	genConstantNat64,
 	genDerefGcPtr,
 	genDrop,
@@ -25,27 +25,36 @@ import lower.lowExprHelpers :
 	genEnumIntersect,
 	genEnumToIntegral,
 	genEnumUnion,
+	genFalse,
 	genIf,
 	genIfKind,
 	genLet,
 	genLetTemp,
 	genLetTempKind,
+	genLocal,
 	genLocalByValue,
 	genLocalGet,
+	genLocalSet,
 	genLoopBreakKind,
+	genPtrToLocal,
 	genPtrCast,
 	genPtrCastKind,
 	genRecordFieldGet,
 	genSeq,
 	genSeqKind,
+	genSeqThenReturnFirst,
 	genSizeOf,
 	genSizeOfKind,
+	genTrue,
 	genUnionAs,
 	genUnionKind,
 	genUnionKindEquals,
+	genVarGet,
+	genVarSet,
 	genVoid,
 	genWrapMulNat64,
 	genWriteToPtr,
+	genZeroed,
 	getElementPtrTypeFromArrType,
 	int32Type,
 	voidType;
@@ -153,10 +162,10 @@ import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
-import util.integralValues : IntegralValue;
+import util.integralValues : IntegralValue, IntegralValues, singleIntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
@@ -344,12 +353,12 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 			},
 			(in ConcreteStructBody.Flags x) =>
 				some(LowType(typeOfIntegralType(x.storage))),
-			(in ConcreteStructBody.Record it) {
+			(in ConcreteStructBody.Record) {
 				uint i = safeToUint(arrBuilderSize(allRecordSources));
 				add(alloc, allRecordSources, concrete);
 				return some(LowType(LowType.Record(i)));
 			},
-			(in ConcreteStructBody.Union it) =>
+			(in ConcreteStructBody.Union) =>
 				some(addUnion(concrete)));
 		if (has(lowType))
 			mustAddToMap(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
@@ -366,7 +375,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 						alloc,
 						struct_.body_.as!(ConcreteStructBody.Record).fields,
 						struct_.fieldOffsets,
-						(ConcreteField* field, in immutable uint fieldOffset) =>
+						(ConcreteField* field, immutable uint fieldOffset) =>
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
 	immutable FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointers =
 		fullIndexMapOfArr!(LowType.FunPointer, LowFunPointerType)(
@@ -420,12 +429,10 @@ PrimitiveType typeOfIntegralType(IntegralType a) =>
 	enumConvert!PrimitiveType(a);
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
-	LowUnion(s, s.body_.matchIn!(LowType[])(
+	LowUnion(s, small!LowType(s.body_.matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin x) {
 			assert(x.kind == BuiltinType.lambda);
-			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
-				typeAs!(ConcreteLambdaImpl[])([]));
-			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
+			return map(getLowTypeCtx.alloc, getLambdaImpls(program, s), (ref ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(getLowTypeCtx, impl.closureType));
 		},
 		(in ConcreteStructBody.Enum) => assert(false),
@@ -434,12 +441,16 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 		(in ConcreteStructBody.Record) => assert(false),
 		(in ConcreteStructBody.Union x) =>
 			map(getLowTypeCtx.alloc, x.members, (ref ConcreteType member) =>
-				lowTypeFromConcreteType(getLowTypeCtx, member))));
+				lowTypeFromConcreteType(getLowTypeCtx, member)))));
 
 LowType getLowRawPtrConstType(ref GetLowTypeCtx ctx, LowType pointee) {
 	//TODO:PERF Cache creation of pointer types by pointee
 	return LowType(LowType.PtrRawConst(allocate(ctx.alloc, pointee)));
 }
+
+ConcreteLambdaImpl[] getLambdaImpls(in ConcreteProgram program, in ConcreteStruct* struct_) =>
+	optOrDefault!(SmallArray!ConcreteLambdaImpl)(program.lambdaStructToImpls[struct_], () =>
+		emptySmallArray!ConcreteLambdaImpl);
 
 LowType getLowGcPtrType(ref GetLowTypeCtx ctx, LowType pointee) {
 	//TODO:PERF Cache creation of pointer types by pointee
@@ -628,8 +639,7 @@ AllLowFuns getAllLowFuns(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
-						optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[mustBeByVal(params[0].type)], () =>
-							typeAs!(ConcreteLambdaImpl[])([]))))));
+						getLambdaImpls(program, mustBeByVal(params[0].type))))));
 				} else if (x.kind.isA!(BuiltinFun.MarkVisit)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
@@ -685,17 +695,24 @@ AllLowFuns getAllLowFuns(
 		finishMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
 
 	LowType userMainFunPointerType =
-		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsIncludingClosure[2].type);
+		lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.rtMain.paramsIncludingClosure[2].type);
 
 	//TODO: use temp alloc
 	VarIndices varIndices = makeMapWithIndex!(immutable ConcreteVar*, LowVarIndex, immutable ConcreteVar*)(
 		getLowTypeCtx.alloc, program.allVars, (size_t i, in immutable ConcreteVar* x) =>
 			immutable KeyValuePair!(immutable ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
-	LowFunIndex markFunIndex = mustGet(concreteFunToLowFunIndex, program.markFun);
-	LowFunIndex allocFunIndex = mustGet(concreteFunToLowFunIndex, program.allocFun);
-	Opt!LowFunIndex throwImplFunIndex = optIf(has(program.throwImplFun), () =>
-		mustGet(concreteFunToLowFunIndex, force(program.throwImplFun)));
+	LowCommonFuns commonFuns = LowCommonFuns(
+		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
+		curJmpBuf: mustGet(varIndices, program.commonFuns.curJmpBuf),
+		jmpBufType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curJmpBuf.type),
+		curThrown: mustGet(varIndices, program.commonFuns.curThrown),
+		exceptionType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curThrown.type),
+		mark: mustGet(concreteFunToLowFunIndex, program.commonFuns.mark),
+		setjmp: mustGet(concreteFunToLowFunIndex, program.commonFuns.setjmp),
+		rethrowCurrentException: mustGet(concreteFunToLowFunIndex, program.commonFuns.rethrowCurrentException),
+		throwImpl: mustGet(concreteFunToLowFunIndex, program.commonFuns.throwImpl));
+
 	FullIndexMap!(LowFunIndex, LowFun) allLowFuns = fullIndexMapOfArr!(LowFunIndex, LowFun)(
 		mapWithIndexAndAppend(
 			getLowTypeCtx.alloc,
@@ -705,20 +722,18 @@ AllLowFuns getAllLowFuns(
 					allTypes,
 					program.allConstants.staticSymbols,
 					getLowTypeCtx,
-					allocFunIndex,
-					throwImplFunIndex,
+					commonFuns,
 					concreteFunToLowFunIndex,
 					varIndices,
 					lowFunCauses,
 					markVisitFuns,
 					markCtxType,
-					markFunIndex,
 					LowFunIndex(index),
 					cause),
 			mainFun(
 				getLowTypeCtx,
-				mustGet(concreteFunToLowFunIndex, program.rtMain),
-				program.userMain,
+				mustGet(concreteFunToLowFunIndex, program.commonFuns.rtMain),
+				program.commonFuns.userMain,
 				userMainFunPointerType)));
 
 	return AllLowFuns(
@@ -746,18 +761,28 @@ ExternLibraries getExternLibraries(
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
+struct LowCommonFuns {
+	LowFunIndex alloc;
+	LowVarIndex curJmpBuf;
+	LowType jmpBufType;
+	LowVarIndex curThrown;
+	LowType exceptionType;
+	LowFunIndex mark;
+	LowFunIndex rethrowCurrentException;
+	LowFunIndex setjmp;
+	LowFunIndex throwImpl;
+}
+
 LowFun lowFunFromCause(
 	ref AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
-	LowFunIndex allocFunIndex,
-	Opt!LowFunIndex throwImplFunIndex,
+	in LowCommonFuns commonFuns,
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in VarIndices varIndices,
 	in LowFunCause[] lowFunCauses,
 	in MarkVisitFuns markVisitFuns,
 	LowType markCtxType,
-	LowFunIndex markFun,
 	LowFunIndex thisFunIndex,
 	LowFunCause cause,
 ) =>
@@ -774,9 +799,8 @@ LowFun lowFunFromCause(
 				staticSymbols,
 				getLowTypeCtx,
 				concreteFunToLowFunIndex,
+				commonFuns,
 				varIndices,
-				allocFunIndex,
-				throwImplFunIndex,
 				thisFunIndex,
 				params,
 				*cf);
@@ -786,13 +810,14 @@ LowFun lowFunFromCause(
 			LowType.PtrRawConst elementPointerType = getElementPtrTypeFromArrType(allTypes, x.arrType);
 			Opt!LowFunIndex markVisitElement = tryGetMarkVisitFun(markVisitFuns, *elementPointerType.pointee);
 			return generateMarkVisitArr(
-				getLowTypeCtx.alloc, allTypes, markCtxType, markFun, x.arrType, elementPointerType, markVisitElement);
+				getLowTypeCtx.alloc, allTypes, markCtxType, commonFuns.mark,
+				x.arrType, elementPointerType, markVisitElement);
 		},
 		(LowFunCause.MarkVisitNonArr it) =>
 			generateMarkVisitNonArr(getLowTypeCtx.alloc, allTypes, markVisitFuns, markCtxType, it.type),
-		(LowFunCause.MarkVisitGcPtr it) =>
+		(LowFunCause.MarkVisitGcPtr x) =>
 			generateMarkVisitGcPtr(
-				getLowTypeCtx.alloc, allTypes, markCtxType, markFun, it.pointerType, it.visitPointee));
+				getLowTypeCtx.alloc, allTypes, markCtxType, commonFuns.mark, x.pointerType, x.visitPointee));
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
 	LowType char8PtrPtrConstType = LowType(LowType.PtrRawConst(allocate(ctx.alloc, char8PtrConstType)));
@@ -852,9 +877,8 @@ LowFunBody getLowFunBody(
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	in LowCommonFuns commonFuns,
 	in VarIndices varIndices,
-	LowFunIndex allocFunIndex,
-	Opt!LowFunIndex throwImplFunIndex,
 	LowFunIndex thisFunIndex,
 	LowLocal[] params,
 	ref ConcreteFun a,
@@ -879,9 +903,8 @@ LowFunBody getLowFunBody(
 				castNonScope_ref(staticSymbols),
 				ptrTrustMe(getLowTypeCtx),
 				castNonScope_ref(concreteFunToLowFunIndex),
+				commonFuns,
 				castNonScope_ref(varIndices),
-				allocFunIndex,
-				throwImplFunIndex,
 				a.paramsIncludingClosure,
 				params,
 				false,
@@ -913,9 +936,8 @@ struct GetLowExprCtx {
 	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
+	LowCommonFuns commonFuns;
 	immutable VarIndices varIndices;
-	immutable LowFunIndex allocFunIndex;
-	immutable Opt!LowFunIndex throwImplFunIndex; // None if '--abort-on-throw'
 	ConcreteLocal[] concreteParams;
 	LowLocal[] lowParams;
 	bool hasTailRecur;
@@ -986,6 +1008,8 @@ LowExprKind getLowExprKind(
 				getLowExpr(ctx, locals, it.arg, ExprPos.nonTail)))),
 		(ref ConcreteExprKind.Drop it) =>
 			getDropExpr(ctx, locals, expr.range, it),
+		(ref ConcreteExprKind.Finally x) =>
+			getFinallyExpr(ctx, locals, expr.range, type, x),
 		(ref ConcreteExprKind.If x) =>
 			LowExprKind(allocate(ctx.alloc, LowExprKind.If(
 				getLowExpr(ctx, locals, x.cond, ExprPos.nonTail),
@@ -993,8 +1017,8 @@ LowExprKind getLowExprKind(
 				getLowExpr(ctx, locals, x.else_, exprPos)))),
 		(ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(ctx, locals, expr.range, it),
-		(ref ConcreteExprKind.Let it) =>
-			getLetExpr(ctx, locals, exprPos, expr.range, it),
+		(ref ConcreteExprKind.Let x) =>
+			getLetExpr(ctx, locals, exprPos, expr.range, x),
 		(ConcreteExprKind.LocalGet it) =>
 			getLocalGetExpr(ctx, locals, type, expr.range, it),
 		(ref ConcreteExprKind.LocalSet it) =>
@@ -1029,6 +1053,10 @@ LowExprKind getLowExprKind(
 				getLowExpr(ctx, locals, x.then, exprPos)),
 		(ref ConcreteExprKind.Throw x) =>
 			getThrowExpr(ctx, locals, expr.range, type, x, exprPos),
+		(ref ConcreteExprKind.Try x) =>
+			getTryExpr(ctx, locals, exprPos, expr.range, type, x),
+		(ref ConcreteExprKind.TryLet x) =>
+			getTryLetExpr(ctx, locals, exprPos, expr.range, type, x),
 		(ConcreteExprKind.UnionAs x) =>
 			LowExprKind(LowExprKind.UnionAs(
 				allocate(ctx.alloc, getLowExpr(ctx, locals, *x.union_, ExprPos.nonTail)), x.memberIndex)),
@@ -1064,7 +1092,7 @@ LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr 
 		: genLetTempKind(
 			ctx.alloc, range, nextTempLocalIndex(ctx),
 			getAllocateExpr(
-				ctx.alloc, ctx.allocFunIndex, range, ptrType,
+				ctx.alloc, ctx.commonFuns.alloc, range, ptrType,
 				genSizeOf(*ctx.allTypes, range, asPtrGcPointee(ptrType))),
 			(LowExpr getPtr) => genSeq(ctx.alloc, range, genWriteToPtr(ctx.alloc, range, getPtr, arg), getPtr));
 
@@ -1436,9 +1464,9 @@ LowExprKind genBuiltinBinaryLazy(
 ) {
 	final switch (kind) {
 		case BuiltinBinaryLazy.boolAnd:
-			return genIfKind(ctx.alloc, arg0, arg1, genConstantBool(range, false));
+			return genIfKind(ctx.alloc, arg0, arg1, genFalse(range));
 		case BuiltinBinaryLazy.boolOr:
-			return genIfKind(ctx.alloc, arg0, genConstantBool(range, true), arg1);
+			return genIfKind(ctx.alloc, arg0, genTrue(range), arg1);
 		case BuiltinBinaryLazy.optionOr:
 			return genOptionOrLike(ctx, range, arg0, arg1, (LowExpr x) => x);
 		case BuiltinBinaryLazy.optionQuestion2:
@@ -1477,7 +1505,7 @@ LowExprKind getCreateArrayExpr(
 	LowExpr elementSize = genSizeOf(*ctx.allTypes, range, elementType);
 	LowExpr nElements = genConstantNat64(range, a.args.length);
 	LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
-	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, elementPtrType, sizeBytes);
+	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.commonFuns.alloc, range, elementPtrType, sizeBytes);
 	return genLetTempKind(ctx.alloc, range, nextTempLocalIndex(ctx), allocatePtr, (LowExpr getPtr) {
 		LowExpr recur(LowExpr cur, size_t prevIndex) {
 			if (prevIndex == 0)
@@ -1515,13 +1543,27 @@ LowExprKind getLetExpr(
 	ExprPos exprPos,
 	UriAndRange range,
 	ref ConcreteExprKind.Let a,
+) =>
+	genLetHandleAllocated(ctx, locals, exprPos, range, a.local, a.value, a.then, (LowExpr x) => x);
+
+LowExprKind genLetHandleAllocated(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ExprPos exprPos,
+	UriAndRange range,
+	ConcreteLocal* concreteLocal,
+	ref ConcreteExpr concreteValue,
+	ref ConcreteExpr concreteThen,
+	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbModifyThen,
 ) {
-	LowExpr valueByVal = getLowExpr(ctx, locals, a.value, ExprPos.nonTail);
-	LowExpr value = a.local.isAllocated
-		? getAllocExpr2Expr(ctx, range, valueByVal, getLowGcPtrType(ctx.typeCtx, valueByVal.type))
-		: valueByVal;
-	return withLowLocal!LowExprKind(ctx, locals, a.local, (in Locals innerLocals, LowLocal* local) =>
-		LowExprKind(allocate(ctx.alloc, LowExprKind.Let(local, value, getLowExpr(ctx, innerLocals, a.then, exprPos)))));
+	LowExpr valueByVal = getLowExpr(ctx, locals, concreteValue, ExprPos.nonTail);
+	return withLowLocal!LowExprKind(ctx, locals, concreteLocal, (in Locals innerLocals, LowLocal* local) =>
+		LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
+			local,
+			concreteLocal.isAllocated
+				? getAllocExpr2Expr(ctx, range, valueByVal, getLowGcPtrType(ctx.typeCtx, valueByVal.type))
+				: valueByVal,
+			cbModifyThen(getLowExpr(ctx, innerLocals, concreteThen, exprPos))))));
 }
 
 LowExprKind getLocalGetExpr(
@@ -1578,7 +1620,7 @@ LowExprKind getMatchIntegralExpr(
 	LowExprKind(allocate(ctx.alloc, LowExprKind.Switch(
 		value: getLowExpr(ctx, locals, a.matched, ExprPos.nonTail),
 		caseValues: a.caseValues,
-		caseExprs: map(ctx.alloc, a.caseExprs, (ref ConcreteExpr case_) =>
+		caseExprs: map!(LowExpr, ConcreteExpr)(ctx.alloc, a.caseExprs, (ref ConcreteExpr case_) =>
 			getLowExpr(ctx, locals, case_, exprPos)),
 		default_: has(a.else_)
 			? getLowExpr(ctx, locals, *force(a.else_), exprPos)
@@ -1621,27 +1663,38 @@ LowExprKind getMatchUnionExpr(
 ) =>
 	withLetTemp(ctx, locals, a.matched, (LowExpr getMatched) {
 		LowExpr* getMatchedPtr = allocate(ctx.alloc, getMatched);
-		LowExpr[] cases = mapWithIndex!(LowExpr, ConcreteExprKind.MatchUnion.Case)(
-			ctx.alloc, a.cases,
-			(size_t caseIndex, ref ConcreteExprKind.MatchUnion.Case case_) =>
-				has(case_.local)
-					? withLowLocal!LowExpr(ctx, locals, force(case_.local), (in Locals newLocals, LowLocal* local) =>
-						genLet(
-							ctx.alloc, range, local,
-							genUnionAs(
-								local.type, range, getMatchedPtr,
-								safeToUint(a.memberIndices[caseIndex].asUnsigned)),
-							getLowExpr(ctx, newLocals, case_.then, exprPos)))
-					: getLowExpr(ctx, locals, case_.then, exprPos));
 		return LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
 			LowExprKind.Switch(
 				value: genUnionKind(range, getMatchedPtr),
 				caseValues: a.memberIndices,
-				caseExprs: cases,
+				caseExprs: lowerMatchCases(ctx, locals, exprPos, type, range, getMatchedPtr, a.memberIndices, a.cases),
 				default_: has(a.else_)
 					? getLowExpr(ctx, locals, *force(a.else_), exprPos)
 					: genAbort(type, range)))));
 	});
+
+SmallArray!LowExpr lowerMatchCases(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ExprPos exprPos,
+	LowType type,
+	UriAndRange range,
+	LowExpr* getMatched,
+	IntegralValues memberIndices,
+	in ConcreteExprKind.MatchUnion.Case[] cases,
+) =>
+	small!LowExpr(mapWithIndex!(LowExpr, ConcreteExprKind.MatchUnion.Case)(
+		ctx.alloc, cases,
+		(size_t caseIndex, ref ConcreteExprKind.MatchUnion.Case case_) =>
+			has(case_.local)
+				? withLowLocal!LowExpr(ctx, locals, force(case_.local), (in Locals newLocals, LowLocal* local) =>
+					genLet(
+						ctx.alloc, range, local,
+						genUnionAs(
+							local.type, range, getMatched,
+							safeToUint(memberIndices[caseIndex].asUnsigned)),
+						getLowExpr(ctx, newLocals, case_.then, exprPos)))
+				: getLowExpr(ctx, locals, case_.then, exprPos)));
 
 LowExprKind getClosureCreateExpr(
 	ref GetLowExprCtx ctx,
@@ -1720,18 +1773,192 @@ LowExprKind getThrowExpr(
 	ref ConcreteExprKind.Throw a,
 	ExprPos exprPos,
 ) {
-	if (has(ctx.throwImplFunIndex)) {
-		LowExprKind callThrow = genCallKind(ctx.alloc, force(ctx.throwImplFunIndex), [
-			getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)]);
-		LowExprKind kind = type == voidType
-			? callThrow
-			: genSeqKind(
-				ctx.alloc,
-				LowExpr(voidType, range, callThrow),
-				LowExpr(type, range, LowExprKind(constantZero)));
-		return exprPos == ExprPos.loop
-			? genLoopBreakKind(ctx.alloc, LowExpr(type, range, kind))
-			: kind;
-	} else
-		return LowExprKind(LowExprKind.Abort());
+	LowExprKind callThrow = genCallKind(ctx.alloc, ctx.commonFuns.throwImpl, [
+		getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)]);
+	LowExprKind kind = type == voidType
+		? callThrow
+		: genSeqKind(
+			ctx.alloc,
+			LowExpr(voidType, range, callThrow),
+			LowExpr(type, range, LowExprKind(constantZero)));
+	return exprPos == ExprPos.loop
+		? genLoopBreakKind(ctx.alloc, LowExpr(type, range, kind))
+		: kind;
 }
+
+LowExprKind getFinallyExpr(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	UriAndRange range,
+	LowType type,
+	ref ConcreteExprKind.Finally a,
+) =>
+	/*
+	finally right
+	below
+	==>
+	old-jmp-buf = cur-jmp-buf
+	store mut __jmp_buf_tag = zeroed
+	err mut = false
+	res = if (&store).setjmp == 0
+		below
+	else
+		err = true
+		zeroed
+	cur-jmp-buf := old-jmp-buf
+	right
+	if err
+		rethrow-current-exception
+	res
+	*/
+	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) {
+		LowLocal* err = genLocal(ctx.alloc, symbol!"err", nextTempLocalIndex(ctx), boolType);
+		LowExpr res = genSetjmp(
+			ctx, range,
+			getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
+			genSeq(
+				ctx.alloc, range,
+				genLocalSet(ctx.alloc, range, err, genTrue(range)),
+				genZeroed(type, range)));
+		LowExpr afterRes = genSeq(
+			ctx.alloc, range,
+			restoreCurJmpBuf,
+			getLowExpr(ctx, locals, a.right, ExprPos.nonTail),
+			genIf(ctx.alloc, range, genLocalGet(range, err), genRethrowCurrentException(ctx, range), genVoid(range)));
+		return genLet(
+			ctx.alloc, range, err,
+			genFalse(range),
+			genSeqThenReturnFirst(ctx.alloc, range, nextTempLocalIndex(ctx), res, afterRes));
+	});
+
+LowExprKind getTryExpr(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ExprPos exprPos,
+	UriAndRange range,
+	LowType type,
+	ref ConcreteExprKind.Try a,
+) =>
+	getTryOrTryLetExpr(
+		ctx, locals, exprPos, range, type,
+		a.exceptionMemberIndices, a.catchCases,
+		(LowExpr restoreCurJmpBuf) =>
+			genSeqThenReturnFirst(
+				ctx.alloc, range, nextTempLocalIndex(ctx),
+				getLowExpr(ctx, locals, a.tried, ExprPos.nonTail),
+				restoreCurJmpBuf));
+
+LowExprKind getTryLetExpr(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ExprPos exprPos,
+	UriAndRange range,
+	LowType type,
+	ref ConcreteExprKind.TryLet a,
+) =>
+	getTryOrTryLetExpr(
+		ctx, locals, exprPos, range, type, singleIntegralValue(a.exceptionMemberIndex), [a.catch_],
+		(LowExpr restoreCurJmpBuf) =>
+			LowExpr(type, range, has(a.local)
+				? genLetHandleAllocated(
+					ctx, locals, exprPos, range, force(a.local), a.value, a.then,
+					(LowExpr then) => genSeq(ctx.alloc, range, restoreCurJmpBuf, then))
+				: genSeqKind(
+					ctx.alloc, range,
+					genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.value, ExprPos.nonTail)),
+					restoreCurJmpBuf,
+					getLowExpr(ctx, locals, a.then, exprPos))));
+
+LowExprKind getTryOrTryLetExpr(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ExprPos exprPos,
+	UriAndRange range,
+	LowType type,
+	IntegralValues exceptionMemberIndices,
+	in ConcreteExprKind.MatchUnion.Case[] catchCases,
+	in LowExpr delegate(LowExpr restoreCurJmpBuf) @safe @nogc pure nothrow firstBlock,
+) =>
+	/*
+	try
+		tried
+	catch foo x
+		handler
+	==>
+	old-jmp-buf = cur-jmp-buf
+	store mut __jmp_buf_tag = zeroed
+	if (&store).setjmp == 0
+		cur-jmp-buf = &store
+		x = tried
+		cur-jmp-buf := old-jmp-buf
+		rest
+	else
+		cur-jmp-buf := old-jmp-buf
+		match cur-thrown
+		as foo x
+			handler
+		else
+			rethrow-current-exception
+	*/
+	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) {
+		LowExpr* curThrown = allocate(ctx.alloc, genGetCurThrown(ctx, range));
+		LowExpr matchThrown = LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
+			LowExprKind.Switch(
+				value: genUnionKind(range, curThrown),
+				caseValues: exceptionMemberIndices,
+				caseExprs: lowerMatchCases(
+					ctx, locals, exprPos, type, range, curThrown, exceptionMemberIndices, catchCases),
+				default_: genSeq(ctx.alloc, range,
+					genRethrowCurrentException(ctx, range),
+					// 'abort' is just to keep this well-typed
+					genAbort(type, range))))));
+		LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, matchThrown);
+		return genSetjmp(ctx, range, firstBlock(restoreCurJmpBuf), onError);
+	});
+
+LowExprKind withRestorableJmpBuf(
+	ref GetLowExprCtx ctx,
+	UriAndRange range,
+	in LowExpr delegate(LowExpr restoreJmpBuf) @safe @nogc pure nothrow cb,
+) =>
+	genLetTempKind(ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
+		cb(genSetCurJmpBuf(ctx, range, oldJmpBuf)));
+
+LowExpr genRethrowCurrentException(ref GetLowExprCtx ctx, UriAndRange range) =>
+	genCall(ctx.alloc, range, ctx.commonFuns.rethrowCurrentException, voidType, []);
+
+LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowExpr onLongjmp) {
+	/*
+	store mut __jmp_buf_tag = zeroed
+	if (&store).setjmp == 0
+		cur_jmp_buf = &store
+		tried
+	else
+		onLongjmp
+	*/
+	LowType jmpBuf = ctx.commonFuns.jmpBufType;
+	LowType jmpBufTag = *jmpBuf.as!(LowType.PtrRawMut).pointee;
+	LowLocal* store = genLocal(ctx.alloc, symbol!"store", nextTempLocalIndex(ctx), jmpBufTag);
+	LowExpr storePtr = genPtrToLocal(jmpBuf, range, store);
+	LowExpr then = genIf(
+		ctx.alloc, range,
+		genEqInt32(
+			ctx.alloc, range,
+			genCall(ctx.alloc, range, ctx.commonFuns.setjmp, int32Type, [storePtr]),
+			genConstantInt32(range, 0)),
+		genSeq(ctx.alloc, range, genSetCurJmpBuf(ctx, range, storePtr), tried),
+		onLongjmp);
+	return genLet(ctx.alloc, range, store, genZeroed(jmpBufTag, range), then);
+}
+
+LowExpr genEqInt32(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
+	LowExpr(boolType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.eqInt32, [a, b]))));
+
+LowExpr genGetCurThrown(ref GetLowExprCtx ctx, UriAndRange range) =>
+	genVarGet(ctx.commonFuns.exceptionType, range, ctx.commonFuns.curThrown);
+
+LowExpr genGetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range) =>
+	genVarGet(ctx.commonFuns.jmpBufType, range, ctx.commonFuns.curJmpBuf);
+
+LowExpr genSetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range, LowExpr value) =>
+	genVarSet(ctx.alloc, range, ctx.commonFuns.curJmpBuf, value);

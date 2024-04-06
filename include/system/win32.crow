@@ -205,6 +205,8 @@ import
 	3
 +ERROR_NO_MORE_FILES DWORD() bare
 	18
++ERROR_ALREADY_EXISTS DWORD() bare
+	183
 
 +FormatMessageA DWORD(
 	dwFlags DWORD,

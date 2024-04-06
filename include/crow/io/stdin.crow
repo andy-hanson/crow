@@ -21,7 +21,7 @@ Result will not have leading or trailing whitespace.
 				n-read mut DWORD = 0
 				ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
 					buffer.begin-pointer, buffer.size.to, &n-read, null
-				assert ok : "{GetLastError show-win32-error}"
+				assert ok : "{GetLastError show-win32-error}".error
 				n-read to
 			else
 				bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size

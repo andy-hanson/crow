@@ -7,11 +7,11 @@ import
 	audio/sound: format, to, with-sample-rate
 
 main nat^(args string[]) summon
-	assert args.size == 2 : "Usage: crow convert-file.crow toccata.ogg toccata.flac"
+	assert args.size == 2 : "Usage: crow convert-file.crow toccata.ogg toccata.flac" error
 	in-path = args[0]
 	out-path = args[1]
-	ext = out-path.get-extension ?? throw "Output file needs extension"
-	format sound-file-format = default-file-types[ext to] ?? throw describe-out-exts
+	ext = out-path.get-extension ?? throw "Output file needs extension" error
+	format sound-file-format = default-file-types[ext to] ?? throw describe-out-exts error
 
 	sound = in-path.read-sound-file with-sample-rate 48000
 	out print "sound format is {sound format}"

@@ -1,0 +1,10 @@
+main void()
+	loop
+		try
+			break
+		catch divide-by-0
+			continue
+
+	loop
+		finally x
+		break

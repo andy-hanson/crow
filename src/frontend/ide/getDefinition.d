@@ -11,13 +11,13 @@ import model.model :
 	FunDecl,
 	localMustHaveNameRange,
 	Module,
-	nameRange,
 	NameReferents,
 	RecordField,
 	SpecDecl,
 	StructAlias,
 	StructDecl,
 	VarDecl,
+	VariantMember,
 	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : buildArray, Builder;
@@ -65,7 +65,7 @@ public void definitionForTarget(Uri curUri, in Target a, in ReferenceCb cb) =>
 			cb(x.nameRange);
 		},
 		(in PositionKind.SpecSig x) {
-			cb(nameRange(*x.sig));
+			cb(x.sig.nameRange);
 		},
 		(in StructAlias x) {
 			cb(x.nameRange);
@@ -80,6 +80,9 @@ public void definitionForTarget(Uri curUri, in Target a, in ReferenceCb cb) =>
 			cb(x.nameRange);
 		},
 		(in VarDecl x) {
+			cb(x.nameRange);
+		},
+		(in VariantMember x) {
 			cb(x.nameRange);
 		});
 

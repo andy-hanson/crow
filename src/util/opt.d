@@ -2,7 +2,7 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.col.array : SmallArray;
+import util.col.array : MutSmallArray, PtrAndSmallNumber, SmallArray;
 import util.util : assertNormalEnum;
 
 private struct Option(T) {
@@ -17,15 +17,18 @@ private struct Option(T) {
 		T value_ = null;
 		bool has_() scope const =>
 			value_ != null;
-	} else static if (is(T == SmallArray!U, U)) {
+	} else static if (is(T == MutSmallArray!U, U)) {
 		inout this(return scope inout T value) {
 			value_ = value;
 			assert(has_);
 		}
 
-		T value_ = T.fromTagged(1); // = none
-		bool has_() scope const =>
-			(value_.asTaggable & 1) == 0;
+		T value_ = MutSmallArray!U(PtrAndSmallNumber!U(null, ushort.max));
+		@trusted bool has_() scope const {
+			bool res = value_.sizeAndBegin.number != ushort.max;
+			if (!res) assert(value_.sizeAndBegin.ptr == null);
+			return res;
+		}
 		static assert(!this.init.has);
 	} else static if (is(T == enum)) {
 		static assert(__traits(allMembers, T).length < 255);
@@ -58,6 +61,7 @@ private struct Option(T) {
 
 	static assert(!typeof(this)().has_);
 }
+static assert(Opt!(SmallArray!uint).sizeof == ulong.sizeof);
 
 alias Opt(T) = immutable Option!(immutable T);
 alias ConstOpt(T) = const Option!T;
@@ -154,6 +158,19 @@ Opt!T optOr(T)(
 	in Opt!T delegate() @safe @nogc pure nothrow h,
 ) =>
 	optOr!T(optOr!T(a, b), c, d, e, f, g, h);
+
+Opt!T optOr(T)(
+	Opt!T a,
+	in Opt!T delegate() @safe @nogc pure nothrow b,
+	in Opt!T delegate() @safe @nogc pure nothrow c,
+	in Opt!T delegate() @safe @nogc pure nothrow d,
+	in Opt!T delegate() @safe @nogc pure nothrow e,
+	in Opt!T delegate() @safe @nogc pure nothrow f,
+	in Opt!T delegate() @safe @nogc pure nothrow g,
+	in Opt!T delegate() @safe @nogc pure nothrow h,
+	in Opt!T delegate() @safe @nogc pure nothrow i,
+) =>
+	optOr!T(optOr!T(a, b), c, d, e, f, g, h, i);
 
 T optOrDefault(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
 	has(a)

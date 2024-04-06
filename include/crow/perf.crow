@@ -9,8 +9,8 @@ import
 	./col/collection: for-loop, index-of, set-subscript, subscript
 	./col/list: ~=, build
 	./col/map: ~=, build, iterate, map, size
-	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next
-	./exception: finally, with-block
+	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next, size
+	./exception: error
 	./fun-util: subscript
 	./io/duration: duration, nsec, to
 	./io/private/time-low-level: get-monotime-nsec
@@ -49,19 +49,19 @@ import
 
 # Enable performance, run the callback, then return its result and the measured performance.
 +with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon
-	assert (trusted measure-names.is-empty) : "Already measuring performance"
-	with : (() => trusted clear-perf) finally
-		trusted
-			measure-names := a measure-names
-			measure-accums := for _ : measure-names; ()
-		start = perf-now
-		f-res = f[]
-		end = perf-now
-		# TODO: 'zip'
-		perf-res perf-result = (end - start).to.nsec, trusted for i : 0::nat64 .. measure-names.size
-			value = measure-accums[i]
-			measure-names[i], (value.count, value.total-nsec.to.nsec)
-		f-res, perf-res
+	assert (trusted measure-names.is-empty) : "Already measuring performance".error
+	finally trusted clear-perf
+	trusted
+		measure-names := a measure-names
+		measure-accums := for _ : measure-names; ()
+	start = perf-now
+	f-res = f[]
+	end = perf-now
+	# TODO: 'zip'
+	perf-res perf-result = (end - start).to.nsec, trusted for i : 0::nat64 .. measure-names.size
+		value = measure-accums[i]
+		measure-names[i], (value.count, value.total-nsec.to.nsec)
+	f-res, perf-res
 
 +perf-measure record(measure-name symbol) nominal
 

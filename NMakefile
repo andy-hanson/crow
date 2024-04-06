@@ -113,7 +113,7 @@ bin\crow.exe: $(d_dependencies)
 	del bin\crow.obj
 
 bin\crow-debug.wasm: $(d_dependencies)
-	ldc2 -ofbin\crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) src\wasm.d -I=src -i
+	ldc2 -ofbin\crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) -O1 src\wasm.d -I=src -i
 	del bin\crow-debug.o
 
 bin\crow.wasm: $(d_dependencies)

@@ -57,7 +57,9 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParamsAndSig,
-	UnionMember;
+	UnionMember,
+	VariantMember,
+	worstCasePurity;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, exists, isEmpty, only;
@@ -259,8 +261,12 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 
 string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 	final switch (kind) {
+		case ParseDiag.Expected.Kind.as:
+			return "Expected 'as'.";
 		case ParseDiag.Expected.Kind.blockCommentEnd:
 			return "Expected '###' (then a newline).";
+		case ParseDiag.Expected.Kind.catch_:
+			return "Expected 'catch'.";
 		case ParseDiag.Expected.Kind.closeInterpolated:
 			return "Expected '}'.";
 		case ParseDiag.Expected.Kind.closingBracket:
@@ -568,6 +574,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= " in this module.";
 		},
+		(in Diag.CommonVarMissing x) {
+			writer ~= "Expected to find a ";
+			writer ~= stringOfEnum(x.varKind);
+			writer ~= " named ";
+			writeName(writer, ctx, x.name);
+			writer ~= " in this module.";
+		},
 		(in Diag.DestructureTypeMismatch x) {
 			x.expected.matchIn!void(
 				(in Diag.DestructureTypeMismatch.Expected.Tuple t) {
@@ -682,9 +695,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "A '";
 			writer ~= stringOfEnum(x.reason);
 			writer ~= "' function can't have a body.";
-		},
-		(in Diag.FunModifierTrustedOnNonExtern) {
-			writer ~= "Only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression.";
 		},
 		(in Diag.FunPointerExprMustBeName) {
 			writer ~= "Function pointer expression must be a plain identifier ('&f').";
@@ -850,6 +860,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.local.name);
 			writer ~= " was not marked 'mut'.";
 		},
+		(in Diag.LoopDisallowedBody x) {
+			writer ~= "Loop body cannot be a ";
+			writeName(writer, ctx, stringOfEnum(x.kind));
+			writer ~= " expression";
+		},
 		(in Diag.LoopWithoutBreak) {
 			writer ~= "'loop' has no 'break'.";
 		},
@@ -882,25 +897,22 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			}();
 		},
 		(in Diag.MatchCaseNameDoesNotMatch x) {
-			if (has(x.actual)) {
-				bool isEnum = x.enumOrUnion.body_.isA!(StructBody.Enum*);
-				writer ~= (isEnum ? "Enum " : "Union ");
-				writeName(writer, ctx, x.enumOrUnion.name);
-				writer ~= " has no member ";
-				writer ~= force(x.actual);
-				writer ~= ".\nThis should be one of: ";
-				if (isEnum) {
-					writeWithCommas!EnumOrFlagsMember(
-						writer, x.enumOrUnion.body_.as!(StructBody.Enum*).members, (in EnumOrFlagsMember member) {
-							writeName(writer, ctx, member.name);
-						});
-				} else
-					writeWithCommas!UnionMember(
-						writer, x.enumOrUnion.body_.as!(StructBody.Union*).members, (in UnionMember member) {
-							writeName(writer, ctx, member.name);
-						});
+			bool isEnum = x.enumOrUnion.body_.isA!(StructBody.Enum*);
+			writer ~= (isEnum ? "Enum " : "Union ");
+			writeName(writer, ctx, x.enumOrUnion.name);
+			writer ~= " has no member ";
+			writer ~= x.actual;
+			writer ~= ".\nThis should be one of: ";
+			if (isEnum) {
+				writeWithCommas!EnumOrFlagsMember(
+					writer, x.enumOrUnion.body_.as!(StructBody.Enum*).members, (in EnumOrFlagsMember member) {
+						writeName(writer, ctx, member.name);
+					});
 			} else
-				writer ~= "Can't use string literal when matching an enum or union.";
+				writeWithCommas!UnionMember(
+					writer, x.enumOrUnion.body_.as!(StructBody.Union*).members, (in UnionMember member) {
+						writeName(writer, ctx, member.name);
+					});
 		},
 		(in Diag.MatchCaseNoValueForEnumOrSymbol x) {
 			writer ~= "Matching on ";
@@ -912,14 +924,27 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= ", so case should not expect a value.";
 		},
 		(in Diag.MatchCaseShouldUseIgnore x) {
-			writer ~= "Union member ";
-			writeName(writer, ctx, x.member.name);
+			x.member.matchIn!void(
+				(in UnionMember m) {
+					writer ~= "Union member ";
+					writeName(writer, ctx, m.name);
+				},
+				(in VariantMember m) {
+					writer ~= "Variant member ";
+					writeName(writer, ctx, m.name);
+				});
 			writer ~= " declares a value, so it should be explicitly ignored using ";
 			writeName(writer, ctx, symbol!"_");
 			writer ~= '.';
 		},
-		(in Diag.MatchOnNonEnumOrUnion x) {
-			writer ~= "Can only match on enum, union, integral, symbol, string, or character type, not ";
+		(in Diag.MatchNeedsElse x) {
+			final switch (x.kind) {
+				case Diag.MatchNeedsElse.Kind.variant:
+					writer ~= "Match on a 'variant' must have an explicit 'else'.";
+			}
+		},
+		(in Diag.MatchOnNonMatchable x) {
+			writer ~= "Can only match on enum, union, variant, integral, symbol, string, or character type, not ";
 			writeTypeQuoted(writer, ctx, x.type);
 			writer ~= '.';
 		},
@@ -928,8 +953,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			size_t length = x.matchIn!size_t(
 				(in EnumOrFlagsMember*[] xs) => xs.length,
 				(in UnionMember*[] xs) => xs.length);
-			writer ~= (length == 1 ? "case" : "cases");
-			writer ~= ": ";
+			writer ~= (length == 1 ? "case" : "cases:");
+			writer ~= ' ';
 			x.matchIn!void(
 				(in EnumOrFlagsMember*[] members) {
 					writeWithCommas!(EnumOrFlagsMember*)(writer, members, (in EnumOrFlagsMember* member) {
@@ -940,16 +965,33 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					writeWithCommas!(UnionMember*)(writer, members, (in UnionMember* member) {
 						writeName(writer, ctx, member.name);
 						if (member.type != Type(ctx.commonTypes.void_)) {
-							writer ~= ' ';
-							writeTypeUnquoted(writer, ctx, TypeWithContainer(
+							writer ~= " (of type ";
+							writeTypeQuoted(writer, ctx, TypeWithContainer(
 								member.type,
 								TypeContainer(member.containingUnion)));
+							writer ~= ")";
 						}
 					});
 				});
 		},
 		(in Diag.MatchUnnecessaryElse x) {
 			writer ~= "'match' handles every case, so the 'else' is unused.";
+		},
+		(in Diag.MatchVariantCantInferTypeArgs x) {
+			writer ~= "Can't infer type arguments of ";
+			writer ~= x.member.name;
+		},
+		(in Diag.MatchVariantMultipleMembersWithName x) {
+			writer ~= "There are multiple variant members in scope named ";
+			writeName(writer, ctx, x.members[0].name);
+			writer ~= '.';
+		},
+		(in Diag.MatchVariantNoMember x) {
+			writer ~= "There is no variant member named ";
+			writeName(writer, ctx, x.name);
+			writer ~= " in scope that matches variant ";
+			writeTypeQuoted(writer, ctx, x.variant);
+			writer ~= '.';
 		},
 		(in Diag.ModifierConflict x) {
 			writeModifier(writer, ctx, x.curModifier);
@@ -1045,6 +1087,17 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.child, TypeContainer(x.parent)));
 			writer ~= " has purity ";
 			writePurity(writer, ctx, bestCasePurity(x.child));
+			writer ~= '.';
+		},
+		(in Diag.PurityWorseThanVariant x) {
+			writer ~= "Variant ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
+			writer ~= " has purity ";
+			writePurity(writer, ctx, x.member.variant.purityRange.bestCase);
+			writer ~= ", but member of type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.member.type, TypeContainer(x.member)));
+			writer ~= " has (worst-case) purity ";
+			writePurity(writer, ctx, worstCasePurity(x.member.type));
 			writer ~= '.';
 		},
 		(in Diag.RecordFieldNeedsType x) {
@@ -1271,6 +1324,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, symbol!"array");
 			writer ~= '.';
 		},
+		(in Diag.VariantMemberOfNonVariant x) {
+			writer ~= "Not a variant: ";
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.member)));
+		},
 		(in Diag.VisibilityWarning x) {
 			writeVisibilityWarning(writer, ctx, x);
 		},
@@ -1358,7 +1415,9 @@ DeclKind declKindOfStruct(StructDecl* a) =>
 		(in StructBody.Record) =>
 			DeclKind.record,
 		(in StructBody.Union) =>
-			DeclKind.union_);
+			DeclKind.union_,
+		(in StructBody.Variant) =>
+			DeclKind.variant);
 
 enum MemberKind { enumMember, flagsMember, recordField, unionMember }
 MemberKind memberKindOfStruct(StructDecl* a) =>
@@ -1376,7 +1435,9 @@ MemberKind memberKindOfStruct(StructDecl* a) =>
 		(in StructBody.Record) =>
 			MemberKind.recordField,
 		(in StructBody.Union) =>
-			MemberKind.unionMember);
+			MemberKind.unionMember,
+		(in StructBody.Variant) =>
+			assert(false));
 
 string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
@@ -1406,6 +1467,10 @@ string aOrAnDeclKind(DeclKind a) {
 			return "A thread-local variable";
 		case DeclKind.union_:
 			return "A union type";
+		case DeclKind.variant:
+			return "A variant type";
+		case DeclKind.variantMember:
+			return "A variant member";
 	}
 }
 
@@ -1513,6 +1578,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'by-ref'.";
 		case Token.byVal:
 			return "Unexpected keyword 'by-val'.";
+		case Token.catch_:
+			return "Unexpected keyword 'catch'.";
 		case Token.colon:
 			return "Unexpected ':'.";
 		case Token.colon2:
@@ -1545,6 +1612,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'extern'.";
 		case Token.EOF:
 			return "Unexpected end of file.";
+		case Token.finally_:
+			return "Unexpected keyword 'finally'.";
 		case Token.flags:
 			return "Unexpected keyword 'flags'.";
 		case Token.for_:
@@ -1640,6 +1709,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'throw'.";
 		case Token.trusted:
 			return "Unexpected keyword 'trusted'.";
+		case Token.try_:
+			return "Unexpected keyword 'try'.";
 		case Token.underscore:
 			return "Unexpected '_'.";
 		case Token.union_:
@@ -1650,6 +1721,10 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'unsafe'.";
 		case Token.until:
 			return "Unexpected keyword 'until'.";
+		case Token.variant:
+			return "Unexpected keyword 'variant'.";
+		case Token.variantMember:
+			return "Unexpected keyword 'variant-member'.";
 		case Token.while_:
 			return "Unexpected keyword 'while'.";
 		case Token.with_:

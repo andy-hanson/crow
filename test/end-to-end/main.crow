@@ -1,6 +1,6 @@
 #!/usr/bin/env crow
 import
-	crow/io/file: each-child-recursive, try-read-file, write-file
+	crow/io/file: each-child-recursive, read-file-or-empty, write-file
 	crow/io/path: base-name, child-path, get-extension
 	crow/io/print: out, print
 	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
@@ -158,16 +158,11 @@ run-kind enum(interpret, jit, aot)
 	actual string,
 	overwrite-output bool,
 ) summon
-	if text ?= output-path.try-read-file :: string?
-		if actual.normalize-newlines == text.normalize-newlines
-			()
-		elif overwrite-output
-			output-path write-file actual
-			()
-		else
-			(original-path, "{output-path} was not as expected. actual:\n{actual}"),
+	text string = output-path read-file-or-empty
+	if actual.normalize-newlines == text.normalize-newlines
+		()
 	elif overwrite-output
 		output-path write-file actual
 		()
 	else
-		(original-path, "{output-path} does not exist. actual was:\n{actual}"),
+		(original-path, "{output-path} was not as expected. Actual:\n{actual}"),

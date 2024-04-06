@@ -2,37 +2,47 @@ dummy-conditions nat()
 	0
 
 test
-	f void mut() = () =>
+	try
 		assert 1::nat < 0
-	f throws "Asserted expression is false: 1::nat < 0"
+		should-throw
+	catch error x
+		x is "Asserted expression is false: 1::nat < 0"
 test
-	f void mut() = () =>
+	try
 		forbid 1::nat > 0
-	f throws "Forbidden expression is true: 1::nat > 0"
+		should-throw
+	catch error x
+		x is "Forbidden expression is true: 1::nat > 0"
 
 test
 	xs nat mut[] = 1,
 	assert x ?= xs pop
 	x is 1
-	forbid y ?= xs pop : "popped {y}"
+	forbid y ?= xs pop : "popped {y}".error
 	()::void
 
 test
-	f void mut() = () =>
+	try
 		xs nat mut[] = ()
 		assert _ ?= xs pop
-	f throws "Asserted option is empty: xs pop"
+		should-throw
+	catch error x
+		x is "Asserted option is empty: xs pop"
 
 test
-	f void mut() = () =>
+	try
 		xs nat mut[] = 1,
 		forbid x ?= xs pop
-	f throws "Forbidden option is non-empty: xs pop"
+		should-throw
+	catch error x
+		x is "Forbidden option is non-empty: xs pop"
 test
-	f void mut() = () =>
+	try
 		xs nat mut[] = 1,
-		forbid x ?= xs pop : "popped {x}"
-	f throws "popped 1"
+		forbid x ?= xs pop : "popped {x}".error
+		should-throw
+	catch error x
+		x is "popped 1"
 
 test
 	xs nat mut[] = 1,
@@ -73,6 +83,6 @@ test
 test
 	xs nat mut[] = 1, 2
 	until x ?= xs pop
-		throw "unreachable"
+		throw unreachable
 	x is 2
 	xs.to::nat[] is (1,)

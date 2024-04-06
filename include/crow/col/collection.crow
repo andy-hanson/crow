@@ -1,16 +1,26 @@
 no-std
 import
 	../bool: ==, bool, false, new, not, true
-	../compare: !=, >, compare, comparison, equal, greater, less, min
+	../compare: >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, *, /, nat64
+	../number: ==, <=>, +, -, nat64
 	../option: ??, force, is-empty, new, option
+	../private/bootstrap: exception
 	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
 	../tuple: a, b, new
-	./private/list-low-level: ~=, build, list
 export
 	./private/build
+
++index-too-big record(actual nat64, maximum nat64) by-val
++index-too-big variant-member(exception, index-too-big)
+
+# Exception when attempting to skip too far forward or backward
++iterator-out-of-bounds variant-member(exception)
+# For a 'slice', the first iterator should be to the right of the second iterator.
++slice-right-to-left variant-member(exception)
+# Some iterator operations like 'slice' require two iterators to be for the same collection.
++iterator-not-comparable variant-member(exception)
 
 +is-empty[t] spec
 	is-empty bool(a t)
@@ -66,15 +76,15 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +subscript[col, iter, elem] elem(
 	a col,
 	index nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, bare
-	assert x, _ ?= a.begin + index next : "bad index"
+) (iter, col) begin, iter skip-next, (elem, iter) next, col size, bare
+	assert x, _ ?= a.begin + index next : (a.size, index) index-too-big
 	x
 
 +subscript[col, iter, elem] elem(
 	a col,
 	index index-relative-to-end,
-) (iter, col) end, iter skip-prev, (elem, iter) next, bare
-	assert x, _ ?= a.end - index.subtract next : "bad index"
+) (iter, col) end, iter skip-prev, (elem, iter) next, col size, bare
+	assert x, _ ?= a.end - index.subtract next : (a.size, index.subtract) index-too-big
 	x
 
 +set-subscript[col, iter, elem] void(
@@ -373,22 +383,6 @@ Returns an empty option iff `b` is not a subsequence of `a`.
 	if l, r ?= a iters-of-seq-right b
 		((a.begin slice l), (r slice a.end)),
 
-+split[col, iter, elem] col[](
-	a col,
-	b col,
-) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
-	with out : build
-		cur mut = a
-		loop
-			if l, r ?= cur try-split-once b
-				out ~= l
-				# TODO: just reuse the iterator instead of getting a slice of the rest
-				cur := r
-				continue
-			else
-				out ~= cur
-				break
-
 -iters-of-seq[col, iter, elem] (iter, iter)?(
 	a col,
 	b col,
@@ -528,23 +522,6 @@ If `f` always returns true, this returns an empty collection.
 		iter := prev
 		continue
 	iter slice a.end
-
-+groups-of[col, iter] col[](
-	a col,
-	group-size nat64,
-) (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
-	forbid group-size == 0 : "group-size can't be 0"
-	div = a.size / group-size
-	out-size = div * group-size == a.size ? div : div + 1
-	iter mut = a begin
-	with out : out-size build
-		loop
-			diff = a.end - iter
-			guard diff != 0 : break
-			next-iter = iter + (diff min group-size)
-			out ~= iter slice next-iter
-			iter := next-iter
-			continue
 
 +concatenate[t] spec
 	~~ t(a t, b t)

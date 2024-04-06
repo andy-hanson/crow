@@ -1,0 +1,56 @@
+<section>
+	<h2>Variants</h2>
+	<p>
+		A <code class="keyword">variant</code> is like a <code class="keyword">union</code>,
+		except its members can be declared anywhere.
+		<br />
+		So, unlike for a <code class="keyword">union</code>,
+		you don't know all the members of a <code class="keyword">variant</code>,
+		since other unrelated modules could add new members.
+	</p>
+
+	<crow-runnable>
+		main void()
+			info log "{15.verified-id is-adult}"
+			info log "{60.verified-id is-adult}"
+			info log "{no-id is-adult}"
+
+		age variant
+		# These could even go in a different module.
+		verified-id variant-member(age, nat)
+		no-id variant-member(age)
+
+		is-adult bool(a age)
+			match a
+			as verified-id x
+				x >= 18
+			as no-id
+				false
+			# Required for variants (since we don't know if other members might exist)
+			else
+				false
+	</crow-runnable>
+
+	<p>
+		As with a <code class="keyword">union</code>, there is a getter function for each member
+		that returns an <code class="type">option</code>.
+	</p>
+
+	<crow-runnable>
+		main void()
+			a v = 7 m
+			if x ?= a m
+				info log "{x}"
+			()
+
+		v variant
+		m variant-member(v, nat)
+	</crow-runnable>
+
+	<p>
+		You should generally prefer to use a <code class="keyword">union</code>
+		instead of a <code class="keyword">variant</code>.
+		<br />
+		They were added to support letting users define custom <code class="type">exception</code>s.
+	</p>
+</section>

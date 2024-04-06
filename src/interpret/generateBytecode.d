@@ -235,21 +235,32 @@ void generateExternCall(
 	ByteCodeSource source = ByteCodeSource(funIndex, fun.range.range.start);
 	Opt!Symbol optName = fun.name;
 	Symbol name = force(optName);
+	if (isExternFunInterpreterIntrinsic(name))
+		final switch (name.value) {
+			case symbol!"longjmp".value:
+				writeLongjmp(writer, source);
+				break;
+			case symbol!"setjmp".value:
+			case symbol!"_setjmp".value:
+				writeSetjmp(writer, source);
+				break;
+		}
+	else
+		writeCallFunPointerExtern(
+			writer, source,
+			mustGet(mustGet(externPointers, a.libraryName), name).asFunPointer,
+			makeDynCallSig(typeCtx, fun));
+	writeReturn(writer, source);
+}
+public bool isExternFunInterpreterIntrinsic(Symbol name) {
 	switch (name.value) {
 		case symbol!"longjmp".value:
-			writeLongjmp(writer, source);
-			break;
 		case symbol!"setjmp".value:
-			writeSetjmp(writer, source);
-			break;
+		case symbol!"_setjmp".value:
+			return true;
 		default:
-			writeCallFunPointerExtern(
-				writer, source,
-				mustGet(mustGet(externPointers, a.libraryName), name).asFunPointer,
-				makeDynCallSig(typeCtx, fun));
-			break;
+			return false;
 	}
-	writeReturn(writer, source);
 }
 
 struct DynCallTypeCtx {

@@ -7,6 +7,7 @@ import util.col.array : zip;
 import util.col.mutMap : hasKey, mapToArray, moveToMap, mustAdd, mustGet, MutMap, MutMapValues, size, values;
 public import util.col.mutMap : KeyValuePair;
 import util.opt : Opt;
+import util.util : ptrTrustMe;
 
 immutable struct Map(K, V) {
 	@safe @nogc pure nothrow:
@@ -84,3 +85,14 @@ Out[] mapToArray(Out, K, V)(
 	in Out delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
 	.mapToArray!(Out, K, V)(alloc, a.inner, cb);
+
+private immutable struct MapKeys(K, V) {
+	@safe @nogc pure nothrow:
+
+	Map!(K, V)* inner;
+
+	int opApply(in int delegate(K) @safe @nogc pure nothrow cb) scope =>
+		inner.opApply((K key, ref immutable V _) => cb(key));
+}
+MapKeys!(K, V) keys(K, V)(ref Map!(K, V) a) =>
+	MapKeys!(K, V)(ptrTrustMe(a));

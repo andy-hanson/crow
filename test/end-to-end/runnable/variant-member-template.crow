@@ -1,0 +1,16 @@
+main void()
+	info log 7::nat.x.foo
+	info log "hello"::string.x.foo
+	()
+
+v variant mut
+x[t] variant-member(v, t)
+
+foo string(a v)
+	match a
+	as x n nat
+		"{n}"
+	as x s string
+		"{s}"
+	else
+		"other"

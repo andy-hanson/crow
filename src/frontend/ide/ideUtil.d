@@ -16,6 +16,7 @@ import model.model :
 	Condition,
 	Expr,
 	ExprAndType,
+	FinallyExpr,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
@@ -34,6 +35,7 @@ import model.model :
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
 	MatchUnionExpr,
+	MatchVariantExpr,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
 	SeqExpr,
@@ -43,6 +45,8 @@ import model.model :
 	Test,
 	ThrowExpr,
 	TrustedExpr,
+	TryExpr,
+	TryLetExpr,
 	Type,
 	TypedExpr,
 	TypeParamIndex;
@@ -226,7 +230,7 @@ Opt!T findDirectChildExpr(T)(
 	in Opt!T delegate(ExprRef) @safe @nogc pure nothrow cb,
 ) {
 	Type boolType = Type(commonTypes.bool_);
-	Type stringType = Type(commonTypes.string_);
+	Type exceptionType = Type(commonTypes.exception);
 	Type voidType = Type(commonTypes.void_);
 	ExprRef sameType(ref Expr x) =>
 		ExprRef(&x, a.type);
@@ -239,12 +243,15 @@ Opt!T findDirectChildExpr(T)(
 				ExprRef(x, boolType),
 			(Condition.UnpackOption* x) =>
 				toRef(x.option));
+	Opt!T directChildInMatchVariantCases(in MatchVariantExpr.Case[] cases) =>
+		firstPointer!(T, MatchVariantExpr.Case)(cases, (MatchVariantExpr.Case* x) =>
+			cb(sameType(x.then)));
 
 	return a.expr.kind.matchWithPointers!(Opt!T)(
 		(AssertOrForbidExpr* x) =>
 			optOr!T(
 				cb(directChildInCondition(x.condition)),
-				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), stringType)) : none!T,
+				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), exceptionType)) : none!T,
 				() => cb(sameType(x.after))),
 		(BogusExpr _) =>
 			none!T,
@@ -270,6 +277,10 @@ Opt!T findDirectChildExpr(T)(
 			assert(a.type == voidType);
 			return cb(ExprRef(x.value, x.local.type));
 		},
+		(FinallyExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.right, voidType)),
+				() => cb(sameType(x.below))),
 		(FunPointerExpr _) =>
 			none!T,
 		(IfExpr* x) =>
@@ -327,6 +338,11 @@ Opt!T findDirectChildExpr(T)(
 				() => firstPointer!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case* case_) =>
 					cb(sameType(case_.then))),
 				() => has(x.else_) ? cb(sameType(*force(x.else_))) : none!T),
+		(MatchVariantExpr* x) =>
+			optOr!T(
+				cb(toRef(x.matched)),
+				() => directChildInMatchVariantCases(x.cases),
+				() => cb(sameType(x.else_))),
 		(PtrToFieldExpr* x) =>
 			cb(toRef(x.target)),
 		(PtrToLocalExpr _) =>
@@ -334,9 +350,16 @@ Opt!T findDirectChildExpr(T)(
 		(SeqExpr* x) =>
 			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(x.then))),
 		(ThrowExpr* x) =>
-			cb(ExprRef(&x.thrown, stringType)),
+			cb(ExprRef(&x.thrown, exceptionType)),
 		(TrustedExpr* x) =>
 			cb(sameType(x.inner)),
+		(TryExpr* x) =>
+			optOr!T(cb(sameType(x.tried)), () => directChildInMatchVariantCases(x.catches)),
+		(TryLetExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.value, x.destructure.type)),
+				() => cb(sameType(x.catch_.then)),
+				() => cb(sameType(x.then))),
 		(TypedExpr* x) =>
 			cb(sameType(x.inner)));
 }

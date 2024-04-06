@@ -134,6 +134,7 @@ enum Token {
 	bracketRight, // ']'
 	byRef,
 	byVal,
+	catch_, // 'catch'
 	colon, // ':'
 	colon2, // '::'
 	colonEqual, // ':='
@@ -150,6 +151,7 @@ enum Token {
 	extern_, // 'extern'
 	EOF, // end of file
 	export_, // 'export'
+	finally_, // 'finally'
 	flags, // 'flags'
 	for_, // 'for'
 	forceShared, // 'force-shared'
@@ -203,12 +205,15 @@ enum Token {
 	thread_local, // 'thread-local'
 	throw_, // 'throw'
 	trusted, // 'trusted'
+	try_, // 'try'
 	unexpectedCharacter, // Any unexpected character
 	underscore, // '_'
 	union_, // 'union'
 	unless, // 'unless'
 	unsafe, // 'unsafe'
 	until, // 'until'
+	variant, // 'variant'
+	variantMember, // 'variant-member'
 	while_, // 'while'
 	with_, // 'with'
 }
@@ -457,17 +462,10 @@ bool lookaheadLambdaAfterParenLeft(MutCString ptr) {
 	}
 }
 
-private bool startsWithIdentifier(CString ptr, in string expected) {
+bool lookaheadKeyword(CString ptr, in string expected) {
 	Opt!CString end = tryGetAfterStartsWith(ptr, expected);
 	return has(end) && !isProbablyIdentifierCharForLookahead(*force(end));
 }
-
-bool lookaheadAs(CString ptr) =>
-	startsWithIdentifier(ptr, "as");
-bool lookaheadNew(CString ptr) =>
-	startsWithIdentifier(ptr, "new");
-bool lookaheadElse(CString ptr) =>
-	startsWithIdentifier(ptr, "else");
 
 immutable struct ElifOrElseKeyword {
 	enum Kind { elif, else_ }
@@ -475,9 +473,9 @@ immutable struct ElifOrElseKeyword {
 	Pos pos;
 }
 Opt!(ElifOrElseKeyword.Kind) lookaheadElifOrElse(CString ptr) =>
-	startsWithIdentifier(ptr, "elif")
+	lookaheadKeyword(ptr, "elif")
 		? some(ElifOrElseKeyword.Kind.elif)
-		: startsWithIdentifier(ptr, "else")
+		: lookaheadKeyword(ptr, "else")
 		? some(ElifOrElseKeyword.Kind.else_)
 		: none!(ElifOrElseKeyword.Kind);
 
@@ -524,6 +522,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.byRef;
 		case symbol!"by-val".value:
 			return Token.byVal;
+		case symbol!"catch".value:
+			return Token.catch_;
 		case symbol!"class".value:
 			return Token.reserved;
 		case symbol!"continue".value:
@@ -542,6 +542,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.export_;
 		case symbol!"extern".value:
 			return Token.extern_;
+		case symbol!"finally".value:
+			return Token.finally_;
 		case symbol!"flags".value:
 			return Token.flags;
 		case symbol!"for".value:
@@ -598,6 +600,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.throw_;
 		case symbol!"trusted".value:
 			return Token.trusted;
+		case symbol!"try".value:
+			return Token.try_;
 		case symbol!"unless".value:
 			return Token.unless;
 		case symbol!"union".value:
@@ -606,6 +610,10 @@ Token tokenForSymbol(Symbol a) {
 			return Token.unsafe;
 		case symbol!"until".value:
 			return Token.until;
+		case symbol!"variant".value:
+			return Token.variant;
+		case symbol!"variant-member".value:
+			return Token.variantMember;
 		case symbol!"while".value:
 			return Token.while_;
 		case symbol!"with".value:
