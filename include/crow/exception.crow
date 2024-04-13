@@ -21,7 +21,7 @@ region handling
 
 # Outputs the exception's message and backtrace to a string.
 +to string(a exception-and-backtrace) unsafe
-	message string = match a exception
+	description string = match a exception
 	as error message
 		"Error: {message}"
 	as binary-out-of-range x, y
@@ -34,7 +34,7 @@ region handling
 		"Result would be out of range given argument {x}."
 	else
 		"Other exception"
-	"{message}{a backtrace}"
+	"{description}{a backtrace}"
 
 -to string(a integral-value)
 	match a
