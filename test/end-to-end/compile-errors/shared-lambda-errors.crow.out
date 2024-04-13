@@ -7,5 +7,5 @@ test/end-to-end/compile-errors/shared-lambda-errors.crow 5:31-5:37 In order for 
 Expected type 'nat64 shared()'.
 test/end-to-end/compile-errors/shared-lambda-errors.crow 6:43-6:49 'shared' lambda needs a 'shared' parameter type, but it is 'nat64 mut[]'.
 test/end-to-end/compile-errors/shared-lambda-errors.crow 7:38-7:44 'shared' lambda needs a 'shared' return type, but it is 'nat64 mut[]^'.
-Uncaught exception: Reached compile error
+Uncaught exception: Error: Reached compile error
 	at main

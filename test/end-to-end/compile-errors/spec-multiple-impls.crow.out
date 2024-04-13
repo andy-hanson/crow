@@ -7,7 +7,7 @@ test/end-to-end/compile-errors/spec-multiple-impls.crow 9:31-9:45 Multiple imple
 	Calling:
 	to-json-string@(json, string[]) (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 5)
 	to@(json, string) (from include/crow/json.crow line 71)
-Uncaught exception: Reached compile error
+Uncaught exception: Error: Reached compile error
 	at to
 	at to
 	at call

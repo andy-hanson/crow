@@ -16,6 +16,7 @@ import interpret.extern_ :
 	FunPointer,
 	FunPointerInputs,
 	WriteError;
+import interpret.generateBytecode : isExternFunInterpreterIntrinsic;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
@@ -183,10 +184,12 @@ LoadedLibraries loadLibrariesInner(
 }
 
 pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
-	withCStringOfSymbol!(Opt!ExternPointer)(name, (in CString nameStr) @trusted {
-		DCpointer ptr = dlFindSymbol(library, nameStr.ptr);
-		return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
-	});
+	isExternFunInterpreterIntrinsic(name)
+		? some(ExternPointer(null))
+		: withCStringOfSymbol!(Opt!ExternPointer)(name, (in CString nameStr) @trusted {
+			DCpointer ptr = dlFindSymbol(library, nameStr.ptr);
+			return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
+		});
 
 @system void dynamicCallFunPointer(FunPointer fun, Opt!Symbol debugName, in DynCallSig sig) {
 	static DCCallVM* dcVm = null;

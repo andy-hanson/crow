@@ -4,5 +4,5 @@ test/end-to-end/compile-errors/function-pointer-not-supported.crow 2:26-2:29 The
 test/end-to-end/compile-errors/function-pointer-not-supported.crow 3:26-3:29 'goo' is a template. This is not currently supported for function pointers.
 test/end-to-end/compile-errors/function-pointer-not-supported.crow 4:26-4:33 Function pointer expression must be a plain identifier ('&f').
 test/end-to-end/compile-errors/function-pointer-not-supported.crow 10:29-10:32 'hoo' comes from a spec signature. This is not currently supported for function pointers.
-Uncaught exception: Reached compile error
+Uncaught exception: Error: Reached compile error
 	at main

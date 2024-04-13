@@ -22,5 +22,5 @@ Candidates (with 1 arguments):
 	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
 	'new[t] t?(a t)' (from include/crow/option.crow line 16)
 	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 278)
-Uncaught exception: Reached compile error
+Uncaught exception: Error: Reached compile error
 	at main
