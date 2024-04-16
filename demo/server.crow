@@ -4,15 +4,15 @@ import
 	crow/io/net/http-types
 	crow/io/stdin: read-stdin
 
-main nat^(_ string[]) summon
+main void() summon
 	port nat16 = 8080
 	handler http-handler = req =>
 		descr = req describe-request
 		info log descr
-		(200, "OK", (), "Your request:\n{descr}".to-bytes),
+		200, "OK", (), "Your request:\n{descr}".to-bytes
 	with _ : port http-server handler
 		info log "Running at http://localhost:{port}/ ; press enter to stop"
-		_ <- read-stdin
+		_ = read-stdin
 
 -describe-request string(a http-request)
 	headers = "\n" join for k, v : a headers

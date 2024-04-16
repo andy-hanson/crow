@@ -3,9 +3,9 @@ import
 	crow/io/print: out, print
 	crow/private/thread-utils: count-processors
 
-main nat^(_ string[]) summon
+main nat(_ string[]) summon
 	out print "running with {trusted count-processors} processors"
-	primes nat[] <- (1_000_000::nat .. 1_010_000).parallel filter x => x.is-prime,
+	primes nat[] = (1_000_000::nat .. 1_010_000).parallel filter x => x is-prime
 	out print "primes: {primes.to::json}"
 	()
 

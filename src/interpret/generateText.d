@@ -327,6 +327,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 		},
 		(in IntegralValue x) {
 			final switch (type.as!PrimitiveType) {
+				case PrimitiveType.fiberSuspension:
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:
 				case PrimitiveType.void_:

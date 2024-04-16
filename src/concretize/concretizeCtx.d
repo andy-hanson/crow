@@ -7,6 +7,7 @@ import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concret
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	genSeq,
 	genStringLiteralKind,
 	getRecordFieldCall,
 	genUnionMemberGet,
@@ -73,6 +74,7 @@ import model.model :
 	VarDecl,
 	VariantMember,
 	worsePurity;
+import model.typeLayout : fiberSuspensionSize;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray;
 import util.col.array :
@@ -181,8 +183,6 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) newChar8ListFunction_;
 	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
-	Late!(ConcreteFun*) newNat64FutureFunction_;
-	Late!(ConcreteFun*) newVoidFutureFunction_;
 	Late!(ConcreteFun*) andFunction_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
@@ -227,10 +227,6 @@ struct ConcretizeCtx {
 		lateGet(newChar32ListFunction_);
 	ConcreteFun* newJsonFromPairsFunction() return scope const =>
 		lateGet(newJsonFromPairsFunction_);
-	ConcreteFun* newNat64FutureFunction() return scope const =>
-		lateGet(newNat64FutureFunction_);
-	ConcreteFun* newVoidFutureFunction() return scope const =>
-		lateGet(newVoidFutureFunction_);
 	ConcreteFun* andFunction() return scope const =>
 		lateGet(andFunction_);
 	ConcreteFun* createErrorFunction() return scope const =>
@@ -512,36 +508,13 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t testIndex) {
 	ConcreteType voidType = voidType(ctx);
-	ConcreteType voidFutureType = ctx.newVoidFutureFunction.returnType;
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test.range, testIndex))),
-		voidFutureType,
+		voidType,
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo(
 		test.moduleUri, emptySpecs, emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
-	ConcreteType returnType = () {
-		final switch (test.bodyType) {
-			case Test.BodyType.void_:
-				return voidType;
-			case Test.bodyType.bogus:
-			case Test.BodyType.voidFuture:
-				return voidFutureType;
-		}
-	}();
-	ConcreteExpr body_ = test.bodyType == Test.BodyType.bogus
-		? concretizeBogus(ctx, returnType, test.range)
-		: concretizeFunBody(ctx, containing, res, returnType, [], test.body_);
-	ConcreteExpr body2 = () {
-		final switch (test.bodyType) {
-			case Test.BodyType.void_:
-				return ConcreteExpr(voidFutureType, test.range, ConcreteExprKind(
-					ConcreteExprKind.Call(ctx.newVoidFutureFunction, newSmallArray(ctx.alloc, [body_]))));
-			case Test.BodyType.bogus:
-			case Test.BodyType.voidFuture:
-				return body_;
-		}
-	}();
-	res.body_ = ConcreteFunBody(body2);
+	res.body_ = ConcreteFunBody(concretizeFunBody(ctx, containing, res, voidType, [], test.body_));
 	addConcreteFun(ctx, res);
 	return res;
 }
@@ -553,22 +526,17 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	This is like:
 		wrapped-main nat^(_ string[])
 			real-main
-			0,
+			0
 	*/
 	ConcreteType nat64 = nat64Type(ctx);
 	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(
 		ConcreteExprKind.Call(innerMain, emptySmallArray!ConcreteExpr)));
 	ConcreteExpr zero = ConcreteExpr(nat64, range, ConcreteExprKind(constantZero));
-	ConcreteType nat64Future = ctx.newNat64FutureFunction.returnType;
-	ConcreteExpr callNewNatFuture = ConcreteExpr(nat64Future, range, ConcreteExprKind(
-		ConcreteExprKind.Call(ctx.newNat64FutureFunction, newSmallArray(ctx.alloc, [zero]))));
-	ConcreteExpr body_ = ConcreteExpr(nat64Future, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.Seq(callMain, callNewNatFuture))));
-
+	ConcreteExpr body_ = genSeq(ctx.alloc, range, callMain, zero);
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
-		nat64Future,
+		nat64,
 		newArray(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
 		])));
@@ -870,5 +838,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind) {
 			return TypeSize(8, 8);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8);
+		case BuiltinType.fiberSuspension: // TODO: maybe we can somehow delay this until later? ------------------------------------
+			return fiberSuspensionSize;
 	}
 }

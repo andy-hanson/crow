@@ -433,18 +433,24 @@ Returns an empty option iff `f` returns `false` for every elem of `a`.
 			i +:= 1
 			continue
 
-+last-iter-of[col, iter, elem] iter?(
++find-last-iter[col, iter, elem] iter?(
 	a col,
-	value elem,
-) (iter, col) end, (elem, iter) prev, elem equal
+	f bool mut(elem elem),
+) (iter, col) end, (elem, iter) prev
 	iter mut = a end
 	loop
 		guard prev, x ?= iter prev : break
 		iter := prev
-		if x == value
+		if f[x]
 			break iter,
 		else
 			continue
+
++last-iter-of[col, iter, elem] iter?(
+	a col,
+	value elem,
+) (iter, col) end, (elem, iter) prev, elem equal
+	a find-last-iter x => x == value
 
 ###
 If `search-value` is in `a`, return its index.

@@ -68,6 +68,7 @@ dyncall:
 
 all_src_files = src/*.d \
 	src/app/*.d \
+	src/backend/*.c \
 	src/backend/*.d \
 	src/concretize/*.d \
 	src/document/*.d \
@@ -88,7 +89,7 @@ all_src_files = src/*.d \
 	src/util/col/*.d
 d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-hash.txt dyncall/dyncall/libdyncall_s.a
 
-d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
+d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -Jsrc/backend -J=src/test -J=include
 dmd_flags_common = $(d_flags_common)
 ldc_flags_common = $(d_flags_common)
 ifdef JIT

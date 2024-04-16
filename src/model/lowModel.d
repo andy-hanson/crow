@@ -85,6 +85,7 @@ private enum PrimitiveType_ : ubyte {
 	bool_,
 	char8,
 	char32,
+	fiberSuspension, // TODO: I should probably take this out to a separate kind of LowType .. other PrimitiveTypes work in dyncall, but not this one ......
 	float32,
 	float64,
 	int8,

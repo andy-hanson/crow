@@ -393,6 +393,7 @@ enum BuiltinType {
 	bool_,
 	char8,
 	char32,
+	fiberSuspension,
 	float32,
 	float64,
 	funPointer,
@@ -423,6 +424,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat64:
 			return true;
 		case BuiltinType.bool_:
+		case BuiltinType.fiberSuspension:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
 		case BuiltinType.funPointer:
@@ -813,6 +815,7 @@ private enum BuiltinUnary_ {
 	deref,
 	drop,
 	enumToIntegral,
+	referenceFromPointer,
 	toChar8FromNat8,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
@@ -933,6 +936,7 @@ enum BuiltinBinary {
 	subFloat32,
 	subFloat64,
 	subPtrAndNat64, // RHS is multiplied by size of pointee first
+	switchFiberSuspension,
 	unsafeAddInt8,
 	unsafeAddInt16,
 	unsafeAddInt32,
@@ -986,8 +990,7 @@ enum BuiltinBinaryMath {
 	atan2Float64,
 }
 
-alias BuiltinTernary = immutable BuiltinTernary_;
-private enum BuiltinTernary_ { interpreterBacktrace }
+enum BuiltinTernary { interpreterBacktrace, newFiberSuspension }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:
@@ -1193,20 +1196,9 @@ immutable struct Test {
 	Uri moduleUri;
 	FunFlags flags;
 	Expr body_;
-	enum BodyType { bogus, void_, voidFuture }
-	BodyType bodyType;
 
 	UriAndRange range() =>
 		UriAndRange(moduleUri, ast.range);
-	Type returnType(ref CommonTypes commonTypes) scope {
-		final switch (bodyType) {
-			case BodyType.bogus:
-			case BodyType.void_:
-				return Type(commonTypes.void_);
-			case BodyType.voidFuture:
-				return Type(commonTypes.voidFuture);
-		}
-	}
 }
 
 immutable struct FunDeclAndTypeArgs {
@@ -1527,7 +1519,8 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
-	VarDecl* curJmpBuf;
+	FunInst* curJmpBuf;
+	FunInst* setCurJmpBuf;
 	VarDecl* curThrown;
 	FunInst* alloc;
 	FunInst* and;
@@ -1536,7 +1529,6 @@ immutable struct CommonFuns {
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
-	FunDecl* newTFuture;
 	FunDecl* newTList;
 	FunInst* rtMain;
 	FunInst* throwImpl;
@@ -1566,8 +1558,6 @@ immutable struct CommonTypes {
 	StructDecl* array;
 	StructInst* char8Array;
 	StructInst* char32Array;
-	StructDecl* future;
-	StructInst* voidFuture;
 	StructDecl* list;
 	StructInst* char8List;
 	StructInst* char32List;
@@ -1684,17 +1674,17 @@ immutable struct ProgramWithMain {
 }
 
 immutable struct MainFun {
-	immutable struct Nat64Future {
+	immutable struct Nat64OfArgs {
 		FunInst* fun;
 	}
 
 	immutable struct Void {
-		// Needed to wrap it to the natFuture signature
+		// Needed to wrap it to the Nat64OfArgs signature
 		StructInst* stringList;
 		FunInst* fun;
 	}
 
-	mixin Union!(Nat64Future, Void);
+	mixin Union!(Nat64OfArgs, Void);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
@@ -2014,7 +2004,7 @@ immutable struct FinallyExpr {
 }
 
 immutable struct FunPointerExpr {
-	FunInst* funInst;
+	Called called;
 }
 
 // Expression for an IfAst -- see that for all kinds of syntax this corresponds to
@@ -2045,7 +2035,6 @@ immutable struct LambdaExpr {
 	Opt!(StructInst*) mutTypeForExplicitShared;
 	private Late!Expr lateBody;
 	private Late!(SmallArray!VariableRef) closure_;
-	// For FunKind.far this includes 'future' wrapper
 	private Late!Type returnType_;
 
 	void fillLate(Expr body_, SmallArray!VariableRef closure, Type returnType) {

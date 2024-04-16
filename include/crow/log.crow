@@ -86,7 +86,7 @@ default-log-handler void(a logged) summon
 		err
 	pipe print "{a level}: {a message}"
 
-# GC doesn't trace thread-locals, but won't outlive a task anyway.
+# TODO: STORE THIS ON THE FIBER. AND REMEMBER TO GC TRACE IT -------------------------------------------------------------------
 -cur-log-handler thread-local(log-handler)
 
 ###

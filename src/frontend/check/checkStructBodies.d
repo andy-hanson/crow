@@ -885,6 +885,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.char8;
 		case symbol!"char32".value:
 			return BuiltinType.char32;
+		case symbol!"fiber-suspension".value:
+			return BuiltinType.fiberSuspension;
 		case symbol!"float32".value:
 			return BuiltinType.float32;
 		case symbol!"float64".value:

@@ -23,6 +23,7 @@ This is not thread-safe.
 This is not traceable, so you must call `add-gc-roots`.
 ###
 exclusion-queue[v] record by-val, mut
+	# TODO: 'v' contains the exclusion, so no need to use tuples here ---------------------------------------------------------
 	###
 	Lets you quickly look up a queue entry by exclusion.
 	Queue nodes are stored directly in the map, which is why they must implement 'move-from'.
@@ -48,6 +49,7 @@ exclusion-queue[v] record by-val, mut
 	When we have to move an entry after removing the entry to its left in the table (not the prev)\,
 	we must update the previous queue entry's pointer to it.
 	###
+	# TODO: 'v' contains the exclusion, so no need to use tuples here ---------------------------------------------------------
 	prev mut (exclusion, v entry) map-pair mut*
 	next mut (exclusion, v entry) map-pair mut*
 
@@ -82,6 +84,7 @@ queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
 	assert res == (entry->next != null)
 	res
 
+# TODO: Exclusion is on the value, so use a spec to get it -----------------------------------------------------------------------------
 enqueue[v] void(a v exclusion-queue mut*, key exclusion, value v) bare, unsafe
 	entry, fi = a.by-exclusion find-or-insert-and-inserted key
 	match fi

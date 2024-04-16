@@ -59,7 +59,6 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	ThenAst,
 	TestAst,
 	ThrowAst,
 	TrustedAst,
@@ -623,11 +622,6 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in SharedAst x) {
 			addExprTokens(ctx, x.inner);
-		},
-		(in ThenAst x) {
-			addDestructureTokens(ctx, x.left);
-			addExprTokens(ctx, x.futExpr);
-			addExprTokens(ctx, x.then);
 		},
 		(in ThrowAst x) {
 			addExprTokens(ctx, x.thrown);

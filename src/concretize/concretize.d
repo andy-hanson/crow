@@ -70,15 +70,14 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));
 	lateSet(ctx.equalNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.equalNat64));
 	lateSet(ctx.lessNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.lessNat64));
-	lateSet(ctx.newNat64FutureFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTFuture, [nat64Type(ctx)], []));
-	lateSet(ctx.newVoidFutureFunction_, getConcreteFun(ctx, commonFuns.newTFuture, [voidType(ctx)], []));
 	lateSet(ctx.andFunction_, getNonTemplateConcreteFun(ctx, commonFuns.and));
 	lateSet(ctx.newChar8ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char8Type(ctx)], []));
 	lateSet(ctx.newChar32ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char32Type(ctx)], []));
 	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
 	ConcreteCommonFuns concreteCommonFuns = ConcreteCommonFuns(
 		alloc: getNonTemplateConcreteFun(ctx, commonFuns.alloc),
-		curJmpBuf: getVar(ctx, commonFuns.curJmpBuf),
+		curJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.curJmpBuf),
+		setCurJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.setCurJmpBuf),
 		curThrown: getVar(ctx, commonFuns.curThrown),
 		mark: getNonTemplateConcreteFun(ctx, commonFuns.mark),
 		rethrowCurrentException: getNonTemplateConcreteFun(ctx, commonFuns.rethrowCurrentException),
@@ -123,7 +122,7 @@ ConcreteProgram concretizeInner(
 
 ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
 	main.match!(ConcreteFun*)(
-		(MainFun.Nat64Future x) =>
+		(MainFun.Nat64OfArgs x) =>
 			getNonTemplateConcreteFun(ctx, x.fun),
 		(MainFun.Void x) =>
 			concreteFunForWrapMain(ctx, x.stringList, x.fun));

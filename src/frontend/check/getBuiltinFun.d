@@ -65,6 +65,8 @@ FunBody inner(
 		arity == 1 && kind != failUnary ? FunBody(BuiltinFun(kind)) : fail();
 	FunBody binary(BuiltinBinary kind) =>
 		arity == 2 && kind != failBinary ? FunBody(BuiltinFun(kind)) : fail();
+	FunBody ternary(BuiltinTernary kind) =>
+		arity == 3 ? FunBody(BuiltinFun(kind)) : fail();
 
 	bool isUnaryFloat32() =>
 		arity == 1 && isFloat32(rt) && isFloat32(p0);
@@ -252,7 +254,7 @@ FunBody inner(
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
 		case symbol!"interpreter-backtrace".value:
-			return FunBody(BuiltinFun(BuiltinTernary.interpreterBacktrace));
+			return ternary(BuiltinTernary.interpreterBacktrace);
 		case symbol!"is-less".value:
 			return binary(
 				isInt8(p0) ? BuiltinBinary.lessInt8 :
@@ -272,6 +274,8 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
+		case symbol!"new-fiber-suspension".value:
+			return ternary(BuiltinTernary.newFiberSuspension);
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))
@@ -443,11 +447,15 @@ FunBody inner(
 			return unary(BuiltinUnary.asAnyPtr);
 		case symbol!"init-constants".value:
 			return FunBody(BuiltinFun(BuiltinFun.InitConstants()));
+		case symbol!"reference-from-pointer".value:
+			return unary(BuiltinUnary.referenceFromPointer);
 		case symbol!"pointer-cast-from-extern".value:
 		case symbol!"pointer-cast-to-extern".value:
 			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
 		case symbol!"static-symbols".value:
 			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
+		case symbol!"switch-fiber-suspension".value:
+			return binary(BuiltinBinary.switchFiberSuspension);
 		case symbol!"truncate-to".value:
 			return unary(isFloat64(p0)
 				? BuiltinUnary.truncateToInt64FromFloat64

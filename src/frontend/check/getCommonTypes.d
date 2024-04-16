@@ -53,7 +53,6 @@ CommonTypes* getCommonTypes(
 	StructInst* symbolType = nonTemplate(ctx, symbol!"symbol");
 	StructInst* void_ = nonTemplate(ctx, symbol!"void");
 	StructDecl* array = getDecl(ctx, symbol!"array", 1);
-	StructDecl* future = getDecl(ctx, symbol!"future", 1);
 	StructDecl* list = getDecl(ctx, symbol!"list", 1);
 	StructDecl* pointerConst = getDecl(ctx, symbol!"const-pointer", 1);
 	IntegralTypes integrals = IntegralTypes(makeEnumMap!IntegralType((IntegralType type) =>
@@ -74,8 +73,6 @@ CommonTypes* getCommonTypes(
 		array: array,
 		char8Array: instantiate1(ctx, array, char8),
 		char32Array: instantiate1(ctx, array, char32),
-		future: future,
-		voidFuture: instantiate1(ctx, future, void_),
 		list: list,
 		char8List: instantiate1(ctx, list, char8),
 		char32List: instantiate1(ctx, list, char32),

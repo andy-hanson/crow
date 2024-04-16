@@ -9,15 +9,15 @@ import
 	./path-and-content: path-and-content
 	./search-dir-recursive: search-dir-recursive
 
-documentation path-and-content[]^() summon
+documentation path-and-content[]() summon
 	include = current-directory ~~ "/include"
-	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
+	all-module-paths = "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
 		(x => x != "std.crow")
 	include-uri string = if trusted is-windows
 		"file:///{include.to-lower-case uri-encode}/"
 	else
 		"file://{include uri-encode}/"
-	all-modules <- all-module-paths get-modules include-uri
+	all-modules = all-module-paths get-modules include-uri
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules
@@ -25,7 +25,7 @@ documentation path-and-content[]^() summon
 		module.path document-template "module {module.path}", content, all-paths
 	index-content string = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
-	index ~ modules,
+	index ~ modules
 
 # TODO: should be in std lib somewhere
 -uri-encode string(a string)

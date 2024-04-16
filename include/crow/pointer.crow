@@ -9,7 +9,7 @@ import
 	./misc: void
 	./private/number-low-level: ==, nat8, nat64, unsafe-div, wrap-sub
 export
-	./private/bootstrap: const-pointer, mut-pointer, zeroed
+	./private/bootstrap: const-pointer, mut-pointer, todo, zeroed
 
 +any-const-pointer alias
 	nat8*
@@ -147,10 +147,13 @@ as-any-const-pointer[t] any-const-pointer(reference t) bare, unsafe
 # WARN: See comment on 'as-any-const-pointer'.
 as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, bare, unsafe
 
+# Reverse of 'as-any-const-pointer'
+reference-from-pointer[t] t(pointer any-mut-pointer) builtin, bare, unsafe
+
 +as-fun-pointer[r, p] r function(param p)(a any-const-pointer) builtin, bare, unsafe
 
 ###
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-+reference-equal[t] bool(a t, b t) builtin, bare, unsafe
++reference-equal[t] bool(a t, b t) builtin, bare, unsafe # TODO: could implement as 'a.as-any-mut-pointer == b.as-any-mut-pointer'?

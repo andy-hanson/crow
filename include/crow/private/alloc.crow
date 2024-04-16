@@ -11,6 +11,7 @@ import
 	../pointer:
 		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-const, const-pointer, mut-pointer,
 		null, pointer-cast, set-deref, size-of, to-const-pointer, to
+	../version: is-wasm
 	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul
 	./range-low-level: .., high, low, range
@@ -132,11 +133,13 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe
 
 uninit gc() bare, unsafe
 	# TODO: handle malloc failure
-	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
-	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
-	size-words nat64 = 0x3000000
-	# 8 GB
-	#size-words = 0x40000000
+	# If changing this, be sure `serverBuffer` in `wasm.d` is big enough
+	size-words nat64 = if is-wasm
+		# 0.5 GB
+		0x4000000
+	else
+		# 8 GB
+		0x40000000
 	size-of@bool == size-of@nat8 hard-assert
 	mark bool mut* = size-words.malloc pointer-cast
 	mark != null hard-assert
@@ -279,9 +282,10 @@ validate-gc void(gc gc*) bare, unsafe
 		res
 
 -maybe-set-needs-gc void(gc gc mut*) bare, unsafe
-	cur-word = gc->mark-cur - gc->mark-begin
-	if cur-word > (gc->size-words unsafe-div 2)
-		gc->needs-gc := true
+	if false # TODO: In order to have GC, we now need to implement fiber stack scanning! ------------------------
+		cur-word = gc->mark-cur - gc->mark-begin
+		if cur-word > (gc->size-words unsafe-div 2)
+			gc->needs-gc := true
 
 -first-non-free bool mut*?(mark bool mut*, end bool mut*) bare, unsafe
 	if mark == end

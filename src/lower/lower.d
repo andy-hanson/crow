@@ -314,6 +314,8 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 						return some(LowType(PrimitiveType.float32));
 					case BuiltinType.float64:
 						return some(LowType(PrimitiveType.float64));
+					case BuiltinType.fiberSuspension:
+						return some(LowType(PrimitiveType.fiberSuspension));
 					case BuiltinType.funPointer: {
 						uint i = safeToUint(arrBuilderSize(allFunPointerSources));
 						add(alloc, allFunPointerSources, concrete);
@@ -704,8 +706,9 @@ AllLowFuns getAllLowFuns(
 
 	LowCommonFuns commonFuns = LowCommonFuns(
 		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
-		curJmpBuf: mustGet(varIndices, program.commonFuns.curJmpBuf),
-		jmpBufType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curJmpBuf.type),
+		curJmpBuf: mustGet(concreteFunToLowFunIndex, program.commonFuns.curJmpBuf),
+		setCurJmpBuf: mustGet(concreteFunToLowFunIndex, program.commonFuns.setCurJmpBuf),
+		jmpBufType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curJmpBuf.returnType),
 		curThrown: mustGet(varIndices, program.commonFuns.curThrown),
 		exceptionType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curThrown.type),
 		mark: mustGet(concreteFunToLowFunIndex, program.commonFuns.mark),
@@ -763,7 +766,8 @@ alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
 struct LowCommonFuns {
 	LowFunIndex alloc;
-	LowVarIndex curJmpBuf;
+	LowFunIndex curJmpBuf;
+	LowFunIndex setCurJmpBuf;
 	LowType jmpBufType;
 	LowVarIndex curThrown;
 	LowType exceptionType;
@@ -1958,7 +1962,7 @@ LowExpr genGetCurThrown(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genVarGet(ctx.commonFuns.exceptionType, range, ctx.commonFuns.curThrown);
 
 LowExpr genGetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range) =>
-	genVarGet(ctx.commonFuns.jmpBufType, range, ctx.commonFuns.curJmpBuf);
+	genCall(ctx.alloc, range, ctx.commonFuns.curJmpBuf, ctx.commonFuns.jmpBufType, []);
 
 LowExpr genSetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range, LowExpr value) =>
-	genVarSet(ctx.alloc, range, ctx.commonFuns.curJmpBuf, value);
+	genCall(ctx.alloc, range, ctx.commonFuns.setCurJmpBuf, voidType, [value]);

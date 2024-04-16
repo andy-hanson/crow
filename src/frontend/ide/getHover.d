@@ -613,7 +613,7 @@ void getExprHover(
 		},
 		(in FunPointerExpr x) {
 			writer ~= "Pointer to function ";
-			writeFunInst(writer, ctx, typeContainer, *x.funInst);
+			writeCalled(writer, ctx, typeContainer, x.called);
 		},
 		(in ExpressionPositionKind.Literal x) {
 			writer ~= "Literal expression.";

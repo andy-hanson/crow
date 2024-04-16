@@ -134,7 +134,7 @@ import util.integralValues : IntegralValue;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
-import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, todo;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -799,6 +799,7 @@ void generateSpecialUnary(
 	final switch (a.kind) {
 		case BuiltinUnary.asAnyPtr:
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toNat8FromChar8:
 		case BuiltinUnary.toNat32FromChar32:
@@ -981,6 +982,10 @@ void generateSpecialTernary(
 		case BuiltinTernary.interpreterBacktrace:
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case BuiltinTernary.newFiberSuspension:
+			todo!void("generate newFiberSuspension"); // ---------------------------------------------------------------------------
+			break;
 	}
 }
 
@@ -1132,6 +1137,9 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.subFloat64:
 			fn(&fnSubFloat64);
+			break;
+		case BuiltinBinary.switchFiberSuspension:
+			todo!void("generate switchFiberSuspension"); // --------------------------------------------------------------------------
 			break;
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:

@@ -13,7 +13,6 @@ import
 	../../private/bootstrap: todo
 	../../version: is-windows
 	../duration: msec
-	../../future: handle-exceptions
 	../posix-util: check-posix-error
 	../print: err, print
 	../time: delay
@@ -21,7 +20,7 @@ import
 
 # Reference to a running server.
 tcp-server record shared
-	stop void^ shared()
+	stop void shared()
 
 # Interface that handles TCP requests.
 tcp-handler record mut
@@ -67,12 +66,16 @@ start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
 		_ = state pad-1
 		_ = state pad-2
 
-		done = state tcp-server-loop-linux
-		done handle-exceptions
+		done void future = with : later
+			match (() => state tcp-server-loop-linux) catch-all
+			as ok ()
+				()
+			as error e
+				error log "tcp-server error: {e}"
 
 		stop: shared () =>
 			state.should-stop := true
-			done
+			done await
 
 # Close a TCP client.
 close-client void(client SOCKET) summon, unsafe
@@ -91,14 +94,14 @@ close-client void(client SOCKET) summon, unsafe
 	pad-2 nat32
 	handler tcp-handler
 
--tcp-server-loop-linux void^(state tcp-server-state) summon, unsafe
+-tcp-server-loop-linux void(state tcp-server-state) summon, unsafe
 	unless state should-stop
 		event mut epoll_event = ()
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait &event, 1, timeout
 		match num-events
 		as 0
-			<- 100.msec delay
+			100.msec delay
 			state tcp-server-loop-linux
 		as 1
 			event-flags = event events

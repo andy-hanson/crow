@@ -439,7 +439,7 @@ Opt!Called checkCallInner(
 					Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 			return none!Called;
 		} else
-			return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), diagRange, nArgs, expected));
+			return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), diagRange, nArgs));
 	});
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
@@ -485,7 +485,7 @@ Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(in CallAst ast) {
 bool secondArgIsLambda(in CallAst ast) =>
 	ast.args.length == 2 && ast.args[1].kind.isA!(LambdaAst*);
 
-bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
+public bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
 	size_t nTypeParams = candidate.typeArgs.length;
 	Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
 	bool ok = args.length == nTypeParams;
@@ -659,18 +659,16 @@ bool inferCandidateTypeArgsFromSpecSig(
 		});
 }
 
-Called checkCallAfterChoosingOverload(
+public Called checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
 	in Range diagRange,
 	size_t nArgs,
-	ref Expected expected,
 ) {
 	Called called = checkCallSpecs(ctx, diagRange, candidate);
 	checkCalled(
-		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals,
-		nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty,
+		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals, nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty,
 		() => checkCanDoUnsafe(ctx));
 	return called;
 }

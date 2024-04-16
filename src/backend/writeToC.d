@@ -2,6 +2,8 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
+immutable string boilerplate = import("writeToC_boilerplate.c");
+
 import backend.mangle :
 	buildMangledNames,
 	MangledNames,
@@ -51,7 +53,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinType, BuiltinUnary;
+import model.model : BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinType, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -103,10 +105,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeCommandComment(writer, params.cCompiler, args);
-		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
-		writer ~= "#include <stddef.h>\n"; // for NULL
-		writer ~= "#include <stdint.h>\n";
-		writer ~= "typedef uint32_t char32_t;\n";
+		writer ~= boilerplate;
 		if (isMSVC) {
 			writer ~= "unsigned short __popcnt16(unsigned short value);\n";
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
@@ -206,6 +205,11 @@ public void getLinkOptions(
 }
 
 private:
+
+void writeBuiltinFunctions() {
+	
+}
+
 
 CString[] cCompileArgs(
 	ref Alloc alloc,
@@ -964,8 +968,14 @@ WriteExprResult writeExpr(
 			writeSpecialBinary(writer, indent, ctx, writeKind, type, it),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
-		(in LowExprKind.SpecialTernary) =>
-			assert(false),
+		(in LowExprKind.SpecialTernary x) {
+			final switch (x.kind) {
+				case BuiltinTernary.interpreterBacktrace:
+					assert(false);
+				case BuiltinTernary.newFiberSuspension:
+					return specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "new_fiber_suspension"); // defined in writeToC_boilerplace.c
+			}
+		},
 		(in LowExprKind.Switch x) =>
 			writeSwitch(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.TailRecur x) {
@@ -1301,6 +1311,7 @@ bool isSignedIntegral(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
+		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -1588,6 +1599,7 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.drop:
 			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
 		case BuiltinUnary.toFloat64FromFloat32:
@@ -1654,12 +1666,23 @@ WriteExprResult specialCallBinary(
 	in LowExpr[2] args,
 	in string name,
 ) =>
+	specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
+
+WriteExprResult specialCallBinaryOrTernary(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExpr[] args,
+	in string name,
+) =>
 	writeInlineable(
-		writer, indent, ctx, writeKind, type, castNonScope(args),
+		writer, indent, ctx, writeKind, type, args,
 		(in WriteExprResult[] temps) {
 			writer ~= name;
 			writer ~= '(';
-			writeTempOrInlines(writer, ctx, castNonScope(args), temps);
+			writeTempOrInlines(writer, ctx, args, temps);
 			writer ~= ')';
 		});
 
@@ -1825,6 +1848,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapSubNat32:
 		case BuiltinBinary.wrapSubNat64:
 			return operator("-");
+		case BuiltinBinary.switchFiberSuspension:
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber_suspension"); // defined in writeToC_boiilerplace.c
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator("<<");
 		case BuiltinBinary.unsafeBitShiftRightNat64:
@@ -2019,6 +2044,8 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 				return "char";
 			case PrimitiveType.char32:
 				return "char32_t";
+			case PrimitiveType.fiberSuspension:
+				return "fiber_suspension"; // See writeToC_boilerplate.c
 			case PrimitiveType.float32:
 				return "float";
 			case PrimitiveType.float64:

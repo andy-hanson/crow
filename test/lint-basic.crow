@@ -5,15 +5,14 @@ import
 	crow/io/print: out, print
 	./failure: failure, new, print-failures
 
-main nat^(_ string[]) summon
+main nat(_ string[]) summon
 	files = list-lintable-files
-	failures failure[] <- for file : files parallel-concat
-		file.lint-file,
+	failures = for file : files parallel-concat; file lint-file
 	if failures is-empty
 		out print "linted {files size} files"
-		()
+		0
 	else
-		failures.print-failures,
+		failures print-failures
 
 -list-lintable-files string[]() summon
 	res string mut[] = ()
@@ -62,7 +61,8 @@ main nat^(_ string[]) summon
 
 -should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
-		ext should-ignore-extension
+		# Ignore 'lint-basic.xyz' where xyz is random hex (happens when running with '--aot')
+		ext.should-ignore-extension || name starts-with "lint-basic."
 	else
 		# Ignore extensionless files since those are executables
 		name != "GNUmakefile" && name != "NMakefile"

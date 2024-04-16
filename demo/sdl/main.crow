@@ -20,27 +20,26 @@ import
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 	./crow.bmp as crow-bmp nat8 array
 
-main nat^(_ string[]) summon
-	trusted
-		render-thread-id = cur-thread-id
-		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
-		window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-		assert window != null : "SDL_CreateWindow" sdl-last-error
-		renderer = window renderer
-		texture = renderer create-texture
-		<- for : 25.msec interval
-			SDL_PumpEvents
-			guard !look-for-quit-event : break
-			<- renderer main-loop-body texture, render-thread-id
-			continue
+main nat(_ string[]) summon, trusted
+	render-thread-id = cur-thread-id
+	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
+	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
+	assert window != null : "SDL_CreateWindow" sdl-last-error
+	renderer = window renderer
+	texture = renderer create-texture
+	for : 25.msec interval
+		SDL_PumpEvents
+		guard !look-for-quit-event : break
+		renderer main-loop-body texture, render-thread-id
+		continue
 
-		render-thread-id run-with-thread-id () =>
-			# TODO: use 'finally'
-			texture SDL_DestroyTexture
-			renderer SDL_DestroyRenderer
-			window SDL_DestroyWindow
-			SDL_Quit
-			()
+	render-thread-id run-with-thread-id () =>
+		# TODO: use 'finally'
+		texture SDL_DestroyTexture
+		renderer SDL_DestroyRenderer
+		window SDL_DestroyWindow
+		SDL_Quit
+		()
 
 -window-width int32()
 	640
@@ -51,20 +50,19 @@ main nat^(_ string[]) summon
 -image-height int32()
 	200
 
--main-loop-body void^(
+-main-loop-body void(
 	renderer SDL_Renderer mut*,
 	texture SDL_Texture mut*,
 	render-thread-id nat,
-) summon
-	trusted
-		key-states-pointer = null SDL_GetKeyboardState
-		# TODO: use a mut-enum-lookup type
-		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
-		if key-states[SDL_SCANCODE_RETURN.to::nat32.to] != 0
-			out print "return is pressed"
+) summon, trusted
+	key-states-pointer = null SDL_GetKeyboardState
+	# TODO: use a mut-enum-lookup type
+	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
+	if key-states[SDL_SCANCODE_RETURN.to::nat32.to] != 0
+		out print "return is pressed"
 
-		render-thread-id run-with-thread-id () =>
-			renderer render texture
+	render-thread-id run-with-thread-id () =>
+		renderer render texture
 
 -render void(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, unsafe
 	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
@@ -79,12 +77,13 @@ main nat^(_ string[]) summon
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
--run-with-thread-id[t] t^(thread-id nat, cb t mut()) unsafe, t shared
-	if cur-thread-id == thread-id
-		cb[],
-	else
-		<- delay
-		thread-id run-with-thread-id cb
+-run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared
+	loop
+		if cur-thread-id == thread-id
+			break cb[]
+		else
+			yield-fiber
+			continue
 
 -look-for-quit-event bool() summon
 	trusted loop

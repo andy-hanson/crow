@@ -391,7 +391,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in FunPointerExpr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
-				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst))]),
+				field!"fun"(jsonOfCalled(alloc, ctx, x.called))]),
 		(in IfExpr x) =>
 			jsonObject(alloc, [
 				kindField!"if",

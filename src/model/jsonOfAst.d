@@ -60,7 +60,6 @@ import model.ast :
 	StructDeclAst,
 	stringOfModifierKeyword,
 	symbolForTypeAstSuffix,
-	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TryAst,
@@ -542,12 +541,6 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"shared",
 				field!"inner"(jsonOfExprAst(alloc, ctx, a.inner))]),
-		(in ThenAst x) =>
-			jsonObject(alloc, [
-				kindField!"then",
-				field!"left"(jsonOfDestructureAst(alloc, ctx, x.left)),
-				field!"fut-expr"(jsonOfExprAst(alloc, ctx, x.futExpr)),
-				field!"then"(jsonOfExprAst(alloc, ctx, x.then))]),
 		(in ThrowAst x) =>
 			jsonObject(alloc, [
 				kindField!"throw",

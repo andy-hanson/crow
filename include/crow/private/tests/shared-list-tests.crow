@@ -3,7 +3,7 @@ dummy-shared-list-tests nat()
 
 test
 	res nat shared[] = ()
-	<- for x : 0::nat .. 100 parallel
+	for x : 0::nat .. 100 parallel
 		res ~= x
 		()
 	res.move-to::nat[].sort is (0 .. 100).to

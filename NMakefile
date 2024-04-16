@@ -76,7 +76,7 @@ all_src_files = src\*.d \
 	src\util\col\*.d
 d_dependencies = $(all_src_files) bin\d-imports\date.txt bin\d-imports\commit-hash.txt dyncall
 
-d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\test -J=include
+d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\backend -J=src\test -J=include
 dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
 ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
 ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on

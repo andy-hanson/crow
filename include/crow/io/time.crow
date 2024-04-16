@@ -4,14 +4,10 @@ import
 	../compare: max
 	../exception: todo
 	../fun-util: subscript
-	../future: future, then
 	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, nat64, to
 	../pointer: null
-	../future: new
-	../private/future-low-level: forward-to, resolve, unresolved
-	../private/runtime:
-		enqueue-timed-task-cur-exclusion, enqueue-timed-task-no-exclusion, get-global-ctx
+	../private/runtime: delay-cur-fiber-until-time
 	../version: is-windows
 	./duration: duration, nsec
 export
@@ -29,39 +25,24 @@ export
 	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
-+delay void^(duration duration) summon
-	get-monotime-nsec + duration.nsec.to delay-until-time
++delay void(duration duration) summon
+	get-monotime-nsec + duration.nsec.to delay-cur-fiber-until-time
 
 +interval record
 	-time duration
 +interval interval(time duration)
 	time,
 # Call `action` now and on every `interval`.
-+for-break[out] out^(
++for-break[out] out(
 	interval interval,
-	f-loop out break-or-continue^ mut(),
+	f-loop out break-or-continue mut(),
 ) summon, out shared
-	get-monotime-nsec repeat-interval-recur interval.time.nsec.to, f-loop
--repeat-interval-recur[out] out^(
-	start-nsec nat64,
-	interval-nsec nat64,
-	action out break-or-continue^ mut(),
-) summon, out shared
-	choice <- action[]
-	match choice
-	as loop-break v
-		v,
-	as loop-continue
-		next-time = get-monotime-nsec max start-nsec + interval-nsec
-		trusted
-			res out^ = unresolved
-			get-global-ctx enqueue-timed-task-cur-exclusion next-time, () =>
-				res forward-to (next-time repeat-interval-recur interval-nsec, action)
-			res
-
--delay-until-time void^(target-nsec nat64) summon
-	trusted
-		res void^ = unresolved
-		get-global-ctx enqueue-timed-task-no-exclusion target-nsec, () =>
-			res resolve ()
-		res
+	start-nsec mut = get-monotime-nsec
+	interval-nsec nat64 = interval.time.nsec.to
+	loop
+		match f-loop[]
+		as loop-break v
+			break v
+		as loop-continue
+			start-nsec := get-monotime-nsec max start-nsec + interval-nsec
+			continue

@@ -679,7 +679,8 @@ immutable struct ConcreteProgram {
 
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* alloc;
-	ConcreteVar* curJmpBuf;
+	ConcreteFun* curJmpBuf;
+	ConcreteFun* setCurJmpBuf;
 	ConcreteVar* curThrown;
 	ConcreteFun* mark;
 	ConcreteFun* rethrowCurrentException;

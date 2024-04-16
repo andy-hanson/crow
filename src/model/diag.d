@@ -279,10 +279,10 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct FunPointerExprMustBeName {}
-	immutable struct FunPointerNotSupported {
-		enum Reason { multiple, spec, template_ }
-		Reason reason;
+	immutable struct FunPointerNoMatch {
 		Symbol name;
+		TypeContainer typeContainer;
+		ReturnAndParamTypes returnAndParamTypes;
 	}
 	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
@@ -491,7 +491,7 @@ immutable struct Diag {
 	}
 	immutable struct SharedLambdaUnused {}
 	immutable struct SharedNotExpected {
-		enum Reason { notShared, notFuture }
+		enum Reason { notShared }
 		Reason reason;
 		ExpectedForDiag expected;
 	}
@@ -571,7 +571,6 @@ immutable struct Diag {
 			funMut,
 			funPointer,
 			funShared,
-			future,
 			list,
 			map,
 			mutMap,
@@ -660,7 +659,7 @@ immutable struct Diag {
 		ExternUnion,
 		FunCantHaveBody,
 		FunPointerExprMustBeName,
-		FunPointerNotSupported,
+		FunPointerNoMatch,
 		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,

@@ -4,10 +4,10 @@ import
 	crow/version: is-windows
 	./module
 
-get-modules module[]^(paths string[], remove-prefix string) summon
+get-modules module[](paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "document" ~ paths
 	forbid result has-error : "Could not get documentation. stderr: {result stderr}" error
-	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
+	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
 
 -crow-path string()
 	if trusted is-windows

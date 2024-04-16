@@ -135,7 +135,7 @@ Opt!Target exprTarget(ExpressionPosition a) =>
 		(ExprKeyword x) =>
 			none!Target,
 		(FunPointerExpr x) =>
-			some(Target(x.funInst.decl)),
+			calledTarget(x.called),
 		(ExpressionPositionKind.Literal) =>
 			none!Target,
 		(ExpressionPositionKind.LocalRef x) =>

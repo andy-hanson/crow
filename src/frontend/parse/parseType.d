@@ -184,7 +184,6 @@ DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
 		Opt!Pos mut = tryTakeToken(lexer, Token.mut) ? some(posForMut) : none!Pos;
 		Opt!(TypeAst*) type = () {
 			switch (getPeekToken(lexer)) {
-				case Token.arrowThen:
 				case Token.colon:
 				case Token.comma:
 				case Token.equal:
@@ -364,9 +363,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.list))))
 				: mapLike(TypeAst.Map.Kind.data, suffixPos + 1, left);
 		case Token.operator:
-			return tryTakeOperator(lexer, symbol!"^")
-				? suffix(TypeAst.SuffixSpecial.Kind.future)
-				: tryTakeOperator(lexer, symbol!"*")
+			return tryTakeOperator(lexer, symbol!"*")
 				? suffix(TypeAst.SuffixSpecial.Kind.ptr)
 				: tryTakeOperator(lexer, symbol!"**")
 				? doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr)

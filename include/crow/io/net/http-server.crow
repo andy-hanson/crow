@@ -2,19 +2,20 @@ import
 	system/errno: EAGAIN, errno
 	system/sys/socket: as-fd, SOCKET
 	system/unistd: write
+	../../future: delay
 	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
 		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
 		response-body, status, status-desc
-	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler
+	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler, tcp-server
 
 # Reference to a running server.
 +http-server record
 
 # Type of a function that can respond to HTTP requests.
 +http-handler alias
-	http-response^ shared(req http-request)
+	http-response shared(req http-request)
 
 +http-server-options record(port nat16, handler http-handler) shared
 +http-server http-server-options(port nat16, handler http-handler)
@@ -23,23 +24,23 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t^(a http-server-options, cb t^ mut(server http-server)) summon, t shared
-	client-states http-parse-state mut[SOCKET] = ()
-
-	handler tcp-handler = do
-		on-accepted-client: sock =>
-			client-states[sock] := ()
-		on-received-chunk: (sock, bytes) =>
-			opt-state http-parse-state? = client-states[sock]
-			if state ?= opt-state
-				trusted client-states handle-chunk sock, state, bytes, a.handler
-			else
-				warn log "Ignoring unrecognized client"
-				()
-	trusted
-		tcp-server = a.port start-tcp-server handler
-		with : (() => tcp-server stop) future-finally
-			cb[]
++with-block[t] t(a http-server-options, cb t mut(server http-server)) summon, t shared
+	server tcp-server future = with : parallel
+		client-states http-parse-state mut[SOCKET] = ()
+		handler tcp-handler = do
+			on-accepted-client: sock =>
+				client-states[sock] := ()
+			on-received-chunk: (sock, bytes) =>
+				opt-state http-parse-state? = client-states[sock]
+				if state ?= opt-state
+					trusted client-states handle-chunk sock, state, bytes, a.handler
+				else
+					warn log "Ignoring unrecognized client"
+					()
+		trusted a.port start-tcp-server handler
+	tcp-server = server await
+	finally tcp-server stop
+	cb[]
 
 -handle-chunk void(
 	client-states http-parse-state mut[SOCKET],
@@ -62,32 +63,30 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		request = state finish-request
 		_ = (client-states remove sock)!
 		with : fire-and-forget
-			handler-response <- handler[request] future-catch
-			response = match handler-response
+			response = match (() => handler[request]) catch-all
 			as ok o
 				o
 			as error e
 				error log "{e}"
 				http-internal-server-error
-			<- sock write-until-finished response.response-to-array
+			sock write-until-finished response.response-to-array
 			sock close-client
 			()
 	as abandon
 		_ = (client-states remove sock)!
 
--write-until-finished void^(sock SOCKET, content nat8 array) summon, unsafe
-	guard !content.is-empty
-	wrote = sock.as-fd write content.begin-pointer, content.size
-	unless wrote == content.size.to
+-write-until-finished void(sock SOCKET, content nat8 array) summon, unsafe
+	remaining mut nat8 array = content
+	until remaining.is-empty
+		wrote = sock.as-fd write remaining.begin-pointer, remaining.size
 		if wrote == -1
 			err = errno
 			assert err == EAGAIN : "can't write to socket, errno {err}".error
-			<- delay
-			sock write-until-finished content
+			delay
 		else
 			assert wrote > 0
-			<- delay
-			sock write-until-finished content[wrote.to .. end]
+			delay
+			remaining := remaining[wrote.to .. end]
 
 -finish-request http-request(state http-parse-state)
 	path, query = state.path-and-query parse-path-and-query

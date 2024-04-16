@@ -120,7 +120,6 @@ enum Token {
 	alias_, // 'alias'
 	arrowAccess, // '->'
 	arrowLambda, // '=>'
-	arrowThen, // '<-'
 	as, // 'as'
 	assert_, // 'assert'
 	at, // '@'
@@ -324,13 +323,11 @@ TokenAndData lexToken(ref MutCString ptr, IndentKind indentKind, ref uint curInd
 		case ',':
 			return plainToken(Token.comma);
 		case '<':
-			return tryTakeChar(ptr, '-')
-				? plainToken(Token.arrowThen)
-				: operatorToken(ptr, tryTakeChar(ptr, '=')
-					? tryTakeChar(ptr, '>') ? symbol!"<=>" : symbol!"<="
-					: tryTakeChar(ptr, '<')
-					? symbol!"<<"
-					: symbol!"<");
+			return operatorToken(ptr, tryTakeChar(ptr, '=')
+				? tryTakeChar(ptr, '>') ? symbol!"<=>" : symbol!"<="
+				: tryTakeChar(ptr, '<')
+				? symbol!"<<"
+				: symbol!"<");
 		case '>':
 			return operatorToken(ptr, tryTakeChar(ptr, '=')
 				? symbol!">="
@@ -387,24 +384,19 @@ private TokenAndData lexIdentifierLike(ref MutCString ptr) {
 		return TokenAndData(Token.unexpectedCharacter, mustTakeOneUnicodeChar(ptr));
 }
 
-enum EqualsOrThen { equals, then }
-Opt!EqualsOrThen lookaheadEqualsOrThen(MutCString ptr) {
-	if (startsWithThenWhitespace(ptr, "<-"))
-		return some(EqualsOrThen.then);
+bool lookaheadEquals(MutCString ptr) {
 	while (true) {
 		switch (*ptr) {
 			case ' ':
 				ptr++;
 				if (startsWithThenWhitespace(ptr, "="))
-					return some(EqualsOrThen.equals);
-				else if (startsWithThenWhitespace(ptr, "<-"))
-					return some(EqualsOrThen.then);
+					return true;
 				else
 					break;
 			// characters that appear in types
 			default:
 				if (!isTypeChar(*ptr))
-					return none!EqualsOrThen;
+					return false;
 				else {
 					ptr++;
 					break;

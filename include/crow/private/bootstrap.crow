@@ -112,6 +112,16 @@ Unlike in other programming languages, this isn't a numeric type.
 ###
 +bool builtin extern
 
+# TODO: as cleanup, try moving these back into bool-low-level ------------------------------------------------------------------
+###
+False boolean value.
+This can also be written as `()`.
+###
++false bool() builtin, bare
+
+# True boolean value.
++true bool() builtin, bare
+
 region symbol.crow
 
 +symbol record by-val
@@ -204,8 +214,6 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 		new-void
 
 region bootstrap runtime
-
-~task record(exclusion exclusion, action void mut()) by-val, mut
 
 ~exclusion alias
 	nat64
@@ -315,19 +323,35 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
+~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
+
+~fiber record mut, by-ref
+	# TODO: this takes up space, just store it on the stack!
+	# This is cleared at the start and never set again.
+	initial-function mut void mut()?
+	is-running mut bool
+	# Value only matters when not running
+	suspension mut fiber-suspension
+	# The fiber can change its exclusion when calling into a function with a different exclusion
+	cur-exclusion mut exclusion
+	# Used to implement exceptions. The type is actually 'jmp_buf', but that isn't available here
+	cur-jmp-buf mut void mut*
+	# This must be 16-byte aligned
+	stack nat64 mut-array
+~cur-fiber thread-local(fiber?)
+
+~fiber-state enum(running, suspended)
+
 +future[t] record by-ref, force-shared
 	lk mut lock
 	state mut t future-state
 
 future-state[t] union mut
-	# The future hasn't been resolved or forwarded, and no tasks have been added.
 	empty
-	# Optimization for 'tasks' when there is only one
-	one-task task
-	# The future has multiple tasks attached.
-	tasks task mut[]
-	# All operations should be directed to another future.
-	forwarded t^
+	# The future is not resolved, and a fiber is waiting on it
+	awaited-by fiber
+	# Rarely, multiple fibers could wait on a future at once.
+	awaited-by-multiple fiber mut[]
 	# The future was resolved successfully.
 	resolved t
 	# The future resolved with an exception.

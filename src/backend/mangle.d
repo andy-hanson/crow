@@ -305,6 +305,12 @@ bool conflictsWithCName(Symbol a) {
 		case symbol!"log".value: // defined by tgmath.h
 		case symbol!"void".value:
 		case symbol!"while".value:
+
+		// Not core keywords, but common libraries ------------------------------------------------------------------------------
+		case symbol!"remove".value:
+		case symbol!"stderr".value:
+		case symbol!"stdout".value:
+		case symbol!"write".value:
 			return true;
 		default:
 			return false;

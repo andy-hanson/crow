@@ -1,15 +1,6 @@
 no-std
 export
-	./bootstrap: bool
-
-###
-False boolean value.
-This can also be written as `()`.
-###
-+false bool() builtin, bare
-
-# True boolean value.
-+true bool() builtin, bare
+	./bootstrap: bool, false,  true
 
 # Changes `true` to `false`, and `false` to `true`.
 +not bool(a bool) bare

@@ -7,8 +7,10 @@ import
 	../option: new, option
 	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, set-deref
 	./alloc: gc, gc-add-root, mem-copy, unmanaged-alloc-elements, unmanaged-free-elements
+	./bootstrap: hard-assert
 
 bare-queue[t] record by-val, mut
+	-magic-number nat64 # --------------------------------------------------------------------------------------------------------------
 	-alloc-begin mut t mut*
 	-alloc-end mut t mut*
 	# For an empty queue, begin == end == null.
@@ -17,7 +19,7 @@ bare-queue[t] record by-val, mut
 	-end mut t mut*
 
 new[t] t bare-queue() bare, unsafe
-	null, null, null, null
+	42, null, null, null, null
 
 destroy[t] void(a t bare-queue mut*) bare, unsafe
 	a->alloc-begin unmanaged-free-elements (a->alloc-end - a->alloc-begin)
@@ -32,6 +34,7 @@ size[t] nat64(a t bare-queue*) bare, unsafe
 		(a->alloc-end - a->begin) + (a->end - a->alloc-begin)
 
 dequeue[t] t?(a t bare-queue mut*) bare, unsafe
+	a->magic-number == 42 hard-assert
 	unless a->begin == null
 		res = *a->begin
 		a->begin := a.as-const advance a->begin
@@ -41,6 +44,7 @@ dequeue[t] t?(a t bare-queue mut*) bare, unsafe
 		res,
 
 enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
+	a->magic-number == 42 hard-assert
 	if a->end == a->begin
 		if a->begin == null && a->alloc-begin != null
 			a->begin := a->alloc-begin
@@ -69,7 +73,7 @@ enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
 		new-begin + size1 mem-copy a->alloc-begin.as-const, size2
 		new-begin + size1 + size2
 	a->alloc-begin unmanaged-free-elements a->alloc-end - a->alloc-begin
-	*a := new-begin, new-begin + new-capacity, new-begin, new-end
+	*a := 42, new-begin, new-begin + new-capacity, new-begin, new-end
 
 -advance[t] t mut*(a t bare-queue*, ptr t mut*) bare, unsafe
 	res = ptr + 1

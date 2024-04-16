@@ -4,27 +4,35 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, nat64
-	../pointer: ==, null, zeroed
+	../pointer: pointer-cast, zeroed
 	../result: error, ok, result
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, new, string
+	./bootstrap: abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
 export
 	./bootstrap: backtrace, error, exception, exception-and-backtrace
 
 +test-failure variant-member(exception, string)
 
--cur-jmp-buf thread-local(jmp_buf)
+# Just use a thread-local for these, since they will be handled immediately before the fiber suspends
 -cur-thrown thread-local(exception)
 -cur-backtrace thread-local(backtrace)
 
+cur-jmp-buf jmp_buf() unsafe
+	guard fiber ?= cur-fiber : hard-unreachable
+	fiber.cur-jmp-buf pointer-cast
+set-cur-jmp-buf void(value jmp_buf) unsafe
+	guard fiber ?= cur-fiber : hard-unreachable
+	fiber.cur-jmp-buf := value.pointer-cast
+
 # Used by the compiler when implementing 'try-catch' and 'finally'
 rethrow-current-exception void() bare, unsafe
-	if cur-jmp-buf == null
-		abort
+	if fiber ?= cur-fiber
+		fiber.cur-jmp-buf.pointer-cast longjmp 1
 	else
-		cur-jmp-buf longjmp 1
+		# Throwing outside of a fiber aborts
+		abort
 
 +catch-all[t] (t, exception-and-backtrace) result(tried t mut())
 	trusted

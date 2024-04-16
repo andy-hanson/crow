@@ -224,7 +224,7 @@ mixin template Union(ReprTypes...) {
 
 	pure:
 
-	immutable uint kind;
+	immutable uint kind; // TODO:PRIVATE ----------------------------------------------------------------------------------------------
 	union {
 		static foreach (i, T; ReprTypes) {
 			mixin("private immutable T as", i, ";");

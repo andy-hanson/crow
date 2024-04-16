@@ -483,10 +483,13 @@ ConcreteExpr concretizeFunPointer(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
 	in UriAndRange range,
-	FunPointerExpr e,
-) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		Constant(Constant.FunPointer(getNonTemplateConcreteFun(ctx.concretizeCtx, e.funInst)))));
+	FunPointerExpr a,
+) {
+	Opt!(ConcreteFun*) called = getConcreteFunFromCalled(ctx, a.called);
+	return has(called)
+		? ConcreteExpr(type, range, ConcreteExprKind(Constant(Constant.FunPointer(force(called)))))
+		: concretizeBogus(ctx.concretizeCtx, type, range);
+}
 
 ConcreteExpr concretizeLambda(
 	ref ConcretizeExprCtx ctx,
@@ -500,19 +503,10 @@ ConcreteExpr concretizeLambda(
 		ConcreteExpr inner = concretizeLambdaInner(ctx, innerType, range, locals, e);
 		ConcreteType[2] lambdaTypeArgs = only2(innerType.struct_.source.as!(ConcreteStructSource.Inst).typeArgs);
 		ConcreteFun* sharedOfMutLambda = getConcreteFun(
-			ctx.concretizeCtx,
-			ctx.concretizeCtx.program.commonFuns.sharedOfMutLambda,
-			[unwrapFuture(ctx.concretizeCtx, lambdaTypeArgs[0]), lambdaTypeArgs[1]],
-			[]);
+			ctx.concretizeCtx, ctx.concretizeCtx.program.commonFuns.sharedOfMutLambda, lambdaTypeArgs, []);
 		return genCall(ctx.alloc, range, sharedOfMutLambda, [inner]);
 	} else
 		return concretizeLambdaInner(ctx, type, range, locals, e);
-}
-
-ConcreteType unwrapFuture(in ConcretizeCtx ctx, ConcreteType a) {
-	ConcreteStructSource.Inst source = a.struct_.source.as!(ConcreteStructSource.Inst);
-	assert(source.inst.decl == ctx.commonTypes.future);
-	return only(source.typeArgs);
 }
 
 ConcreteExpr concretizeLambdaInner(

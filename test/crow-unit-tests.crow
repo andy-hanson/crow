@@ -59,7 +59,7 @@ import
 	./unit/conditions: dummy-conditions
 	./unit/exceptions: dummy-exceptions
 
-main nat^(_ string[]) summon
+main void() summon
 	license is "public domain"
 	_ = ().from-bytes :: nat8[]
 	_ = bold
@@ -120,10 +120,9 @@ main nat^(_ string[]) summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::string^ shared()
+	_ = (() => read-stdin)::string shared()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt
 	_ = () parse-named-args ()
-	<- run-all-tests
-	()
+	run-all-tests

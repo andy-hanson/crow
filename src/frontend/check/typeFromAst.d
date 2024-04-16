@@ -135,6 +135,10 @@ Type[] unpackTupleIfNeeded(in CommonTypes commonTypes, size_t nExpectedTypeArgs,
 		? arrayOfSingle(type)
 		: optOrDefault!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
 
+
+Type[] unpackTuple(in CommonTypes commonTypes, Type* type) =>
+	optOrDefault!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
+
 size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explicitTypeArg) {
 	if (has(explicitTypeArg)) {
 		Opt!(Type[]) unpacked = asTuple(commonTypes, force(explicitTypeArg));
@@ -290,8 +294,6 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case symbol!"map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.map);
-		case symbol!"future".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.future);
 		case symbol!"list".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
 		case symbol!"mut-map".value:

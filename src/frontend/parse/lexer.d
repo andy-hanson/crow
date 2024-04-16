@@ -11,7 +11,7 @@ import frontend.parse.lexToken :
 	lookaheadColon,
 	lookaheadElifOrElse,
 	lookaheadKeyword,
-	lookaheadEqualsOrThen,
+	lookaheadEquals,
 	lookaheadLambdaAfterParenLeft,
 	lookaheadQuestionEquals,
 	plainToken;
@@ -29,7 +29,7 @@ import util.symbol : symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
-public import frontend.parse.lexToken : ElifOrElseKeyword, EqualsOrThen, Token, TokenAndData;
+public import frontend.parse.lexToken : ElifOrElseKeyword, Token, TokenAndData;
 
 struct Lexer {
 	@safe @nogc pure nothrow:
@@ -237,16 +237,8 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 	return res;
 }
 
-@trusted Opt!EqualsOrThen lookaheadEqualsOrThen(in Lexer lexer) {
-	switch (getPeekToken(lexer)) {
-		case Token.equal:
-			return some(EqualsOrThen.equals);
-		case Token.arrowThen:
-			return some(EqualsOrThen.then);
-		default:
-			return .lookaheadEqualsOrThen(lexer.ptr);
-	}
-}
+@trusted bool lookaheadEquals(in Lexer lexer) =>
+	getPeekToken(lexer) == Token.equal || .lookaheadEquals(lexer.ptr);
 
 bool lookaheadNewVisibility(in Lexer lexer) =>
 	isVisibility(getPeekTokenAndData(lexer)) && lookaheadKeyword(lexer.ptr, "new");

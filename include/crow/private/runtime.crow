@@ -2,25 +2,27 @@ no-std
 import
 	../bool: &&, ||, bool, false, true
 	../col/array: array
+	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../exception: exception-and-backtrace, to
+	../col/mut-array: -, +, begin, begin-pointer, end, end-pointer, mut-array, size, slice, uninitialized-mut-array
 	../fun-util: subscript
-	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, set-log-handler, log-handler
 	../misc: new, void
-	../number: ==, nat64
-	../option: is-empty, option
-	../pointer: *, as-const, mut-pointer
-	../string: interpolate, string
+	../number: ==, is-multiple-of, nat64
+	../option: force, is-empty, new, option
+	../pointer: ==, *, any-mut-pointer, as-const, as-fun-pointer, mut-pointer, null, reference-equal, to
+	../string: string
 	../version: is-wasm
 	./alloc:
 		gc, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,
 		uninit
-	./bootstrap: hard-assert, new, symbol
+	./bootstrap:
+		cur-exclusion, cur-fiber, fiber, fiber-suspension, hard-assert, initial-function, is-running, new,
+		set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, suspension, symbol
 	./task-queue:
-		action, add-gc-roots, destroy, enqueue-task, enqueue-tasks, enqueue-timed-task, exclusion,
-		init, pop-task, release-exclusion, slow-is-empty, task, task-queue, uninit
+		add-gc-roots, destroy, enqueue-fiber, enqueue-fibers, enqueue-timed-fiber, exclusion,
+		init, pop-task, release-exclusion, slow-is-empty, task-queue, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
@@ -32,9 +34,10 @@ get-global-ctx global-ctx mut*() unsafe
 -global-ctx-var thread-local(global-ctx mut*)
 
 cur-exclusion exclusion() unsafe
-	cur-exclusion-var
+	cur-fiber! cur-exclusion
 
--cur-exclusion-var thread-local(exclusion)
+# Only set right before yielding and unset right after
+-cur-yield-request thread-local(yield-request?)
 
 global-ctx record by-val, mut
 	global-lock mut lock
@@ -47,10 +50,7 @@ global-ctx record by-val, mut
 
 	# protected by 'tasks-lock'
 	tasks mut task-queue
-	symbols-table mut symbol[string]
-	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
-	# Default is to print it and set `gctx.any-unhandled-exceptions`
-	exception-handler mut void shared(x exception-and-backtrace)
+	symbols-table mut symbol[string] # TODO: just move to where it's used? --------------------------------------------------
 	# TODO: this should be a `global`. But need to atomically set.
 	default-log-handler mut log-handler
 
@@ -80,8 +80,7 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	gc: uninit
 	tasks: uninit
 	symbols-table: empty-map
-	exception-handler: exn => exn default-exception-handler
-	default-log-handler: log => log default-log-handler
+	default-log-handler: log => log default-log-handler # TODO: think about this one too .............................
 	symbols-lock: uninit
 	tasks-lock: uninit
 	n-threads: n-threads
@@ -103,57 +102,91 @@ destroy void(a global-ctx mut*) bare, unsafe
 	a.tasks destroy
 	a.may-be-work-to-do destroy-condition
 
-new-exclusion exclusion(a global-ctx mut*) bare
-	trusted a.next-exclusion get-and-increment
+# stack-top must be 16-byte aligned
+# TODO: move to where they're used ---------------------------------------------------------------------------------------
+-new-fiber-suspension fiber-suspension(stack-top nat64 mut*, func void function(x any-mut-pointer), arg any-mut-pointer) builtin, bare
+-switch-fiber-suspension void(from fiber-suspension mut*, to fiber-suspension mut*) builtin, bare
 
-default-exception-handler void(e exception-and-backtrace) summon, unsafe
-	err print-no-newline "Uncaught exception: "
-	err print "{e}"
-	get-global-ctx->any-unhandled-exceptions := true
+# Regular fibers return to this for the task loop.
+# TODO: This could be by-value. But we currently don't support pointer to thread-local. ------------------------------------
+-thread-base-fiber-suspension thread-local(fiber-suspension mut*)
 
-enqueue-task-no-exclusion void(a global-ctx mut*, action void mut()) unsafe
-	a enqueue-task a.new-exclusion, action
+-is-valid-stack bool(a nat64 mut-array) bare, unsafe
+	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
 
-enqueue-task void(a global-ctx mut*, exclusion exclusion, action void mut()) unsafe
-	a enqueue-task (exclusion, action)
+# Caller is responsible for catching all exceptions in 'action'
+add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
+	a enqueue-fiber (a create-new-fiber action)
+-create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
+	# TODO: A small stack like this may fail for real programs. I should get around to implementing stack overflow checking.
+	stack1 nat64 mut-array = 0x10000 uninitialized-mut-array
+	# TODO: getter way to align it -----------------------------------------------------------------------------------------------
+	stack = if stack1 is-valid-stack
+		stack1
+	else
+		stack1[1 .. end - 1]
+	stack.is-valid-stack hard-assert
 
-enqueue-task void(a global-ctx mut*, task task) bare, unsafe
+	# TODO: We need to make sure the func is visible to the GC immediately! ---------------------------------------------------
+	# TODO: This means we need to pin the memory....
+	initial-function: action,
+	is-running: false
+	suspension: stack.end-pointer new-fiber-suspension &fiber-func, null
+	cur-exclusion: a.next-exclusion.get-and-increment
+	cur-jmp-buf: null
+	stack: stack
+
+-fiber-func void(arg any-mut-pointer) unsafe
+	arg == null hard-assert
+	fiber = cur-fiber!
+	func = fiber.initial-function!
+	fiber.initial-function := ()
+	func[]
+	done yield-this-fiber
+
+enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
+	forbid fiber is-running
 	a.tasks-lock acquire
-	a.tasks enqueue-task task
+	a.tasks enqueue-fiber fiber
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-tasks void(a global-ctx mut*, tasks task array) bare, unsafe
+enqueue-fibers void(a global-ctx mut*, fibers fiber array) bare, unsafe # TODO: is this still needed? Could just run 'enqueue-fiber' in a loop?
 	a.tasks-lock acquire
-	a.tasks enqueue-tasks tasks
+	a.tasks enqueue-fibers fibers
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-timed-task-cur-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
-	a lock-and-enqueue-timed-task time, cur-exclusion, action
+delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted
+	target-nsec.delay-until-time yield-this-fiber
 
-enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
-	a lock-and-enqueue-timed-task time, a.new-exclusion, action
-
--lock-and-enqueue-timed-task void(
-	a global-ctx mut*,
-	time timestamp,
-	exclusion exclusion,
-	action void mut(),
-) unsafe
+-enqueue-timed-fiber void(a global-ctx mut*, time timestamp, fiber fiber) bare, unsafe
 	a.tasks-lock acquire
-	a.tasks enqueue-timed-task time, (exclusion, action)
+	a.tasks enqueue-timed-fiber time, fiber
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
+
+# TODO: this is ugly 0--------------------------------------------------------------------------------------------------------------
+dummy record extern, mut
+	a nat64
+	b nat64
+	x mut nat64
 
 thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
+	# This will be initialized properly the first time we switch away
+	
+	# It needs to set stack[-2]
+	dummy mut dummy = 0, 0, 0
+	dummy-ptr dummy mut* = &dummy
+	my-suspension mut = dummy-ptr.x new-fiber-suspension null.as-fun-pointer, null
+	thread-base-fiber-suspension := &my-suspension
 	thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
 		last-checked = gctx.may-be-work-to-do get-sequence
-		match gctx choose-task
-		as task t
-			gctx do-task t
+		match gctx decide-what-to-do
+		as fiber x
+			gctx run-fiber x
 			continue
 		as gc
 			gctx.may-be-work-to-do broadcast
@@ -166,12 +199,63 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		as shut-down
 			break gctx thread-shut-down
 
--do-task void(gctx global-ctx mut*, task task) bare, summon, unsafe
-	gctx before-task task.exclusion
-	task.action invoke-action
+~change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
+	# TOOD: PERF: If the exclusion is availalbe immediately, no need to add to queue -----------------------------------------
+	new-exclusion.change-exclusion yield-this-fiber
+
+~yield-request union mut
+	# Add this fiber back to the queue of runnable fibers.
+	add-to-queue
+	# Since 'future' has many types, we need a pointer to the function for adding a fiber to the future
+	await-future (any-mut-pointer, bool function(future any-mut-pointer, fiber fiber))
+	# Change this fiber's exclusion to a new one, then enqueue it again.
+	change-exclusion exclusion
+	# Like 'add-to-queue', but adds to the timed queue
+	delay-until-time timestamp
+	done
+
+# The caller should do something to ensure the fiber will eventually be resumed.
+~yield-this-fiber void(request yield-request) unsafe
+	assert cur-yield-request is-empty
+	cur-yield-request := request,
+	fiber = cur-fiber!
+	fiber.is-running := false
+	&fiber.suspension switch-fiber-suspension thread-base-fiber-suspension
+
+# Runs the fiber until its next yield
+-run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
+	gctx before-task
+	assert cur-fiber is-empty
+	cur-fiber := fiber,
+
+	thread-base-fiber-suspension switch-fiber-suspension &fiber.suspension
+
+	# It yields to get back here.
+	assert cur-fiber! reference-equal fiber
+	cur-fiber := ()
+	forbid fiber is-running
+
 	gctx.tasks-lock acquire
-	gctx.tasks release-exclusion task.exclusion
+	gctx.tasks release-exclusion fiber.cur-exclusion
 	gctx.tasks-lock release
+
+	match cur-yield-request!
+	as add-to-queue
+		gctx enqueue-fiber fiber
+	as await-future future, add-awaiting-fiber
+		unless add-awaiting-fiber[future, fiber]
+			# Future is already complete, so just enqueue the fiber
+			gctx enqueue-fiber fiber
+	as change-exclusion new-exclusion
+		fiber.cur-exclusion := new-exclusion
+		gctx enqueue-fiber fiber
+	as delay-until-time timestamp
+		gctx enqueue-timed-fiber timestamp, fiber
+	as done
+		()
+
+	cur-yield-request := ()
+
 	after-task
 
 -do-gc void(gctx global-ctx mut*) bare, unsafe
@@ -182,26 +266,22 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		gc gc-complete
 	gc gc-end
 
--invoke-action void(action void mut()) force-ctx
-	action[]
-
 -thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe
 	gctx.may-be-work-to-do broadcast
 	gctx.tasks-lock acquire
 	gctx.as-const.tasks.slow-is-empty hard-assert
 	gctx.tasks-lock release
 
-before-task void(gctx global-ctx mut*, exclusion exclusion) bare, unsafe
+~before-task void(gctx global-ctx mut*) bare, unsafe
 	global-ctx-var := gctx
-	cur-exclusion-var := exclusion
 	gctx.gc mutator-begin
-	gctx->default-log-handler set-log-handler
+	gctx->default-log-handler set-log-handler # TODO: Ideally this would persist across fiber yields.......................
 
 after-task void() bare, unsafe
 	mutator-end
 
--choose-task-result union mut
-	task task
+-what-to-do union mut
+	fiber fiber
 	gc
 	# No task to do now, but wait on 'may-be-work-to-do'.
 	# Timestamp is time of the first first timed task, if any.
@@ -209,7 +289,7 @@ after-task void() bare, unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
--choose-task choose-task-result(gctx global-ctx mut*) bare, summon, unsafe
+-decide-what-to-do what-to-do(gctx global-ctx mut*) bare, summon, unsafe
 	cur-time nat64 = if is-wasm
 		0
 	else
@@ -220,9 +300,9 @@ after-task void() bare, unsafe
 		gc
 	else
 		match gctx.tasks pop-task cur-time
-		as task t
-			t task
-		as no-task first-task-time
+		as popped x
+			x fiber
+		as no-immediate first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
 			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
 				# Can't possibly be any more tasks:

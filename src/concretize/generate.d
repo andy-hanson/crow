@@ -64,6 +64,9 @@ ConcreteExpr genCall(ref Alloc alloc, in UriAndRange range, ConcreteFun* called,
 ConcreteExpr genIf(ref Alloc alloc, UriAndRange range, ConcreteExpr cond, ConcreteExpr then, ConcreteExpr else_) =>
 	ConcreteExpr(then.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.If(cond, then, else_))));
 
+ConcreteExpr genSeq(ref Alloc alloc, UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
+	ConcreteExpr(b.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Seq(a, b))));
+
 ConcreteExpr genSome(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteType optionType, ConcreteExpr arg) {
 	assertIsOptionType(ctx, optionType);
 	return ConcreteExpr(optionType, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.CreateUnion(1, arg))));

@@ -240,6 +240,7 @@ ExpectUnary unaryExpected(
 	return scope LowType argType,
 ) {
 	final switch (kind) {
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.asAnyPtr:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
@@ -506,6 +507,8 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
+		case BuiltinBinary.switchFiberSuspension:
+			return ExpectBinary(none!LowType, [none!LowType, none!LowType]); // TODO ---------------------------------------------------
 		case BuiltinBinary.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}

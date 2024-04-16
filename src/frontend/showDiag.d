@@ -71,7 +71,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
 import util.uri : baseName, compareUriAlphabetically, Uri;
-import util.util : stringOfEnum, max;
+import util.util : stringOfEnum, max, todo;
 import util.writer :
 	makeStringWithWriter,
 	writeFloatLiteral,
@@ -307,8 +307,6 @@ string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 			return "Expected a newline or dedent.";
 		case ParseDiag.Expected.Kind.openParen:
 			return "Expected '('.";
-		case ParseDiag.Expected.Kind.then:
-			return "Expected '<-'.";
 		case ParseDiag.Expected.Kind.questionEqual:
 			return "Expected '?='.";
 		case ParseDiag.Expected.Kind.quoteDouble:
@@ -699,22 +697,17 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.FunPointerExprMustBeName) {
 			writer ~= "Function pointer expression must be a plain identifier ('&f').";
 		},
-		(in Diag.FunPointerNotSupported x) {
-			final switch (x.reason) {
-				case Diag.FunPointerNotSupported.Reason.multiple:
-					writer ~= "There are multiple functions named ";
-					writeName(writer, ctx, x.name);
-					writer ~= " in scope.";
-					break;
-				case Diag.FunPointerNotSupported.Reason.spec:
-					writeName(writer, ctx, x.name);
-					writer ~= " comes from a spec signature.";
-					break;
-				case Diag.FunPointerNotSupported.Reason.template_:
-					writeName(writer, ctx, x.name);
-					writer ~= " is a template.";
-			}
-			writer ~= " This is not currently supported for function pointers.";
+		(in Diag.FunPointerNoMatch x) {
+			writer ~= "Could not find a function '";
+			writer ~= x.name;
+			writer ~= ' ';
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.returnAndParamTypes.returnType, x.typeContainer));
+			writer ~= '(';
+			writeWithCommas!Type(writer, x.returnAndParamTypes.paramTypes, (in Type t) {
+				writer ~= "_ ";
+				writeTypeUnquoted(writer, ctx, TypeWithContainer(t, x.typeContainer));
+			});
+			writer ~= ")'.";
 		},
 		(in Diag.IfThrow) {
 			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
@@ -1130,8 +1123,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				final switch (x.reason) {
 					case Diag.SharedNotExpected.Reason.notShared:
 						return "Expected type is a lambda, but it is not 'shared'.";
-					case Diag.SharedNotExpected.Reason.notFuture:
-						return "In order for 'shared' to work, it needs to return a future.";
 				}
 			}();
 			writer ~= '\n';
@@ -1276,8 +1267,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to writer 'r function(x p)' instead of '(r, p) fun-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.funShared:
 						return "Prefer to write 'r shared(x p)' instead of '(r, p) fun-shared'.";
-					case Diag.TypeShouldUseSyntax.Kind.future:
-						return "Prefer to write 't^' instead of 't future'.";
 					case Diag.TypeShouldUseSyntax.Kind.list:
 						return "Prefer to write 't[]' instead of 't list'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
@@ -1550,8 +1539,6 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected '->'.";
 		case Token.arrowLambda:
 			return "Unexpected '=>'.";
-		case Token.arrowThen:
-			return "Unexpected '<-'.";
 		case Token.as:
 			return "Unexpected keyword 'as'.";
 		case Token.assert_:

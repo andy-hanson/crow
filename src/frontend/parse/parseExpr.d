@@ -7,11 +7,10 @@ import frontend.parse.lexer :
 	addDiagUnexpectedCurToken,
 	curPos,
 	ElifOrElseKeyword,
-	EqualsOrThen,
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
-	lookaheadEqualsOrThen,
+	lookaheadEquals,
 	lookaheadLambda,
 	lookaheadNameColon,
 	lookaheadQuestionEquals,
@@ -84,7 +83,6 @@ import model.ast :
 	PtrAst,
 	SeqAst,
 	SharedAst,
-	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TryAst,
@@ -153,7 +151,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.alias_:
 		case Token.arrowAccess:
 		case Token.arrowLambda:
-		case Token.arrowThen:
 		case Token.as:
 		case Token.at:
 		case Token.bare:
@@ -1027,10 +1024,9 @@ public ExprAst parseSingleStatementLine(ref Lexer lexer) {
 		case Token.while_:
 			takeNextToken(lexer);
 			return parseLoopWhileOrUntil(lexer, start, isUntil: token == Token.until);
-		default: {
-			Opt!EqualsOrThen et = lookaheadEqualsOrThen(lexer);
-			if (has(et))
-				return parseEqualsOrThen(lexer, force(et));
+		default:
+			if (lookaheadEquals(lexer))
+				return parseEquals(lexer);
 			else if (lookaheadNameColon(lexer))
 				return parseNamedCall(lexer, start);
 			else {
@@ -1040,7 +1036,6 @@ public ExprAst parseSingleStatementLine(ref Lexer lexer) {
 					? parseAssignment(lexer, start, expr, assignmentPos)
 					: parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls()));
 			}
-		}
 	}
 }
 
@@ -1060,27 +1055,17 @@ ExprAst parseNamedCall(ref Lexer lexer, Pos start) {
 			CallNamedAst(finish(lexer.alloc, names), finish(lexer.alloc, values))));
 }
 
-ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
+ExprAst parseEquals(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.try_))
 		return parseTryLet(lexer, start);
 	else {
-		final switch (kind) {
-			case EqualsOrThen.equals:
-				DestructureAst left = parseDestructureNoRequireParens(lexer);
-				takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(
-					lexer, Token.equal, ParseDiag.Expected.Kind.equals);
-				ExprAst init = parseExprNoLet(lexer);
-				ExprAst then = parseNextLinesOrEmpty(lexer);
-				return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
-			case EqualsOrThen.then:
-				DestructureAndEndTokenPos param =
-					parseForThenOrWithParameter(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
-				ExprAst future = parseExprNoLet(lexer);
-				ExprAst then = parseNextLinesOrEmpty(lexer);
-				return ExprAst(range(lexer, start), ExprAstKind(
-					allocate(lexer.alloc, ThenAst(param.destructure, param.endTokenPos, future, then))));
-		}
+		DestructureAst left = parseDestructureNoRequireParens(lexer);
+		takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(
+			lexer, Token.equal, ParseDiag.Expected.Kind.equals);
+		ExprAst init = parseExprNoLet(lexer);
+		ExprAst then = parseNextLinesOrEmpty(lexer);
+		return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
 	}
 }
 

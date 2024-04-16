@@ -23,6 +23,5 @@ test
 	try
 		finally throw "thrown second" error
 		throw "thrown first" error
-		()::void
 	catch error e
 		e is "thrown second"

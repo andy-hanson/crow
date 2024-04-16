@@ -3,15 +3,6 @@ Functions for operating on paths.
 There is technically no I/O here; for functions like reading from a path, see `crow/io/file`.
 ###
 
-no-std
-import
-	../col/collection: last-iter-of, slice-left, slice-right
-	../json: to
-	../option: ==, ??, force, new, option
-	../string: ==, begin, collection, end, interpolate, next, prev, slice, string, to
-	../test-util: is
-	../tuple: b
-
 ###
 Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
@@ -29,10 +20,13 @@ Gets the extension from a file name or path.
 Returns an empty option if there is no extension.
 ###
 +get-extension string?(name string)
-	if x ?= name last-iter-of "."
-		x.next!.b.slice-right,
+	guard iter ?= name find-last-iter x => x == "." || x == "/"
+	x, after = iter.next!
+	guard x == "."
+	after.slice-right,
 test
 	"birds/crow.txt".get-extension is ("txt",)
+	"x.y/crow".get-extension is ()
 
 ###
 Removes the extension from a file name or path.

@@ -79,6 +79,7 @@ this contribues to its performance measurement.
 	res
 
 # List of all names being measured
+# TODO: STORE THIS ON THE FIBER. AND REMEMBER TO GC TRACE IT ------------------------------------------------------------
 -measure-names thread-local(symbol array)
 # Parallel to measure-names
 -measure-accums thread-local(measure-accum mut-array)

@@ -19,7 +19,6 @@ test
 	assert x ?= xs pop
 	x is 1
 	forbid y ?= xs pop : "popped {y}".error
-	()::void
 
 test
 	try

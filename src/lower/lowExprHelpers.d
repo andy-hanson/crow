@@ -188,6 +188,7 @@ private BuiltinUnary bitwiseNegateForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
+		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -212,6 +213,7 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
+		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -244,6 +246,7 @@ private BuiltinBinary intersectForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
+		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -272,6 +275,7 @@ private BuiltinBinary unionForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
+		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:

@@ -348,8 +348,6 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 				return fun(FunKind.function_);
 			case Diag.TypeShouldUseSyntax.Kind.funShared:
 				return fun(FunKind.shared_);
-			case Diag.TypeShouldUseSyntax.Kind.future:
-				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:
 				return suffix("[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutMap:

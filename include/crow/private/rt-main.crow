@@ -3,25 +3,25 @@ import
 	../col/array: +, -, array, begin, end, iterate, size, slice, subscript
 	../col/collection: .., end, for-loop, subscript
 	../col/list: ~=, build, list
+	../exception: catch-all, to
 	../fun-util: subscript
-	../future: delay, future, handle-exceptions, then
+	../future: future, parallel, with-block
+	../io/print: err, print, print-no-newline
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../string: c-string, string, to
+	../string: c-string, interpolate, string, to
 	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./future-low-level: get-result
-	./runtime:
-		after-task, any-unhandled-exceptions, before-task, destroy, get-global-ctx, global-ctx,
-		init, thread-function, uninit
+	./future-low-level: must-get-result
+	./runtime: before-task, destroy, get-global-ctx, global-ctx, init, thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 -main-pointer alias
-	nat64^ function(args string[])
+	nat64 function(args string[])
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe
@@ -31,21 +31,9 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	&gctx init
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
-	res = &gctx exit-code-from-main-fut main-fut
+	res int32 = main-fut.must-get-result.to # TODO: appropriate error for exit code too big for int32
 	&gctx destroy
 	res
-
--exit-code-from-main-fut int32(gctx global-ctx*, main-fut nat64^) bare, unsafe
-	match main-fut get-result
-	as ok v
-		# TODO: handle nat64 too big for int32
-		if gctx->any-unhandled-exceptions
-			1
-		else
-			v to
-	as error _
-		# 'handle-exceptions' should have logged the error
-		1
 
 # TODO:KILL (using this to narrow down scope of error)
 -do-init-constants void() bare, summon, unsafe
@@ -53,37 +41,28 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 
 init-constants void() builtin, bare, summon, unsafe
 
--add-main-task nat64^(
+-add-main-task nat64 future(
 	gctx global-ctx mut*,
 	argc int32,
 	argv c-string*,
 	main-pointer main-pointer,
-) bare
-	# Create a ctx manually so we can call functions that need it when creating the task
-	trusted
-		gctx before-task 0
-		all-args = argv[0 .. argc.to]
-		res = all-args invoke-main main-pointer
-		after-task
-		res
+) bare, summon, trusted
+	all-args = argv[0 .. argc.to]
+	gctx before-task # Fake a ctx
+	all-args invoke-main main-pointer
 
--invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
-	all-args add-first-task main-pointer
+-invoke-main nat64 future(all-args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
+	with : parallel
+		get-global-ctx init-symbol-table
+		match (() => main-pointer[for arg : all-args[1 .. end]; arg to]) catch-all
+		as ok x
+			x
+		as error x
+			err print-no-newline "Uncaught exception in main: "
+			err print "{x}"
+			1
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
-
-# TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
-# We want main-fut to be available immediately, not after having run some user code.
-# So we create main-fut now, and forward the result of 'main' to that.
--add-first-task nat64^(all-args c-string array, main-pointer main-pointer) unsafe
-	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
-	# TODO: 'then' overload for void^ taking lambda with 0 params
-	res nat64^ = delay then () =>
-		get-global-ctx init-symbol-table
-		# First argument is the path to this executable; omit from crow main
-		main-pointer[for arg : all-args[1 .. end]; arg to]
-	res handle-exceptions
-	res
 
 # Each thread will get the thread ID, and the common arguments.
 -run-threads void(n-threads nat64, gctx global-ctx mut*) bare, summon, unsafe
