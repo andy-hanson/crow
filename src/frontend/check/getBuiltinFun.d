@@ -8,6 +8,7 @@ import frontend.check.instantiate : isOptionType;
 import model.constant : constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
+	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
@@ -65,6 +66,10 @@ FunBody inner(
 		arity == 1 && kind != failUnary ? FunBody(BuiltinFun(kind)) : fail();
 	FunBody binary(BuiltinBinary kind) =>
 		arity == 2 && kind != failBinary ? FunBody(BuiltinFun(kind)) : fail();
+	FunBody ternary(BuiltinTernary kind) =>
+		arity == 3 ? FunBody(BuiltinFun(kind)) : fail();
+	FunBody fourary(Builtin4ary kind) =>
+		arity == 4 ? FunBody(BuiltinFun(kind)) : fail();
 
 	bool isUnaryFloat32() =>
 		arity == 1 && isFloat32(rt) && isFloat32(p0);
@@ -105,7 +110,7 @@ FunBody inner(
 				: isBinaryFloat64()
 				? BuiltinBinary.addFloat64
 				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.addPtrAndNat64
+				? BuiltinBinary.addPointerAndNat64
 				: failBinary);
 		case symbol!"-".value:
 			return binary(isFloat32(rt)
@@ -113,7 +118,7 @@ FunBody inner(
 				: isBinaryFloat64()
 				? BuiltinBinary.subFloat64
 				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.subPtrAndNat64
+				? BuiltinBinary.subPointerAndNat64
 				: failBinary);
 		case symbol!"*".value:
 			return isPointerConstOrMut(p0)
@@ -138,7 +143,7 @@ FunBody inner(
 				isInt64(p0) ? BuiltinBinary.eqInt64 :
 				isFloat32(p0) ? BuiltinBinary.eqFloat32 :
 				isFloat64(p0) ? BuiltinBinary.eqFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.eqPtr :
+				isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
 				failBinary);
 		case symbol!"&&".value:
 			return binaryLazy(isBool(rt) && isBool(p0) && isBool(p1) ? BuiltinBinaryLazy.boolAnd : failBinaryLazy);
@@ -252,7 +257,7 @@ FunBody inner(
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
 		case symbol!"interpreter-backtrace".value:
-			return FunBody(BuiltinFun(BuiltinTernary.interpreterBacktrace));
+			return ternary(BuiltinTernary.interpreterBacktrace);
 		case symbol!"is-less".value:
 			return binary(
 				isInt8(p0) ? BuiltinBinary.lessInt8 :
@@ -265,13 +270,17 @@ FunBody inner(
 				isNat64(p0) ? BuiltinBinary.lessNat64 :
 				isFloat32(p0) ? BuiltinBinary.lessFloat32 :
 				isFloat64(p0) ? BuiltinBinary.lessFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.lessPtr :
+				isPointerConstOrMut(p0) ? BuiltinBinary.lessPointer :
 				failBinary);
+		case symbol!"mark-root".value:
+			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
+		case symbol!"jump-to-catch".value:
+			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))
@@ -279,11 +288,13 @@ FunBody inner(
 		case symbol!"null".value:
 			return FunBody(BuiltinFun(constantZero));
 		case symbol!"reference-equal".value:
-			return binary(BuiltinBinary.eqPtr);
+			return binary(BuiltinBinary.eqPointer);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
 		case symbol!"set-deref".value:
-			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPtr : failBinary);
+			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
+		case symbol!"setup-catch".value:
+			return unary(BuiltinUnary.setupCatch);
 		case symbol!"sin".value:
 			return unaryMath(BuiltinUnaryMath.sinFloat32, BuiltinUnaryMath.sinFloat64);
 		case symbol!"sinh".value:
@@ -441,13 +452,21 @@ FunBody inner(
 			return FunBody(BuiltinFun(constantZero));
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPtr);
-		case symbol!"init-constants".value:
-			return FunBody(BuiltinFun(BuiltinFun.InitConstants()));
+		case symbol!"global-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();
+		case symbol!"per-thread-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.perThread))) : fail();
+		case symbol!"reference-from-pointer".value:
+			return unary(BuiltinUnary.referenceFromPointer);
 		case symbol!"pointer-cast-from-extern".value:
 		case symbol!"pointer-cast-to-extern".value:
 			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
 		case symbol!"static-symbols".value:
 			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
+		case symbol!"switch-fiber".value:
+			return binary(BuiltinBinary.switchFiber);
+		case symbol!"switch-fiber-initial".value:
+			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"truncate-to".value:
 			return unary(isFloat64(p0)
 				? BuiltinUnary.truncateToInt64FromFloat64

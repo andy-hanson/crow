@@ -46,9 +46,9 @@ IndentKind detectIndentKind(in CString a) {
 				// Only allowed amounts are 2 and 4.
 				return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 			default:
-				while (!cStringIsEmpty(ptr) && !isNewlineChar(*ptr))
+				while (!cStringIsEmpty(ptr) && *ptr != '\n')
 					ptr++;
-				if (isNewlineChar(*ptr))
+				if (*ptr == '\n')
 					ptr++;
 				continue;
 		}
@@ -56,7 +56,7 @@ IndentKind detectIndentKind(in CString a) {
 }
 
 void skipUntilNewline(scope ref MutCString ptr) {
-	while (!isNewlineChar(*ptr) && *ptr != '\0')
+	while (!cStringIsEmpty(ptr) && *ptr != '\n')
 		ptr++;
 }
 
@@ -234,9 +234,6 @@ void skipBlankLines(
 			break;
 	}
 }
-
-bool isNewlineChar(char c) =>
-	c == '\r' || c == '\n';
 
 void skipRestOfLineAndNewline(ref MutCString ptr) {
 	skipUntilNewline(ptr);

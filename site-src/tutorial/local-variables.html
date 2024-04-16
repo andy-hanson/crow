@@ -130,21 +130,19 @@
 		have a type annotation, be ignored, or even be another destructuring.
 	</p>
 	<p>
-		Parameters are local variables and support all of the same features.
+		A parameters can also use destructuring, though it can't be <code class="keyword">mut</code>.
 	</p>
 	<crow-runnable>
 		main void()
 			x (string, string) = "hello", "world"
 			info log x.greet
 
-		greet string((greeting mut string, target string))
-			# This mutates the local 'greeting', not the original tuple.
-			greeting := "aloha"
+		greet string((greeting string, target string))
 			"Tell {target} I said {greeting}"
 	</crow-runnable>
 
 	<aside class="small">
-		Since both halves of the destructuring had type annotations,
+		Since both halves of the destructuring <code>(greeting string, target string)</code> have type annotations,
 		there's no need for a redundant <code>(string, string)</code> type annotation for the parameter.
 	</aside>
 </section>

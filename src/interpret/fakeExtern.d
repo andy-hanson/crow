@@ -20,10 +20,11 @@ import interpret.extern_ :
 import interpret.runBytecode : syntheticCallWithStacks;
 import interpret.stacks : dataPopN, dataPush, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
-import util.alloc.alloc : Alloc, allocateBytes;
+import util.alloc.alloc : Alloc, allocateBytes, allocateZeroedBytes;
 import util.col.array : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
+import util.conv : safeMul;
 import util.memory : memmove, memset;
 import util.opt : has, none, Opt, optOrDefault, some;
 import util.symbol : Symbol, symbol;
@@ -92,6 +93,11 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 	scope const(ulong)[] args = dataPopN(stacks, countParameterEntries(sig));
 	if (ptr == &free) {
 		assert(args.length == 1);
+	} else if (ptr == &calloc) {
+		assert(args.length == 2);
+		size_t nElems = cast(size_t) args[0];
+		size_t sizeofElem = cast(size_t) args[1];
+		dataPush(stacks, cast(ulong) allocateZeroedBytes(alloc, safeMul(nElems, sizeofElem)).ptr);
 	} else if (ptr == &malloc) {
 		assert(args.length == 1);
 		dataPush(stacks, cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr);
@@ -143,6 +149,8 @@ Opt!FunPointer getFakeExternFunC(Symbol name) {
 	switch (name.value) {
 		case symbol!"abort".value:
 			return some(FunPointer(&abort));
+		case symbol!"calloc".value:
+			return some(FunPointer(&calloc));
 		case symbol!"clock_gettime".value:
 			return some(FunPointer(&clockGetTime));
 		case symbol!"free".value:
@@ -158,23 +166,16 @@ Opt!FunPointer getFakeExternFunC(Symbol name) {
 			return some(FunPointer(&memset));
 		case symbol!"write".value:
 			return some(FunPointer(&write));
-		case symbol!"longjmp".value:
-		case symbol!"setjmp".value:
-			// these are treated specially by the interpreter
-			return some(FunPointer(&wontBeCalled));
 		default:
 			return none!FunPointer;
 	}
 }
 
-void wontBeCalled() {
-	assert(false);
-}
-
 // Just used as fake funtion pointers, actual implementation in callFakeExternFun
-void free() {}
-void malloc() {}
-void write() {}
+void free() { assert(false); }
+void calloc() { assert(false); }
+void malloc() { assert(false); }
+void write() { assert(false); }
 
 void abort() {
 	debugLog("program aborted");

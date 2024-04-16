@@ -2,16 +2,19 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.candidates : eachFunInScope;
+import frontend.check.checkCall.candidates :
+	Candidate, eachFunInScope, funsInScope, testCandidateForSpecSig, withCandidates;
 import frontend.check.checkCall.checkCall :
 	checkCall,
+	checkCallAfterChoosingOverload,
 	checkCallArgAnd2Lambdas,
 	checkCallArgAndLambda,
 	checkCallIdentifier,
 	checkCallNamed,
 	checkCallSpecial,
 	checkCallSpecialCb1,
-	checkCallSpecialCbN;
+	checkCallSpecialCbN,
+	filterCandidateByExplicitTypeArg;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
 import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
@@ -51,15 +54,13 @@ import frontend.check.inferringType :
 	TypeContext,
 	withCopyWithNewExpectedType,
 	withExpect,
-	withExpectAndInfer,
 	withExpectLoop,
 	withExpectOption,
 	withInfer;
-import frontend.check.instantiate :
-	instantiateFun, instantiateSpec, instantiateStructNeverDelay, instantiateType, noDelayStructInsts;
+import frontend.check.instantiate : instantiateSpec, instantiateStructNeverDelay, instantiateType, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
-	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure;
+	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure, unpackTuple;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -92,15 +93,16 @@ import model.ast :
 	LoopContinueAst,
 	LoopWhileOrUntilAst,
 	MatchAst,
+	NameAndRange,
 	ParenthesizedAst,
 	PtrAst,
 	SeqAst,
 	SharedAst,
-	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TryAst,
 	TryLetAst,
+	TypeAst,
 	TypedAst,
 	WithAst;
 import model.constant : Constant;
@@ -113,7 +115,6 @@ import model.model :
 	BuiltinUnary,
 	Called,
 	CalledDecl,
-	CalledSpecSig,
 	CallExpr,
 	CharType,
 	ClosureGetExpr,
@@ -122,9 +123,7 @@ import model.model :
 	CommonTypes,
 	Condition,
 	Destructure,
-	emptySpecImpls,
 	emptySpecs,
-	emptyTypeArgs,
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	Expr,
@@ -150,6 +149,7 @@ import model.model :
 	Local,
 	LocalGetExpr,
 	localMustHaveNameRange,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LocalMutability,
 	LoopBreakExpr,
@@ -162,17 +162,16 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Mutability,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	Purity,
 	purityRange,
+	ReturnAndParamTypes,
 	SeqExpr,
 	SpecDecl,
 	Specs,
 	StructBody,
 	StructDecl,
 	StructInst,
-	Test,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -189,6 +188,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	arrayOfSingle,
 	contains,
+	copyArray,
 	every,
 	exists,
 	indexOf,
@@ -247,15 +247,10 @@ Expr checkFunctionBody(
 	return res;
 }
 
-immutable struct TestBody {
-	Expr body_;
-	Test.BodyType type;
-}
-
-TestBody checkTestBody(
+Expr checkTestBody(
 	ref CheckCtx checkCtx,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	in CommonTypes commonTypes,
+	ref CommonTypes commonTypes,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
 	TypeContainer typeContainer,
@@ -273,16 +268,7 @@ TestBody checkTestBody(
 		emptyTypeParams,
 		flags);
 	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
-	ExprAndType body_ = withExpectAndInfer(
-		[Type(commonTypes.void_), Type(commonTypes.voidFuture)],
-		(ref Expected expected) =>
-			checkExpr(castNonScope_ref(exprCtx), locals, ast, expected));
-	Test.BodyType bodyType = body_.type == Type(commonTypes.void_)
-		? Test.BodyType.void_
-		: body_.type == Type(commonTypes.voidFuture)
-		? Test.BodyType.voidFuture
-		: Test.bodyType.bogus;
-	return TestBody(castNonScope_ref(body_).expr, bodyType);
+	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
 }
 
 Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expected expected) =>
@@ -343,8 +329,6 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkSeq(ctx, locals, ast, a, expected),
 		(SharedAst* a) =>
 			checkShared(ctx, locals, ast, a, expected),
-		(ThenAst* a) =>
-			checkThen(ctx, locals, ast, a, expected),
 		(ThrowAst* a) =>
 			checkThrow(ctx, locals, ast, a, expected),
 		(TrustedAst* a) =>
@@ -973,11 +957,12 @@ Opt!Expr checkWithLocal(
 		locals.lambda,
 		someMut(ptrTrustMe(localNode)));
 	Opt!Expr res = cb(newLocals);
-	if (localNode.local.mutability == LocalMutability.mutOnStack &&
+	if (localNode.local.mutability.isA!(LocalMutability.MutableOnStack) &&
 		(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
 		 localNode.isUsed[LocalAccessKind.setThroughClosure])) {
-		//TODO:BETTER
-		overwriteMemory(&local.mutability, LocalMutability.mutAllocated);
+		// TODO: Better way than overwriteMemory?
+		overwriteMemory(&local.mutability, LocalMutability(LocalMutability.MutableAllocated(
+			instantiateStructNeverDelay(ctx.instantiateCtx, ctx.commonTypes.reference, [local.type]))));
 	}
 	addUnusedLocalDiags(ctx, local, localNode);
 	return res;
@@ -986,7 +971,7 @@ Opt!Expr checkWithLocal(
 void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node) {
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
-	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
+	if (!isGot || (!isSet && local.isMutable))
 		addDiag2(ctx, localMustHaveNameRange(*local), Diag(
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
@@ -997,14 +982,17 @@ Expr checkPointer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAs
 			addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.pointer)));
 			return bogus(expected, source);
 		},
-		(ExpectedPointee.FunPointer) =>
-			checkFunPointer(ctx, source, *ast, expected),
+		(ExpectedPointee.FunPointer x) =>
+			checkFunPointer(ctx, locals, source, *ast, x, expected),
 		(ExpectedPointee.Pointer x) =>
 			checkPointerInner(ctx, locals, source, ast, x.pointer, x.pointee, x.mutability, expected));
 
 immutable struct ExpectedPointee {
 	immutable struct None {}
-	immutable struct FunPointer {}
+	immutable struct FunPointer {
+		Type returnType;
+		Type paramTypes;
+	}
 	immutable struct Pointer {
 		Type pointer;
 		Type pointee;
@@ -1018,15 +1006,16 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected)
 	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
-		if (inst.decl == ctx.commonTypes.ptrConst)
+		if (inst.decl == ctx.commonTypes.pointerConst)
 			return ExpectedPointee(ExpectedPointee.Pointer(
 				Type(inst), only(inst.typeArgs), PointerMutability.readOnly));
-		else if (inst.decl == ctx.commonTypes.ptrMut)
+		else if (inst.decl == ctx.commonTypes.pointerMut)
 			return ExpectedPointee(ExpectedPointee.Pointer(
 				Type(inst), only(inst.typeArgs), PointerMutability.writeable));
-		else if (inst.decl == ctx.commonTypes.funPtrStruct)
-			return ExpectedPointee(ExpectedPointee.FunPointer());
-		else
+		else if (inst.decl == ctx.commonTypes.funPointerStruct) {
+			assert(inst.typeArgs.length == 2);
+			return ExpectedPointee(ExpectedPointee.FunPointer(inst.typeArgs[0], inst.typeArgs[1]));
+		} else
 			return ExpectedPointee(ExpectedPointee.None());
 	} else
 		return ExpectedPointee(ExpectedPointee.None());
@@ -1047,11 +1036,11 @@ Expr checkPointerInner(
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);
 	if (inner.kind.isA!LocalGetExpr) {
 		Local* local = inner.kind.as!LocalGetExpr.local;
-		if (local.mutability < expectedMutability)
+		if (expectedMutability != PointerMutability.readOnly && !local.isMutable)
 			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.writeable)
 			markIsUsedSetOnStack(locals, local);
-		return check(ctx, expected, pointerType, source, ExprKind(PtrToLocalExpr(local)));
+		return check(ctx, expected, pointerType, source, ExprKind(LocalPointerExpr(local)));
 	} else if (inner.kind.isA!CallExpr)
 		return checkPointerOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
@@ -1087,7 +1076,7 @@ Expr checkPointerOfCall(
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
 				return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
 			} else if (target.kind.isA!CallExpr) {
 				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
@@ -1103,7 +1092,7 @@ Expr checkPointerOfCall(
 						return bogus(expected, source);
 					} else
 						return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-							PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
 				} else
 					return fail();
 			} else
@@ -1123,62 +1112,111 @@ bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
 }
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
-	if (a == ctx.commonTypes.ptrConst)
+	if (a == ctx.commonTypes.pointerConst)
 		return PointerMutability.readOnly;
 	else {
-		assert(a == ctx.commonTypes.ptrMut);
+		assert(a == ctx.commonTypes.pointerMut);
 		return PointerMutability.writeable;
 	}
 }
 
-Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expected expected) {
-	Opt!(FunDecl*) fun = getFunDeclFromExpr(ctx, ast.inner);
-	return has(fun) ? checkFunPointerInner(ctx, source, force(fun), expected) : bogus(expected, source);
+Expr checkFunPointer(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	ExprAst* source,
+	in PtrAst ast,
+	ExpectedPointee.FunPointer expectedPointee,
+	ref Expected expected,
+) {
+	Opt!NameAndTypeArg name = getNameAndTypeArg(ast.inner);
+	if (has(name))
+		return checkFunPointerInner(
+			ctx, locals, source, force(name).name, force(name).typeArg, expectedPointee, expected);
+	else {
+		addDiag2(ctx, source.range, Diag(Diag.FunPointerExprMustBeName()));
+		return bogus(expected, source);
+	}
 }
 
-Opt!(FunDecl*) getFunDeclFromExpr(ref ExprCtx ctx, in ExprAst ast) {
+immutable struct NameAndTypeArg {
+	NameAndRange name;
+	Opt!(TypeAst*) typeArg;
+}
+Opt!NameAndTypeArg getNameAndTypeArg(in ExprAst ast) {
 	if (ast.kind.isA!IdentifierAst)
-		return funWithName(ctx, ast.range, ast.kind.as!IdentifierAst.name);
+		return some(NameAndTypeArg(NameAndRange(ast.range.start, ast.kind.as!IdentifierAst.name), none!(TypeAst*)));
+	else if (ast.kind.isA!CallAst) {
+		CallAst call = ast.kind.as!CallAst;
+		return optIf(call.style == CallAst.Style.single && isEmpty(call.args), () =>
+			NameAndTypeArg(call.funName, call.typeArg));
+	} else
+		return none!NameAndTypeArg;
+}
+
+Expr checkFunPointerInner(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	ExprAst* source,
+	NameAndRange name,
+	Opt!(TypeAst*) typeArg,
+	ExpectedPointee.FunPointer expectedPointee,
+	ref Expected expected,
+) {
+	Opt!Called optCalled = findFunctionForPointer(ctx, locals, name, typeArg, expectedPointee);
+	if (!has(optCalled))
+		return bogus(expected, source);
 	else {
-		addDiag2(ctx, ast.range, Diag(Diag.FunPointerExprMustBeName()));
-		return none!(FunDecl*);
+		Called called = force(optCalled);
+		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
+		StructInst* structInst = instantiateStructNeverDelay(
+			ctx.instantiateCtx, ctx.commonTypes.funPointerStruct, [called.returnType, paramType]);
+		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
 	}
 }
 
-Expr checkFunPointerInner(ref ExprCtx ctx, ExprAst* source, FunDecl* funDecl, ref Expected expected) {
-	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
-	Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, funInst.paramTypes, () => source.range);
-	StructInst* structInst = instantiateStructNeverDelay(
-		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(funInst)));
+Out withReturnAndParamTypes(Out)(
+	ref CommonTypes commonTypes,
+	ExpectedPointee.FunPointer a,
+	in Out delegate(in ReturnAndParamTypes) @safe @nogc pure nothrow cb,
+) {
+	scope Type[] paramTypes = unpackTuple(commonTypes, &a.paramTypes);
+	return withStackArray(
+		paramTypes.length + 1,
+		(size_t i) => i == 0 ? a.returnType : paramTypes[i - 1],
+		(scope Type[] xs) => cb(ReturnAndParamTypes(small!Type(xs))));
 }
 
-Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
-	MutOpt!(FunDecl*) res = MutOpt!(FunDecl*)();
-	MutOpt!(Diag.FunPointerNotSupported.Reason) diag = noneMut!(Diag.FunPointerNotSupported.Reason);
-	eachFunInScope(ctx, name, (CalledDecl cd) {
-		cd.matchWithPointers!void(
-			(FunDecl* x) {
-				markUsed(ctx.checkCtx, x);
-				if (has(res))
-					diag = someMut(Diag.FunPointerNotSupported.Reason.multiple);
-				else if (x.isTemplate)
-					diag = someMut(Diag.FunPointerNotSupported.Reason.template_);
-				res = someMut(x);
-			},
-			(CalledSpecSig _) {
-				diag = someMut(Diag.FunPointerNotSupported.Reason.spec);
+Opt!Called findFunctionForPointer(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	NameAndRange name,
+	Opt!(TypeAst*) typeArgAst,
+	ExpectedPointee.FunPointer expected,
+) {
+	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
+	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) {
+		size_t arity = returnAndParamTypes.paramTypes.length;
+		return withCandidates!(Opt!Called)(
+			funsInScope(ctx),
+			name.name,
+			arity,
+			(scope ref Candidate x) =>
+				(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, x, force(typeArg))) &&
+				testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
+			(scope Candidate[] candidates) {
+				if (candidates.length != 1) {
+					// TODO: If there is a function with the name, at least indicate that in the diag
+					addDiag2(ctx, name.range, candidates.length == 0
+						? Diag(Diag.FunPointerNoMatch(
+							name.name, ctx.typeContainer,
+							ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
+						: Diag(Diag.CallMultipleMatches(name.name, ctx.typeContainer,
+							map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
+					return none!Called;
+				} else
+					return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), name.range, arity));
 			});
-	});
-	if (has(diag)) {
-		addDiag2(ctx, range, Diag(Diag.FunPointerNotSupported(force(diag), name)));
-		return none!(FunDecl*);
-	} else if (has(res))
-		return some(force(res));
-	else {
-		addDiag2(ctx, range, Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.function_, name)));
-		return none!(FunDecl*);
-	}
+ 	});
 }
 
 Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SharedAst* ast, ref Expected expected) {
@@ -1202,11 +1240,6 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 		return bogus(expected, source);
 	}
 
-	if (!isFuture(ctx, et.funType.returnType)) {
-		diag(Diag(Diag.SharedNotExpected(Diag.SharedNotExpected.Reason.notFuture, getExpectedForDiag(ctx, expected))));
-		return bogus(expected, source);
-	}
-
 	LambdaAndReturnType res = checkLambdaInner(
 		ctx, locals, &ast.inner, &inner.param, &inner.body_, expected,
 		some(instantiateStructNeverDelay(
@@ -1225,14 +1258,11 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 			Diag.SharedLambdaTypeIsNotShared.Kind.returnType, typeWithContainer(ctx, res.returnType))));
 
 	bool allShared = every!VariableRef(res.expr.kind.as!(LambdaExpr*).closure, (in VariableRef x) =>
-		x.mutability == LocalMutability.immut && isShared(ctx.outermostFunSpecs, x.type));
+		x.mutability.isImmutable && isShared(ctx.outermostFunSpecs, x.type));
 	if (allShared)
 		diag(Diag(Diag.SharedLambdaUnused()));
 	return res.expr;
 }
-
-bool isFuture(in ExprCtx ctx, in Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*).decl == ctx.commonTypes.future;
 
 Expr checkLambda(
 	ref ExprCtx ctx,
@@ -2017,9 +2047,6 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			hasBreakOrContinue(x.then),
 		(in SharedAst x) =>
 			false,
-		// TODO: Maybe this should be allowed some day. Not in primitive loop but in for-break.
-		(in ThenAst x) =>
-			hasBreakOrContinue(x.then),
 		(in ThrowAst _) =>
 			false,
 		(in TrustedAst _) =>
@@ -2050,10 +2077,6 @@ Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, WithAst*
 	return checkCallArgAndLambda(
 		ctx, locals, source, keywordRange, symbol!"with-block", &ast.arg, &ast.param, &ast.body_, expected);
 }
-
-Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThenAst* ast, ref Expected expected) =>
-	checkCallArgAndLambda(
-		ctx, locals, source, ast.keywordRange, symbol!"then", &ast.futExpr, &ast.left, &ast.then, expected);
 
 Expr checkFinally(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, FinallyAst* ast, ref Expected expected) {
 	if (has(tryGetLoop(expected))) {

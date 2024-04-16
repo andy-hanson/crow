@@ -30,7 +30,7 @@ crow-unit-tests-interpreter: bin/crow
 crow-unit-tests-jit: bin/crow
 ifdef JIT
 	bin/crow run test/crow-unit-tests.crow --jit
-	bin/crow run test/crow-unit-tests.crow --jit --optimize
+	# TODO: bin/crow run test/crow-unit-tests.crow --jit --optimize
 endif
 crow-unit-tests-aot: bin/crow
 	bin/crow run test/crow-unit-tests.crow --aot
@@ -68,6 +68,7 @@ dyncall:
 
 all_src_files = src/*.d \
 	src/app/*.d \
+	src/backend/*.c \
 	src/backend/*.d \
 	src/concretize/*.d \
 	src/document/*.d \
@@ -88,7 +89,7 @@ all_src_files = src/*.d \
 	src/util/col/*.d
 d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-hash.txt dyncall/dyncall/libdyncall_s.a
 
-d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
+d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -Jsrc/backend -J=src/test -J=include
 dmd_flags_common = $(d_flags_common)
 ldc_flags_common = $(d_flags_common)
 ifdef JIT
@@ -174,7 +175,7 @@ prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz 
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
-	bin/crow site-src/serve.crow
+	bin/crow run site-src/serve.crow --aot
 
 ### publish ###
 

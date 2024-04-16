@@ -19,11 +19,12 @@ import util.col.array : every;
 import util.col.fullIndexMap :
 	FullIndexMap, fullIndexMapEachKey, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
-import util.util : isMultipleOf;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
-	foreach (ref LowExternType x; program.allExternTypes)
-		writers.cbWriteExternWithSize(x.source, getElementAndCountForExtern(typeSize(x)));
+	foreach (ref LowExternType x; program.allExternTypes) {
+		TypeSize size = typeSize(x);
+		writers.cbWriteExternWithSize(x.source, size.alignmentBytes == 0 ? none!TypeSize : some(size));
+	}
 
 	// TODO: use a temp alloc...
 	scope StructStates structStates = StructStates(
@@ -85,34 +86,10 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 
 immutable struct TypeWriters {
 	void delegate(ConcreteStruct*) @safe @nogc pure nothrow cbDeclareStruct;
-	void delegate(ConcreteStruct*, in Opt!ElementAndCount) @safe @nogc pure nothrow cbWriteExternWithSize;
+	void delegate(ConcreteStruct*, in Opt!TypeSize) @safe @nogc pure nothrow cbWriteExternWithSize;
 	void delegate(LowType.FunPointer, in LowFunPointerType) @safe @nogc pure nothrow cbWriteFunPointer;
 	void delegate(LowType.Record, in LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(LowType.Union, in LowUnion) @safe @nogc pure nothrow cbWriteUnion;
-}
-
-immutable struct ElementAndCount {
-	PrimitiveType elementType;
-	size_t count;
-}
-Opt!ElementAndCount getElementAndCountForExtern(TypeSize size) {
-	switch (size.alignmentBytes) {
-		case 0:
-			return none!ElementAndCount;
-		case 1:
-			return some(ElementAndCount(PrimitiveType.nat8, size.sizeBytes));
-		case 2:
-			assert(isMultipleOf(size.sizeBytes, 2));
-			return some(ElementAndCount(PrimitiveType.nat16, size.sizeBytes / 2));
-		case 4:
-			assert(isMultipleOf(size.sizeBytes, 4));
-			return some(ElementAndCount(PrimitiveType.nat32, size.sizeBytes / 4));
-		case 8:
-			assert(isMultipleOf(size.sizeBytes, 8));
-			return some(ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
-		default:
-			assert(false);
-	}
 }
 
 private:

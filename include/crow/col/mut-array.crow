@@ -7,17 +7,17 @@ import
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
 	../pointer:
-		==, <=>, +, *, as-const, as-mut, mut-pointer, pointer-cast, set-subscript, size-of,
-		subscript
-	../private/alloc: alloc-uninitialized, mem-move, mem-clear
+		==, <=>, +, *, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
+		set-subscript, size-of, subscript
+	../private/alloc: allocate
 	../private/bootstrap: inner
 	../range: .., high, low, range, size
 	../tuple: new
 	./array:
-		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, size,
-		slice, subscript
+		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
+		size, slice, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, range-relative-to-end, subscript
+	./collection: build-options, for-loop, range-relative-to-end, set-subscript, subscript
 export
 	../private/bootstrap: mut-array
 
@@ -45,9 +45,14 @@ Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-+to[t] t mut-array(a t array)
-	for x : a
-		x
++to[t] t mut-array(a t array) trusted
+	# Not using a 'for' loop because the compiler may think it may yield (due to the virtual call)
+	res t mut-array = a.size zeroed-mut-array
+	i mut nat64 = 0
+	while i < a.size
+		res[i] := a[i]
+		i +:= 1
+	res
 
 ###
 Copies the elements to an immutable array.
@@ -114,38 +119,22 @@ set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mu
 		dest.begin-pointer mem-move source.begin-pointer, dest.size
 
 ###
-Allocates a `mut-array` without initializing any of its elements.
+Allocates a `mut-array` full of zeroes.
 If you just want to create a `mut-array`, use a `for` loop instead.
 
-Since `mut-array` is garbage-collected, this will cause problems unless either:
-* You write to all the elements before the current task ends.
-* You don't keep a reference to the `mut-array` or to any uninitialized slice.
+Zero values are not in general safe, but are GC-safe, since the GC ignores null pointers.
 
 Keep exceptions in mind: Don't store a reference to the result until it's initialized,
 since initialization code might throw an exception.
 
-See `zeroed-mut-array` for a somewhat safer alternative.
-###
-+uninitialized-mut-array[t] t mut-array(size nat64) unsafe
-	pointer t mut* = size alloc-uninitialized
-	pointer[0 .. size]
-
-###
-This is like `uninitialized-mut-array` but fills memory with zeroes.
-
-Zeroed memory is GC-safe, since the GC ignores null pointers,
-but is still not safe to expose to readers (who may try to dereference the null pointers).
-
 This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
 ###
 +zeroed-mut-array[t] t mut-array(size nat64) unsafe
-	res t mut-array = size uninitialized-mut-array
-	res zero-memory
-	res
+	(size.allocate::t mut*)[0 .. size]
 
 ###
 Sets every element to `zeroed`.
-See comment on `zeroed-mut-array` for why this is useful.
+See `zeroed-mut-array` for why this is unsafe.
 ###
 +zero-memory[t] void(a t mut-array) bare, unsafe
 	a.begin-pointer mem-clear a.size

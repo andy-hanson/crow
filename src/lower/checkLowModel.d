@@ -2,6 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
+import frontend.showModel : ShowCtx;
 import lower.lowExprHelpers :
 	boolType,
 	char8Type,
@@ -16,13 +17,16 @@ import lower.lowExprHelpers :
 	nat16Type,
 	nat32Type,
 	nat64Type,
+	nat64MutPointerType,
 	voidType;
 import model.constant : Constant;
 import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
+import model.concreteModel : ConcreteFun, ConcreteProgram;
 import model.lowModel :
 	asGcOrRawPointee,
 	isPtrGcOrRaw,
 	isVoid,
+	LowCommonTypes,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -34,10 +38,10 @@ import model.lowModel :
 	LowProgram,
 	LowType,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinUnary, BuiltinUnaryMath, Program;
+import model.model :
+	Builtin4ary, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, BuiltinUnary, BuiltinUnaryMath, Program;
+import model.showLowModel : writeFunName;
 import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
@@ -46,23 +50,26 @@ import util.opt : force, has, none, Opt, some;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
-void checkLowProgram(in Program program, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(program), ptrTrustMe(a));
+void checkLowProgram(in ShowCtx showCtx, in Program program, in ConcreteProgram concreteProgram, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(showCtx), ptrTrustMe(program), ptrTrustMe(concreteProgram), ptrTrustMe(a));
 	foreach (ref LowFun fun; a.allFuns)
 		checkLowFun(ctx, fun);
 }
 
 private:
 
-struct Ctx {
+const struct Ctx {
 	@safe @nogc pure nothrow:
 
-	immutable Program* modelProgramPtr;
-	immutable LowProgram* programPtr;
+	ShowCtx* showCtx;
+	Program* modelProgramPtr;
+	ConcreteProgram* concreteProgramPtr;
+	LowProgram* programPtr;
 
 	ref Program modelProgram() return scope const =>
 		*modelProgramPtr;
-
+	ref ConcreteProgram concreteProgram() return scope const =>
+		*concreteProgramPtr;
 	ref LowProgram program() return scope const =>
 		*programPtr;
 }
@@ -73,11 +80,17 @@ struct FunCtx {
 	Ctx* ctxPtr;
 	immutable LowFun* funPtr;
 
-	ref Ctx ctx() return scope =>
+	ref inout(Ctx) ctx() return scope inout =>
 		*ctxPtr;
 
 	ref LowFun fun() return scope const =>
 		*funPtr;
+
+	ref LowProgram program() return scope const =>
+		ctx.program;
+
+	ref LowCommonTypes commonTypes() return scope const =>
+		program.commonTypes;
 }
 
 void checkLowFun(ref Ctx ctx, in LowFun fun) {
@@ -92,53 +105,62 @@ void checkLowFun(ref Ctx ctx, in LowFun fun) {
 enum ExprPos { nonTail, tail, loop }
 
 void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos exprPos) {
-	checkTypeEqual(ctx.ctx, type, expr.type);
+	checkTypeEqual(ctx, type, expr.type);
 	expr.kind.matchIn!void(
 		(in LowExprKind.Abort) {},
-		(in LowExprKind.Call it) {
-			LowFun* fun = &ctx.ctx.program.allFuns[it.called];
-			checkTypeEqual(ctx.ctx, type, fun.returnType);
-			assert(sizeEq(fun.params, it.args));
-			zip!(LowLocal, LowExpr)(fun.params, it.args, (ref LowLocal param, ref LowExpr arg) {
+		(in LowExprKind.Call x) {
+			LowFun* fun = &ctx.program.allFuns[x.called];
+			assert(
+				!fun.mayYield ||
+				ctx.fun.mayYield ||
+				ctx.fun.source.as!(ConcreteFun*) == ctx.ctx.concreteProgram.commonFuns.runFiber);
+			checkTypeEqual(ctx, type, fun.returnType);
+			zip!(LowLocal, LowExpr)(fun.params, x.args, (ref LowLocal param, ref LowExpr arg) {
 				checkLowExpr(ctx, param.type, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CallFunPointer it) {
-			LowFunPointerType funPtrType = ctx.ctx.program.allFunPointerTypes[it.funPtr.type.as!(LowType.FunPointer)];
-			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
+			LowFunPointerType funPtrType = ctx.program.allFunPointerTypes[it.funPtr.type.as!(LowType.FunPointer)];
+			checkTypeEqual(ctx, type, funPtrType.returnType);
 			assert(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(LowType, LowExpr)(funPtrType.paramTypes, it.args, (ref LowType paramType, ref LowExpr arg) {
 				checkLowExpr(ctx, paramType, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CreateRecord it) {
-			LowField[] fields = ctx.ctx.program.allRecords[type.as!(LowType.Record)].fields;
+			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref LowField field, ref LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg, ExprPos.nonTail);
 			});
 		},
 		(in LowExprKind.CreateUnion it) {
-			LowType member = ctx.ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
+			LowType member = ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
 			checkLowExpr(ctx, member, it.arg, ExprPos.nonTail);
+		},
+		(in LowExprKind.FunPointer x) {
+			// TODO
 		},
 		(in LowExprKind.If it) {
 			checkLowExpr(ctx, boolType, it.cond, ExprPos.nonTail);
 			checkLowExpr(ctx, type, it.then, exprPos);
 			checkLowExpr(ctx, type, it.else_, exprPos);
 		},
-		(in LowExprKind.InitConstants) {
+		(in LowExprKind.Init) {
 			assert(isVoid(type));
 		},
-		(in LowExprKind.Let it) {
-			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
-			checkLowExpr(ctx, type, it.then, exprPos);
+		(in LowExprKind.Let x) {
+			checkLowExpr(ctx, x.local.type, x.value, ExprPos.nonTail);
+			checkLowExpr(ctx, type, x.then, exprPos);
 		},
-		(in LowExprKind.LocalGet it) {
-			checkTypeEqual(ctx.ctx, type, it.local.type);
+		(in LowExprKind.LocalGet x) {
+			checkTypeEqual(ctx, type, x.local.type);
 		},
-		(in LowExprKind.LocalSet it) {
-			checkTypeEqual(ctx.ctx, type, voidType);
-			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
+		(in LowExprKind.LocalPointer x) {
+			checkTypeEqual(ctx, asGcOrRawPointee(type), x.local.type);
+		},
+		(in LowExprKind.LocalSet x) {
+			checkTypeEqual(ctx, type, voidType);
+			checkLowExpr(ctx, x.local.type, x.value, ExprPos.nonTail);
 		},
 		(in LowExprKind.Loop x) {
 			checkLowExpr(ctx, type, x.body_, ExprPos.loop);
@@ -149,41 +171,37 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.LoopContinue x) {
 			assert(exprPos == ExprPos.loop);
 		},
-		(in LowExprKind.PtrCast x) {
+		(in LowExprKind.PointerCast x) {
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},
-		(in LowExprKind.PtrToField it) {
-			checkLowExpr(ctx, it.target.type, it.target, ExprPos.nonTail);
-			LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
-			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), fieldType);
-		},
-		(in LowExprKind.PtrToLocal it) {
-			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), it.local.type);
-		},
 		(in LowExprKind.RecordFieldGet x) {
-			LowType.Record recordType = targetRecordType(x);
+			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
-			checkTypeEqual(ctx.ctx, type, fieldType);
+			LowType fieldType = ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
+			checkTypeEqual(ctx, type, fieldType);
+		},
+		(in LowExprKind.RecordFieldPointer x) {
+			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
+			LowType fieldType = ctx.program.allRecords[x.targetRecordType].fields[x.fieldIndex].type;
+			checkTypeEqual(ctx, asGcOrRawPointee(type), fieldType);
 		},
 		(in LowExprKind.RecordFieldSet x) {
-			LowType.Record recordType = targetRecordType(x);
-			assert(targetIsPointer(x)); // TODO: then this function doesn't need to exist
+			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
+			LowType fieldType = ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, x.value, ExprPos.nonTail);
-			checkTypeEqual(ctx.ctx, type, voidType);
+			checkTypeEqual(ctx, type, voidType);
 		},
-		(in Constant it) {
+		(in Constant _) {
 			// Constants are untyped, so can't check more
 		},
-		(in LowExprKind.SpecialUnary it) {
-			checkSpecialUnary(ctx, type, it);
+		(in LowExprKind.SpecialUnary x) {
+			checkSpecialUnary(ctx, type, x);
 		},
 		(in LowExprKind.SpecialUnaryMath x) {
 			LowType actual = unaryMathType(x.kind);
-			checkTypeEqual(ctx.ctx, type, actual);
+			checkTypeEqual(ctx, type, actual);
 			checkLowExpr(ctx, actual, x.arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.SpecialBinary it) {
@@ -191,12 +209,29 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		},
 		(in LowExprKind.SpecialBinaryMath x) {
 			LowType actual = binaryMathType(x.kind);
-			checkTypeEqual(ctx.ctx, type, actual);
+			checkTypeEqual(ctx, type, actual);
 			foreach (scope ref LowExpr arg; castNonScope(x.args))
 				checkLowExpr(ctx, actual, arg, ExprPos.nonTail);
 		},
-		(in LowExprKind.SpecialTernary) {
-			// TODO
+		(in LowExprKind.SpecialTernary x) {
+			final switch (x.kind) {
+				case BuiltinTernary.interpreterBacktrace:
+					// TODO
+					break;
+			}
+		},
+		(in LowExprKind.Special4ary x) {
+			final switch (x.kind) {
+				case Builtin4ary.switchFiberInitial:
+					checkTypeEqual(ctx, type, voidType);
+					checkLowExpr(ctx, ctx.commonTypes.fiberReference, x.args[0], ExprPos.nonTail);
+					LowType n64p = nat64MutPointerType;
+					LowType nat64MutPointerMutPointer = LowType(LowType.PtrRawMut(&n64p));
+					checkLowExpr(ctx, nat64MutPointerMutPointer, x.args[1], ExprPos.nonTail);
+					checkLowExpr(ctx, nat64MutPointerType, x.args[2], ExprPos.nonTail);
+					// TODO: x.args[3] is a 'void function(a fiber)'
+					break;
+			}
 		},
 		(in LowExprKind.Switch x) {
 			checkLowExpr(ctx, x.value.type, x.value, ExprPos.nonTail);
@@ -210,36 +245,38 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		},
 		(in LowExprKind.UnionAs x) {
 			checkTypeEqual(
-				ctx.ctx, type,
-				ctx.ctx.program.allUnions[x.union_.type.as!(LowType.Union)].members[x.memberIndex]);
+				ctx, type,
+				ctx.program.allUnions[x.union_.type.as!(LowType.Union)].members[x.memberIndex]);
 			checkLowExpr(ctx, x.union_.type, *x.union_, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionKind x) {
-			checkTypeEqual(ctx.ctx, type, LowType(PrimitiveType.nat64));
+			checkTypeEqual(ctx, type, LowType(PrimitiveType.nat64));
 			checkLowExpr(ctx, x.union_.type, *x.union_, ExprPos.nonTail);
 		},
 		(in LowExprKind.VarGet x) {
-			checkTypeEqual(ctx.ctx, type, ctx.ctx.program.vars[x.varIndex].type);
+			checkTypeEqual(ctx, type, ctx.program.vars[x.varIndex].type);
 		},
 		(in LowExprKind.VarSet x) {
-			checkTypeEqual(ctx.ctx, type, voidType);
-			checkLowExpr(ctx, ctx.ctx.program.vars[x.varIndex].type, *x.value, ExprPos.nonTail);
+			checkTypeEqual(ctx, type, voidType);
+			checkLowExpr(ctx, ctx.program.vars[x.varIndex].type, *x.value, ExprPos.nonTail);
 		});
 }
 
 void checkSpecialUnary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialUnary a) {
-	ExpectUnary expected = unaryExpected(a.kind, type, a.arg.type);
+	ExpectUnary expected = unaryExpected(ctx.commonTypes, a.kind, type, a.arg.type);
 	if (has(expected.return_))
-		checkTypeEqual(ctx.ctx, force(expected.return_), type);
+		checkTypeEqual(ctx, force(expected.return_), type);
 	checkLowExpr(ctx, has(expected.arg) ? force(expected.arg) : a.arg.type, a.arg, ExprPos.nonTail);
 }
 
 ExpectUnary unaryExpected(
+	ref LowCommonTypes commonTypes,
 	BuiltinUnary kind,
 	return scope LowType returnType,
 	return scope LowType argType,
 ) {
 	final switch (kind) {
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.asAnyPtr:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
@@ -258,6 +295,10 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
 		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
+		case BuiltinUnary.jumpToCatch:
+			return expect(voidType, commonTypes.catchPointConstPointer);
+		case BuiltinUnary.setupCatch:
+			return expect(boolType, commonTypes.catchPointMutPointer);
 		case BuiltinUnary.toChar8FromNat8:
 			return expect(char8Type, nat8Type);
 		case BuiltinUnary.toFloat32FromFloat64:
@@ -364,7 +405,7 @@ ExpectUnary expect(LowType return_, LowType arg) =>
 void checkSpecialBinary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialBinary a, in ExprPos exprPos) {
 	ExpectBinary expected = binaryExpected(a.kind, type, a.args[0].type, a.args[1].type);
 	if (has(expected.return_))
-		checkTypeEqual(ctx.ctx, force(expected.return_), type);
+		checkTypeEqual(ctx, force(expected.return_), type);
 	foreach (size_t i; 0 .. a.args.length)
 		checkLowExpr(
 			ctx, has(expected.args[i]) ? force(expected.args[i]) : a.args[i].type, a.args[i],
@@ -391,8 +432,8 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.subFloat64:
 		case BuiltinBinary.unsafeDivFloat64:
 			return expect(float64Type, float64Type, float64Type);
-		case BuiltinBinary.addPtrAndNat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 			assert(returnType == arg0Type);
 			assert(isPtrGcOrRaw(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
@@ -497,8 +538,8 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.lessNat64:
 			return expect(boolType, nat64Type, nat64Type);
-		case BuiltinBinary.eqPtr:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.lessPointer:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.lessChar8:
@@ -506,7 +547,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.switchFiber:
+			assert(*arg0Type.as!(LowType.PtrRawMut).pointee == nat64MutPointerType);
+			return expect(voidType, arg0Type, nat64MutPointerType);
+		case BuiltinBinary.writeToPointer:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}
 }
@@ -527,10 +571,12 @@ immutable struct ExpectBinary {
 ExpectBinary expect(LowType return_, LowType arg0, LowType arg1) =>
 	ExpectBinary(some(return_), [some(arg0), some(arg1)]);
 
-void checkTypeEqual(ref Ctx ctx, in LowType expected, in LowType actual) {
+void checkTypeEqual(in FunCtx ctx, in LowType expected, in LowType actual) {
 	if (expected != actual)
 		debugLogWithWriter((scope ref Alloc alloc, scope ref Writer writer) {
-			writer ~= "Type is not as expected. Expected:\n";
+			writer ~= "In ";
+			writeFunName(writer, *ctx.ctx.showCtx, ctx.program, ctx.fun);
+			writer ~= ":\nType is not as expected. Expected:\n";
 			writer ~= jsonOfLowType2(alloc, ctx.program, expected);
 			writer ~= "\nActual:\n";
 			writer ~= jsonOfLowType2(alloc, ctx.program, actual);

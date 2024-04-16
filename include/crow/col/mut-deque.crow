@@ -13,7 +13,7 @@ import
 	./collection: .., -, end, for-loop, set-subscript, subscript, with-index
 	./mut-array:
 		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
-		set-subscript, size, slice, uninitialized-mut-array, zero-memory, zeroed-mut-array
+		set-subscript, size, slice, zero-memory, zeroed-mut-array
 	./list:
 		==, ~=, +, -, begin, build, end, is-empty, list, new, next, size, to
 
@@ -49,7 +49,7 @@ This is O(n).
 
 -to[t] t mut-array(a t mut-deque)
 	guard !a.is-empty
-	res t mut-array = trusted a.size uninitialized-mut-array
+	res t mut-array = trusted a.size zeroed-mut-array
 	res copy-from-deque a
 	res
 
@@ -155,7 +155,7 @@ Callers should then push something.
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner t mut-array = new-capacity uninitialized-mut-array
+			new-inner t mut-array = new-capacity zeroed-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] zero-memory
 			a.inner := new-inner

@@ -6,13 +6,13 @@ import frontend.showModel : ShowCtx, writeUriAndPos;
 import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.runBytecode : operationOpStopInterpretation;
-import interpret.stacks : returnPeek, returnStackSize, Stacks;
+import interpret.stacks : returnTempAsArrReverse, Stacks;
 import model.concreteModel : ConcreteFun;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.showLowModel : writeFunName;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.col.array : isPointerInRange;
-import util.memory : overwriteMemory;
+import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : LineAndColumn, PosKind, UriAndPos;
 import util.string : CString;
@@ -78,9 +78,10 @@ private struct Ptr64(T) {
 	in Stacks stacks,
 ) =>
 	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) @trusted {
-		size_t resSize = min(returnStackSize(stacks) - skip, max);
+		scope const Operation*[] ops = returnTempAsArrReverse(stacks)[skip .. $];
+		size_t resSize = min(ops.length, max);
 		foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
-			overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));
+			initMemory(&entry, getBacktraceEntry(alloc, info, ops[i]));
 		return out_ + resSize;
 	})(backtraceStringsStorage);
 
@@ -137,7 +138,7 @@ void printDebugInfo(
 	}
 }
 
-void showDataArr(scope ref Writer writer, in immutable ulong[] values) {
+void showDataArr(scope ref Writer writer, in ulong[] values) {
 	writer ~= "data (";
 	writer ~= values.length;
 	writer ~= "): ";

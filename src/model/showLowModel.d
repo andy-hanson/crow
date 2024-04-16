@@ -12,13 +12,14 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ReferenceKind;
-import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
+import frontend.showModel : ShowCtx, writeLineAndColumn, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType;
 import model.model : Local;
 import util.col.array : only;
-import util.writer : Writer, writeWithCommas;
+import util.sourceRange : UriLineAndColumnRange;
 import util.util : stringOfEnum;
+import util.writer : Writer, writeWithCommas;
 
 void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
@@ -52,30 +53,44 @@ private void writeLowTypeArgs(
 void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
-			writeConcreteType(writer, ctx, x.returnType);
-			writer ~= '(';
-			writeWithCommas!ConcreteLocal(
-				writer,
-				x.paramsIncludingClosure,
-				(in ConcreteLocal param) {
-					param.source.matchIn!void(
-						(in Local p) {
-							writer ~= p.name;
-						},
-						(in ConcreteLocalSource.Closure) {
-							writer ~= "<closure>";
-						},
-						(in ConcreteLocalSource.Generated x) {
-							writer ~= stringOfEnum(x);
-						});
-					writer ~= ' ';
-					writeConcreteType(writer, ctx, param.type);
-				});
-			writer ~= ')';
+			writeConcreteFunSig(writer, ctx, x, a.mayYield);
 		},
 		(in LowFunSource.Generated) {
-			writer ~= "(generated)";
+			writeFunName(writer, ctx, lowProgram, a);
 		});
+}
+
+private void writeConcreteFunSig(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a, bool mayYield) {
+	writeConcreteFunName(writer, ctx, a);
+	writer ~= ' ';
+	writeConcreteType(writer, ctx, a.returnType);
+	writer ~= '(';
+	writeWithCommas!ConcreteLocal(
+		writer,
+		a.params,
+		(in ConcreteLocal param) {
+			param.source.matchIn!void(
+				(in Local p) {
+					writer ~= p.name;
+				},
+				(in ConcreteLocalSource.Closure) {
+					writer ~= "<closure>";
+				},
+				(in ConcreteLocalSource.Generated x) {
+					writer ~= stringOfEnum(x);
+				});
+			writer ~= ' ';
+			writeConcreteType(writer, ctx, param.type);
+		});
+	writer ~= ')';
+	if (mayYield)
+		writer ~= " may-yield";
+	writer ~= ' ';
+
+	UriLineAndColumnRange range = ctx.lineAndColumnGetters[a.range];
+	writer ~= range.uri;
+	writer ~= ' ';
+	writeLineAndColumn(writer, range.range.start);
 }
 
 void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {
@@ -171,7 +186,7 @@ void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStr
 					});
 					writer ~= ") ";
 			}
-			writer ~= x.inst.decl.name;
+			writer ~= x.decl.name;
 		},
 		(in ConcreteStructSource.Lambda x) {
 			writeConcreteFunName(writer, ctx, *x.containingFun);

@@ -44,7 +44,6 @@ immutable struct ParseDiag {
 			quoteDouble,
 			quoteDouble3,
 			slash,
-			then,
 			typeArgsEnd,
 		}
 		Kind kind;

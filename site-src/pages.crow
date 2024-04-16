@@ -4,11 +4,11 @@ import
 	./page-template: page-template
 	./path-and-content: path-and-content
 
-pages path-and-content[]^() summon
+pages path-and-content[]() summon
 	index = "index.html" page-template "index", "site-src/index.html".read-file
 	download = "download.html" page-template "download", "site-src/download.html".read-file
 	play = "play.html" page-template "play", "site-src/play.html".read-file
-	(index, download, play) ~~ tutorial-pages,
+	(index, download, play) ~~ tutorial-pages
 
 tutorial-pages path-and-content[]() summon
 	metas = tutorial-metas
@@ -37,7 +37,7 @@ tutorial-pages path-and-content[]() summon
 	lambdas: Lambdas
 	for-and-with: "For" and "with" expressions
 	exceptions: Exceptions
-	futures: Futures
+	fibers: Fibers
 	io: I/O
 	modules: Modules
 	templates: Templates

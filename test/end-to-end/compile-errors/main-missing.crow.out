@@ -3,4 +3,4 @@ stderr:
 test/end-to-end/compile-errors/main-missing.crow 1:1-1:1 Module should have a function:
 	main void()
 Or:
-	main nat64^(args string[])
+	main nat64(args string[])

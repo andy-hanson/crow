@@ -10,17 +10,17 @@ test/end-to-end/compile-errors/spec-multiple-impls.crow 9:31-9:45 Multiple imple
 Uncaught exception: Error: Reached compile error
 	at to
 	at to
-	at call
+	at subscript
 	at for
-	at call
+	at subscript
 	at for
-	at call
+	at subscript
 	at iterate
 	at iterate
-	at call
+	at subscript
 	at iterate
 	at iterate
 	at iterate
 	at for
 	at for
-	at call
+	at subscript

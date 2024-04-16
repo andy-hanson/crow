@@ -134,8 +134,8 @@ private:
 			writeFnBinary(writer, source, fn);
 			writeReturn(writer, source);
 		},
-		(scope ref Stacks stacks, Operation* cur) {
-			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
+		(in ulong[] stacksStorage, scope ref Stacks stacks, Operation* cur) {
+			stepUntilExitAndExpect(test, stacksStorage, stacks, [stackOut], cur);
 		});
 }
 
@@ -146,8 +146,8 @@ private:
 			writeFnUnary(writer, source, fn);
 			writeReturn(writer, source);
 		},
-		(scope ref Stacks stacks, Operation* cur) {
+		(in ulong[] stacksStorage, scope ref Stacks stacks, Operation* cur) {
 			dataPush(stacks, stackIn);
-			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
+			stepUntilExitAndExpect(test, stacksStorage, stacks, [stackOut], cur);
 		});
 }

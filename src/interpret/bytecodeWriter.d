@@ -26,7 +26,7 @@ import interpret.runBytecode :
 	opDupWords,
 	opDupWordsVariable,
 	opInterpreterBacktrace,
-	opLongjmp,
+	opJumpToCatch,
 	opPack,
 	opPushValue64,
 	opSet,
@@ -42,7 +42,6 @@ import interpret.runBytecode :
 	opReturnData,
 	opReturnDataVariable,
 	opReturn,
-	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
 	opSwitchWithValues,
@@ -541,13 +540,9 @@ SwitchDelayed writeSwitchDelay(
 	overwriteMemory(start + switchEntry, diff);
 }
 
-void writeSetjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opSetjmp);
-}
-
-void writeLongjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opLongjmp);
-	writer.nextStackEntry -= 2;
+void writeJumpToCatch(scope ref ByteCodeWriter writer, ByteCodeSource source) {
+	pushOperationFn(writer, source, &opJumpToCatch);
+	writer.nextStackEntry -= 1;
 }
 
 private @trusted void writeArray(T)(scope ref ByteCodeWriter writer, ByteCodeSource source, in T[] values) {
@@ -571,9 +566,14 @@ void writeInterpreterBacktrace(scope ref ByteCodeWriter writer, ByteCodeSource s
 	writer.nextStackEntry -= 2;
 }
 
-void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {
+void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid = false) {
 	pushOperationFn(writer, source, fn);
-	writer.nextStackEntry--;
+	writer.nextStackEntry -= (returnVoid ? 2 : 1);
+}
+
+void writeFn4ary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid) {
+	pushOperationFn(writer, source, fn);
+	writer.nextStackEntry -= (returnVoid ? 4 : 3);
 }
 
 void writeFnUnary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {

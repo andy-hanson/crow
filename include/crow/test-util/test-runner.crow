@@ -2,12 +2,12 @@ import
 	../io/print: out, print
 
 # Run every `test` from all source files included in the compilation.
-+run-all-tests void^() summon
++run-all-tests void() summon
 	tests = all-tests
 	out print "Running {tests size} tests"
-	<- for x : tests sequential
+	for x : tests chunked-parallel 0x10
 		x[]
 	out print "Done running tests"
 	()
 
--all-tests void^ function() array() builtin
+-all-tests void function() array() builtin

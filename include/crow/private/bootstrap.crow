@@ -74,20 +74,6 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 +mut-array[t] record by-val, mut
 	~inner t array
 
-# Needed here since it's used in 'future'
-###
-Mutable array type that can change in size.
-This is represented as a reference to a `mut-array` with extra capacity.
-Appending (or removing) elements to the end is amortized O(1),
-but appending (or removing) from the beginning is always O(N).
-###
-+mut-list[t] record mut
-	# Fields should only be used in mut-list.crow
-	# backing.size is the capacity
-	# For the GC's sake, unused parts of backing are filled with 'zeroed'
-	~backing mut t mut-array
-	~mut-list-size mut nat64
-
 region string
 
 # This could be any byte in a UTF-8 string.
@@ -205,8 +191,6 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 
 region bootstrap runtime
 
-~task record(exclusion exclusion, action void mut()) by-val, mut
-
 ~exclusion alias
 	nat64
 
@@ -297,9 +281,6 @@ This is a variant type, meaning anything can declare a `variant-member` that is 
 ###
 +exception variant
 
-# Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error variant-member(exception, string)
-
 ###
 Type of a thrown exception.
 
@@ -315,22 +296,116 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
+###
+Log severity.
+The log handler can use this any way it wants.
+The default log handler just prints the level at the beginning of each log.
+###
++log-level enum
+	# Temporary log for debugging
+	debug
+	# Any log message not fitting in other levels can be 'info'.
+	info
+	###
+	This is useful for anything that seems like it might be a problem in the future.
+
+	For example: Something took an unusually long time; or some resource like memory is running low.
+	###
+	warn
+	###
+	An error is for when something has gone wrong (but wasn't worthy of an exception).
+
+	For example: An HTTP request that is expected to normally succeed failed.
+	###
+	error
+
+# Represents a single call to `log`.
++logged record(level log-level, message string) nominal
+
+###
+Function that handles a log message.
+
+For example, this might write it to the console.
+###
++log-handler alias
+	void shared(logged logged)
+
+~fiber record mut, by-ref
+	# GC for this type is generated differently by the compiler; see 'generateMarkVisitFiber'.
+	# So be careful when modifying this type.
+	state mut fiber-state
+	log-handler mut log-handler
+	# This must be 16-byte aligned
+	stack nat64 mut-array
+	# Null if no roots yet
+	gc-root mut gc-root mut*
+
+	# This is not always the current stack pointer; that uses the stack pointer register.
+	# This is the saved value when the fiber is not running.
+	stack-pointer mut stack-pointer
+	# The fiber can change its exclusion when calling into a function with a different exclusion
+	cur-exclusion mut exclusion
+	cur-catch-point mut catch-point*
+~cur-fiber thread-local(fiber?)
+# Represents the point to jump to in 'jump-to-catch'. Stores the state of the stack and registers.
+~catch-point builtin
+
+~fiber-state union mut
+	# Stores the fiber function
+	queued-initial void mut()
+	# This could be on the regular queue or the timed queue
+	queued
+	running
+	# This state will only exist temporarily, before calling 'switch-fiber.
+	# It's a way to communicate across the context switch.
+	yield-request yield-request
+	# Stores the next fiber in the awaiting chainn
+	awaiting-future fiber?
+	done
+
+~yield-request union mut
+	# Add this fiber back to the queue of runnable fibers.
+	add-to-queue
+	# Takes a pointer to a future and a function for adding the fiber to it.
+	# Uses 'any-mut-pointer' in order to handle all instances of the 'future' type.
+	await-future (nat8 mut*, bool function(future nat8 mut*, fiber fiber))
+	# Change this fiber's exclusion to a new one, then enqueue it again.
+	change-exclusion exclusion
+	# Like 'add-to-queue', but adds to the timed queue. Value is a timestamp.
+	delay-until-time nat64
+	done
+
+~must-cur-fiber fiber() bare, unsafe
+	if x ?= cur-fiber
+		x
+	else
+		hard-unreachable
+
+stack-pointer alias
+	nat64 mut*
+~gc-root record by-val, mut
+	pointer void*
+	trace void function(ctx mark-ctx, pointer void*)
+	next gc-root mut*
+
+~mark-ctx record by-val, mut
+	memory-size-words nat64
+	marks bool mut*
+	memory-start nat64 mut*
+
 +future[t] record by-ref, force-shared
 	lk mut lock
 	state mut t future-state
 
 future-state[t] union mut
-	# The future hasn't been resolved or forwarded, and no tasks have been added.
+	# The future is not resolved and nothing is awaiting it yet.
 	empty
-	# Optimization for 'tasks' when there is only one
-	one-task task
-	# The future has multiple tasks attached.
-	tasks task mut[]
-	# All operations should be directed to another future.
-	forwarded t^
-	# The future was resolved successfully.
+	# The future is not resolved, and fibers are waiting on it.
+	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
+	awaited-by fiber
+	# The future completed successfully.
 	resolved t
-	# The future resolved with an exception.
+	# The future completed with an exception.
 	rejected exception-and-backtrace
 
 region lock
@@ -375,3 +450,6 @@ It can be efficiently concatenated or split, but doesn't support indexed access.
 ###
 +string record by-val
 	~inner char8[]
+
+# Used by the compiler for mutable "local" variables used in a closure.
+~reference[t] record(value mut t) mut

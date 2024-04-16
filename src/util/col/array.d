@@ -128,6 +128,11 @@ ref inout(T) only(T)(scope inout T[] a) {
 	return a[0];
 }
 
+T* onlyPointer(T)(T[] a) {
+	assert(a.length == 1);
+	return &a[0];
+}
+
 ref inout(T[2]) only2(T)(return scope inout T[] a) {
 	assert(a.length == 2);
 	return a[0 .. 2];
@@ -163,7 +168,13 @@ SmallArray!T newSmallArray(T)(ref Alloc alloc, scope T[] values) =>
 	makeArray(alloc, size, (size_t _) => value);
 
 bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
-	has(findIndex!T(arr, cb));
+	.exists!T(arr, (ref const T x) => cb(x));
+bool exists(T)(in T[] arr, in bool delegate(ref const T) @safe @nogc pure nothrow cb) {
+	foreach (ref const T x; arr)
+		if (cb(x))
+			return true;
+	return false;
+}
 
 bool every(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	everyWithIndex!T(arr, (size_t _, ref const T x) => cb(x));
@@ -206,14 +217,11 @@ Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	return none!T;
 }
 
-T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
-	force(findPointer!T(a, cb));
-
-Opt!(T*) findPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (ref T x; a)
 		if (cb(x))
-			return some(&x);
-	return none!(T*);
+			return &x;
+	assert(false);
 }
 
 Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
@@ -328,6 +336,10 @@ SmallArray!Out map(Out, In)(ref Alloc alloc, in SmallArray!In a, in Out delegate
 		return [cb(a[0])];
 	else static if (n == 2)
 		return [cb(a[0]), cb(a[1])];
+	else static if (n == 3)
+		return [cb(a[0]), cb(a[1]), cb(a[2])];
+	else static if (n == 4)
+		return [cb(a[0]), cb(a[1]), cb(a[2]), cb(a[3])];
 	else
 		static assert(false, "TODO");
 }
@@ -441,19 +453,6 @@ void filterUnorderedButDontRemoveAll(T)(
 	}
 	freeElements(alloc, res[outI .. $]);
 	return res[0 .. outI];
-}
-
-@trusted Out[] mapWithIndexAndAppend(Out, In)(
-	ref Alloc alloc,
-	In[] a,
-	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
-	Out appended,
-) {
-	Out[] res = allocateElements!Out(alloc, a.length + 1);
-	foreach (size_t i, ref In x; a)
-		initMemory!Out(&res[i], cb(i, x));
-	initMemory!Out(&res[a.length], appended);
-	return res;
 }
 
 SmallArray!Out mapWithIndex(Out, In)(
@@ -627,15 +626,32 @@ bool arraysIdentical(T)(in T[] a, in T[] b) =>
 bool arraysEqual(T)(in T[] a, in T[] b) =>
 	arraysCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
 
-T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
+T applyNTimes(T)(T start, size_t times, in T delegate(T) @safe @nogc pure nothrow cb) =>
+	times == 0 ? start : applyNTimes(cb(start), times - 1, cb);
+
+T fold(T, U)(T start, in U[] arr, in T delegate(T, in U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
-T foldReverse(T, U)(T start, in U[] arr, in T delegate(T a, ref U b) @safe @nogc pure nothrow cb) =>
+T foldWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U) @safe @nogc pure nothrow cb) {
+	T recur(T acc, size_t index) {
+		return index == arr.length
+			? acc
+			: recur(cb(acc, index, arr[index]), index + 1);
+	}
+	return recur(start, 0);
+}
+
+T foldReverse(T, U)(T start, in U[] arr, in T delegate(T, ref U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
 		: foldReverse!(T, U)(cb(start, arr[$ - 1]), arr[0 .. $ - 1], cb);
+
+T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U) @safe @nogc pure nothrow cb) =>
+	isEmpty(arr)
+		? start
+		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

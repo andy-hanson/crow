@@ -77,6 +77,15 @@
 		<br />
 		<code>crow run hello.crow --aot -- args here</code>
 	</p>
+	<p>
+		To access the arguments, use this alternative signature for <code class="keyword">main</code>:
+	</p>
+	<crow-runnable>
+		main nat(args string[])
+			info log "arguments are: {" " join args}"
+			0 # exit code
+	</crow-runnable>
+	<p>(There's no way to pass command-line arguments in the browser.)</p>
 
 	<h3>Just print errors</h3>
 	<p>

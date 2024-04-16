@@ -12,7 +12,7 @@ import
 	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next, size
 	./exception: error
 	./fun-util: subscript
-	./io/duration: duration, nsec, to
+	./io/duration: duration, nanosecond, to
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: new, void
 	./number: ==, <=>, +, -, nat64, to
@@ -58,10 +58,10 @@ import
 	f-res = f[]
 	end = perf-now
 	# TODO: 'zip'
-	perf-res perf-result = (end - start).to.nsec, trusted for i : 0::nat64 .. measure-names.size
+	measures measure-total[symbol] = trusted for i : 0::nat64 .. measure-names.size
 		value = measure-accums[i]
-		measure-names[i], (value.count, value.total-nsec.to.nsec)
-	f-res, perf-res
+		measure-names[i], (value.count, value.total-nsec.to.nanosecond)
+	f-res, ((end - start).to.nanosecond, measures)
 
 +perf-measure record(measure-name symbol) nominal
 

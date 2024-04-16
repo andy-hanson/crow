@@ -87,6 +87,7 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -101,8 +102,7 @@ import model.model :
 	NameReferents,
 	Params,
 	Program,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	RecordField,
 	SeqExpr,
 	SpecInst,
@@ -664,6 +664,10 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 			some(expressionPosition(ExpressionPositionKind(ExpressionPositionKind.Literal()))),
 		(LocalGetExpr x) =>
 			some(local(ExpressionPositionKind.LocalRef.Kind.get, x.local)),
+		(LocalPointerExpr x) =>
+			some(optOrDefault!PositionKind(
+				keywordAt(ast.kind.as!(PtrAst*).keywordRange(ast), ExprKeyword.ampersand),
+				() => local(ExpressionPositionKind.LocalRef.Kind.pointer, x.local))),
 		(LocalSetExpr x) =>
 			optIf(isAtAssignment(ast, pos), () =>
 				local(ExpressionPositionKind.LocalRef.Kind.set, x.local)),
@@ -695,12 +699,8 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 			positionAtMatchUnion(ctx, a, x, ast.kind.as!MatchAst, pos),
 		(ref MatchVariantExpr x) =>
 			positionAtMatchVariant(ctx, a, x, ast.kind.as!MatchAst, pos),
-		(ref PtrToFieldExpr x) =>
+		(ref RecordFieldPointerExpr x) =>
 			keywordAt(ast.kind.as!(PtrAst*).keywordRange(ast), ExprKeyword.ampersand),
-		(PtrToLocalExpr x) =>
-			some(optOrDefault!PositionKind(
-				keywordAt(ast.kind.as!(PtrAst*).keywordRange(ast), ExprKeyword.ampersand),
-				() => local(ExpressionPositionKind.LocalRef.Kind.pointer, x.local))),
 		(ref SeqExpr x) =>
 			none!PositionKind,
 		(ref ThrowExpr x) =>

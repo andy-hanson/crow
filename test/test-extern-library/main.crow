@@ -120,14 +120,14 @@ some-var thread-local(nat)
 	*a is 64
 	a
 
--my_struct_a_fn struct_a(a struct_a) unsafe
+-my_struct_a_fn struct_a(a struct_a)
 	a is (false, 64)
 	true, 65
 
--my_struct_b_fn struct_b(a struct_b) unsafe
+-my_struct_b_fn struct_b(a struct_b)
 	a is (true, (false, 64))
 	false, (true, 65)
 
--my_union_a_fn union_a(a union_a) unsafe
+-my_union_a_fn union_a(a union_a)
 	a is (false, 64).sa
 	(false, (true, 65)).sb

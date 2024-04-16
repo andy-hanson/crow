@@ -391,6 +391,7 @@ Symbol nameOfUnionMember(in UnionMember* a) =>
 
 enum BuiltinType {
 	bool_,
+	catchPoint,
 	char8,
 	char32,
 	float32,
@@ -423,6 +424,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat64:
 			return true;
 		case BuiltinType.bool_:
+		case BuiltinType.catchPoint:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
 		case BuiltinType.funPointer:
@@ -433,7 +435,8 @@ bool isCharOrIntegral(BuiltinType a) {
 			return false;
 	}
 }
-
+bool isPointer(BuiltinType a) =>
+	a == BuiltinType.pointerConst || a == BuiltinType.pointerMut;
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -545,6 +548,8 @@ immutable struct StructDecl {
 	bool isTemplate() scope =>
 		!isEmpty(typeParams);
 }
+bool isPointer(in StructDecl a) =>
+	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
 immutable struct StructDeclSource {
 	immutable struct Bogus {
@@ -777,7 +782,11 @@ immutable struct BuiltinFun {
 	immutable struct AllTests {}
 	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
-	immutable struct InitConstants {}
+	immutable struct Init {
+		enum Kind { global, perThread }
+		Kind kind;
+	}
+	immutable struct MarkRoot {}
 	immutable struct MarkVisit {}
 	immutable struct PointerCast {}
 	immutable struct SizeOf {}
@@ -791,10 +800,12 @@ immutable struct BuiltinFun {
 		BuiltinBinaryLazy,
 		BuiltinBinaryMath,
 		BuiltinTernary,
+		Builtin4ary,
 		CallLambda,
 		CallFunPointer,
 		Constant,
-		InitConstants,
+		Init,
+		MarkRoot,
 		MarkVisit,
 		PointerCast,
 		SizeOf,
@@ -802,8 +813,7 @@ immutable struct BuiltinFun {
 		VersionFun);
 }
 
-alias BuiltinUnary = immutable BuiltinUnary_;
-private enum BuiltinUnary_ {
+enum BuiltinUnary {
 	asAnyPtr,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
@@ -813,6 +823,9 @@ private enum BuiltinUnary_ {
 	deref,
 	drop,
 	enumToIntegral,
+	jumpToCatch,
+	referenceFromPointer,
+	setupCatch,
 	toChar8FromNat8,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
@@ -877,7 +890,7 @@ private enum BuiltinUnaryMath_ {
 enum BuiltinBinary {
 	addFloat32,
 	addFloat64,
-	addPtrAndNat64, // RHS is multiplied by size of pointee first
+	addPointerAndNat64, // RHS is multiplied by size of pointee first
 	bitwiseAndInt8,
 	bitwiseAndInt16,
 	bitwiseAndInt32,
@@ -914,7 +927,7 @@ enum BuiltinBinary {
 	eqNat16,
 	eqNat32,
 	eqNat64,
-	eqPtr,
+	eqPointer,
 	lessChar8,
 	lessFloat32,
 	lessFloat64,
@@ -926,13 +939,14 @@ enum BuiltinBinary {
 	lessNat16,
 	lessNat32,
 	lessNat64,
-	lessPtr,
+	lessPointer,
 	mulFloat32,
 	mulFloat64,
 	seq,
 	subFloat32,
 	subFloat64,
-	subPtrAndNat64, // RHS is multiplied by size of pointee first
+	subPointerAndNat64, // RHS is multiplied by size of pointee first
+	switchFiber,
 	unsafeAddInt8,
 	unsafeAddInt16,
 	unsafeAddInt32,
@@ -970,7 +984,7 @@ enum BuiltinBinary {
 	wrapSubNat16,
 	wrapSubNat32,
 	wrapSubNat64,
-	writeToPtr,
+	writeToPointer,
 }
 
 // These all have a lazy second argument
@@ -986,8 +1000,8 @@ enum BuiltinBinaryMath {
 	atan2Float64,
 }
 
-alias BuiltinTernary = immutable BuiltinTernary_;
-private enum BuiltinTernary_ { interpreterBacktrace }
+enum BuiltinTernary { interpreterBacktrace }
+enum Builtin4ary { switchFiberInitial }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:
@@ -1193,20 +1207,9 @@ immutable struct Test {
 	Uri moduleUri;
 	FunFlags flags;
 	Expr body_;
-	enum BodyType { bogus, void_, voidFuture }
-	BodyType bodyType;
 
 	UriAndRange range() =>
 		UriAndRange(moduleUri, ast.range);
-	Type returnType(ref CommonTypes commonTypes) scope {
-		final switch (bodyType) {
-			case BodyType.bogus:
-			case BodyType.void_:
-				return Type(commonTypes.void_);
-			case BodyType.voidFuture:
-				return Type(commonTypes.voidFuture);
-		}
-	}
 }
 
 immutable struct FunDeclAndTypeArgs {
@@ -1527,24 +1530,34 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
-	VarDecl* curJmpBuf;
+	@safe @nogc pure nothrow:
+	FunInst* curCatchPoint;
+	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
-	FunInst* alloc;
+	FunInst* allocate;
 	FunInst* and;
 	FunInst* createError;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
-	FunDecl* newTFuture;
 	FunDecl* newTList;
+	FunInst* runFiber;
 	FunInst* rtMain;
 	FunInst* throwImpl;
 	FunInst* char8ArrayTrustAsString;
 	FunInst* equalNat64;
 	FunInst* lessNat64;
 	FunInst* rethrowCurrentException;
-	FunInst* setjmp;
+
+	FunInst* gcRoot;
+	FunInst* setGcRoot;
+	FunInst* popGcRoot;
+
+	StructInst* catchPointPointerType() =>
+		curCatchPoint.returnType.as!(StructInst*);
+	StructInst* catchPointType() =>
+		only(catchPointPointerType.typeArgs).as!(StructInst*);
 }
 
 immutable struct CommonTypes {
@@ -1555,6 +1568,7 @@ immutable struct CommonTypes {
 	StructInst* char32;
 	StructInst* cString;
 	StructInst* exception;
+	StructInst* fiber;
 	StructInst* float32;
 	StructInst* float64;
 	IntegralTypes integrals;
@@ -1566,20 +1580,19 @@ immutable struct CommonTypes {
 	StructDecl* array;
 	StructInst* char8Array;
 	StructInst* char32Array;
-	StructDecl* future;
-	StructInst* voidFuture;
 	StructDecl* list;
 	StructInst* char8List;
 	StructInst* char32List;
 	StructDecl* option;
-	StructDecl* ptrConst;
-	StructDecl* ptrMut;
+	StructDecl* pointerConst;
+	StructDecl* pointerMut;
+	StructDecl* reference;
 	// No tuple0 and tuple1, so this is 2-9 inclusive
 	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
 	EnumMap!(FunKind, StructDecl*) funStructs;
 
-	StructDecl* funPtrStruct() =>
+	StructDecl* funPointerStruct() =>
 		funStructs[FunKind.function_];
 
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
@@ -1594,8 +1607,11 @@ Type arrayElementType(in CommonTypes commonTypes, Type type) {
 	return only(type.as!(StructInst*).typeArgs);
 }
 
-private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
-	a == commonTypes.ptrConst || a == commonTypes.ptrMut;
+bool isLambdaType(in CommonTypes commonTypes, StructDecl* a) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
+
+bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
+	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
@@ -1684,17 +1700,17 @@ immutable struct ProgramWithMain {
 }
 
 immutable struct MainFun {
-	immutable struct Nat64Future {
+	immutable struct Nat64OfArgs {
 		FunInst* fun;
 	}
 
 	immutable struct Void {
-		// Needed to wrap it to the natFuture signature
+		// Needed to wrap it to the Nat64OfArgs signature
 		StructInst* stringList;
 		FunInst* fun;
 	}
 
-	mixin Union!(Nat64Future, Void);
+	mixin Union!(Nat64OfArgs, Void);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
@@ -1769,16 +1785,24 @@ immutable struct Local {
 				x.name.name,
 			(in LocalSource.Generated x) =>
 				x.name);
-}
 
-bool localIsAllocated(in Local a) scope {
-	final switch (a.mutability) {
-		case LocalMutability.immut:
-		case LocalMutability.mutOnStack:
-			return false;
-		case LocalMutability.mutAllocated:
-			return true;
-	}
+	bool isMutable() scope =>
+		mutability.matchIn!bool(
+			(in LocalMutability.Immutable) =>
+				false,
+			(in LocalMutability.MutableOnStack) =>
+				true,
+			(in LocalMutability.MutableAllocated) =>
+				true);
+
+	bool isAllocated() scope =>
+		mutability.matchIn!bool(
+			(in LocalMutability.Immutable) =>
+				false,
+			(in LocalMutability.MutableOnStack) =>
+				false,
+			(in LocalMutability.MutableAllocated) =>
+				true);
 }
 
 Range localMustHaveNameRange(in Local a) =>
@@ -1787,22 +1811,31 @@ Range localMustHaveNameRange(in Local a) =>
 private Range localMustHaveRange(in Local a) =>
 	a.source.as!(DestructureAst.Single*).range;
 
-enum LocalMutability {
-	immut,
-	mutOnStack, // Mutable and on the stack
-	mutAllocated, // Mutable and must be heap-allocated since it's used in a closure
+immutable struct LocalMutability {
+	@safe @nogc pure nothrow:
+	immutable struct Immutable {}
+	immutable struct MutableOnStack {}
+	immutable struct MutableAllocated { StructInst* referenceType; }
+	mixin Union!(Immutable, MutableOnStack, MutableAllocated);
+
+	static LocalMutability immutable_() =>
+		LocalMutability(LocalMutability.Immutable());
+	static LocalMutability mutableOnStack() =>
+		LocalMutability(LocalMutability.MutableOnStack());
+
+	bool isImmutable() =>
+		isA!Immutable;
 }
 
 enum Mutability { immut, mut }
-Mutability toMutability(LocalMutability a) {
-	final switch (a) {
-		case LocalMutability.immut:
-			return Mutability.immut;
-		case LocalMutability.mutOnStack:
-		case LocalMutability.mutAllocated:
-			return Mutability.mut;
-	}
-}
+Mutability toMutability(LocalMutability a) =>
+	a.matchIn!Mutability(
+		(in LocalMutability.Immutable) =>
+			Mutability.immut,
+		(in LocalMutability.MutableOnStack) =>
+			Mutability.mut,
+		(in LocalMutability.MutableAllocated) =>
+			Mutability.mut);
 
 immutable struct ClosureRef {
 	@safe @nogc pure nothrow:
@@ -1850,20 +1883,18 @@ immutable struct VariableRef {
 	Type type() return scope =>
 		local.type;
 
-	private Local* local() return scope =>
+	Local* local() return scope =>
 		matchWithPointers!(Local*)(
 			(Local* x) => x,
 			(ClosureRef x) => x.local);
-	ClosureReferenceKind closureReferenceKind() scope {
-		final switch (local.mutability) {
-			case LocalMutability.immut:
-				return ClosureReferenceKind.direct;
-			case LocalMutability.mutOnStack:
-				assert(false);
-			case LocalMutability.mutAllocated:
-				return ClosureReferenceKind.allocated;
-		}
-	}
+	ClosureReferenceKind closureReferenceKind() scope =>
+		local.mutability.matchIn!ClosureReferenceKind(
+			(in LocalMutability.Immutable) =>
+				ClosureReferenceKind.direct,
+			(in LocalMutability.MutableOnStack) =>
+				assert(false),
+			(in LocalMutability.MutableAllocated) =>
+				ClosureReferenceKind.allocated);
 }
 
 immutable struct Destructure {
@@ -1933,6 +1964,7 @@ immutable struct ExprKind {
 		LiteralExpr,
 		LiteralStringLikeExpr,
 		LocalGetExpr,
+		LocalPointerExpr,
 		LocalSetExpr,
 		LoopExpr*,
 		LoopBreakExpr*,
@@ -1943,8 +1975,7 @@ immutable struct ExprKind {
 		MatchStringLikeExpr*,
 		MatchUnionExpr*,
 		MatchVariantExpr*,
-		PtrToFieldExpr*,
-		PtrToLocalExpr,
+		RecordFieldPointerExpr*,
 		SeqExpr*,
 		ThrowExpr*,
 		TrustedExpr*,
@@ -2014,7 +2045,7 @@ immutable struct FinallyExpr {
 }
 
 immutable struct FunPointerExpr {
-	FunInst* funInst;
+	Called called;
 }
 
 // Expression for an IfAst -- see that for all kinds of syntax this corresponds to
@@ -2045,7 +2076,6 @@ immutable struct LambdaExpr {
 	Opt!(StructInst*) mutTypeForExplicitShared;
 	private Late!Expr lateBody;
 	private Late!(SmallArray!VariableRef) closure_;
-	// For FunKind.far this includes 'future' wrapper
 	private Late!Type returnType_;
 
 	void fillLate(Expr body_, SmallArray!VariableRef closure, Type returnType) {
@@ -2079,6 +2109,10 @@ immutable struct LiteralStringLikeExpr {
 }
 
 immutable struct LocalGetExpr {
+	Local* local;
+}
+
+immutable struct LocalPointerExpr {
 	Local* local;
 }
 
@@ -2200,7 +2234,7 @@ immutable struct MatchVariantExpr {
 		matched.type.as!(StructInst*);
 }
 
-immutable struct PtrToFieldExpr {
+immutable struct RecordFieldPointerExpr {
 	@safe @nogc pure nothrow:
 
 	ExprAndType target; // This will be a pointer or by-ref type
@@ -2215,10 +2249,6 @@ immutable struct PtrToFieldExpr {
 
 	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
 		&recordDecl(commonTypes).body_.as!(StructBody.Record).fields[fieldIndex];
-}
-
-immutable struct PtrToLocalExpr {
-	Local* local;
 }
 
 immutable struct SeqExpr {

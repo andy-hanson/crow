@@ -225,13 +225,6 @@ Type withExpectCandidates(
 	return inferred(expected);
 }
 
-ExprAndType withExpectAndInfer(Type[2] types, in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
-	TypeAndContext[2] contexts = [nonInferring(types[0]), nonInferring(types[1])];
-	Expected expected = Expected(small!TypeAndContext(contexts));
-	Expr expr = cb(castNonScope_ref(expected));
-	return ExprAndType(expr, inferred(castNonScope_ref(expected)));
-}
-
 // Also writes to info.hasBreak
 Expr withExpectLoop(ref LoopInfo info, in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
 	Expected expected = Expected(&info);

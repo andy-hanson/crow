@@ -8,6 +8,7 @@ import interpret.bytecode :
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : countParameterEntries, DoDynCall, doDynCall, DynCallSig, FunPointer, sizeWords;
 import interpret.stacks :
+	assertStacksAtOriginalState,
 	dataDupWords,
 	dataEnd,
 	dataPeek,
@@ -18,22 +19,17 @@ import interpret.stacks :
 	dataRef,
 	dataRemove,
 	dataReturn,
-	dataStackIsEmpty,
-	dataTempAsArr,
 	dataTop,
-	returnPeek,
 	returnPop,
 	returnPush,
-	returnStackIsEmpty,
-	returnTempAsArrReverse,
-	setReturnPeek,
 	Stacks,
-	withStacks;
+	withDefaultStacks;
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : indexOf;
-import util.conv : safeToSizeT;
+import util.col.map : mustGet;
+import util.conv : safeToUint, safeToSizeT;
 import util.exitCode : ExitCode;
 import util.integralValues : IntegralValue;
 import util.memory : memcpy, memmove, overwriteMemory;
@@ -50,20 +46,20 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 	in ByteCode byteCode,
 	in CString[] allArgs,
 ) =>
-	withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
-		dataPush(stacks, allArgs.length);
-		dataPush(stacks, cast(ulong) allArgs.ptr);
-		return withMeasureNoAlloc!(ExitCode, () @trusted =>
-			runBytecodeInner(stacks, initialOperationPointer(byteCode))
-		)(perf, PerfMeasure.run);
-	});
+	withDefaultStacks!ExitCode((ref Stacks stacks) =>
+		withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, stacks, () {
+			dataPush(stacks, allArgs.length);
+			dataPush(stacks, cast(ulong) allArgs.ptr);
+			return withMeasureNoAlloc!(ExitCode, () @trusted =>
+				runBytecodeInner(stacks, initialOperationPointer(byteCode))
+			)(perf, PerfMeasure.run);
+		}));
 
 private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
 	ulong returnCode = dataPop(stacks);
-	assert(dataStackIsEmpty(stacks));
-	assert(returnStackIsEmpty(stacks));
-	return ExitCode(cast(uint) returnCode);
+	assertStacksAtOriginalState(stacks);
+	return ExitCode(safeToUint(returnCode));
 }
 
 void syntheticCall(
@@ -71,7 +67,7 @@ void syntheticCall(
 	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPushArgs,
 	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPopResult,
 ) =>
-	withStacks!void((scope ref Stacks stacks) {
+	withDefaultStacks!void((scope ref Stacks stacks) {
 		cbPushArgs(stacks);
 		syntheticCallWithStacks(stacks, operationPtr);
 		cbPopResult(stacks);
@@ -108,12 +104,13 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 	operation = nextOperationPtr;
 }
 
-@safe T withInterpreter(T)(
+T withInterpreter(T)(
 	in DoDynCall doDynCall_,
 	in ShowCtx printCtx,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
-	in T delegate(ref Stacks) @nogc nothrow cb,
+	ref Stacks stacks,
+	in T delegate() @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
 		ptrTrustMe(printCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
@@ -121,22 +118,22 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPointerToOperationPointer,
 		castNonScope_ref(doDynCall_)));
-	return withStacks!T((scope ref Stacks stacks) @trusted {
-		// Ensure the last 'return' returns to here
-		returnPush(stacks, operationOpStopInterpretation.ptr);
 
-		static if (is(T == void))
-			cb(stacks);
-		else
-			T res = cb(stacks);
+	// Ensure the last 'return' returns to here.
+	// (NOTE: For fiber stacks, they will have 'null' instead, since the fiber shouldn't be allowed to complete)
+	returnPush(stacks, operationOpStopInterpretation.ptr);
 
-		debug {
-			setGlobals(InterpreterGlobals(null, FunPointerToOperationPointer(), null));
-		}
+	static if (is(T == void))
+		cb();
+	else
+		T res = cb();
 
-		static if (!is(T == void))
-			return res;
-	});
+	debug {
+		setGlobals(InterpreterGlobals(null, FunPointerToOperationPointer(), null));
+	}
+
+	static if (!is(T == void))
+		return res;
 }
 
 private void setNext(Stacks stacks, Operation* operationPtr) {
@@ -239,6 +236,39 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 	ulong value = dataPop(stacks);
 	if (value == 0)
 		cur += offset.offset;
+}
+
+alias opSwitchFiberInitial = operation!opSwitchFiberInitialInner;
+private void opSwitchFiberInitialInner(ref Stacks stacks, ref Operation* cur) {
+	ulong func = cast(Operation*) dataPop(stacks);
+	ulong* stackHigh = cast(ulong*) dataPop(stacks);
+	ulong** fromPtr = cast(ulong**) dataPop(stacks);
+	ulong fiber = dataPop(stacks);
+
+	returnPush(stacks, cur);
+	dataPush(stacks, cast(ulong) stacks.returnPtr);
+	*fromPtr = stacks.dataPtr;
+
+	stacks.returnPtr = cast(Operation**) stackHigh;
+	stacks.dataPtr = stackHigh - 0x20000; // Size hardcoded in 'create-new-fiber'
+
+	returnPush(stacks, null); // Should not ever be popped, but better 'null' than something arbitrary
+	dataPush(stacks, fiber);
+	cur = mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func));
+}
+
+alias opSwitchFiber = operation!opSwitchFiberInner;
+private void opSwitchFiberInner(ref Stacks stacks, ref Operation* cur) {
+	ulong* to = cast(ulong*) dataPop(stacks);
+	ulong** fromPtr = cast(ulong**) dataPop(stacks);
+
+	returnPush(stacks, cur);
+	dataPush(stacks, cast(ulong) stacks.returnPtr);
+	*fromPtr = stacks.dataPtr;
+
+	stacks.dataPtr = to;
+	stacks.returnPtr = cast(Operation**) dataPop(stacks);
+	cur = returnPop(stacks);
 }
 
 alias opSwitch0ToN(bool hasElse) = operation!(opSwitch0ToNInner!hasElse);
@@ -390,23 +420,20 @@ private void opCallFunPointerExternInner(ref Stacks stacks, ref Operation* cur) 
 	doDynCall(globals.doDynCall, stacks, sig, funPtr);
 }
 
-alias opSetjmp = operation!opSetjmpInner;
-private void opSetjmpInner(ref Stacks stacks, ref Operation* cur) {
-	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
-	*jmpBufPtr = FakeJmpBufTag(stacks, returnPeek(stacks), cur);
-	// The return from the setjmp is in the handler for 'longjmp'
+alias opSetupCatch = operation!opSetupCatchInner;
+private void opSetupCatchInner(ref Stacks stacks, ref Operation* cur) {
+	CatchPoint* point = cast(CatchPoint*) dataPop(stacks);
+	*point = CatchPoint(stacks, cur);
 	dataPush(stacks, 0);
 }
 
-alias opLongjmp = operation!opLongjmpInner;
-private void opLongjmpInner(ref Stacks stacks, ref Operation* cur) {
-	ulong val = dataPop(stacks);
-	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
-	stacks = jmpBufPtr.stacks;
-	setReturnPeek(stacks, jmpBufPtr.returnPeek);
-	cur = jmpBufPtr.nextOperationPtr;
-	// return value of 'setjmp'
-	dataPush(stacks, val);
+alias opJumpToCatch = operation!opJumpToCatchInner;
+private void opJumpToCatchInner(ref Stacks stacks, ref Operation* cur) {
+	CatchPoint* point = cast(CatchPoint*) dataPop(stacks);
+	stacks = point.stacks;
+	cur = point.nextOperationPtr;
+	// return value of 'setup-catch'
+	dataPush(stacks, 1);
 }
 
 alias opInterpreterBacktrace = operation!opInterpreterBacktraceInner;
@@ -419,13 +446,11 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 	dataPush(stacks, cast(size_t) res);
 }
 
-private struct FakeJmpBufTag {
+private struct CatchPoint {
 	Stacks stacks;
-	Operation* returnPeek;
 	Operation* nextOperationPtr;
 }
-// see setjmp.crow
-static assert(FakeJmpBufTag.sizeof <= 288);
+static assert(CatchPoint.sizeof <= 0x18); // Keep in sync with 'getBuiltinStructSize'
 
 alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
 private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {

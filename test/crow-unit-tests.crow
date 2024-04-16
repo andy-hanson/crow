@@ -47,7 +47,6 @@ import
 	../include/crow/private/tests/bare-map-tests: dummy-bare-map-tests
 	../include/crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
 	../include/crow/private/tests/bits-tests: dummy-bits-tests
-	../include/crow/private/tests/future-tests: dummy-future-tests
 	../include/crow/private/tests/json-tests: dummy-json-tests
 	../include/crow/private/tests/math-tests: dummy-math-tests
 	../include/crow/private/tests/number-tests: dummy-number-tests
@@ -57,9 +56,13 @@ import
 	../editor/vscode/license.txt as license string
 	./unit/auto-funs: dummy-auto-funs
 	./unit/conditions: dummy-conditions
+	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
+	./unit/gc-roots: dummy-gc-roots
+	./unit/log: dummy-log
+	./unit/parallel: dummy-parallel
 
-main nat^(_ string[]) summon
+main void() summon
 	license is "public domain"
 	_ = ().from-bytes :: nat8[]
 	_ = bold
@@ -74,16 +77,19 @@ main nat^(_ string[]) summon
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
 	_ = dummy-conditions
+	_ = dummy-closures
 	_ = dummy-exceptions
-	_ = dummy-future-tests
+	_ = dummy-gc-roots
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-map-tests
 	_ = dummy-index-set-tests
 	_ = dummy-json-tests
 	_ = dummy-list-tests
+	_ = dummy-log
 	_ = dummy-math-tests
 	_ = dummy-number-tests
+	_ = dummy-parallel
 	_ = dummy-set-tests
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests
@@ -120,10 +126,9 @@ main nat^(_ string[]) summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::string^ shared()
+	_ = (() => read-stdin)::string shared()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt
 	_ = () parse-named-args ()
-	<- run-all-tests
-	()
+	run-all-tests

@@ -1,47 +1,62 @@
 no-std
 import
 	../bool: bool, false, true
-	../col/mut-list: ~=, ~~=, iterate, new, move-to, mut-list, prepend=
 	../misc: new, void
+	../option: ??, new
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		empty, exception-and-backtrace, forwarded, future, future-state, hard-unreachable, lk, new,
-		one-task, rejected, resolved, set-state, state, tasks
-	./runtime: enqueue-task, enqueue-tasks, get-global-ctx, new-exclusion
-	./task-queue: exclusion, task
+		awaiting-future, awaited-by, empty, exception-and-backtrace, fiber, future, future-state,
+		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state
+	./exception-low-level: rethrow
+	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
-unresolved[t] t^() unsafe
-	res t^ = uninit, empty
+# If the future is already complete, returns 'false'
+~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
+	&a.lk acquire
+	res bool = match a state
+	as empty
+		a.state := fiber awaited-by
+		fiber.state := () awaiting-future
+		true
+	as awaited-by x
+		fiber.state := (x,) awaiting-future
+		a.state := fiber awaited-by
+		true
+	as resolved _
+		false
+	as rejected _
+		false
+	&a.lk release
+	res
+
+~unresolved[t] t future() unsafe
+	res t future = uninit, empty
 	res.lock init
 	res
 
--lock[t] lock mut*(a t^) bare, unsafe
+-lock[t] lock mut*(a t future) bare, unsafe
 	&a.lk
 
-resolve[t] void(a t^, value t) unsafe
+~resolve[t] void(a t future, value t) unsafe
 	a resolve-or-reject value.resolved
 
-reject[t] void(a t^, error exception-and-backtrace) unsafe
+~reject[t] void(a t future, error exception-and-backtrace) unsafe
 	a resolve-or-reject error.rejected
 
-is-completed[t] bool(a t^)
-	match a.state
+~is-completed[t] bool(a t future)
+	match a state
 	as empty
 		false
-	as one-task _
+	as awaited-by _
 		false
-	as tasks _
-		false
-	as forwarded x
-		x is-completed
 	as resolved _
 		true
 	as rejected _
 		true
 
--resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
+-resolve-or-reject[t] void(a t future, new-state t future-state) bare, unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -49,125 +64,40 @@ is-completed[t] bool(a t^)
 	match old-state
 	as empty
 		()
-	as one-task task
-		get-global-ctx enqueue-task task
-	as tasks tasks
-		get-global-ctx enqueue-tasks tasks.move-to
-	as forwarded _
-		hard-unreachable
+	as awaited-by fiber
+		cur mut = fiber
+		loop
+			opt-next = cur.state.awaiting-future ?? hard-unreachable
+			cur.state := queued
+			get-global-ctx enqueue-fiber cur
+			if next ?= opt-next
+				cur := next
+				continue
+			else
+				break
 	as resolved _
 		hard-unreachable
 	as rejected _
 		hard-unreachable
 
--or-forwarded[t, u] union(direct t, forwarded u^) shared
-
-# 'a' should be the result of 'unresolved-will-forward'; have it forward to 'target'
-forward-to[t] void(a t^, target t^) unsafe
-	a.lock acquire
-	old-state = a state
-	a.state := target forwarded
-	a.lock release
-
-	match old-state
-	as empty
-		()
-	as one-task task
-		target add-task task
-	as tasks tasks
-		target add-tasks tasks
-	as forwarded _
-		hard-unreachable
-	as resolved _
-		hard-unreachable
-	as rejected _
-		hard-unreachable
-
-add-task-no-exclusion[t] void(a t^, action void mut()) unsafe
-	a add-task get-global-ctx.new-exclusion, action
-
-add-task[t] void(a t^, exclusion exclusion, action void mut()) unsafe
-	a add-task (exclusion, action)
-
-add-task[t] void(a t^, task task) unsafe
-	a.lock acquire
-	choice t add-tasks-choice = match a state
-	as empty
-		a.state := task one-task
-		added
-	as one-task existing-task
-		a.state := (existing-task, task) tasks
-		added
-	as tasks existing-tasks
-		existing-tasks ~= task
-		added
-	as forwarded to
-		to forward
-	as resolved _
-		tasks-are-ready
-	as rejected _
-		tasks-are-ready
-	a.lock release
-
-	match choice
-	as added
-		()
-	as forward to
-		to add-task task
-	as tasks-are-ready
-		get-global-ctx enqueue-task task
-
--add-tasks[t] void(a t^, tasks task mut[]) unsafe
-	a.lock acquire
-	choice t add-tasks-choice = match a state
-	as empty
-		a.state := tasks tasks
-		added
-	as one-task existing-task
-		tasks prepend= existing-task
-		a.state := tasks tasks
-		added
-	as tasks existing-tasks
-		existing-tasks ~~= tasks
-		added
-	as forwarded to
-		to forward
-	as resolved _
-		tasks-are-ready
-	as rejected _
-		tasks-are-ready
-	a.lock release
-
-	match choice
-	as added
-		()
-	as forward to
-		to add-tasks tasks
-	as tasks-are-ready
-		get-global-ctx enqueue-tasks tasks.move-to
-
--add-tasks-choice[t] union(added, forward t^, tasks-are-ready) shared
+~must-get-result[t] t(a t future) bare, unsafe
+	match a.get-result
+	as ok x
+		x
+	as error x
+		x rethrow
 
 # Assuming the future is resolved, get the result.
-get-result[t] (t, exception-and-backtrace) result(a t^) bare, unsafe
+~get-result[t] (t, exception-and-backtrace) result(a t future) bare, unsafe
 	a.lock acquire
-	res ((t, exception-and-backtrace) result, t) or-forwarded = match a state
+	res (t, exception-and-backtrace) result = match a state
 	as empty
 		hard-unreachable
-	as one-task _
+	as awaited-by _
 		hard-unreachable
-	as tasks _
-		hard-unreachable
-	as forwarded forwarded-to
-		forwarded-to forwarded
-	as resolved v
-		v.ok direct
-	as rejected e
-		e.error direct
+	as resolved x
+		x ok
+	as rejected x
+		x error
 	a.lock release
-
-	match res
-	as direct v
-		v
-	as forwarded to
-		to get-result
+	res

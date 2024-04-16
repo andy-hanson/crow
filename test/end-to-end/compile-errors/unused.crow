@@ -1,6 +1,6 @@
 import
 	# unused fun
-	crow/io/duration: sec
+	crow/io/duration: second
 	# unused type
 	crow/io/time-format: time-locale
 	# unused type alias
@@ -17,7 +17,7 @@ foo[t] void(p nat, _ string)
 	_ void mut(x nat) = x => ()
 	_ void mut(x nat) = _ => ()
 	y nat = 2
-	_ void^ shared() = shared () => ()
+	_ void shared() = shared () => ()
 	()
 
 -bar[t] void() t compare

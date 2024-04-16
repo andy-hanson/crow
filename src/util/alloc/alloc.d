@@ -208,7 +208,7 @@ struct Alloc {
 	}
 
 	AllocKind allocKind;
-	MetaAlloc* meta;
+	public MetaAlloc* meta;
 	BlockNode* curBlock;
 	word* curWord;
 }
@@ -217,6 +217,12 @@ alias TempAlloc = Alloc;
 
 @system ubyte[] allocateBytes(ref Alloc a, size_t sizeBytes) =>
 	(cast(ubyte*) allocateWords(a, bytesToWords(sizeBytes)).ptr)[0 .. sizeBytes];
+
+@system ubyte[] allocateZeroedBytes(ref Alloc a, size_t sizeBytes) {
+	ubyte[] res = allocateBytes(a, sizeBytes);
+	memset(res.ptr, 0, sizeBytes);
+	return res;
+}
 
 @system T* allocateUninitialized(T)(ref Alloc a) =>
 	&allocateElements!T(a, 1)[0];

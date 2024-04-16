@@ -39,7 +39,9 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
+	LocalMutability,
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
@@ -52,8 +54,7 @@ import model.model :
 	Module,
 	NameReferents,
 	Params,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	Purity,
 	SeqExpr,
 	SpecDecl,
@@ -391,7 +392,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in FunPointerExpr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
-				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst))]),
+				field!"fun"(jsonOfCalled(alloc, ctx, x.called))]),
 		(in IfExpr x) =>
 			jsonObject(alloc, [
 				kindField!"if",
@@ -425,6 +426,10 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in LocalGetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
+				field!"name"(x.local.name)]),
+		(in LocalPointerExpr x) =>
+			jsonObject(alloc, [
+				kindField!"local-pointer",
 				field!"name"(x.local.name)]),
 		(in LocalSetExpr x) =>
 			jsonObject(alloc, [
@@ -489,15 +494,11 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
 				field!"cases"(jsonOfMatchVariantCases(alloc, ctx, x.cases)),
 				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
-		(in PtrToFieldExpr x) =>
+		(in RecordFieldPointerExpr x) =>
 			jsonObject(alloc, [
-				kindField!"pointer-to-field",
+				kindField!"field-pointer",
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
-		(in PtrToLocalExpr x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-local",
-				field!"name"(x.local.name)]),
 		(in SeqExpr a) =>
 			jsonObject(alloc, [
 				kindField!"seq",
@@ -561,8 +562,18 @@ Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 	jsonObject(alloc, [
 		kindField!"local",
 		field!"name"(a.name),
-		field!"mutability"(stringOfEnum(a.mutability)),
+		field!"mutability"(jsonOfLocalMutability(alloc, ctx, a.mutability)),
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
+Json jsonOfLocalMutability(ref Alloc alloc, in Ctx ctx, in LocalMutability a) =>
+	a.matchIn!Json(
+		(in LocalMutability.Immutable) =>
+			jsonString("immutable"),
+		(in LocalMutability.MutableOnStack) =>
+			jsonString("mutable-on-stack"),
+		(in LocalMutability.MutableAllocated x) =>
+			jsonObject(alloc, [
+				kindField!"mutable-allocated",
+				field!"reference-type"(jsonOfStructInst(alloc, ctx, *x.referenceType))]));
 
 Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 	a.matchIn!Json(

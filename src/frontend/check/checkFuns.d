@@ -10,7 +10,7 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	CommonModule,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
+import frontend.check.checkExpr : checkFunctionBody, checkTestBody;
 import frontend.check.checkStructBodies : modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
@@ -47,12 +47,10 @@ import model.ast :
 import model.diag : DeclKind, Diag, TypeContainer;
 import model.model :
 	AutoFun,
-	BogusExpr,
 	CommonTypes,
 	Destructure,
 	emptySpecs,
 	Expr,
-	ExprKind,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -424,15 +422,11 @@ FunFlagsAndSpecs checkFunModifiers(
 ) =>
 	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
 		FunFlags flags = checkTestModifiers(ctx, *ast);
-		TestBody body_ = () {
-			if (ast.body_.kind.isA!EmptyAst) {
-				addDiag(ctx, ast.range, Diag(Diag.TestMissingBody()));
-				return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
-			} else
-				return checkTestBody(
-					ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), flags, &ast.body_);
-		}();
-		return Test(ast, ctx.curUri, flags, body_.body_, body_.type);
+		if (ast.body_.kind.isA!EmptyAst)
+			addDiag(ctx, ast.range, Diag(Diag.TestMissingBody()));
+		Expr body_ = checkTestBody(
+			ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), flags, &ast.body_);
+		return Test(ast, ctx.curUri, flags, body_);
 	}));
 
 FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {

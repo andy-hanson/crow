@@ -45,7 +45,6 @@ import model.ast :
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
-	ThenAst,
 	TryAst,
 	TryLetAst,
 	TypeAst,
@@ -84,6 +83,7 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -99,9 +99,8 @@ import model.model :
 	Params,
 	paramsArray,
 	Program,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
 	RecordField,
+	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecDecl,
 	SpecDeclSig,
@@ -317,7 +316,7 @@ void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
 	foreach (ref FunDecl x; a.funs)
 		eachTypeInFun(commonTypes, x, cb);
 	foreach (ref Test x; a.tests)
-		eachTypeInExpr(commonTypes, ExprRef(&x.body_, x.returnType(commonTypes)), cb);
+		eachTypeInExpr(commonTypes, testBodyExprRef(commonTypes, &x), cb);
 	foreach (ref VariantMember x; a.variantMembers)
 		eachTypeInVariantMember(x, cb);
 }
@@ -472,10 +471,12 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 			eachTypeInCondition(x.condition, astKind.as!IfAst.condition, cb);
 		},
 		(in LambdaExpr x) {
-			eachTypeInDestructure(
-				x.param,
-				astKind.isA!(ThenAst*) ? astKind.as!(ThenAst*).left : astKind.as!(LambdaAst*).param,
-				cb);
+			DestructureAst param = astKind.isA!(ForAst*)
+				? astKind.as!(ForAst*).param
+				: astKind.isA!(WithAst*)
+				? astKind.as!(WithAst*).param
+				: astKind.as!(LambdaAst*).param;
+			eachTypeInDestructure(x.param, param, cb);
 		},
 		(in LetExpr x) {
 			eachTypeInDestructure(x.destructure, astKind.as!(LetAst*).destructure, cb);
@@ -483,6 +484,7 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in LiteralExpr _) {},
 		(in LiteralStringLikeExpr _) {},
 		(in LocalGetExpr _) {},
+		(in LocalPointerExpr _) {},
 		(in LocalSetExpr _) {},
 		(in LoopExpr _) {},
 		(in LoopBreakExpr _) {},
@@ -499,8 +501,7 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in MatchVariantExpr x) {
 			eachTypeInMatchUnionOrVariant!(MatchVariantExpr.Case)(x.cases, astKind.as!MatchAst.cases, cb);
 		},
-		(in PtrToFieldExpr _) {},
-		(in PtrToLocalExpr _) {},
+		(in RecordFieldPointerExpr _) {},
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {},
 		(in TrustedExpr _) {},
@@ -558,15 +559,18 @@ void referencesForFunDecls(in Program program, in FunDecl*[] decls, in Reference
 }
 
 void eachFunReferenceAtExpr(in Module module_, in ExprRef x, in FunDecl*[] decls, in ReferenceCb cb) {
-	if (x.expr.kind.isA!CallExpr) {
-		Called called = x.expr.kind.as!CallExpr.called;
-		if (called.isA!(FunInst*) && contains(decls, called.as!(FunInst*).decl))
-			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
-	} else if (x.expr.kind.isA!FunPointerExpr) {
-		if (contains(decls, x.expr.kind.as!FunPointerExpr.funInst.decl))
-			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
-	}
+	Opt!Called called = getCalledAtExpr(x.expr.kind);
+	if (has(called) && force(called).isA!(FunInst*) && contains(decls, force(called).as!(FunInst*).decl))
+		cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 }
+Opt!Called getCalledAtExpr(in ExprKind x) =>
+	x.isA!CallExpr
+		? some(x.as!CallExpr.called)
+		: x.isA!(CallOptionExpr*)
+		? some(x.as!(CallOptionExpr*).called)
+		: x.isA!FunPointerExpr
+		? some(x.as!FunPointerExpr.called)
+		: none!Called;
 
 Range callNameRange(in ExprAst a) {
 	ExprAstKind kind = a.kind;
@@ -606,14 +610,11 @@ void eachExprThatMayReference(
 void referencesForSpecSig(in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
 	Module* itsModule = moduleOf(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, ExprRef x) {
-		if (x.expr.kind.isA!CallExpr) {
-			Called called = x.expr.kind.as!CallExpr.called;
-			if (called.isA!(CalledSpecSig) && called.as!(CalledSpecSig).nonInstantiatedSig == a.sig)
-				cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
-		} else if (x.expr.kind.isA!FunPointerExpr) {
-			// Currently doesn't support specs
-			assert(x.expr.kind.as!FunPointerExpr.funInst != null);
-		}
+		Opt!Called called = getCalledAtExpr(x.expr.kind);
+		if (has(called) &&
+			force(called).isA!(CalledSpecSig) &&
+			force(called).as!(CalledSpecSig).nonInstantiatedSig == a.sig)
+			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 	});
 }
 

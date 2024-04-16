@@ -177,7 +177,7 @@ void writeFunDeclAndTypeArgs(
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
 
-void writeFunInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in FunInst a) {
+private void writeFunInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in FunInst a) {
 	writeFunDecl(writer, ctx, a.decl);
 	writeTypeParamsAndArgs(writer, ctx, a.decl.typeParams, typeContainer, a.typeArgs);
 }
@@ -348,8 +348,6 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 				return fun(FunKind.function_);
 			case Diag.TypeShouldUseSyntax.Kind.funShared:
 				return fun(FunKind.shared_);
-			case Diag.TypeShouldUseSyntax.Kind.future:
-				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:
 				return suffix("[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutMap:

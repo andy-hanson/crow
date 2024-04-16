@@ -26,6 +26,7 @@ import model.model :
 	LiteralExpr,
 	LiteralStringLikeExpr,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -36,8 +37,7 @@ import model.model :
 	MatchStringLikeExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecInst,
 	SpecDecl,
@@ -62,7 +62,7 @@ private alias SpecCb = void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure 
 ExprRef funBodyExprRef(FunDecl* a) =>
 	ExprRef(&a.body_.as!Expr(), a.returnType);
 ExprRef testBodyExprRef(ref CommonTypes commonTypes, Test* a) =>
-	ExprRef(&a.body_, a.returnType(commonTypes));
+	ExprRef(&a.body_, Type(commonTypes.void_));
 
 void eachSpecParent(in SpecDecl a, in SpecCb cb) {
 	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in SpecUseAst ast) {
@@ -300,6 +300,8 @@ Opt!T findDirectChildExpr(T)(
 			assert(a.type == x.local.type);
 			return none!T;
 		},
+		(LocalPointerExpr _) =>
+			none!T,
 		(LocalSetExpr x) {
 			assert(a.type == voidType);
 			return cb(ExprRef(x.value, x.local.type));
@@ -343,10 +345,8 @@ Opt!T findDirectChildExpr(T)(
 				cb(toRef(x.matched)),
 				() => directChildInMatchVariantCases(x.cases),
 				() => cb(sameType(x.else_))),
-		(PtrToFieldExpr* x) =>
+		(RecordFieldPointerExpr* x) =>
 			cb(toRef(x.target)),
-		(PtrToLocalExpr _) =>
-			none!T,
 		(SeqExpr* x) =>
 			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(x.then))),
 		(ThrowExpr* x) =>

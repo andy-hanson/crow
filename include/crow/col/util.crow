@@ -1,12 +1,26 @@
 no-std
 import
 	../compare: !=, equal, min
+	../fun-util: subscript
 	../misc: new
 	../number: ==, <=>, +, *, /, nat64
 	../private/range-low-level: subtract-to-nat
-	./collection: begin-end, next, size, skip-next, slice, try-split-once, with-block
-	./list: ~=, build, list
+	./collection:
+		begin-end, for-loop, iterate, next, size, skip-next, slice, try-split-once, with-block
+	./list: ~=, build, iterate, list
 	./private/build: build
+
+# AKA 'flat-map'
++and-concat[col] record(inner col) nominal
++for-loop[out-elem, in-col, in-elem] out-elem[](
+	a in-col and-concat,
+	f out-elem[] mut(elem in-elem),
+) (in-col, in-elem) iterate
+	with out : build
+		for x : a inner
+			# TODO: Use '~~=' (which may be more efficient)
+			for y : f[x]
+				out ~= y
 
 +split[col, iter, elem] col[](
 	a col,
@@ -24,10 +38,12 @@ import
 				out ~= cur
 				break
 
-+groups-of[col, iter] col[](
-	a col,
-	group-size nat64,
-) (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
++groupable[col, iter] spec (iter, col) begin-end,
+	iter subtract-to-nat,
+	iter skip-next,
+	(col, iter) slice,
+	col size
++groups-of[col, iter] col[](a col, group-size nat64) (col, iter) groupable
 	div = a.size / group-size
 	out-size = div * group-size == a.size ? div : div + 1
 	iter mut = a begin

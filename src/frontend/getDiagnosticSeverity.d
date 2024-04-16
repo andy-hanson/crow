@@ -63,7 +63,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerExprMustBeName) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.FunPointerNotSupported) =>
+		(in Diag.FunPointerNoMatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.IfThrow) =>
 			DiagnosticSeverity.warning,

@@ -23,6 +23,17 @@ test
 	try
 		finally throw "thrown second" error
 		throw "thrown first" error
-		()::void
 	catch error e
 		e is "thrown second"
+
+# Test that yielding the fiber does not break exception handling
+test
+	xs nat mut[] = ()
+	try
+		xs ~= 1
+		yield-fiber
+		xs ~= 2
+		xs ~= 3 / 0
+	catch divide-by-0
+		xs ~= 4
+	xs.to::nat[] is (1, 2, 4)

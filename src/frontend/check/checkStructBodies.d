@@ -185,6 +185,7 @@ bool isValidAlignment(uint alignment) {
 		case 2:
 		case 4:
 		case 8:
+		case 16:
 			return true;
 		default:
 			return false;
@@ -911,6 +912,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.nat32;
 		case symbol!"nat64".value:
 			return BuiltinType.nat64;
+		case symbol!"catch-point".value:
+			return BuiltinType.catchPoint;
 		case symbol!"const-pointer".value:
 			return BuiltinType.pointerConst;
 		case symbol!"mut-pointer".value:

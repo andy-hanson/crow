@@ -9,12 +9,21 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteVar,
 	isArray,
+	isFiber,
 	isTuple,
 	name,
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+	Builtin4ary,
+	BuiltinFun,
+	BuiltinUnary,
+	BuiltinUnaryMath,
+	BuiltinBinary,
+	BuiltinBinaryMath,
+	BuiltinTernary,
+	Local,
+	StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -47,7 +56,7 @@ immutable struct LowRecord {
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst x) =>
-				x.inst.decl.body_.as!(StructBody.Record).flags.packed,
+				x.decl.body_.as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }
@@ -57,6 +66,8 @@ TypeSize typeSize(in LowRecord a) =>
 
 bool isArray(in LowRecord a) =>
 	isArray(*a.source);
+bool isFiber(in LowRecord a) =>
+	isFiber(*a.source);
 bool isTuple(in LowRecord a) =>
 	isTuple(*a.source);
 
@@ -80,8 +91,7 @@ immutable struct LowFunPointerType {
 	LowType[] paramTypes;
 }
 
-alias PrimitiveType = immutable PrimitiveType_;
-private enum PrimitiveType_ : ubyte {
+enum PrimitiveType : ubyte {
 	bool_,
 	char8,
 	char32,
@@ -217,9 +227,6 @@ immutable struct LowType {
 }
 static assert(LowType.sizeof <= 16);
 
-bool lowTypeEqualCombinePtr(LowType a, LowType b) =>
-	a == b || (isPtrGcOrRaw(a) && isPtrGcOrRaw(b) && asGcOrRawPointee(a) == asGcOrRawPointee(b));
-
 bool isChar8(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.char8;
 bool isChar32(LowType a) =>
@@ -268,6 +275,7 @@ Symbol debugName(in LowField a) =>
 immutable struct LowLocalSource {
 	immutable struct Generated {
 		Symbol name;
+		bool isMutable;
 		size_t index;
 	}
 	mixin TaggedUnion!(Local*, Generated*);
@@ -283,20 +291,42 @@ immutable struct LowLocal {
 
 	LowLocalSource source;
 	LowType type;
-}
 
-immutable struct LowFunExprBody {
-	bool hasTailRecur;
-	LowExpr expr;
+	// This is whether the local itself is mutable, not whether its value is.
+	bool isMutable() scope =>
+		source.matchIn!bool(
+			(in Local x) =>
+				x.isMutable,
+			(in LowLocalSource.Generated x) =>
+				x.isMutable);
 }
+bool localMustBeVolatile(in LowFun curFun, in LowLocal local) =>
+	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
+	local.isMutable && curFun.hasSetupCatch;
 
-// Unlike ConcreteFunBody, this is always an expr or extern.
 immutable struct LowFunBody {
 	immutable struct Extern {
 		Symbol libraryName;
 	}
 
 	mixin Union!(Extern, LowFunExprBody);
+}
+
+immutable struct LowFunExprBody {
+	LowFunFlags flags;
+	LowExpr expr;
+
+	alias flags this;
+}
+
+immutable struct LowFunFlags {
+	@safe @nogc pure nothrow:
+	bool hasSetupCatch;
+	bool hasTailRecur;
+	bool mayYield;
+
+	static LowFunFlags none() =>
+		LowFunFlags(false, false, false);
 }
 
 immutable struct LowFunSource {
@@ -329,14 +359,30 @@ immutable struct LowFun {
 				x.range,
 			(in LowFunSource.Generated) =>
 				UriAndRange.empty);
-}
 
-bool isGeneratedMain(in LowFun a) =>
-	a.source.matchIn!bool(
-		(in ConcreteFun _) =>
-			false,
-		(in LowFunSource.Generated x) =>
-			x.name == symbol!"main");
+	LowFunFlags flags() scope =>
+		body_.matchIn!LowFunFlags(
+			(in LowFunBody.Extern) =>
+				LowFunFlags(
+					hasSetupCatch: false,
+					hasTailRecur: false,
+					mayYield: false),
+			(in LowFunExprBody x) =>
+				x.flags);
+
+	bool hasSetupCatch() scope =>
+		flags.hasSetupCatch;
+
+	bool mayYield() scope =>
+		flags.mayYield;
+
+	bool isGeneratedMain() scope =>
+		source.matchIn!bool(
+			(in ConcreteFun _) =>
+				false,
+			(in LowFunSource.Generated x) =>
+				x.name == symbol!"main");
+}
 
 // TODO: use ConcreteExpr*
 private alias LowExprSource = UriAndRange;
@@ -369,6 +415,10 @@ immutable struct LowExprKind {
 
 		LowExpr* funPtr;
 		SmallArray!LowExpr args;
+
+
+		LowType.FunPointer funPointerType() scope =>
+			funPtr.type.as!(LowType.FunPointer);
 	}
 
 	immutable struct CreateRecord {
@@ -380,13 +430,21 @@ immutable struct LowExprKind {
 		LowExpr arg;
 	}
 
+	// Sometimes this will be a Constant.FunPointer instead,
+	// but that's only possible for functions known to ConcreteModel
+	immutable struct FunPointer {
+		LowFunIndex fun;
+	}
+
 	immutable struct If {
 		LowExpr cond;
 		LowExpr then;
 		LowExpr else_;
 	}
 
-	immutable struct InitConstants {}
+	immutable struct Init {
+		BuiltinFun.Init.Kind kind;
+	}
 
 	immutable struct Let {
 		// A heap-allocated mutable local will become a read-only local whose type is a gc-ptr
@@ -396,6 +454,10 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct LocalGet {
+		LowLocal* local;
+	}
+
+	immutable struct LocalPointer {
 		LowLocal* local;
 	}
 
@@ -412,30 +474,43 @@ immutable struct LowExprKind {
 	}
 	immutable struct LoopContinue {}
 
-	immutable struct PtrCast {
+	immutable struct PointerCast {
 		LowExpr target;
-	}
-
-	immutable struct PtrToField {
-		LowExpr target;
-		size_t fieldIndex;
-	}
-
-	immutable struct PtrToLocal {
-		LowLocal* local;
 	}
 
 	immutable struct RecordFieldGet {
+		@safe @nogc pure nothrow:
+
 		LowExpr* target; // Call 'targetIsPointer' to see if this is x.y or x->y
 		size_t fieldIndex;
+
+		LowType.Record targetRecordType() scope =>
+			(targetIsPointer ? asGcOrRawPointee(target.type) : target.type).as!(LowType.Record);
+
+		bool targetIsPointer() scope =>
+			isPtrGcOrRaw(target.type);
 	}
 
-	// No 'RecordFieldPointer', use 'PtrToField'
+	immutable struct RecordFieldPointer {
+		@safe @nogc pure nothrow:
+
+		LowExpr* target; // Always a pointer
+		size_t fieldIndex;
+
+		LowType.Record targetRecordType() scope =>
+			asGcOrRawPointee(target.type).as!(LowType.Record);
+	}
 
 	immutable struct RecordFieldSet {
-		LowExpr target;
+		@safe @nogc pure nothrow:
+
+		LowExpr target; // Always a pointer
 		size_t fieldIndex;
 		LowExpr value;
+
+		// Use a template to avoid forward reference errors
+		LowType.Record targetRecordType()() scope =>
+			asGcOrRawPointee(target.type).as!(LowType.Record);
 	}
 
 	immutable struct SpecialUnary {
@@ -461,6 +536,11 @@ immutable struct LowExprKind {
 	immutable struct SpecialTernary {
 		BuiltinTernary kind;
 		LowExpr[3] args;
+	}
+
+	immutable struct Special4ary {
+		Builtin4ary kind;
+		LowExpr[4] args;
 	}
 
 	immutable struct Switch {
@@ -501,18 +581,19 @@ immutable struct LowExprKind {
 		CallFunPointer,
 		CreateRecord,
 		CreateUnion*,
+		FunPointer,
 		If*,
-		InitConstants,
+		Init,
 		Let*,
 		LocalGet,
+		LocalPointer,
 		LocalSet*,
 		Loop*,
 		LoopBreak*,
 		LoopContinue,
-		PtrCast*,
-		PtrToField*,
-		PtrToLocal,
+		PointerCast*,
 		RecordFieldGet,
+		RecordFieldPointer,
 		RecordFieldSet*,
 		Constant,
 		SpecialUnary*,
@@ -520,6 +601,7 @@ immutable struct LowExprKind {
 		SpecialBinary*,
 		SpecialBinaryMath*,
 		SpecialTernary*,
+		Special4ary*,
 		Switch*,
 		TailRecur,
 		UnionAs,
@@ -532,25 +614,6 @@ version (WebAssembly) {
 } else {
 	static assert(LowExprKind.sizeof == LowExprKind.Call.sizeof + ulong.sizeof);
 }
-
-LowType.FunPointer funPtrType(in LowExprKind.CallFunPointer a) =>
-	a.funPtr.type.as!(LowType.FunPointer);
-
-LowType.Record targetRecordType(in LowExprKind.PtrToField a) =>
-	asGcOrRawPointee(a.target.type).as!(LowType.Record);
-
-bool targetIsPointer(in LowExprKind.RecordFieldGet a) =>
-	isPtrGcOrRaw(a.target.type);
-
-LowType.Record targetRecordType(in LowExprKind.RecordFieldGet a) =>
-	(isPtrGcOrRaw(a.target.type) ? asGcOrRawPointee(a.target.type) : a.target.type).as!(LowType.Record);
-
-//TODO: this is always true
-bool targetIsPointer(in LowExprKind.RecordFieldSet a) =>
-	isPtrGcOrRaw(a.target.type);
-
-LowType.Record targetRecordType(in LowExprKind.RecordFieldSet a) =>
-	asGcOrRawPointee(a.target.type).as!(LowType.Record);
 
 immutable struct UpdateParam {
 	LowLocal* param;
@@ -624,6 +687,7 @@ immutable struct LowProgram {
 	VersionInfo version_;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	AllConstantsLow allConstants;
+	LowCommonTypes commonTypes;
 	FullIndexMap!(LowVarIndex, LowVar) vars;
 	AllLowTypes allTypes;
 	FullIndexMap!(LowFunIndex, LowFun) allFuns;
@@ -641,6 +705,17 @@ immutable struct LowProgram {
 
 	ref immutable(FullIndexMap!(LowType.Union, LowUnion)) allUnions() scope return =>
 		allTypes.allUnions;
+}
+
+immutable struct LowCommonTypes {
+	@safe @nogc pure nothrow:
+
+	LowType catchPointConstPointer;
+	LowType catchPointMutPointer;
+	LowType fiberReference;
+
+	LowType catchPoint() =>
+		*catchPointConstPointer.as!(LowType.PtrRawConst).pointee;
 }
 
 alias ExternLibraries = immutable ExternLibrary[];

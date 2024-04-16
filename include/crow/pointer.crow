@@ -4,12 +4,13 @@ Functions dealing with pointers and low-level memory issues.
 
 no-std
 import
+	system/string: memcpy, memmove, memset
 	./bool: bool
-	./compare: !=, comparison, less, equal, greater
-	./misc: void
-	./private/number-low-level: ==, nat8, nat64, unsafe-div, wrap-sub
+	./compare: <, <=, comparison, less, equal, greater
+	./misc: new, void
+	./number: -, *, /, nat8, nat64
 export
-	./private/bootstrap: const-pointer, mut-pointer, zeroed
+	./private/bootstrap: const-pointer, mut-pointer, todo, zeroed
 
 +any-const-pointer alias
 	nat8*
@@ -60,6 +61,8 @@ Do not actually write to it.
 ###
 +==[t] bool(a t*, b t*) builtin, bare, unsafe
 +==[t] bool(a t mut*, b t mut*) builtin, bare, unsafe
++==[r, p] bool(a r function(param p), b r function(param p)) bare, unsafe
+	a.as-any-const-pointer == b.as-any-const-pointer
 
 ###
 Advance the pointer past `offset` values of type `a`.
@@ -81,8 +84,7 @@ This is undefined behavior if `a < b` or if `size-of@t == 0`.
 +-[t] nat64(a t*, b t*) bare, unsafe
 	a.as-mut - b.as-mut
 +-[t] nat64(a t mut*, b t mut*) bare, unsafe
-	assert size-of@t != 0
-	(a.to wrap-sub b.to) unsafe-div size-of@t
+	(a.to - b.to) / size-of@t
 
 -is-less[t] bool(a t*, b t*) builtin, bare, unsafe
 -is-less[t] bool(a t mut*, b t mut*) builtin, bare, unsafe
@@ -147,10 +149,27 @@ as-any-const-pointer[t] any-const-pointer(reference t) bare, unsafe
 # WARN: See comment on 'as-any-const-pointer'.
 as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, bare, unsafe
 
+# Reverse of 'as-any-const-pointer'
+reference-from-pointer[t] t(pointer any-mut-pointer) builtin, bare, unsafe
+
 +as-fun-pointer[r, p] r function(param p)(a any-const-pointer) builtin, bare, unsafe
 
 ###
 True if two references have the same pointer.
-Contrast with `a == b` which can also e true for different pointers with equal contents.
+Contrast with `a == b` which can also be true for different pointers with equal contents.
 ###
 +reference-equal[t] bool(a t, b t) builtin, bare, unsafe
+
+# Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
++mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
+	d = dest as-const
+	assert d < src ? d + size <= src : src + size <= d
+	_ = dest.pointer-cast memcpy src.pointer-cast, size * size-of@t
+
+# Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
++mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
+	_ = dest.pointer-cast memmove src.pointer-cast, size * size-of@t
+
+# Set a range to 0
++mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
+	_ = dest.pointer-cast memset 0, size * size-of@t

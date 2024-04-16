@@ -7,9 +7,8 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
 	../pointer:
-		+, -, as-const, mut-pointer, reference-equal, set-deref, set-subscript, subscript, zeroed
-	../private/alloc: mem-copy, mem-move
-	../private/bootstrap: backing, mut-list-size, set-backing, set-mut-list-size
+		+, -, as-const, mem-copy, mem-move, mut-pointer, reference-equal, set-deref, set-subscript,
+		subscript, zeroed
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
@@ -20,10 +19,21 @@ import
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
 		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-subscript,
-		size, slice, subscript, temp-as-array, uninitialized-mut-array, zero-memory
+		size, slice, subscript, temp-as-array, zeroed-mut-array, zero-memory
 	./list: iterate, list, to
-export
-	../private/bootstrap: mut-list
+
+###
+Mutable array type that can change in size.
+This is represented as a reference to a `mut-array` with extra capacity.
+Appending (or removing) elements to the end is amortized O(1),
+but appending (or removing) from the beginning is always O(N).
+###
++mut-list[t] record mut
+	# Fields should only be used in mut-list.crow
+	# backing.size is the capacity
+	# For the GC's sake, unused parts of backing are filled with 'zeroed'
+	-backing mut t mut-array
+	-mut-list-size mut nat64
 
 +size[t] nat64(a t mut[]) bare
 	a mut-list-size
@@ -206,7 +216,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 	trusted
 		assert new-capacity > a.capacity
 		old-begin = a begin-pointer
-		a.backing := new-capacity uninitialized-mut-array
+		a.backing := new-capacity zeroed-mut-array
 		a.begin-pointer mem-copy old-begin.as-const, a.size
 		a.backing[a.size + 1 .. end] zero-memory
 

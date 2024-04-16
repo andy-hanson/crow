@@ -1,40 +1,42 @@
 no-std
 import
 	../bool: &&, ||, bool, false, true
-	../col/array: array
+	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../exception: exception-and-backtrace, to
+	../col/mut-array:
+		-, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
 	../fun-util: subscript
-	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
-	../log: default-log-handler, set-log-handler, log-handler
-	../misc: new, void
-	../number: ==, nat64
-	../option: is-empty, option
-	../pointer: *, as-const, mut-pointer
-	../string: interpolate, string
+	../log: default-log-handler, get-log-handler
+	../misc: new, shared, void
+	../number: ==, is-multiple-of, nat64
+	../option: ??, is-empty, new, option
+	../pointer: ==, *, as-const, mut-pointer, null, to
+	../string: string
 	../version: is-wasm
 	./alloc:
-		gc, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,
-		uninit
-	./bootstrap: hard-assert, new, symbol
-	./task-queue:
-		action, add-gc-roots, destroy, enqueue-task, enqueue-tasks, enqueue-timed-task, exclusion,
-		init, pop-task, release-exclusion, slow-is-empty, task, task-queue, uninit
+		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin,
+		mutator-end, uninit
+	./bootstrap:
+		change-exclusion, cur-exclusion, cur-fiber, delay-until-time, done, fiber, fiber-state,
+		hard-assert, hard-unreachable, must-cur-fiber, new, queued, queued-initial, running,
+		set-cur-exclusion, set-cur-fiber, set-state, stack, stack-pointer, state,
+		symbol, yield-request
+	./fiber-queue:
+		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
+		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
 
-get-global-ctx global-ctx mut*() unsafe
+-global-ctx-var global(global-ctx mut*)
+~get-global-ctx global-ctx mut*() bare, unsafe
 	global-ctx-var
-
-# TODO: this should be a global instead
--global-ctx-var thread-local(global-ctx mut*)
+~set-global-ctx void(value global-ctx mut*) bare, unsafe
+	global-ctx-var := value
 
 cur-exclusion exclusion() unsafe
-	cur-exclusion-var
-
--cur-exclusion-var thread-local(exclusion)
+	must-cur-fiber cur-exclusion
 
 global-ctx record by-val, mut
 	global-lock mut lock
@@ -45,20 +47,15 @@ global-ctx record by-val, mut
 
 	gc mut gc
 
-	# protected by 'tasks-lock'
-	tasks mut task-queue
+	# protected by 'fiber-queue-lock'
+	fiber-queue mut fiber-queue
 	symbols-table mut symbol[string]
-	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
-	# Default is to print it and set `gctx.any-unhandled-exceptions`
-	exception-handler mut void shared(x exception-and-backtrace)
-	# TODO: this should be a `global`. But need to atomically set.
-	default-log-handler mut log-handler
 
 	# All below must not be GC allocated
 
 	symbols-lock mut lock
 	# protects 'tasks'
-	-tasks-lock mut lock
+	-fiber-queue-lock mut lock
 	-n-threads nat64
 	-n-waiting-threads mut thread-safe-counter
 	-next-exclusion mut thread-safe-counter
@@ -78,12 +75,10 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	may-be-work-to-do: uninit
 	any-unhandled-exceptions: false
 	gc: uninit
-	tasks: uninit
+	fiber-queue: uninit
 	symbols-table: empty-map
-	exception-handler: exn => exn default-exception-handler
-	default-log-handler: log => log default-log-handler
 	symbols-lock: uninit
-	tasks-lock: uninit
+	fiber-queue-lock: uninit
 	n-threads: n-threads
 	n-waiting-threads: uninit
 	next-exclusion: uninit
@@ -93,67 +88,129 @@ init void(a global-ctx mut*) bare, unsafe
 	a.global-lock init
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
-	a.tasks init
+	a.fiber-queue init
 	a.symbols-lock init
-	a.tasks-lock init
+	a.fiber-queue-lock init
 	a.n-waiting-threads init
 	a.next-exclusion init
 
 destroy void(a global-ctx mut*) bare, unsafe
-	a.tasks destroy
+	a.fiber-queue destroy
 	a.may-be-work-to-do destroy-condition
 
-new-exclusion exclusion(a global-ctx mut*) bare
-	trusted a.next-exclusion get-and-increment
+###
+This switches away from the runtime into a fiber for the first time.
+(And like 'switch-fiber', returns when the fiber switches back.)
 
-default-exception-handler void(e exception-and-backtrace) summon, unsafe
-	err print-no-newline "Uncaught exception: "
-	err print "{e}"
-	get-global-ctx->any-unhandled-exceptions := true
+`stack-high` must be 16-byte aligned.
+This will grow down, meaning it starts at the greatest value.
+Initializes the stack, then returns the new stack pointer. (This is a bit below 'stack-high'.)
+###
+-switch-fiber-initial void(
+	fiber fiber,
+	from stack-pointer mut*,
+	stack-high stack-pointer,
+	func void function(a fiber),
+) builtin, bare
 
-enqueue-task-no-exclusion void(a global-ctx mut*, action void mut()) unsafe
-	a enqueue-task a.new-exclusion, action
+###
+Takes a pointer to the current stack pointer and updates it.
+Then resumes from the stack pointer at 'to'.
+###
+-switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare
 
-enqueue-task void(a global-ctx mut*, exclusion exclusion, action void mut()) unsafe
-	a enqueue-task (exclusion, action)
+# Stack pointer for the runtime. Regular fibers return to this when they yield.
+# TODO: This could be by-value. But we currently don't support pointer to thread-local.
+-thread-base-stack-pointer thread-local(stack-pointer mut*)
 
-enqueue-task void(a global-ctx mut*, task task) bare, unsafe
-	a.tasks-lock acquire
-	a.tasks enqueue-task task
-	a.tasks-lock release
+-is-valid-stack bool(a nat64 mut-array) bare, unsafe
+	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
+
+###
+Normally only a fiber can create another fiber.
+To initialize the first one, set a dummy fiber.
+It will be initialized properly the first time you switch to another fiber.
+###
+~set-dummy-fiber void() summon, unsafe
+	cur-fiber.is-empty hard-assert
+	fiber fiber = do
+		state: running
+		log-handler: log => log default-log-handler
+		stack: ()
+		gc-root: null
+		# This will be written to the first time we call 'switch-fiber'.
+		stack-pointer: null
+		cur-exclusion: 0
+		cur-catch-point: null
+	cur-fiber := fiber,
+
+# Caller is responsible for catching all exceptions in 'action'
+add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
+	a enqueue-fiber (a create-new-fiber action)
+-create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
+	# WARN: 'opSwitchFiberInitial' hardcodes this size
+	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
+	# Align the stack
+	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
+	stack.is-valid-stack hard-assert
+	res fiber = do
+		state: action queued-initial
+		# Inherits this fiber's log handler
+		log-handler: get-log-handler
+		stack: stack
+		gc-root: null
+		stack-pointer: null
+		cur-exclusion: a.next-exclusion.get-and-increment
+		cur-catch-point: null
+	res
+
+-fiber-func void(fiber fiber) force-ctx, unsafe
+	cur-fiber := fiber,
+	gc-root == null hard-assert
+	func = fiber.state.queued-initial ?? hard-unreachable
+	fiber.state := running
+	# It will 'mutator-end' every time it yields and 'mutator-begin' upon resuming
+	get-global-ctx.gc mutator-begin
+	func[]
+	mutator-end
+	done yield-this-fiber
+
+enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
+	fiber.state.is-queued-or-queued-initial hard-assert
+	a.fiber-queue-lock acquire
+	a.fiber-queue enqueue-fiber fiber
+	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-tasks void(a global-ctx mut*, tasks task array) bare, unsafe
-	a.tasks-lock acquire
-	a.tasks enqueue-tasks tasks
-	a.tasks-lock release
-	a.may-be-work-to-do broadcast
+-is-queued-or-queued-initial bool(a fiber-state) bare
+	match a
+	as queued
+		true
+	as queued-initial _
+		true
+	else
+		false
 
-enqueue-timed-task-cur-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
-	a lock-and-enqueue-timed-task time, cur-exclusion, action
+delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted
+	target-nsec.delay-until-time yield-this-fiber
 
-enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
-	a lock-and-enqueue-timed-task time, a.new-exclusion, action
-
--lock-and-enqueue-timed-task void(
-	a global-ctx mut*,
-	time timestamp,
-	exclusion exclusion,
-	action void mut(),
-) unsafe
-	a.tasks-lock acquire
-	a.tasks enqueue-timed-task time, (exclusion, action)
-	a.tasks-lock release
+-enqueue-timed-fiber void(a global-ctx mut*, time timestamp, fiber fiber) bare, unsafe
+	a.fiber-queue-lock acquire
+	a.fiber-queue enqueue-timed-fiber time, fiber
+	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
 thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
+	# This will be initialized properly the first time we switch away
+	stack-pointer-value mut stack-pointer = null
+	thread-base-stack-pointer := &stack-pointer-value
 	thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
 		last-checked = gctx.may-be-work-to-do get-sequence
-		match gctx choose-task
-		as task t
-			gctx do-task t
+		match gctx decide-what-to-do
+		as fiber x
+			gctx run-fiber x
 			continue
 		as gc
 			gctx.may-be-work-to-do broadcast
@@ -166,42 +223,65 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		as shut-down
 			break gctx thread-shut-down
 
--do-task void(gctx global-ctx mut*, task task) bare, summon, unsafe
-	gctx before-task task.exclusion
-	task.action invoke-action
-	gctx.tasks-lock acquire
-	gctx.tasks release-exclusion task.exclusion
-	gctx.tasks-lock release
-	after-task
+-change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
+	new-exclusion.change-exclusion yield-this-fiber
+
+# The caller should do something to ensure the fiber will eventually be resumed.
+~yield-this-fiber void(request yield-request) unsafe
+	fiber = must-cur-fiber
+	fiber.state := request yield-request
+	mutator-end
+	&fiber.stack-pointer switch-fiber *thread-base-stack-pointer
+	get-global-ctx.gc mutator-begin
+	fiber.state := running
+	cur-fiber := fiber,
+
+# Runs the fiber until its next yield
+~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
+	match fiber state
+	as queued-initial _
+		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack.end-pointer, &fiber-func
+	as queued
+		thread-base-stack-pointer switch-fiber fiber.stack-pointer
+	else
+		hard-unreachable
+
+	gctx.fiber-queue-lock acquire
+	gctx.fiber-queue release-exclusion fiber.cur-exclusion
+	gctx.fiber-queue-lock release
+
+	state = fiber state
+	fiber.state := queued # Since most cases don't overwrite this
+	match state.yield-request ?? hard-unreachable
+	as add-to-queue
+		gctx enqueue-fiber fiber
+	as await-future future, add-awaiting-fiber
+		unless add-awaiting-fiber[future, fiber]
+			gctx enqueue-fiber fiber
+	as change-exclusion new-exclusion
+		fiber.cur-exclusion := new-exclusion
+		gctx enqueue-fiber fiber
+	as delay-until-time timestamp
+		gctx enqueue-timed-fiber timestamp, fiber
+	as done
+		fiber.state := done
 
 -do-gc void(gctx global-ctx mut*) bare, unsafe
 	gc = gctx gc
 	if gc gc-begin
-		gctx.as-const.tasks add-gc-roots gc
+		gctx.as-const.fiber-queue add-gc-roots gc
 		gc gc-add-root gctx->symbols-table
 		gc gc-complete
 	gc gc-end
 
--invoke-action void(action void mut()) force-ctx
-	action[]
-
 -thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe
 	gctx.may-be-work-to-do broadcast
-	gctx.tasks-lock acquire
-	gctx.as-const.tasks.slow-is-empty hard-assert
-	gctx.tasks-lock release
+	gctx.fiber-queue-lock acquire
+	gctx.as-const.fiber-queue.slow-is-empty hard-assert
+	gctx.fiber-queue-lock release
 
-before-task void(gctx global-ctx mut*, exclusion exclusion) bare, unsafe
-	global-ctx-var := gctx
-	cur-exclusion-var := exclusion
-	gctx.gc mutator-begin
-	gctx->default-log-handler set-log-handler
-
-after-task void() bare, unsafe
-	mutator-end
-
--choose-task-result union mut
-	task task
+-what-to-do union mut
+	fiber fiber
 	gc
 	# No task to do now, but wait on 'may-be-work-to-do'.
 	# Timestamp is time of the first first timed task, if any.
@@ -209,20 +289,20 @@ after-task void() bare, unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
--choose-task choose-task-result(gctx global-ctx mut*) bare, summon, unsafe
+-decide-what-to-do what-to-do(gctx global-ctx mut*) bare, summon, unsafe
 	cur-time nat64 = if is-wasm
 		0
 	else
 		get-monotime-nsec
-	gctx.tasks-lock acquire
+	gctx.fiber-queue-lock acquire
 
 	res = if gctx.gc->needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time
-		as task t
-			t task
-		as no-task first-task-time
+		match gctx.fiber-queue pop-task cur-time
+		as popped x
+			x fiber
+		as no-immediate first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
 			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
 				# Can't possibly be any more tasks:
@@ -232,5 +312,17 @@ after-task void() bare, unsafe
 			else
 				first-task-time wait-for-task
 
-	gctx.tasks-lock release
+	gctx.fiber-queue-lock release
 	res
+
+# This is called by the compiler for 'shared () => ...' lambdas.
+~shared-of-mut-lambda[r, p] r shared(param p)(a r mut(param p)) r shared, p shared
+	trusted
+		exclusion = cur-exclusion
+		wrapper (r, p) force-lambda-shared = a,
+		param =>
+			prev-exclusion = cur-exclusion
+			exclusion change-this-fibers-exclusion
+			finally prev-exclusion change-this-fibers-exclusion
+			wrapper.fn[param]
+-force-lambda-shared[r, p] record(fn r mut(param p)) force-shared

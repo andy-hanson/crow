@@ -137,6 +137,8 @@ extern(C) {
 
 	immutable(gcc_jit_type*) gcc_jit_struct_as_type(const gcc_jit_struct* struct_type);
 
+	immutable(gcc_jit_type*) gcc_jit_type_get_aligned(immutable gcc_jit_type* type, size_t alignment_in_bytes);
+
 	immutable(gcc_jit_type*) gcc_jit_context_new_union_type(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
@@ -149,7 +151,7 @@ extern(C) {
 		gcc_jit_location* loc,
 		const gcc_jit_type* return_type,
 		int num_params,
-		const gcc_jit_type** param_types,
+		scope const gcc_jit_type** param_types,
 		int is_variadic);
 
 	immutable(gcc_jit_param*) gcc_jit_context_new_param(
@@ -390,6 +392,27 @@ extern(C) {
 	gcc_jit_rvalue* gcc_jit_function_get_address(
 		const gcc_jit_function* fn,
 		gcc_jit_location* loc);
+
+	void gcc_jit_context_add_top_level_asm(ref gcc_jit_context ctxt, gcc_jit_location* loc, const char* asm_stmts);
+
+	enum gcc_jit_fn_attribute {
+		GCC_JIT_FN_ATTRIBUTE_ALIAS,
+		GCC_JIT_FN_ATTRIBUTE_ALWAYS_INLINE,
+		GCC_JIT_FN_ATTRIBUTE_INLINE,
+		GCC_JIT_FN_ATTRIBUTE_NOINLINE,
+		GCC_JIT_FN_ATTRIBUTE_TARGET,
+		GCC_JIT_FN_ATTRIBUTE_USED,
+		GCC_JIT_FN_ATTRIBUTE_VISIBILITY,
+		GCC_JIT_FN_ATTRIBUTE_COLD,
+		GCC_JIT_FN_ATTRIBUTE_RETURNS_TWICE,
+		GCC_JIT_FN_ATTRIBUTE_PURE,
+		GCC_JIT_FN_ATTRIBUTE_CONST,
+		GCC_JIT_FN_ATTRIBUTE_WEAK,
+		GCC_JIT_FN_ATTRIBUTE_NONNULL,
+	}
+	void gcc_jit_function_add_attribute(gcc_jit_function* func, gcc_jit_fn_attribute attribute);
+
+	immutable(gcc_jit_type*) gcc_jit_type_get_volatile(immutable gcc_jit_type* type);
 }
 
 } // GccJitAvailable

@@ -9,16 +9,18 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteLocal,
 	ConcreteProgram,
+	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
 	isBogus,
 	isVoid,
-	mustBeByVal;
+	mustBeByVal,
+	pointeeType,
+	ReferenceKind;
 import model.constant : Constant;
-import model.model : isCharOrIntegral;
+import model.model : BuiltinType, isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
-import util.alloc.alloc : Alloc;
-import util.col.array : every, zip;
+import util.col.array : every, only, zip;
 import util.conv : safeToSizeT;
 import util.integralValues : IntegralValues, singleIntegralValue;
 import util.opt : force, has;
@@ -51,24 +53,11 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 	assert(!isBogus(type) || expr.kind.isA!(ConcreteExprKind.Throw*));
 	checkType(ctx, type, expr.type);
 	expr.kind.matchIn!void(
-		(in ConcreteExprKind.Alloc x) {
-			// TODO: validate 'type' is a pointer type and 'x.arg' is the pointee
-			checkExprAnyType(ctx, x.arg);
-		},
 		(in ConcreteExprKind.Call x) {
 			checkType(ctx, type, x.called.returnType);
-			zip(x.called.paramsIncludingClosure, x.args, (ref ConcreteLocal param, ref ConcreteExpr arg) {
+			zip(x.called.params, x.args, (ref ConcreteLocal param, ref ConcreteExpr arg) {
 				checkExpr(ctx, param.type, arg);
 			});
-		},
-		(in ConcreteExprKind.ClosureCreate) {
-			// TODO: validate 'type' is a record and this creates it
-		},
-		(in ConcreteExprKind.ClosureGet x) {
-			checkType(ctx, type, x.closureRef.type);
-		},
-		(in ConcreteExprKind.ClosureSet x) {
-			checkExpr(ctx, x.closureRef.type, x.value);
 		},
 		(in Constant) {},
 		(in ConcreteExprKind.CreateArray x) {
@@ -98,16 +87,15 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, type, x.then);
 			checkExpr(ctx, type, x.else_);
 		},
-		(in ConcreteExprKind.Lambda x) {
-			if (has(x.closure))
-				checkExprAnyType(ctx, *force(x.closure));
-		},
 		(in ConcreteExprKind.Let x) {
 			checkExpr(ctx, x.local.type, x.value);
 			checkExpr(ctx, type, x.then);
 		},
 		(in ConcreteExprKind.LocalGet x) {
 			checkType(ctx, type, x.local.type);
+		},
+		(in ConcreteExprKind.LocalPointer x) {
+			checkType(ctx, pointeeType(type), x.local.type);
 		},
 		(in ConcreteExprKind.LocalSet x) {
 			assert(isVoid(type));
@@ -134,8 +122,8 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		(in ConcreteExprKind.MatchStringLike x) {
 			checkExprAnyType(ctx, x.matched);
 			assert(x.equals.returnType == ctx.types.bool_);
-			assert(x.equals.paramsIncludingClosure.length == 2);
-			assert(every!ConcreteLocal(x.equals.paramsIncludingClosure, (in ConcreteLocal param) =>
+			assert(x.equals.params.length == 2);
+			assert(every!ConcreteLocal(x.equals.params, (in ConcreteLocal param) =>
 				param.type == x.matched.type));
 			foreach (ConcreteExprKind.MatchStringLike.Case case_; x.cases)
 				checkExpr(ctx, type, case_.then);
@@ -149,14 +137,35 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			if (has(x.else_))
 				checkExpr(ctx, type, *force(x.else_));
 		},
-		(in ConcreteExprKind.PtrToField x) {
-			checkExprAnyType(ctx, x.target);
-		},
-		(in ConcreteExprKind.PtrToLocal) {
-			// TODO
-		},
 		(in ConcreteExprKind.RecordFieldGet x) {
 			checkExprAnyType(ctx, *x.record);
+			assert(x.record.type.struct_.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type == type);
+		},
+		(in ConcreteExprKind.RecordFieldPointer x) {
+			checkExprAnyType(ctx, *x.record);
+			ConcreteStruct* record = () {
+				final switch (x.record.type.reference) {
+					case ReferenceKind.byVal:
+						return mustBeByVal(pointeeType(x.record.type));
+					case ReferenceKind.byRef:
+						return x.record.type.struct_;
+				}
+			}();
+			assert(record.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type == pointeeType(type));
+		},
+		(in ConcreteExprKind.RecordFieldSet x) {
+			assert(isVoid(type));
+			checkExprAnyType(ctx, x.record);
+			ConcreteStruct* struct_ = x.record.type.struct_;
+			ConcreteType recordType = () {
+				if (struct_.body_.isA!(ConcreteStructBody.Builtin*)) {
+					ConcreteStructBody.Builtin* builtin = struct_.body_.as!(ConcreteStructBody.Builtin*);
+					assert(builtin.kind == BuiltinType.pointerMut);
+					return only(builtin.typeArgs);
+				} else
+					return x.record.type;
+			}();
+			checkExpr(ctx, recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type, x.value);
 		},
 		(in ConcreteExprKind.Seq x) {
 			checkExpr(ctx, ctx.types.void_, x.first);

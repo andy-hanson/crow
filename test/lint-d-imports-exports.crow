@@ -7,20 +7,19 @@ import
 	crow/test-util/test-runner: run-all-tests
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main nat^(_ string[]) summon
-	<- run-all-tests
-	files <- all-files
-	failures = files lint-files
+main nat(_ string[]) summon
+	run-all-tests
+	failures = all-files lint-files
 	for x : failures
 		err print x
-	failures.size,
+	failures size
 
-+all-files file[]^() summon
-	paths <- "src" search-dir-recursive x => x ends-with ".d"
++all-files file[]() summon
+	paths = "src" search-dir-recursive x => x ends-with ".d"
 	members = paths get-members-per-path
 	for path : paths parallel
 		imports-and-rest = path.read-file find-imports
-		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to),
+		path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to
 
 -lint-files string[](files file[])
 	failures string mut[] = ()

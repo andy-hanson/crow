@@ -1,4 +1,4 @@
-main nat^(_ string[])
+main void()
 	r0 = make-r0
 	info log r0.data_
 	info log r0.shared_
@@ -16,8 +16,6 @@ main nat^(_ string[])
 	info log (r2 shared_ "c", "d")
 	info log (r2 mut_ "e", "f")
 	r2 ptr "i", "j"
-
-	()
 
 r0 record mut
 	data_ string data()

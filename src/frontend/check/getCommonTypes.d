@@ -53,7 +53,6 @@ CommonTypes* getCommonTypes(
 	StructInst* symbolType = nonTemplate(ctx, symbol!"symbol");
 	StructInst* void_ = nonTemplate(ctx, symbol!"void");
 	StructDecl* array = getDecl(ctx, symbol!"array", 1);
-	StructDecl* future = getDecl(ctx, symbol!"future", 1);
 	StructDecl* list = getDecl(ctx, symbol!"list", 1);
 	StructDecl* pointerConst = getDecl(ctx, symbol!"const-pointer", 1);
 	IntegralTypes integrals = IntegralTypes(makeEnumMap!IntegralType((IntegralType type) =>
@@ -64,6 +63,7 @@ CommonTypes* getCommonTypes(
 		char32: char32,
 		cString: instantiate1(ctx, pointerConst, char8),
 		exception: nonTemplate(ctx, symbol!"exception"),
+		fiber: nonTemplate(ctx, symbol!"fiber"),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),
 		integrals: integrals,
@@ -74,14 +74,13 @@ CommonTypes* getCommonTypes(
 		array: array,
 		char8Array: instantiate1(ctx, array, char8),
 		char32Array: instantiate1(ctx, array, char32),
-		future: future,
-		voidFuture: instantiate1(ctx, future, void_),
 		list: list,
 		char8List: instantiate1(ctx, list, char8),
 		char32List: instantiate1(ctx, list, char32),
 		option: getDecl(ctx, symbol!"option", 1),
-		ptrConst: pointerConst,
-		ptrMut: getDecl(ctx, symbol!"mut-pointer", 1),
+		pointerConst: pointerConst,
+		pointerMut: getDecl(ctx, symbol!"mut-pointer", 1),
+		reference: getDecl(ctx, symbol!"reference", 1),
 		tuples2Through9: [
 			getDecl(ctx, symbol!"tuple2", 2),
 			getDecl(ctx, symbol!"tuple3", 3),

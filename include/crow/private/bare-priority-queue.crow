@@ -5,9 +5,10 @@ import
 	../misc: new, void
 	../number: ==, *, nat64
 	../option: force, new, option
-	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, new, set-deref, swap
+	../pointer:
+		==, +, -, *, as-const, const-pointer, mem-copy, mem-move, mut-pointer, new, set-deref, swap
 	../tuple: a, b
-	./alloc: gc, gc-add-root, mem-copy, mem-move, unmanaged-alloc-elements, unmanaged-free-elements
+	./alloc: gc, gc-add-root, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
 
 # TODO: actual heap implementation
 bare-priority-queue[k, v] record by-val, mut
@@ -55,7 +56,7 @@ enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe,
 	if a->end == a->alloc-end
 		old-capacity = a->end - a->begin
 		new-capacity nat64 = old-capacity == 0 ? 4 : old-capacity * 2
-		new-begin (k, v) mut* = new-capacity unmanaged-alloc-elements
+		new-begin (k, v) mut* = new-capacity unmanaged-alloc-uninitialized-elements
 		new-begin mem-copy a->begin.as-const, old-capacity
 		a->begin := new-begin
 		a->end := new-begin + old-capacity

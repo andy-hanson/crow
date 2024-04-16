@@ -4,21 +4,21 @@ import
 	crow/io/process: shell-exec
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main nat^(_ string[]) summon
-	files <- "src" search-dir-recursive x => x ends-with ".d"
-	# dscanner has errors if run in parallel
-	all-deps dependency[] <- for file : files sequential-concat
-		file.dependencies-for-file,
-	filtered-deps dependency[] = all-deps filter x => !x.ignore
-	"bin/dependencies.dot" write-file filtered-deps.to-dot
+main void() summon
+	files = "src" search-dir-recursive x => x ends-with ".d"
+	dependencies dependency[] = with out : build
+		for file : files
+			importer = file module-from-path
+			guard !importer.ignore
+			for x : file imports
+				guard !x.ignore
+				out ~= (importer, x)
+	"bin/dependencies.dot" write-file dependencies.to-dot
 	()
 
--dependencies-for-file dependency[](file string) summon
-	importer = file module-from-path
-	output = "dub run dscanner --yes --quiet -- --imports {file}" shell-exec
-	imported string[] = output split "\n" filter x => x != "" && !(x starts-with "core.")
-	for x : imported
-		importer, x
+-imports string[](file string) summon
+	"dub run dscanner --yes --quiet -- --imports {file}".shell-exec split "\n" filter x =>
+		x != "" && !(x starts-with "core.")
 
 -module-from-path string(a string)
 	((a try-remove-start "src/")! try-remove-end ".d")! replace-all "/", "."
@@ -27,9 +27,6 @@ main nat^(_ string[]) summon
 
 -to string(a dependency)
 	"{a.importer.to::json} -> {a.exporter.to::json}"
-
--ignore bool(a dependency)
-	a.importer.ignore || a.exporter.ignore
 
 -ignore bool(a string)
 	# omit model and util since these are commonly imported dependencies

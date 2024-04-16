@@ -12,34 +12,30 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-+read-stdin string^() summon
-	# TODO: use a non-blocking API
-	with : parallel
-		trusted
-			buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-			bytes-read nat = if is-windows
-				n-read mut DWORD = 0
-				ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
-					buffer.begin-pointer, buffer.size.to, &n-read, null
-				assert ok : "{GetLastError show-win32-error}".error
-				n-read to
-			else
-				bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
-				assert bytes-read-or-err >= 0
-				bytes-read-or-err to
-			if bytes-read >= buffer.size
-				todo
-			else
-				buffer[0 .. bytes-read].cast-immutable.as-string.strip,
++read-stdin string() summon, trusted
+	with : new-exclusion
+		# TODO: use a non-blocking API
+		buffer nat8 mut-array = 0x2000 zeroed-mut-array
+		bytes-read nat = if is-windows
+			n-read mut DWORD = 0
+			ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
+				buffer.begin-pointer, buffer.size.to, &n-read, null
+			assert ok : "{GetLastError show-win32-error}".error
+			n-read to
+		else
+			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
+			assert bytes-read-or-err >= 0
+			bytes-read-or-err to
+		if bytes-read >= buffer.size
+			todo
+		else
+			buffer[0 .. bytes-read].cast-immutable.as-string.strip
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-+read-stdin-until-parse[t] t^(error-message string, parse t? mut(input string)) summon, t shared
-	text <- read-stdin
-	if res ?= parse[text]
-		res,
-	else
++read-stdin-until-parse[t] t(error-message string, parse t? mut(input string)) summon, t shared
+	until res ?= parse[read-stdin]
 		out print error-message
-		error-message read-stdin-until-parse parse
+	res

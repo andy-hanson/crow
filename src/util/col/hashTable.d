@@ -193,7 +193,7 @@ void mayDeleteValue(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, T val
 
 MutOpt!T mayDeleteFromHashTable(T, K, alias getKey)(scope MutOpt!T[] values, in K key) {
 	Opt!size_t index = getIndexInHashTable!(T, K, getKey)(values, key);
-	return has(index) ? someMut(deleteFromHashTableAtIndex!(T, K, getKey)(values, force(index))) : noneMut!T;
+	return has(index) ? someMut!T(deleteFromHashTableAtIndex!(T, K, getKey)(values, force(index))) : noneMut!T;
 }
 
 T mustDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) {

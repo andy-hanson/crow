@@ -7,7 +7,14 @@ import util.col.hashTable : getOrAdd, hasKey, mayAdd, mayDelete, MutHashTable;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {
+	@safe @nogc pure nothrow:
 	private MutHashTable!(T, T, getKey) inner;
+
+	MutSet!T move() {
+		MutSet!T res = MutSet!T(inner);
+		inner = MutHashTable!(T, T, getKey)();
+		return res;
+	}
 
 	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply(cb);
@@ -20,9 +27,8 @@ private ref T getKey(T)(ref T x) => x;
 bool mutSetHas(T)(in MutSet!T a, in T value) =>
 	hasKey(a.inner, value);
 
-void mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
+bool mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) =>
 	mayAdd(alloc, a.inner, value);
-}
 
 T getOrAddLazyAlloc(T)(
 	ref Alloc alloc,

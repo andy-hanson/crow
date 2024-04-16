@@ -14,7 +14,7 @@ import backend.mangle :
 	writeRecordName,
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
-import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
+import backend.writeTypes : TypeWriters, writeTypes;
 import frontend.lang : CCompileOptions, CVersion, OptimizationLevel;
 import frontend.showModel : ShowCtx;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
@@ -28,8 +28,8 @@ import model.lowModel :
 	ExternLibrary,
 	isChar8,
 	isChar32,
-	isGeneratedMain,
 	isVoid,
+	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -48,11 +48,9 @@ import model.lowModel :
 	LowUnion,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinType, BuiltinUnary;
-import model.showLowModel : writeFunName, writeFunSig;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinType, BuiltinUnary;
+import model.showLowModel : writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : contains, every, exists, isEmpty, map, only, sizeEq, zip;
@@ -81,6 +79,9 @@ import util.writer :
 	writeWithSpaces;
 import versionInfo : isWindows;
 
+private immutable string boilerplatePosix = import("writeToC_boilerplate_posix.c");
+private immutable string boilerplateMsvc = import("writeToC_boilerplate_msvc.c");
+
 immutable struct PathAndArgs {
 	FilePath path;
 	CString[] args;
@@ -103,10 +104,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeCommandComment(writer, params.cCompiler, args);
-		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
-		writer ~= "#include <stddef.h>\n"; // for NULL
-		writer ~= "#include <stdint.h>\n";
-		writer ~= "typedef uint32_t char32_t;\n";
+		writeWithoutCr(writer, isMSVC ? boilerplateMsvc : boilerplatePosix);
 		if (isMSVC) {
 			writer ~= "unsigned short __popcnt16(unsigned short value);\n";
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
@@ -146,6 +144,16 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 			});
 	});
 	return WriteToCResult(PathAndArgs(params.cCompiler, args), content);
+}
+
+// On Windows builds, the imported file might have CRLF line endings, but we don't want those in our output
+private void writeWithoutCr(scope ref Writer writer, in string a) {
+	version (Windows) {
+		foreach (char c; a)
+			if (c != '\r')
+				writer ~= c;
+	} else
+		writer ~= a;
 }
 
 private void writeCommandComment(scope ref Writer writer, FilePath cCompiler, in CString[] args) {
@@ -361,22 +369,39 @@ void writeEscapedCharForC(scope ref Writer writer, dchar a) {
 }
 
 void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
-	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
-		writer ~= () {
-			final switch (var.kind) {
-				case LowVar.Kind.externGlobal:
-					return "extern ";
-				case LowVar.Kind.global:
-					return "static ";
-				case LowVar.Kind.threadLocal:
-					return ctx.isMSVC ? "static __declspec(thread) " : "static _Thread_local ";
+	if (ctx.isMSVC) {
+		writer ~= "struct ThreadLocals {\n";
+		fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+			if (var.kind == LowVar.Kind.threadLocal) {
+				writer ~= '\t';
+				writeVarTypeAndName(writer, ctx, varIndex, var);
+				writer ~= ";\n";
 			}
-		}();
-		writeType(writer, ctx, var.type);
-		writer ~= ' ';
-		writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
-		writer ~= ";\n";
+		});
+		writer ~= "};\n";
+	}
+
+	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+		if (!(ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)) {
+			writer ~= () {
+				final switch (var.kind) {
+					case LowVar.Kind.externGlobal:
+						return "extern ";
+					case LowVar.Kind.global:
+						return "static ";
+					case LowVar.Kind.threadLocal:
+						return "static _Thread_local ";
+				}
+			}();
+			writeVarTypeAndName(writer, ctx, varIndex, var);
+			writer ~= ";\n";
+		}
 	});
+}
+void writeVarTypeAndName(scope ref Writer writer, in Ctx ctx, LowVarIndex varIndex, in LowVar var) {
+	writeType(writer, ctx, var.type);
+	writer ~= ' ';
+	writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 }
 
 void declareConstantArrStorage(
@@ -442,6 +467,9 @@ struct FunBodyCtx {
 
 	ref MangledNames mangledNames() return scope const =>
 		ctx.mangledNames;
+
+	bool isMSVC() scope const =>
+		ctx.isMSVC;
 }
 
 size_t nextLoopIndex(ref FunBodyCtx ctx) {
@@ -609,15 +637,23 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			if (!isEmptyType(*x))
 				declareStruct(writer, ctx, x);
 		},
-		(ConcreteStruct* source, in Opt!ElementAndCount ec) {
+		(ConcreteStruct* source, in Opt!TypeSize typeSize) {
+			if (has(typeSize) && ctx.isMSVC) {
+				writer ~= "__declspec(align(";
+				writer ~= force(typeSize).alignmentBytes;
+				writer ~= ")) ";
+			}
 			writer ~= "struct ";
 			writeStructMangledName(writer, ctx.mangledNames, source);
-			if (has(ec)) {
-				writer ~= " { ";
-				writePrimitiveType(writer, force(ec).elementType);
-				writer ~= " __sizer[";
-				writer ~= force(ec).count;
+			if (has(typeSize)) {
+				writer ~= " { uint8_t __sizer[";
+				writer ~= force(typeSize).sizeBytes;
 				writer ~= "]; }";
+				if (!ctx.isMSVC) {
+					writer ~= " __attribute__((aligned(";
+					writer ~= force(typeSize).alignmentBytes;
+					writer ~= ")))";
+				}
 			}
 			writer ~= ";\n";
 		},
@@ -693,7 +729,7 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, scope ref Ctx ctx,
 void writeFunDeclaration(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
 	if (fun.body_.isA!(LowFunBody.Extern))
 		writer ~= "extern ";
-	else if (!isGeneratedMain(fun))
+	else if (!fun.isGeneratedMain)
 		writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= ";\n";
@@ -713,8 +749,6 @@ void writeFunDefinition(
 		(in LowFunExprBody x) {
 			// TODO: only if a flag is set
 			writer ~= "/* ";
-			writeFunName(writer, ctx.printCtx, ctx.program, funIndex);
-			writer ~= ' ';
 			writeFunSig(writer, ctx.printCtx, ctx.program, fun);
 			writer ~= " */\n";
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, x);
@@ -729,7 +763,7 @@ void writeFunWithExprBody(
 	in LowFun fun,
 	in LowFunExprBody body_,
 ) {
-	if (!isGeneratedMain(fun)) writer ~= "static ";
+	if (!fun.isGeneratedMain) writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= " {";
 	if (body_.hasTailRecur)
@@ -807,8 +841,32 @@ void writeTempOrInlines(
 
 void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBodyCtx ctx, in LowLocal local) {
 	writeNewline(writer, indent);
+	bool isVolatile = localMustBeVolatile(ctx, local);
+	if (isVolatile)
+		writer ~= "volatile ";
 	writeType(writer, ctx.ctx, local.type);
+	// It seems that 'volatile' alone doesn't to the job with MSVC
+	// (it optimizes 'setup-catch' assuming only one branch happens),
+	// but allocating it with a volatile pointee works.
+	bool isAlloca = ctx.isMSVC && isVolatile;
+	if (isAlloca)
+		writer ~= '*';
 	writer ~= ' ';
+	writeLowLocalName(writer, ctx.mangledNames, local);
+	if (isAlloca) {
+		writer ~= " = _alloca(sizeof(";
+		writeType(writer, ctx.ctx, local.type);
+		writer ~= "))";
+	}
+	writer ~= ';';
+}
+
+bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
+	.localMustBeVolatile(ctx.ctx.program.allFuns[ctx.curFun], local);
+
+void writeAccessLocal(scope ref Writer writer, in FunBodyCtx ctx, in LowLocal local) {
+	if (ctx.isMSVC && localMustBeVolatile(ctx, local))
+		writer ~= '*';
 	writeLowLocalName(writer, ctx.mangledNames, local);
 }
 
@@ -907,16 +965,26 @@ WriteExprResult writeExpr(
 					writeTempOrInline(writer, ctx, it.arg, arg);
 				});
 			}),
+		(in LowExprKind.FunPointer x) =>
+			inlineableSimple(() {
+				writeFunPointer(writer, ctx.ctx, x.fun);
+			}),
 		(in LowExprKind.If it) =>
 			writeIf(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.InitConstants) =>
-			// writeToC doesn't need to do anything in 'init-constants'
-			writeReturnVoid(writer, indent, ctx, writeKind),
+		(in LowExprKind.Init x) =>
+			writeInit(writer, indent, ctx, writeKind, x),
 		(in LowExprKind.Let it) =>
 			writeLet(writer, indent, ctx, writeKind, it),
 		(in LowExprKind.LocalGet it) =>
 			inlineableSimple(() {
-				writeLowLocalName(writer, ctx.mangledNames, *it.local);
+				writeAccessLocal(writer, ctx, *it.local);
+			}),
+		(in LowExprKind.LocalPointer x) =>
+			inlineableSimple(() {
+				if (localMustBeVolatile(ctx, *x.local))
+					writeCastToType(writer, ctx.ctx, type);
+				writer ~= '&';
+				writeAccessLocal(writer, ctx, *x.local);
 			}),
 		(in LowExprKind.LocalSet it) =>
 			writeLocalSet(writer, indent, ctx, writeKind, it),
@@ -926,28 +994,23 @@ WriteExprResult writeExpr(
 			writeLoopBreak(writer, indent, ctx, writeKind, x),
 		(in LowExprKind.LoopContinue) =>
 			writeLoopContinue(writer, indent, writeKind),
-		(in LowExprKind.PtrCast it) =>
-			inlineableSingleArg(it.target, (in WriteExprResult arg) {
+		(in LowExprKind.PointerCast x) =>
+			inlineableSingleArg(x.target, (in WriteExprResult arg) {
 				writer ~= '(';
 				writeCastToType(writer, ctx.ctx, type);
-				writeTempOrInline(writer, ctx, it.target, arg);
+				writeTempOrInline(writer, ctx, x.target, arg);
 				writer ~= ')';
 			}),
-		(in LowExprKind.PtrToField it) =>
-			writePtrToField(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.PtrToLocal it) =>
-			inlineableSimple(() {
-				writer ~= '&';
-				writeLowLocalName(writer, ctx.mangledNames, *it.local);
-			}),
-		(in LowExprKind.RecordFieldGet it) =>
-			writeRecordFieldGet(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.RecordFieldGet x) =>
+			writeRecordFieldGet(writer, indent, ctx, writeKind, type, x),
+		(in LowExprKind.RecordFieldPointer x) =>
+			writeRecordFieldPointer(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.RecordFieldSet x) {
 			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, x.target);
 			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
 				writeTempOrInline(writer, ctx, x.target, recordValue);
-				writeRecordFieldRef(writer, ctx, targetIsPointer(x), targetRecordType(x), x.fieldIndex);
+				writeRecordFieldRef(writer, ctx, true, x.targetRecordType, x.fieldIndex);
 				writer ~= " = ";
 				writeTempOrInline(writer, ctx, x.value, fieldValue);
 			});
@@ -964,8 +1027,21 @@ WriteExprResult writeExpr(
 			writeSpecialBinary(writer, indent, ctx, writeKind, type, it),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
-		(in LowExprKind.SpecialTernary) =>
-			assert(false),
+		(in LowExprKind.SpecialTernary x) {
+			final switch (x.kind) {
+				case BuiltinTernary.interpreterBacktrace:
+					assert(false);
+					return writeExprDone(); // needed to give the lambda a return type
+			}
+		},
+		(in LowExprKind.Special4ary x) {
+			final switch (x.kind) {
+				case Builtin4ary.switchFiberInitial:
+					// defined in writeToC_boilerplace.c
+					return specialCallNary(
+						writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
+			}
+		},
 		(in LowExprKind.Switch x) =>
 			writeSwitch(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.TailRecur x) {
@@ -979,7 +1055,7 @@ WriteExprResult writeExpr(
 			writeUnionKind(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.VarGet x) =>
 			inlineableSimple(() {
-				writeLowVarMangledName(writer, ctx.mangledNames, x.varIndex, ctx.program.vars[x.varIndex]);
+				writeLowVarAccess(writer, ctx.ctx, x.varIndex);
 			}),
 		(in LowExprKind.VarSet x) {
 			WriteKind varWriteKind = WriteKind(x.varIndex);
@@ -1012,12 +1088,12 @@ WriteExprResult writeNonInlineable(
 		(in WriteKind.InlineOrTemp) =>
 			makeTemp(),
 		(in LowLocal x) {
-			writeLowLocalName(writer, ctx.mangledNames, x);
+			writeAccessLocal(writer, ctx, x);
 			writer ~= " = ";
 			return writeExprDone();
 		},
 		(in LowVarIndex x) {
-			writeLowVarMangledName(writer, ctx.mangledNames, x, ctx.program.vars[x]);
+			writeLowVarAccess(writer, ctx.ctx, x);
 			writer ~= " = ";
 			return writeExprDone();
 		},
@@ -1040,6 +1116,13 @@ WriteExprResult writeNonInlineable(
 	if (!writeKind.isA!(WriteKind.Inline))
 		writer ~= ';';
 	return res;
+}
+
+void writeLowVarAccess(scope ref Writer writer, in Ctx ctx, in LowVarIndex varIndex) {
+	LowVar var() => ctx.program.vars[varIndex];
+	if (ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)
+		writer ~= "threadLocals()->";
+	writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 }
 
 WriteExprResult writeVoid(in WriteKind writeKind) {
@@ -1154,7 +1237,7 @@ WriteExprResult writeAbort(
 	if (writeKind.isA!(LoopInfo*) || writeKind.isA!(WriteKind.Return) || writeKind.isA!(WriteKind.Void)) {
 		writeNewline(writer, indent);
 		writer ~= "abort();";
-		if (ctx.ctx.isMSVC) { // MSVC doesn't recognize abort as aborting, so need a fake return
+		if (ctx.isMSVC) { // MSVC doesn't recognize abort as aborting, so need a fake return
 			if (writeKind.isA!(LoopInfo*)) {
 				writeNewline(writer, indent);
 				return writeLoopContinue(writer, indent, writeKind);
@@ -1485,18 +1568,18 @@ void writeStringLiteralInner(scope ref Writer writer, bool isMSVC, in string a) 
 	});
 }
 
-WriteExprResult writePtrToField(
+WriteExprResult writeRecordFieldPointer(
 	scope ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
 	in LowType type,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) =>
-	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.target, (in WriteExprResult recordValue) {
+	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		writer ~= "(&";
-		writeTempOrInline(writer, ctx, a.target, recordValue);
-		writeRecordFieldRef(writer, ctx, true, targetRecordType(a), a.fieldIndex);
+		writeTempOrInline(writer, ctx, *a.target, recordValue);
+		writeRecordFieldRef(writer, ctx, true, a.targetRecordType, a.fieldIndex);
 		writer ~= ')';
 	});
 
@@ -1511,7 +1594,7 @@ WriteExprResult writeRecordFieldGet(
 	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		if (!isEmptyType(ctx, type)) {
 			writeTempOrInline(writer, ctx, *a.target, recordValue);
-			writeRecordFieldRef(writer, ctx, targetIsPointer(a), targetRecordType(a), a.fieldIndex);
+			writeRecordFieldRef(writer, ctx, a.targetIsPointer, a.targetRecordType, a.fieldIndex);
 		}
 	});
 
@@ -1588,6 +1671,7 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.drop:
 			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
 		case BuiltinUnary.toFloat64FromFloat32:
@@ -1622,8 +1706,12 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.bitwiseNotNat64:
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
-			string name = ctx.ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
+			string name = ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
 			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
+		case BuiltinUnary.jumpToCatch:
+			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "jump_to_catch");
+		case BuiltinUnary.setupCatch:
+			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "setup_catch");
 	}
 }
 
@@ -1654,12 +1742,23 @@ WriteExprResult specialCallBinary(
 	in LowExpr[2] args,
 	in string name,
 ) =>
+	specialCallNary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
+
+WriteExprResult specialCallNary(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExpr[] args,
+	in string name,
+) =>
 	writeInlineable(
-		writer, indent, ctx, writeKind, type, castNonScope(args),
+		writer, indent, ctx, writeKind, type, args,
 		(in WriteExprResult[] temps) {
 			writer ~= name;
 			writer ~= '(';
-			writeTempOrInlines(writer, ctx, castNonScope(args), temps);
+			writeTempOrInlines(writer, ctx, args, temps);
 			writer ~= ')';
 		});
 
@@ -1671,8 +1770,8 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 		(in LowType.FunPointer) {
 			writer ~= "NULL";
 		},
-		(in PrimitiveType it) {
-			assert(it != PrimitiveType.void_);
+		(in PrimitiveType x) {
+			assert(x != PrimitiveType.void_);
 			writer ~= '0';
 		},
 		(in LowPtrCombine _) {
@@ -1734,7 +1833,7 @@ WriteExprResult writeSpecialBinary(
 	final switch (a.kind) {
 		case BuiltinBinary.addFloat32:
 		case BuiltinBinary.addFloat64:
-		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
 		case BuiltinBinary.unsafeAddInt8:
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
@@ -1783,7 +1882,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat16:
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
-		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.eqPointer:
 			return operator("==");
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
@@ -1796,7 +1895,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.lessNat16:
 		case BuiltinBinary.lessNat32:
 		case BuiltinBinary.lessNat64:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.lessPointer:
 			return operator("<");
 		case BuiltinBinary.mulFloat32:
 		case BuiltinBinary.mulFloat64:
@@ -1815,7 +1914,7 @@ WriteExprResult writeSpecialBinary(
 			return writeExpr(writer, indent, ctx, writeKind, right);
 		case BuiltinBinary.subFloat32:
 		case BuiltinBinary.subFloat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
@@ -1825,6 +1924,9 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapSubNat32:
 		case BuiltinBinary.wrapSubNat64:
 			return operator("-");
+		case BuiltinBinary.switchFiber:
+			// defined in writeToC_boiilerplace.c
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber");
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator("<<");
 		case BuiltinBinary.unsafeBitShiftRightNat64:
@@ -1842,7 +1944,7 @@ WriteExprResult writeSpecialBinary(
 			return operator("/");
 		case BuiltinBinary.unsafeModNat64:
 			return operator("%");
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			WriteExprResult temp0 = arg0();
 			WriteExprResult temp1 = arg1();
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
@@ -1909,6 +2011,28 @@ WriteExprResult writeIf(
 	return nested.result;
 }
 
+WriteExprResult writeInit(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in WriteKind writeKind,
+	in LowExprKind.Init a,
+) {
+	if (ctx.isMSVC) {
+		writeNewline(writer, indent);
+		writer ~= () {
+			final switch (a.kind) {
+				case BuiltinFun.Init.Kind.global:
+					return "THREAD_LOCALS_INDEX = TlsAlloc();";
+				case BuiltinFun.Init.Kind.perThread:
+					return "TlsSetValue(THREAD_LOCALS_INDEX, " ~
+						"(struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));";
+			}
+		}();
+	} // No init needed otherwise
+	return writeReturnVoid(writer, indent, ctx, writeKind);
+}
+
 WriteExprResult writeCallFunPointer(
 	scope ref Writer writer,
 	size_t indent,
@@ -1939,7 +2063,6 @@ WriteExprResult writeLet(
 			writeExprVoid(writer, indent, ctx, a.value);
 		else {
 			writeDeclareLocal(writer, indent, ctx, *a.local);
-			writer ~= ';';
 			WriteKind localWriteKind = WriteKind(a.local);
 			cast(void) writeExpr(writer, indent, ctx, localWriteKind, a.value);
 			writeNewline(writer, indent);
@@ -2014,7 +2137,7 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 	writer ~= () {
 		final switch (a) {
 			case PrimitiveType.bool_:
-				return "uint8_t";
+				return "_Bool";
 			case PrimitiveType.char8:
 				return "char";
 			case PrimitiveType.char32:

@@ -5,8 +5,11 @@
 
 clean:
 	@call <<COMMANDS.bat
-@IF EXIST bin rmdir /s /q bin
-@IF EXIST site rmdir /s /q site
+@if exist bin rmdir /s /q bin
+:: rmdir has an exit code of 0 even on failure!
+@if exist bin exit 1
+@if exist site rmdir /s /q site
+@if exist site exit 1
 <<
 
 all: clean test lint serve
@@ -76,7 +79,7 @@ all_src_files = src\*.d \
 	src\util\col\*.d
 d_dependencies = $(all_src_files) bin\d-imports\date.txt bin\d-imports\commit-hash.txt dyncall
 
-d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\test -J=include
+d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\backend -J=src\test -J=include
 dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
 ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
 ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
@@ -167,7 +170,8 @@ bin\crow-demo-windows.tar.xz: demo\*
 	rmdir /s /q crow-demo
 
 bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
-	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
+	cd editor\vscode && \
+		node .\node_modules\@vscode\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
 
 install-vscode-extension: bin\crow.vsix
 	code --install-extension bin\crow.vsix

@@ -1,94 +1,97 @@
 no-std
 import
-	../col/array: +, -, array, begin, end, iterate, size, slice, subscript
-	../col/collection: .., end, for-loop, subscript
-	../col/list: ~=, build, list
+	../compare: <
+	../col/array: +, array, begin, next, size, subscript
+	../col/mut-array: +, begin, cast-immutable, mut-array, zeroed-mut-array, set-next
+	../col/collection: set-subscript, subscript
+	../col/list: list, to
+	../exception: catch-all, to
 	../fun-util: subscript
-	../future: delay, future, handle-exceptions, then
+	../io/print: err, print
 	../misc: new, void
-	../number: ==, <=>, +, -, int32, nat64, to
+	../number: ==, <=>, +, -, int32, max-value, nat64, to, unary-out-of-range
+	../option: new
+	../parallel: future, parallel, with-block
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../string: c-string, string, to
-	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./future-low-level: get-result
+	../string: c-string, interpolate, string, to
+	./alloc: mutator-begin, mutator-end, unmanaged-alloc-uninitialized-elements, unmanaged-free
+	./bootstrap: set-cur-fiber
+	./future-low-level: must-get-result
 	./runtime:
-		after-task, any-unhandled-exceptions, before-task, destroy, get-global-ctx, global-ctx,
-		init, thread-function, uninit
+		destroy, gc, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx,
+		thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 -main-pointer alias
-	nat64^ function(args string[])
+	nat64 function(args string[])
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe
-	do-init-constants
+	global-init
+	per-thread-init
 	n-threads = count-processors
 	gctx mut global-ctx = n-threads uninit
 	&gctx init
+	global-ctx := &gctx
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
-	res = &gctx exit-code-from-main-fut main-fut
+	res = main-fut must-get-result
 	&gctx destroy
 	res
 
--exit-code-from-main-fut int32(gctx global-ctx*, main-fut nat64^) bare, unsafe
-	match main-fut get-result
-	as ok v
-		# TODO: handle nat64 too big for int32
-		if gctx->any-unhandled-exceptions
-			1
-		else
-			v to
-	as error _
-		# 'handle-exceptions' should have logged the error
-		1
+# Call this once at start of program
+-global-init void() builtin, bare, summon, unsafe
+# Call this once at start of each thread
+-per-thread-init void() builtin, bare, summon, unsafe
 
-# TODO:KILL (using this to narrow down scope of error)
--do-init-constants void() bare, summon, unsafe
-	init-constants
-
-init-constants void() builtin, bare, summon, unsafe
-
--add-main-task nat64^(
+-add-main-task int32 future(
 	gctx global-ctx mut*,
 	argc int32,
 	argv c-string*,
 	main-pointer main-pointer,
-) bare
-	# Create a ctx manually so we can call functions that need it when creating the task
-	trusted
-		gctx before-task 0
-		all-args = argv[0 .. argc.to]
-		res = all-args invoke-main main-pointer
-		after-task
-		res
+) bare, summon, trusted
+	all-args = argv[1 .. argc.to] # First arg is the executable
+	gctx.gc mutator-begin
+	res = all-args invoke-main main-pointer
+	mutator-end
+	res
 
--invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
-	all-args add-first-task main-pointer
+-invoke-main int32 future(args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
+	set-dummy-fiber
+	res int32 future = with : parallel
+		get-global-ctx init-symbol-table
+		match (() => main-pointer[args convert-args]) catch-all
+		as ok x
+			try
+				x to
+			catch unary-out-of-range _
+				err print "'main' must return a number <= {max-value::int32}; got {x}"
+				max-value
+		as error x
+			err print "Uncaught exception: {x}"
+			1
+	cur-fiber := ()
+	res
+
+# Avoiding a lambda here or the compiler may erroneously think this may yield
+-convert-args string[](args c-string array) trusted
+	res string mut-array = args.size zeroed-mut-array
+	i mut nat64 = 0
+	while i < args.size
+		res[i] := args[i] to
+		i +:= 1
+	res.cast-immutable to
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 
-# TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
-# We want main-fut to be available immediately, not after having run some user code.
-# So we create main-fut now, and forward the result of 'main' to that.
--add-first-task nat64^(all-args c-string array, main-pointer main-pointer) unsafe
-	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
-	# TODO: 'then' overload for void^ taking lambda with 0 params
-	res nat64^ = delay then () =>
-		get-global-ctx init-symbol-table
-		# First argument is the path to this executable; omit from crow main
-		main-pointer[for arg : all-args[1 .. end]; arg to]
-	res handle-exceptions
-	res
-
 # Each thread will get the thread ID, and the common arguments.
 -run-threads void(n-threads nat64, gctx global-ctx mut*) bare, summon, unsafe
-	threads thread-handle mut* = n-threads unmanaged-alloc-elements
-	thread-args thread-args mut* = n-threads unmanaged-alloc-elements
+	threads thread-handle mut* = n-threads unmanaged-alloc-uninitialized-elements
+	thread-args thread-args mut* = n-threads unmanaged-alloc-uninitialized-elements
 
 	actual-n-threads = n-threads - 1
 
@@ -113,6 +116,7 @@ init-constants void() builtin, bare, summon, unsafe
 		i +:= 1
 
 -thread-fun any-mut-pointer(args-pointer any-mut-pointer) bare, summon, unsafe
+	per-thread-init
 	args thread-args mut* = args-pointer pointer-cast
 	args->thread-id thread-function args->gctx
 	null

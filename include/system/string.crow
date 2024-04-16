@@ -1,15 +1,14 @@
 no-std
 import
 	crow/c-types: c-int, size_t
-	crow/pointer: any-const-pointer, any-mut-pointer
-	crow/private/c-string-util: c-string
+	crow/private/bootstrap: char8, nat8, const-pointer, mut-pointer
 
-+memcpy any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) c extern, pure
++memcpy nat8 mut*(dest nat8 mut*, src nat8*, size size_t) c extern, pure
 
-+memmove any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) c extern, pure
++memmove nat8 mut*(dest nat8 mut*, src nat8*, size size_t) c extern, pure
 
-+memset any-mut-pointer(begin any-mut-pointer, value c-int, size size_t) c extern, pure
++memset nat8 mut*(begin nat8 mut*, value c-int, size size_t) c extern, pure
 
-+memcmp c-int(s1 any-const-pointer, s2 any-const-pointer, n size_t) c extern, pure
++memcmp c-int(s1 nat8*, s2 nat8*, n size_t) c extern, pure
 
-+strlen size_t(a c-string) c extern, pure
++strlen size_t(a char8 mut*) c extern, pure

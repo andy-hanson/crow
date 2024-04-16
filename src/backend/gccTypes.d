@@ -35,11 +35,12 @@ import backend.libgccjit :
 	gcc_jit_struct_as_type,
 	gcc_jit_struct_set_fields,
 	gcc_jit_type,
+	gcc_jit_type_get_aligned,
 	gcc_jit_type_get_pointer,
 	gcc_jit_types;
 import backend.mangle : MangledNames, writeStructMangledName;
-import backend.writeTypes : ElementAndCount, getElementAndCountForExtern, TypeWriters, writeTypes;
-import model.concreteModel : ConcreteStruct;
+import backend.writeTypes : TypeWriters, writeTypes;
+import model.concreteModel : ConcreteStruct, TypeSize;
 import model.lowModel :
 	debugName,
 	LowExternType,
@@ -88,9 +89,9 @@ immutable struct ExternTypeInfo {
 	Opt!ExternTypeArrayInfo array;
 }
 immutable struct ExternTypeArrayInfo {
+	size_t elementCount;
 	gcc_jit_field* field;
-	gcc_jit_type* gccArrayType;
-	ElementAndCount elementAndCount;
+	gcc_jit_type* arrayType;
 }
 
 immutable struct UnionFields {
@@ -133,7 +134,7 @@ GccTypes getGccTypes(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 		(ConcreteStruct*) {
 			// Do nothing, we declared types ahead of time.
 		},
-		(ConcreteStruct* source, in Opt!ElementAndCount) {
+		(ConcreteStruct* source, in Opt!TypeSize) {
 			// Declared ahead of time
 		},
 		(LowType.FunPointer funPtrIndex, in LowFunPointerType funPtr) {
@@ -417,21 +418,23 @@ GccExternTypes gccExternTypes(
 		program.allExternTypes,
 		(LowType.Extern, in LowExternType extern_) {
 			gcc_jit_struct* struct_ = structStub(alloc, ctx, mangledNames, extern_.source);
-			Opt!ElementAndCount ec = getElementAndCountForExtern(typeSize(extern_));
+			TypeSize typeSize = typeSize(extern_);
 			Opt!ExternTypeArrayInfo arrayInfo = () {
-				if (has(ec)) {
+				if (typeSize.sizeBytes != 0) {
+					immutable gcc_jit_type* elementType = getOnePrimitiveType(ctx, PrimitiveType.nat8);
 					immutable gcc_jit_type* arrayType = gcc_jit_context_new_array_type(
-						ctx,
-						null,
-						getOnePrimitiveType(ctx, force(ec).elementType),
-						safeToInt(force(ec).count));
+						ctx, null, elementType, safeToInt(typeSize.sizeBytes));
 					immutable gcc_jit_field* field = gcc_jit_context_new_field(ctx, null, arrayType, "__sizer");
 					gcc_jit_struct_set_fields(struct_, null, 1, &field);
-					return some(ExternTypeArrayInfo(field, arrayType, force(ec)));
+					return some(ExternTypeArrayInfo(typeSize.sizeBytes, field, arrayType));
 				} else
 					return none!ExternTypeArrayInfo;
 			}();
-			return ExternTypeInfo(gcc_jit_struct_as_type(struct_), arrayInfo);
+			immutable gcc_jit_type* structType = gcc_jit_struct_as_type(struct_);
+			immutable gcc_jit_type* type = typeSize.alignmentBytes == 0
+				? structType
+				: gcc_jit_type_get_aligned(structType, typeSize.alignmentBytes);
+			return ExternTypeInfo(type, arrayInfo);
 		});
 
 gcc_jit_struct* structStub(

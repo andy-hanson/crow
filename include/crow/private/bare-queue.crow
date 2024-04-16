@@ -5,8 +5,8 @@ import
 	../misc: new, void
 	../number: ==, +, *, nat64
 	../option: new, option
-	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, set-deref
-	./alloc: gc, gc-add-root, mem-copy, unmanaged-alloc-elements, unmanaged-free-elements
+	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mem-copy, mut-pointer, null, set-deref
+	./alloc: gc, gc-add-root, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
 
 bare-queue[t] record by-val, mut
 	-alloc-begin mut t mut*
@@ -57,7 +57,7 @@ enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
 -increase-capacity[t] void(a t bare-queue mut*) bare, unsafe
 	old-capacity = a->alloc-end - a->alloc-begin
 	new-capacity nat64 = old-capacity == 0 ? 2 : old-capacity * 2
-	new-begin t mut* = new-capacity unmanaged-alloc-elements
+	new-begin t mut* = new-capacity unmanaged-alloc-uninitialized-elements
 	new-end = if a->begin < a->end
 		size = a->end - a->begin
 		new-begin mem-copy a->begin.as-const, size

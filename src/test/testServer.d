@@ -101,8 +101,8 @@ void testChangeBootstrap(ref Test test) {
 		string defaultBootstrap = defaultIncludeResult(bootstrapPath);
 		setFileAssumeUtf8(test.perf, server, bootstrap, concatenate(alloc, defaultBootstrap, "junk"));
 		assertEqual(showDiags(),
-			"test:///include/crow/private/bootstrap.crow 378:5-378:5 Unexpected end of file.\n" ~
-			"test:///include/crow/private/bootstrap.crow 378:5-378:5 Expected '('.");
+			"test:///include/crow/private/bootstrap.crow 456:5-456:5 Unexpected end of file.\n" ~
+			"test:///include/crow/private/bootstrap.crow 456:5-456:5 Expected '('.");
 
 		setFileAssumeUtf8(test.perf, server, bootstrap, defaultBootstrap);
 		assertEqual(showDiags(), "");
@@ -112,7 +112,7 @@ void testChangeBootstrap(ref Test test) {
 enum expectedDiags1 = "test:///a.crow 1:1-1:1 Module should have a function:
 	main void()
 Or:
-	main nat64^(args string[])";
+	main nat64(args string[])";
 
 enum expectedDiags2 = "test:///a.crow 2:5-2:8 This is part of a circular import:
 	test:///a.crow imports

@@ -9,4 +9,4 @@ test/end-to-end/compile-errors/call-should-use-syntax.crow 8:26-8:29 Prefer to w
 test/end-to-end/compile-errors/call-should-use-syntax.crow 9:21-9:24 Prefer to write '!x' instead of 'x.not'
 test/end-to-end/compile-errors/call-should-use-syntax.crow 10:8-10:21 Prefer to write 'x[i] := y' instead of 'x set-subscript i, y'.
 test/end-to-end/compile-errors/call-should-use-syntax.crow 11:12-11:21 Prefer to write 'x[i]' instead of 'x subscript i'.
-test/end-to-end/compile-errors/call-should-use-syntax.crow 12:24-12:34 Prefer to write a 'with' block instead of calling 'with-block'.
+test/end-to-end/compile-errors/call-should-use-syntax.crow 12:30-12:40 Prefer to write a 'with' block instead of calling 'with-block'.

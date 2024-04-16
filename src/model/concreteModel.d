@@ -6,25 +6,24 @@ import model.constant : Constant;
 import model.model :
 	BuiltinFun,
 	BuiltinType,
-	ClosureReferenceKind,
 	EnumFunction,
+	Expr,
 	FlagsFunction,
 	FunDecl,
 	IntegralType,
 	isTuple,
 	Local,
-	localIsAllocated,
 	Params,
 	Purity,
-	StructInst,
+	StructDecl,
+	Test,
 	VarDecl;
-import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
-import util.col.map : Map;
+import util.col.array : arraysEqual, exists, isEmpty, only, SmallArray;
+import util.col.set : Set;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
@@ -68,6 +67,9 @@ immutable struct ConcreteType {
 	ReferenceKind reference;
 	ConcreteStruct* struct_;
 
+	static ConcreteType byVal(ConcreteStruct* struct_) =>
+		ConcreteType(ReferenceKind.byVal, struct_);
+
 	bool opEquals(scope ConcreteType b) scope =>
 		struct_ == b.struct_ && reference == reference;
 
@@ -84,7 +86,7 @@ bool isVoid(in ConcreteType a) =>
 	a.struct_.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.void_;
 
 alias ReferenceKind = immutable ReferenceKind_;
-private enum ReferenceKind_ { byVal, byRef, byRefRef }
+private enum ReferenceKind_ { byVal, byRef }
 
 immutable struct TypeSize {
 	uint sizeBytes;
@@ -108,8 +110,20 @@ immutable struct ConcreteStructSource {
 	immutable struct Bogus {}
 
 	immutable struct Inst {
-		StructInst* inst;
+		@safe @nogc pure nothrow:
+		StructDecl* decl;
 		SmallArray!ConcreteType typeArgs;
+
+		bool opEquals(in Inst b) scope =>
+			decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
+
+		HashCode hash() scope {
+			Hasher hasher;
+			hasher ~= decl;
+			foreach (ConcreteType t; typeArgs)
+				hasher ~= t.struct_;
+			return hasher.finish();
+		}
 	}
 
 	immutable struct Lambda {
@@ -126,6 +140,9 @@ immutable struct ConcreteStruct {
 	enum SpecialKind {
 		none,
 		array,
+		catchPoint,
+		fiber,
+		pointer, // mut or const
 		tuple,
 	}
 
@@ -174,6 +191,20 @@ immutable struct ConcreteStruct {
 
 bool isArray(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.array;
+ConcreteType arrayElementType(ConcreteType arrayType) {
+	assert(isArray(*mustBeByVal(arrayType)));
+	return only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
+}
+bool isCatchPoint(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.catchPoint;
+bool isFiber(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.fiber;
+bool isPointer(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.pointer;
+ConcreteType pointeeType(ConcreteType pointerType) {
+	assert(isPointer(*mustBeByVal(pointerType)));
+	return only(mustBeByVal(pointerType).source.as!(ConcreteStructSource.Inst).typeArgs);
+}
 private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
@@ -185,7 +216,6 @@ bool hasSizeOrPointerSizeBytes(in ConcreteType a) {
 		case ReferenceKind.byVal:
 			return lateIsSet(a.struct_.typeSize_);
 		case ReferenceKind.byRef:
-		case ReferenceKind.byRefRef:
 			return true;
 	}
 }
@@ -195,16 +225,9 @@ TypeSize sizeOrPointerSizeBytes(in ConcreteType a) {
 		case ReferenceKind.byVal:
 			return a.struct_.typeSize;
 		case ReferenceKind.byRef:
-		case ReferenceKind.byRefRef:
 			return TypeSize(8, 8);
 	}
 }
-
-ConcreteType byRef(ConcreteType t) =>
-	ConcreteType(ReferenceKind.byRef, t.struct_);
-
-ConcreteType byVal(ref ConcreteType t) =>
-	ConcreteType(ReferenceKind.byVal, t.struct_);
 
 enum ConcreteMutability {
 	const_,
@@ -218,32 +241,20 @@ immutable struct ConcreteField {
 }
 
 immutable struct ConcreteLocalSource {
-	immutable struct Closure {}
-	enum Generated { args, ignore, destruct, member }
+	immutable struct Closure {} // Closure parameter
+	enum Generated { args, ignore, destruct, member, reference }
 	mixin TaggedUnion!(Local*, Closure, Generated);
 }
 
 immutable struct ConcreteLocal {
-	@safe @nogc pure nothrow:
-
 	ConcreteLocalSource source;
 	ConcreteType type;
-
-	bool isAllocated() scope =>
-		source.matchIn!bool(
-			(in Local x) => localIsAllocated(x),
-			(in ConcreteLocalSource.Closure) => false,
-			(in ConcreteLocalSource.Generated) => false);
 }
 
 immutable struct ConcreteFunBody {
 	immutable struct Builtin {
 		BuiltinFun kind;
 		ConcreteType[] typeArgs;
-	}
-	immutable struct CreateRecord {}
-	immutable struct CreateUnion {
-		size_t memberIndex;
 	}
 	immutable struct Extern {
 		Symbol libraryName;
@@ -252,52 +263,22 @@ immutable struct ConcreteFunBody {
 		ulong allValue;
 		FlagsFunction fn;
 	}
-	immutable struct RecordFieldCall {
-		size_t fieldIndex;
-		ConcreteStruct* funType;
-		ConcreteType argType;
-		ConcreteFun* caller;
-	}
-	immutable struct RecordFieldGet {
-		size_t fieldIndex;
-	}
-	// Note: This is redundant to the 'PtrToField' expression; low model will unify them
-	immutable struct RecordFieldPointer {
-		size_t fieldIndex;
-	}
-	immutable struct RecordFieldSet {
-		size_t fieldIndex;
-	}
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
 
-	mixin Union!(
-		Builtin,
-		Constant,
-		CreateRecord,
-		CreateUnion,
-		EnumFunction,
-		Extern,
-		ConcreteExpr,
-		FlagsFn,
-		RecordFieldCall,
-		RecordFieldGet,
-		RecordFieldPointer,
-		RecordFieldSet,
-		VarGet,
-		VarSet);
+	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet);
 }
 
 immutable struct ConcreteFunSource {
 	immutable struct Lambda {
-		UriAndRange range;
 		ConcreteFun* containingFun;
+		Expr* bodyExpr;
 		size_t index; // nth lambda in the containing function
 	}
 
 	immutable struct Test {
-		UriAndRange range;
-		size_t testIndex;
+		.Test* test;
+		size_t testIndex; // Arbitrary index over all tests
 	}
 
 	immutable struct WrapMain {
@@ -315,7 +296,7 @@ immutable struct ConcreteFun {
 
 	ConcreteFunSource source;
 	ConcreteType returnType;
-	ConcreteLocal[] paramsIncludingClosure;
+	ConcreteLocal[] params;
 	private Late!ConcreteFunBody lateBody;
 
 	ref ConcreteFunBody body_() return scope =>
@@ -330,24 +311,16 @@ immutable struct ConcreteFun {
 	}
 
 	Uri moduleUri() scope =>
-		source.matchIn!Uri(
-			(in ConcreteFunKey x) =>
-				x.decl.moduleUri,
-			(in ConcreteFunSource.Lambda x) =>
-				x.range.uri,
-			(in ConcreteFunSource.Test x) =>
-				x.range.uri,
-			(in ConcreteFunSource.WrapMain x) =>
-				x.range.uri);
+		range.uri;
 
 	UriAndRange range() scope =>
 		source.matchIn!UriAndRange(
 			(in ConcreteFunKey x) =>
 				x.decl.range,
 			(in ConcreteFunSource.Lambda x) =>
-				x.range,
+				UriAndRange(x.containingFun.moduleUri, x.bodyExpr.range),
 			(in ConcreteFunSource.Test x) =>
-				x.range,
+				x.test.range,
 			(in ConcreteFunSource.WrapMain x) =>
 				x.range);
 }
@@ -356,7 +329,7 @@ immutable struct ConcreteFunKey {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
-	SmallArray!(ConcreteType) typeArgs;
+	SmallArray!ConcreteType typeArgs;
 	SmallArray!(immutable ConcreteFun*) specImpls;
 
 	bool opEquals(scope ConcreteFunKey b) scope =>
@@ -408,56 +381,30 @@ immutable struct ConcreteExpr {
 	ConcreteExprKind kind;
 }
 
-immutable struct ConcreteClosureRef {
-	@safe @nogc pure nothrow:
-
-	PtrAndSmallNumber!ConcreteLocal paramAndIndex;
-
-	ConcreteLocal* closureParam() return scope =>
-		paramAndIndex.ptr;
-
-	ushort fieldIndex() scope =>
-		paramAndIndex.number;
-
-	ConcreteType type() scope =>
-		closureParam.type.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type;
-}
-
 immutable struct ConcreteExprKind {
-	immutable struct Alloc {
-		ConcreteExpr arg;
-	}
-
 	immutable struct Call {
 		ConcreteFun* called;
 		SmallArray!ConcreteExpr args;
 	}
 
-	immutable struct ClosureCreate {
-		ConcreteVariableRef[] args;
-	}
-
-	immutable struct ClosureGet {
-		ConcreteClosureRef closureRef;
-		ClosureReferenceKind referenceKind;
-	}
-
-	immutable struct ClosureSet {
-		ConcreteClosureRef closureRef;
-		ConcreteExpr value;
-		// referenceKind is always allocated
-	}
-
 	immutable struct CreateArray {
+		@safe @nogc pure nothrow:
 		ConcreteExpr[] args;
+		this(ConcreteExpr[] a) {
+			args = a;
+			assert(!isEmpty(args));
+		}
 	}
 
-	// TODO: this is only used for 'safeValue'.
 	immutable struct CreateRecord {
+		@safe @nogc pure nothrow:
 		ConcreteExpr[] args;
+		this(ConcreteExpr[] a) {
+			args = a;
+			assert(!isEmpty(args));
+		}
 	}
 
-	// Only used for 'safe-value', otherwise it goes through a function
 	immutable struct CreateUnion {
 		size_t memberIndex;
 		ConcreteExpr arg;
@@ -478,13 +425,6 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr else_;
 	}
 
-	// May be a 'fun' or 'act'.
-	// (A 'far' function is a lambda wrapped in CreateRecord.)
-	immutable struct Lambda {
-		size_t memberIndex; // Member index of a Union (which hasn't been created yet)
-		Opt!(ConcreteExpr*) closure;
-	}
-
 	immutable struct Let {
 		ConcreteLocal* local;
 		ConcreteExpr value;
@@ -494,7 +434,9 @@ immutable struct ConcreteExprKind {
 	immutable struct LocalGet {
 		ConcreteLocal* local;
 	}
-
+	immutable struct LocalPointer {
+		ConcreteLocal* local;
+	}
 	immutable struct LocalSet {
 		ConcreteLocal* local;
 		ConcreteExpr value;
@@ -545,20 +487,20 @@ immutable struct ConcreteExprKind {
 		Opt!(ConcreteExpr*) else_;
 	}
 
-	immutable struct PtrToField {
-		ConcreteExpr target;
+	immutable struct RecordFieldGet {
+		ConcreteExpr* record; // May be by-value or by-ref
 		size_t fieldIndex;
 	}
 
-	immutable struct PtrToLocal {
-		ConcreteLocal* local;
-	}
-
-	// Only used for destructuring.
-	immutable struct RecordFieldGet {
-		// This is always by-value
+	immutable struct RecordFieldPointer {
 		ConcreteExpr* record;
 		size_t fieldIndex;
+	}
+
+	immutable struct RecordFieldSet {
+		ConcreteExpr record; // May be by-value or by-ref
+		size_t fieldIndex;
+		ConcreteExpr value;
 	}
 
 	immutable struct Seq {
@@ -597,11 +539,7 @@ immutable struct ConcreteExprKind {
 	}
 
 	mixin Union!(
-		Alloc*,
 		Call,
-		ClosureCreate,
-		ClosureGet*,
-		ClosureSet*,
 		Constant,
 		CreateArray,
 		CreateRecord,
@@ -609,9 +547,9 @@ immutable struct ConcreteExprKind {
 		Drop*,
 		Finally*,
 		If*,
-		Lambda,
 		Let*,
 		LocalGet,
+		LocalPointer,
 		LocalSet*,
 		Loop*,
 		LoopBreak*,
@@ -619,9 +557,9 @@ immutable struct ConcreteExprKind {
 		MatchEnumOrIntegral*,
 		MatchStringLike*,
 		MatchUnion*,
-		PtrToField*,
-		PtrToLocal,
 		RecordFieldGet,
+		RecordFieldPointer,
+		RecordFieldSet*,
 		Seq*,
 		Throw*,
 		Try*,
@@ -631,10 +569,6 @@ immutable struct ConcreteExprKind {
 }
 version (WebAssembly) {} else {
 	static assert(ConcreteExprKind.sizeof == ConcreteExprKind.Call.sizeof + ulong.sizeof);
-}
-
-immutable struct ConcreteVariableRef {
-	mixin Union!(Constant, ConcreteLocal*, ConcreteClosureRef);
 }
 
 ConcreteType returnType(ConcreteExprKind.Call a) =>
@@ -673,23 +607,95 @@ immutable struct ConcreteProgram {
 	ConcreteStruct*[] allStructs;
 	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
-	Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl) lambdaStructToImpls;
+	// The functions are still in 'allFuns', this is just to identify them
+	Set!(immutable ConcreteFun*) yieldingFuns;
 	ConcreteCommonFuns commonFuns;
 }
-
 immutable struct ConcreteCommonFuns {
+	@safe @nogc pure nothrow:
 	ConcreteFun* alloc;
-	ConcreteVar* curJmpBuf;
+	ConcreteFun* curCatchPoint;
+	ConcreteFun* setCurCatchPoint;
 	ConcreteVar* curThrown;
 	ConcreteFun* mark;
+	ConcreteFun* markVisitFiber;
 	ConcreteFun* rethrowCurrentException;
+	ConcreteFun* runFiber;
 	ConcreteFun* rtMain;
-	ConcreteFun* setjmp;
 	ConcreteFun* throwImpl;
 	ConcreteFun* userMain;
+
+	ConcreteFun* gcRoot;
+	ConcreteFun* setGcRoot;
+	ConcreteFun* popGcRoot;
+
+	ConcreteType fiberReferenceType() =>
+		runFiber.params[1].type;
 }
 
-immutable struct ConcreteLambdaImpl {
-	ConcreteType closureType;
-	ConcreteFun* impl;
-}
+bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) =>
+	a.kind.matchWithPointers!bool(
+		(ConcreteExprKind.Call x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(Constant x) =>
+			false,
+		(ConcreteExprKind.CreateArray x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(ConcreteExprKind.CreateRecord x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(ConcreteExprKind.CreateUnion* x) =>
+			cb(x.arg),
+		(ConcreteExprKind.Drop* x) =>
+			cb(x.arg),
+		(ConcreteExprKind.Finally* x) =>
+			cb(x.right) || cb(x.below),
+		(ConcreteExprKind.If* x) =>
+			cb(x.cond) || cb(x.then) || cb(x.else_),
+		(ConcreteExprKind.Let* x) =>
+			cb(x.value) || cb(x.then),
+		(ConcreteExprKind.LocalGet) =>
+			false,
+		(ConcreteExprKind.LocalPointer) =>
+			false,
+		(ConcreteExprKind.LocalSet* x) =>
+			cb(x.value),
+		(ConcreteExprKind.Loop* x) =>
+			cb(x.body_),
+		(ConcreteExprKind.LoopBreak* x) =>
+			cb(x.value),
+		(ConcreteExprKind.LoopContinue) =>
+			false,
+		(ConcreteExprKind.MatchEnumOrIntegral* x) =>
+			cb(x.matched) ||
+			exists!ConcreteExpr(x.caseExprs, cb) ||
+			(has(x.else_) && cb(*force(x.else_))),
+		(ConcreteExprKind.MatchStringLike* x) =>
+			cb(x.matched) ||
+			exists!(ConcreteExprKind.MatchStringLike.Case)(x.cases, (ref ConcreteExprKind.MatchStringLike.Case case_) =>
+				cb(case_.value) || cb(case_.then)) ||
+			cb(x.else_),
+		(ConcreteExprKind.MatchUnion* x) =>
+			cb(x.matched) ||
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)) ||
+			(has(x.else_) && cb(*force(x.else_))),
+		(ConcreteExprKind.RecordFieldGet x) =>
+			cb(*x.record),
+		(ConcreteExprKind.RecordFieldPointer x) =>
+			cb(*x.record),
+		(ConcreteExprKind.RecordFieldSet* x) =>
+			cb(x.record) || cb(x.value),
+		(ConcreteExprKind.Seq* x) =>
+			cb(x.first) || cb(x.then),
+		(ConcreteExprKind.Throw* x) =>
+			cb(x.thrown),
+		(ConcreteExprKind.Try* x) =>
+			cb(x.tried) ||
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.catchCases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)),
+		(ConcreteExprKind.TryLet* x) =>
+			cb(x.value) || cb(x.catch_.then) || cb(x.then),
+		(ConcreteExprKind.UnionAs x) =>
+			cb(*x.union_),
+		(ConcreteExprKind.UnionKind x) =>
+			cb(*x.union_));

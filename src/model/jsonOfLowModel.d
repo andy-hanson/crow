@@ -170,14 +170,20 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				kindField!"create-union",
 				field!"member-index"(x.memberIndex),
 				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
+		(in LowExprKind.FunPointer x) =>
+			jsonObject(alloc, [
+				kindField!"fun-pointer",
+				field!"fun"(x.fun.index)]),
 		(in LowExprKind.If x) =>
 			jsonObject(alloc, [
 				kindField!"if",
 				field!"condition"(jsonOfLowExpr(alloc, ctx, x.cond)),
 				field!"then"(jsonOfLowExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfLowExpr(alloc, ctx, x.else_))]),
-		(in LowExprKind.InitConstants) =>
-			jsonString!"init-const" ,
+		(in LowExprKind.Init x) =>
+			jsonObject(alloc, [
+				kindField!"init",
+				field!"which"(stringOfEnum(x.kind))]),
 		(in LowExprKind.Let x) =>
 			jsonObject(alloc, [
 				kindField!"let",
@@ -188,6 +194,10 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
 				field!"source"(jsonOfLowLocalSource(alloc, x.local.source))]),
+		(in LowExprKind.LocalPointer x) =>
+			jsonObject(alloc, [
+				kindField!"local-pointer",
+				field!"local"(jsonOfLowLocalSource(alloc, x.local.source))]),
 		(in LowExprKind.LocalSet x) =>
 			jsonObject(alloc, [
 				kindField!"local-set",
@@ -203,25 +213,21 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.LoopContinue) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in LowExprKind.PtrCast x) =>
+		(in LowExprKind.PointerCast x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-cast",
 				field!"target"(jsonOfLowExpr(alloc, ctx, x.target))]),
-		(in LowExprKind.PtrToField x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-field",
-				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
-				field!"field-index"(x.fieldIndex)]),
-		(in LowExprKind.PtrToLocal x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-local",
-				field!"local"(jsonOfLowLocalSource(alloc, x.local.source))]),
 		(in LowExprKind.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"get-field",
 				field!"target"(jsonOfLowExpr(alloc, ctx, *x.target)),
 				field!"field-index"(x.fieldIndex)]),
-		(in LowExprKind.RecordFieldSet x) =>
+		(in LowExprKind.RecordFieldPointer x) =>
+			jsonObject(alloc, [
+				kindField!"field-pointer",
+				field!"target"(jsonOfLowExpr(alloc, ctx, *x.target)),
+				field!"field-index"(x.fieldIndex)]),
+				(in LowExprKind.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"set-field",
 				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
@@ -256,6 +262,12 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 		(in LowExprKind.SpecialTernary x) =>
 			jsonObject(alloc, [
 				kindField!"ternary",
+				field!"operation"(stringOfEnum(x.kind)),
+				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
+					jsonOfLowExpr(alloc, ctx, e)))]),
+		(in LowExprKind.Special4ary x) =>
+			jsonObject(alloc, [
+				kindField!"4ary",
 				field!"operation"(stringOfEnum(x.kind)),
 				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),

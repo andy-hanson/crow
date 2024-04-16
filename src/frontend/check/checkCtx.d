@@ -63,15 +63,14 @@ enum CommonModule {
 	compare,
 	exceptionLowLevel,
 	funUtil,
-	future,
 	json,
 	list,
 	misc,
 	numberLowLevel,
-	setjmp,
 	std,
 	string_,
 	symbolLowLevel,
+	runtime,
 	runtimeMain,
 }
 alias CommonUris = immutable EnumMap!(CommonModule, Uri);

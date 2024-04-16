@@ -1,6 +1,5 @@
-main nat^(_ string[])
-	with : parallel
+main nat(_ string[])
+	_ void future = with : parallel
 		info log "inner"
-		()
 	else
 		info log "else"

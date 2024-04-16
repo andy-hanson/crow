@@ -4,7 +4,7 @@ module util.col.mutArr;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.col.array : arrayOfRange, endPtr, small, SmallArray;
-import util.memory : copyToFrom, initMemory, overwriteMemory;
+import util.memory : copyToFrom, initMemory;
 
 struct MutArr(T) {
 	@safe @nogc nothrow:
@@ -21,7 +21,7 @@ struct MutArr(T) {
 
 	@trusted void opIndexAssign(T value, immutable size_t index) {
 		assert(index < size_);
-		overwriteMemory(&inner[index], value);
+		initMemory!T(&inner[index], value);
 	}
 
 	int opApply(Cb)(in Cb cb) scope {
@@ -77,9 +77,6 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	a.size_--;
 	return a.inner[a.size_];
 }
-
-SmallArray!T moveToSmallArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
-	small!T(moveToArray(alloc, a));
 
 @trusted immutable(T[]) moveToArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
 	cast(immutable) moveToArr_mut(alloc, a);

@@ -1,5 +1,5 @@
 main void() summon
-	fut void^ = ()
+	fut void future = (),
 
 	x mut nat = 0
 	_ nat data() = () =>

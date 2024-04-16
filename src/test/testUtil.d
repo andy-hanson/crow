@@ -8,11 +8,11 @@ import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
-import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
+import interpret.stacks : dataEnd, returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, ServerSettings, setServerSettings, setFile, setFileAssumeUtf8;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
-import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
+import util.col.array : arraysEqual, arrayOfRange, arraysCorrespond, endPtr, indexOf, isEmpty, makeArray, map;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, CStringAndLength, stringOfCString;
@@ -54,8 +54,8 @@ void withShowDiagCtxForTestImpure(
 private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storage storage) =>
 	cb(ShowCtx(LineAndColumnGetters(ptrTrustMe(storage)), UrisInfo(none!Uri), ShowOptions(false)));
 
-@trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
-	scope immutable ulong[] stack = dataTempAsArr(stacks);
+@trusted void expectDataStack(ref Test test, in ulong[] storage, in Stacks stacks, in immutable ulong[] expected) {
+	scope const ulong[] stack = arrayOfRange(storage.ptr, dataEnd(stacks));
 	if (!arraysEqual(stack, expected)) {
 		debugLogWithWriter((ref Writer writer) {
 			writer ~= "expected:\n";
@@ -70,11 +70,15 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 @trusted void expectReturnStack(
 	ref Test test,
 	in ByteCode byteCode,
+	in ulong[] stacksStorage,
 	in Stacks stacks,
 	in ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
-	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
+	scope const Operation*[] reversed = returnTempAsArrReverse(stacks)[0 .. $ - 1];
+	// - 1 for null, - 1 for opStopInterpretation
+	assert(endPtr(reversed) == (cast(Operation**) endPtr(stacksStorage)) - 2);
+	scope const Operation*[] stack = reverse(test.alloc, reversed);
 	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,
@@ -210,7 +214,6 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/exception.crow",
 	"crow/flags-util.crow",
 	"crow/fun-util.crow",
-	"crow/future.crow",
 	"crow/hash.crow",
 	"crow/io/print.crow",
 	"crow/io/private/time-low-level.crow",
@@ -220,6 +223,7 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/misc.crow",
 	"crow/number.crow",
 	"crow/option.crow",
+	"crow/parallel.crow",
 	"crow/parse.crow",
 	"crow/pointer.crow",
 	"crow/private/alloc.crow",
@@ -232,6 +236,7 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/private/c-string-util.crow",
 	"crow/private/exception-low-level.crow",
 	"crow/private/exclusion-queue.crow",
+	"crow/private/fiber-queue.crow",
 	"crow/private/future-low-level.crow",
 	"crow/private/libunwind.crow",
 	"crow/private/number-low-level.crow",
@@ -239,7 +244,6 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/private/runtime.crow",
 	"crow/private/rt-main.crow",
 	"crow/private/symbol-low-level.crow",
-	"crow/private/task-queue.crow",
 	"crow/private/thread-utils.crow",
 	"crow/range.crow",
 	"crow/result.crow",
@@ -251,7 +255,6 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/version.crow",
 	"system/errno.crow",
 	"system/pthread.crow",
-	"system/setjmp.crow",
 	"system/stdio.crow",
 	"system/stdlib.crow",
 	"system/string.crow",

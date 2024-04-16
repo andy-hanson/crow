@@ -8,8 +8,8 @@ import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath, BuiltinF
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
 	AssertFieldOffsetsType,
-	ExternTypeInfo,
 	ExternTypeArrayInfo,
+	ExternTypeInfo,
 	GccTypes,
 	generateAssertFieldOffsetsFunction,
 	getGccType,
@@ -30,6 +30,7 @@ import backend.libgccjit :
 	gcc_jit_context,
 	gcc_jit_context_acquire,
 	gcc_jit_context_add_driver_option,
+	gcc_jit_context_add_top_level_asm,
 	gcc_jit_context_compile,
 	gcc_jit_context_compile_to_file,
 	gcc_jit_context_get_first_error,
@@ -46,6 +47,7 @@ import backend.libgccjit :
 	gcc_jit_context_new_cast,
 	gcc_jit_context_new_field,
 	gcc_jit_context_new_function,
+	gcc_jit_context_new_function_ptr_type,
 	gcc_jit_context_new_global,
 	gcc_jit_context_new_param,
 	gcc_jit_context_new_rvalue_from_double,
@@ -59,7 +61,9 @@ import backend.libgccjit :
 	gcc_jit_context_set_int_option,
 	gcc_jit_context_zero,
 	gcc_jit_field,
+	gcc_jit_fn_attribute,
 	gcc_jit_function,
+	gcc_jit_function_add_attribute,
 	gcc_jit_function_get_address,
 	gcc_jit_function_get_param,
 	gcc_jit_function_kind,
@@ -85,6 +89,8 @@ import backend.libgccjit :
 	gcc_jit_rvalue_dereference_field,
 	gcc_jit_tls_model,
 	gcc_jit_type,
+	gcc_jit_type_get_pointer,
+	gcc_jit_type_get_volatile,
 	gcc_jit_types,
 	gcc_jit_unary_op;
 import backend.mangle :
@@ -98,9 +104,11 @@ import backend.mangle :
 import backend.writeToC : getLinkOptions;
 import frontend.showModel : ShowCtx;
 import frontend.lang : JitOptions, OptimizationLevel;
-import model.constant : Constant, constantBool;
+import model.concreteModel : isCatchPoint;
+import model.constant : Constant;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
+	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -114,16 +122,13 @@ import model.lowModel :
 	LowVar,
 	LowVarIndex,
 	LowType,
-	lowTypeEqualCombinePtr,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinUnary;
-import model.showLowModel : writeFunName, writeFunSig;
-import util.alloc.alloc : Alloc;
-import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapWithIndex, zip;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinUnary;
+import model.showLowModel : writeFunSig;
+import util.alloc.alloc : Alloc, withTempAlloc;
+import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapStatic, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
@@ -133,7 +138,6 @@ import util.exitCode : ExitCode;
 import util.integralValues : IntegralValue;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.union_ : TaggedUnion;
 import util.util : castImmutable, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
@@ -179,7 +183,7 @@ private:
 
 int runMain(scope ref Perf perf, ref Alloc alloc, in CString[] allArgs, MainType main) =>
 	withMeasure!(int, () @trusted =>
-		main(cast(int) allArgs.length, cast(immutable char**) allArgs.ptr)
+		main(safeToInt(allArgs.length), cast(immutable char**) allArgs.ptr)
 	)(perf, alloc, PerfMeasure.run);
 
 pure:
@@ -200,6 +204,7 @@ GccProgram getGccProgram(scope ref Perf perf, ref Alloc alloc, in LowProgram pro
 			break;
 		case OptimizationLevel.o2:
 			gcc_jit_context_set_int_option(*ctx, gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
+			todo!void("TODO: Optimization requires 'gcc_jit_function_add_attribute' to prevent inlining fiber switch");
 			break;
 	}
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
@@ -257,18 +262,20 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 			(LowFunIndex funIndex, in LowFun fun) =>
 				toGccFunctionSignature(alloc, ctx, program, mangledNames, gccTypes, funIndex, fun));
 
+	immutable gcc_jit_type* boolType = getGccType(gccTypes, LowType(PrimitiveType.bool_));
 	immutable gcc_jit_type* nat64Type = getGccType(gccTypes, LowType(PrimitiveType.nat64));
-	immutable gcc_jit_function* abortFunction = castImmutable(gcc_jit_context_new_function(
-		ctx,
-		null,
-		gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
-		gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID),
-		"abort",
-		0,
-		null,
-		false));
+	immutable gcc_jit_function* abortFunction = makeFunction(
+		ctx, crowVoidType, "abort", [], gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
 	BuiltinFunctions builtinFunctions = generateBuiltinFunctions(ctx);
 	ConversionFunctions conversionFunctions = generateConversionFunctions(ctx);
+
+	immutable gcc_jit_type* voidPointerType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
+	immutable gcc_jit_type* fiberReferenceType = getGccType(gccTypes, program.commonTypes.fiberReference);
+	immutable gcc_jit_function* jumpToCatchFunction = makeJumpToCatchFunction(ctx, crowVoidType, voidPointerType);
+	immutable gcc_jit_function* setupCatchFunction = makeSetupCatchFunction(ctx, boolType, voidPointerType);
+	immutable gcc_jit_function* switchFiberFunction = makeSwitchFiberFunction(ctx, crowVoidType);
+	immutable gcc_jit_function* switchFiberInitialFunction = makeSwitchFiberInitialFunction(
+		ctx, crowVoidType, fiberReferenceType);
 
 	// Now fill in the body of every function.
 	fullIndexMapZip!(LowFunIndex, LowFun, gcc_jit_function*)(
@@ -280,31 +287,32 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 			(LowFunExprBody expr) {
 				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
-					ptrTrustMe(alloc),
-					ptrTrustMe(program),
-					ptrTrustMe(ctx),
-					ptrTrustMe(mangledNames),
-					ptrTrustMe(gccTypes),
-					ptrTrustMe(globalsForConstants),
-					ptrTrustMe(gccVars),
-					gccFuns,
-					curFun,
-					fun.returnType,
-					fun.params,
-					entryBlock,
-					entryBlock,
-					nat64Type,
-					abortFunction,
-					&builtinFunctions,
-					&conversionFunctions,
-					globalVoid);
+					allocPtr: ptrTrustMe(alloc),
+					programPtr: ptrTrustMe(program),
+					gccPtr: ptrTrustMe(ctx),
+					mangledNamesPtr: ptrTrustMe(mangledNames),
+					typesPtr: ptrTrustMe(gccTypes),
+					globalsForConstantsPtr: ptrTrustMe(globalsForConstants),
+					gccVarsPtr: ptrTrustMe(gccVars),
+					gccFuns: gccFuns,
+					curLowFun: ptrTrustMe(fun),
+					curFun: curFun,
+					entryBlock: entryBlock,
+					curBlock: entryBlock,
+					nat64Type: nat64Type,
+					abortFunction: abortFunction,
+					jumpToCatchFunction: jumpToCatchFunction,
+					setupCatchFunction: setupCatchFunction,
+					switchFiberFunction: switchFiberFunction,
+					switchFiberInitialFunction: switchFiberInitialFunction,
+					builtinFunctionsPtr: &builtinFunctions,
+					conversionFunctionsPtr: &conversionFunctions,
+					globalVoid: globalVoid);
 
 				if (isStubFunction(funIndex)) {
 					debugLogWithWriter((scope ref Writer writer) {
 						writer ~= "Stub ";
 						writer ~= funIndex.index;
-						writeFunName(writer, todo!ShowCtx("!"), program, funIndex);
-						writer ~= ' ';
 						writeFunSig(writer, todo!ShowCtx("!"), program, fun);
 					});
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
@@ -356,7 +364,7 @@ immutable struct ConversionFunctions {
 		makeConversionFunction(ctx, "__nat64ToPtr", unionType, nat64Type, nat64Field, voidPtrType, ptrField));
 }
 
-@trusted immutable(gcc_jit_function*) makeConversionFunction(
+immutable(gcc_jit_function*) makeConversionFunction(
 	ref gcc_jit_context ctx,
 	immutable char* name,
 	immutable gcc_jit_type* converterType,
@@ -366,15 +374,7 @@ immutable struct ConversionFunctions {
 	immutable gcc_jit_field* outField,
 ) {
 	immutable gcc_jit_param* param = gcc_jit_context_new_param(ctx, null, inType, "in");
-	gcc_jit_function* res = gcc_jit_context_new_function(
-		ctx,
-		null,
-		gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
-		outType,
-		name,
-		1,
-		&param,
-		false);
+	gcc_jit_function* res = makeFunction(ctx, outType, name, [param]);
 	gcc_jit_block* block = gcc_jit_function_new_block(res, "entry");
 	gcc_jit_lvalue* local = gcc_jit_function_new_local(res, null, converterType, "converter");
 	gcc_jit_block_add_assignment(
@@ -388,6 +388,145 @@ immutable struct ConversionFunctions {
 		gcc_jit_rvalue_access_field(gcc_jit_lvalue_as_rvalue(local), null, outField));
 	return castImmutable(res);
 }
+
+// This should match 'switch_fiber' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType) {
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
+	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
+	return makeAssemblyFunction(
+		ctx, crowVoidType, "switch_fiber",
+		[
+			gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
+			gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
+		],
+		".text\n" ~
+		".align 8\n" ~
+		"switch_fiber:\n" ~
+		"push %rbx\n" ~
+		"push %rbp\n" ~
+		"push %r12\n" ~
+		"push %r13\n" ~
+		"push %r14\n" ~
+		"push %r15\n" ~
+		"movq %rsp, (%rdi)\n" ~
+		"movq %rsi, %rsp\n" ~
+		"pop %r15\n" ~
+		"pop %r14\n" ~
+		"pop %r13\n" ~
+		"pop %r12\n" ~
+		"pop %rbp\n" ~
+		"pop %rbx\n" ~
+		"ret");
+}
+
+// This should match 'switch_fiber_initial' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSwitchFiberInitialFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* crowVoidType,
+	immutable gcc_jit_type* fiberPointerType,
+) {
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
+	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
+	immutable gcc_jit_type* funcType = gcc_jit_context_new_function_ptr_type(
+		ctx, null, crowVoidType, 1, &fiberPointerType, false);
+	return makeAssemblyFunction(
+		ctx, crowVoidType, "switch_fiber_initial",
+		[
+			gcc_jit_context_new_param(ctx, null, fiberPointerType, "fiber"),
+			gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
+			gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
+			gcc_jit_context_new_param(ctx, null, funcType, "func"),
+		],
+		".text\n" ~
+		".align 8\n" ~
+		"switch_fiber_initial:\n" ~
+		"push %rbx\n" ~
+		"push %rbp\n" ~
+		"push %r12\n" ~
+		"push %r13\n" ~
+		"push %r14\n" ~
+		"push %r15\n" ~
+		"movq %rsp, (%rsi)\n" ~
+		"movq %rdx, %rsp\n" ~
+		"subq $8, %rsp\n" ~
+		"push %rcx\n" ~
+		"ret\n");
+}
+
+// This should match 'setup_catch' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSetupCatchFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* boolType,
+	immutable gcc_jit_type* voidPointerType,
+) =>
+	makeAssemblyFunction(
+		ctx, boolType, "setup_catch",
+		[gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")],
+		".text\n" ~
+		".align 8\n" ~
+		"setup_catch:\n" ~
+		"movq %rbx, (%rdi)\n" ~
+		"movq %rbp, 0x08(%rdi)\n" ~
+		"movq %r12, 0x10(%rdi)\n" ~
+		"movq %r13, 0x18(%rdi)\n" ~
+		"movq %r14, 0x20(%rdi)\n" ~
+		"movq %r15, 0x28(%rdi)\n" ~
+		"movq %rsp, 0x30(%rdi)\n" ~
+		"movq (%rsp), %rax\n" ~
+		"movq %rax, 0x38(%rdi)\n" ~
+		"xor %al, %al\n" ~
+		"ret\n");
+
+// This should match 'jump_to_catch' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeJumpToCatchFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* crowVoidType,
+	immutable gcc_jit_type* voidPointerType,
+) =>
+	makeAssemblyFunction(
+		ctx, crowVoidType, "jump_to_catch",
+		[gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")],
+		".text\n" ~
+		".align 8\n" ~
+		"jump_to_catch:\n" ~
+		"movq (%rdi), %rbx\n" ~
+		"movq 0x08(%rdi), %rbp\n" ~
+		"movq 0x10(%rdi), %r12\n" ~
+		"movq 0x18(%rdi), %r13\n" ~
+		"movq 0x20(%rdi), %r14\n" ~
+		"movq 0x28(%rdi), %r15\n" ~
+		"movq 0x30(%rdi), %rsp\n" ~
+		"movq 0x38(%rdi), %rax\n" ~
+		"movq %rax, (%rsp)\n" ~
+		"mov $1, %al\n" ~
+		"ret\n");
+
+immutable(gcc_jit_function*) makeAssemblyFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* returnType,
+	immutable char* name,
+	in immutable gcc_jit_param*[] params,
+	immutable char* assembly,
+) {
+	gcc_jit_function* res = makeFunction(
+		ctx, returnType, name, params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
+		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
+	}
+	gcc_jit_context_add_top_level_asm(ctx, null, assembly);
+	return res;
+}
+
+@trusted gcc_jit_function* makeFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* returnType,
+	immutable char* name,
+	in immutable gcc_jit_param*[] params,
+	gcc_jit_function_kind kind = gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
+) =>
+	gcc_jit_context_new_function(ctx, null, kind, returnType, name, safeToInt(params.length), params.ptr, false);
 
 struct GlobalsForConstants {
 	// This mirrors the structure of 'AllConstants'.
@@ -416,7 +555,7 @@ GlobalsForConstants generateGlobalsForConstants(
 						ctx,
 						null,
 						gccElementType,
-						cast(int) values.length);
+						safeToInt(values.length));
 					//TODO:NO ALLOC
 					CString name = withWriter(alloc, (scope ref Writer writer) {
 						writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
@@ -486,7 +625,7 @@ GccVars generateGccVars(
 			return res;
 		});
 
-@trusted gcc_jit_function* toGccFunctionSignature(
+gcc_jit_function* toGccFunctionSignature(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	in LowProgram program,
@@ -504,20 +643,18 @@ GccVars generateGccVars(
 				: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL);
 
 	immutable gcc_jit_type* returnType = getGccType(gccTypes, fun.returnType);
-	//TODO:NO ALLOC
-	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref LowLocal param) {
-		//TODO:NO ALLOC
-		CString name = withWriter(alloc, (scope ref Writer writer) {
-			writeLowLocalName(writer, mangledNames, param);
+	return withTempAlloc(alloc.meta, (ref Alloc tempAlloc) {
+		immutable gcc_jit_param*[] params = map(tempAlloc, fun.params, (ref LowLocal param) {
+			CString name = withWriter(tempAlloc, (scope ref Writer writer) {
+				writeLowLocalName(writer, mangledNames, param);
+			});
+			return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), name.ptr);
 		});
-		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), name.ptr);
+		CString name = withWriter(tempAlloc, (scope ref Writer writer) {
+			writeLowFunMangledName(writer, mangledNames, funIndex, fun);
+		});
+		return makeFunction(ctx, returnType, name.ptr, params, kind);
 	});
-	//TODO:NO ALLOC
-	CString name = withWriter(alloc, (scope ref Writer writer) {
-		writeLowFunMangledName(writer, mangledNames, funIndex, fun);
-	});
-	return gcc_jit_context_new_function(
-		ctx, null, kind, returnType, name.ptr, cast(int) params.length, params.ptr, false);
 }
 
 struct ExprEmit {
@@ -640,10 +777,8 @@ ExprResult emitVoid(ref ExprCtx ctx, ExprEmit emit) =>
 			ExprResult(ctx.globalVoid),
 		(ExprEmit.Void) =>
 			ExprResult(ExprResult.Void()),
-		(gcc_jit_lvalue* x) {
-			gcc_jit_block_add_assignment(ctx.curBlock, null, x, ctx.globalVoid);
-			return ExprResult(ExprResult.Void());
-		});
+		(gcc_jit_lvalue* x) =>
+			ExprResult(ExprResult.Void()));
 
 ExprResult emitWithBranching(
 	ref ExprCtx ctx,
@@ -693,7 +828,7 @@ ExprResult emitWithBranching(
 alias Locals = StackMap!(LowLocal*, gcc_jit_lvalue*);
 alias addLocal = stackMapAdd!(LowLocal*, gcc_jit_lvalue*);
 gcc_jit_lvalue* getLocal(ref ExprCtx ctx, ref Locals locals, in LowLocal* local) {
-	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
+	Opt!size_t paramIndex = indexOfPointer(ctx.curLowFun.params, local);
 	return has(paramIndex)
 		? gcc_jit_param_as_lvalue(gcc_jit_function_get_param(ctx.curFun, safeToInt(force(paramIndex))))
 		: stackMapMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
@@ -710,13 +845,16 @@ struct ExprCtx {
 	GlobalsForConstants* globalsForConstantsPtr;
 	GccVars* gccVarsPtr;
 	FullIndexMap!(LowFunIndex, gcc_jit_function*) gccFuns;
+	LowFun* curLowFun;
 	gcc_jit_function* curFun;
-	LowType curFunReturnType;
-	LowLocal[] curFunParams;
 	gcc_jit_block* entryBlock;
 	gcc_jit_block* curBlock;
 	immutable gcc_jit_type* nat64Type;
 	immutable gcc_jit_function* abortFunction;
+	immutable gcc_jit_function* jumpToCatchFunction;
+	immutable gcc_jit_function* setupCatchFunction;
+	immutable gcc_jit_function* switchFiberFunction;
+	immutable gcc_jit_function* switchFiberInitialFunction;
 	BuiltinFunctions* builtinFunctionsPtr;
 	ConversionFunctions* conversionFunctionsPtr;
 	immutable gcc_jit_rvalue* globalVoid;
@@ -760,14 +898,18 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			createRecordToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.CreateUnion it) =>
 			createUnionToGcc(ctx, locals, emit, a, it),
+		(in LowExprKind.FunPointer x) =>
+			funPointerToGcc(ctx, emit, a.type, x.fun),
 		(in LowExprKind.If it) =>
 			ifToGcc(ctx, locals, emit, a.type, it.cond, it.then, it.else_),
-		(in LowExprKind.InitConstants) =>
-			initConstantsToGcc(ctx, emit),
+		(in LowExprKind.Init x) =>
+			initToGcc(ctx, emit, x.kind),
 		(in LowExprKind.Let it) =>
 			letToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LocalGet it) =>
 			localGetToGcc(ctx, locals, emit, it),
+		(in LowExprKind.LocalPointer x) =>
+			localPointerToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.Loop it) =>
@@ -776,28 +918,28 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			loopBreakToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LoopContinue) =>
 			loopContinueToGcc(ctx, locals, emit),
-		(in LowExprKind.PtrCast it) =>
+		(in LowExprKind.PointerCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.PtrToField it) =>
-			ptrToFieldToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.PtrToLocal it) =>
-			ptrToLocalToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
+		(in LowExprKind.RecordFieldPointer x) =>
+			recordFieldPointerToGcc(ctx, locals, emit, a, x),
 		(in LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(in Constant it) =>
-			constantToGcc(ctx, emit, a.type, it),
-		(in LowExprKind.SpecialUnary it) =>
-			unaryToGcc(ctx, locals, emit, a.type, it),
+		(in Constant x) =>
+			constantToGcc(ctx, emit, a.type, x),
+		(in LowExprKind.SpecialUnary x) =>
+			unaryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
-		(in LowExprKind.SpecialBinary it) =>
-			binaryToGcc(ctx, locals, emit, a.type, it),
+		(in LowExprKind.SpecialBinary x) =>
+			binaryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
-		(in LowExprKind.SpecialTernary) =>
-			assert(false),
+		(in LowExprKind.SpecialTernary x) =>
+			ternaryToGcc(ctx, locals, emit, a.type, x),
+		(in LowExprKind.Special4ary x) =>
+			fouraryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.TailRecur it) =>
@@ -849,19 +991,30 @@ ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowT
 		: zeroedToGcc(ctx, emit, type);
 }
 
-@trusted ExprResult callToGcc(
+ExprResult callToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
 	in LowType type,
 	in LowExprKind.Call a,
+) =>
+	makeCall(
+		ctx, emit, type, ctx.gccFuns[a.called],
+		map(ctx.alloc, a.args, (ref LowExpr arg) => emitToRValue(ctx, locals, arg)));
+
+@trusted ExprResult makeCall(
+	ref ExprCtx ctx,
+	ExprEmit emit,
+	in LowType type,
+	const gcc_jit_function* called,
+	in immutable gcc_jit_rvalue*[] args,
+	bool noSideEffects = false
 ) {
-	const gcc_jit_function* called = ctx.gccFuns[a.called];
-	//TODO:NO ALLOC
-	immutable gcc_jit_rvalue*[] argsGcc =
-		map(ctx.alloc, a.args, (ref LowExpr arg) => emitToRValue(ctx, locals, arg));
-	return emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
-		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
+	immutable gcc_jit_rvalue* call = castImmutable(
+		gcc_jit_context_new_call(ctx.gcc, null, called, safeToInt(args.length), args.ptr));
+	return noSideEffects
+		? emitSimpleNoSideEffects(ctx, emit, call)
+		: emitSimpleYesSideEffects(ctx, emit, type, call);
 }
 
 @trusted ExprResult callFunPointerToGcc(
@@ -879,7 +1032,7 @@ ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowT
 		ctx.gcc,
 		null,
 		funPtrGcc,
-		cast(int) argsGcc.length,
+		safeToInt(argsGcc.length),
 		argsGcc.ptr));
 }
 
@@ -1003,16 +1156,28 @@ ExprResult emitWithLocal(
 	CString name = withWriter(ctx.alloc, (scope ref Writer writer) {
 		writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
 	});
-	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(
-		ctx.curFun, null, getGccType(ctx.types, lowLocal.type), name.ptr);
+	immutable gcc_jit_type* type = getGccType(ctx.types, lowLocal.type);
+	immutable gcc_jit_type* fullType = localMustBeVolatile(ctx, *lowLocal) ? gcc_jit_type_get_volatile(type) : type;
+	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(ctx.curFun, null, fullType, name.ptr);
 	emitToLValueCb(gccLocal, (ExprEmit valueEmit) =>
 		cbValue(valueEmit));
 	Locals newLocals = addLocal(locals, lowLocal, gccLocal);
 	return toGccExpr(ctx, castNonScope_ref(newLocals), emit, then);
 }
 
-ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalGet a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(ctx, locals, a.local)));
+ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalGet a) {
+	immutable gcc_jit_rvalue* value = gcc_jit_lvalue_as_rvalue(getLocal(ctx, locals, a.local));
+	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
+		? gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, a.local.type))
+		: value);
+}
+
+bool localMustBeVolatile(in ExprCtx ctx, in LowLocal local) =>
+	// The 'catch-point' doesn't really need to be volatile,
+	// and having it volatile causes compile errors when initializing it
+	localMustBeVolatile(*ctx.curLowFun, local) && !isCatchPoint(ctx, local.type);
+bool isCatchPoint(in ExprCtx ctx, in LowType type) =>
+	type.isA!(LowType.Extern) && isCatchPoint(*ctx.program.allTypes.allExternTypes[type.as!(LowType.Extern)].source);
 
 ExprResult localSetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalSet a) {
 	emitToLValue(ctx, locals, getLocal(ctx, locals, a.local), a.value);
@@ -1063,36 +1228,41 @@ ExprResult ptrCastToGcc(
 	ref Locals locals,
 	ExprEmit emit,
 	in LowExpr expr,
-	in LowExprKind.PtrCast a,
-) {
-	if (lowTypeEqualCombinePtr(expr.type, a.target.type))
-		// We don't have 'const' at low-level, so some casts are unnecessary.
-		return toGccExpr(ctx, locals, emit, a.target);
-	else
-		return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
-			ctx.gcc,
-			null,
-			emitToRValue(ctx, locals, a.target),
-			getGccType(ctx.types, expr.type)));
-}
+	in LowExprKind.PointerCast a,
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
+		ctx.gcc,
+		null,
+		emitToRValue(ctx, locals, a.target),
+		getGccType(ctx.types, expr.type)));
 
-ExprResult ptrToFieldToGcc(
+ExprResult recordFieldPointerToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
 	in LowExpr expr,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) {
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
 	return emitSimpleYesSideEffects(
 		ctx, emit, expr.type,
 		gcc_jit_lvalue_get_address(
-			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field),
+			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, *a.target), null, field),
 			null));
 }
 
-ExprResult ptrToLocalToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.PtrToLocal a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null));
+ExprResult localPointerToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.LocalPointer a,
+) {
+	immutable gcc_jit_rvalue* pointer = gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null);
+	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
+		? gcc_jit_context_new_cast(ctx.gcc, null, pointer, getGccType(ctx.types, type))
+		: pointer);
+}
 
 ExprResult recordFieldGetToGcc(
 	ref ExprCtx ctx,
@@ -1101,8 +1271,8 @@ ExprResult recordFieldGetToGcc(
 	in LowExprKind.RecordFieldGet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	return emitSimpleNoSideEffects(ctx, emit, targetIsPointer(a)
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
+	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
@@ -1146,8 +1316,7 @@ ExprResult recordFieldSetToGcc(
 	in LowExprKind.RecordFieldSet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	assert(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
 	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
@@ -1187,21 +1356,8 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 				ctx,
 				emit,
 				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it.value)),
-		(in Constant.FunPointer it) {
-			gcc_jit_rvalue* value = gcc_jit_function_get_address(
-				ctx.gccFuns[mustGet(ctx.program.concreteFunToLowFunIndex, it.fun)],
-				null);
-			gcc_jit_rvalue* castValue = () {
-				if (type.isA!(LowType.PtrRawConst))
-					// We need to cast function pointer to any-ptr for 'all-funs'
-					return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
-				else {
-					assert(type.isA!(LowType.FunPointer));
-					return value;
-				}
-			}();
-			return emitSimpleNoSideEffects(ctx, emit, castValue);
-		},
+		(in Constant.FunPointer x) =>
+			funPointerToGcc(ctx, emit, type, mustGet(ctx.program.concreteFunToLowFunIndex, x.fun)),
 		(in IntegralValue it) =>
 			emitSimpleNoSideEffects(
 				ctx,
@@ -1221,10 +1377,24 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 		(in Constant.Union it) {
 			LowType argType = ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
 			return emitUnion(ctx, emit, type, it.memberIndex, (ExprEmit emitArg) =>
-				constantToGcc(ctx, emit, argType, it.arg));
+				constantToGcc(ctx, emitArg, argType, it.arg));
 		},
 		(in Constant.Zero) =>
 			zeroedToGcc(ctx, emit, type));
+
+ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowFunIndex fun) {
+	gcc_jit_rvalue* value = gcc_jit_function_get_address(ctx.gccFuns[fun], null);
+	gcc_jit_rvalue* castValue = () {
+		if (type.isA!(LowType.PtrRawConst))
+			// We need to cast function pointer to any-ptr for 'all-funs'
+			return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
+		else {
+			assert(type.isA!(LowType.FunPointer));
+			return value;
+		}
+	}();
+	return emitSimpleNoSideEffects(ctx, emit, castValue);
+}
 
 @trusted ExprResult unaryToGcc(
 	ref ExprCtx ctx,
@@ -1233,9 +1403,10 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 	in LowType type,
 	in LowExprKind.SpecialUnary a,
 ) {
-	ExprResult builtin(BuiltinFunction x) {
-		return callBuiltinUnary(ctx, locals, emit, a.arg, x);
-	}
+	ExprResult builtin(BuiltinFunction x) =>
+		callBuiltinUnary(ctx, locals, emit, a.arg, x);
+	ExprResult callFn(const gcc_jit_function* func, bool noSideEffects = false) =>
+		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
 
 	final switch (a.kind) {
 		case BuiltinUnary.bitwiseNotNat8:
@@ -1259,6 +1430,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 			return emitVoid(ctx, emit);
 		case BuiltinUnary.asAnyPtr:
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
 		case BuiltinUnary.toFloat64FromFloat32:
@@ -1289,10 +1461,12 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 				null,
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, type)));
+		case BuiltinUnary.jumpToCatch:
+			return callFn(ctx.jumpToCatchFunction);
+		case BuiltinUnary.setupCatch:
+			return callFn(ctx.setupCatchFunction);
 		case BuiltinUnary.toNat64FromPtr:
-			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
-			return emitSimpleNoSideEffects(ctx, emit, castImmutable(
-				gcc_jit_context_new_call(ctx.gcc, null, ctx.conversionFunctions.ptrToNat64, 1, &arg)));
+			return callFn(ctx.conversionFunctions.ptrToNat64, noSideEffects: true);
 		case BuiltinUnary.toPtrFromNat64:
 			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
@@ -1340,6 +1514,36 @@ ExprResult callBuiltinBinary(
 		ctx.gcc, null, ctx.builtinFunctions[function_], argsGcc.length, argsGcc.ptr));
 }
 
+ExprResult ternaryToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.SpecialTernary a,
+) {
+	final switch (a.kind) {
+		case BuiltinTernary.interpreterBacktrace:
+			assert(false);
+	}
+}
+
+ExprResult fouraryToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.Special4ary a,
+) {
+	final switch (a.kind) {
+		case Builtin4ary.switchFiberInitial:
+			immutable gcc_jit_rvalue*[4] args = mapStatic(a.args, (LowExpr arg) => emitToRValue(ctx, locals, arg));
+			return emitSimpleYesSideEffects(
+				ctx, emit, type,
+				castImmutable(gcc_jit_context_new_call(
+					ctx.gcc, null, ctx.switchFiberInitialFunction, args.length, castNonScope_ref(args).ptr)));
+	}
+}
+
 ExprResult binaryToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1359,6 +1563,8 @@ ExprResult binaryToGcc(
 			emitToRValue(ctx, locals, left),
 			emitToRValue(ctx, locals, right)));
 	}
+	ExprResult callFn(const gcc_jit_function* func) =>
+		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right)]);
 
 	final switch (a.kind) {
 		case BuiltinBinary.addFloat32:
@@ -1373,10 +1579,8 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapAddNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_PLUS);
-		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.addNat, left, right);
-		case BuiltinBinary.and:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.and, left, right);
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseAndInt16:
 		case BuiltinBinary.bitwiseAndInt32:
@@ -1416,7 +1620,7 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.eqNat16:
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
-		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.eqPointer:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
@@ -1429,7 +1633,7 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.lessNat16:
 		case BuiltinBinary.lessNat32:
 		case BuiltinBinary.lessNat64:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.lessPointer:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_LT);
 		case BuiltinBinary.mulFloat32:
 		case BuiltinBinary.mulFloat64:
@@ -1443,8 +1647,6 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
-		case BuiltinBinary.orBool:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, left, right);
 		case BuiltinBinary.seq:
 			emitToVoid(ctx, locals, left);
 			return toGccExpr(ctx, locals, emit, right);
@@ -1460,7 +1662,9 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapSubNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MINUS);
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.switchFiber:
+			return callFn(ctx.switchFiberFunction);
+		case BuiltinBinary.subPointerAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.subtractNat, left, right);
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_LSHIFT);
@@ -1479,7 +1683,7 @@ ExprResult binaryToGcc(
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_DIVIDE);
 		case BuiltinBinary.unsafeModNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MODULO);
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			gcc_jit_rvalue* gccLeft = emitToRValue(ctx, locals, left);
 			gcc_jit_rvalue* gccRight = emitToRValue(ctx, locals, right);
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference(gccLeft, null), gccRight);
@@ -1513,47 +1717,6 @@ ExprResult operatorForLhsRhs(
 		getGccType(ctx.types, type),
 		lhs,
 		rhs));
-
-enum LogicalOperator { and, or }
-
-ExprResult logicalOperatorToGcc(
-	ref ExprCtx ctx,
-	ref Locals locals,
-	ExprEmit emit,
-	LogicalOperator operator,
-	in LowExpr left,
-	in LowExpr right,
-) {
-	if (true) {//isReturn(emit)) {
-		final switch (operator) {
-			case LogicalOperator.and:
-				// if (left) return right; else return false;
-				return ifToGcc(ctx, locals, emit, boolType, left, right, boolExpr(false));
-			case LogicalOperator.or:
-				// if (left) return true; else return right;
-				return ifToGcc(ctx, locals, emit, boolType, left, boolExpr(true), right);
-		}
-	} else {
-		// TODO:KILL
-		// This only works if left and right sides have no side effects.
-		// Else 'emitSimpleYesSideEffects' will cause 'right' to evaluate anyway.
-		gcc_jit_binary_op op = () {
-			final switch (operator) {
-				case LogicalOperator.and:
-					return gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_AND;
-				case LogicalOperator.or:
-					return gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_OR;
-			}
-		}();
-		return binaryOperator(ctx, locals, emit, boolType, op, left, right);
-	}
-}
-
-LowType boolType() =>
-	LowType(PrimitiveType.bool_);
-
-LowExpr boolExpr(bool value) =>
-	LowExpr(boolType, UriAndRange.empty, LowExprKind(constantBool(value)));
 
 enum PtrArith { addNat, subtractNat }
 
@@ -1698,7 +1861,7 @@ ExprResult switchToGcc(
 				// TODO: use cases of appropriate type?
 				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
 				defaultBlock,
-				cast(int) cases.length,
+				safeToInt(cases.length),
 				&cases[0]);
 		});
 }
@@ -1736,21 +1899,19 @@ ExprResult externZeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowType.Extern type
 		ExternTypeInfo info = ctx.types.extern_[type];
 		if (has(info.array)) {
 			ExternTypeArrayInfo array = force(info.array);
-			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, array.elementAndCount.elementType);
+			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, PrimitiveType.nat8);
 			//TODO: no alloc
 			immutable gcc_jit_rvalue*[] elementValues = fillArray!(immutable gcc_jit_rvalue*)(
-				ctx.alloc, array.elementAndCount.count, elementValue);
+				ctx.alloc, array.elementCount, elementValue);
 			gcc_jit_rvalue* arrayValue = gcc_jit_context_new_array_constructor(
 				ctx.gcc,
 				null,
-				array.gccArrayType,
+				array.arrayType,
 				elementValues.length,
 				&elementValues[0]);
 			gcc_jit_block_add_assignment(
-				ctx.curBlock,
-				null,
-				gcc_jit_lvalue_access_field(lvalue, null, array.field),
-				arrayValue);
+				ctx.curBlock, null,
+				gcc_jit_lvalue_access_field(lvalue, null, array.field), arrayValue);
 		}
 	});
 
@@ -1797,41 +1958,46 @@ gcc_jit_rvalue* arbitraryValue(ref ExprCtx ctx, LowType type) {
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}));
 }
 
-ExprResult initConstantsToGcc(ref ExprCtx ctx, ExprEmit emit) {
-	zip!(immutable gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
-		ctx.globalsForConstants.arrs,
-		ctx.program.allConstants.arrs,
-		(ref immutable gcc_jit_rvalue*[] globals, ref ArrTypeAndConstantsLow tc) {
-			zip!(immutable gcc_jit_rvalue*, immutable Constant[])(
-				globals,
-				tc.constants,
-				(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
-					assert(!isEmpty(elements)); // Not sure how GCC would handle an empty global
-					foreach (size_t index, Constant elementValue; elements) {
-						gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
-							ctx.gcc,
-							null,
-							global,
-							//TODO: maybe cache these values?
-							gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, index));
-						emitToLValueCb(elementLValue, (ExprEmit emitElement) =>
-							constantToGcc(ctx, emitElement, tc.elementType, elementValue));
-					}
+ExprResult initToGcc(ref ExprCtx ctx, ExprEmit emit, BuiltinFun.Init.Kind kind) {
+	final switch (kind) {
+		case BuiltinFun.Init.Kind.global:
+			zip!(immutable gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
+				ctx.globalsForConstants.arrs,
+				ctx.program.allConstants.arrs,
+				(ref immutable gcc_jit_rvalue*[] globals, ref ArrTypeAndConstantsLow tc) {
+					zip!(immutable gcc_jit_rvalue*, immutable Constant[])(
+						globals,
+						tc.constants,
+						(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
+							assert(!isEmpty(elements)); // Not sure how GCC would handle an empty global
+							foreach (size_t index, Constant elementValue; elements) {
+								gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
+									ctx.gcc,
+									null,
+									global,
+									//TODO: maybe cache these values?
+									gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, index));
+								emitToLValueCb(elementLValue, (ExprEmit emitElement) =>
+									constantToGcc(ctx, emitElement, tc.elementType, elementValue));
+							}
+						});
 				});
-		});
-	zip!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
-		ctx.globalsForConstants.pointers,
-		ctx.program.allConstants.pointers,
-		(ref gcc_jit_lvalue*[] globals, ref PointerTypeAndConstantsLow tc) {
-			zip!(gcc_jit_lvalue*, Constant)(
-				globals,
-				tc.constants,
-				(ref gcc_jit_lvalue* global, ref Constant value) {
-					emitToLValueCb(global, (ExprEmit emitPointee) =>
-						constantToGcc(ctx, emitPointee, tc.pointeeType, value));
+			zip!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
+				ctx.globalsForConstants.pointers,
+				ctx.program.allConstants.pointers,
+				(ref gcc_jit_lvalue*[] globals, ref PointerTypeAndConstantsLow tc) {
+					zip!(gcc_jit_lvalue*, Constant)(
+						globals,
+						tc.constants,
+						(ref gcc_jit_lvalue* global, ref Constant value) {
+							emitToLValueCb(global, (ExprEmit emitPointee) =>
+								constantToGcc(ctx, emitPointee, tc.pointeeType, value));
+						});
 				});
-		});
-	return emitVoid(ctx, emit);
+			return emitVoid(ctx, emit);
+		case BuiltinFun.Init.Kind.perThread:
+			return emitVoid(ctx, emit);
+	}
 }
 
 } // GccJitAvailable

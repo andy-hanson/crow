@@ -117,7 +117,6 @@ immutable struct TypeAst {
 	immutable struct SuffixSpecial {
 		@safe @nogc pure nothrow:
 		enum Kind : ubyte {
-			future,
 			list,
 			mutList,
 			mutPtr,
@@ -175,8 +174,6 @@ static assert(TypeAst.sizeof == size_t.sizeof + NameAndRange.sizeof);
 
 private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.future:
-			return cast(uint) "$".length;
 		case TypeAst.SuffixSpecial.Kind.list:
 			return cast(uint) "[]".length;
 		case TypeAst.SuffixSpecial.Kind.option:
@@ -205,8 +202,6 @@ Symbol symbolForTypeAstMap(TypeAst.Map.Kind a) {
 
 Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.future:
-			return symbol!"future";
 		case TypeAst.SuffixSpecial.Kind.list:
 			return symbol!"list";
 		case TypeAst.SuffixSpecial.Kind.mutList:
@@ -780,17 +775,6 @@ immutable struct SharedAst {
 	}
 }
 
-immutable struct ThenAst {
-	@safe @nogc pure nothrow:
-	DestructureAst left;
-	Pos keywordPos;
-	ExprAst futExpr;
-	ExprAst then;
-
-	Range keywordRange() scope =>
-		rangeOfStartAndLength(keywordPos, "<-".length);
-}
-
 immutable struct ThrowAst {
 	@safe @nogc pure nothrow:
 	ExprAst thrown;
@@ -895,7 +879,6 @@ immutable struct ExprAstKind {
 		PtrAst*,
 		SeqAst*,
 		SharedAst*,
-		ThenAst*,
 		ThrowAst*,
 		TrustedAst*,
 		TryAst,

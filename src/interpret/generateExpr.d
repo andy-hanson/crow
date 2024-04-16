@@ -77,6 +77,7 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupEntries,
 	writeFnBinary,
+	writeFn4ary,
 	writeFnUnary,
 	writeInterpreterBacktrace,
 	writeMulConstantNat64,
@@ -87,6 +88,7 @@ import interpret.bytecodeWriter :
 	writeJump,
 	writeJumpDelayed,
 	writeJumpIfFalseDelayed,
+	writeJumpToCatch,
 	writePack,
 	writeStackRef,
 	writeRead,
@@ -102,10 +104,10 @@ import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, registerCall, registerFunPointerReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
+import interpret.runBytecode : opSetupCatch, opSwitchFiber, opSwitchFiberInitial;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
-	funPtrType,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -118,10 +120,8 @@ import model.lowModel :
 	LowVar,
 	LowVarIndex,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
@@ -311,7 +311,7 @@ void generateExpr(
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, *x.funPtr);
 			generateArgsAndContinue(writer, ctx, locals, x.args);
-			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[funPtrType(x)]);
+			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[x.funPointerType]);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.CreateRecord it) {
@@ -320,6 +320,10 @@ void generateExpr(
 		},
 		(in LowExprKind.CreateUnion it) {
 			generateCreateUnion(writer, ctx, expr.type.as!(LowType.Union), source, locals, it);
+			handleAfter(writer, ctx, source, after);
+		},
+		(in LowExprKind.FunPointer x) {
+			writeConstantFunPointer(writer, ctx, source, expr.type, x.fun);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.If it) {
@@ -332,8 +336,8 @@ void generateExpr(
 					generateExpr(writer, ctx, locals, innerAfter, it.else_);
 				});
 		},
-		(in LowExprKind.InitConstants) {
-			// bytecode interpreter doesn't need to do anything in 'init-constants'
+		(in LowExprKind.Init) {
+			// bytecode interpreter doesn't need to init anything
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.Let it) =>
@@ -344,6 +348,8 @@ void generateExpr(
 				writeDupEntries(writer, source, entries);
 			handleAfter(writer, ctx, source, after);
 		},
+		(in LowExprKind.LocalPointer x) =>
+			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
 		(in LowExprKind.LocalSet it) {
 			StackEntries entries = getLocal(ctx, locals, it.local);
 			generateExprAndContinue(writer, ctx, locals, it.value);
@@ -360,17 +366,15 @@ void generateExpr(
 		(in LowExprKind.LoopContinue x) {
 			generateLoopContinue(writer, ctx, source, locals, after, x);
 		},
-		(in LowExprKind.PtrCast it) {
+		(in LowExprKind.PointerCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
-		(in LowExprKind.PtrToField x) =>
-			generatePtrToField(writer, ctx, source, locals, after, x),
-		(in LowExprKind.PtrToLocal x) =>
-			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
 		(in LowExprKind.RecordFieldGet it) {
 			generateRecordFieldGet(writer, ctx, source, locals, it);
 			handleAfter(writer, ctx, source, after);
 		},
+		(in LowExprKind.RecordFieldPointer x) =>
+			generateRecordFieldPointer(writer, ctx, source, locals, after, x),
 		(in LowExprKind.RecordFieldSet x) {
 			generateRecordFieldSet(writer, ctx, source, locals, x);
 			handleAfter(writer, ctx, source, after);
@@ -387,8 +391,8 @@ void generateExpr(
 			writeFnUnary(writer, source, fnForUnaryMath(x.kind));
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.SpecialBinary it) {
-			generateSpecialBinary(writer, ctx, source, locals, after, it);
+		(in LowExprKind.SpecialBinary x) {
+			generateSpecialBinary(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.SpecialBinaryMath x) {
 			foreach (scope ref LowExpr arg; castNonScope(x.args))
@@ -398,6 +402,9 @@ void generateExpr(
 		},
 		(in LowExprKind.SpecialTernary it) {
 			generateSpecialTernary(writer, ctx, source, locals, after, it);
+		},
+		(in LowExprKind.Special4ary x) {
+			generateSpecial4ary(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.Switch x) {
 			generateSwitch(writer, ctx, source, locals, after, x);
@@ -734,10 +741,8 @@ void generateConstant(
 					assert(false);
 			}
 		},
-		(in Constant.FunPointer it) {
-			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, it.fun);
-			ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
-			registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
+		(in Constant.FunPointer x) {
+			writeConstantFunPointer(writer, ctx, source, type, mustGet(ctx.program.concreteFunToLowFunIndex, x.fun));
 		},
 		(in IntegralValue it) {
 			writePushConstant(writer, source, it.value);
@@ -772,6 +777,17 @@ void generateConstant(
 		});
 }
 
+void writeConstantFunPointer(
+	scope ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in LowType type,
+	LowFunIndex fun,
+) {
+	ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
+	registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
+}
+
 void writeZeroed(ref ByteCodeWriter writer, ByteCodeSource source, size_t sizeBytes) {
 	foreach (size_t i; 0 .. divRoundUp(sizeBytes, stackEntrySize))
 		writePushConstant(writer, source, 0);
@@ -799,6 +815,7 @@ void generateSpecialUnary(
 	final switch (a.kind) {
 		case BuiltinUnary.asAnyPtr:
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toNat8FromChar8:
 		case BuiltinUnary.toNat32FromChar32:
@@ -870,6 +887,14 @@ void generateSpecialUnary(
 				writeRead(writer, source, 0, size);
 			handleAfter(writer, ctx, source, after);
 			break;
+		case BuiltinUnary.jumpToCatch:
+			generateArg();
+			writeJumpToCatch(writer, source);
+			handleAfter(writer, ctx, source, after);
+			break;
+		case BuiltinUnary.setupCatch:
+			fn(&opSetupCatch);
+			break;
 		case BuiltinUnary.toFloat32FromFloat64:
 			fn(&fnFloat32FromFloat64);
 			break;
@@ -900,21 +925,21 @@ void generatePtrToLocal(
 	handleAfter(writer, ctx, source, after);
 }
 
-void generatePtrToField(
+void generateRecordFieldPointer(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ByteCodeSource source,
 	in Locals locals,
 	scope ref ExprAfter after,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) {
-	size_t offset = ctx.program.allRecords[targetRecordType(a)].fields[a.fieldIndex].offset;
+	size_t offset = ctx.program.allRecords[a.targetRecordType].fields[a.fieldIndex].offset;
 	if (offset != 0) {
-		generateExprAndContinue(writer, ctx, locals, a.target);
+		generateExprAndContinue(writer, ctx, locals, *a.target);
 		writeAddConstantNat64(writer, source, offset);
 		handleAfter(writer, ctx, source, after);
 	} else
-		generateExpr(writer, ctx, locals, after, a.target);
+		generateExpr(writer, ctx, locals, after, *a.target);
 }
 
 void generateRecordFieldGet(
@@ -929,8 +954,8 @@ void generateRecordFieldGet(
 	StackEntries targetEntries = StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
-	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
-	if (targetIsPointer(a)) {
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, a.targetRecordType, a.fieldIndex);
+	if (a.targetIsPointer) {
 		if (offsetAndSize.size == 0)
 			writeRemove(writer, source, targetEntries);
 		else
@@ -957,11 +982,10 @@ void generateRecordFieldSet(
 	in LowExprKind.RecordFieldSet a,
 ) {
 	StackEntry before = getNextStackEntry(writer);
-	assert(targetIsPointer(a));
 	generateExprAndContinue(writer, ctx, locals, a.target);
 	StackEntry mid = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
-	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, a.targetRecordType, a.fieldIndex);
 	assert(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 	assert(getNextStackEntry(writer) == before);
@@ -981,6 +1005,25 @@ void generateSpecialTernary(
 		case BuiltinTernary.interpreterBacktrace:
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
+			break;
+	}
+}
+
+void generateSpecial4ary(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowExprKind.Special4ary a,
+) {
+	foreach (ref LowExpr arg; castNonScope(a).args)
+		generateExprAndContinue(writer, ctx, locals, arg);
+	final switch (a.kind) {
+		case Builtin4ary.switchFiberInitial:
+			writeFn4ary(writer, source, &opSwitchFiberInitial, returnVoid: true);
+			handleAfter(writer, ctx, source, after);
+			break;
 	}
 }
 
@@ -993,16 +1036,16 @@ void generateSpecialBinary(
 	in LowExprKind.SpecialBinary a,
 ) {
 	LowExpr left = a.args[0], right = a.args[1];
-	void fn(Operation.Fn fn) {
+	void fn(Operation.Fn fn, bool returnVoid = false) {
 		generateExprAndContinue(writer, ctx, locals, left);
 		generateExprAndContinue(writer, ctx, locals, right);
-		writeFnBinary(writer, source, fn);
+		writeFnBinary(writer, source, fn, returnVoid);
 		handleAfter(writer, ctx, source, after);
 	}
 
 	final switch (a.kind) {
-		case BuiltinBinary.addPtrAndNat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 			LowType pointee = asPtrRawPointee(left.type);
 			generateExprAndContinue(writer, ctx, locals, left);
 			StackEntry afterLeft = getNextStackEntry(writer);
@@ -1015,7 +1058,8 @@ void generateSpecialBinary(
 				writeRemove(writer, source, StackEntries(afterLeft, 1));
 			else
 				writeFnBinary(
-					writer, source, a.kind == BuiltinBinary.addPtrAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
+					writer, source,
+					a.kind == BuiltinBinary.addPointerAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
 			handleAfter(writer, ctx, source, after);
 			break;
 		case BuiltinBinary.addFloat32:
@@ -1082,7 +1126,7 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat64:
-		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.eqPointer:
 			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.lessChar8:
@@ -1096,7 +1140,7 @@ void generateSpecialBinary(
 			fn(&fnLessNat32);
 			break;
 		case BuiltinBinary.lessNat64:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.lessPointer:
 			fn(&fnLessNat64);
 			break;
 		case BuiltinBinary.lessFloat32:
@@ -1132,6 +1176,9 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.subFloat64:
 			fn(&fnSubFloat64);
+			break;
+		case BuiltinBinary.switchFiber:
+			fn(&opSwitchFiber, returnVoid: true);
 			break;
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:
@@ -1196,7 +1243,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.wrapMulNat64:
 			fn(&fnWrapMulIntegral);
 			break;
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExprAndContinue(writer, ctx, locals, right);
 			size_t size = typeSizeBytes(ctx, right.type);

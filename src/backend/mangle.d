@@ -72,7 +72,7 @@ MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram pr
 		s.source.match!void(
 			(ConcreteStructSource.Bogus) {},
 			(ConcreteStructSource.Inst x) {
-				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, x.inst.decl.name);
+				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, x.decl.name);
 			},
 			(ConcreteStructSource.Lambda) {});
 	}
@@ -113,7 +113,7 @@ void writeStructMangledName(scope ref Writer writer, in MangledNames mangledName
 			writer ~= "__BOGUS";
 		},
 		(in ConcreteStructSource.Inst x) {
-			writeMangledName(writer, mangledNames, x.inst.decl.name);
+			writeMangledName(writer, mangledNames, x.decl.name);
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
 		(in ConcreteStructSource.Lambda it) {
@@ -303,8 +303,16 @@ bool conflictsWithCName(Symbol a) {
 		case symbol!"for".value:
 		case symbol!"int".value:
 		case symbol!"log".value: // defined by tgmath.h
+		case symbol!"signed".value:
+		case symbol!"unsigned".value:
 		case symbol!"void".value:
 		case symbol!"while".value:
+
+		// Not core keywords, but common libraries
+		case symbol!"remove".value:
+		case symbol!"stderr".value:
+		case symbol!"stdout".value:
+		case symbol!"write".value:
 			return true;
 		default:
 			return false;

@@ -13,9 +13,10 @@ import
 	../misc: new, void
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
-	../pointer: ==, <=>, +, *, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
+	../pointer:
+		==, <=>, +, *, as-const, mem-copy, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-stack-trace-enabled, is-windows
-	./alloc: gc-ctx, mem-copy, try-alloc-uninitialized
+	./alloc: gc-ctx, try-allocate
 	./bootstrap: hard-assert
 	./c-string-util: char8, c-string, c-string-size-incl-nul
 	./libunwind:
@@ -34,7 +35,7 @@ export
 get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe
 	guard is-stack-trace-enabled
 	max-entries nat64 = 16
-	guard entries ?= (gc try-alloc-uninitialized max-entries)::backtrace-entry mut*?
+	guard entries ?= (gc try-allocate max-entries)::backtrace-entry mut*?
 	if is-interpreted
 		end = entries interpreter-backtrace max-entries, skip
 		gc copy-strings entries, end
@@ -83,21 +84,19 @@ Result entries are temporary, must copy!
 ) bare, unsafe
 	process = GetCurrentProcess
 	thread = GetCurrentThread
+	if process SymInitialize null, true
+		# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
+		context mut CONTEXT = CONTEXT_FULL,
+		&context RtlCaptureContext
+		frame mut STACKFRAME64 = &context,
 
-	ok0 = process SymInitialize null, true
-	ok0 hard-assert
-
-	# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
-	context mut CONTEXT = CONTEXT_FULL,
-	&context RtlCaptureContext
-	frame mut STACKFRAME64 = &context,
-
-	_ = SYMOPT_LOAD_LINES SymSetOptions
-	max-end = entries + max-entries
-	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
-	ok1 = process SymCleanup
-	ok1 hard-assert
-	(entries .. end).as-array,
+		_ = SYMOPT_LOAD_LINES SymSetOptions
+		max-end = entries + max-entries
+		end = gc windows-walk-backtrace entries,
+			max-end, skip, process, thread, &context, &frame, vars
+		ok = process SymCleanup
+		ok hard-assert
+		(entries .. end).as-array,
 
 -windows-backtrace-vars record by-val, mut
 	offset nat64 mut*
@@ -106,14 +105,14 @@ Result entries are temporary, must copy!
 	line IMAGEHLP_LINE64 mut*
 
 -try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe
-	guard offset ?= gc.try-alloc-uninitialized :: nat64 mut*?
-	guard displacement ?= gc.try-alloc-uninitialized :: nat32 mut*?
+	guard offset ?= gc.try-allocate :: nat64 mut*?
+	guard displacement ?= gc.try-allocate :: nat32 mut*?
 	symbol-max-name-length nat64 = 255
 	symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
-	guard symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
+	guard symbol-buffer ?= (gc try-allocate symbol-size) :: nat8 mut*?
 	symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
 	*symbol := symbol-max-name-length.unsafe-to,
-	guard line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
+	guard line ?= gc.try-allocate :: IMAGEHLP_LINE64 mut*?
 	*line := ()
 	(offset, displacement, symbol, line),
 
@@ -158,7 +157,7 @@ Result entries are temporary, must copy!
 
 -copy-c-string-or-empty c-string(gc gc-ctx, a c-string) bare, unsafe
 	size = a c-string-size-incl-nul
-	if out ?= (gc try-alloc-uninitialized size) :: char8 mut*?
+	if out ?= (gc try-allocate size) :: char8 mut*?
 		out mem-copy a, size
 		out as-const
 	else
@@ -198,7 +197,7 @@ Result entries are temporary, must copy!
 		guard out-cur != out-end && cursor.unw_step > 0 : break out-cur
 		offset mut unw_word_t = 0
 		buf-size nat64 = 256
-		buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
+		buf-try char8 mut*? = gc try-allocate buf-size
 		if buf ?= buf-try
 			err = cursor unw_get_proc_name buf, buf-size, &offset
 			*out-cur := if err == 0

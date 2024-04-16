@@ -90,33 +90,33 @@
 		import
 			crow/io/print: out, print
 
-		main nat^(_ string[]) summon
-			&lt;- make-connection use-connection
+		main nat(_ string[]) summon
+			make-connection use-connection
 			()
 
 		connection record shared
-			read string? far(key symbol)
-			write void far(key symbol, value string)
+			read string? shared(key symbol)
+			write void shared(key symbol, value string)
 
 		make-connection connection() summon
 			db string mut[symbol] = ()
-			read: key =>
+			read: shared key =>
 				out print "read {key}"
-				db[key],
-			write: (key, value) =>
+				db[key]
+			write: shared (key, value) =>
 				out print "write to {key}: {value}"
 				db[key] := value
 				()
 
-		use-connection void^(a connection)
-			&lt;- a write "key", "value"
-			value &lt;- a read "key"
-			info log "value is {value ?? "not found"}"
+		use-connection void(a connection)
+			a write "key", "value"
+			info log "value is {a read "key" ?? "not found"}"
 			()
 	</crow-runnable>
 
 	<aside class="small">
 		This uses the "named new" syntax described in {{tutorial/special-call-syntax#named-new}}.
+		<br />
 		It also uses "callers" for <code class="function">read</code> and <code class="function">write</code>
 		described in {{tutorial/lambdas#callers}}.
 	</aside>

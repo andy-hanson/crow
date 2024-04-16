@@ -7,16 +7,15 @@ import
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
 		place, red, set-subscript, show, subscript, width
 
-main nat^(_ string[]) summon
-	settings <- ask-settings
+main void() summon
+	settings = ask-settings
 	if settings.has-slow-ai && trusted is-interpreted
 		warn log "AI may be slow in interpreter, try running with '--aot'"
 	empty-board print-board red, ()
-	winner <- empty-board play-recur red, settings
+	winner = empty-board play-recur red, settings
 	out print winner.show-winner
-	0,
 
--ask-settings ai-settings^() summon
+-ask-settings ai-settings() summon
 	out print """
 Choose an option:
 
@@ -62,8 +61,8 @@ CPU: CPU vs CPU
 	as blue
 		ai-settings ai-depth-blue
 
--play-recur color?^(board board, cur-player color, ai-settings ai-settings) summon
-	x <- if depth ?= cur-player ai-depth-for-color ai-settings
+-play-recur color?(board board, cur-player color, ai-settings ai-settings) summon
+	x = if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
 		board human-player-move cur-player
@@ -72,25 +71,22 @@ CPU: CPU vs CPU
 	clear-screen
 	new-board print-board other-player, (x,)
 	if new-board just-won
-		(cur-player,),
+		cur-player,
 	elif new-board has-empty
 		new-board play-recur other-player, ai-settings
-	else
-		(),
 
 -print-board void(a board, cur-player color, last-x nat?) summon
 	out print (a show cur-player, last-x)
 
--human-player-move nat^(board board, color color) summon
+-human-player-move nat(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
-	board human-player-move-recur
--human-player-move-recur nat^(board board) summon
-	column <- "Not a valid column." read-stdin-until-parse it => it column-of-string
-	if board can-place column
-		column,
-	else
-		out print "Can't, column is full."
-		board human-player-move-recur
+	loop
+		column = "Not a valid column." read-stdin-until-parse x => x column-of-string
+		if board can-place column
+			break column
+		else
+			out print "Can't, column is full."
+			continue
 
 -column-of-string nat?(a string)
 	guard n ?= a.strip letter-to-number
@@ -111,12 +107,10 @@ CPU: CPU vs CPU
 score-cache alias
 	int32 board-cache
 
-# Return a future as this may do a lot of processing
--ai-best-x nat^(board board, ai-depth nat)
-	<- delay
+-ai-best-x nat(board board, ai-depth nat)
 	# Use a new cache each time, since each turn we're exploring to a further depth.
 	cache score-cache = ()
-	(cache strategy-recur board, ai-depth, (0, min-value), 0, 0 x),
+	cache strategy-recur board, ai-depth, (0, min-value), 0, 0 x
 
 -strategy-score int32(cache score-cache, board board, ai-depth nat)
 	cache[board] ?? do

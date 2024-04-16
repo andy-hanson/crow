@@ -8,13 +8,11 @@ import
 	system/sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	system/unistd: read, write
 
-main nat^(_ string[]) summon
-	trusted
-		socket = get-tcp-socket
-		socket connect-socket "crow-lang.org", 80
-		socket send-request "GET / HTTP/1.1\r\nHost: crow-lang.org\r\n\r\n"
-		socket receive-response
-	()
+main void() summon, trusted
+	socket = get-tcp-socket
+	socket connect-socket "crow-lang.org", 80
+	socket send-request "GET / HTTP/1.1\r\nHost: crow-lang.org\r\n\r\n"
+	socket receive-response
 
 -get-tcp-socket fd-t() summon, unsafe
 	protoent = "tcp" getprotobyname

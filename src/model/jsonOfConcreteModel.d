@@ -4,7 +4,6 @@ module model.jsonOfConcreteModel;
 
 import frontend.storage : LineAndColumnGetters;
 import model.concreteModel :
-	ConcreteClosureRef,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
@@ -20,7 +19,6 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
-	ConcreteVariableRef,
 	returnType;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
@@ -62,7 +60,7 @@ Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
 		(in ConcreteStructSource.Bogus) =>
 			jsonString!"BOGUS",
 		(in ConcreteStructSource.Inst x) =>
-			jsonString(x.inst.decl.name),
+			jsonString(x.decl.name),
 		(in ConcreteStructSource.Lambda x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",
@@ -128,7 +126,7 @@ Json jsonOfConcreteFun(ref Alloc alloc, in Ctx ctx, in ConcreteFun a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfConcreteFunSource(alloc, a.source)),
 		field!"return-type"(jsonOfConcreteType(alloc, a.returnType)),
-		field!"params"(jsonList!ConcreteLocal(alloc, a.paramsIncludingClosure, (in ConcreteLocal x) =>
+		field!"params"(jsonList!ConcreteLocal(alloc, a.params, (in ConcreteLocal x) =>
 			jsonOfConcreteLocalDeclare(alloc, x))),
 		field!"body"(jsonOfConcreteFunBody(alloc, ctx, a.body_))]);
 
@@ -153,15 +151,6 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 	a.matchIn!Json(
 		(in ConcreteFunBody.Builtin x) =>
 			jsonOfConcreteFunBodyBuiltin(alloc, x),
-		(in Constant x) =>
-			jsonObject(alloc, [
-				kindField!"constant",
-				field!"value"(jsonOfConstant(alloc, x))]),
-		(in ConcreteFunBody.CreateRecord) =>
-			jsonString!"new-record",
-		(in ConcreteFunBody.CreateUnion) =>
-			//TODO: more detail
-			jsonString!"new-union",
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
@@ -175,23 +164,6 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 				kindField!"flags-fn",
 				field!"all"(x.allValue),
 				field!"name"(stringOfEnum(x.fn))]),
-		(in ConcreteFunBody.RecordFieldCall x) =>
-			jsonObject(alloc, [
-				kindField!"field-call",
-				field!"field-index"(x.fieldIndex),
-				field!"caller"(jsonOfConcreteFunRef(alloc, *x.caller))]),
-		(in ConcreteFunBody.RecordFieldGet x) =>
-			jsonObject(alloc, [
-				kindField!"field-get",
-				field!"field-index"(x.fieldIndex)]),
-		(in ConcreteFunBody.RecordFieldPointer x) =>
-			jsonObject(alloc, [
-				kindField!"field-pointer",
-				field!"field-index"(x.fieldIndex)]),
-		(in ConcreteFunBody.RecordFieldSet x) =>
-			jsonObject(alloc, [
-				kindField!"field-set",
-				field!"field-index"(x.fieldIndex)]),
 		(in ConcreteFunBody.VarGet) =>
 			jsonString!"var-get",
 		(in ConcreteFunBody.VarSet) =>
@@ -232,30 +204,11 @@ Json jsonOfConcreteExprs(ref Alloc alloc, in Ctx ctx, in ConcreteExpr[] a) =>
 
 Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) =>
 	a.matchIn!Json(
-		(in ConcreteExprKind.Alloc x) =>
-			jsonObject(alloc, [
-				kindField!"alloc",
-				field!"arg"(jsonOfConcreteExpr(alloc, ctx, x.arg))]),
 		(in ConcreteExprKind.Call x) =>
 			jsonObject(alloc, [
 				kindField!"call",
 				field!"called"(jsonOfConcreteFunRef(alloc, *x.called)),
 				field!"args"(jsonOfConcreteExprs(alloc, ctx, x.args))]),
-		(in ConcreteExprKind.ClosureCreate x) =>
-			jsonObject(alloc, [
-				kindField!"new-closure",
-				field!"args"(jsonList!ConcreteVariableRef(alloc, x.args, (in ConcreteVariableRef arg) =>
-					jsonOfConcreteVariableRef(alloc, arg)))]),
-		(in ConcreteExprKind.ClosureGet x) =>
-			jsonObject(alloc, [
-				kindField!"closure-get",
-				field!"closure-ref"(jsonOfConcreteClosureRef(alloc, x.closureRef)),
-				field!"reference-kind"(stringOfEnum(x.referenceKind))]),
-		(in ConcreteExprKind.ClosureSet x) =>
-			jsonObject(alloc, [
-				kindField!"closure-set",
-				field!"closure-ref"(jsonOfConcreteClosureRef(alloc, x.closureRef)),
-				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value))]),
 		(in Constant x) =>
 			jsonObject(alloc, [
 				kindField!"constant",
@@ -288,12 +241,6 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 				field!"condition"(jsonOfConcreteExpr(alloc, ctx, x.cond)),
 				field!"then"(jsonOfConcreteExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfConcreteExpr(alloc, ctx, x.else_))]),
-		(in ConcreteExprKind.Lambda x) =>
-			jsonObject(alloc, [
-				kindField!"lambda",
-				field!"member-index"(x.memberIndex),
-				optionalField!("closure", ConcreteExpr*)(x.closure, (in ConcreteExpr* closure) =>
-					jsonOfConcreteExpr(alloc, ctx, *closure))]),
 		(in ConcreteExprKind.Let x) =>
 			jsonObject(alloc, [
 				kindField!"let",
@@ -303,6 +250,10 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 		(in ConcreteExprKind.LocalGet x) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
+				field!"local"(jsonOfConcreteLocalRef(*x.local))]),
+		(in ConcreteExprKind.LocalPointer x) =>
+			jsonObject(alloc, [
+				kindField!"local-pointer",
 				field!"local"(jsonOfConcreteLocalRef(*x.local))]),
 		(in ConcreteExprKind.LocalSet x) =>
 			jsonObject(alloc, [
@@ -345,20 +296,22 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matched)),
 				field!"member-indices"(jsonOfIntegralValues(alloc, x.memberIndices)),
 				field!"cases"(jsonOfMatchUnionCases(alloc, ctx, x.cases))]),
-		(in ConcreteExprKind.PtrToField x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-field",
-				field!"target"(jsonOfConcreteExpr(alloc, ctx, x.target)),
-				field!"field-index"(x.fieldIndex)]),
-		(in ConcreteExprKind.PtrToLocal x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-local",
-				field!"local"(jsonOfConcreteLocalRef(*x.local))]),
 		(in ConcreteExprKind.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"field-get",
 				field!"record"(jsonOfConcreteExpr(alloc, ctx, *x.record)),
 				field!"field-index"(x.fieldIndex)]),
+		(in ConcreteExprKind.RecordFieldPointer x) =>
+			jsonObject(alloc, [
+				kindField!"field-pointer",
+				field!"record"(jsonOfConcreteExpr(alloc, ctx, *x.record)),
+				field!"field-index"(x.fieldIndex)]),
+		(in ConcreteExprKind.RecordFieldSet x) =>
+			jsonObject(alloc, [
+				kindField!"field-set",
+				field!"record"(jsonOfConcreteExpr(alloc, ctx, x.record)),
+				field!"field-index"(x.fieldIndex),
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value))]),
 		(in ConcreteExprKind.Seq x) =>
 			jsonObject(alloc, [
 				kindField!"seq",
@@ -392,18 +345,6 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 			jsonObject(alloc, [
 				kindField!"union-kind",
 				field!"union"(jsonOfConcreteExpr(alloc, ctx, *x.union_))]));
-
-Json jsonOfConcreteClosureRef(ref Alloc alloc, in ConcreteClosureRef a) =>
-	jsonObject(alloc, [field!"field-index"(a.fieldIndex)]);
-
-Json jsonOfConcreteVariableRef(ref Alloc alloc, in ConcreteVariableRef a) =>
-	a.matchIn!Json(
-		(in Constant x) =>
-			jsonOfConstant(alloc, x),
-		(in ConcreteLocal x) =>
-			jsonOfConcreteLocalRef(x),
-		(in ConcreteClosureRef x) =>
-			jsonOfConcreteClosureRef(alloc, x));
 
 Json jsonOfMatchUnionCases(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind.MatchUnion.Case[] cases) =>
 	jsonList!(ConcreteExprKind.MatchUnion.Case)(alloc, cases, (in ConcreteExprKind.MatchUnion.Case x) =>

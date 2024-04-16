@@ -1,38 +1,43 @@
 no-std
 import
-	system/stdlib: free, malloc
-	system/string: memcpy, memmove, memset
+	system/stdlib: calloc, free, malloc
 	../bits: ~, &
-	../bool: bool, false, not, to, true
+	../bool: bool, false, new, not, to, true
 	../compare: !=, <, <=, >, >=
+	../fun-util: subscript
 	../misc: new
 	../number: +, -
 	../option: new, option
 	../pointer:
-		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-const, const-pointer, mut-pointer,
-		null, pointer-cast, set-deref, size-of, to-const-pointer, to
-	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
+		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-const, const-pointer, mem-clear,
+		mut-pointer, null, pointer-cast, set-deref, size-of, to-const-pointer, to
+	../version: is-wasm
+	./bootstrap:
+		gc-root, hard-assert, hard-unreachable, lock, mark-ctx, marks, memory-size-words,
+		memory-start, must-cur-fiber, nat64, next, new, set-gc-root, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
-# Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
-+mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
-	d = dest as-const
-	assert d < src ? d + size <= src : src + size <= d
-	_ = dest.pointer-cast memcpy src.pointer-cast, (size wrap-mul size-of@t)
+# Called by the compiler.
+~gc-root gc-root mut*() unsafe
+	must-cur-fiber gc-root
 
-# Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
-+mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
-	_ = dest.pointer-cast memmove src.pointer-cast, (size wrap-mul size-of@t)
+# Called by the compiler. 'value' is allocated on the stack and passed here by pointer.
+~set-gc-root void(value gc-root mut*) unsafe
+	must-cur-fiber.gc-root := value
 
-+mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
-	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
+# Called by the compiler.
+~pop-gc-root void() unsafe
+	fiber = must-cur-fiber
+	fiber.gc-root := fiber.gc-root->next
 
-mark-ctx record by-val, mut
-	-memory-size-words nat64
-	-marks bool mut*
-	-memory-start nat64 mut*
+~gc-roots record nominal
+~for-loop void(_ gc-roots, cb void mut(x gc-root mut*)) unsafe
+	cur mut = gc-root
+	while cur != null
+		cb[cur]
+		cur := cur->next
 
 -to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
@@ -40,6 +45,7 @@ mark-ctx record by-val, mut
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) bare, summon, unsafe
 	words = pointer-any to-word-aligned-range size-bytes
+	guard words.low >= ctx.memory-start.as-const
 	indices = words.low - ctx.memory-start.as-const .. words.high - ctx.memory-start.as-const
 	if indices.low < ctx.memory-size-words
 		assert indices.high <= ctx.memory-size-words
@@ -73,7 +79,16 @@ mark-range bool(start bool mut*, end bool mut*) bare, unsafe
 		cur +:= 1
 	marked-anything
 
-mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
+###
+Normally this is used by the compiler to provide function pointer for a 'gc-root'.
+Available as a regular function for debugging.
+
+This is only defined for record or union types.
+For a pointer type, it uses 'mark-visit' directly instead.
+###
+~mark-root[t] void(mark-ctx mark-ctx, pointer void*) builtin, bare, unsafe
+
+~mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
 
 gc record by-val, mut
 	-lk mut lock
@@ -132,21 +147,23 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe
 
 uninit gc() bare, unsafe
 	# TODO: handle malloc failure
-	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
-	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
-	size-words nat64 = 0x3000000
-	# 8 GB
-	#size-words = 0x40000000
+	# If changing this, be sure `serverBuffer` in `wasm.d` is big enough
+	size-words nat64 = if is-wasm
+		# 0.5 GB
+		0x4000000
+	else
+		# 8 GB
+		0x40000000
 	size-of@bool == size-of@nat8 hard-assert
-	mark bool mut* = size-words.malloc pointer-cast
+	mark bool mut* = size-words unmanaged-alloc-zeroed-elements
 	mark != null hard-assert
 	mark-end = mark + size-words
-	bytes nat64 mut* = (size-words wrap-mul size-of@nat64).malloc pointer-cast
+	bytes nat64 mut* = size-words unmanaged-alloc-zeroed-elements
 	bytes != null hard-assert
 	bytes.is-word-aligned hard-assert
 	bytes-end = bytes + size-words
 
-	_ = mark.pointer-cast memset 0, size-words
+	_ = mark mem-clear size-words
 
 	res gc = uninit, uninit, 0, (), false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	&res validate-gc
@@ -169,7 +186,7 @@ gc-begin bool(gc gc mut*) bare, unsafe
 	res = gc.barrier wait-barrier
 	if res
 		gc->gc-count +:= 1
-		_ = gc->mark-begin.pointer-cast memset 0, gc->size-words
+		_ = gc->mark-begin mem-clear gc->size-words
 	res
 
 # See comment on 'gc-begin'
@@ -276,6 +293,8 @@ validate-gc void(gc gc*) bare, unsafe
 				break cur.pointer-cast,
 		gc maybe-set-needs-gc
 		gc.lk release
+		if x ?= res
+			x mem-clear size-bytes
 		res
 
 -maybe-set-needs-gc void(gc gc mut*) bare, unsafe
@@ -298,49 +317,59 @@ gc-alloc any-mut-pointer(gc gc-ctx, size nat64) bare
 		# TODO: throw an exception on OOM
 		todo
 
-alloc any-mut-pointer(size-bytes nat64) unsafe
+# Called by the compiler
+allocate any-mut-pointer(size-bytes nat64) unsafe
 	get-gc-ctx gc-alloc size-bytes
 
-alloc-uninitialized[t] t mut*() unsafe
-	1 alloc-uninitialized
+allocate[t] t mut*() unsafe
+	1 allocate
 
-alloc-uninitialized[t] t mut*(count nat64) unsafe
-	get-gc-ctx alloc-uninitialized count
+allocate[t] t mut*(count nat64) unsafe
+	get-gc-ctx allocate count
 
-alloc-uninitialized[t] t mut*(gc gc-ctx, count nat64) bare, unsafe
+allocate[t] t mut*(gc gc-ctx, count nat64) bare, unsafe
 	gc gc-alloc (count wrap-mul size-of@t) pointer-cast
 
-alloc-uninitialized[t] t mut*(gc gc-ctx) bare, unsafe
-	gc alloc-uninitialized 1
+allocate[t] t mut*(gc gc-ctx) bare, unsafe
+	gc allocate 1
 
-try-alloc-uninitialized[t] t mut*?(size nat64) unsafe
-	get-gc-ctx try-alloc-uninitialized size
+try-allocate[t] t mut*?(size nat64) unsafe
+	get-gc-ctx try-allocate size
 
-try-alloc-uninitialized[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe
+try-allocate[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe
 	(gc try-gc-alloc (size wrap-mul size-of@t))?.pointer-cast
 
-try-alloc-uninitialized[t] t mut*?() unsafe
-	1 try-alloc-uninitialized
+try-allocate[t] t mut*?() unsafe
+	1 try-allocate
 
-try-alloc-uninitialized[t] t mut*?(gc gc-ctx) bare, unsafe
-	gc try-alloc-uninitialized 1
+try-allocate[t] t mut*?(gc gc-ctx) bare, unsafe
+	gc try-allocate 1
 
 unmanaged-alloc-uninitialized[t] t mut*() bare, unsafe
-	1 unmanaged-alloc-elements
+	1 unmanaged-alloc-uninitialized-elements
 
 +unmanaged-alloc[t] t mut*(value t) bare, unsafe
 	res t mut* = unmanaged-alloc-uninitialized
 	*res := value
 	res
 
-unmanaged-alloc-bytes any-mut-pointer(size nat64) bare, unsafe
+unmanaged-alloc-zeroed-bytes any-mut-pointer(size nat64) bare, unsafe
+	res = size calloc 1
+	res != null hard-assert
+	res
+
+unmanaged-alloc-uninitialized-bytes any-mut-pointer(size nat64) bare, unsafe
 	res = size malloc
 	res != null hard-assert
 	res
 
-unmanaged-alloc-elements[t] t mut*(size-elements nat64) bare, unsafe
+unmanaged-alloc-zeroed-elements[t] t mut*(size-elements nat64) bare, unsafe
 	# TODO: wrap-mul is unsafe!
-	(size-elements wrap-mul size-of@t).unmanaged-alloc-bytes pointer-cast
+	(size-elements wrap-mul size-of@t).unmanaged-alloc-zeroed-bytes pointer-cast
+
+unmanaged-alloc-uninitialized-elements[t] t mut*(size-elements nat64) bare, unsafe
+	# TODO: wrap-mul is unsafe!
+	(size-elements wrap-mul size-of@t).unmanaged-alloc-uninitialized-bytes pointer-cast
 
 unmanaged-free-elements[t] void(begin t mut*, _ nat64) bare, unsafe
 	begin.pointer-cast free

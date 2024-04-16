@@ -159,7 +159,7 @@ Use `paths-in-dir` if you want full paths.
 +read-link string(path string) summon
 	trusted
 		# TODO: smart small and retry if necessAry
-		buff char8 mut-array = 1000 uninitialized-mut-array
+		buff char8 mut-array = 1000 zeroed-mut-array
 		size = path.to readlink buff.begin-pointer, buff.size
 		forbid size == -1 : path exception-for-last
 		buff.cast-immutable[0 .. size.to] to
@@ -223,7 +223,7 @@ If the file already exists, overwrites it.
 		assert err2 == 0 : todo
 
 		file-size-nat nat64 = file-size to
-		res nat8 mut-array = file-size-nat uninitialized-mut-array
+		res nat8 mut-array = file-size-nat zeroed-mut-array
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : path exception-for-last
@@ -234,7 +234,7 @@ If the file already exists, overwrites it.
 
 # Gets the current directory (of the user that ran the program).
 +current-directory string() summon, trusted
-	buff char8 mut-array = 256 uninitialized-mut-array
+	buff char8 mut-array = 256 zeroed-mut-array
 	b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
 	forbid b == null : exception-for-last-no-path
 	assert b == buff.begin-pointer

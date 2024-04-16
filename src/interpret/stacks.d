@@ -3,7 +3,7 @@ module interpret.stacks;
 @nogc nothrow: // not @safe, not pure
 
 import interpret.bytecode : Operation;
-import util.col.array : endPtr;
+import util.col.array : arrayOfRange, endPtr;
 
 private size_t stacksStorageSize() =>
 	0x10000;
@@ -26,9 +26,9 @@ Stacks loadStacks() {
 WARN: In case this is reentrant, the interpreter must call 'saveStacks' before.
 The callback should have a net 0 effect on the stack depth.
 */
-@trusted T withStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
+@trusted T withDefaultStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
 	if (!stacksInitialized) {
-		savedStacks = Stacks(stacksStorage.ptr - 1, cast(Operation**) endPtr(stacksStorage));
+		savedStacks = stacksForRange(stacksStorage);
 		stacksInitialized = true;
 	}
 
@@ -47,19 +47,24 @@ The callback should have a net 0 effect on the stack depth.
 		return res;
 }
 
-private inout(Operation)** storageEnd(ref inout Stacks a) {
-	debug assert(stacksStorage.length == stacksStorageSize);
-	return cast(inout(Operation)**) endPtr(stacksStorage);
+void assertStacksAtOriginalState(in Stacks a) {
+	assert(dataEnd(a) == stacksStorage.ptr);
+	assert(a.returnPtr == (cast(Operation**) endPtr(stacksStorage)) - 1);
+	assert(*a.returnPtr == null);
 }
+
+pure:
 
 struct Stacks {
-	ulong* dataPtr;
-	Operation** returnPtr;
+	ulong* dataPtr; // Pointer to the previous pushed value.
+	Operation** returnPtr; // Pointer to the previous pushed value.
 }
 
-bool dataStackIsEmpty(in Stacks a) {
-	debug assert(a.dataPtr >= dataBegin(a) - 1);
-	return a.dataPtr == dataBegin(a) - 1;
+Stacks stacksForRange(ulong[] range) {
+	Stacks res = Stacks(cast(ulong*) range.ptr - 1, cast(Operation**) endPtr(range));
+	// Initial return entry is null so we can detect it in 'fillBacktrace'
+	returnPush(res, null);
+	return res;
 }
 
 void dataPush(ref Stacks a, ulong value) {
@@ -112,16 +117,9 @@ immutable(ulong[]) dataPopN(return ref Stacks a, size_t n) {
 ulong* dataTop(ref Stacks a) =>
 	a.dataPtr;
 
-// Pointer to the value at the bottom of the data stack
-const(ulong*) dataBegin(in Stacks a) =>
-	stacksStorage.ptr;
-
-// One past the last data value pushed
-ulong* dataEnd(ref Stacks a) =>
+// One past the last data value pushed; meaning a pointer to the next pushed value
+inout(ulong*) dataEnd(ref inout Stacks a) =>
 	a.dataPtr + 1;
-
-immutable(ulong[]) dataTempAsArr(ref const Stacks a) =>
-	cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
 
 ulong dataRemove(ref Stacks a, size_t offset) {
 	ulong res = dataPeek(a, offset);
@@ -142,32 +140,8 @@ void dataReturn(ref Stacks a, size_t offsetWords, size_t sizeWords) {
 		outPtr[i] = inPtr[i];
 	a.dataPtr -= (offsetWords + 1 - sizeWords);
 }
-
-bool returnStackIsEmpty(in Stacks a) {
-	debug assert(a.returnPtr <= storageEnd(a));
-	return a.returnPtr == storageEnd(a);
-}
-
-size_t returnStackSize(in Stacks a) =>
-	storageEnd(a) - a.returnPtr;
-
 void returnPush(ref Stacks a, Operation* value) {
-	const ulong* begin = dataBegin(a);
-	Operation** end = storageEnd(a);
-	debug {
-		assert(begin - 1 <= a.dataPtr);
-		assert(a.dataPtr < cast(ulong*) a.returnPtr);
-		assert(a.returnPtr <= end);
-	}
-
 	a.returnPtr--;
-	*a.returnPtr = value;
-}
-
-Operation* returnPeek(in Stacks a, size_t offset = 0) =>
-	*(a.returnPtr + offset);
-
-void setReturnPeek(ref Stacks a, Operation* value) {
 	*a.returnPtr = value;
 }
 
@@ -177,5 +151,9 @@ Operation* returnPop(ref Stacks a) {
 	return res;
 }
 
-immutable(Operation*[]) returnTempAsArrReverse(ref const Stacks a) =>
-	cast(immutable) a.returnPtr[0 .. returnStackSize(a)];
+const(Operation*[]) returnTempAsArrReverse(ref const Stacks a) {
+	const(Operation*)* cur = a.returnPtr;
+	while (*cur != null)
+		cur++;
+	return arrayOfRange(a.returnPtr, cur);
+}
