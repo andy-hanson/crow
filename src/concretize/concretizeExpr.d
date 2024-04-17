@@ -18,13 +18,17 @@ import concretize.concretizeCtx :
 	getConcreteFunForLambda,
 	getConcreteFun,
 	getNonTemplateConcreteFun,
-	typeArgsScope,
+	SpecsScope,
+	specsScopeForFun,
+	typeArgsScopeForFun,
 	TypeArgsScope,
 	voidType,
 	withConcreteTypes;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.generate :
 	genCall,
+	genCallNoAllocArgs,
+	genCallKindNoAllocArgs,
 	genChar8Array,
 	genChar8List,
 	genChar32Array,
@@ -144,26 +148,27 @@ import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
-ConcreteExpr concretizeFunBody(
+ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>
+	withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) =>
+		withStackMap!(ConcreteExpr, Local*, LocalOrConstant)((ref Locals locals) {
+			// Ignore closure param, which is never destructured.
+			ConcreteLocal[] paramsToDestructure =
+				cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
+			return concretizeWithParamDestructures(exprCtx, cf.returnType, locals, params, paramsToDestructure, e);
+		}));
+
+Out withConcretizeExprCtx(Out)(
 	ref ConcretizeCtx ctx,
-	ref ContainingFunInfo containing,
-	ConcreteFun* cf,
-	ConcreteType returnType,
-	in Destructure[] params,
-	ref Expr e,
+	ConcreteFun* fun,
+	in Out delegate(ref ConcretizeExprCtx) @safe @nogc pure nothrow cb,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), cf.moduleUri, containing, cf);
-	return withStackMap!(ConcreteExpr, Local*, LocalOrConstant)((ref Locals locals) {
-		// Ignore closure param, which is never destructured.
-		ConcreteLocal[] paramsToDestructure =
-			cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
-		return concretizeWithParamDestructures(exprCtx, returnType, locals, params, paramsToDestructure, e);
-	});
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), fun);
+	return cb(exprCtx);
 }
 
-ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRange range) =>
+ConcreteExpr concretizeBogus(ref ConcretizeExprCtx ctx, ConcreteType type, UriAndRange range) =>
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
-ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
+ConcreteExprKind concretizeBogusKind(ref ConcretizeExprCtx ctx, in UriAndRange range) =>
 	genThrowStringKind(ctx, range, "Reached compile error");
 
 private:
@@ -200,10 +205,11 @@ public struct ConcretizeExprCtx {
 	@safe @nogc pure nothrow:
 
 	ConcretizeCtx* concretizeCtxPtr;
-	Uri curUri;
-	immutable ContainingFunInfo containing;
-	immutable ConcreteFun* currentConcreteFunPointer; // This is the ConcreteFun* for a lambda, not its containing fun
+	immutable ConcreteFun* currentConcreteFunPointer; // This is the ConcreteFun* for a lambda, not its containing fun. TODO: name too big. Just make it 'fun'!
 	size_t nextLambdaIndex = 0;
+
+	Uri curUri() scope const =>
+		currentConcreteFunPointer.moduleUri; // TODO: since everything in the same function is in the same module, we don't really need to store it on each expr!
 
 	ref Alloc alloc() return scope =>
 		concretizeCtx.alloc;
@@ -245,8 +251,11 @@ ConcreteType type(in LocalOrConstant a) =>
 ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, Type t) =>
 	getConcreteType_fromConcretizeCtx(ctx.concretizeCtx, t, typeScope(ctx));
 
-TypeArgsScope typeScope(ref ConcretizeExprCtx ctx) =>
-	typeArgsScope(ctx.containing);
+TypeArgsScope typeScope(ref const ConcretizeExprCtx ctx) =>
+	typeArgsScopeForFun(ctx.currentConcreteFunPointer);
+
+SpecsScope specsScope(ref const ConcretizeExprCtx ctx) =>
+	specsScopeForFun(ctx.currentConcreteFunPointer);
 
 ConcreteExpr concretizeCall(
 	ref ConcretizeExprCtx ctx,
@@ -257,7 +266,7 @@ ConcreteExpr concretizeCall(
 ) {
 	Opt!(ConcreteFun*) optConcreteCalled = getConcreteFunFromCalled(ctx, e.called);
 	if (!has(optConcreteCalled) || isBogus(force(optConcreteCalled).returnType))
-		return concretizeBogus(ctx.concretizeCtx, type, range);
+		return concretizeBogus(ctx, type, range);
 	ConcreteFun* concreteCalled = force(optConcreteCalled);
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
@@ -284,17 +293,15 @@ ConcreteExpr concretizeCall(
 				tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
 			return has(constant)
 				? ConcreteExprKind(force(constant))
-				: ConcreteExprKind(ConcreteExprKind.Call(
-					concreteCalled,
-					small!ConcreteExpr(mapZip(
-						ctx.alloc,
-						concreteCalled.paramsIncludingClosure,
-						constants,
-						(ref ConcreteLocal p, ref Constant x) =>
-							ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))))));
+				: genCallKindNoAllocArgs(concreteCalled, mapZip(
+					ctx.alloc,
+					concreteCalled.paramsIncludingClosure,
+					constants,
+					(ref ConcreteLocal p, ref Constant x) =>
+						ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))));
 		},
 		(ConcreteExpr[] exprs) =>
-			ConcreteExprKind(ConcreteExprKind.Call(concreteCalled, small!ConcreteExpr(exprs))));
+			genCallKindNoAllocArgs(concreteCalled, exprs));
 	return ConcreteExpr(type, range, kind);
 }
 
@@ -309,7 +316,7 @@ ConcreteExpr concretizeCallOption(
 	// But `x.b` may already be an option and might not need to be wrapped
 	Opt!(ConcreteFun*) optCalled = getConcreteFunFromCalled(ctx, a.called);
 	if (!has(optCalled) || isBogus(force(optCalled).returnType))
-		return concretizeBogus(ctx.concretizeCtx, type, range);
+		return concretizeBogus(ctx, type, range);
 	ConcreteFun* called = force(optCalled);
 
 	ConcreteExpr option = concretizeExpr(ctx, locals, a.firstArg);
@@ -322,9 +329,7 @@ ConcreteExpr concretizeCallOption(
 		genLocalGet(range, local),
 		a.restArgs,
 		(size_t i, ref Expr x) => concretizeExpr(ctx, called.paramsIncludingClosure[i + 1].type, locals, x));
-	ConcreteExpr call = ConcreteExpr(
-		called.returnType, range,
-		ConcreteExprKind(ConcreteExprKind.Call(called, allArgs)));
+	ConcreteExpr call = genCallNoAllocArgs(range, called, allArgs);
 	ConcreteExpr someCall = call.type == type ? call : genSome(ctx.concretizeCtx, range, type, call);
 	assert(someCall.type == type);
 	return genIfOption(
@@ -349,9 +354,10 @@ public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, re
 
 ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig specSig) {
 	size_t index = 0;
-	foreach (SpecInst* x; ctx.containing.specs)
+	SpecsScope scope_ = specsScope(ctx);
+	foreach (SpecInst* x; scope_.specs)
 		if (searchSpecSigIndexRecur(index, x, specSig.specInst))
-			return ctx.containing.specImpls[index + specSig.sigIndex];
+			return scope_.specImpls[index + specSig.sigIndex];
 	assert(false);
 }
 bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* search) {
@@ -488,7 +494,7 @@ ConcreteExpr concretizeFunPointer(
 	Opt!(ConcreteFun*) called = getConcreteFunFromCalled(ctx, a.called);
 	return has(called)
 		? ConcreteExpr(type, range, ConcreteExprKind(Constant(Constant.FunPointer(force(called)))))
-		: concretizeBogus(ctx.concretizeCtx, type, range);
+		: concretizeBogus(ctx, type, range);
 }
 
 ConcreteExpr concretizeLambda(
@@ -496,7 +502,7 @@ ConcreteExpr concretizeLambda(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref LambdaExpr e,
+	LambdaExpr* e,
 ) {
 	if (e.kind == LambdaExpr.Kind.explicitShared) {
 		ConcreteType innerType = getConcreteType(ctx, Type(force(e.mutTypeForExplicitShared)));
@@ -514,7 +520,7 @@ ConcreteExpr concretizeLambdaInner(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref LambdaExpr e,
+	LambdaExpr* e,
 ) {
 	// TODO: handle constants in closure
 	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
@@ -544,7 +550,7 @@ ConcreteExpr concretizeLambdaInner(
 
 	ConcreteType returnType = getConcreteType(ctx, e.returnType);
 	if (isBogus(returnType))
-		return concretizeBogus(ctx.concretizeCtx, type, range);
+		return concretizeBogus(ctx, type, range);
 
 	ConcreteFun* fun = getConcreteFunForLambda(
 		ctx.concretizeCtx,
@@ -553,8 +559,7 @@ ConcreteExpr concretizeLambdaInner(
 		returnType,
 		e.param,
 		paramsIncludingClosure,
-		ctx.containing,
-		e.body_);
+		&e.body_());
 	ConcreteLambdaImpl impl = ConcreteLambdaImpl(closureType, fun);
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, concreteStruct, impl), closure)));
@@ -671,7 +676,7 @@ RootLocalAndExpr concretizeWithDestructure(
 		},
 		(Destructure.Split* x) {
 			if (x.destructuredType.isBogus)
-				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx.concretizeCtx, type, range));
+				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx, type, range));
 			else {
 				ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
 					ConcreteLocalSource(ConcreteLocalSource.Generated.destruct),
@@ -716,7 +721,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 			return concretizeWithDestructureAndLet(ctx, type, range, locals, part, value, (in Locals innerLocals) =>
 				concretizeWithDestructurePartsRecur(ctx, type, innerLocals, getTemp, parts, partIndex + 1, cb));
 		} else
-			return concretizeBogus(ctx.concretizeCtx, type, range);
+			return concretizeBogus(ctx, type, range);
 	}
 }
 
@@ -797,7 +802,7 @@ ConcreteExpr concretizeLocalGet(
 	return concrete.matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* x) =>
 			isBogus(x.type)
-				? concretizeBogus(ctx.concretizeCtx, type, range)
+				? concretizeBogus(ctx, type, range)
 				: genLocalGet(range, x),
 		(TypedConstant x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)));
@@ -994,7 +999,7 @@ ConcreteExpr concretizeMatchStringLike(
 	ref MatchStringLikeExpr a,
 ) {
 	Opt!(ConcreteFun*) equals = getConcreteFunFromCalled(ctx, a.equals);
-	if (!has(equals)) return concretizeBogus(ctx.concretizeCtx, type, range);
+	if (!has(equals)) return concretizeBogus(ctx, type, range);
 
 	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
 	SmallArray!(ConcreteExprKind.MatchStringLike.Case) cases = map(
@@ -1099,7 +1104,7 @@ ConcreteExpr concretizeAssertOrForbid(
 	ref AssertOrForbidExpr a,
 ) {
 	ConcreteExpr defaultThrown() =>
-		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, expr, a));
+		genError(ctx, range, defaultAssertOrForbidMessage(ctx, expr, a));
 	ConcreteExpr throwNoDestructure() =>
 		genThrow(ctx.alloc, type, range, has(a.thrown)
 			? concretizeExpr(ctx, exceptionType(ctx.concretizeCtx), locals, *force(a.thrown))
@@ -1159,12 +1164,12 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {
 	UriAndRange range = UriAndRange(ctx.curUri, a.range);
 	if (isBogus(type))
-		return concretizeBogus(ctx.concretizeCtx, type, range);
+		return concretizeBogus(ctx, type, range);
 	return a.kind.match!ConcreteExpr(
 		(ref AssertOrForbidExpr x) =>
 			concretizeAssertOrForbid(ctx, type, range, locals, a, x),
 		(BogusExpr) =>
-			concretizeBogus(ctx.concretizeCtx, type, range),
+			concretizeBogus(ctx, type, range),
 		(CallExpr x) =>
 			concretizeCall(ctx, type, range, locals, x),
 		(ref CallOptionExpr x) =>
@@ -1180,7 +1185,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ref IfExpr x) =>
 			concretizeIf(ctx, type, range, locals, x),
 		(ref LambdaExpr x) =>
-			concretizeLambda(ctx, type, range, locals, x),
+			concretizeLambda(ctx, type, range, locals, ptrTrustMe(x)), // TODO: use matchWithPointers --------------------------------------------
 		(ref LetExpr x) =>
 			concretizeLet(ctx, type, range, locals, x),
 		(LiteralExpr x) =>

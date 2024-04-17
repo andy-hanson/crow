@@ -1159,7 +1159,7 @@ Expr checkFunPointerInner(ref ExprCtx ctx, in LocalsInfo locals, ExprAst* source
 		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
 		StructInst* structInst = instantiateStructNeverDelay(
 			ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [called.returnType, paramType]);
-		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
+		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called))); // TODO: checking it again should be redundant ............................................
 	}
 }
 
@@ -1184,13 +1184,13 @@ Opt!Called funWithName(ref ExprCtx ctx, in LocalsInfo locals, NameAndRange name,
 				testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
 			(scope Candidate[] candidates) {
 				if (candidates.length != 1) {
-					if (candidates.length == 0) {
-						// TODO: if there is a function with the name, at least indicate that in the diag ---------------------------------------------------
-						addDiag2(ctx, name.range, Diag(Diag.FunPointerNoMatch(
+					// TODO: if there is a function with the name, at least indicate that in the diag --------------------------------------------------
+					addDiag2(ctx, name.range, candidates.length == 0
+						? Diag(Diag.FunPointerNoMatch(
 							name.name, ctx.typeContainer,
-							ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes)))));
-					} else
-						todo!void("DIAG");
+							ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
+						: Diag(Diag.CallMultipleMatches(name.name, ctx.typeContainer,
+							map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
 					return none!Called;
 				} else
 					return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), name.range, arity));

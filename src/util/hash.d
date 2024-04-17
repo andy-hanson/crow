@@ -58,6 +58,9 @@ struct Hasher {
 HashCode hashTaggedPointer(T)(in T taggedPointer) =>
 	hashUlong(taggedPointer.taggedPointerValueForHash);
 
+HashCode hashPointers(T, U)(in T* a, in U* b) =>
+	hashUlongs([cast(ulong) a, cast(ulong) b]);
+
 HashCode hashPointerAndTaggedPointer(T, U)(in T a, in U b) {
 	static assert(is(T == P*, P));
 	return hashUlongs([cast(ulong) a, b.taggedPointerValueForHash]);

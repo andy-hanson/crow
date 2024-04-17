@@ -8,6 +8,7 @@ import model.model :
 	BuiltinType,
 	ClosureReferenceKind,
 	EnumFunction,
+	Expr,
 	FlagsFunction,
 	FunDecl,
 	IntegralType,
@@ -17,15 +18,17 @@ import model.model :
 	Params,
 	Purity,
 	StructInst,
+	Test,
 	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
+import util.col.set : Set;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
-import util.sourceRange : UriAndRange;
+import util.sourceRange : Range, UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion, Union;
@@ -290,14 +293,14 @@ immutable struct ConcreteFunBody {
 
 immutable struct ConcreteFunSource {
 	immutable struct Lambda {
-		UriAndRange range;
 		ConcreteFun* containingFun;
+		Expr* bodyExpr;
 		size_t index; // nth lambda in the containing function
 	}
 
 	immutable struct Test {
-		UriAndRange range;
-		size_t testIndex;
+		.Test* test;
+		size_t testIndex; // Arbitrary index over all tests
 	}
 
 	immutable struct WrapMain {
@@ -330,24 +333,16 @@ immutable struct ConcreteFun {
 	}
 
 	Uri moduleUri() scope =>
-		source.matchIn!Uri(
-			(in ConcreteFunKey x) =>
-				x.decl.moduleUri,
-			(in ConcreteFunSource.Lambda x) =>
-				x.range.uri,
-			(in ConcreteFunSource.Test x) =>
-				x.range.uri,
-			(in ConcreteFunSource.WrapMain x) =>
-				x.range.uri);
+		range.uri;
 
 	UriAndRange range() scope =>
 		source.matchIn!UriAndRange(
 			(in ConcreteFunKey x) =>
 				x.decl.range,
 			(in ConcreteFunSource.Lambda x) =>
-				x.range,
+				UriAndRange(x.containingFun.moduleUri, x.bodyExpr.range),
 			(in ConcreteFunSource.Test x) =>
-				x.range,
+				x.test.range,
 			(in ConcreteFunSource.WrapMain x) =>
 				x.range);
 }
@@ -673,6 +668,8 @@ immutable struct ConcreteProgram {
 	ConcreteStruct*[] allStructs;
 	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
+	// The functions are still in 'allFuns', this is just to identify them
+	Set!(ConcreteFun*) yieldingFuns;
 	Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl) lambdaStructToImpls;
 	ConcreteCommonFuns commonFuns;
 }

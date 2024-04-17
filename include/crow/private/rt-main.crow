@@ -58,7 +58,7 @@ init-constants void() builtin, bare, summon, unsafe
 		as ok x
 			x
 		as error x
-			err print-no-newline "Uncaught exception in main: "
+			err print-no-newline "Uncaught exception: "
 			err print "{x}"
 			1
 

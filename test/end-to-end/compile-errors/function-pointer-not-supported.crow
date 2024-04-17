@@ -12,7 +12,7 @@ use-spec[t] void(x t) t hoo
 
 foo void()
 	()
-foo string()
+foo void()
 	()
 
 goo[t] void()

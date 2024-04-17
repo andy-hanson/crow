@@ -5,7 +5,7 @@ module util.col.mutMultiMap;
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.hashTable :
 	addOrChange, getOrAddAndDidAdd, mayDelete, mustDelete, mustGet, MutHashTable, size, ValueAndDidAdd;
-import util.hash : HashCode, hashPointerAndTaggedPointer, hashUlong, hashUlongs;
+import util.hash : HashCode, hashPointerAndTaggedPointer, hashPointers, hashUlong, hashUlongs;
 import util.memory : ensureMemoryClear, initMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;
 import util.symbol : Symbol;
@@ -38,6 +38,8 @@ private struct Pair(K, V) {
 			return hashUlong(((cast(ulong) key) << 32) | value);
 		else static if (is(K == Symbol) && is(V == Symbol))
 			return hashUlongs([key.value, value.value]);
+		else static if (is(K == P*, P) && is(V == Q*, Q))
+			return hashPointers(key, value);
 		else
 			// So far this is only used with pointers
 			return hashPointerAndTaggedPointer!(K, V)(key, value);

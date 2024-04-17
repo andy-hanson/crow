@@ -10,7 +10,7 @@ test/end-to-end/compile-errors/unused.crow 11:5-11:20 Imported module 'process.c
 test/end-to-end/compile-errors/unused.crow 16:13-16:14 Local 'p' is unused
 test/end-to-end/compile-errors/unused.crow 17:25-17:26 Local 'x' is unused
 test/end-to-end/compile-errors/unused.crow 19:5-19:6 Local 'y' is unused
-test/end-to-end/compile-errors/unused.crow 20:24-20:30 The lambda does not have anything 'mut' in its closure, so it does not need 'shared'.
+test/end-to-end/compile-errors/unused.crow 20:23-20:29 The lambda does not have anything 'mut' in its closure, so it does not need 'shared'.
 test/end-to-end/compile-errors/unused.crow 23:2-23:5 'bar' is unused.
 test/end-to-end/compile-errors/unused.crow 26:2-26:3 'r' is unused.
 test/end-to-end/compile-errors/unused.crow 27:8-27:9 Field 'r0' mutability would already be private by default.

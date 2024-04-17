@@ -2,6 +2,6 @@
 import	
 	crow/io/print:	out,	print	
 	
-main	nat	^	(	_	string	[]	)	summon	
+main	nat	(	_	string	[]	)	summon	
 	out	print	"hello,	world!"	
 	()	

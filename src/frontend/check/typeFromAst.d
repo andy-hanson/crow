@@ -137,7 +137,9 @@ Type[] unpackTupleIfNeeded(in CommonTypes commonTypes, size_t nExpectedTypeArgs,
 
 
 Type[] unpackTuple(in CommonTypes commonTypes, Type* type) =>
-	optOrDefault!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
+	*type == Type(commonTypes.void_)
+		? []
+		: optOrDefault!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
 
 size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explicitTypeArg) {
 	if (has(explicitTypeArg)) {

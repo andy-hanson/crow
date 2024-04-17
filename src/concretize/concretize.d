@@ -21,6 +21,7 @@ import concretize.concretizeCtx :
 	symbolType,
 	symbolArrayType,
 	voidType;
+import concretize.gatherInfo : getYieldingFuns;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
@@ -85,8 +86,6 @@ ConcreteProgram concretizeInner(
 		setjmp: getNonTemplateConcreteFun(ctx, commonFuns.setjmp),
 		throwImpl: getNonTemplateConcreteFun(ctx, commonFuns.throwImpl),
 		userMain: concretizeMainFun(ctx, program.mainFun));
-	// We remove items from these maps when we process them.
-	assert(isEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
 
@@ -103,6 +102,7 @@ ConcreteProgram concretizeInner(
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,
+		getYieldingFuns(allConcreteFuns),
 		mapToMap!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl, MutArr!ConcreteLambdaImpl)(
 			alloc,
 			ctx.lambdaStructToImpls,
