@@ -145,7 +145,7 @@ void assertReferencedBy(in Test test, in AllInsts insts, in ExpectedReferences[]
 		if (false) {
 			debugLogWithWriter((scope ref Writer writer) {
 				writer ~= "actual values:";
-				eachValueForKey!(AnyDeclOrInst, AnyInst)(actual, expectedRefs.referenced, (in AnyInst x) {
+				eachValueForKey!(AnyDeclOrInst, AnyInst)(actual, expectedRefs.referenced, (AnyInst x) {
 					writeNewline(writer, 1);
 					writeAnyInst(writer, x);
 				});
@@ -158,7 +158,7 @@ void assertReferencedBy(in Test test, in AllInsts insts, in ExpectedReferences[]
 			});
 		}
 		size_t i = 0;
-		eachValueForKey!(AnyDeclOrInst, AnyInst)(actual, expectedRefs.referenced, (in AnyInst x) {
+		eachValueForKey!(AnyDeclOrInst, AnyInst)(actual, expectedRefs.referenced, (AnyInst x) {
 			assert(x == expectedRefs.referencers[i]);
 			i++;
 		});

@@ -669,10 +669,11 @@ immutable struct ConcreteProgram {
 	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
 	// The functions are still in 'allFuns', this is just to identify them
-	Set!(ConcreteFun*) yieldingFuns;
-	Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl) lambdaStructToImpls;
+	Set!(immutable ConcreteFun*) yieldingFuns;
+	LambdaStructToImpls lambdaStructToImpls;
 	ConcreteCommonFuns commonFuns;
 }
+alias LambdaStructToImpls = Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl);
 
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* alloc;
@@ -685,6 +686,10 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* setjmp;
 	ConcreteFun* throwImpl;
 	ConcreteFun* userMain;
+
+	ConcreteFun* gcRoot;
+	ConcreteFun* setGcRoot;
+	ConcreteFun* popGcRoot;
 }
 
 immutable struct ConcreteLambdaImpl {

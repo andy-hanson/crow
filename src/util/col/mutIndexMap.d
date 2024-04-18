@@ -21,17 +21,17 @@ MutIndexMap!(K, V) newMutIndexMap(K, V)(ref Alloc alloc, size_t size) =>
 ref const(V) mustGet(K, V)(ref const MutIndexMap!(K, V) a, immutable K key) =>
 	force(getAt(a, key));
 
-immutable(ValueAndDidAdd!V) getOrAddAndDidAdd(K, V)(
+V getOrAdd(K, V)(
 	ref MutIndexMap!(K, V) a,
 	immutable K key,
-	in immutable(V) delegate() @safe @nogc pure nothrow getValue,
+	in V delegate() @safe @nogc pure nothrow getValue,
 ) {
 	size_t index = key.index;
 	if (has(a.values_[index]))
-		return immutable ValueAndDidAdd!V(force(a.values_[index]), false);
+		return force(a.values_[index]);
 	else {
-		immutable V value = getValue();
+		V value = getValue();
 		overwriteMemory!(MutOpt!V)(&a.values_[index], someMut!V(value));
-		return immutable ValueAndDidAdd!V(value, true);
+		return value;
 	}
 }

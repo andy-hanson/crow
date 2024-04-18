@@ -135,6 +135,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	cur-exclusion: a.next-exclusion.get-and-increment
 	cur-jmp-buf: null
 	stack: stack
+	gc-root: null
 
 -fiber-func void(arg any-mut-pointer) unsafe
 	arg == null hard-assert

@@ -25,7 +25,7 @@ import concretize.gatherInfo : getYieldingFuns;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
-	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, ConcreteStructBody;
+	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, ConcreteStructBody, LambdaStructToImpls;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : SmallArray;
@@ -85,7 +85,10 @@ ConcreteProgram concretizeInner(
 		rtMain: getNonTemplateConcreteFun(ctx, commonFuns.rtMain),
 		setjmp: getNonTemplateConcreteFun(ctx, commonFuns.setjmp),
 		throwImpl: getNonTemplateConcreteFun(ctx, commonFuns.throwImpl),
-		userMain: concretizeMainFun(ctx, program.mainFun));
+		userMain: concretizeMainFun(ctx, program.mainFun),
+		gcRoot: getNonTemplateConcreteFun(ctx, commonFuns.gcRoot),
+		setGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.setGcRoot),
+		popGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.popGcRoot));
 
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
 
@@ -96,17 +99,18 @@ ConcreteProgram concretizeInner(
 
 	deferredFillRecordAndUnionBodies(ctx);
 
+	LambdaStructToImpls lambdaStructToImpls = mapToMap!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl, MutArr!ConcreteLambdaImpl)(
+		alloc,
+		ctx.lambdaStructToImpls,
+		(ref MutArr!ConcreteLambdaImpl x) => moveToSmallArray!ConcreteLambdaImpl(alloc, x));
 	ConcreteProgram res = ConcreteProgram(
 		versionInfo,
 		finishAllConstants(alloc, ctx.allConstants, symbolArrayType(ctx)),
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,
-		getYieldingFuns(allConcreteFuns),
-		mapToMap!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl, MutArr!ConcreteLambdaImpl)(
-			alloc,
-			ctx.lambdaStructToImpls,
-			(ref MutArr!ConcreteLambdaImpl x) => moveToSmallArray!ConcreteLambdaImpl(alloc, x)),
+		getYieldingFuns(alloc, allConcreteFuns, lambdaStructToImpls),
+		lambdaStructToImpls,
 		concreteCommonFuns);
 	checkConcreteProgram(
 		showCtx,

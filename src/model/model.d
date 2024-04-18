@@ -1537,6 +1537,10 @@ immutable struct CommonFuns {
 	FunInst* lessNat64;
 	FunInst* rethrowCurrentException;
 	FunInst* setjmp;
+
+	FunInst* gcRoot;
+	FunInst* setGcRoot;
+	FunInst* popGcRoot;
 }
 
 immutable struct CommonTypes {

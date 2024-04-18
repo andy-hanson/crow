@@ -133,7 +133,7 @@ void eachKey(K, V)(in MutMultiMap!(K, V) a, in void delegate(in K) @safe @nogc p
 		cb(head.key);
 }
 
-void eachValueForKey(K, V)(in MutMultiMap!(K, V) a, in K key, in void delegate(in V) @safe @nogc pure nothrow cb) {
+void eachValueForKey(K, V)(in MutMultiMap!(K, V) a, in K key, in void delegate(V) @safe @nogc pure nothrow cb) {
 	const MutOpt!(Node!(K, V)*) optHead = a.heads[key];
 	if (has(optHead)) {
 		const Node!(K, V)* head = force(optHead);

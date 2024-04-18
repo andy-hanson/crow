@@ -5,7 +5,7 @@ module lower.lower;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallLambda : generateCallLambda;
-import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
+import lower.generateMarkVisitFun : getMarkVisitForType, generateMarkVisit, MarkVisitFuns;
 import lower.lowExprHelpers :
 	anyPtrMutType,
 	boolType,
@@ -157,15 +157,16 @@ import util.col.array :
 import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr, fullIndexMapSize;
-import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
-import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutArr : moveToArray, MutArr, mutArrSize, push;
+import util.col.mutIndexMap : mustGet, MutIndexMap, newMutIndexMap;
+import util.col.mutMap : getOrAdd, moveToMap, mustAdd, mustGet, MutMap, MutMap, ValueAndDidAdd;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, IntegralValues, singleIntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
@@ -190,7 +191,7 @@ private LowProgram lowerInner(
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
-	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
+	AllLowFuns allFuns = getAllLowFuns(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
 		a.version_,
@@ -224,31 +225,6 @@ private FullIndexMap!(LowVarIndex, LowVar) getAllLowVars(
 		}();
 		return LowVar(source, kind, lowTypeFromConcreteType(ctx, source.type));
 	}));
-
-struct MarkVisitFuns {
-	MutIndexMap!(LowType.Record, LowFunIndex) recordValToVisit;
-	MutIndexMap!(LowType.Union, LowFunIndex) unionToVisit;
-	MutMap!(LowType, LowFunIndex) gcPointeeToVisit;
-}
-
-Opt!LowFunIndex tryGetMarkVisitFun(in MarkVisitFuns funs, LowType type) =>
-	type.match!(Opt!LowFunIndex)(
-		(LowType.Extern) =>
-			none!LowFunIndex,
-		(LowType.FunPointer) =>
-			none!LowFunIndex,
-		(PrimitiveType _) =>
-			none!LowFunIndex,
-		(LowType.PtrGc x) =>
-			typeAs!(Opt!LowFunIndex)(funs.gcPointeeToVisit[*x.pointee]),
-		(LowType.PtrRawConst) =>
-			none!LowFunIndex,
-		(LowType.PtrRawMut) =>
-			none!LowFunIndex,
-		(LowType.Record x) =>
-			typeAs!(Opt!LowFunIndex)(funs.recordValToVisit[x]),
-		(LowType.Union x) =>
-			typeAs!(Opt!LowFunIndex)(funs.unionToVisit[x]));
 
 private:
 
@@ -496,128 +472,35 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType it) {
 	}
 }
 
-immutable struct LowFunCause {
+public immutable struct LowFunCause {
 	immutable struct CallLambda {
 		LowType funType;
 		LowType returnType;
 		LowType funParamType;
 		ConcreteLambdaImpl[] impls;
 	}
-	immutable struct MarkVisitArrOuter {
-		LowType.Record arrType;
-	}
-	immutable struct MarkVisitNonArr { //TODO: this is record (by-val) or union. Maybe split?
+	immutable struct MarkVisit {
 		LowType type;
 	}
-	immutable struct MarkVisitGcPtr {
-		LowType.PtrGc pointerType;
-		Opt!LowFunIndex visitPointee;
-	}
-
-	mixin Union!(CallLambda, ConcreteFun*, MarkVisitArrOuter, MarkVisitNonArr, MarkVisitGcPtr);
+	mixin Union!(CallLambda, ConcreteFun*, MarkVisit);
 }
 
-bool needsMarkVisitFun(in AllLowTypes allTypes, in LowType a) =>
-	a.matchIn!bool(
-		(in LowType.Extern) =>
-			false,
-		(in LowType.FunPointer) =>
-			false,
-		(in PrimitiveType) =>
-			false,
-		(in LowType.PtrGc) =>
-			true,
-		(in LowType.PtrRawConst) =>
-			false,
-		(in LowType.PtrRawMut) =>
-			false,
-		(in LowType.Record it) {
-			LowRecord record = allTypes.allRecords[it];
-			return isArray(record) || exists!LowField(record.fields, (in LowField field) =>
-				needsMarkVisitFun(allTypes, field.type));
-		},
-		(in LowType.Union it) =>
-			exists!LowType(allTypes.allUnions[it].members, (in LowType member) =>
-				needsMarkVisitFun(allTypes, member)));
+alias MutConcreteFunToLowFunIndex = MutMap!(ConcreteFun*, LowFunIndex);
 
 AllLowFuns getAllLowFuns(
+	ref Alloc alloc,
 	ref AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConfigExternUris configExtern,
 	ref ConcreteProgram program,
 	in immutable FullIndexMap!(LowVarIndex, LowVar) allVars,
 ) {
-	MapBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
-	ArrayBuilder!LowFunCause lowFunCausesBuilder;
+	MutConcreteFunToLowFunIndex concreteFunToLowFunIndex;
+	MutArr!LowFunCause lowFunCauses;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
-		newMutIndexMap!(LowType.Record, LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allRecords)),
-		newMutIndexMap!(LowType.Union, LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allUnions)));
-
-	LowFunIndex addLowFun(LowFunCause source) {
-		LowFunIndex res = LowFunIndex(arrBuilderSize(lowFunCausesBuilder));
-		add(getLowTypeCtx.alloc, lowFunCausesBuilder, source);
-		return res;
-	}
-
-	LowFunIndex generateMarkVisitForType(LowType lowType) @safe @nogc pure nothrow {
-		assert(needsMarkVisitFun(allTypes, lowType));
-		LowFunIndex addNonArr() {
-			return addLowFun(LowFunCause(LowFunCause.MarkVisitNonArr(lowType)));
-		}
-		Opt!LowFunIndex maybeGenerateMarkVisitForType(LowType t) {
-			return needsMarkVisitFun(allTypes, t) ? some(generateMarkVisitForType(t)) : none!LowFunIndex;
-		}
-
-		return lowType.match!LowFunIndex(
-			(LowType.Extern) =>
-				assert(false),
-			(LowType.FunPointer) =>
-				assert(false),
-			(PrimitiveType it) =>
-				assert(false),
-			(LowType.PtrGc it) {
-				Opt!LowFunIndex visitPointee = maybeGenerateMarkVisitForType(*it.pointee);
-				return getOrAdd(
-					getLowTypeCtx.alloc,
-					markVisitFuns.gcPointeeToVisit,
-					*it.pointee,
-					() => addLowFun(LowFunCause(LowFunCause.MarkVisitGcPtr(it, visitPointee))));
-			},
-			(LowType.PtrRawConst) =>
-				assert(false),
-			(LowType.PtrRawMut) =>
-				assert(false),
-			(LowType.Record it) {
-				LowRecord record = allTypes.allRecords[it];
-				if (isArray(record)) {
-					LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
-					ValueAndDidAdd!LowFunIndex outerIndex = getOrAddAndDidAdd!(LowType.Record, LowFunIndex)(
-						markVisitFuns.recordValToVisit, it, () =>
-							addLowFun(LowFunCause(LowFunCause.MarkVisitArrOuter(it))));
-					if (outerIndex.didAdd)
-						maybeGenerateMarkVisitForType(*elementPtrType.pointee);
-					return outerIndex.value;
-				} else {
-					ValueAndDidAdd!LowFunIndex index = getOrAddAndDidAdd!(LowType.Record, LowFunIndex)(
-						markVisitFuns.recordValToVisit,
-						it,
-						() => addNonArr());
-					if (index.didAdd)
-						foreach (ref LowField field; record.fields)
-							maybeGenerateMarkVisitForType(field.type);
-					return index.value;
-				}
-			},
-			(LowType.Union it) {
-				ValueAndDidAdd!LowFunIndex index =
-					getOrAddAndDidAdd!(LowType.Union, LowFunIndex)(markVisitFuns.unionToVisit, it, () => addNonArr());
-				if (index.didAdd)
-					foreach (LowType member; allTypes.allUnions[it].members)
-						maybeGenerateMarkVisitForType(member);
-				return index.value;
-			});
-	}
+		newMutIndexMap!(LowType.Record, Opt!LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allRecords)),
+		newMutIndexMap!(LowType.Union, Opt!LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allUnions)));
 
 	Late!LowType markCtxTypeLate = late!LowType;
 
@@ -637,7 +520,7 @@ AllLowFuns getAllLowFuns(
 			(ConcreteFunBody.Builtin x) {
 				if (x.kind.isA!(BuiltinFun.CallLambda)) {
 					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
-					return some(addLowFun(LowFunCause(LowFunCause.CallLambda(
+					return some(addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.CallLambda(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
@@ -647,7 +530,7 @@ AllLowFuns getAllLowFuns(
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							getLowTypeCtx,
 							fun.paramsIncludingClosure[0].type));
-					return some(generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs))));
+					return getMarkVisitForType(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs)));
 				} else {
 					if (!isVersion(program.version_, VersionFun.isInterpreted) &&
 							(x.kind.isA!BuiltinUnaryMath || x.kind.isA!BuiltinBinaryMath))
@@ -668,10 +551,10 @@ AllLowFuns getAllLowFuns(
 			(ConcreteFunBody.Extern x) {
 				Opt!Symbol optName = name(*fun);
 				addExternSymbol(x.libraryName, force(optName));
-				return some(addLowFun(LowFunCause(fun)));
+				return some(addLowFun(alloc, lowFunCauses, LowFunCause(fun)));
 			},
 			(ConcreteExpr _) =>
-				some(addLowFun(LowFunCause(fun))),
+				some(addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldCall) =>
@@ -687,14 +570,10 @@ AllLowFuns getAllLowFuns(
 			(ConcreteFunBody.VarSet) =>
 				none!LowFunIndex);
 		if (has(opIndex))
-			mustAddToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
+			mustAdd(getLowTypeCtx.alloc, concreteFunToLowFunIndex, fun, force(opIndex));
 	}
 
 	LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
-
-	LowFunCause[] lowFunCauses = finish(getLowTypeCtx.alloc, lowFunCausesBuilder);
-	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
-		finishMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
 
 	LowType userMainFunPointerType =
 		lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.rtMain.paramsIncludingClosure[2].type);
@@ -714,36 +593,44 @@ AllLowFuns getAllLowFuns(
 		mark: mustGet(concreteFunToLowFunIndex, program.commonFuns.mark),
 		setjmp: mustGet(concreteFunToLowFunIndex, program.commonFuns.setjmp),
 		rethrowCurrentException: mustGet(concreteFunToLowFunIndex, program.commonFuns.rethrowCurrentException),
-		throwImpl: mustGet(concreteFunToLowFunIndex, program.commonFuns.throwImpl));
+		throwImpl: mustGet(concreteFunToLowFunIndex, program.commonFuns.throwImpl),
+		gcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.gcRoot),
+		setGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.setGcRoot),
+		popGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.popGcRoot));
 
-	FullIndexMap!(LowFunIndex, LowFun) allLowFuns = fullIndexMapOfArr!(LowFunIndex, LowFun)(
-		mapWithIndexAndAppend(
-			getLowTypeCtx.alloc,
+	MutArr!LowFun allLowFuns;
+	// New LowFuns will be discovered while compiling and added to lowFunCauses
+	for (size_t index = 0; index < mutArrSize(lowFunCauses); index++) {
+		push(alloc, allLowFuns, lowFunFromCause(
+			allTypes,
+			program.allConstants.staticSymbols,
+			getLowTypeCtx,
+			commonFuns,
+			concreteFunToLowFunIndex,
+			varIndices,
 			lowFunCauses,
-			(size_t index, ref LowFunCause cause) =>
-				lowFunFromCause(
-					allTypes,
-					program.allConstants.staticSymbols,
-					getLowTypeCtx,
-					commonFuns,
-					concreteFunToLowFunIndex,
-					varIndices,
-					lowFunCauses,
-					markVisitFuns,
-					markCtxType,
-					LowFunIndex(index),
-					cause),
-			mainFun(
-				getLowTypeCtx,
-				mustGet(concreteFunToLowFunIndex, program.commonFuns.rtMain),
-				program.commonFuns.userMain,
-				userMainFunPointerType)));
+			markVisitFuns,
+			markCtxType,
+			LowFunIndex(index),
+			lowFunCauses[index]));
+	}
+	push(alloc, allLowFuns, mainFun(
+		getLowTypeCtx,
+		mustGet(concreteFunToLowFunIndex, program.commonFuns.rtMain),
+		program.commonFuns.userMain,
+		userMainFunPointerType));
 
 	return AllLowFuns(
-		concreteFunToLowFunIndex,
-		allLowFuns,
-		LowFunIndex(lowFunCauses.length),
+		moveToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndex),
+		fullIndexMapOfArr!(LowFunIndex, LowFun)(moveToArray(alloc, allLowFuns)),
+		LowFunIndex(mutArrSize(lowFunCauses)),
 		getExternLibraries(getLowTypeCtx.alloc, externLibraryToNames, configExtern));
+}
+
+public LowFunIndex addLowFun(ref Alloc alloc, scope ref MutArr!LowFunCause lowFunCauses, LowFunCause source) {
+	LowFunIndex res = LowFunIndex(mutArrSize(lowFunCauses));
+	push(alloc, lowFunCauses, source);
+	return res;
 }
 
 ExternLibraries getExternLibraries(
@@ -754,7 +641,7 @@ ExternLibraries getExternLibraries(
 	buildArray!ExternLibrary(alloc, (scope ref Builder!ExternLibrary libraries) {
 		eachKey!(Symbol, Symbol)(externLibraryToNames, (in Symbol library) {
 			Symbol[] names = buildArray!Symbol(alloc, (scope ref Builder!Symbol res) {
-				eachValueForKey!(Symbol, Symbol)(externLibraryToNames, library, (in Symbol x) {
+				eachValueForKey!(Symbol, Symbol)(externLibraryToNames, library, (Symbol x) {
 					res ~= x;
 				});
 			});
@@ -775,6 +662,10 @@ struct LowCommonFuns {
 	LowFunIndex rethrowCurrentException;
 	LowFunIndex setjmp;
 	LowFunIndex throwImpl;
+
+	LowFunIndex gcRoot;
+	LowFunIndex setGcRoot;
+	LowFunIndex popGcRoot;
 }
 
 LowFun lowFunFromCause(
@@ -782,10 +673,10 @@ LowFun lowFunFromCause(
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in LowCommonFuns commonFuns,
-	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in VarIndices varIndices,
-	in LowFunCause[] lowFunCauses,
-	in MarkVisitFuns markVisitFuns,
+	scope ref MutArr!LowFunCause lowFunCauses,
+	scope ref MarkVisitFuns markVisitFuns,
 	LowType markCtxType,
 	LowFunIndex thisFunIndex,
 	LowFunCause cause,
@@ -810,18 +701,8 @@ LowFun lowFunFromCause(
 				*cf);
 			return LowFun(LowFunSource(cf), returnType, params, body_);
 		},
-		(LowFunCause.MarkVisitArrOuter x) {
-			LowType.PtrRawConst elementPointerType = getElementPtrTypeFromArrType(allTypes, x.arrType);
-			Opt!LowFunIndex markVisitElement = tryGetMarkVisitFun(markVisitFuns, *elementPointerType.pointee);
-			return generateMarkVisitArr(
-				getLowTypeCtx.alloc, allTypes, markCtxType, commonFuns.mark,
-				x.arrType, elementPointerType, markVisitElement);
-		},
-		(LowFunCause.MarkVisitNonArr it) =>
-			generateMarkVisitNonArr(getLowTypeCtx.alloc, allTypes, markVisitFuns, markCtxType, it.type),
-		(LowFunCause.MarkVisitGcPtr x) =>
-			generateMarkVisitGcPtr(
-				getLowTypeCtx.alloc, allTypes, markCtxType, commonFuns.mark, x.pointerType, x.visitPointee));
+		(LowFunCause.MarkVisit x) =>
+			generateMarkVisit(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, markCtxType, commonFuns.mark, x.type));
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
 	LowType char8PtrPtrConstType = LowType(LowType.PtrRawConst(allocate(ctx.alloc, char8PtrConstType)));
@@ -880,7 +761,7 @@ LowFunBody getLowFunBody(
 	in AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
-	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in LowCommonFuns commonFuns,
 	in VarIndices varIndices,
 	LowFunIndex thisFunIndex,
@@ -906,7 +787,7 @@ LowFunBody getLowFunBody(
 				ptrTrustMe(allTypes),
 				castNonScope_ref(staticSymbols),
 				ptrTrustMe(getLowTypeCtx),
-				castNonScope_ref(concreteFunToLowFunIndex),
+				ptrTrustMe(concreteFunToLowFunIndex),
 				commonFuns,
 				castNonScope_ref(varIndices),
 				a.paramsIncludingClosure,
@@ -939,7 +820,7 @@ struct GetLowExprCtx {
 	immutable AllLowTypes* allTypes;
 	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
-	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
+	const MutConcreteFunToLowFunIndex* concreteFunToLowFunIndexPtr;
 	LowCommonFuns commonFuns;
 	immutable VarIndices varIndices;
 	ConcreteLocal[] concreteParams;
@@ -952,6 +833,9 @@ struct GetLowExprCtx {
 
 	ref typeCtx() return scope =>
 		*getLowTypeCtxPtr;
+	
+	ref const(MutConcreteFunToLowFunIndex) concreteFunToLowFunIndex() return scope const =>
+		*concreteFunToLowFunIndexPtr;
 }
 
 alias Locals = StackMap!(ConcreteLocal*, LowLocal*);

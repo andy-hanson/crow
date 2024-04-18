@@ -42,7 +42,7 @@ void testBasic(ref Alloc alloc) {
 
 void assertValuesForKey(in MutMultiMap!(uint, uint) a, uint key, in uint[] values) {
 	size_t i = 0;
-	eachValueForKey(a, key, (in uint x) {
+	eachValueForKey(a, key, (uint x) {
 		assert(x == values[i]);
 		i++;
 	});

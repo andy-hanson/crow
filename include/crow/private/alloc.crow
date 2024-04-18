@@ -12,10 +12,27 @@ import
 		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-const, const-pointer, mut-pointer,
 		null, pointer-cast, set-deref, size-of, to-const-pointer, to
 	../version: is-wasm
-	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
+	./bootstrap:
+		cur-fiber, gc-root, hard-assert, hard-unreachable, lock, mark-ctx, marks, memory-size-words,
+		memory-start, nat64, next, new, set-gc-root, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
+
+# Called by the compiler.
+~gc-root gc-root mut*() unsafe
+	guard fiber ?= cur-fiber : hard-unreachable
+	fiber.gc-root
+
+# Called by the compiler. 'value' is allocated on the stack and passed here by pointer.
+~set-gc-root void(value gc-root mut*) unsafe
+	guard fiber ?= cur-fiber : hard-unreachable
+	fiber.gc-root := value
+
+# Called by the compiler.
+~pop-gc-root void() unsafe
+	guard fiber ?= cur-fiber : hard-unreachable
+	fiber.gc-root := fiber.gc-root->next
 
 # Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
 +mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
@@ -29,11 +46,6 @@ import
 
 +mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
-
-mark-ctx record by-val, mut
-	-memory-size-words nat64
-	-marks bool mut*
-	-memory-start nat64 mut*
 
 -to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word

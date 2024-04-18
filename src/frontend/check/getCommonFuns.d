@@ -111,7 +111,7 @@ CommonFunsAndMain getCommonFuns(
 	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
 	StructDecl* tuple2Decl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"tuple2", 2);
-	Type markCtxType = getType(CommonModule.alloc, symbol!"mark-ctx");
+	Type markCtxType = getType(CommonModule.bootstrap, symbol!"mark-ctx");
 	Type boolType = Type(commonTypes.bool_);
 	Type int32Type = Type(commonTypes.integrals.int32);
 	Type nat8Type = Type(commonTypes.integrals.nat8);
@@ -137,6 +137,9 @@ CommonFunsAndMain getCommonFuns(
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
 
 	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.setjmp], symbol!"jmp_buf");
+
+	Type gcRoot = getType(CommonModule.bootstrap, symbol!"gc-root");
+	Type gcRootMutPointer = instantiateType(commonTypes.ptrMut, [gcRoot]);
 
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
@@ -199,7 +202,11 @@ CommonFunsAndMain getCommonFuns(
 		rethrowCurrentException: getFun(
 			CommonModule.exceptionLowLevel, symbol!"rethrow-current-exception", voidType, []),
 		setjmp: getFun(CommonModule.setjmp, setjmpName, int32Type, [
-			param!"a"(jmpBuf)]));
+			param!"a"(jmpBuf)]),
+		gcRoot: getFun(CommonModule.alloc, symbol!"gc-root", gcRootMutPointer, []),
+		setGcRoot: getFun(CommonModule.alloc, symbol!"set-gc-root", voidType, [
+			param!"value"(gcRootMutPointer)]),
+		popGcRoot: getFun(CommonModule.alloc, symbol!"pop-gc-root", voidType, []));
 	Opt!MainFun main = has(mainModule)
 		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64Type, stringListType, voidType))
 		: none!MainFun;

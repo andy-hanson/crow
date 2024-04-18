@@ -2,12 +2,12 @@ module lower.generateCallLambda;
 
 @safe @nogc pure nothrow:
 
-import lower.lower : ConcreteFunToLowFunIndex, LowFunCause;
+import lower.lower : MutConcreteFunToLowFunIndex, LowFunCause;
 import lower.lowExprHelpers : genCall, genLocalByValue, genLocalGet, genUnionMatch;
 import model.lowModel : AllLowTypes, LowExpr, LowFun, LowFunBody, LowFunExprBody, LowFunSource, LowLocal, LowType;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray;
-import util.col.map : mustGet;
+import util.col.mutMap : mustGet;
 import util.memory : allocate;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol;
@@ -15,7 +15,7 @@ import util.symbol : symbol;
 LowFun generateCallLambda(
 	ref Alloc alloc,
 	in AllLowTypes allTypes,
-	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	LowFunCause.CallLambda a,
 ) {
 	UriAndRange range = UriAndRange.empty;

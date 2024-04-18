@@ -2,47 +2,106 @@ module concretize.gatherInfo;
 
 @safe @nogc pure nothrow:
 
-import model.concreteModel : ConcreteExpr, ConcreteExprKind, ConcreteFun;
+import model.concreteModel :
+	ConcreteExpr,
+	ConcreteExprKind,
+	ConcreteFun,
+	ConcreteFunBody,
+	ConcreteLambdaImpl,
+	ConcreteLocal,
+	ConcreteStruct,
+	LambdaStructToImpls,
+	mustBeByVal;
 import model.constant : Constant;
-import util.col.mutMultiMap : MutMultiMap, add;
-import util.col.mutSet : MutSet;
-import util.col.set : Set;
+import model.model : BuiltinBinary, BuiltinFun, EnumFunction, FlagsFunction;
+import util.alloc.alloc : Alloc;
+import util.col.array : mustFind, only2;
+import util.col.map : mustGet;
+import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
+import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
+import util.col.mutSet : mayAddToMutSet, MutSet;
+import util.col.set : moveToSet, Set;
 import util.opt : force, has, Opt;
 import util.util : todo;
 
-Set!(ConcreteFun*) getYieldingFuns(immutable ConcreteFun*[] allConcreteFuns) {
-	// TODO: use temp alloc
-	/*
-	PLAN:
-	* First, generate a map from fun to callers.
-	* Add intrinsically yielding functions to 'toPropagate'.
-	* While toPropagate is non-empty:
-		- Take one out arbitrarily and move to 'res'.
-		- For each caller:
-			Add to toPropagate, if not already in 'res'.
-	
-	This terminates, since each step adds something new to 'res'.
-	*/
-	MutSet!(immutable ConcreteFun*) toPropagate; // These are functions known to yield that have not been processed.
-	MutSet!(immutable ConcreteFun*) res; // These are functions known to yield that have been processed.
-	return Set!(ConcreteFun*)();
-	//return todo!ConcreteInfo("SDFJKDSF");
+Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
+	const CalledBy calledBy = getCalledBy(alloc, allConcreteFuns, lambdaStructToImpls); // TODO: use a temp alloc? ------------------------------------------------------------
+
+	// There is just 1 intrinsically yielding function: 'switch-fiber-suspension'
+	ConcreteFun* switchFiberSuspension = mustFind!(immutable ConcreteFun*)(allConcreteFuns, (ref immutable ConcreteFun* f) {
+		if (f.body_.isA!(ConcreteFunBody.Builtin)) {
+			ConcreteFunBody.Builtin builtin = f.body_.as!(ConcreteFunBody.Builtin);
+			return builtin.kind.isA!(BuiltinBinary) && builtin.kind.as!(BuiltinBinary) == BuiltinBinary.switchFiberSuspension;
+		} else
+			return false;
+	});
+
+	// These are functions known to yield that have been added to 'res' but not yet processed callers.
+	MutArr!(immutable ConcreteFun*) toPropagate;
+	MutSet!(immutable ConcreteFun*) res;
+
+	void add(ConcreteFun* x) {
+		if (mayAddToMutSet(alloc, res, x))
+			push(alloc, toPropagate, x); // TODO: use temp alloc
+	}
+
+	add(switchFiberSuspension);
+	while (!mutArrIsEmpty(toPropagate)) {
+		ConcreteFun* fun = mustPop(toPropagate);
+		eachValueForKey!(immutable ConcreteFun*, immutable ConcreteFun*)(calledBy, fun, (immutable ConcreteFun* caller) {
+			add(caller);
+		});
+	}
+
+	return moveToSet!(immutable ConcreteFun*)(res);
 }
 
 private:
 
 // Maps a function to all functions that call it.
-alias Callers = MutMultiMap!(ConcreteFun*, ConcreteFun*);
+alias CalledBy = MutMultiMap!(immutable ConcreteFun*, immutable ConcreteFun*);
 
-Callers getCallers(immutable ConcreteFun*[] allConcreteFuns) {
-	/*
-	PLAN:
-	For each function:
-		Walk its body and for each call:
-			Add it to the set
-	This step is simple...
-	*/
-	return todo!Callers("GETCALLERS");
+CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
+	CalledBy res;
+	foreach (ConcreteFun* fun; allConcreteFuns)
+		fun.body_.match!void(
+			(ConcreteFunBody.Builtin x) {
+				if (x.kind.isA!(BuiltinFun.CallLambda)) {
+					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
+					ConcreteStruct* lambdaStruct = mustBeByVal(params[0].type);
+					foreach (ConcreteLambdaImpl impl; mustGet(lambdaStructToImpls, lambdaStruct))
+						add(alloc, res, impl.impl, fun);
+				}
+				// TODO: ignoring CallFunPointer, but those should have to be 'bare' functions anyway??????????????????????????????????
+				// Otherwise we'd have to track all fun-pointer expressions of a given type
+			},
+			(Constant _) {},
+			(ConcreteFunBody.CreateRecord) {},
+			(ConcreteFunBody.CreateUnion) {},
+			(EnumFunction _) {},
+			(ConcreteFunBody.Extern) {},
+			(ConcreteExpr x) {
+				getCalledByRecur(alloc, res, fun, x);
+			},
+			(ConcreteFunBody.FlagsFn) {},
+			(ConcreteFunBody.RecordFieldCall x) {
+				add(alloc, res, x.caller, fun);
+			},
+			(ConcreteFunBody.RecordFieldGet) {},
+			(ConcreteFunBody.RecordFieldPointer) {},
+			(ConcreteFunBody.RecordFieldSet) {},
+			(ConcreteFunBody.VarGet) {},
+			(ConcreteFunBody.VarSet) {});
+	return res;
+}
+
+void getCalledByRecur(ref Alloc alloc, ref CalledBy res, ConcreteFun* f, ref ConcreteExpr expr) {
+	// TODO: this ignores Alloc calling an alloc function, or Throw calling a throw function. But those don't yield so it doesn't matter?
+	if (expr.kind.isA!(ConcreteExprKind.Call))
+		add(alloc, res, expr.kind.as!(ConcreteExprKind.Call).called, f);
+	eachDirectChildExpr(expr, (ref ConcreteExpr child) {
+		getCalledByRecur(alloc, res, f, child);
+	});
 }
 
 void eachDirectChildExpr(ref ConcreteExpr a, in void delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) {

@@ -21,7 +21,7 @@ struct MutArr(T) {
 
 	@trusted void opIndexAssign(T value, immutable size_t index) {
 		assert(index < size_);
-		overwriteMemory(&inner[index], value);
+		initMemory!T(&inner[index], value);
 	}
 
 	int opApply(Cb)(in Cb cb) scope {

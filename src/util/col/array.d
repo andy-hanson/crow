@@ -164,6 +164,12 @@ SmallArray!T newSmallArray(T)(ref Alloc alloc, scope T[] values) =>
 
 bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	has(findIndex!T(arr, cb));
+bool exists2(T)(in T[] arr, in bool delegate(ref T) @safe @nogc pure nothrow cb) {// TODO: make this the only one --------------------
+	foreach (ref const T x; arr)
+		if (cb(x))
+			return true;
+	return false;
+}
 
 bool every(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	everyWithIndex!T(arr, (size_t _, ref const T x) => cb(x));

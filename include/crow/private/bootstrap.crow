@@ -323,8 +323,6 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
-~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
-
 ~fiber record mut, by-ref
 	# TODO: this takes up space, just store it on the stack!
 	# This is cleared at the start and never set again.
@@ -338,9 +336,21 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	cur-jmp-buf mut void mut*
 	# This must be 16-byte aligned
 	stack nat64 mut-array
+	# Null if no roots yet
+	gc-root mut gc-root mut*
 ~cur-fiber thread-local(fiber?)
 
+~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
 ~fiber-state enum(running, suspended)
+~gc-root record by-val, mut
+	ptr void mut*
+	trace void function(ctx mark-ctx mut*, ptr void mut*)
+	next gc-root mut*
+
+~mark-ctx record by-val, mut
+	memory-size-words nat64
+	marks bool mut*
+	memory-start nat64 mut*
 
 +future[t] record by-ref, force-shared
 	lk mut lock
