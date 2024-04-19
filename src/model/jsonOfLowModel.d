@@ -170,6 +170,10 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				kindField!"create-union",
 				field!"member-index"(x.memberIndex),
 				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
+		(in LowExprKind.FunPointer x) =>
+			jsonObject(alloc, [
+				kindField!"fun-pointer",
+				field!"fun"(x.fun.index)]),
 		(in LowExprKind.If x) =>
 			jsonObject(alloc, [
 				kindField!"if",

@@ -5,6 +5,7 @@ import
 	../bits: ~, &
 	../bool: bool, false, not, to, true
 	../compare: !=, <, <=, >, >=
+	../fun-util: subscript
 	../misc: new
 	../number: +, -
 	../option: new, option
@@ -33,6 +34,13 @@ import
 ~pop-gc-root void() unsafe
 	guard fiber ?= cur-fiber : hard-unreachable
 	fiber.gc-root := fiber.gc-root->next
+
+~gc-roots record nominal
+~for-loop void(_ gc-roots, cb void mut(x gc-root mut*)) unsafe
+	cur mut = gc-root
+	while cur != null
+		cb[cur]
+		cur := cur->next
 
 # Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
 +mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
@@ -85,6 +93,10 @@ mark-range bool(start bool mut*, end bool mut*) bare, unsafe
 			marked-anything := true
 		cur +:= 1
 	marked-anything
+
+# Normally this is used by the function pointer from a 'gc-root'. Available as a regular function for debugging.
+# Only use this with a record or union type. For a pointer type it directly uses 'mark-visit' instead.
+mark-root[t] void(mark-ctx mark-ctx, pointer void*) builtin, bare, unsafe
 
 mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
 

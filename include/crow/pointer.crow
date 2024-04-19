@@ -60,6 +60,8 @@ Do not actually write to it.
 ###
 +==[t] bool(a t*, b t*) builtin, bare, unsafe
 +==[t] bool(a t mut*, b t mut*) builtin, bare, unsafe
++==[r, p] bool(a r function(param p), b r function(param p)) bare, unsafe
+	a.as-any-const-pointer == b.as-any-const-pointer
 
 ###
 Advance the pointer past `offset` values of type `a`.

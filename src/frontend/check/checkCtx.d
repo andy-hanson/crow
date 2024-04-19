@@ -72,6 +72,7 @@ enum CommonModule {
 	std,
 	string_,
 	symbolLowLevel,
+	runtime,
 	runtimeMain,
 }
 alias CommonUris = immutable EnumMap!(CommonModule, Uri);

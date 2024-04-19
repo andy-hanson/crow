@@ -343,8 +343,8 @@ There is no exception subtyping in crow, so all exceptions have this type.
 ~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
 ~fiber-state enum(running, suspended)
 ~gc-root record by-val, mut
-	ptr void mut*
-	trace void function(ctx mark-ctx mut*, ptr void mut*)
+	ptr void*
+	trace void function(ctx mark-ctx, ptr void*)
 	next gc-root mut*
 
 ~mark-ctx record by-val, mut

@@ -82,6 +82,7 @@ ConcreteProgram concretizeInner(
 		curThrown: getVar(ctx, commonFuns.curThrown),
 		mark: getNonTemplateConcreteFun(ctx, commonFuns.mark),
 		rethrowCurrentException: getNonTemplateConcreteFun(ctx, commonFuns.rethrowCurrentException),
+		runFiber: getNonTemplateConcreteFun(ctx, commonFuns.runFiber),
 		rtMain: getNonTemplateConcreteFun(ctx, commonFuns.rtMain),
 		setjmp: getNonTemplateConcreteFun(ctx, commonFuns.setjmp),
 		throwImpl: getNonTemplateConcreteFun(ctx, commonFuns.throwImpl),
@@ -109,7 +110,7 @@ ConcreteProgram concretizeInner(
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,
-		getYieldingFuns(alloc, allConcreteFuns, lambdaStructToImpls),
+		getYieldingFuns(alloc, concreteCommonFuns, allConcreteFuns, lambdaStructToImpls),
 		lambdaStructToImpls,
 		concreteCommonFuns);
 	checkConcreteProgram(

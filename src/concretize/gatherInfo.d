@@ -3,6 +3,7 @@ module concretize.gatherInfo;
 @safe @nogc pure nothrow:
 
 import model.concreteModel :
+	ConcreteCommonFuns,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteFun,
@@ -19,12 +20,12 @@ import util.col.array : mustFind, only2;
 import util.col.map : mustGet;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
-import util.col.mutSet : mayAddToMutSet, MutSet;
+import util.col.mutSet : mayAddToMutSet, MutSet, mustSetMustDelete;
 import util.col.set : moveToSet, Set;
 import util.opt : force, has, Opt;
 import util.util : todo;
 
-Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
+Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonFuns commonFuns, immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
 	const CalledBy calledBy = getCalledBy(alloc, allConcreteFuns, lambdaStructToImpls); // TODO: use a temp alloc? ------------------------------------------------------------
 
 	// There is just 1 intrinsically yielding function: 'switch-fiber-suspension'
@@ -52,6 +53,9 @@ Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, immutable Concrete
 			add(caller);
 		});
 	}
+
+	// This function is special
+	mustSetMustDelete(res, commonFuns.runFiber);
 
 	return moveToSet!(immutable ConcreteFun*)(res);
 }

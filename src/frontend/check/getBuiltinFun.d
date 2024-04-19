@@ -269,6 +269,8 @@ FunBody inner(
 				isFloat64(p0) ? BuiltinBinary.lessFloat64 :
 				isPointerConstOrMut(p0) ? BuiltinBinary.lessPtr :
 				failBinary);
+		case symbol!"mark-root".value:
+			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));

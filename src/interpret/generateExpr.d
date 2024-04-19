@@ -322,6 +322,9 @@ void generateExpr(
 			generateCreateUnion(writer, ctx, expr.type.as!(LowType.Union), source, locals, it);
 			handleAfter(writer, ctx, source, after);
 		},
+		(in LowExprKind.FunPointer x) {
+			todo!void("FUN POINTER"); // ---------------------------------------------------------------------------------------
+		},
 		(in LowExprKind.If it) {
 			generateIf(
 				writer, ctx, source, locals, after, it.cond,

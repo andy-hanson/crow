@@ -39,5 +39,6 @@ LowFun generateCallLambda(
 			allocate(alloc, LowFunSource.Generated(symbol!"call", newArray(alloc, [a.returnType, a.funParamType])))),
 		a.returnType,
 		params,
-		LowFunBody(LowFunExprBody(false, expr)));
+		// TODO: need to infer 'mayYield' from called functions! -------------------------------------------------------------
+		LowFunBody(LowFunExprBody(false, false, expr)));
 }

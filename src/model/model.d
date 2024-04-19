@@ -780,6 +780,7 @@ immutable struct BuiltinFun {
 	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
 	immutable struct InitConstants {}
+	immutable struct MarkRoot {}
 	immutable struct MarkVisit {}
 	immutable struct PointerCast {}
 	immutable struct SizeOf {}
@@ -797,6 +798,7 @@ immutable struct BuiltinFun {
 		CallFunPointer,
 		Constant,
 		InitConstants,
+		MarkRoot,
 		MarkVisit,
 		PointerCast,
 		SizeOf,
@@ -1530,6 +1532,7 @@ immutable struct CommonFuns {
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
 	FunDecl* newTList;
+	FunInst* runFiber;
 	FunInst* rtMain;
 	FunInst* throwImpl;
 	FunInst* char8ArrayTrustAsString;

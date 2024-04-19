@@ -287,6 +287,7 @@ immutable struct LowLocal {
 }
 
 immutable struct LowFunExprBody {
+	bool mayYield;
 	bool hasTailRecur;
 	LowExpr expr;
 }
@@ -331,6 +332,13 @@ immutable struct LowFun {
 			(in LowFunSource.Generated) =>
 				UriAndRange.empty);
 }
+
+bool mayYield(in LowFun a) =>
+	a.body_.matchIn!bool(
+		(in LowFunBody.Extern) =>
+			false, // TODO: true if the extern function is 'blocking' ---------------------------------------------------------------
+		(in LowFunExprBody x) =>
+			x.mayYield);
 
 bool isGeneratedMain(in LowFun a) =>
 	a.source.matchIn!bool(
@@ -379,6 +387,11 @@ immutable struct LowExprKind {
 	immutable struct CreateUnion {
 		size_t memberIndex;
 		LowExpr arg;
+	}
+
+	// Sometimes this will be a Constant.FunPointer instead, but that's only possible for functions known to ConcreteModel
+	immutable struct FunPointer {
+		LowFunIndex fun;
 	}
 
 	immutable struct If {
@@ -502,6 +515,7 @@ immutable struct LowExprKind {
 		CallFunPointer,
 		CreateRecord,
 		CreateUnion*,
+		FunPointer,
 		If*,
 		InitConstants,
 		Let*,
@@ -593,7 +607,7 @@ immutable struct AllConstantsLow {
 	PointerTypeAndConstantsLow[] pointers;
 }
 
-alias ConcreteFunToLowFunIndex = Map!(ConcreteFun*, LowFunIndex);
+alias ConcreteFunToLowFunIndex = Map!(ConcreteFun*, LowFunIndex); // TODO: used outside of lower? --------------------------------------------
 
 immutable struct LowVarIndex {
 	size_t index;

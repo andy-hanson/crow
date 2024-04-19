@@ -682,6 +682,7 @@ immutable struct ConcreteCommonFuns {
 	ConcreteVar* curThrown;
 	ConcreteFun* mark;
 	ConcreteFun* rethrowCurrentException;
+	ConcreteFun* runFiber;
 	ConcreteFun* rtMain;
 	ConcreteFun* setjmp;
 	ConcreteFun* throwImpl;

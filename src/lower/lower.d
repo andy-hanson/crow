@@ -5,20 +5,20 @@ module lower.lower;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallLambda : generateCallLambda;
-import lower.generateMarkVisitFun : getMarkVisitForType, generateMarkVisit, MarkVisitFuns;
+import lower.generateMarkVisitFun : getMarkRootForType, getMarkVisitForType, generateMarkRoot, generateMarkVisit, initMarkVisitFuns, MarkRoot, MarkVisitFuns;
 import lower.lowExprHelpers :
 	anyPtrMutType,
 	boolType,
 	char8PtrConstType,
 	genAbort,
-	genAddPtr,
+	genAddPointer,
 	genBitwiseNegate,
 	genCall,
 	genCallKind,
 	genCreateRecord,
 	genConstantInt32,
 	genConstantNat64,
-	genDerefGcPtr,
+	genDerefGcPointer,
 	genDrop,
 	genDropSecond,
 	genEnumEq,
@@ -26,6 +26,7 @@ import lower.lowExprHelpers :
 	genEnumToIntegral,
 	genEnumUnion,
 	genFalse,
+	genFunPointer,
 	genIf,
 	genIfKind,
 	genLet,
@@ -36,9 +37,9 @@ import lower.lowExprHelpers :
 	genLocalGet,
 	genLocalSet,
 	genLoopBreakKind,
-	genPtrToLocal,
-	genPtrCast,
-	genPtrCastKind,
+	genPointerToLocal,
+	genPointerCast,
+	genPointerCastKind,
 	genRecordFieldGet,
 	genSeq,
 	genSeqKind,
@@ -53,10 +54,11 @@ import lower.lowExprHelpers :
 	genVarSet,
 	genVoid,
 	genWrapMulNat64,
-	genWriteToPtr,
+	genWriteToPointer,
 	genZeroed,
-	getElementPtrTypeFromArrType,
+	getElementPointerTypeFromArrType,
 	int32Type,
+	voidConstPointerType,
 	voidType;
 import model.concreteModel :
 	AllConstantsConcrete,
@@ -138,6 +140,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, buildArray, Bu
 import util.col.array :
 	emptySmallArray,
 	exists,
+	foldPointers,
 	foldReverse,
 	indexOfPointer,
 	isEmpty,
@@ -171,7 +174,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.union_ : Union;
-import util.util : castNonScope_ref, enumConvert, ptrTrustMe, typeAs;
+import util.util : castNonScope_ref, enumConvert, ptrTrustMe, todo, typeAs;
 import versionInfo : isVersion, VersionFun;
 
 LowProgram lower(
@@ -479,10 +482,13 @@ public immutable struct LowFunCause {
 		LowType funParamType;
 		ConcreteLambdaImpl[] impls;
 	}
+	immutable struct MarkRoot {
+		LowType type;
+	}
 	immutable struct MarkVisit {
 		LowType type;
 	}
-	mixin Union!(CallLambda, ConcreteFun*, MarkVisit);
+	mixin Union!(CallLambda, ConcreteFun*, MarkRoot, MarkVisit);
 }
 
 alias MutConcreteFunToLowFunIndex = MutMap!(ConcreteFun*, LowFunIndex);
@@ -497,11 +503,7 @@ AllLowFuns getAllLowFuns(
 ) {
 	MutConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	MutArr!LowFunCause lowFunCauses;
-
-	MarkVisitFuns markVisitFuns = MarkVisitFuns(
-		newMutIndexMap!(LowType.Record, Opt!LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allRecords)),
-		newMutIndexMap!(LowType.Union, Opt!LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allUnions)));
-
+	MarkVisitFuns markVisitFuns = initMarkVisitFuns(alloc, allTypes);
 	Late!LowType markCtxTypeLate = late!LowType;
 
 	MutMultiMap!(Symbol, Symbol) externLibraryToNames; // Fun and Var combined
@@ -519,12 +521,18 @@ AllLowFuns getAllLowFuns(
 		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
 			(ConcreteFunBody.Builtin x) {
 				if (x.kind.isA!(BuiltinFun.CallLambda)) {
+					// TODO: this will need to add GC too ---------------------------------------------------------------------
 					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
 					return some(addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.CallLambda(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
 						getLambdaImpls(program, mustBeByVal(params[0].type))))));
+				} else if (x.kind.isA!(BuiltinFun.MarkRoot)) {
+					Opt!MarkRoot res = getMarkRootForType(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs)));
+					return optIf(has(res), () {
+						force(res).fun;
+					});
 				} else if (x.kind.isA!(BuiltinFun.MarkVisit)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
@@ -583,6 +591,8 @@ AllLowFuns getAllLowFuns(
 		getLowTypeCtx.alloc, program.allVars, (size_t i, in immutable ConcreteVar* x) =>
 			immutable KeyValuePair!(immutable ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
+	LowType gcRootMutPointerType = lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.gcRoot.returnType);
+	LowType gcRootType = *gcRootMutPointerType.as!(LowType.PtrRawMut).pointee;
 	LowCommonFuns commonFuns = LowCommonFuns(
 		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
 		curJmpBuf: mustGet(concreteFunToLowFunIndex, program.commonFuns.curJmpBuf),
@@ -595,6 +605,9 @@ AllLowFuns getAllLowFuns(
 		rethrowCurrentException: mustGet(concreteFunToLowFunIndex, program.commonFuns.rethrowCurrentException),
 		throwImpl: mustGet(concreteFunToLowFunIndex, program.commonFuns.throwImpl),
 		gcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.gcRoot),
+		gcRootType: gcRootType,
+		gcRootMutPointerType: gcRootMutPointerType,
+		markRootFunPointerType: allTypes.allRecords[gcRootType.as!(LowType.Record)].fields[1].type,
 		setGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.setGcRoot),
 		popGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.popGcRoot));
 
@@ -602,6 +615,7 @@ AllLowFuns getAllLowFuns(
 	// New LowFuns will be discovered while compiling and added to lowFunCauses
 	for (size_t index = 0; index < mutArrSize(lowFunCauses); index++) {
 		push(alloc, allLowFuns, lowFunFromCause(
+			program,
 			allTypes,
 			program.allConstants.staticSymbols,
 			getLowTypeCtx,
@@ -664,19 +678,23 @@ struct LowCommonFuns {
 	LowFunIndex throwImpl;
 
 	LowFunIndex gcRoot;
+	LowType gcRootType;
+	LowType gcRootMutPointerType;
+	LowType markRootFunPointerType;
 	LowFunIndex setGcRoot;
 	LowFunIndex popGcRoot;
 }
 
 LowFun lowFunFromCause(
+	ref ConcreteProgram concreteProgram,
 	ref AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in LowCommonFuns commonFuns,
 	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in VarIndices varIndices,
-	scope ref MutArr!LowFunCause lowFunCauses,
-	scope ref MarkVisitFuns markVisitFuns,
+	ref MutArr!LowFunCause lowFunCauses,
+	ref MarkVisitFuns markVisitFuns,
 	LowType markCtxType,
 	LowFunIndex thisFunIndex,
 	LowFunCause cause,
@@ -690,17 +708,22 @@ LowFun lowFunFromCause(
 				getLowTypeCtx.alloc, cf.paramsIncludingClosure, (size_t i, ConcreteLocal* x) =>
 					getLowLocalForParameter(getLowTypeCtx, i, x));
 			LowFunBody body_ = getLowFunBody(
+				concreteProgram,
 				allTypes,
 				staticSymbols,
 				getLowTypeCtx,
+				lowFunCauses,
+				markVisitFuns,
 				concreteFunToLowFunIndex,
 				commonFuns,
 				varIndices,
 				thisFunIndex,
 				params,
-				*cf);
+				cf);
 			return LowFun(LowFunSource(cf), returnType, params, body_);
 		},
+		(LowFunCause.MarkRoot x) =>
+			generateMarkRoot(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, markCtxType, commonFuns.mark, x.type),
 		(LowFunCause.MarkVisit x) =>
 			generateMarkVisit(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, markCtxType, commonFuns.mark, x.type));
 
@@ -710,13 +733,13 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 		genLocalByValue(ctx.alloc, symbol!"argc", 0, int32Type),
 		genLocalByValue(ctx.alloc, symbol!"argv", 1, char8PtrPtrConstType)]);
 	LowExpr userMainFunPointer =
-		LowExpr(userMainFunPointerType, UriAndRange.empty, LowExprKind(Constant(Constant.FunPointer(userMain))));
+		genFunPointer(userMainFunPointerType, UriAndRange.empty, userMain);
 	LowExpr call = genCall(ctx.alloc, UriAndRange.empty, rtMainIndex, int32Type, [
 		genLocalGet(UriAndRange.empty, &params[0]),
 		genLocalGet(UriAndRange.empty, &params[1]),
 		userMainFunPointer
 	]);
-	LowFunBody body_ = LowFunBody(LowFunExprBody(false, call));
+	LowFunBody body_ = LowFunBody(LowFunExprBody(false, false, call));
 	return LowFun(
 		LowFunSource(allocate(ctx.alloc, LowFunSource.Generated(symbol!"main", []))),
 		int32Type,
@@ -758,68 +781,108 @@ T withLowLocal(T)(
 }
 
 LowFunBody getLowFunBody(
+	ref ConcreteProgram concreteProgram,
 	in AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
+	ref MutArr!LowFunCause lowFunCauses,
+	ref MarkVisitFuns markVisitFuns,
 	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in LowCommonFuns commonFuns,
 	in VarIndices varIndices,
 	LowFunIndex thisFunIndex,
 	LowLocal[] params,
-	ref ConcreteFun a,
-) =>
-	a.body_.match!LowFunBody(
-		(ConcreteFunBody.Builtin x) =>
-			assert(false),
-		(Constant _) =>
-			assert(false),
-		(ConcreteFunBody.CreateRecord) =>
-			assert(false),
-		(ConcreteFunBody.CreateUnion) =>
-			assert(false),
-		(EnumFunction) =>
-			assert(false),
-		(ConcreteFunBody.Extern x) =>
-			LowFunBody(LowFunBody.Extern(x.libraryName)),
-		(ConcreteExpr x) {
-			GetLowExprCtx exprCtx = GetLowExprCtx(
-				thisFunIndex,
-				ptrTrustMe(allTypes),
-				castNonScope_ref(staticSymbols),
-				ptrTrustMe(getLowTypeCtx),
-				ptrTrustMe(concreteFunToLowFunIndex),
-				commonFuns,
-				castNonScope_ref(varIndices),
-				a.paramsIncludingClosure,
-				params,
-				false,
-				a.paramsIncludingClosure.length);
-			LowExpr expr = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
-				getLowExpr(exprCtx, locals, x, ExprPos.tail));
-			return LowFunBody(LowFunExprBody(exprCtx.hasTailRecur, expr));
-		},
-		(ConcreteFunBody.FlagsFn) =>
-			assert(false),
-		(ConcreteFunBody.RecordFieldCall) =>
-			assert(false),
-		(ConcreteFunBody.RecordFieldGet) =>
-			assert(false),
-		(ConcreteFunBody.RecordFieldPointer) =>
-			assert(false),
-		(ConcreteFunBody.RecordFieldSet) =>
-			assert(false),
-		(ConcreteFunBody.VarGet) =>
-			assert(false),
-		(ConcreteFunBody.VarSet) =>
-			assert(false));
+	ConcreteFun* a,
+) {
+	if (a.body_.isA!(ConcreteFunBody.Extern)) {
+		return LowFunBody(LowFunBody.Extern(a.body_.as!(ConcreteFunBody.Extern).libraryName));
+	} else {
+		ConcreteExpr expr = a.body_.as!(ConcreteExpr);
+		GetLowExprCtx exprCtx = GetLowExprCtx(
+			thisFunIndex,
+			ptrTrustMe(concreteProgram),
+			ptrTrustMe(allTypes),
+			castNonScope_ref(staticSymbols),
+			ptrTrustMe(getLowTypeCtx),
+			ptrTrustMe(lowFunCauses),
+			ptrTrustMe(markVisitFuns),
+			ptrTrustMe(concreteFunToLowFunIndex),
+			commonFuns,
+			castNonScope_ref(varIndices),
+			a.paramsIncludingClosure,
+			params,
+			false,
+			a.paramsIncludingClosure.length);
+		bool isYielding = concreteProgram.yieldingFuns.has(a);
+		LowExpr body_ = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
+			getLowExpr(exprCtx, locals, expr, isYielding ? ExprPos.nonTail : ExprPos.tail));
+		return LowFunBody(LowFunExprBody(isYielding, exprCtx.hasTailRecur, isYielding ? addGcRootsForParams(exprCtx, body_, params) : body_));
+	}
+}
+
+LowExpr addGcRootsForParams(scope ref GetLowExprCtx ctx, LowExpr expr, LowLocal[] params) =>
+	foldPointers!(LowExpr, LowLocal)(expr, params, (LowExpr cur, LowLocal* param) =>
+		maybeAddGcRoot(ctx, cur, param));
+
+LowExpr maybeAddGcRoot(ref GetLowExprCtx ctx, LowExpr expr, LowLocal* local) {
+	Opt!MarkRoot optMarkRoot = getMarkRootForType(ctx.alloc, *ctx.lowFunCauses, *ctx.markVisitFuns, *ctx.allTypes, local.type);
+	if (has(optMarkRoot)) {
+		MarkRoot markRoot = force(optMarkRoot);
+		UriAndRange range = expr.source;
+		LowExpr pointerToLocal = () {
+			final switch (markRoot.kind) {
+				case MarkRoot.Kind.localAlreadyPointer:
+					return genLocalGet(range, local);
+				case MarkRoot.Kind.pointerToLocal:
+					LowType type = LowType(LowType.PtrRawMut(allocate(ctx.alloc, local.type))); // TODO: helper for this??????
+					return genPointerToLocal(type, range, local);
+			}
+		}();
+		LowExpr markRootFunction = () {
+			LowType funType = ctx.commonFuns.markRootFunPointerType;
+			LowExpr fun = genFunPointer(funType, range, markRoot.fun); // TODO: the type is wrong for localAlreadyPointer, but currently that's unchecked
+			final switch (markRoot.kind) {
+				case MarkRoot.Kind.localAlreadyPointer:
+					return genPointerCast(ctx.alloc, funType, range, fun);
+				case MarkRoot.Kind.pointerToLocal:
+					return fun;
+			}
+		}();
+		/*
+		root gc-root = (x, &visit-x, gc-root)
+		&root set-gc-root
+		res = <<the body>>
+		pop-gc-root
+		res
+		*/
+		LowExpr initRoot = genCreateRecord(ctx.alloc, ctx.commonFuns.gcRootType, range, [
+			genPointerCast(ctx.alloc, voidConstPointerType, range, pointerToLocal),
+			markRootFunction,
+			genCall(ctx.alloc, range, ctx.commonFuns.gcRoot, ctx.commonFuns.gcRootMutPointerType, [])]);
+		LowLocal* root = genLocal(ctx.alloc, symbol!"root", nextTempLocalIndex(ctx), ctx.commonFuns.gcRootType);
+		return genLet(
+			ctx.alloc, range, root,
+			initRoot,
+			genSeq(ctx.alloc, range,
+				genCall(ctx.alloc, range, ctx.commonFuns.setGcRoot, voidType, [genPointerToLocal(ctx.commonFuns.gcRootMutPointerType, range, root)]),
+				genSeqThenReturnFirst(
+					ctx.alloc, range, nextTempLocalIndex(ctx),
+					expr,
+					genCall(ctx.alloc, range, ctx.commonFuns.popGcRoot, voidType, []))));
+	} else
+		return expr;
+}
 
 struct GetLowExprCtx {
 	@safe @nogc pure nothrow:
 
 	immutable LowFunIndex currentFun;
+	immutable ConcreteProgram* concreteProgram;
 	immutable AllLowTypes* allTypes;
 	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
+	MutArr!LowFunCause* lowFunCauses;
+	MarkVisitFuns* markVisitFuns;
 	const MutConcreteFunToLowFunIndex* concreteFunToLowFunIndexPtr;
 	LowCommonFuns commonFuns;
 	immutable VarIndices varIndices;
@@ -960,7 +1023,7 @@ LowExpr getAllocateExpr(
 	LowExpr size,
 ) =>
 	// TODO: ensure this will definitely be the return type of allocFunIndex
-	genPtrCast(alloc, ptrType, range, genCall(alloc, range, allocFunIndex, anyPtrMutType, [size]));
+	genPointerCast(alloc, ptrType, range, genCall(alloc, range, allocFunIndex, anyPtrMutType, [size]));
 
 LowExprKind getAllocExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.Alloc a) {
 	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
@@ -982,7 +1045,7 @@ LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr 
 			getAllocateExpr(
 				ctx.alloc, ctx.commonFuns.alloc, range, ptrType,
 				genSizeOf(*ctx.allTypes, range, asPtrGcPointee(ptrType))),
-			(LowExpr getPtr) => genSeq(ctx.alloc, range, genWriteToPtr(ctx.alloc, range, getPtr, arg), getPtr));
+			(LowExpr getPtr) => genSeq(ctx.alloc, range, genWriteToPointer(ctx.alloc, range, getPtr, arg), getPtr));
 
 // TODO: this should probably part of the expression 'type'
 bool mayHaveSideEffects(in LowExpr a) =>
@@ -1288,12 +1351,15 @@ LowExprKind getCallBuiltinExpr(
 			LowExprKind(it),
 		(BuiltinFun.InitConstants) =>
 			LowExprKind(LowExprKind.InitConstants()),
+		(BuiltinFun.MarkRoot) =>
+			// Handled in getAllLowFuns
+			assert(false),
 		(BuiltinFun.MarkVisit) =>
-			// Handled in concretize
+			// Handled in getAllLowFuns
 			assert(false),
 		(BuiltinFun.PointerCast) {
 			assert(args.length == 1);
-			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail));
+			return genPointerCastKind(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail));
 		},
 		(BuiltinFun.SizeOf) {
 			LowType typeArg =
@@ -1401,13 +1467,13 @@ LowExprKind getCreateArrayExpr(
 			else {
 				size_t index = prevIndex - 1;
 				LowExpr arg = getLowExpr(ctx, locals, a.args[index], ExprPos.nonTail);
-				LowExpr elementPtr = genAddPtr(
+				LowExpr elementPtr = genAddPointer(
 					ctx.alloc,
 					elementPtrType.as!(LowType.PtrRawConst),
 					range,
 					getPtr,
 					genConstantNat64(range, index));
-				LowExpr writeToElement = genWriteToPtr(ctx.alloc, range, elementPtr, arg);
+				LowExpr writeToElement = genWriteToPointer(ctx.alloc, range, elementPtr, arg);
 				return recur(genSeq(ctx.alloc, range, writeToElement, cur), index);
 			}
 		}
@@ -1464,7 +1530,7 @@ LowExprKind getLocalGetExpr(
 	LowLocal* local = getLocal(ctx, locals, a.local);
 	LowExprKind localGet = LowExprKind(LowExprKind.LocalGet(local));
 	return a.local.isAllocated
-		? genDerefGcPtr(ctx.alloc, LowExpr(local.type, range, localGet))
+		? genDerefGcPointer(ctx.alloc, LowExpr(local.type, range, localGet))
 		: localGet;
 }
 
@@ -1490,7 +1556,7 @@ LowExprKind getLocalSetExpr(
 	LowLocal* local = getLocal(ctx, locals, a.local);
 	LowExpr value = getLowExpr(ctx, locals, a.value, ExprPos.nonTail);
 	return a.local.isAllocated
-		? genWriteToPtr(
+		? genWriteToPointer(
 			ctx.alloc,
 			LowExpr(local.type, range, LowExprKind(LowExprKind.LocalGet(local))),
 			value)
@@ -1619,7 +1685,7 @@ LowExprKind getClosureGetExpr(ref GetLowExprCtx ctx, UriAndRange range, Concrete
 		case ClosureReferenceKind.direct:
 			return getField.kind;
 		case ClosureReferenceKind.allocated:
-			return genDerefGcPtr(ctx.alloc, getField);
+			return genDerefGcPointer(ctx.alloc, getField);
 	}
 }
 
@@ -1630,7 +1696,7 @@ LowExprKind getClosureSetExpr(
 	ref ConcreteExprKind.ClosureSet a,
 ) =>
 	// Note: This doesn't write to a field, it gets a pointer from the field and writes to that
-	genWriteToPtr(
+	genWriteToPointer(
 		ctx.alloc,
 		getClosureField(ctx, range, a.closureRef),
 		getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
@@ -1827,7 +1893,7 @@ LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowEx
 	LowType jmpBuf = ctx.commonFuns.jmpBufType;
 	LowType jmpBufTag = *jmpBuf.as!(LowType.PtrRawMut).pointee;
 	LowLocal* store = genLocal(ctx.alloc, symbol!"store", nextTempLocalIndex(ctx), jmpBufTag);
-	LowExpr storePtr = genPtrToLocal(jmpBuf, range, store);
+	LowExpr storePtr = genPointerToLocal(jmpBuf, range, store);
 	LowExpr then = genIf(
 		ctx.alloc, range,
 		genEqInt32(

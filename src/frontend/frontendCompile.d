@@ -566,6 +566,7 @@ CommonUris commonUris(Uri includeDir) {
 		includeCrow / symbol!"std",
 		includeCrow / symbol!"string",
 		private_ / symbol!"symbol-low-level",
+		private_ / symbol!"runtime",
 		private_ / symbol!"rt-main",
 	]), (Uri x) => addExtension(x, Extension.crow));
 }

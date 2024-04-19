@@ -224,7 +224,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	&fiber.suspension switch-fiber-suspension thread-base-fiber-suspension
 
 # Runs the fiber until its next yield
--run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
+~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
 	gctx before-task
 	assert cur-fiber is-empty
 	cur-fiber := fiber,

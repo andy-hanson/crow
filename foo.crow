@@ -1,0 +1,39 @@
+import
+	./include/crow/private/alloc: for-loop, gc-roots, mark-root, mark-visit
+	./include/crow/private/bootstrap: fiber, mark-ctx, trace
+	./include/crow/pointer: as-any-const-pointer
+
+main void() unsafe, summon
+	"top" log-roots
+	(1, 2, 3) foo
+
+foo void(r r) unsafe, summon
+	"top of foo" log-roots
+	yield-fiber
+	info log "r is {r}"
+
+r record by-ref
+	x nat
+	y nat
+	z nat
+
+to string(a r)
+	"{a x}, {a y}, {a z}"
+
+log-roots void(desc string) unsafe, summon
+	for root : gc-roots
+		info log "In {desc}: there is a root"
+		info log root->trace.describe-function-pointer
+
+describe-function-pointer string(fp void function(a mark-ctx, root void*)) unsafe
+	root-string-list void function(a mark-ctx, pointer void*) = &mark-root@(string[])
+	visit-r = (&mark-visit@r)::void function(a mark-ctx, r r)
+	visit-fiber = (&mark-visit@fiber)::void function(a mark-ctx, f fiber)
+	if fp.as-any-const-pointer == visit-r.as-any-const-pointer
+		"mark-visit for r"
+	elif fp.as-any-const-pointer == visit-fiber.as-any-const-pointer
+		"mark-visit for fiber"
+	elif fp.as-any-const-pointer == root-string-list.as-any-const-pointer
+		"mark-root for string[]"
+	else
+		"some other function {fp.as-any-const-pointer.to::nat64.to-hex}"

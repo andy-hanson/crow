@@ -911,6 +911,10 @@ WriteExprResult writeExpr(
 					writeTempOrInline(writer, ctx, it.arg, arg);
 				});
 			}),
+		(in LowExprKind.FunPointer x) =>
+			inlineableSimple(() {
+				writeFunPointer(writer, ctx.ctx, x.fun);
+			}),
 		(in LowExprKind.If it) =>
 			writeIf(writer, indent, ctx, writeKind, type, it),
 		(in LowExprKind.InitConstants) =>

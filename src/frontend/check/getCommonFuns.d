@@ -141,6 +141,10 @@ CommonFunsAndMain getCommonFuns(
 	Type gcRoot = getType(CommonModule.bootstrap, symbol!"gc-root");
 	Type gcRootMutPointer = instantiateType(commonTypes.ptrMut, [gcRoot]);
 
+	Type fiber = getType(CommonModule.bootstrap, symbol!"fiber");
+	Type globalCtx = getType(CommonModule.runtime, symbol!"global-ctx");
+	Type globalCtxMutPointer = instantiateType(commonTypes.ptrMut, [globalCtx]);
+
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
@@ -173,6 +177,10 @@ CommonFunsAndMain getCommonFuns(
 		newTList: getFunDecl(
 			alloc, diagsBuilder, *modules[CommonModule.list], symbol!"new",
 			TypeParamsAndSig(singleTypeParams, tList, ParamsShort(&newTListParams), countSpecs: 0)),
+		runFiber: getFun(
+			CommonModule.runtime, symbol!"run-fiber",
+			Type(commonTypes.void_),
+			[param!"gctx"(globalCtxMutPointer), param!"fiber"(fiber)]),
 		rtMain: getFun(
 			CommonModule.runtimeMain,
 			symbol!"rt-main",

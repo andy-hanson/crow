@@ -33,6 +33,7 @@ import model.lowModel :
 	LowLocal,
 	LowProgram,
 	LowType,
+	mayYield,
 	PrimitiveType,
 	targetIsPointer,
 	targetRecordType,
@@ -95,11 +96,11 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 	checkTypeEqual(ctx.ctx, type, expr.type);
 	expr.kind.matchIn!void(
 		(in LowExprKind.Abort) {},
-		(in LowExprKind.Call it) {
-			LowFun* fun = &ctx.ctx.program.allFuns[it.called];
+		(in LowExprKind.Call x) {
+			LowFun* fun = &ctx.ctx.program.allFuns[x.called];
+			// TODO: if (mayYield(*fun)) assert(ctx.fun.mayYield); --------------------------------------------------------------- (This requires fixing CallLambda!)
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
-			assert(sizeEq(fun.params, it.args));
-			zip!(LowLocal, LowExpr)(fun.params, it.args, (ref LowLocal param, ref LowExpr arg) {
+			zip!(LowLocal, LowExpr)(fun.params, x.args, (ref LowLocal param, ref LowExpr arg) {
 				checkLowExpr(ctx, param.type, arg, ExprPos.nonTail);
 			});
 		},
@@ -120,6 +121,9 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.CreateUnion it) {
 			LowType member = ctx.ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
 			checkLowExpr(ctx, member, it.arg, ExprPos.nonTail);
+		},
+		(in LowExprKind.FunPointer x) {
+			// TODO -----------------------------------------------------------------------------------------------------------------
 		},
 		(in LowExprKind.If it) {
 			checkLowExpr(ctx, boolType, it.cond, ExprPos.nonTail);
@@ -153,9 +157,9 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},
-		(in LowExprKind.PtrToField it) {
-			checkLowExpr(ctx, it.target.type, it.target, ExprPos.nonTail);
-			LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
+		(in LowExprKind.PtrToField x) {
+			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
+			LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(x)].fields[x.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), fieldType);
 		},
 		(in LowExprKind.PtrToLocal it) {

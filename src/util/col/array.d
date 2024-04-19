@@ -638,6 +638,11 @@ T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure no
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
+T foldPointers(T, U)(T start, in U[] arr, in T delegate(T a, U* b) @safe @nogc pure nothrow cb) =>
+	isEmpty(arr)
+		? start
+		: foldPointers!(T, U)(cb(start, &arr[0]), arr[1 .. $], cb);
+
 T foldReverse(T, U)(T start, in U[] arr, in T delegate(T a, ref U b) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
