@@ -37,7 +37,7 @@ import versionInfo : VersionInfo;
 
 immutable struct ConcreteStructBody {
 	immutable struct Builtin {
-		BuiltinType kind;
+		BuiltinType kind; // Never 'lambda'. Can we type this better? ---------------------------------------------------------
 		SmallArray!ConcreteType typeArgs;
 	}
 	immutable struct Enum {
@@ -241,7 +241,7 @@ immutable struct ConcreteLocal {
 
 immutable struct ConcreteFunBody {
 	immutable struct Builtin {
-		BuiltinFun kind;
+		BuiltinFun kind; // Never 'lambdaCall' (TODO: can we type this better?) --------------------------------------------
 		ConcreteType[] typeArgs;
 	}
 	immutable struct CreateRecord {}
@@ -670,11 +670,8 @@ immutable struct ConcreteProgram {
 	ConcreteFun*[] allFuns;
 	// The functions are still in 'allFuns', this is just to identify them
 	Set!(immutable ConcreteFun*) yieldingFuns;
-	LambdaStructToImpls lambdaStructToImpls;
 	ConcreteCommonFuns commonFuns;
 }
-alias LambdaStructToImpls = Map!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl);
-
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* alloc;
 	ConcreteFun* curJmpBuf;
@@ -691,9 +688,4 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* gcRoot;
 	ConcreteFun* setGcRoot;
 	ConcreteFun* popGcRoot;
-}
-
-immutable struct ConcreteLambdaImpl {
-	ConcreteType closureType;
-	ConcreteFun* impl;
 }

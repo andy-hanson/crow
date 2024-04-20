@@ -401,7 +401,7 @@ enum BuiltinType {
 	int16,
 	int32,
 	int64,
-	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
+	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'. TODO: this is different from the others. ... .......
 	nat8,
 	nat16,
 	nat32,

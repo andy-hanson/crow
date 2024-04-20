@@ -22,7 +22,6 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteFunKey,
 	ConcreteFunSource,
-	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteMutability,
@@ -252,6 +251,11 @@ struct ConcretizeCtx {
 		lateGet(createErrorFunction_);
 	ref Program program() return scope const =>
 		*programPtr;
+}
+
+immutable struct ConcreteLambdaImpl {
+	ConcreteType closureType;
+	ConcreteFun* impl;
 }
 
 immutable struct ConcreteVariantMember {
@@ -622,10 +626,14 @@ void initializeConcreteStruct(
 		(StructBody.Bogus) => assert(false),
 		(BuiltinType x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
-			res.info = ConcreteStructInfo(
-				ConcreteStructBody(allocate(ctx.alloc, ConcreteStructBody.Builtin(x, typeArgs))),
-				false);
-			res.typeSize = getBuiltinStructSize(x);
+			if (x == BuiltinType.lambda) {
+				// Lambda types handled in 'finishLambdas'
+			} else {
+				res.info = ConcreteStructInfo(
+					ConcreteStructBody(allocate(ctx.alloc, ConcreteStructBody.Builtin(x, typeArgs))),
+					false);
+				res.typeSize = getBuiltinStructSize(x);
+			}
 		},
 		(ref StructBody.Enum x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;

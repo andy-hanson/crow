@@ -9,6 +9,7 @@ import concretize.concretizeCtx :
 	char8Type,
 	char32Type,
 	concreteFunForWrapMain,
+	ConcreteLambdaImpl,
 	ConcreteVariantMember,
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
@@ -22,17 +23,18 @@ import concretize.concretizeCtx :
 	symbolArrayType,
 	voidType;
 import concretize.gatherInfo : getYieldingFuns;
+import concretize.generate : generateCallLambda;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
-	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, ConcreteStructBody, LambdaStructToImpls;
-import model.model : CommonFuns, MainFun, ProgramWithMain;
+	ConcreteCommonFuns, ConcreteFun, ConcreteFunBody, ConcreteProgram, ConcreteStruct, ConcreteStructInfo, ConcreteStructBody, ConcreteType, mustBeByVal;
+import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : SmallArray;
-import util.col.arrayBuilder : finish;
-import util.col.mutArr : moveAndMapToArray, moveToSmallArray, MutArr;
-import util.col.mutMap : isEmpty, mapToMap;
-import util.late : lateSet;
+import util.col.array : map, small, SmallArray;
+import util.col.arrayBuilder : asTemporaryArray, finish;
+import util.col.mutArr : asTemporaryArray, moveAndMapToArray, moveToSmallArray, MutArr, push;
+import util.col.mutMap : isEmpty, mapToMap, mustGet;
+import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
@@ -91,6 +93,8 @@ ConcreteProgram concretizeInner(
 		setGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.setGcRoot),
 		popGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.popGcRoot));
 
+	finishLambdas(ctx);
+
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
 
 	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMember x; ctx.variantStructToMembers)
@@ -100,18 +104,13 @@ ConcreteProgram concretizeInner(
 
 	deferredFillRecordAndUnionBodies(ctx);
 
-	LambdaStructToImpls lambdaStructToImpls = mapToMap!(ConcreteStruct*, SmallArray!ConcreteLambdaImpl, MutArr!ConcreteLambdaImpl)(
-		alloc,
-		ctx.lambdaStructToImpls,
-		(ref MutArr!ConcreteLambdaImpl x) => moveToSmallArray!ConcreteLambdaImpl(alloc, x));
 	ConcreteProgram res = ConcreteProgram(
 		versionInfo,
 		finishAllConstants(alloc, ctx.allConstants, symbolArrayType(ctx)),
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,
-		getYieldingFuns(alloc, concreteCommonFuns, allConcreteFuns, lambdaStructToImpls),
-		lambdaStructToImpls,
+		getYieldingFuns(alloc, concreteCommonFuns, allConcreteFuns),
 		concreteCommonFuns);
 	checkConcreteProgram(
 		showCtx,
@@ -131,3 +130,25 @@ ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
 			getNonTemplateConcreteFun(ctx, x.fun),
 		(MainFun.Void x) =>
 			concreteFunForWrapMain(ctx, x.stringList, x.fun));
+
+void finishLambdas(ref ConcretizeCtx ctx) {
+	foreach (ConcreteStruct* struct_, MutArr!ConcreteLambdaImpl impls; ctx.lambdaStructToImpls) {
+		ConcreteType[] memberTypes = map(ctx.alloc, asTemporaryArray(impls), (ref ConcreteLambdaImpl x) => x.closureType);
+		struct_.info = ConcreteStructInfo(
+			body_: ConcreteStructBody(ConcreteStructBody.Union(late(small!ConcreteType(memberTypes)))),
+			isSelfMutable: false);
+		push(ctx.alloc, ctx.deferredTypeSize, struct_);
+	}
+
+	foreach (ConcreteFun* fun; asTemporaryArray(ctx.allConcreteFuns)) {
+		if (fun.body_.isA!(ConcreteFunBody.Builtin)) {
+			ConcreteFunBody.Builtin builtin = fun.body_.as!(ConcreteFunBody.Builtin);
+			if (builtin.kind.isA!(BuiltinFun.CallLambda)) {
+				ConcreteStruct* lambda = mustBeByVal(fun.paramsIncludingClosure[0].type);
+				fun.overwriteBody(generateCallLambda(
+					ctx, fun, lambda.body_.as!(ConcreteStructBody.Union).members,
+					asTemporaryArray(mustGet(ctx.lambdaStructToImpls, lambda))));
+			}
+		}
+	}
+}

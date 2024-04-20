@@ -7,6 +7,7 @@ import concretize.concretizeCtx :
 	arrayElementType,
 	char8ArrayType,
 	char32ArrayType,
+	ConcreteLambdaImpl,
 	ConcretizeCtx,
 	constantOfBytes,
 	constantSymbol,
@@ -162,6 +163,15 @@ ConcreteExpr concretizeAutoFun(ref ConcretizeExprCtx ctx, ref AutoFun a) {
 				(ConcreteStructBody.Union x) =>
 					concretizeUnionToJson(ctx, x.members, a.members));
 	}
+}
+
+ConcreteFunBody generateCallLambda(ref ConcretizeCtx ctx, ConcreteFun* fun, SmallArray!ConcreteType memberTypes, in ConcreteLambdaImpl[] impls) {
+	UriAndRange range = UriAndRange.empty;
+	assert(fun.paramsIncludingClosure.length == 2);
+	ConcreteExpr lambda = genParamGet(ctx.alloc, range, &fun.paramsIncludingClosure[0]);
+	ConcreteExpr arg = genParamGet(ctx.alloc, range, &fun.paramsIncludingClosure[1]);
+	return ConcreteFunBody(genMatchUnion(ctx, fun.returnType, range, memberTypes, lambda, (size_t i, ConcreteExpr closure) =>
+		genCall(ctx.alloc, range, impls[i].impl, [closure, arg])));
 }
 
 ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, ConcreteExpr thrown) =>
@@ -451,7 +461,7 @@ ConcreteExpr genCreateRecord(ref Alloc alloc, ConcreteType type, UriAndRange ran
 ConcreteExpr constantSymbolExpr(ref ConcretizeCtx ctx, UriAndRange range, Symbol value) =>
 	ConcreteExpr(symbolType(ctx), range, ConcreteExprKind(constantSymbol(ctx, value)));
 
-ConcreteExpr genParamGet(ref Alloc alloc, UriAndRange range, ConcreteLocal* param) =>
+public ConcreteExpr genParamGet(ref Alloc alloc, UriAndRange range, ConcreteLocal* param) =>
 	ConcreteExpr(param.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(param)));
 
 ConcreteExpr genRecordFieldGet(ConcreteType fieldType, UriAndRange range, ConcreteExpr* arg, size_t fieldIndex) =>

@@ -2,16 +2,15 @@ module concretize.gatherInfo;
 
 @safe @nogc pure nothrow:
 
+import concretize.concretizeCtx : ConcreteLambdaImpl;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteStruct,
-	LambdaStructToImpls,
 	mustBeByVal;
 import model.constant : Constant;
 import model.model : BuiltinBinary, BuiltinFun, EnumFunction, FlagsFunction;
@@ -25,8 +24,8 @@ import util.col.set : moveToSet, Set;
 import util.opt : force, has, Opt;
 import util.util : todo;
 
-Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonFuns commonFuns, immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
-	const CalledBy calledBy = getCalledBy(alloc, allConcreteFuns, lambdaStructToImpls); // TODO: use a temp alloc? ------------------------------------------------------------
+Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonFuns commonFuns, immutable ConcreteFun*[] allConcreteFuns) {
+	const CalledBy calledBy = getCalledBy(alloc, allConcreteFuns); // TODO: use a temp alloc? ------------------------------------------------------------
 
 	// There is just 1 intrinsically yielding function: 'switch-fiber-suspension'
 	ConcreteFun* switchFiberSuspension = mustFind!(immutable ConcreteFun*)(allConcreteFuns, (ref immutable ConcreteFun* f) {
@@ -65,17 +64,12 @@ private:
 // Maps a function to all functions that call it.
 alias CalledBy = MutMultiMap!(immutable ConcreteFun*, immutable ConcreteFun*);
 
-CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFuns, in LambdaStructToImpls lambdaStructToImpls) {
+CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFuns) {
 	CalledBy res;
 	foreach (ConcreteFun* fun; allConcreteFuns)
 		fun.body_.match!void(
 			(ConcreteFunBody.Builtin x) {
-				if (x.kind.isA!(BuiltinFun.CallLambda)) {
-					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
-					ConcreteStruct* lambdaStruct = mustBeByVal(params[0].type);
-					foreach (ConcreteLambdaImpl impl; mustGet(lambdaStructToImpls, lambdaStruct))
-						add(alloc, res, impl.impl, fun);
-				}
+				assert(!x.kind.isA!(BuiltinFun.CallLambda)); // TODO: it should just not be in the type then? ----------------
 				// TODO: ignoring CallFunPointer, but those should have to be 'bare' functions anyway??????????????????????????????????
 				// Otherwise we'd have to track all fun-pointer expressions of a given type
 			},

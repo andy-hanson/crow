@@ -4,7 +4,6 @@ module lower.lower;
 
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import lower.checkLowModel : checkLowProgram;
-import lower.generateCallLambda : generateCallLambda;
 import lower.generateMarkVisitFun : getMarkRootForType, getMarkVisitForType, generateMarkRoot, generateMarkVisit, initMarkVisitFuns, MarkRoot, MarkVisitFuns;
 import lower.lowExprHelpers :
 	anyPtrMutType,
@@ -69,7 +68,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteProgram,
@@ -410,12 +408,8 @@ PrimitiveType typeOfIntegralType(IntegralType a) =>
 	enumConvert!PrimitiveType(a);
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
-	LowUnion(s, small!LowType(s.body_.matchIn!(LowType[])(
-		(in ConcreteStructBody.Builtin x) {
-			assert(x.kind == BuiltinType.lambda);
-			return map(getLowTypeCtx.alloc, getLambdaImpls(program, s), (ref ConcreteLambdaImpl impl) =>
-				lowTypeFromConcreteType(getLowTypeCtx, impl.closureType));
-		},
+	LowUnion(s, small!LowType(s.body_.matchIn!(LowType[])( // TODO: no match, just cast --------------------------------------------
+		(in ConcreteStructBody.Builtin x) => assert(false),
 		(in ConcreteStructBody.Enum) => assert(false),
 		(in ConcreteStructBody.Extern) => assert(false),
 		(in ConcreteStructBody.Flags) => assert(false),
@@ -428,10 +422,6 @@ LowType getLowRawPtrConstType(ref GetLowTypeCtx ctx, LowType pointee) {
 	//TODO:PERF Cache creation of pointer types by pointee
 	return LowType(LowType.PtrRawConst(allocate(ctx.alloc, pointee)));
 }
-
-ConcreteLambdaImpl[] getLambdaImpls(in ConcreteProgram program, in ConcreteStruct* struct_) =>
-	optOrDefault!(SmallArray!ConcreteLambdaImpl)(program.lambdaStructToImpls[struct_], () =>
-		emptySmallArray!ConcreteLambdaImpl);
 
 LowType getLowGcPtrType(ref GetLowTypeCtx ctx, LowType pointee) {
 	//TODO:PERF Cache creation of pointer types by pointee
@@ -475,20 +465,14 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType it) {
 	}
 }
 
-public immutable struct LowFunCause {
-	immutable struct CallLambda {
-		LowType funType;
-		LowType returnType;
-		LowType funParamType;
-		ConcreteLambdaImpl[] impls;
-	}
+public immutable struct LowFunCause { // TODO: I could just save generating all MarkRoot / MarkVisit funs to the end, then not need this?
 	immutable struct MarkRoot {
 		LowType type;
 	}
 	immutable struct MarkVisit {
 		LowType type;
 	}
-	mixin Union!(CallLambda, ConcreteFun*, MarkRoot, MarkVisit);
+	mixin Union!(ConcreteFun*, MarkRoot, MarkVisit);
 }
 
 alias MutConcreteFunToLowFunIndex = MutMap!(ConcreteFun*, LowFunIndex);
@@ -520,19 +504,10 @@ AllLowFuns getAllLowFuns(
 	foreach (ConcreteFun* fun; program.allFuns) {
 		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
 			(ConcreteFunBody.Builtin x) {
-				if (x.kind.isA!(BuiltinFun.CallLambda)) {
-					// TODO: this will need to add GC too ---------------------------------------------------------------------
-					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
-					return some(addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.CallLambda(
-						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
-						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
-						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
-						getLambdaImpls(program, mustBeByVal(params[0].type))))));
-				} else if (x.kind.isA!(BuiltinFun.MarkRoot)) {
+				if (x.kind.isA!(BuiltinFun.MarkRoot)) {
 					Opt!MarkRoot res = getMarkRootForType(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs)));
-					return optIf(has(res), () {
-						force(res).fun;
-					});
+					return optIf(has(res), () =>
+						force(res).fun);
 				} else if (x.kind.isA!(BuiltinFun.MarkVisit)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
@@ -700,8 +675,6 @@ LowFun lowFunFromCause(
 	LowFunCause cause,
 ) =>
 	cause.matchWithPointers!LowFun(
-		(LowFunCause.CallLambda x) =>
-			generateCallLambda(getLowTypeCtx.alloc, allTypes, concreteFunToLowFunIndex, x),
 		(ConcreteFun* cf) {
 			LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
 			LowLocal[] params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(
