@@ -633,6 +633,9 @@ bool arraysIdentical(T)(in T[] a, in T[] b) =>
 bool arraysEqual(T)(in T[] a, in T[] b) =>
 	arraysCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
 
+T applyNTimes(T)(T start, size_t times, in T delegate(T) @safe @nogc pure nothrow cb) =>
+	times == 0 ? start : applyNTimes(cb(start), times - 1, cb);
+
 T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start

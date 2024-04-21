@@ -1,3 +1,4 @@
+# TODO: For safety, this now needs to always return 0'd memory. Since a yield can happen anywhere. -----------------------
 no-std
 import
 	system/stdlib: free, malloc

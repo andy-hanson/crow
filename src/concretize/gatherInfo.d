@@ -9,6 +9,7 @@ import model.concreteModel :
 	ConcreteExprKind,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteLocal,
 	ConcreteStruct,
 	mustBeByVal;
@@ -22,6 +23,7 @@ import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
 import util.col.mutSet : mayAddToMutSet, MutSet, mustSetMustDelete;
 import util.col.set : moveToSet, Set;
 import util.opt : force, has, Opt;
+import util.symbol : Symbol;
 import util.util : todo;
 
 Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonFuns commonFuns, immutable ConcreteFun*[] allConcreteFuns) {
@@ -49,12 +51,10 @@ Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonF
 	while (!mutArrIsEmpty(toPropagate)) {
 		ConcreteFun* fun = mustPop(toPropagate);
 		eachValueForKey!(immutable ConcreteFun*, immutable ConcreteFun*)(calledBy, fun, (immutable ConcreteFun* caller) {
-			add(caller);
+			if (caller != commonFuns.runFiber)
+				add(caller);
 		});
 	}
-
-	// This function is special
-	mustSetMustDelete(res, commonFuns.runFiber);
 
 	return moveToSet!(immutable ConcreteFun*)(res);
 }
