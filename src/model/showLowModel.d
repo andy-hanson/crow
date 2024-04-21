@@ -12,13 +12,14 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ReferenceKind;
-import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
+import frontend.showModel : ShowCtx, writeLineAndColumn, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, mayYield, PrimitiveType;
 import model.model : Local;
 import util.col.array : only;
-import util.writer : Writer, writeWithCommas;
+import util.sourceRange : UriLineAndColumnRange;
 import util.util : stringOfEnum;
+import util.writer : Writer, writeWithCommas;
 
 void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
@@ -74,6 +75,12 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 			writer ~= ')';
 			if (mayYield(a))
 				writer ~= " may-yield";
+			writer ~= ' ';
+
+			UriLineAndColumnRange range = ctx.lineAndColumnGetters[x.range];
+			writer ~= range.uri;
+			writer ~= ' ';
+			writeLineAndColumn(writer, range.range.start);
 		},
 		(in LowFunSource.Generated) {
 			writer ~= "(generated)";

@@ -3,6 +3,7 @@ module lower.lower;
 @safe @nogc pure nothrow:
 
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
+import concretize.gatherInfo : existsDirectChildExpr;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateMarkVisitFun : getMarkRootForType, getMarkVisitForType, generateMarkRoot, generateMarkVisit, initMarkVisitFuns, MarkRoot, MarkVisitFuns;
 import lower.lowExprHelpers :
@@ -796,24 +797,26 @@ LowExpr genLetPossiblyGcRoot(
 	LowLocal* local,
 	LowExpr init,
 	ExprPos exprPos,
+	bool thenMayYield,
 	in LowExpr delegate(ExprPos) @safe @nogc pure nothrow cbThen,
 ) =>
-	genLetNoGcRoot(ctx.alloc, range, local, init, maybeAddGcRoot(ctx, range, local, exprPos, cbThen));
+	genLetNoGcRoot(ctx.alloc, range, local, init, maybeAddGcRoot(ctx, range, local, exprPos, thenMayYield, cbThen));
 
 LowExpr genLetTempPossiblyGcRoot(
 	ref GetLowExprCtx ctx,
 	ExprPos exprPos,
 	in UriAndRange range,
 	LowExpr value,
+	bool thenMayYield,
 	in LowExpr delegate(ExprPos, LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
 	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", nextTempLocalIndex(ctx), value.type);
-	return genLetPossiblyGcRoot(ctx, range, local, value, exprPos, (ExprPos inner) =>
+	return genLetPossiblyGcRoot(ctx, range, local, value, exprPos, thenMayYield, (ExprPos inner) =>
 		cbThen(inner, genLocalGet(range, local)));
 }
 
-LowExpr genSeqThenReturnFirstPossiblyGcRoot(ref GetLowExprCtx ctx, ExprPos exprPos, in UriAndRange range, LowExpr a, LowExpr b) =>
-	genLetTempPossiblyGcRoot(ctx, exprPos, range, a, (ExprPos inner, LowExpr getA) =>
+LowExpr genSeqThenReturnFirstPossiblyGcRoot(ref GetLowExprCtx ctx, ExprPos exprPos, in UriAndRange range, LowExpr a, LowExpr b, bool bMayYield) =>
+	genLetTempPossiblyGcRoot(ctx, exprPos, range, a, bMayYield, (ExprPos inner, LowExpr getA) =>
 		genSeq(ctx.alloc, range, b, handleExprPos(ctx, inner, getA)));
 
 LowExpr withPushAllGcRoots(
@@ -842,7 +845,7 @@ LowExpr genWithGcRootsRecur(
 ) =>
 	isEmpty(args)
 		? cb(exprPos, finish(ctx.alloc, argGetters))
-		: genLetTempPossiblyGcRoot(ctx, exprPos, range, args[0], (ExprPos inner, LowExpr getArg0) {
+		: genLetTempPossiblyGcRoot(ctx, exprPos, range, args[0], true, (ExprPos inner, LowExpr getArg0) {
 			add(ctx.alloc, argGetters, getArg0);
 			return genWithGcRootsRecur(ctx, inner, range, args[1 .. $], argGetters, cb);
 		});
@@ -853,9 +856,11 @@ LowExpr maybeAddGcRoot( // TODO: just merge into its only caller ???????????????
 	in UriAndRange range,
 	LowLocal* local,
 	ExprPos exprPos,
+	bool mayYield,
 	in LowExpr delegate(ExprPos) @safe @nogc pure nothrow cbThen,
 ) {
-	Opt!MarkRoot optMarkRoot = ctx.curFunIsYielding
+	if (mayYield) assert(ctx.curFunIsYielding);
+	Opt!MarkRoot optMarkRoot = mayYield
 		? getMarkRootForType(ctx.alloc, *ctx.lowFunCauses, *ctx.markVisitFuns, *ctx.allTypes, local.type)
 		: none!MarkRoot;
 	if (!has(optMarkRoot)) return cbThen(exprPos);
@@ -958,7 +963,7 @@ struct ExprPos {
 	}
 	Kind kind;
 
-	static ExprPos nonTailNoGcRoots() => ExprPos(0, Kind.nonTail);
+	static ExprPos nonTail() => ExprPos(0, Kind.nonTail);
 	static ExprPos loopNoGcRoots() => ExprPos(0, Kind.loop);
 	ExprPos withIncrNGcRoots() =>
 		ExprPos(nGcRootsToPop + 1, kind);
@@ -1045,7 +1050,7 @@ LowExpr getLowExprKind(
 			getFinallyExpr(ctx, exprPos, locals, range, type, x),
 		(ref ConcreteExprKind.If x) =>
 			LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.If(
-				getLowExpr(ctx, locals, x.cond, ExprPos.nonTailNoGcRoots),
+				getLowExpr(ctx, locals, x.cond, ExprPos.nonTail),
 				getLowExpr(ctx, locals, x.then, exprPos),
 				getLowExpr(ctx, locals, x.else_, exprPos))))),
 		(ConcreteExprKind.Lambda x) =>
@@ -1081,7 +1086,7 @@ LowExpr getLowExprKind(
 		(ref ConcreteExprKind.Seq x) =>
 			genSeq(
 				ctx.alloc, range,
-				getLowExpr(ctx, locals, x.first, ExprPos.nonTailNoGcRoots),
+				getLowExpr(ctx, locals, x.first, ExprPos.nonTail),
 				getLowExpr(ctx, locals, x.then, exprPos)),
 		(ref ConcreteExprKind.Throw x) =>
 			getThrowExpr(ctx, locals, range, type, x, exprPos),
@@ -1108,11 +1113,11 @@ LowExpr getAllocateExpr(
 	genPointerCast(alloc, ptrType, range, genCallNoGcRoots(alloc, anyPtrMutType, range, allocFunIndex, [size]));
 
 LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, in Locals locals, UriAndRange range, ref ConcreteExprKind.Alloc a) {
-	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTailNoGcRoots);
-	return getAllocExpr2(ctx, exprPos, getLowGcPtrType(ctx.typeCtx, arg.type), range, arg);
+	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
+	return getAllocExpr2(ctx, exprPos, getLowGcPtrType(ctx.typeCtx, arg.type), range, arg, expressionMayYield(ctx, a.arg));
 }
 
-LowExpr getAllocExpr2(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAndRange range, LowExpr arg) => // TODO: just roll into getAllocExpr2Expr?
+LowExpr getAllocExpr2(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAndRange range, LowExpr arg, bool argMayYield) => // TODO: just roll into getAllocExpr2Expr?
 	isEmptyType(*ctx.allTypes, arg.type)
 		? handleExprPos(ctx, exprPos, mayHaveSideEffects(arg)
 			? genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg), genZeroed(type, range))
@@ -1124,6 +1129,7 @@ LowExpr getAllocExpr2(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriA
 			getAllocateExpr(
 				ctx.alloc, ctx.commonFuns.alloc, range, type,
 				genSizeOf(*ctx.allTypes, range, asPtrGcPointee(type))), // TODO: asPtrGcPointee(type) is just arg.type? -------
+			argMayYield,			
 			(ExprPos inner, LowExpr getPtr) => genSeq(ctx.alloc, range, genWriteToPointer(ctx.alloc, range, getPtr, arg), handleExprPos(ctx, inner, getPtr)));
 
 // TODO: this should probably part of the expression 'type'
@@ -1175,7 +1181,7 @@ LowExpr getCallRegular(
 		ctx.hasTailRecur = true;
 		ArrayBuilder!UpdateParam updateParams;
 		zipPtrFirst(ctx.lowParams, args, (LowLocal* param, ref ConcreteExpr concreteArg) {
-			LowExpr arg = getLowExpr(ctx, locals, concreteArg, ExprPos.nonTailNoGcRoots);
+			LowExpr arg = getLowExpr(ctx, locals, concreteArg, ExprPos.nonTail);
 			if (!(arg.kind.isA!(LowExprKind.LocalGet) && arg.kind.as!(LowExprKind.LocalGet).local == param))
 				add(ctx.alloc, updateParams, UpdateParam(param, arg));
 		});
@@ -1184,7 +1190,7 @@ LowExpr getCallRegular(
 		return withPushAllGcRoots(
 			ctx, exprPos, range, ctx.curFunIsYielding && ctx.concreteProgram.yieldingFuns.has(concreteCalled),
 			map!(LowExpr, ConcreteExpr)(ctx.alloc, args, (ref ConcreteExpr x) =>
-				getLowExpr(ctx, locals, x, ExprPos.nonTailNoGcRoots)),
+				getLowExpr(ctx, locals, x, ExprPos.nonTail)),
 			(ExprPos inner, LowExpr[] args) =>
 				handleExprPos(ctx, inner, genCallNoGcRoots(type, range, called, args)));
 }
@@ -1202,20 +1208,20 @@ LowExpr getCallSpecial(
 			getCallBuiltinExpr(ctx, locals, type, range, called, args, x.kind),
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
-		(ConcreteFunBody.CreateRecord) {
+		(ConcreteFunBody.CreateRecord) { // TODO: Just Make this a ConcreteExpr, not a special ConcreteFunBody .........................
 			if (isEmptyType(*ctx.allTypes, type))
 				return genZeroed(type, range);
 			else {
 				LowExprKind create = LowExprKind(LowExprKind.CreateRecord(getArgs(ctx, locals, args))); // TODO: same issue with args... need to have GC roots for non-last args
 				return type.isA!(LowType.PtrGc)
-					? getAllocExpr2(ctx, ExprPos.nonTailNoGcRoots, type, range, LowExpr(asPtrGcPointee(type), range, create))
+					? getAllocExpr2(ctx, ExprPos.nonTail, type, range, LowExpr(asPtrGcPointee(type), range, create), false)
 					: LowExpr(type, range, create);
 			}
 		},
 		(ConcreteFunBody.CreateUnion x) {
 			LowExpr arg = isEmpty(args)
 				? genVoid(range)
-				: getLowExpr(ctx, locals, only(args), ExprPos.nonTailNoGcRoots);
+				: getLowExpr(ctx, locals, only(args), ExprPos.nonTail);
 			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(x.memberIndex, arg))));
 		},
 		(EnumFunction x) =>
@@ -1233,7 +1239,7 @@ LowExpr getCallSpecial(
 						ctx.alloc,
 						range,
 						x.allValue,
-						getLowExpr(ctx, locals, only(args), ExprPos.nonTailNoGcRoots));
+						getLowExpr(ctx, locals, only(args), ExprPos.nonTail));
 				case FlagsFunction.new_:
 					return genConstantIntegral(type, range, 0);
 			}
@@ -1252,16 +1258,16 @@ LowExpr getCallSpecial(
 			// target.x := value
 			// pop-gc-root
 			return LowExpr(voidType, range, LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldSet(
-				getLowExpr(ctx, locals, args[0], ExprPos.nonTailNoGcRoots), // TODO: Wait, this actually needs to be a GC root! ---------------------
+				getLowExpr(ctx, locals, args[0], ExprPos.nonTail), // TODO: Wait, this actually needs to be a GC root! ---------------------
 				x.fieldIndex,
-				getLowExpr(ctx, locals, args[1], ExprPos.nonTailNoGcRoots)))));
+				getLowExpr(ctx, locals, args[1], ExprPos.nonTail)))));
 		},
 		(ConcreteFunBody.VarGet x) =>
 			LowExpr(type, range, LowExprKind(LowExprKind.VarGet(mustGet(ctx.varIndices, x.var)))),
 		(ConcreteFunBody.VarSet x) =>
 			LowExpr(type, range, LowExprKind(LowExprKind.VarSet(
 				mustGet(ctx.varIndices, x.var),
-				allocate(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTailNoGcRoots))))));
+				allocate(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail))))));
 
 LowExpr getRecordFieldCall(
 	ref GetLowExprCtx ctx,
@@ -1279,13 +1285,13 @@ LowExpr getRecordFieldCall(
 			case 1:
 				return genVoid(range);
 			case 2:
-				return getLowExpr(ctx, locals, args[1], ExprPos.nonTailNoGcRoots);
+				return getLowExpr(ctx, locals, args[1], ExprPos.nonTail);
 			default:
 				return LowExpr(
 					lowTypeFromConcreteType(ctx.typeCtx, body_.argType),
 					range,
 					LowExprKind(LowExprKind.CreateRecord(map(ctx.alloc, args[1 .. $], (ref ConcreteExpr arg) =>
-						getLowExpr(ctx, locals, arg, ExprPos.nonTailNoGcRoots))))); // TODO: the usual problem with args ...........................
+						getLowExpr(ctx, locals, arg, ExprPos.nonTail))))); // TODO: the usual problem with args ...........................
 		}
 	}();
 	ConcreteFun* caller = body_.caller;
@@ -1294,13 +1300,13 @@ LowExpr getRecordFieldCall(
 		return genCallNoGcRoots(ctx.alloc, type, range, force(opCalled), [fun, arg]); // TODO: the usual problem with args.... -------------------------------
 	else {
 		assert(caller.body_.as!(ConcreteFunBody.Builtin).kind.isA!(BuiltinFun.CallFunPointer));
-		return callFunPointerInner(ctx, ExprPos.nonTailNoGcRoots, locals, range, type, fun, arg);
+		return callFunPointerInner(ctx, ExprPos.nonTail, locals, range, type, fun, arg);
 	}
 }
 
 LowExpr getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, LowType type, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.RecordFieldGet(
-		allocate(ctx.alloc, getLowExpr(ctx, locals, record, ExprPos.nonTailNoGcRoots)),
+		allocate(ctx.alloc, getLowExpr(ctx, locals, record, ExprPos.nonTail)),
 		fieldIndex)));
 
 LowExpr genFlagsNegate(ref Alloc alloc, UriAndRange range, ulong allValue, LowExpr a) =>
@@ -1314,8 +1320,8 @@ LowExpr genEnumFunction(
 	EnumFunction a,
 	in ConcreteExpr[] args,
 ) {
-	LowExpr arg0() { return getLowExpr(ctx, locals, args[0], ExprPos.nonTailNoGcRoots); }
-	LowExpr arg1() { return getLowExpr(ctx, locals, args[1], ExprPos.nonTailNoGcRoots); }
+	LowExpr arg0() { return getLowExpr(ctx, locals, args[0], ExprPos.nonTail); }
+	LowExpr arg1() { return getLowExpr(ctx, locals, args[1], ExprPos.nonTail); }
 	final switch (a) {
 		case EnumFunction.equal:
 			assert(args.length == 2);
@@ -1337,7 +1343,7 @@ LowExpr genEnumFunction(
 
 LowExpr[] getArgs(ref GetLowExprCtx ctx, in Locals locals, in ConcreteExpr[] args) =>
 	map(ctx.alloc, args, (ref ConcreteExpr arg) =>
-		getLowExpr(ctx, locals, arg, ExprPos.nonTailNoGcRoots)); // TODO: THE USUAL PROBLEM WITH ARGS ----------------------
+		getLowExpr(ctx, locals, arg, ExprPos.nonTail)); // TODO: THE USUAL PROBLEM WITH ARGS ----------------------
 
 LowExpr callFunPointer(
 	ref GetLowExprCtx ctx,
@@ -1347,8 +1353,8 @@ LowExpr callFunPointer(
 	LowType type,
 	ConcreteExpr[2] funPtrAndArg,
 ) {
-	LowExpr funPtr = getLowExpr(ctx, locals, funPtrAndArg[0], ExprPos.nonTailNoGcRoots);
-	LowExpr arg = getLowExpr(ctx, locals, funPtrAndArg[1], ExprPos.nonTailNoGcRoots);
+	LowExpr funPtr = getLowExpr(ctx, locals, funPtrAndArg[0], ExprPos.nonTail);
+	LowExpr arg = getLowExpr(ctx, locals, funPtrAndArg[1], ExprPos.nonTail);
 	return callFunPointerInner(ctx, exprPos, locals, range, type, funPtr, arg);
 }
 
@@ -1361,24 +1367,24 @@ LowExpr callFunPointerInner(
 	LowExpr funPtr,
 	LowExpr arg,
 ) {
-	LowExpr doCall(ExprPos inner, LowExpr getFunPtr, SmallArray!LowExpr args) =>
+	LowExpr doCall(LowExpr getFunPtr, SmallArray!LowExpr args) =>
 		handleExprPos(ctx, exprPos, LowExpr(type, range, LowExprKind(LowExprKind.CallFunPointer(allocate(ctx.alloc, getFunPtr), args))));
 	Opt!(LowType[]) optArgTypes = tryUnpackTuple(ctx.alloc, ctx.allTypes.allRecords, arg.type);
 	if (has(optArgTypes)) {
 		LowType[] argTypes = force(optArgTypes);
 		return arg.kind.isA!(LowExprKind.CreateRecord)
-			? doCall(exprPos, funPtr, small!LowExpr(arg.kind.as!(LowExprKind.CreateRecord).args))
+			? doCall(funPtr, small!LowExpr(arg.kind.as!(LowExprKind.CreateRecord).args))
 			: argTypes.length == 0
 			// Making sure the side effect order is function then arg
 			? genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
-				genSeq(ctx.alloc, range, arg, doCall(exprPos, getFunPointer, emptySmallArray!LowExpr)))
+				genSeq(ctx.alloc, range, arg, doCall(getFunPointer, emptySmallArray!LowExpr)))
 			: genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
-				genLetTempPossiblyGcRoot(ctx, exprPos, range, arg, (ExprPos inner, LowExpr getArg) =>
-					doCall(inner, getFunPointer, mapWithIndex!(LowExpr, LowType)(
+				genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg, (LowExpr getArg) => // TODO: I'm assuming a function pointer is always to 'bare' code that does not yield
+					doCall(getFunPointer, mapWithIndex!(LowExpr, LowType)(
 						ctx.alloc, small!LowType(argTypes), (size_t argIndex, ref LowType argType) =>
 							genRecordFieldGet(ctx.alloc, range, getArg, argType, argIndex)))));
 	} else
-		return doCall(exprPos, funPtr, newSmallArray!LowExpr(ctx.alloc, [arg]));
+		return doCall(funPtr, newSmallArray!LowExpr(ctx.alloc, [arg]));
 }
 
 LowExpr getCallBuiltinExpr(
@@ -1390,7 +1396,7 @@ LowExpr getCallBuiltinExpr(
 	in ConcreteExpr[] args,
 	BuiltinFun kind,
 ) {
-	LowExpr getArg(ref ConcreteExpr arg, ExprPos argPos = ExprPos.nonTailNoGcRoots) =>
+	LowExpr getArg(ref ConcreteExpr arg, ExprPos argPos = ExprPos.nonTail) =>
 		getLowExpr(ctx, locals, arg, argPos);
 	LowExpr getArg0() =>
 		getArg(args[0]);
@@ -1428,7 +1434,7 @@ LowExpr getCallBuiltinExpr(
 		(BuiltinFun.CallLambda) =>
 			assert(false), // handled in concretize
 		(BuiltinFun.CallFunPointer) =>
-			callFunPointer(ctx, ExprPos.nonTailNoGcRoots, locals, range, type, only2(args)), // TODO: should pass outer exprPos down too here
+			callFunPointer(ctx, ExprPos.nonTail, locals, range, type, only2(args)), // TODO: should pass outer exprPos down too here
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
 		(BuiltinFun.InitConstants) =>
@@ -1506,13 +1512,13 @@ LowExpr genBuiltinBinaryLazy( // TODO: this should take exprPos as an arg. Or ju
 		case BuiltinBinaryLazy.boolOr:
 			return genIf(ctx.alloc, range, arg0, genTrue(range), arg1);
 		case BuiltinBinaryLazy.optionOr:
-			return genOptionOrLike(ctx, ExprPos.nonTailNoGcRoots, range, arg0, arg1, (LowExpr x) => x);
+			return genOptionOrLike(ctx, ExprPos.nonTail, range, arg0, arg1, (LowExpr x) => x);
 		case BuiltinBinaryLazy.optionQuestion2:
-			return genOptionOrLike(ctx, ExprPos.nonTailNoGcRoots, range, arg0, arg1, (LowExpr x) =>
+			return genOptionOrLike(ctx, ExprPos.nonTail, range, arg0, arg1, (LowExpr x) =>
 				genUnionAs(type, range, allocate(ctx.alloc, x), 1));
 	}
 }
-LowExpr genOptionOrLike(
+LowExpr genOptionOrLike( // TODO: this should be handled by concretize ------------------------------------------------------------------
 	ref GetLowExprCtx ctx,
 	ExprPos exprPos,
 	UriAndRange range,
@@ -1521,8 +1527,8 @@ LowExpr genOptionOrLike(
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbArg0NonEmpty,
 ) =>
 	// x = arg0; x.kind == 1 ? cbArg0NonEmpty(x) : arg1
-	genLetTempPossiblyGcRoot(ctx, exprPos, range, arg0, (ExprPos inner, LowExpr getArg0) =>
-		handleExprPos(ctx, inner, genIf(ctx.alloc, range, genUnionKindEquals(ctx.alloc, range, getArg0, 1), cbArg0NonEmpty(getArg0), arg1)));
+	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getArg0) =>
+		handleExprPos(ctx, exprPos, genIf(ctx.alloc, range, genUnionKindEquals(ctx.alloc, range, getArg0, 1), cbArg0NonEmpty(getArg0), arg1)));
 
 LowExpr getCreateArrayExpr(
 	ref GetLowExprCtx ctx,
@@ -1547,13 +1553,14 @@ LowExpr getCreateArrayExpr(
 	LowExpr nElements = genConstantNat64(range, a.args.length);
 	LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
 	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.commonFuns.alloc, range, elementPtrType, sizeBytes);
-	return genLetTempPossiblyGcRoot(ctx, exprPos, range, allocatePtr, (ExprPos inner, LowExpr getPtr) {
+	bool argsMayYield = exists2!ConcreteExpr(a.args, (ref ConcreteExpr x) => expressionMayYield(ctx, x));
+	return genLetTempPossiblyGcRoot(ctx, exprPos, range, allocatePtr, argsMayYield, (ExprPos inner, LowExpr getPtr) {
 		LowExpr recur(LowExpr cur, size_t prevIndex) { // TODO: use applyNTimes? -------------------------------------------------------
 			if (prevIndex == 0)
 				return handleExprPos(ctx, inner, cur);
 			else {
 				size_t index = prevIndex - 1;
-				LowExpr arg = getLowExpr(ctx, locals, a.args[index], ExprPos.nonTailNoGcRoots);
+				LowExpr arg = getLowExpr(ctx, locals, a.args[index], ExprPos.nonTail);
 				LowExpr elementPtr = genAddPointer(
 					ctx.alloc,
 					elementPtrType.as!(LowType.PtrRawConst),
@@ -1569,13 +1576,13 @@ LowExpr getCreateArrayExpr(
 }
 
 LowExpr getDropExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.Drop a) =>
-	genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTailNoGcRoots));
+	genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTail));
 
 LowExpr getLambdaExpr(ref GetLowExprCtx ctx, in Locals locals, LowType type, UriAndRange range, in ConcreteExprKind.Lambda a) =>
 	LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(
 		a.memberIndex,
 		has(a.closure)
-			? getLowExpr(ctx, locals, *force(a.closure), ExprPos.nonTailNoGcRoots)
+			? getLowExpr(ctx, locals, *force(a.closure), ExprPos.nonTail)
 			: genVoid(range)))));
 
 LowExpr getLetExpr(
@@ -1599,15 +1606,21 @@ LowExpr genLetHandleAllocated(
 	ref ConcreteExpr concreteThen,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbModifyThen,
 ) {
-	LowExpr valueByVal = getLowExpr(ctx, locals, concreteValue, ExprPos.nonTailNoGcRoots);
+	LowExpr valueByVal = getLowExpr(ctx, locals, concreteValue, ExprPos.nonTail);
+	LowExpr value = concreteLocal.isAllocated
+		? getAllocExpr2(ctx, ExprPos.nonTail, getLowGcPtrType(ctx.typeCtx, valueByVal.type), range, valueByVal, expressionMayYield(ctx, concreteValue))
+		: valueByVal;
 	return withLowLocal!LowExpr(ctx, locals, concreteLocal, (in Locals innerLocals, LowLocal* local) =>
-		LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
-			local,
-			concreteLocal.isAllocated
-				? getAllocExpr2(ctx, ExprPos.nonTailNoGcRoots, getLowGcPtrType(ctx.typeCtx, valueByVal.type), range, valueByVal)
-				: valueByVal,
-			cbModifyThen(getLowExpr(ctx, innerLocals, concreteThen, exprPos)))))));
+		genLetPossiblyGcRoot(ctx, range, local, value, exprPos, expressionMayYield(ctx, concreteThen), (ExprPos inner) =>
+			cbModifyThen(getLowExpr(ctx, innerLocals, concreteThen, inner))));
 }
+
+// TODO:PERF Invoking this on each expression takes O(n), so on every takes O(n^2).
+// To make that more efficient, we could compute a set of all yielding expressions when we init the GetLowExprCtx. --------------------------------------------------------------------------------
+bool expressionMayYield(in GetLowExprCtx ctx, in ConcreteExpr a) =>
+	ctx.curFunIsYielding && (
+		(a.kind.isA!(ConcreteExprKind.Call) && ctx.concreteProgram.yieldingFuns.has(a.kind.as!(ConcreteExprKind.Call).called)) ||
+		existsDirectChildExpr(a, (ref ConcreteExpr child) => expressionMayYield(ctx, child)));
 
 LowExpr getLocalGetExpr(
 	ref GetLowExprCtx ctx,
@@ -1642,7 +1655,7 @@ LowExpr getLocalSetExpr(
 	ref ConcreteExprKind.LocalSet a,
 ) {
 	LowLocal* local = getLocal(ctx, locals, a.local);
-	LowExpr value = getLowExpr(ctx, locals, a.value, ExprPos.nonTailNoGcRoots);
+	LowExpr value = getLowExpr(ctx, locals, a.value, ExprPos.nonTail);
 	return a.local.isAllocated
 		? genWriteToPointer(ctx.alloc, range, genLocalGet(range, local), value)
 		: genLocalSet(ctx.alloc, range, local, value);
@@ -1657,7 +1670,7 @@ LowExpr getMatchIntegralExpr(
 	ref ConcreteExprKind.MatchEnumOrIntegral a,
 ) =>
 	LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Switch(
-		value: getLowExpr(ctx, locals, a.matched, ExprPos.nonTailNoGcRoots),
+		value: getLowExpr(ctx, locals, a.matched, ExprPos.nonTail),
 		caseValues: a.caseValues,
 		caseExprs: map!(LowExpr, ConcreteExpr)(ctx.alloc, a.caseExprs, (ref ConcreteExpr case_) =>
 			getLowExpr(ctx, locals, case_, exprPos)),
@@ -1671,7 +1684,7 @@ LowExpr withLetTempNoGcRoot(
 	ref ConcreteExpr expr,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cb,
 ) =>
-	genLetTempNoGcRoot(ctx.alloc, expr.range, nextTempLocalIndex(ctx), getLowExpr(ctx, locals, expr, ExprPos.nonTailNoGcRoots), cb);
+	genLetTempNoGcRoot(ctx.alloc, expr.range, nextTempLocalIndex(ctx), getLowExpr(ctx, locals, expr, ExprPos.nonTail), cb);
 
 LowExpr getMatchStringLikeExpr(
 	ref GetLowExprCtx ctx,
@@ -1689,7 +1702,7 @@ LowExpr getMatchStringLikeExpr(
 				genIf(
 					ctx.alloc,
 					range,
-					getCallEquals(ctx, range, a.equals, matched, getLowExpr(ctx, locals, case_.value, ExprPos.nonTailNoGcRoots)),
+					getCallEquals(ctx, range, a.equals, matched, getLowExpr(ctx, locals, case_.value, ExprPos.nonTail)),
 					getLowExpr(ctx, locals, case_.then, exprPos),
 					else_)));
 
@@ -1735,7 +1748,8 @@ SmallArray!LowExpr lowerMatchCases(
 							local.type, range, getMatched,
 							safeToUint(memberIndices[caseIndex].asUnsigned)),
 						exprPos,
-						(ExprPos inner) => getLowExpr(ctx, newLocals, case_.then, exprPos)))
+						expressionMayYield(ctx, case_.then),
+						(ExprPos inner) => getLowExpr(ctx, newLocals, case_.then, inner)))
 				: getLowExpr(ctx, locals, case_.then, exprPos)));
 
 LowExpr getClosureCreateExpr(
@@ -1788,7 +1802,7 @@ LowExpr getClosureSetExpr(
 		ctx.alloc,
 		range,
 		getClosureField(ctx, range, a.closureRef),
-		getLowExpr(ctx, locals, a.value, ExprPos.nonTailNoGcRoots));
+		getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
 
 // NOTE: This does not dereference pointer for mutAllocated, getClosureGetExpr will do that
 LowExpr getClosureField(ref GetLowExprCtx ctx, UriAndRange range, ConcreteClosureRef closureRef) {
@@ -1808,7 +1822,7 @@ LowExpr getPtrToFieldExpr(
 	size_t fieldIndex,
 ) =>
 	LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
-		LowExprKind.PtrToField(getLowExpr(ctx, locals, target, ExprPos.nonTailNoGcRoots), fieldIndex))));
+		LowExprKind.PtrToField(getLowExpr(ctx, locals, target, ExprPos.nonTail), fieldIndex))));
 
 LowExpr getThrowExpr(
 	ref GetLowExprCtx ctx,
@@ -1820,7 +1834,7 @@ LowExpr getThrowExpr(
 ) {
 	// Since we are throwing an exception, don't worry about popping GC roots since 'catch' should restore it.
 	LowExpr callThrow = genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.throwImpl, [
-		getLowExpr(ctx, locals, a.thrown, ExprPos.nonTailNoGcRoots)]);
+		getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)]);
 	LowExpr res = type == voidType ? callThrow : genSeq(ctx.alloc, range, callThrow, genZeroed(type, range));
 	return exprPos.kind == ExprPos.Kind.loop ? genLoopBreak(ctx.alloc, type, range, res) : res;
 }
@@ -1858,7 +1872,7 @@ LowExpr getFinallyExpr(
 		LowLocal* err = genLocal(ctx.alloc, symbol!"err", nextTempLocalIndex(ctx), boolType);
 		LowExpr res = genSetjmp(
 			ctx, range,
-			getLowExpr(ctx, locals, a.below, ExprPos.nonTailNoGcRoots),
+			getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
 			genSeq(
 				ctx.alloc, range,
 				genLocalSet(ctx.alloc, range, err, genTrue(range)),
@@ -1866,12 +1880,12 @@ LowExpr getFinallyExpr(
 		LowExpr afterRes = genSeq(
 			ctx.alloc, range,
 			restoreCurJmpBuf,
-			getLowExpr(ctx, locals, a.right, ExprPos.nonTailNoGcRoots),
+			getLowExpr(ctx, locals, a.right, ExprPos.nonTail),
 			genIf(ctx.alloc, range, genLocalGet(range, err), genRethrowCurrentException(ctx, range), genVoid(range)));
 		return genLetNoGcRoot(
 			ctx.alloc, range, err,
 			genFalse(range),
-			genSeqThenReturnFirstPossiblyGcRoot(ctx, exprPos, range, res, afterRes));
+			genSeqThenReturnFirstPossiblyGcRoot(ctx, exprPos, range, res, afterRes, expressionMayYield(ctx, a.right)));
 	});
 
 LowExpr getTryExpr(
@@ -1908,7 +1922,7 @@ LowExpr getTryLetExpr(
 					(LowExpr then) => genSeq(ctx.alloc, range, restoreCurJmpBuf, then))
 				: genSeq(
 					ctx.alloc, range,
-					genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.value, ExprPos.nonTailNoGcRoots)),
+					genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.value, ExprPos.nonTail)),
 					restoreCurJmpBuf,
 					getLowExpr(ctx, locals, a.then, exprPos)));
 
@@ -1953,7 +1967,7 @@ LowExpr getTryOrTryLetExpr(
 					genRethrowCurrentException(ctx, range),
 					// 'abort' is just to keep this well-typed
 					genAbort(type, range))))));
-		LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, matchThrown);
+		LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, matchThrown); // TODO: also restore gc-root here!!!!!!!!
 		return genSetjmp(ctx, range, firstBlock(restoreCurJmpBuf), onError);
 	});
 

@@ -16,7 +16,7 @@ import model.concreteModel :
 import model.constant : Constant;
 import model.model : BuiltinBinary, BuiltinFun, EnumFunction, FlagsFunction;
 import util.alloc.alloc : Alloc;
-import util.col.array : mustFind, only2;
+import util.col.array : exists2, mustFind, only2;
 import util.col.map : mustGet;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
@@ -97,100 +97,83 @@ void getCalledByRecur(ref Alloc alloc, ref CalledBy res, ConcreteFun* f, ref Con
 	// TODO: this ignores Alloc calling an alloc function, or Throw calling a throw function. But those don't yield so it doesn't matter?
 	if (expr.kind.isA!(ConcreteExprKind.Call))
 		add(alloc, res, expr.kind.as!(ConcreteExprKind.Call).called, f);
-	eachDirectChildExpr(expr, (ref ConcreteExpr child) {
+	existsDirectChildExpr(expr, (ref ConcreteExpr child) {
 		getCalledByRecur(alloc, res, f, child);
+		return false;
 	});
 }
 
-void eachDirectChildExpr(ref ConcreteExpr a, in void delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) {
-	void cbEach(ConcreteExpr[] args) {
-		foreach (ref ConcreteExpr arg; args)
-			cb(arg);
-	}
-	a.kind.matchWithPointers!void(
+public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) => // TODO: MOVE
+	a.kind.matchWithPointers!bool(
 		(ConcreteExprKind.Alloc* x) =>
 			cb(x.arg),
 		(ConcreteExprKind.Call x) =>
-			cbEach(x.args),
-		(ConcreteExprKind.ClosureCreate x) {},
-		(ConcreteExprKind.ClosureGet* x) {},
+			exists2!ConcreteExpr(x.args, cb),
+		(ConcreteExprKind.ClosureCreate x) =>
+			false,
+		(ConcreteExprKind.ClosureGet* x) =>
+			false,
 		(ConcreteExprKind.ClosureSet* x) =>
 			cb(x.value),
-		(Constant x) {},
+		(Constant x) =>
+			false,
 		(ConcreteExprKind.CreateArray x) =>
-			cbEach(x.args),
+			exists2!ConcreteExpr(x.args, cb),
 		(ConcreteExprKind.CreateRecord x) =>
-			cbEach(x.args),
+			exists2!ConcreteExpr(x.args, cb),
 		(ConcreteExprKind.CreateUnion* x) =>
 			cb(x.arg),
 		(ConcreteExprKind.Drop* x) =>
 			cb(x.arg),
-		(ConcreteExprKind.Finally* x) {
-			cb(x.right);
-			cb(x.below);
-		},
-		(ConcreteExprKind.If* x) {
-			cb(x.cond);
-			cb(x.then);
-			cb(x.else_);
-		},
-		(ConcreteExprKind.Lambda x) {},
-		(ConcreteExprKind.Let* x) {
-			cb(x.value);
-			cb(x.then);
-		},
-		(ConcreteExprKind.LocalGet) {},
+		(ConcreteExprKind.Finally* x) =>
+			cb(x.right) || cb(x.below),
+		(ConcreteExprKind.If* x) =>
+			cb(x.cond) || cb(x.then) || cb(x.else_),
+		(ConcreteExprKind.Lambda x) =>
+			false,
+		(ConcreteExprKind.Let* x) =>
+			cb(x.value) || cb(x.then),
+		(ConcreteExprKind.LocalGet) =>
+			false,
 		(ConcreteExprKind.LocalSet* x) =>
 			cb(x.value),
 		(ConcreteExprKind.Loop* x) =>
 			cb(x.body_),
 		(ConcreteExprKind.LoopBreak* x) =>
 			cb(x.value),
-		(ConcreteExprKind.LoopContinue) {},
-		(ConcreteExprKind.MatchEnumOrIntegral* x) {
-			cb(x.matched);
-			cbEach(x.caseExprs);
-			if (has(x.else_))
-				cb(*force(x.else_));
-		},
-		(ConcreteExprKind.MatchStringLike* x) {
-			cb(x.matched);
-			foreach (ConcreteExprKind.MatchStringLike.Case case_; x.cases) {
-				cb(case_.value);
-				cb(case_.then);
-			}
-			cb(x.else_);
-		},
-		(ConcreteExprKind.MatchUnion* x) {
-			cb(x.matched);
-			foreach (ConcreteExprKind.MatchUnion.Case case_; x.cases)
-				cb(case_.then);
-			if (has(x.else_))
-				cb(*force(x.else_));
-		},
+		(ConcreteExprKind.LoopContinue) =>
+			false,
+		(ConcreteExprKind.MatchEnumOrIntegral* x) =>
+			cb(x.matched) ||
+			exists2!ConcreteExpr(x.caseExprs, cb) ||
+			(has(x.else_) && cb(*force(x.else_))),
+		(ConcreteExprKind.MatchStringLike* x) =>
+			cb(x.matched) ||
+			exists2!(ConcreteExprKind.MatchStringLike.Case)(x.cases, (ref ConcreteExprKind.MatchStringLike.Case case_) =>
+				cb(case_.value) || cb(case_.then)) ||
+			cb(x.else_),
+		(ConcreteExprKind.MatchUnion* x) =>
+			cb(x.matched) ||
+			exists2!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)) ||
+			(has(x.else_) && cb(*force(x.else_))),
 		(ConcreteExprKind.PtrToField* x) =>
 			cb(x.target),
-		(ConcreteExprKind.PtrToLocal) {},
+		(ConcreteExprKind.PtrToLocal) =>
+			false,
 		(ConcreteExprKind.RecordFieldGet x) =>
 			cb(*x.record),
-		(ConcreteExprKind.Seq* x) {
-			cb(x.first);
-			cb(x.then);
-		},
+		(ConcreteExprKind.Seq* x) =>
+			cb(x.first) || cb(x.then),
 		(ConcreteExprKind.Throw* x) =>
 			cb(x.thrown),
-		(ConcreteExprKind.Try* x) {
-			cb(x.tried);
-			foreach (ConcreteExprKind.MatchUnion.Case case_; x.catchCases)
-				cb(case_.then);
-		},
-		(ConcreteExprKind.TryLet* x) {
-			cb(x.value);
-			cb(x.catch_.then);
-			cb(x.then);
-		},
+		(ConcreteExprKind.Try* x) =>
+			cb(x.tried) ||
+			exists2!(ConcreteExprKind.MatchUnion.Case)(x.catchCases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)),
+		(ConcreteExprKind.TryLet* x) =>
+			cb(x.value) || cb(x.catch_.then) || cb(x.then),
 		(ConcreteExprKind.UnionAs x) =>
 			cb(*x.union_),
 		(ConcreteExprKind.UnionKind x) =>
 			cb(*x.union_));
-}

@@ -7,7 +7,7 @@ import
 	../pointer: pointer-cast, zeroed
 	../result: error, ok, result
 	../version: is-interpreted, is-windows
-	./alloc: try-get-cur-gc-ctx
+	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap: abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
 export
@@ -36,6 +36,7 @@ rethrow-current-exception void() bare, unsafe
 
 +catch-all[t] (t, exception-and-backtrace) result(tried t mut())
 	trusted
+		old-gc-root = gc-root
 		old-jmp-buf = cur-jmp-buf
 		store mut __jmp_buf_tag = ()
 		setjmp-result = if is-interpreted
@@ -53,6 +54,7 @@ rethrow-current-exception void() bare, unsafe
 			res ok
 		else
 			cur-jmp-buf := old-jmp-buf
+			gc-root := old-gc-root
 			thrown = cur-thrown
 			cur-thrown := zeroed
 			backtrace = cur-backtrace
