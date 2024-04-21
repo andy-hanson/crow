@@ -71,6 +71,9 @@ immutable struct ConcreteType {
 	ReferenceKind reference;
 	ConcreteStruct* struct_;
 
+	static ConcreteType byVal(ConcreteStruct* struct_) =>
+		ConcreteType(ReferenceKind.byVal, struct_);
+
 	bool opEquals(scope ConcreteType b) scope =>
 		struct_ == b.struct_ && reference == reference;
 
@@ -255,12 +258,6 @@ immutable struct ConcreteFunBody {
 		ulong allValue;
 		FlagsFunction fn;
 	}
-	immutable struct RecordFieldCall {
-		size_t fieldIndex;
-		ConcreteStruct* funType;
-		ConcreteType argType;
-		ConcreteFun* caller;
-	}
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
 	}
@@ -283,7 +280,6 @@ immutable struct ConcreteFunBody {
 		Extern,
 		ConcreteExpr,
 		FlagsFn,
-		RecordFieldCall,
 		RecordFieldGet,
 		RecordFieldPointer,
 		RecordFieldSet,
@@ -447,12 +443,10 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr[] args;
 	}
 
-	// TODO: this is only used for 'safeValue'.
 	immutable struct CreateRecord {
 		ConcreteExpr[] args;
 	}
 
-	// Only used for 'safe-value', otherwise it goes through a function
 	immutable struct CreateUnion {
 		size_t memberIndex;
 		ConcreteExpr arg;
@@ -549,7 +543,6 @@ immutable struct ConcreteExprKind {
 		ConcreteLocal* local;
 	}
 
-	// Only used for destructuring.
 	immutable struct RecordFieldGet {
 		// This is always by-value
 		ConcreteExpr* record;

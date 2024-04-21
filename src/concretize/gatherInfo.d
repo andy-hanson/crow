@@ -82,9 +82,6 @@ CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFun
 				getCalledByRecur(alloc, res, fun, x);
 			},
 			(ConcreteFunBody.FlagsFn) {},
-			(ConcreteFunBody.RecordFieldCall x) {
-				add(alloc, res, x.caller, fun);
-			},
 			(ConcreteFunBody.RecordFieldGet) {},
 			(ConcreteFunBody.RecordFieldPointer) {},
 			(ConcreteFunBody.RecordFieldSet) {},

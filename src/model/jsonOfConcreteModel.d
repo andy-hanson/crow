@@ -175,11 +175,6 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 				kindField!"flags-fn",
 				field!"all"(x.allValue),
 				field!"name"(stringOfEnum(x.fn))]),
-		(in ConcreteFunBody.RecordFieldCall x) =>
-			jsonObject(alloc, [
-				kindField!"field-call",
-				field!"field-index"(x.fieldIndex),
-				field!"caller"(jsonOfConcreteFunRef(alloc, *x.caller))]),
 		(in ConcreteFunBody.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"field-get",

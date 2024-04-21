@@ -538,8 +538,6 @@ AllLowFuns getAllLowFuns(
 				some(addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
-			(ConcreteFunBody.RecordFieldCall) =>
-				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldPointer) =>
@@ -1244,8 +1242,6 @@ LowExpr getCallSpecial(
 					return genConstantIntegral(type, range, 0);
 			}
 		},
-		(ConcreteFunBody.RecordFieldCall x) =>
-			getRecordFieldCall(ctx, locals, type, range, args, x),
 		(ConcreteFunBody.RecordFieldGet x) =>
 			getRecordFieldGet(ctx, locals, type, range, only(args), x.fieldIndex),
 		(ConcreteFunBody.RecordFieldPointer x) =>
@@ -1268,41 +1264,6 @@ LowExpr getCallSpecial(
 			LowExpr(type, range, LowExprKind(LowExprKind.VarSet(
 				mustGet(ctx.varIndices, x.var),
 				allocate(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail))))));
-
-LowExpr getRecordFieldCall(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	LowType type,
-	UriAndRange range,
-	in ConcreteExpr[] args,
-	in ConcreteFunBody.RecordFieldCall body_,
-) {
-	LowExpr fun = getRecordFieldGet(ctx, locals, lowTypeFromConcreteStruct(ctx.typeCtx, body_.funType), range, args[0], body_.fieldIndex);
-	LowExpr arg = () {
-		switch (args.length) {
-			case 0:
-				assert(false);
-			case 1:
-				return genVoid(range);
-			case 2:
-				return getLowExpr(ctx, locals, args[1], ExprPos.nonTail);
-			default:
-				return LowExpr(
-					lowTypeFromConcreteType(ctx.typeCtx, body_.argType),
-					range,
-					LowExprKind(LowExprKind.CreateRecord(map(ctx.alloc, args[1 .. $], (ref ConcreteExpr arg) =>
-						getLowExpr(ctx, locals, arg, ExprPos.nonTail))))); // TODO: the usual problem with args ...........................
-		}
-	}();
-	ConcreteFun* caller = body_.caller;
-	Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, caller);
-	if (has(opCalled))
-		return genCallNoGcRoots(ctx.alloc, type, range, force(opCalled), [fun, arg]); // TODO: the usual problem with args.... -------------------------------
-	else {
-		assert(caller.body_.as!(ConcreteFunBody.Builtin).kind.isA!(BuiltinFun.CallFunPointer));
-		return callFunPointerInner(ctx, ExprPos.nonTail, locals, range, type, fun, arg);
-	}
-}
 
 LowExpr getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, LowType type, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.RecordFieldGet(

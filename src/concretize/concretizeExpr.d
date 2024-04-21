@@ -1276,7 +1276,6 @@ Opt!Constant tryEvalConstant(
 				? some(x.kind.as!Constant)
 				: none!Constant,
 		(in ConcreteFunBody.FlagsFn) => none!Constant,
-		(in ConcreteFunBody.RecordFieldCall) => none!Constant,
 		(in ConcreteFunBody.RecordFieldGet) => none!Constant,
 		(in ConcreteFunBody.RecordFieldPointer) => none!Constant,
 		(in ConcreteFunBody.RecordFieldSet) => none!Constant,

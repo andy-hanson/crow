@@ -7,9 +7,9 @@ import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, Concret
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	genRecordFieldCall,
 	genSeq,
 	genStringLiteralKind,
-	getRecordFieldCall,
 	genUnionMemberGet,
 	unwrapOptionType;
 import frontend.storage : FileContentGetters;
@@ -780,22 +780,22 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				getAllFlagsValue(mustBeByVal(cf.returnType)),
 				it)),
 		(FunBody.RecordFieldCall x) =>
-			ConcreteFunBody(getRecordFieldCall(ctx, x.funKind, cf.paramsIncludingClosure[0].type, x.fieldIndex)),
-		(FunBody.RecordFieldGet it) =>
-			ConcreteFunBody(ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
+			genRecordFieldCall(ctx, cf, x),
+		(FunBody.RecordFieldGet x) =>
+			ConcreteFunBody(ConcreteFunBody.RecordFieldGet(x.fieldIndex)),
 		(FunBody.RecordFieldPointer x) =>
 			ConcreteFunBody(ConcreteFunBody.RecordFieldPointer(x.fieldIndex)),
 		(FunBody.RecordFieldSet it) =>
 			ConcreteFunBody(ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
 		(FunBody.UnionMemberGet x) =>
-			ConcreteFunBody(genUnionMemberGet(ctx, cf, x.memberIndex)),
+			genUnionMemberGet(ctx, cf, x.memberIndex),
 		(FunBody.VarGet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
 		(FunBody.VariantMemberGet x) =>
-			ConcreteFunBody(genUnionMemberGet(
+			genUnionMemberGet(
 				ctx, cf,
 				ensureVariantMember(
-					ctx, only(cf.paramsIncludingClosure).type, x.member, unwrapOptionType(ctx, cf.returnType)))),
+					ctx, only(cf.paramsIncludingClosure).type, x.member, unwrapOptionType(ctx, cf.returnType))),
 		(FunBody.VarSet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);

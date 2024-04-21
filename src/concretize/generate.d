@@ -33,11 +33,12 @@ import model.concreteModel :
 	ConcreteType,
 	mustBeByVal;
 import model.constant : Constant, constantBool, constantZero;
-import model.model : AutoFun, Called, EnumOrFlagsMember, FunKind, RecordField, StructBody, UnionMember;
+import model.model : AutoFun, Called, EnumOrFlagsMember, FunBody, FunKind, RecordField, StructBody, UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
 	map,
+	mapPointers,
 	mapWithIndex,
 	mapZipWithIndex,
 	newArray,
@@ -96,30 +97,44 @@ ConcreteExpr genVoid(ref ConcretizeCtx ctx, in UriAndRange range) =>
 ConcreteExpr genLocalGet(in UriAndRange range, ConcreteLocal* local) =>
 	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
 
-ConcreteFunBody.RecordFieldCall getRecordFieldCall(
-	ref ConcretizeCtx ctx,
-	FunKind funKind,
-	ConcreteType recordType,
-	size_t fieldIndex,
-) {
+ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunBody.RecordFieldCall body_) {
+	UriAndRange range = fun.range;
+	ConcreteExpr* recordArg = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &fun.paramsIncludingClosure[0]));
 	ConcreteStruct* fieldType = mustBeByVal(
-		recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
+		recordArg.type.struct_.body_.as!(ConcreteStructBody.Record).fields[body_.fieldIndex].type);
+	ConcreteExpr getFun = genRecordFieldGet(ConcreteType.byVal(fieldType), range, recordArg, body_.fieldIndex);
 	ConcreteType[] typeArgs = fieldType.source.as!(ConcreteStructSource.Inst).typeArgs;
 	assert(typeArgs.length == 2);
-	ConcreteFun* callFun = getConcreteFun(ctx, ctx.program.commonFuns.lambdaSubscript[funKind], typeArgs, []);
-	return ConcreteFunBody.RecordFieldCall(fieldIndex, fieldType, typeArgs[1], callFun);
+	ConcreteFun* callFun = getConcreteFun(ctx, ctx.program.commonFuns.lambdaSubscript[body_.funKind], typeArgs, []);
+	ConcreteExpr arg = () {
+		switch (fun.paramsIncludingClosure.length) {
+			case 0:
+				assert(false);
+			case 1:
+				return genVoid(ctx, range);
+			case 2:
+				return genParamGet(ctx.alloc, range, &fun.paramsIncludingClosure[1]);
+			default:
+				ConcreteExpr[] args = mapPointers(ctx.alloc, fun.paramsIncludingClosure[1 .. $], (ConcreteLocal* param) =>
+					genParamGet(ctx.alloc, range, param));
+				return ConcreteExpr(
+					callFun.paramsIncludingClosure[1].type, range,
+					ConcreteExprKind(ConcreteExprKind.CreateRecord(args)));
+		}
+	}();
+	return ConcreteFunBody(genCall(ctx.alloc, range, callFun, [getFun, arg]));
 }
 
-ConcreteExpr genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {
+ConcreteFunBody genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {
 	UriAndRange range = cf.range;
 	ConcreteExpr* param = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &only(cf.paramsIncludingClosure)));
 	ConcreteType memberType = unwrapOptionType(ctx, cf.returnType);
-	return genIf(
+	return ConcreteFunBody(genIf(
 		ctx.alloc,
 		range,
 		genEqualNat64(ctx, range, genUnionKind(ctx, range, param), genConstantNat64(ctx, range, memberIndex)),
 		genSome(ctx, range, cf.returnType, genUnionAs(memberType, range, param, memberIndex)),
-		genNone(ctx, range, cf.returnType));
+		genNone(ctx, range, cf.returnType)));
 }
 
 ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType returnType) {
