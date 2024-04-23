@@ -7,13 +7,13 @@ import
 	crow/parse: nat, parse, to
 	./db
 
-main nat^(_ string[]) summon
+main void() summon
 	with db : open-real-db
-		handler http-handler = shared req => (req handle-request db),
+		handler http-handler = shared req => req handle-request db
 		port nat16 = 8080
 		with _ : port http-server handler
 			out print "Serving at http://localhost:{port}; press enter to stop"
-			_ <- read-stdin
+			_ = read-stdin
 
 -handle-request http-response(req http-request, db db) summon
 	try

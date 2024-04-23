@@ -131,7 +131,7 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 		});
 }
 
-void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a) {
+public void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFunKey x) {
 			writer ~= x.decl.name;
@@ -180,7 +180,7 @@ void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStr
 					});
 					writer ~= ") ";
 			}
-			writer ~= x.inst.decl.name;
+			writer ~= x.decl.name;
 		},
 		(in ConcreteStructSource.Lambda x) {
 			writeConcreteFunName(writer, ctx, *x.containingFun);

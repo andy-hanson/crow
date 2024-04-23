@@ -86,6 +86,11 @@ which allows it to run in parallel.
 			res reject e
 	res
 
+# Like 'parallel', but does not return a future.
++new-exclusion record nominal
++with-block[t] t(_ new-exclusion, f t shared())
+	parallel with-block f await
+
 +later record nominal
 # Like 'parallel', but the block isn't 'shared', so it will run later with this same exclusion.
 +with-block[t] t future(_ later, f t mut()) t shared # TODO: 't shared' shouldn't be necessary ...........................

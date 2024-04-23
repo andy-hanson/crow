@@ -5,6 +5,7 @@ module concretize.generate;
 import concretize.allConstantsBuilder : getConstantArray;
 import concretize.concretizeCtx :
 	arrayElementType,
+	boolType,
 	char8ArrayType,
 	char32ArrayType,
 	ConcreteLambdaImpl,
@@ -60,6 +61,15 @@ import util.symbol : Symbol, symbol;
 import util.unicode : mustUnicodeDecode;
 import util.util : ptrTrustMe;
 
+ConcreteExpr genFalse(ref ConcretizeCtx ctx, UriAndRange range) =>
+	genBool(ctx, range, false);
+
+ConcreteExpr genTrue(ref ConcretizeCtx ctx, UriAndRange range) =>
+	genBool(ctx, range, true);
+
+ConcreteExpr genBool(ref ConcretizeCtx ctx, UriAndRange range, bool value) =>
+	ConcreteExpr(boolType(ctx), range, ConcreteExprKind(constantBool(value)));
+
 ConcreteExpr genCall(ref Alloc alloc, in UriAndRange range, ConcreteFun* called, in ConcreteExpr[] args) =>
 	genCallNoAllocArgs(range, called, newArray(alloc, args));
 
@@ -89,7 +99,7 @@ ConcreteType unwrapOptionType(in ConcretizeCtx ctx, ConcreteType optionType) {
 	return only(mustBeByVal(optionType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
 private void assertIsOptionType(in ConcretizeCtx ctx, ConcreteType optionType) {
-	assert(mustBeByVal(optionType).source.as!(ConcreteStructSource.Inst).inst.decl == ctx.commonTypes.option);
+	assert(mustBeByVal(optionType).source.as!(ConcreteStructSource.Inst).decl == ctx.commonTypes.option);
 }
 ConcreteExpr genVoid(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	ConcreteExpr(voidType(ctx), range, ConcreteExprKind(constantZero));
@@ -150,7 +160,7 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 }
 
 private SmallArray!EnumOrFlagsMember enumOrFlagsMembers(ConcreteType type) {
-	StructBody body_ = mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_;
+	StructBody body_ = mustBeByVal(type).source.as!(ConcreteStructSource.Inst).decl.body_;
 	return body_.isA!(StructBody.Enum*) ? body_.as!(StructBody.Enum*).members : body_.as!(StructBody.Flags).members;
 }
 
@@ -328,13 +338,13 @@ ConcreteExpr concretizeCompareUnion(ref ConcretizeExprCtx ctx, SmallArray!Concre
 ConcreteExpr concretizeEqualRecord(ref ConcretizeExprCtx ctx, in ConcreteField[] fields, in Called[] fieldEquals) =>
 	equalOrCompareRecord(
 		ctx, fields, fieldEquals,
-		() => ConcreteExpr(ctx.currentConcreteFunPointer.returnType, ctx.currentConcreteFunPointer.range, ConcreteExprKind(constantBool(true))),
+		() => genTrue(ctx.concretizeCtx, ctx.currentConcreteFunPointer.range),
 		(ConcreteExpr x, ConcreteExpr y) => genAnd(ctx.concretizeCtx, ctx.currentConcreteFunPointer.range, x, y));
 
 ConcreteExpr concretizeEqualUnion(ref ConcretizeExprCtx ctx, SmallArray!ConcreteType members, in Called[] memberEquals) {
 	UriAndRange range = ctx.currentConcreteFunPointer.range;
 	if (members.length == 0)
-		return ConcreteExpr(ctx.currentConcreteFunPointer.returnType, range, ConcreteExprKind(constantBool(true)));
+		return genTrue(ctx.concretizeCtx, range);
 	else {
 		ConcreteLocal[] params = ctx.currentConcreteFunPointer.paramsIncludingClosure;
 		assert(params.length == 2);
@@ -397,7 +407,7 @@ ConcreteExpr concretizeUnionToJson(ref ConcretizeExprCtx ctx, in SmallArray!Conc
 }
 
 ref StructBody body_(ConcreteType a) =>
-	a.struct_.source.as!(ConcreteStructSource.Inst).inst.decl.body_;
+	a.struct_.source.as!(ConcreteStructSource.Inst).decl.body_;
 // Discards concrete type info, so used only for names
 RecordField[] recordFieldsForNames(ConcreteType a) =>
 	body_(a).as!(StructBody.Record).fields;
@@ -488,5 +498,8 @@ public ConcreteExpr genUnionKind(ref ConcretizeCtx ctx, UriAndRange range, Concr
 public ConcreteExpr genUnionAs(ConcreteType type, UriAndRange range, ConcreteExpr* arg, size_t memberIndex) =>
 	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.UnionAs(arg, safeToUint(memberIndex))));
 
-ConcreteExpr genAnd(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
-	genCall(ctx.alloc, range, ctx.andFunction, [a, b]);
+public ConcreteExpr genAnd(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
+	genIf(ctx.alloc, range, a, b, genFalse(ctx, range));
+
+public ConcreteExpr genOr(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
+	genIf(ctx.alloc, range, a, genTrue(ctx, range), b);

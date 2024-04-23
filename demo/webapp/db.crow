@@ -7,7 +7,7 @@ import
 	crow/serialize: from-bytes, to-bytes
 	lmdb/main
 
-main nat^(_ string[]) summon
+main void() summon
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -72,7 +72,7 @@ open-db record(db-path string) nominal
 open-real-db open-db()
 	db-path open-db
 
-with-block[t] t^(a open-db, f t^ mut(db db)) summon, t shared
+with-block[t] t(a open-db, f t mut(db db)) summon, t shared
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@(string, user) "user-from-name"
 			with user-name : env database@(user, string) "user-name"

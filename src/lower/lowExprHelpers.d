@@ -93,8 +93,10 @@ LowExpr genFunPointer(LowType type, UriAndRange range, LowFunIndex fun) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.FunPointer(fun)));
 
 LowExpr genDrop(ref Alloc alloc, UriAndRange range, LowExpr a) =>
-	LowExpr(voidType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialUnary(BuiltinUnary.drop, a))));
+	a.type == voidType
+		? a
+		: LowExpr(voidType, range, LowExprKind(allocate(alloc,
+			LowExprKind.SpecialUnary(BuiltinUnary.drop, a))));
 
 private LowExpr genDerefGcOrRawPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genUnary(alloc, range, asGcOrRawPointee(ptr.type), BuiltinUnary.deref, ptr);

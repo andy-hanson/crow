@@ -13,22 +13,23 @@ If that comes from the user typing at the terminal, this will block until they h
 Result will not have leading or trailing whitespace.
 ###
 +read-stdin string() summon, trusted
-	# TODO: use a non-blocking API --------------------------------------------------------------------------------------------------
-	buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-	bytes-read nat = if is-windows
-		n-read mut DWORD = 0
-		ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
-			buffer.begin-pointer, buffer.size.to, &n-read, null
-		assert ok : "{GetLastError show-win32-error}".error
-		n-read to
-	else
-		bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
-		assert bytes-read-or-err >= 0
-		bytes-read-or-err to
-	if bytes-read >= buffer.size
-		todo
-	else
-		buffer[0 .. bytes-read].cast-immutable.as-string.strip
+	with : new-exclusion
+		# TODO: use a non-blocking API --------------------------------------------------------------------------------------------------
+		buffer nat8 mut-array = 0x2000 uninitialized-mut-array
+		bytes-read nat = if is-windows
+			n-read mut DWORD = 0
+			ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
+				buffer.begin-pointer, buffer.size.to, &n-read, null
+			assert ok : "{GetLastError show-win32-error}".error
+			n-read to
+		else
+			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
+			assert bytes-read-or-err >= 0
+			bytes-read-or-err to
+		if bytes-read >= buffer.size
+			todo
+		else
+			buffer[0 .. bytes-read].cast-immutable.as-string.strip
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.

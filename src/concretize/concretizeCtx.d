@@ -132,7 +132,7 @@ private immutable struct ConcreteStructKey {
 
 private ConcreteStructKey getStructKey(return in ConcreteStruct* a) {
 	ConcreteStructSource.Inst inst = a.source.as!(ConcreteStructSource.Inst);
-	return ConcreteStructKey(inst.inst.decl, inst.typeArgs);
+	return ConcreteStructKey(inst.decl, inst.typeArgs); // TODO: ConcreteStructSouce.Inst is just ConcreteStructKey then! ------------------------------------------
 }
 
 private VarDecl* getVarKey(return in ConcreteVar* a) =>
@@ -203,7 +203,6 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) newChar8ListFunction_;
 	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
-	Late!(ConcreteFun*) andFunction_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
 	ArrayBuilder!(ConcreteStruct*) allConcreteStructs;
@@ -245,8 +244,6 @@ struct ConcretizeCtx {
 		lateGet(newChar32ListFunction_);
 	ConcreteFun* newJsonFromPairsFunction() return scope const =>
 		lateGet(newJsonFromPairsFunction_);
-	ConcreteFun* andFunction() return scope const =>
-		lateGet(andFunction_);
 	ConcreteFun* createErrorFunction() return scope const =>
 		lateGet(createErrorFunction_);
 	ref Program program() return scope const =>
@@ -374,31 +371,32 @@ ConcreteFun* getConcreteFunForLambda(
 
 private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
-	StructInst* i,
+	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
 ) =>
-	withConcreteTypes(ctx, i.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
-		scope ConcreteStructKey key = ConcreteStructKey(i.decl, small!ConcreteType(typeArgs));
+	withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
+		StructDecl* decl = inst.decl;
+		scope ConcreteStructKey key = ConcreteStructKey(decl, small!ConcreteType(typeArgs));
 		ValueAndDidAdd!(ConcreteStruct*) res =
 			getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructKey, getStructKey)(
 				ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
 					Purity purity = fold!(Purity, ConcreteType)(
-						i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
+						decl.purity, typeArgs, (Purity p, in ConcreteType ta) =>
 							worsePurity(p, purity(ta)));
-					ConcreteStruct.SpecialKind specialKind = i.decl == ctx.commonTypes.array
+					ConcreteStruct.SpecialKind specialKind = decl == ctx.commonTypes.array
 						? ConcreteStruct.SpecialKind.array
-						: isTuple(ctx.commonTypes, i.decl)
+						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple
 						: ConcreteStruct.SpecialKind.none;
 					ConcreteStruct* res = allocate(ctx.alloc, ConcreteStruct(
 						purity,
 						specialKind,
-						ConcreteStructSource(ConcreteStructSource.Inst(i, newSmallArray(ctx.alloc, key.typeArgs)))));
+						ConcreteStructSource(ConcreteStructSource.Inst(decl, newSmallArray(ctx.alloc, typeArgs)))));
 					add(ctx.alloc, ctx.allConcreteStructs, res);
 					return res;
 				});
 		if (res.didAdd)
-			initializeConcreteStruct(ctx, *i, res.value, typeArgsScope);
+			initializeConcreteStruct(ctx, *inst, res.value, typeArgsScope);
 		if (!res.value.defaultReferenceKindIsSet)
 			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 			// In that case, it's a recursive record, so it should be by-ref.
@@ -459,7 +457,7 @@ private bool canGetRecordSize(in ConcreteStruct* a) =>
 private void setConcreteStructRecordSize(ref Alloc alloc, ConcreteStruct* a) {
 	FieldsType fieldsType = a.source.isA!(ConcreteStructSource.Lambda) ? FieldsType.closure : FieldsType.record;
 	bool packed = fieldsType == FieldsType.record &&
-		a.source.as!(ConcreteStructSource.Inst).inst.decl.body_.as!(StructBody.Record).flags.packed;
+		a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Record).flags.packed;
 	TypeSizeAndFieldOffsets size = recordSize(alloc, packed, a.body_.as!(ConcreteStructBody.Record).fields);
 	if (!a.defaultReferenceKindIsSet)
 		a.defaultReferenceKind = getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, fieldsType);
@@ -827,7 +825,7 @@ public ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 ulong getAllFlagsValue(ConcreteStruct* a) =>
 	fold!(ulong, EnumOrFlagsMember)(
 		0,
-		a.source.as!(ConcreteStructSource.Inst).inst.decl.body_.as!(StructBody.Flags).members,
+		a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags).members,
 		(ulong a, in EnumOrFlagsMember b) =>
 			a | b.value.asUnsigned());
 

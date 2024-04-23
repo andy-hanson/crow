@@ -27,6 +27,7 @@ import concretize.concretizeCtx :
 	withConcreteTypes;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.generate :
+	genAnd,
 	genCall,
 	genCallNoAllocArgs,
 	genCallKindNoAllocArgs,
@@ -35,12 +36,17 @@ import concretize.generate :
 	genChar32Array,
 	genChar32List,
 	genError,
+	genFalse,
+	genIf,
 	genNone,
+	genOr,
 	genStringLiteral,
 	genSome,
 	genLocalGet,
 	genThrow,
-	genThrowStringKind;
+	genThrowStringKind,
+	genTrue,
+	unwrapOptionType;
 import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
 import model.concreteModel :
 	byRef,
@@ -71,6 +77,8 @@ import model.concreteModel :
 import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
 	AssertOrForbidExpr,
+	BuiltinBinaryLazy,
+	BuiltinFun,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -85,6 +93,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	FinallyExpr,
+	FunBody,
 	FunInst,
 	FunPointerExpr,
 	IfExpr,
@@ -262,32 +271,56 @@ ConcreteExpr concretizeCall(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref CallExpr e,
+	ref CallExpr a,
 ) {
-	Opt!(ConcreteFun*) optConcreteCalled = getConcreteFunFromCalled(ctx, e.called);
-	if (!has(optConcreteCalled) || isBogus(force(optConcreteCalled).returnType))
-		return concretizeBogus(ctx, type, range);
-	ConcreteFun* concreteCalled = force(optConcreteCalled);
+	Opt!BuiltinBinaryLazy binaryLazy = asBuiltinBinaryLazy(a.called);
+	if (has(binaryLazy))
+		return concretizeBuiltinBinaryLazy(ctx, type, range, locals, a.called.as!(FunInst*), force(binaryLazy), a.args);
+	else {
+		Opt!(ConcreteFun*) optConcreteCalled = getConcreteFunFromCalled(ctx, a.called);
+		return !has(optConcreteCalled) || isBogus(force(optConcreteCalled).returnType)
+			? concretizeBogus(ctx, type, range)
+			: concretizeCallInner(ctx, type, range, locals, force(optConcreteCalled), a.args);
+	}
+}
+
+Opt!BuiltinBinaryLazy asBuiltinBinaryLazy(Called a) {
+	if (a.isA!(FunInst*)) {
+		FunBody body_ = a.as!(FunInst*).decl.body_;
+		return optIf(body_.isA!BuiltinFun && body_.as!BuiltinFun.isA!BuiltinBinaryLazy, () =>
+			body_.as!BuiltinFun.as!BuiltinBinaryLazy);
+	} else
+		return none!BuiltinBinaryLazy;
+}
+
+ConcreteExpr concretizeCallInner(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	in Locals locals,
+	ConcreteFun* concreteCalled,
+	Expr[] args,
+) {
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
-		isEmpty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
-	ConstantsOrExprs args = () {
+		isEmpty(args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
+	ConstantsOrExprs concreteArgs = () {
 		if (isVariadic(*concreteCalled)) {
 			ConcreteType arrayType = only(concreteCalled.paramsIncludingClosure).type;
 			ConcreteType elementType = arrayElementType(arrayType);
 			return constantsOrExprsArr(
 				ctx, range, arrayType,
-				asConstantsOrExprsIf(ctx.alloc, argsMayBeConstants, map(ctx.alloc, e.args, (ref Expr arg) =>
+				asConstantsOrExprsIf(ctx.alloc, argsMayBeConstants, map(ctx.alloc, args, (ref Expr arg) =>
 					concretizeExpr(ctx, elementType, locals, arg))));
 		} else
 			return asConstantsOrExprsIf(
 				ctx.alloc, argsMayBeConstants,
 				mapZip(
-					ctx.alloc, concreteCalled.paramsIncludingClosure, e.args,
+					ctx.alloc, concreteCalled.paramsIncludingClosure, args,
 					(ref ConcreteLocal param, ref Expr arg) =>
 						concretizeExpr(ctx, param.type, locals, arg)));
 	}();
-	ConcreteExprKind kind = args.match!ConcreteExprKind(
+	ConcreteExprKind kind = concreteArgs.match!ConcreteExprKind(
 		(Constant[] constants) {
 			Opt!Constant constant =
 				tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
@@ -303,6 +336,36 @@ ConcreteExpr concretizeCall(
 		(ConcreteExpr[] exprs) =>
 			genCallKindNoAllocArgs(concreteCalled, exprs));
 	return ConcreteExpr(type, range, kind);
+}
+
+ConcreteExpr concretizeBuiltinBinaryLazy(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	in Locals locals,
+	FunInst* called,
+	BuiltinBinaryLazy kind,
+	Expr[] args,
+) {
+	assert(args.length == 2);
+	ConcreteExpr arg0(ConcreteType argType = type) =>
+		concretizeExpr(ctx, argType, locals, args[0]);
+	ConcreteExpr arg1(ConcreteType argType = type) =>
+		concretizeExpr(ctx, argType, locals, args[1]);
+	final switch (kind) {
+		case BuiltinBinaryLazy.boolAnd:
+			return genAnd(ctx.concretizeCtx, range, arg0, arg1);
+		case BuiltinBinaryLazy.boolOr:
+			return genOr(ctx.concretizeCtx, range, arg0, arg1);
+		case BuiltinBinaryLazy.optionOr:
+			return genIfOption(ctx.alloc, range, arg0, RootLocalAndExpr(none!(ConcreteLocal*), arg0), arg1);
+		case BuiltinBinaryLazy.optionQuestion2:
+			ConcreteLocal* local = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.member), type));
+			ConcreteType optionType = getConcreteType(ctx, called.paramTypes[0]);
+			assert(unwrapOptionType(ctx.concretizeCtx, optionType) == type);
+			return genIfOption(
+				ctx.alloc, range, arg0(optionType), RootLocalAndExpr(some(local), genLocalGet(range, local)), arg1);
+	}
 }
 
 ConcreteExpr concretizeCallOption(

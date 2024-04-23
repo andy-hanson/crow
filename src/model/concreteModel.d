@@ -4,6 +4,7 @@ module model.concreteModel;
 
 import model.constant : Constant;
 import model.model :
+	BuiltinBinaryLazy,
 	BuiltinFun,
 	BuiltinType,
 	ClosureReferenceKind,
@@ -17,6 +18,7 @@ import model.model :
 	localIsAllocated,
 	Params,
 	Purity,
+	StructDecl,
 	StructInst,
 	Test,
 	VarDecl;
@@ -114,7 +116,7 @@ immutable struct ConcreteStructSource {
 	immutable struct Bogus {}
 
 	immutable struct Inst {
-		StructInst* inst;
+		StructDecl* decl;
 		SmallArray!ConcreteType typeArgs;
 	}
 
@@ -347,8 +349,18 @@ immutable struct ConcreteFunKey {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
-	SmallArray!(ConcreteType) typeArgs;
+	SmallArray!ConcreteType typeArgs;
 	SmallArray!(immutable ConcreteFun*) specImpls;
+
+	this(FunDecl* d, SmallArray!ConcreteType ta, SmallArray!(immutable ConcreteFun*) si) { // -----------------------------
+		decl = d;
+		typeArgs = ta;
+		specImpls = si;
+		if (decl.body_.isA!BuiltinFun) {
+			BuiltinFun bf = decl.body_.as!BuiltinFun;
+			assert(!bf.isA!BuiltinBinaryLazy);
+		}
+	}
 
 	bool opEquals(scope ConcreteFunKey b) scope =>
 		decl == b.decl &&

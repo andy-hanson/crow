@@ -72,7 +72,7 @@ MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram pr
 		s.source.match!void(
 			(ConcreteStructSource.Bogus) {},
 			(ConcreteStructSource.Inst x) {
-				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, x.inst.decl.name);
+				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, x.decl.name);
 			},
 			(ConcreteStructSource.Lambda) {});
 	}
@@ -113,7 +113,7 @@ void writeStructMangledName(scope ref Writer writer, in MangledNames mangledName
 			writer ~= "__BOGUS";
 		},
 		(in ConcreteStructSource.Inst x) {
-			writeMangledName(writer, mangledNames, x.inst.decl.name);
+			writeMangledName(writer, mangledNames, x.decl.name);
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
 		(in ConcreteStructSource.Lambda it) {

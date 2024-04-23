@@ -47,7 +47,7 @@ immutable struct LowRecord {
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst x) =>
-				x.inst.decl.body_.as!(StructBody.Record).flags.packed,
+				x.decl.body_.as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }

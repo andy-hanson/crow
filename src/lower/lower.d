@@ -1378,10 +1378,8 @@ LowExpr getCallBuiltinExpr(
 			assert(args.length == 2);
 			return maybeOptimizeSpecialBinary(ctx, type, range, kind, getArg0, getArg1);
 		},
-		(BuiltinBinaryLazy kind) {
-			assert(args.length == 2);
-			return genBuiltinBinaryLazy(ctx, type, range, kind, getArg0, getArg1); //getArg(args[1], ExprPos.tail)); // TODO: second arg should use ExprPos.tail
-		},
+		(BuiltinBinaryLazy kind) =>
+			assert(false), // handled in concretize
 		(BuiltinBinaryMath kind) {
 			assert(args.length == 2);
 			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(
@@ -1458,38 +1456,6 @@ LowExpr maybeOptimizeSpecialBinary(
 			return unopt();
 	}
 }
-
-LowExpr genBuiltinBinaryLazy( // TODO: this should take exprPos as an arg. Or just do all this in concretize!---------------------
-	ref GetLowExprCtx ctx,
-	LowType type,
-	UriAndRange range,
-	BuiltinBinaryLazy kind,
-	LowExpr arg0,
-	LowExpr arg1,
-) {
-	final switch (kind) {
-		case BuiltinBinaryLazy.boolAnd:
-			return genIf(ctx.alloc, range, arg0, arg1, genFalse(range));
-		case BuiltinBinaryLazy.boolOr:
-			return genIf(ctx.alloc, range, arg0, genTrue(range), arg1);
-		case BuiltinBinaryLazy.optionOr:
-			return genOptionOrLike(ctx, ExprPos.nonTail, range, arg0, arg1, (LowExpr x) => x);
-		case BuiltinBinaryLazy.optionQuestion2:
-			return genOptionOrLike(ctx, ExprPos.nonTail, range, arg0, arg1, (LowExpr x) =>
-				genUnionAs(type, range, allocate(ctx.alloc, x), 1));
-	}
-}
-LowExpr genOptionOrLike( // TODO: this should be handled by concretize ------------------------------------------------------------------
-	ref GetLowExprCtx ctx,
-	ExprPos exprPos,
-	UriAndRange range,
-	LowExpr arg0,
-	LowExpr arg1,
-	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbArg0NonEmpty,
-) =>
-	// x = arg0; x.kind == 1 ? cbArg0NonEmpty(x) : arg1
-	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getArg0) =>
-		handleExprPos(ctx, exprPos, genIf(ctx.alloc, range, genUnionKindEquals(ctx.alloc, range, getArg0, 1), cbArg0NonEmpty(getArg0), arg1)));
 
 LowExpr getCreateArrayExpr(
 	ref GetLowExprCtx ctx,

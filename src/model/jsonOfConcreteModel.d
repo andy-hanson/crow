@@ -62,7 +62,7 @@ Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
 		(in ConcreteStructSource.Bogus) =>
 			jsonString!"BOGUS",
 		(in ConcreteStructSource.Inst x) =>
-			jsonString(x.inst.decl.name),
+			jsonString(x.decl.name),
 		(in ConcreteStructSource.Lambda x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",

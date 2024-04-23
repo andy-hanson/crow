@@ -20,11 +20,11 @@ region env
 
 +open-lmdb-env record(db-dir string, create-if-not-exists bool) nominal
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-+with-block[t] t^(options open-lmdb-env, f t^ mut(env lmdb-env)) summon, t shared
++with-block[t] t(options open-lmdb-env, f t mut(env lmdb-env)) summon, t shared
 	trusted
 		env = options open-env
-		with : (() => env.close-env,) future-finally
-			f[env]
+		finally env close-env
+		f[env]
 
 -open-env lmdb-env(options open-lmdb-env) summon, unsafe
 	env mut MDB_env mut* = null
@@ -90,14 +90,14 @@ region db
 
 +database[k, v] record(env lmdb-env, db-name string) mut, nominal
 
-+with-block[t, k, v] t^(
++with-block[t, k, v] t(
 	a (k, v) database,
-	f t^ mut(db (k, v) lmdb-db),
+	f t mut(db (k, v) lmdb-db),
 ) summon, t shared, k lmdb-key, v serialize
 	trusted
 		db (k, v) lmdb-db = a open-db
-		with : (() => (a.env close-db db),) future-finally
-			f[db]
+		finally a.env close-db db
+		f[db]
 
 -open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
 	transaction mut MDB_txn mut* = null
