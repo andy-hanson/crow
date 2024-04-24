@@ -1571,6 +1571,7 @@ immutable struct CommonTypes {
 	StructDecl* option;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;
+	StructDecl* reference;
 	// No tuple0 and tuple1, so this is 2-9 inclusive
 	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
@@ -1759,6 +1760,7 @@ immutable struct Local {
 	LocalSource source;
 	LocalMutability mutability;
 	Type type;
+	Opt!Type referenceType; // TODO: figure out a way to not have this on the Model. Only needed for concretize. --------------------------------------------
 
 	Symbol name() scope =>
 		source.matchIn!Symbol(
@@ -1774,6 +1776,7 @@ bool localIsAllocated(in Local a) scope {
 		case LocalMutability.mutOnStack:
 			return false;
 		case LocalMutability.mutAllocated:
+			assert(has(a.referenceType));
 			return true;
 	}
 }
@@ -1847,7 +1850,7 @@ immutable struct VariableRef {
 	Type type() return scope =>
 		local.type;
 
-	private Local* local() return scope =>
+	Local* local() return scope =>
 		matchWithPointers!(Local*)(
 			(Local* x) => x,
 			(ClosureRef x) => x.local);

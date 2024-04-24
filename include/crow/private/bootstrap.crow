@@ -409,3 +409,6 @@ It can be efficiently concatenated or split, but doesn't support indexed access.
 ###
 +string record by-val
 	~inner char8[]
+
+# Used by the compiler for mutable "local" variables used in a closure.
+~reference[t] record(value mut t) mut

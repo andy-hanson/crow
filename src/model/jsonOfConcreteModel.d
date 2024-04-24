@@ -225,19 +225,6 @@ Json jsonOfConcreteExprs(ref Alloc alloc, in Ctx ctx, in ConcreteExpr[] a) =>
 
 Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) =>
 	a.matchIn!Json(
-		(in ConcreteExprKind.Alloc x) =>
-			jsonObject(alloc, [
-				kindField!"alloc",
-				field!"arg"(jsonOfConcreteExpr(alloc, ctx, x.arg))]),
-		(in ConcreteExprKind.AllocGet x) =>
-			jsonObject(alloc, [
-				kindField!"alloc-get",
-				field!"arg"(jsonOfConcreteExpr(alloc, ctx, x.arg))]),
-		(in ConcreteExprKind.AllocSet x) =>
-			jsonObject(alloc, [
-				kindField!"alloc-set",
-				field!"reference"(jsonOfConcreteExpr(alloc, ctx, x.reference)),
-				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value))]),
 		(in ConcreteExprKind.Call x) =>
 			jsonObject(alloc, [
 				kindField!"call",
@@ -340,6 +327,12 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 				kindField!"field-get",
 				field!"record"(jsonOfConcreteExpr(alloc, ctx, *x.record)),
 				field!"field-index"(x.fieldIndex)]),
+		(in ConcreteExprKind.RecordFieldSet x) =>
+			jsonObject(alloc, [
+				kindField!"field-set",
+				field!"record"(jsonOfConcreteExpr(alloc, ctx, x.record)),
+				field!"field-index"(x.fieldIndex),
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value))]),
 		(in ConcreteExprKind.Seq x) =>
 			jsonObject(alloc, [
 				kindField!"seq",

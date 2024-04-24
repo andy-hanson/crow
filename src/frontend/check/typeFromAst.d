@@ -485,8 +485,9 @@ Destructure checkDestructure(
 					} else
 						return has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut;
 				}();
+				Opt!Type referenceType = some(Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.reference, [type]))); // TODO: we shouldn't have to do this in frontend
 				return Destructure(allocate(ctx.alloc, Local(
-					LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type)));
+					LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type, referenceType)));
 			}
 		},
 		(DestructureAst.Void x) {

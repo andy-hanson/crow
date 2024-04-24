@@ -79,6 +79,7 @@ CommonTypes* getCommonTypes(
 		option: getDecl(ctx, symbol!"option", 1),
 		ptrConst: pointerConst,
 		ptrMut: getDecl(ctx, symbol!"mut-pointer", 1),
+		reference: getDecl(ctx, symbol!"reference", 1),
 		tuples2Through9: [
 			getDecl(ctx, symbol!"tuple2", 2),
 			getDecl(ctx, symbol!"tuple3", 3),

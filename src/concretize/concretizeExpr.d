@@ -56,6 +56,7 @@ import concretize.generate :
 	genLocalSet,
 	genParamGet,
 	genRecordFieldGet,
+	genRecordFieldSet,
 	genThrow,
 	genThrowStringKind,
 	genTrue,
@@ -75,7 +76,6 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	dereferenceType,
 	isBogus,
 	isSummon,
 	isVariadic,
@@ -84,7 +84,6 @@ import model.concreteModel :
 	name,
 	purity,
 	ReferenceKind,
-	referenceType,
 	returnType;
 import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
@@ -464,9 +463,8 @@ ConcreteExpr concretizeClosureGet(ref ConcretizeExprCtx ctx, ConcreteType type, 
 			assert(info.fieldType == type);
 			return getField;
 		case ClosureReferenceKind.allocated:
-			assert(dereferenceType(info.fieldType) == info.pointeeType);
 			assert(info.pointeeType == type);
-			return genAllocGet(ctx.alloc, getField);
+			return genAllocGet(ctx.concretizeCtx, range, getField);
 	}
 }
 
@@ -510,35 +508,37 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange r
 			case ClosureReferenceKind.direct:
 				return fieldType;
 			case ClosureReferenceKind.allocated:
-				return dereferenceType(fieldType);
+				return getReferencedType(ctx.concretizeCtx, fieldType);
 		}
 	}();
 	return ClosureFieldInfo(closureParam, a.index, fieldType, pointeeType, referenceKind);
 }
 
 // TODO: move to generate.d? -------------------------------------------------------------------------------------------------------------
-ConcreteExpr genAlloc(ref Alloc alloc, ConcreteExpr inner) =>
-	ConcreteExpr(referenceType(inner.type), inner.range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
-ConcreteExpr genAllocGet(ref Alloc alloc, ConcreteExpr reference) { // TODO: this could just be a RecordFieldGet of a Cell --------
-	return ConcreteExpr(dereferenceType(reference.type), reference.range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.AllocGet(reference))));
-}
-ConcreteExpr genAllocSet(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr reference, ConcreteExpr value) { // TODO: this could just be a recordFieldSet of a Cell
-	return ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.AllocSet(reference, value))));
+ConcreteExpr genAlloc(ref ConcretizeCtx ctx, ConcreteType referenceType, in UriAndRange range, ConcreteExpr value) => // TODO: rename to genReferenceCreate
+	genCreateRecord(ctx.alloc, referenceType, range, [value]);
+ConcreteExpr genAllocGet(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr reference) => // TODO: rename to genReferenceGet
+	genRecordFieldGet(getReferencedType(ctx, reference.type), range, allocate(ctx.alloc, reference), 0);
+ConcreteExpr genAllocSet(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr reference, ConcreteExpr value) { // TODO: rename to genReferenceSet
+	getReferencedType(ctx, reference.type); // assert that it's a reference type
+	return genRecordFieldSet(ctx, range, reference, 0, value);
 }
 
-SmallArray!ConcreteField concretizeClosureFields(
-	ref ConcretizeCtx ctx,
-	SmallArray!VariableRef closure,
-	TypeArgsScope typeArgsScope,
-) =>
+ConcreteType getReferencedType(in ConcretizeCtx ctx, ConcreteType type) {
+	ConcreteStructSource.Inst inst = type.struct_.source.as!(ConcreteStructSource.Inst);
+	assert(inst.decl == ctx.commonTypes.reference);
+	return only(inst.typeArgs);
+}
+
+SmallArray!ConcreteField concretizeClosureFields(ref ConcretizeExprCtx ctx, SmallArray!VariableRef closure) =>
 	map!(ConcreteField, VariableRef)(ctx.alloc, closure, (ref VariableRef x) {
-		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, x.type, typeArgsScope);
+		ConcreteType baseType = getConcreteType(ctx, x.type);
 		ConcreteType type = () {
 			final switch (x.closureReferenceKind) {
 				case ClosureReferenceKind.direct:
 					return baseType;
 				case ClosureReferenceKind.allocated:
-					return referenceType(baseType);
+					return getConcreteType(ctx, force(x.local.referenceType));
 			}
 		}();
 		// Even if the variable is mutable, it's a const field holding a mut pointer
@@ -589,13 +589,12 @@ ConcreteExpr concretizeLambdaInner(
 	size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 
-	TypeArgsScope tScope = typeScope(ctx);
-	SmallArray!ConcreteField closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
+	SmallArray!ConcreteField closureFields = concretizeClosureFields(ctx, e.closure);
 	ConcreteType closureType = concreteTypeFromClosure(
 		ctx.concretizeCtx,
 		closureFields,
 		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPointer, lambdaIndex)));
-	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, tScope);
+	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx)); // TODO: why not just pass in Ctx instead of concretizeCtx and typeScope separately?
 
 	ConcreteStruct* lambdaStruct = mustBeByVal(type);
 
@@ -646,10 +645,10 @@ public size_t ensureVariantMember(
 	});
 }
 
-ConcreteLocal* makeLocalWorker(ref ConcretizeExprCtx ctx, Local* source, ConcreteType type) =>
+ConcreteLocal* makeLocalWorker(ref ConcretizeExprCtx ctx, Local* source, ConcreteType type) => // TODO: inline? --------------------------------------
 	allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(source), type));
 
-ConcreteLocal* concretizeLocal(ref ConcretizeExprCtx ctx, Local* local) =>
+ConcreteLocal* concretizeLocal(ref ConcretizeExprCtx ctx, Local* local) => // TODO: inline? ------------------------------------------
 	makeLocalWorker(ctx, local, getConcreteType(ctx, local.type));
 
 alias Locals = StackMap!(Local*, LocalOrConstant);
@@ -722,13 +721,13 @@ RootLocalAndExpr concretizeWithDestructure(
 		(Local* local) {
 			ConcreteLocal* rootLocal = concretizeLocal(ctx, local);
 			if (localIsAllocated(*local)) {
-				ConcreteType pointerType = referenceType(rootLocal.type);
-				ConcreteLocal* allocatedLocal = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.allocated), pointerType));
-				ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(allocatedLocal)));
-				ConcreteExpr allocateThen = genLet(ctx.alloc, type, range, allocatedLocal, genAlloc(ctx.alloc, genLocalGet(range, rootLocal)), then);
+				ConcreteType referenceType = getConcreteType(ctx, force(local.referenceType));
+				ConcreteLocal* referenceLocal = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.reference), referenceType));
+				ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(referenceLocal)));
+				ConcreteExpr allocateThen = genLet(ctx.alloc, type, range, referenceLocal, genAlloc(ctx.concretizeCtx, referenceType, range, genLocalGet(range, rootLocal)), then);
 				return RootLocalAndExpr(some(rootLocal), allocateThen);
 			} else
-				return RootLocalAndExpr(some(rootLocal), cb(addLocal(locals, local, LocalOrConstant(rootLocal))));
+				return RootLocalAndExpr(some(rootLocal), cb(addLocal(locals, local, LocalOrConstant(rootLocal)))); // TODO: returns some(rootLocal) in either case, so combine
 		},
 		(Destructure.Split* x) {
 			if (x.destructuredType.isBogus)
@@ -861,7 +860,7 @@ ConcreteExpr concretizeLocalGet(
 				return concretizeBogus(ctx, type, range);
 			} else {
 				ConcreteExpr get = genLocalGet(range, x);
-				return localIsAllocated(*local) ? genAllocGet(ctx.alloc, get) : get;
+				return localIsAllocated(*local) ? genAllocGet(ctx.concretizeCtx, range, get) : get;
 			}
 		},
 		(TypedConstant x) =>
@@ -904,7 +903,7 @@ ConcreteExpr concretizeLocalSet(
 	LocalSetExpr a,
 ) {
 	ConcreteLocal* local = getLocal(locals, a.local).as!(ConcreteLocal*);
-	ConcreteType valueType = localIsAllocated(*a.local) ? dereferenceType(local.type) : local.type;
+	ConcreteType valueType = localIsAllocated(*a.local) ? getReferencedType(ctx.concretizeCtx, local.type) : local.type;
 	ConcreteExpr value = concretizeExpr(ctx, valueType, locals, *a.value);
 	return localIsAllocated(*a.local)
 		? genAllocSet(ctx.concretizeCtx, range, genLocalGet(range, local), value)

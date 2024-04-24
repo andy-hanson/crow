@@ -102,12 +102,6 @@ void getCalledByRecur(ref Alloc alloc, ref CalledBy res, ConcreteFun* f, ref Con
 
 public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) => // TODO: MOVE
 	a.kind.matchWithPointers!bool(
-		(ConcreteExprKind.Alloc* x) =>
-			cb(x.arg),
-		(ConcreteExprKind.AllocGet* x) =>
-			cb(x.arg),
-		(ConcreteExprKind.AllocSet* x) =>
-			cb(x.reference) || cb(x.value),
 		(ConcreteExprKind.Call x) =>
 			exists2!ConcreteExpr(x.args, cb),
 		(Constant x) =>
@@ -156,6 +150,8 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			false,
 		(ConcreteExprKind.RecordFieldGet x) =>
 			cb(*x.record),
+		(ConcreteExprKind.RecordFieldSet* x) =>
+			cb(x.record) || cb(x.value),
 		(ConcreteExprKind.Seq* x) =>
 			cb(x.first) || cb(x.then),
 		(ConcreteExprKind.Throw* x) =>

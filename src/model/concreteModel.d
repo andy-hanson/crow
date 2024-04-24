@@ -92,7 +92,7 @@ bool isVoid(in ConcreteType a) =>
 	a.struct_.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.void_;
 
 alias ReferenceKind = immutable ReferenceKind_;
-private enum ReferenceKind_ { byVal, byRef, byRefRef }
+private enum ReferenceKind_ { byVal, byRef }
 
 immutable struct TypeSize {
 	uint sizeBytes;
@@ -193,7 +193,6 @@ bool hasSizeOrPointerSizeBytes(in ConcreteType a) {
 		case ReferenceKind.byVal:
 			return lateIsSet(a.struct_.typeSize_);
 		case ReferenceKind.byRef:
-		case ReferenceKind.byRefRef:
 			return true;
 	}
 }
@@ -203,36 +202,8 @@ TypeSize sizeOrPointerSizeBytes(in ConcreteType a) {
 		case ReferenceKind.byVal:
 			return a.struct_.typeSize;
 		case ReferenceKind.byRef:
-		case ReferenceKind.byRefRef:
 			return TypeSize(8, 8);
 	}
-}
-
-ConcreteType dereferenceType(ConcreteType t) {
-	ReferenceKind kind = () {
-		final switch (t.reference) {
-			case ReferenceKind.byVal:
-				assert(false);
-			case ReferenceKind.byRef:
-				return ReferenceKind.byVal;
-			case ReferenceKind.byRefRef:
-				return ReferenceKind.byRef;
-		}
-	}();
-	return ConcreteType(kind, t.struct_);
-}
-ConcreteType referenceType(ConcreteType t) {
-	ReferenceKind kind = () {
-		final switch (t.reference) {
-			case ReferenceKind.byVal:
-				return ReferenceKind.byRef;
-			case ReferenceKind.byRef:
-				return ReferenceKind.byRefRef;
-			case ReferenceKind.byRefRef:
-				assert(false);
-		}
-	}();
-	return ConcreteType(kind, t.struct_);
 }
 
 enum ConcreteMutability {
@@ -248,7 +219,7 @@ immutable struct ConcreteField {
 
 immutable struct ConcreteLocalSource {
 	immutable struct Closure {} // Closure parameter
-	enum Generated { allocated, args, ignore, destruct, member }
+	enum Generated { args, ignore, destruct, member, reference }
 	mixin TaggedUnion!(Local*, Closure, Generated);
 }
 
@@ -262,8 +233,8 @@ immutable struct ConcreteFunBody {
 		BuiltinFun kind; // Never 'lambdaCall' (TODO: can we type this better?) --------------------------------------------
 		ConcreteType[] typeArgs;
 	}
-	immutable struct CreateRecord {}
-	immutable struct CreateUnion {
+	immutable struct CreateRecord {} // TODO: this doesn't need to be a FunBody, just generate a body using a CreateRecord expr
+	immutable struct CreateUnion { // TODO: this doesn't need to be a FunBody, just generate a body using a CreateUnion expr
 		size_t memberIndex;
 	}
 	immutable struct Extern {
@@ -273,14 +244,14 @@ immutable struct ConcreteFunBody {
 		ulong allValue;
 		FlagsFunction fn;
 	}
-	immutable struct RecordFieldGet {
+	immutable struct RecordFieldGet { // TODO: this doesn't need to be a FunBody, just generate a body using a RecordFieldGet expr
 		size_t fieldIndex;
 	}
-	// Note: This is redundant to the 'PtrToField' expression; low model will unify them
+	// TODO: just generate a body in concretize that is a PtrToField ------------------------------------------------------------
 	immutable struct RecordFieldPointer {
 		size_t fieldIndex;
 	}
-	immutable struct RecordFieldSet {
+	immutable struct RecordFieldSet { // TODO: this doesn't need to be a FunBody, just generate a body using a RecordFieldSet expr
 		size_t fieldIndex;
 	}
 	immutable struct VarGet { ConcreteVar* var; }
@@ -425,20 +396,6 @@ immutable struct ConcreteExpr {
 }
 
 immutable struct ConcreteExprKind {
-	// TODO: I think I can get rid of these 3. Just have a 'Cell' type that is by-ref. -------------------------------------------
-	immutable struct Alloc {
-		ConcreteExpr arg;
-	}
-	// Read from a reference
-	immutable struct AllocGet {
-		ConcreteExpr arg;
-	}
-	// Write to a reference
-	immutable struct AllocSet {
-		ConcreteExpr reference;
-		ConcreteExpr value;
-	}
-
 	immutable struct Call {
 		ConcreteFun* called;
 		SmallArray!ConcreteExpr args;
@@ -542,9 +499,14 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct RecordFieldGet {
-		// This is always by-value
-		ConcreteExpr* record;
+		ConcreteExpr* record; // May be by-value or by-ref
 		size_t fieldIndex;
+	}
+
+	immutable struct RecordFieldSet {
+		ConcreteExpr record; // May be by-value or by-ref
+		size_t fieldIndex;
+		ConcreteExpr value;
 	}
 
 	immutable struct Seq {
@@ -583,9 +545,6 @@ immutable struct ConcreteExprKind {
 	}
 
 	mixin Union!(
-		Alloc*,
-		AllocGet*,
-		AllocSet*,
 		Call,
 		Constant,
 		CreateArray,
@@ -606,6 +565,7 @@ immutable struct ConcreteExprKind {
 		PtrToField*,
 		PtrToLocal,
 		RecordFieldGet,
+		RecordFieldSet*,
 		Seq*,
 		Throw*,
 		Try*,

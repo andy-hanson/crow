@@ -613,13 +613,13 @@ TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteFiel
 
 void initializeConcreteStruct(
 	ref ConcretizeCtx ctx,
-	in StructInst i,
+	in StructInst inst,
 	ConcreteStruct* res,
 	in TypeArgsScope typeArgsScope,
 ) {
 	SmallArray!ConcreteType typeArgs() =>
 		res.source.as!(ConcreteStructSource.Inst).typeArgs;
-	i.decl.body_.match!void(
+	inst.decl.body_.match!void(
 		(StructBody.Bogus) => assert(false),
 		(BuiltinType x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
@@ -653,7 +653,7 @@ void initializeConcreteStruct(
 				res.defaultReferenceKind = enumConvert!ReferenceKind(force(r.flags.forcedByValOrRef));
 
 			SmallArray!ConcreteField fields = mapZip(
-				ctx.alloc, r.fields, i.instantiatedTypes, (ref RecordField f, ref Type type) =>
+				ctx.alloc, r.fields, inst.instantiatedTypes, (ref RecordField f, ref Type type) =>
 					ConcreteField(
 						f.name,
 						has(f.mutability) ? ConcreteMutability.mutable : ConcreteMutability.const_,
@@ -665,7 +665,7 @@ void initializeConcreteStruct(
 		(ref StructBody.Union u) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
 			SmallArray!ConcreteType members = mapZip(
-				ctx.alloc, u.members, i.instantiatedTypes, (ref UnionMember x, ref Type type) =>
+				ctx.alloc, u.members, inst.instantiatedTypes, (ref UnionMember x, ref Type type) =>
 					getConcreteType(ctx, type, typeArgsScope));
 			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(late(members))), false);
 			if (canGetUnionSize(members))

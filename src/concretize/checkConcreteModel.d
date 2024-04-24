@@ -11,11 +11,9 @@ import model.concreteModel :
 	ConcreteProgram,
 	ConcreteStructBody,
 	ConcreteType,
-	dereferenceType,
 	isBogus,
 	isVoid,
-	mustBeByVal,
-	referenceType;
+	mustBeByVal;
 import model.constant : Constant;
 import model.model : isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
@@ -53,17 +51,6 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 	assert(!isBogus(type) || expr.kind.isA!(ConcreteExprKind.Throw*));
 	checkType(ctx, type, expr.type);
 	expr.kind.matchIn!void(
-		(in ConcreteExprKind.Alloc x) {
-			checkExpr(ctx, dereferenceType(type), x.arg);
-		},
-		(in ConcreteExprKind.AllocGet x) {
-			checkExpr(ctx, referenceType(type), x.arg);
-		},
-		(in ConcreteExprKind.AllocSet x) {
-			assert(isVoid(type));
-			checkExprAnyType(ctx, x.reference);
-			checkExpr(ctx, dereferenceType(x.reference.type), x.value);
-		},
 		(in ConcreteExprKind.Call x) {
 			checkType(ctx, type, x.called.returnType);
 			zip(x.called.paramsIncludingClosure, x.args, (ref ConcreteLocal param, ref ConcreteExpr arg) {
@@ -153,6 +140,12 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		},
 		(in ConcreteExprKind.RecordFieldGet x) {
 			checkExprAnyType(ctx, *x.record);
+			assert(x.record.type.struct_.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type == type);
+		},
+		(in ConcreteExprKind.RecordFieldSet x) {
+			assert(isVoid(type));
+			checkExprAnyType(ctx, x.record);
+			checkExpr(ctx, x.record.type.struct_.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type, x.value);
 		},
 		(in ConcreteExprKind.Seq x) {
 			checkExpr(ctx, ctx.types.void_, x.first);
