@@ -57,6 +57,7 @@ import
 	../editor/vscode/license.txt as license string
 	./unit/auto-funs: dummy-auto-funs
 	./unit/conditions: dummy-conditions
+	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
 
 main void() summon
@@ -74,6 +75,7 @@ main void() summon
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
 	_ = dummy-conditions
+	_ = dummy-closures
 	_ = dummy-exceptions
 	_ = dummy-future-tests
 	_ = dummy-map-tests

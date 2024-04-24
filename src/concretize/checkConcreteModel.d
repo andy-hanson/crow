@@ -11,9 +11,11 @@ import model.concreteModel :
 	ConcreteProgram,
 	ConcreteStructBody,
 	ConcreteType,
+	dereferenceType,
 	isBogus,
 	isVoid,
-	mustBeByVal;
+	mustBeByVal,
+	referenceType;
 import model.constant : Constant;
 import model.model : isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
@@ -52,23 +54,21 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 	checkType(ctx, type, expr.type);
 	expr.kind.matchIn!void(
 		(in ConcreteExprKind.Alloc x) {
-			// TODO: validate 'type' is a pointer type and 'x.arg' is the pointee
-			checkExprAnyType(ctx, x.arg);
+			checkExpr(ctx, dereferenceType(type), x.arg);
+		},
+		(in ConcreteExprKind.AllocGet x) {
+			checkExpr(ctx, referenceType(type), x.arg);
+		},
+		(in ConcreteExprKind.AllocSet x) {
+			assert(isVoid(type));
+			checkExprAnyType(ctx, x.reference);
+			checkExpr(ctx, dereferenceType(x.reference.type), x.value);
 		},
 		(in ConcreteExprKind.Call x) {
 			checkType(ctx, type, x.called.returnType);
 			zip(x.called.paramsIncludingClosure, x.args, (ref ConcreteLocal param, ref ConcreteExpr arg) {
 				checkExpr(ctx, param.type, arg);
 			});
-		},
-		(in ConcreteExprKind.ClosureCreate) {
-			// TODO: validate 'type' is a record and this creates it
-		},
-		(in ConcreteExprKind.ClosureGet x) {
-			checkType(ctx, type, x.closureRef.type);
-		},
-		(in ConcreteExprKind.ClosureSet x) {
-			checkExpr(ctx, x.closureRef.type, x.value);
 		},
 		(in Constant) {},
 		(in ConcreteExprKind.CreateArray x) {
@@ -97,10 +97,6 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, ctx.types.bool_, x.cond);
 			checkExpr(ctx, type, x.then);
 			checkExpr(ctx, type, x.else_);
-		},
-		(in ConcreteExprKind.Lambda x) {
-			if (has(x.closure))
-				checkExprAnyType(ctx, *force(x.closure));
 		},
 		(in ConcreteExprKind.Let x) {
 			checkExpr(ctx, x.local.type, x.value);

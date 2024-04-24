@@ -28,6 +28,7 @@ import concretize.concretizeCtx :
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.generate :
 	genAnd,
+	genBreak,
 	genCall,
 	genCallNoAllocArgs,
 	genCallKindNoAllocArgs,
@@ -35,23 +36,33 @@ import concretize.generate :
 	genChar8List,
 	genChar32Array,
 	genChar32List,
+	genConstant,
+	genContinue,
+	genCreateRecord,
+	genCreateUnion,
+	genDoAndContinue,
+	genDrop,
 	genError,
 	genFalse,
 	genIf,
+	genLet,
+	genLoop,
 	genNone,
 	genOr,
+	genSeq,
 	genStringLiteral,
 	genSome,
 	genLocalGet,
+	genLocalSet,
+	genParamGet,
+	genRecordFieldGet,
 	genThrow,
 	genThrowStringKind,
 	genTrue,
+	genVoid,
 	unwrapOptionType;
 import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
 import model.concreteModel :
-	byRef,
-	byVal,
-	ConcreteClosureRef,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
@@ -64,7 +75,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	ConcreteVariableRef,
+	dereferenceType,
 	isBogus,
 	isSummon,
 	isVariadic,
@@ -73,6 +84,7 @@ import model.concreteModel :
 	name,
 	purity,
 	ReferenceKind,
+	referenceType,
 	returnType;
 import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
@@ -103,6 +115,7 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
+	localIsAllocated,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -154,7 +167,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>
@@ -393,12 +406,12 @@ ConcreteExpr concretizeCallOption(
 		a.restArgs,
 		(size_t i, ref Expr x) => concretizeExpr(ctx, called.paramsIncludingClosure[i + 1].type, locals, x));
 	ConcreteExpr call = genCallNoAllocArgs(range, called, allArgs);
-	ConcreteExpr someCall = call.type == type ? call : genSome(ctx.concretizeCtx, range, type, call);
+	ConcreteExpr someCall = call.type == type ? call : genSome(ctx.concretizeCtx, type, range, call);
 	assert(someCall.type == type);
 	return genIfOption(
 		ctx.alloc, range, option,
 		RootLocalAndExpr(some(local), someCall),
-		genNone(ctx.concretizeCtx, range, type));
+		genNone(ctx.concretizeCtx, type, range));
 }
 
 ConstantsOrExprs asConstantsOrExprsIf(ref Alloc alloc, bool mayBeConstants, ConcreteExpr[] exprs) =>
@@ -442,16 +455,25 @@ Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst*
 			withConcreteTypes(ctx.concretizeCtx, funInst.typeArgs, typeScope(ctx), (scope ConcreteType[] typeArgs) =>
 				getConcreteFun(ctx.concretizeCtx, funInst.decl, typeArgs, specImpls)));
 
-ConcreteExpr concretizeClosureGet(
-	ref ConcretizeExprCtx ctx,
-	ConcreteType type,
-	in UriAndRange range,
-	in ClosureGetExpr a,
-) {
+ConcreteExpr concretizeClosureGet(ref ConcretizeExprCtx ctx, ConcreteType type, in UriAndRange range, in ClosureGetExpr a) {
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
-	assert(info.type == type);
-	return ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.ClosureGet(info.closureRef, info.referenceKind))));
+	ConcreteExpr getField = getClosureField(ctx, range, a.closureRef);
+	final switch (info.referenceKind) {
+		case ClosureReferenceKind.direct:
+			assert(info.fieldType == info.pointeeType);
+			assert(info.fieldType == type);
+			return getField;
+		case ClosureReferenceKind.allocated:
+			assert(dereferenceType(info.fieldType) == info.pointeeType);
+			assert(info.pointeeType == type);
+			return genAllocGet(ctx.alloc, getField);
+	}
+}
+
+// This does not dereference it if allocated; 'concretizeClosureGet' does that.
+ConcreteExpr getClosureField(ref ConcretizeExprCtx ctx, in UriAndRange range, in ClosureRef a) {
+	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a);
+	return genRecordFieldGet(info.fieldType, range, allocate(ctx.alloc, genParamGet(ctx.alloc, range, info.closureParam)), info.fieldIndex);
 }
 
 ConcreteExpr concretizeClosureSet(
@@ -464,15 +486,17 @@ ConcreteExpr concretizeClosureSet(
 	assert(a.closureRef.closureReferenceKind == ClosureReferenceKind.allocated);
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
 	assert(info.referenceKind == ClosureReferenceKind.allocated);
-	ConcreteExpr value = concretizeExpr(ctx, info.type, locals, *a.value);
+	ConcreteExpr field = getClosureField(ctx, range, a.closureRef);
+	ConcreteExpr value = concretizeExpr(ctx, info.pointeeType, locals, *a.value);
 	assert(isVoid(type));
-	return ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.ClosureSet(info.closureRef, value))));
+	return genAllocSet(ctx.concretizeCtx, range, field, value);
 }
 
 immutable struct ClosureFieldInfo {
-	ConcreteClosureRef closureRef;
-	ConcreteType type; // If 'referenceKind' is 'allocated', this is the pointee type
+	ConcreteLocal* closureParam;
+	uint fieldIndex;
+	ConcreteType fieldType;
+	ConcreteType pointeeType; // If field is allocated, this is the derefed type. TODO: USED? ----------------------------------------------------------------------------------------
 	ClosureReferenceKind referenceKind;
 }
 ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange range, in ClosureRef a) {
@@ -486,21 +510,20 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange r
 			case ClosureReferenceKind.direct:
 				return fieldType;
 			case ClosureReferenceKind.allocated:
-				return removeIndirection(fieldType);
+				return dereferenceType(fieldType);
 		}
 	}();
-	return ClosureFieldInfo(
-		ConcreteClosureRef(PtrAndSmallNumber!ConcreteLocal(closureParam, a.index)),
-		pointeeType,
-		referenceKind);
+	return ClosureFieldInfo(closureParam, a.index, fieldType, pointeeType, referenceKind);
 }
 
-ConcreteExpr createAllocExpr(ref Alloc alloc, ConcreteExpr inner) {
-	assert(inner.type.reference == ReferenceKind.byVal);
-	return ConcreteExpr(
-		byRef(inner.type),
-		inner.range,
-		ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
+// TODO: move to generate.d? -------------------------------------------------------------------------------------------------------------
+ConcreteExpr genAlloc(ref Alloc alloc, ConcreteExpr inner) =>
+	ConcreteExpr(referenceType(inner.type), inner.range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
+ConcreteExpr genAllocGet(ref Alloc alloc, ConcreteExpr reference) { // TODO: this could just be a RecordFieldGet of a Cell --------
+	return ConcreteExpr(dereferenceType(reference.type), reference.range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.AllocGet(reference))));
+}
+ConcreteExpr genAllocSet(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr reference, ConcreteExpr value) { // TODO: this could just be a recordFieldSet of a Cell
+	return ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.AllocSet(reference, value))));
 }
 
 SmallArray!ConcreteField concretizeClosureFields(
@@ -515,38 +538,12 @@ SmallArray!ConcreteField concretizeClosureFields(
 				case ClosureReferenceKind.direct:
 					return baseType;
 				case ClosureReferenceKind.allocated:
-					return addIndirection(baseType);
+					return referenceType(baseType);
 			}
 		}();
 		// Even if the variable is mutable, it's a const field holding a mut pointer
 		return ConcreteField(x.name, ConcreteMutability.const_, type);
 	});
-
-ConcreteType addIndirection(ConcreteType a) =>
-	ConcreteType(addIndirection(a.reference), a.struct_);
-ReferenceKind addIndirection(ReferenceKind a) {
-	final switch (a) {
-		case ReferenceKind.byVal:
-			return ReferenceKind.byRef;
-		case ReferenceKind.byRef:
-			return ReferenceKind.byRefRef;
-		case ReferenceKind.byRefRef:
-			assert(false);
-	}
-}
-
-ConcreteType removeIndirection(ConcreteType a) =>
-	ConcreteType(removeIndirection(a.reference), a.struct_);
-ReferenceKind removeIndirection(ReferenceKind a) {
-	final switch (a) {
-		case ReferenceKind.byVal:
-			assert(false);
-		case ReferenceKind.byRef:
-			return ReferenceKind.byVal;
-		case ReferenceKind.byRefRef:
-			return ReferenceKind.byRef;
-	}
-}
 
 ConcreteExpr concretizeFunPointer(
 	ref ConcretizeExprCtx ctx,
@@ -588,7 +585,7 @@ ConcreteExpr concretizeLambdaInner(
 	// TODO: handle constants in closure
 	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
 
-	//TODO:KILL? (We also have an ID within the type..)
+	//TODO:KILL? (We also have an ID within the type..) --------------------------------------------------------------------------
 	size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 
@@ -600,16 +597,13 @@ ConcreteExpr concretizeLambdaInner(
 		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPointer, lambdaIndex)));
 	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, tScope);
 
-	ConcreteStruct* concreteStruct = mustBeByVal(type);
+	ConcreteStruct* lambdaStruct = mustBeByVal(type);
 
-	ConcreteVariableRef[] closureArgs = map(ctx.alloc, e.closure, (ref VariableRef x) =>
+	ConcreteExpr[] closureArgs = map(ctx.alloc, e.closure, (ref VariableRef x) =>
 		concretizeVariableRefForClosure(ctx, range, locals, x));
-	Opt!(ConcreteExpr*) closure = isEmpty(closureArgs)
-		? none!(ConcreteExpr*)
-		: some(allocate(ctx.alloc, createAllocExpr(ctx.alloc, ConcreteExpr(
-			byVal(closureType),
-			range,
-			ConcreteExprKind(ConcreteExprKind.ClosureCreate(closureArgs))))));
+	ConcreteExpr closure = isEmpty(closureArgs)
+		? genVoid(ctx.concretizeCtx, range)
+		: genCreateRecord(closureType, range, closureArgs);
 
 	ConcreteType returnType = getConcreteType(ctx, e.returnType);
 	if (isBogus(returnType))
@@ -624,12 +618,11 @@ ConcreteExpr concretizeLambdaInner(
 		paramsIncludingClosure,
 		&e.body_());
 	ConcreteLambdaImpl impl = ConcreteLambdaImpl(closureType, fun);
-	return ConcreteExpr(type, range, ConcreteExprKind(
-		ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, concreteStruct, impl), closure)));
+	return genCreateUnion(ctx.alloc, type, range, nextLambdaImplId(ctx.concretizeCtx, lambdaStruct, impl), closure);
 }
 
-size_t nextLambdaImplId(ref ConcretizeCtx ctx, ConcreteStruct* funStruct, ConcreteLambdaImpl impl) =>
-	nextLambdaImplIdInner(ctx.alloc, impl, getOrAdd(ctx.alloc, ctx.lambdaStructToImpls, funStruct, () =>
+size_t nextLambdaImplId(ref ConcretizeCtx ctx, ConcreteStruct* lambdaStruct, ConcreteLambdaImpl impl) =>
+	nextLambdaImplIdInner(ctx.alloc, impl, getOrAdd(ctx.alloc, ctx.lambdaStructToImpls, lambdaStruct, () =>
 		MutArr!ConcreteLambdaImpl()));
 size_t nextLambdaImplIdInner(ref Alloc alloc, ConcreteLambdaImpl impl, ref MutArr!ConcreteLambdaImpl impls) {
 	size_t res = mutArrSize(impls);
@@ -704,19 +697,13 @@ ConcreteExpr concretizeWithDestructureAndLet(
 	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
 ) {
 	RootLocalAndExpr then = concretizeWithDestructure(ctx, type, range, locals, destructure, cb);
+	// TODO: TERNARY --------------------------------------------------------------------------------------------------------------
 	if (has(then.rootLocal))
-		return ConcreteExpr(type, range, ConcreteExprKind(
-			allocate(ctx.alloc, ConcreteExprKind.Let(force(then.rootLocal), value, then.expr))));
-	else {
-		if (value.kind.isA!Constant)
-			return then.expr;
-		else {
-			ConcreteExpr drop = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(
-				allocate(ctx.alloc, ConcreteExprKind.Drop(value))));
-			return ConcreteExpr(type, range, ConcreteExprKind(
-				allocate(ctx.alloc, ConcreteExprKind.Seq(drop, then.expr))));
-		}
-	}
+		return genLet(ctx.alloc, type, range, force(then.rootLocal), value, then.expr);
+	else if (value.kind.isA!Constant)
+		return then.expr;
+	else
+		return genSeq(ctx.alloc, range, genDrop(ctx.concretizeCtx, range, value), then.expr);
 }
 
 RootLocalAndExpr concretizeWithDestructure(
@@ -733,9 +720,15 @@ RootLocalAndExpr concretizeWithDestructure(
 			return RootLocalAndExpr(none!(ConcreteLocal*), then);
 		},
 		(Local* local) {
-			ConcreteLocal* concreteLocal = concretizeLocal(ctx, local);
-			ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(concreteLocal)));
-			return RootLocalAndExpr(some(concreteLocal), then);
+			ConcreteLocal* rootLocal = concretizeLocal(ctx, local);
+			if (localIsAllocated(*local)) {
+				ConcreteType pointerType = referenceType(rootLocal.type);
+				ConcreteLocal* allocatedLocal = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.allocated), pointerType));
+				ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(allocatedLocal)));
+				ConcreteExpr allocateThen = genLet(ctx.alloc, type, range, allocatedLocal, genAlloc(ctx.alloc, genLocalGet(range, rootLocal)), then);
+				return RootLocalAndExpr(some(rootLocal), allocateThen);
+			} else
+				return RootLocalAndExpr(some(rootLocal), cb(addLocal(locals, local, LocalOrConstant(rootLocal))));
 		},
 		(Destructure.Split* x) {
 			if (x.destructuredType.isBogus)
@@ -863,10 +856,14 @@ ConcreteExpr concretizeLocalGet(
 ) {
 	LocalOrConstant concrete = castNonScope_ref(getLocal(locals, local));
 	return concrete.matchWithPointers!ConcreteExpr(
-		(ConcreteLocal* x) =>
-			isBogus(x.type)
-				? concretizeBogus(ctx, type, range)
-				: genLocalGet(range, x),
+		(ConcreteLocal* x) {
+			if (isBogus(x.type)) {
+				return concretizeBogus(ctx, type, range);
+			} else {
+				ConcreteExpr get = genLocalGet(range, x);
+				return localIsAllocated(*local) ? genAllocGet(ctx.alloc, get) : get;
+			}
+		},
 		(TypedConstant x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)));
 }
@@ -878,6 +875,8 @@ ConcreteExpr concretizePtrToLocal(
 	in Locals locals,
 	in PtrToLocalExpr a,
 ) {
+	if (localIsAllocated(*a.local))
+		todo!void("Pointer to local, but it's already a pointer (just cast it)");
 	ConcreteExprKind kind = castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExprKind(
 		(ConcreteLocal* local) =>
 			ConcreteExprKind(ConcreteExprKind.PtrToLocal(local)),
@@ -905,9 +904,11 @@ ConcreteExpr concretizeLocalSet(
 	LocalSetExpr a,
 ) {
 	ConcreteLocal* local = getLocal(locals, a.local).as!(ConcreteLocal*);
-	ConcreteExpr value = concretizeExpr(ctx, local.type, locals, *a.value);
-	return ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.LocalSet(castNonScope(local), value))));
+	ConcreteType valueType = localIsAllocated(*a.local) ? dereferenceType(local.type) : local.type;
+	ConcreteExpr value = concretizeExpr(ctx, valueType, locals, *a.value);
+	return localIsAllocated(*a.local)
+		? genAllocSet(ctx.concretizeCtx, range, genLocalGet(range, local), value)
+		: genLocalSet(ctx.concretizeCtx, range, local, value);
 }
 
 ConcreteExpr concretizeLoopWhileOrUntil(
@@ -995,23 +996,6 @@ immutable struct IfOptionBranches {
 	ConcreteExpr some;
 	ConcreteExpr none;
 }
-
-ConcreteExpr genLoop(ref ConcretizeExprCtx ctx, ConcreteType type, in UriAndRange range, ConcreteExpr body_) =>
-	ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Loop(body_))));
-
-ConcreteExpr genDoAndContinue(ref Alloc alloc, ConcreteType type, in UriAndRange range, ConcreteExpr a) =>
-	genSeq(alloc, range, a, genContinue(type, range));
-
-ConcreteExpr genSeq(ref Alloc alloc, in UriAndRange range, ConcreteExpr a, ConcreteExpr b) {
-	assert(isVoid(a.type));
-	return ConcreteExpr(b.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Seq(a, b))));
-}
-
-ConcreteExpr genContinue(ConcreteType type, in UriAndRange range) =>
-	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LoopContinue()));
-
-ConcreteExpr genBreak(ref Alloc alloc, in UriAndRange range, ConcreteExpr value) =>
-	ConcreteExpr(value.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.LoopBreak(value))));
 
 ConcreteExpr concretizeMatchEnum(
 	ref ConcretizeExprCtx ctx,
@@ -1142,21 +1126,22 @@ IntegralValue memberIndexForMatchVariantCase(
 	IntegralValue(ensureVariantMember(
 		ctx.concretizeCtx, variantType, a.member, getConcreteType(ctx, a.destructure.type)));
 
-ConcreteVariableRef concretizeVariableRefForClosure(
+ConcreteExpr concretizeVariableRefForClosure(
 	ref ConcretizeExprCtx ctx,
 	in UriAndRange range,
 	in Locals locals,
 	VariableRef a,
 ) =>
-	a.matchWithPointers!ConcreteVariableRef(
+	a.matchWithPointers!ConcreteExpr(
 		(Local* x) =>
-			getLocal(locals, x).matchWithPointers!ConcreteVariableRef(
+			getLocal(locals, x).matchWithPointers!ConcreteExpr(
 				(ConcreteLocal* local) =>
-					ConcreteVariableRef(local),
+					// If it's a Cell, leave it that way
+					genLocalGet(range, local),
 				(TypedConstant constant) =>
-					ConcreteVariableRef(constant.value)),
+					genConstant(constant.type, range, constant.value)),
 		(ClosureRef x) =>
-			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
+			getClosureField(ctx, range, x));
 
 ConcreteExpr concretizeAssertOrForbid(
 	ref ConcretizeExprCtx ctx,

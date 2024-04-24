@@ -58,7 +58,6 @@ import lower.lowExprHelpers :
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
-	ConcreteClosureRef,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
@@ -72,7 +71,6 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
-	ConcreteVariableRef,
 	mustBeByVal,
 	name,
 	PointerTypeAndConstantsConcrete,
@@ -120,7 +118,6 @@ import model.model :
 	BuiltinType,
 	BuiltinUnary,
 	BuiltinUnaryMath,
-	ClosureReferenceKind,
 	ConfigExternUris,
 	EnumFunction,
 	FlagsFunction,
@@ -743,8 +740,7 @@ T withLowLocal(T)(
 	ConcreteLocal* concreteLocal,
 	in T delegate(in Locals, LowLocal*) @safe @nogc pure nothrow cb,
 ) {
-	LowType typeByVal = lowTypeFromConcreteType(ctx.typeCtx, concreteLocal.type);
-	LowType type = concreteLocal.isAllocated ? getLowGcPtrType(ctx.typeCtx, typeByVal) : typeByVal;
+	LowType type = lowTypeFromConcreteType(ctx.typeCtx, concreteLocal.type);
 	LowLocal* local = allocate(ctx.alloc, LowLocal(getLowLocalSource(ctx, concreteLocal.source), type));
 	return cb(addLocal(locals, concreteLocal, local), local);
 }
@@ -999,11 +995,20 @@ LowExpr getLowExpr(
 	LowExpr res = getLowExprKind(ctx, locals, type, expr, exprPos); // TODO: that is misnamed then ............................
 	if (res.type != type) { // ---------------------------------------------------------------------------------------------------
 		import util.writer : debugLogWithWriter, Writer;
+		import frontend.showModel : ShowCtx, ShowOptions;
+		import model.showLowModel : writeLowType;
+		import frontend.storage : LineAndColumnGetters;
+		import util.uri : UrisInfo;
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Type is not as expected for concrete expr kind ";
 			writer ~= expr.kind.kind;
 			writer ~= " output as low expr kind ";
 			writer ~= res.kind.kind;
+			ShowCtx showCtx = ShowCtx(LineAndColumnGetters(), UrisInfo(), ShowOptions()); // TODO: fill this in -----------------
+			writer ~= "\nResult type: ";
+			writeLowType(writer, showCtx, *ctx.allTypes, res.type);
+			writer ~= "\nExpected type: ";
+			writeLowType(writer, showCtx, *ctx.allTypes, type);
 		});
 	}
 	assert(res.type == type);
@@ -1024,20 +1029,18 @@ LowExpr getLowExprKind(
 	return expr.kind.match!LowExpr(
 		(ref ConcreteExprKind.Alloc x) =>
 			getAllocExpr(ctx, exprPos, locals, range, x),
+		(ref ConcreteExprKind.AllocGet x) =>
+			handleExprPos(ctx, exprPos, getAllocGetExpr(ctx, locals, range, x)),
+		(ref ConcreteExprKind.AllocSet x) =>
+			handleExprPos(ctx, exprPos, getAllocSetExpr(ctx, locals, range, x)),
 		(ConcreteExprKind.Call x) =>
 			getCallExpr(ctx, locals, exprPos, type, range, x.called, x.args),
-		(ConcreteExprKind.ClosureCreate x) =>
-			handleExprPos(ctx, exprPos, getClosureCreateExpr(ctx, locals, range, type, x)),
-		(ref ConcreteExprKind.ClosureGet x) =>
-			handleExprPos(ctx, exprPos, getClosureGetExpr(ctx, range, x)),
-		(ref ConcreteExprKind.ClosureSet x) =>
-			handleExprPos(ctx, exprPos, getClosureSetExpr(ctx, locals, range, x)),
 		(Constant x) =>
 			regular(LowExprKind(x)),
 		(ConcreteExprKind.CreateArray x) =>
-			getCreateArrayExpr(ctx, exprPos, locals, range, type, expr.type, x),
+			getCreateArrayExpr(ctx, exprPos, locals, type, range, expr.type, x),
 		(ConcreteExprKind.CreateRecord x) =>
-			regular(LowExprKind(LowExprKind.CreateRecord(getArgs(ctx, locals, x.args)))), // TODO: this has the same issue as a Call -- need to push roots for non-last args if some arg may yield
+			getCreateRecordExpr(ctx, exprPos, locals, type, range, x),
 		(ref ConcreteExprKind.CreateUnion x) =>
 			LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(
 				x.memberIndex,
@@ -1051,8 +1054,6 @@ LowExpr getLowExprKind(
 				getLowExpr(ctx, locals, x.cond, ExprPos.nonTail),
 				getLowExpr(ctx, locals, x.then, exprPos),
 				getLowExpr(ctx, locals, x.else_, exprPos))))),
-		(ConcreteExprKind.Lambda x) =>
-			handleExprPos(ctx, exprPos, getLambdaExpr(ctx, locals, type, range, x)),
 		(ref ConcreteExprKind.Let x) =>
 			getLetExpr(ctx, locals, exprPos, type, range, x),
 		(ConcreteExprKind.LocalGet x) =>
@@ -1114,6 +1115,15 @@ LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, in Locals locals, U
 	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
 	return getAllocExpr2(ctx, exprPos, getLowGcPtrType(ctx.typeCtx, arg.type), range, arg, expressionMayYield(ctx, a.arg));
 }
+
+LowExpr getAllocGetExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.AllocGet a) =>
+	genDerefGcPointer(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTail));
+
+LowExpr getAllocSetExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.AllocSet a) =>
+	genWriteToPointer(
+		ctx.alloc, range,
+		getLowExpr(ctx, locals, a.reference, ExprPos.nonTail),
+		getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
 
 LowExpr getAllocExpr2(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAndRange range, LowExpr arg, bool argMayYield) => // TODO: just roll into getAllocExpr2Expr?
 	isEmptyType(*ctx.allTypes, arg.type)
@@ -1206,16 +1216,8 @@ LowExpr getCallSpecial(
 			getCallBuiltinExpr(ctx, locals, type, range, called, args, x.kind),
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
-		(ConcreteFunBody.CreateRecord) { // TODO: Just Make this a ConcreteExpr, not a special ConcreteFunBody .........................
-			if (isEmptyType(*ctx.allTypes, type))
-				return genZeroed(type, range);
-			else {
-				LowExprKind create = LowExprKind(LowExprKind.CreateRecord(getArgs(ctx, locals, args))); // TODO: same issue with args... need to have GC roots for non-last args
-				return type.isA!(LowType.PtrGc)
-					? getAllocExpr2(ctx, ExprPos.nonTail, type, range, LowExpr(asPtrGcPointee(type), range, create), false)
-					: LowExpr(type, range, create);
-			}
-		},
+		(ConcreteFunBody.CreateRecord) => // TODO: Just Make this a ConcreteExpr, not a special ConcreteFunBody .........................
+			getCreateRecordExpr(ctx, ExprPos.nonTail, locals, type, range, ConcreteExprKind.CreateRecord(args)),
 		(ConcreteFunBody.CreateUnion x) {
 			LowExpr arg = isEmpty(args)
 				? genVoid(range)
@@ -1461,8 +1463,8 @@ LowExpr getCreateArrayExpr(
 	ref GetLowExprCtx ctx,
 	ExprPos exprPos,
 	in Locals locals,
-	UriAndRange range,
 	LowType arrType,
+	UriAndRange range,
 	ConcreteType concreteArrType,
 	in ConcreteExprKind.CreateArray a,
 ) {
@@ -1502,15 +1504,28 @@ LowExpr getCreateArrayExpr(
 	});
 }
 
+LowExpr getCreateRecordExpr(
+	ref GetLowExprCtx ctx,
+	ExprPos exprPos,
+	in Locals locals,
+	LowType type,
+	UriAndRange range,
+	in ConcreteExprKind.CreateRecord a,
+) {
+	if (isEmptyType(*ctx.allTypes, type)) {
+		assert(isEmpty(a.args));
+		return genZeroed(type, range); // TODO: wait, this needs to include side effects! -------------------------------
+	// TODO: handle gc roots! ----------------------------------------------------------------------------------------------------------
+	} else if (type.isA!(LowType.PtrGc)) {
+		LowExpr inner = genCreateRecord(asPtrGcPointee(type), range, getArgs(ctx, locals, a.args));
+		bool argMayYield = false; // TODO -------------------------------------------------------------------------------------------
+		return getAllocExpr2(ctx, exprPos, type, range, inner, argMayYield);
+	} else
+		return handleExprPos(ctx, exprPos, genCreateRecord(type, range, getArgs(ctx, locals, a.args)));
+}
+
 LowExpr getDropExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.Drop a) =>
 	genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTail));
-
-LowExpr getLambdaExpr(ref GetLowExprCtx ctx, in Locals locals, LowType type, UriAndRange range, in ConcreteExprKind.Lambda a) =>
-	LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(
-		a.memberIndex,
-		has(a.closure)
-			? getLowExpr(ctx, locals, *force(a.closure), ExprPos.nonTail)
-			: genVoid(range)))));
 
 LowExpr getLetExpr(
 	ref GetLowExprCtx ctx,
@@ -1522,7 +1537,7 @@ LowExpr getLetExpr(
 ) =>
 	genLetHandleAllocated(ctx, locals, exprPos, type, range, a.local, a.value, a.then, (LowExpr x) => x);
 
-LowExpr genLetHandleAllocated(
+LowExpr genLetHandleAllocated( // TODO: misnamed, now concretize step handles allocated --------------------------------------------
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ExprPos exprPos,
@@ -1533,11 +1548,8 @@ LowExpr genLetHandleAllocated(
 	ref ConcreteExpr concreteThen,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbModifyThen,
 ) {
-	LowExpr valueByVal = getLowExpr(ctx, locals, concreteValue, ExprPos.nonTail);
-	LowExpr value = concreteLocal.isAllocated
-		? getAllocExpr2(ctx, ExprPos.nonTail, getLowGcPtrType(ctx.typeCtx, valueByVal.type), range, valueByVal, expressionMayYield(ctx, concreteValue))
-		: valueByVal;
-	return withLowLocal!LowExpr(ctx, locals, concreteLocal, (in Locals innerLocals, LowLocal* local) =>
+	LowExpr value = getLowExpr(ctx, locals, concreteValue, ExprPos.nonTail);
+	return withLowLocal!LowExpr(ctx, locals, concreteLocal, (in Locals innerLocals, LowLocal* local) => // TODO: can this just use 'genLet'?
 		genLetPossiblyGcRoot(ctx, range, local, value, exprPos, expressionMayYield(ctx, concreteThen), (ExprPos inner) =>
 			cbModifyThen(getLowExpr(ctx, innerLocals, concreteThen, inner))));
 }
@@ -1555,11 +1567,8 @@ LowExpr getLocalGetExpr(
 	LowType type,
 	UriAndRange range,
 	in ConcreteExprKind.LocalGet a,
-) {
-	LowLocal* local = getLocal(ctx, locals, a.local);
-	LowExpr localGet = genLocalGet(range, local);
-	return a.local.isAllocated ? genDerefGcPointer(ctx.alloc, range, localGet) : localGet;
-}
+) =>
+	genLocalGet(range, getLocal(ctx, locals, a.local));
 
 LowExpr getPtrToLocalExpr(
 	ref GetLowExprCtx ctx,
@@ -1567,26 +1576,16 @@ LowExpr getPtrToLocalExpr(
 	LowType type,
 	UriAndRange range,
 	in ConcreteExprKind.PtrToLocal a,
-) {
-	LowLocal* local = getLocal(ctx, locals, a.local);
-	return LowExpr(type, range, a.local.isAllocated
-		? LowExprKind(allocate(ctx.alloc, LowExprKind.PtrCast(
-			LowExpr(local.type, range, LowExprKind(LowExprKind.LocalGet(local))))))
-		: LowExprKind(LowExprKind.PtrToLocal(local)));
-}
+) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.PtrToLocal(getLocal(ctx, locals, a.local))));
 
 LowExpr getLocalSetExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	UriAndRange range,
 	ref ConcreteExprKind.LocalSet a,
-) {
-	LowLocal* local = getLocal(ctx, locals, a.local);
-	LowExpr value = getLowExpr(ctx, locals, a.value, ExprPos.nonTail);
-	return a.local.isAllocated
-		? genWriteToPointer(ctx.alloc, range, genLocalGet(range, local), value)
-		: genLocalSet(ctx.alloc, range, local, value);
-}
+) =>
+	genLocalSet(ctx.alloc, range, getLocal(ctx, locals, a.local), getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
 
 LowExpr getMatchIntegralExpr(
 	ref GetLowExprCtx ctx,
@@ -1678,67 +1677,6 @@ SmallArray!LowExpr lowerMatchCases(
 						expressionMayYield(ctx, case_.then),
 						(ExprPos inner) => getLowExpr(ctx, newLocals, case_.then, inner)))
 				: getLowExpr(ctx, locals, case_.then, exprPos)));
-
-LowExpr getClosureCreateExpr(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	UriAndRange range,
-	LowType type,
-	in ConcreteExprKind.ClosureCreate a,
-) =>
-	LowExpr(type, range, LowExprKind(LowExprKind.CreateRecord(
-		mapZip!(LowExpr, ConcreteVariableRef, LowField)(
-			ctx.alloc, a.args, ctx.allTypes.allRecords[type.as!(LowType.Record)].fields,
-			(ref ConcreteVariableRef x, ref LowField f) =>
-				getVariableRefExprForClosure(ctx, locals, range, f.type, x)))));
-
-LowExpr getVariableRefExprForClosure(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	UriAndRange range,
-	LowType type,
-	ConcreteVariableRef a,
-) =>
-	a.matchWithPointers!LowExpr(
-		(Constant x) =>
-			LowExpr(type, range, LowExprKind(x)),
-		(ConcreteLocal* x) =>
-			// Intentionally not dereferencing the local like 'getLocalGetExpr' does
-			LowExpr(type, range, LowExprKind(LowExprKind.LocalGet(getLocal(ctx, locals, x)))),
-		(ConcreteClosureRef x) =>
-			getClosureField(ctx, range, x));
-
-LowExpr getClosureGetExpr(ref GetLowExprCtx ctx, UriAndRange range, ConcreteExprKind.ClosureGet a) {
-	LowExpr getField = getClosureField(ctx, range, a.closureRef);
-	final switch (a.referenceKind) {
-		case ClosureReferenceKind.direct:
-			return getField;
-		case ClosureReferenceKind.allocated:
-			return genDerefGcPointer(ctx.alloc, range, getField);
-	}
-}
-
-LowExpr getClosureSetExpr(
-	ref GetLowExprCtx ctx,
-	in Locals locals,
-	UriAndRange range,
-	ref ConcreteExprKind.ClosureSet a,
-) =>
-	// Note: This doesn't write to a field, it gets a pointer from the field and writes to that
-	genWriteToPointer(
-		ctx.alloc,
-		range,
-		getClosureField(ctx, range, a.closureRef),
-		getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
-
-// NOTE: This does not dereference pointer for mutAllocated, getClosureGetExpr will do that
-LowExpr getClosureField(ref GetLowExprCtx ctx, UriAndRange range, ConcreteClosureRef closureRef) {
-	LowLocal* closureLocal = &ctx.lowParams[0];
-	LowExpr* closureGet = allocate(ctx.alloc, genLocalGet(range, closureLocal));
-	LowRecord record = ctx.allTypes.allRecords[asPtrGcPointee(closureLocal.type).as!(LowType.Record)];
-	return LowExpr(record.fields[closureRef.fieldIndex].type, range, LowExprKind(
-		LowExprKind.RecordFieldGet(closureGet, closureRef.fieldIndex)));
-}
 
 LowExpr getPtrToFieldExpr(
 	ref GetLowExprCtx ctx,

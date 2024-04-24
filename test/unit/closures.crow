@@ -1,0 +1,35 @@
+dummy-closures nat()
+	0
+
+test
+	x mut nat = 0
+	f void mut() = () =>
+		x +:= 1
+	f[]
+	x is 1
+
+test
+	x mut nat = 0
+	f void mut() = () =>
+		x +:= 1
+	g void mut() = () =>
+		x +:= 2
+	f[]
+	g[]
+	x is 3
+
+test
+	x mut nat, y mut nat = 1, 2
+	f void mut() = () =>
+		x +:= 1
+		y +:= 2
+	f[]
+	x is 2
+	y is 4
+
+test
+	try x mut nat = 3 catch divide-by-0 : unreachable
+	f void mut() = () =>
+		x +:= 2
+	f[]
+	x is 5

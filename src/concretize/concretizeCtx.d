@@ -14,7 +14,6 @@ import concretize.generate :
 	unwrapOptionType;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
-	byVal,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,

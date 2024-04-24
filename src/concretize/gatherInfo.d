@@ -104,14 +104,12 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 	a.kind.matchWithPointers!bool(
 		(ConcreteExprKind.Alloc* x) =>
 			cb(x.arg),
+		(ConcreteExprKind.AllocGet* x) =>
+			cb(x.arg),
+		(ConcreteExprKind.AllocSet* x) =>
+			cb(x.reference) || cb(x.value),
 		(ConcreteExprKind.Call x) =>
 			exists2!ConcreteExpr(x.args, cb),
-		(ConcreteExprKind.ClosureCreate x) =>
-			false,
-		(ConcreteExprKind.ClosureGet* x) =>
-			false,
-		(ConcreteExprKind.ClosureSet* x) =>
-			cb(x.value),
 		(Constant x) =>
 			false,
 		(ConcreteExprKind.CreateArray x) =>
@@ -126,8 +124,6 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			cb(x.right) || cb(x.below),
 		(ConcreteExprKind.If* x) =>
 			cb(x.cond) || cb(x.then) || cb(x.else_),
-		(ConcreteExprKind.Lambda x) =>
-			false,
 		(ConcreteExprKind.Let* x) =>
 			cb(x.value) || cb(x.then),
 		(ConcreteExprKind.LocalGet) =>

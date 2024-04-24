@@ -300,7 +300,9 @@ LowExpr genPointerCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner))));
 
 LowExpr genCreateRecord(ref Alloc alloc, LowType type, UriAndRange range, in LowExpr[] args) =>
-	LowExpr(type, range, LowExprKind(LowExprKind.CreateRecord(newArray(alloc, args))));
+	genCreateRecord(type, range, newArray(alloc, args));
+LowExpr genCreateRecord(LowType type, UriAndRange range, LowExpr[] args) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.CreateRecord(args)));
 
 LowExpr genRecordFieldGet(ref Alloc alloc, UriAndRange range, LowExpr target, LowType fieldType, size_t fieldIndex) =>
 	LowExpr(fieldType, range, LowExprKind(LowExprKind.RecordFieldGet(allocate(alloc, target), fieldIndex)));

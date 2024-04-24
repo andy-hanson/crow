@@ -208,11 +208,32 @@ TypeSize sizeOrPointerSizeBytes(in ConcreteType a) {
 	}
 }
 
-ConcreteType byRef(ConcreteType t) =>
-	ConcreteType(ReferenceKind.byRef, t.struct_);
-
-ConcreteType byVal(ref ConcreteType t) =>
-	ConcreteType(ReferenceKind.byVal, t.struct_);
+ConcreteType dereferenceType(ConcreteType t) {
+	ReferenceKind kind = () {
+		final switch (t.reference) {
+			case ReferenceKind.byVal:
+				assert(false);
+			case ReferenceKind.byRef:
+				return ReferenceKind.byVal;
+			case ReferenceKind.byRefRef:
+				return ReferenceKind.byRef;
+		}
+	}();
+	return ConcreteType(kind, t.struct_);
+}
+ConcreteType referenceType(ConcreteType t) {
+	ReferenceKind kind = () {
+		final switch (t.reference) {
+			case ReferenceKind.byVal:
+				return ReferenceKind.byRef;
+			case ReferenceKind.byRef:
+				return ReferenceKind.byRefRef;
+			case ReferenceKind.byRefRef:
+				assert(false);
+		}
+	}();
+	return ConcreteType(kind, t.struct_);
+}
 
 enum ConcreteMutability {
 	const_,
@@ -226,22 +247,14 @@ immutable struct ConcreteField {
 }
 
 immutable struct ConcreteLocalSource {
-	immutable struct Closure {}
-	enum Generated { args, ignore, destruct, member }
+	immutable struct Closure {} // Closure parameter
+	enum Generated { allocated, args, ignore, destruct, member }
 	mixin TaggedUnion!(Local*, Closure, Generated);
 }
 
 immutable struct ConcreteLocal {
-	@safe @nogc pure nothrow:
-
 	ConcreteLocalSource source;
 	ConcreteType type;
-
-	bool isAllocated() scope =>
-		source.matchIn!bool(
-			(in Local x) => localIsAllocated(x),
-			(in ConcreteLocalSource.Closure) => false,
-			(in ConcreteLocalSource.Generated) => false);
 }
 
 immutable struct ConcreteFunBody {
@@ -411,44 +424,24 @@ immutable struct ConcreteExpr {
 	ConcreteExprKind kind;
 }
 
-immutable struct ConcreteClosureRef {
-	@safe @nogc pure nothrow:
-
-	PtrAndSmallNumber!ConcreteLocal paramAndIndex;
-
-	ConcreteLocal* closureParam() return scope =>
-		paramAndIndex.ptr;
-
-	ushort fieldIndex() scope =>
-		paramAndIndex.number;
-
-	ConcreteType type() scope =>
-		closureParam.type.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type;
-}
-
 immutable struct ConcreteExprKind {
+	// TODO: I think I can get rid of these 3. Just have a 'Cell' type that is by-ref. -------------------------------------------
 	immutable struct Alloc {
 		ConcreteExpr arg;
+	}
+	// Read from a reference
+	immutable struct AllocGet {
+		ConcreteExpr arg;
+	}
+	// Write to a reference
+	immutable struct AllocSet {
+		ConcreteExpr reference;
+		ConcreteExpr value;
 	}
 
 	immutable struct Call {
 		ConcreteFun* called;
 		SmallArray!ConcreteExpr args;
-	}
-
-	immutable struct ClosureCreate {
-		ConcreteVariableRef[] args;
-	}
-
-	immutable struct ClosureGet {
-		ConcreteClosureRef closureRef;
-		ClosureReferenceKind referenceKind;
-	}
-
-	immutable struct ClosureSet {
-		ConcreteClosureRef closureRef;
-		ConcreteExpr value;
-		// referenceKind is always allocated
 	}
 
 	immutable struct CreateArray {
@@ -477,13 +470,6 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr cond;
 		ConcreteExpr then;
 		ConcreteExpr else_;
-	}
-
-	// May be a 'fun' or 'act'.
-	// (A 'far' function is a lambda wrapped in CreateRecord.)
-	immutable struct Lambda {
-		size_t memberIndex; // Member index of a Union (which hasn't been created yet)
-		Opt!(ConcreteExpr*) closure;
 	}
 
 	immutable struct Let {
@@ -598,10 +584,9 @@ immutable struct ConcreteExprKind {
 
 	mixin Union!(
 		Alloc*,
+		AllocGet*,
+		AllocSet*,
 		Call,
-		ClosureCreate,
-		ClosureGet*,
-		ClosureSet*,
 		Constant,
 		CreateArray,
 		CreateRecord,
@@ -609,7 +594,6 @@ immutable struct ConcreteExprKind {
 		Drop*,
 		Finally*,
 		If*,
-		Lambda,
 		Let*,
 		LocalGet,
 		LocalSet*,
@@ -631,10 +615,6 @@ immutable struct ConcreteExprKind {
 }
 version (WebAssembly) {} else {
 	static assert(ConcreteExprKind.sizeof == ConcreteExprKind.Call.sizeof + ulong.sizeof);
-}
-
-immutable struct ConcreteVariableRef {
-	mixin Union!(Constant, ConcreteLocal*, ConcreteClosureRef);
 }
 
 ConcreteType returnType(ConcreteExprKind.Call a) =>

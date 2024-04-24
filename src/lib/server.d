@@ -633,12 +633,13 @@ DiagsAndResultJson printConcreteModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfo, uri);
-	return printForProgram(
-		alloc, server, programs.program,
-		has(programs.concreteProgram)
-			? jsonOfConcreteProgram(alloc, lineAndColumnGetters, force(programs.concreteProgram))
-			: jsonNull);
+	ProgramWithMain program = getProgramForMain(perf, alloc, server, uri);
+	Json json = hasFatalDiagnostics(program)
+		? jsonNull
+		: jsonOfConcreteProgram(
+			alloc, lineAndColumnGetters,
+			concretize(perf, alloc, getShowDiagCtx(server, program.program), versionInfo, program, FileContentGetters(&server.storage)));
+	return printForProgram(alloc, server, program.program, json);
 }
 
 DiagsAndResultJson printLowModel(
@@ -726,10 +727,10 @@ Programs buildToLowProgram(
 	Uri main,
 ) {
 	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
-	ShowCtx ctx = getShowDiagCtx(server, program.program);
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
+		ShowCtx ctx = getShowDiagCtx(server, program.program); // TODO: What is this used for? -------------------------------------
 		ConcreteProgram concreteProgram = concretize(
 			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
 		LowProgram lowProgram = lower(perf, alloc, program.mainConfig.extern_, program.program, concreteProgram);
