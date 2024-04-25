@@ -655,7 +655,7 @@ ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, bool isForbid) {
 }
 
 ExprAst parseFinally(ref Lexer lexer, Pos start) {
-	ExprAst right = parseExprNoBlock(lexer);
+	ExprAst right = parseExprNoLet(lexer);
 	ExprAst below = parseNextLinesOrEmpty(lexer);
 	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, FinallyAst(right, below))));
 }
@@ -1077,7 +1077,7 @@ ExprAst parseTryLet(ref Lexer lexer, Pos start) {
 	takeOrAddDiagExpectedToken(lexer, Token.catch_, ParseDiag.Expected.Kind.catch_);
 	CaseMemberAst catchMember = parseCaseMember(lexer);
 	ExprAst catch_ = tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colon)
-		? parseExprNoBlock(lexer)
+		? parseExprNoLet(lexer)
 		: emptyAst(lexer);
 	ExprAst then = parseNextLinesOrEmpty(lexer);
 	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc,

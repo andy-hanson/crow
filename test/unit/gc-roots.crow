@@ -1,0 +1,95 @@
+import
+	../../include/crow/private/alloc: for-loop, gc-roots
+
+dummy-gc-roots nat()
+	0
+
+-r record(x nat) by-ref
+
+-use void(_ r)
+	()
+
+-count-roots nat() unsafe
+	res mut nat = 0
+	for _ : gc-roots
+		res +:= 1
+	res
+
+# Doesn't add roots without 'yield-fiber'
+test trusted
+	start = count-roots
+	r r = 1,
+	count-roots is start
+	r use
+test trusted
+	start = count-roots
+	r r = 1,
+	yield-fiber
+	count-roots is start + 1
+	r use
+
+# 'try-let' restores gc-root
+test trusted
+	start = count-roots
+	r r = 1,
+	count-roots is start + 1
+	yield-fiber
+	try r2 r = 1 / 0, catch divide-by-0 : do
+		count-roots is start + 1
+	r use
+	r2 use
+	should-throw
+
+# 'finally' block has correct gc-root
+test trusted
+	ok mut = false
+	try
+		start = count-roots
+		r r = 1,
+		yield-fiber
+		count-roots is start + 1
+		finally do
+			count-roots is start + 1
+			r use
+			ok := true
+		r2 r = 2,
+		yield-fiber
+		count-roots is start + 2
+		_ nat = 1 / 0
+		r2 use
+		should-throw
+	catch divide-by-0
+		assert ok
+
+# 'catch' restores gc-root
+test trusted
+	start = count-roots
+	try
+		count-roots is start
+		r r = 1,
+		count-roots is start + 1
+		yield-fiber
+		throw divide-by-0
+		r use
+	catch divide-by-0
+		count-roots is start
+	()
+
+# 'catch-all' restores gc-root
+test trusted
+	start = count-roots
+	f void mut() = () =>
+		# There are some roots internal to 'catch-all'
+		count-roots is start + 5
+		r r = 1,
+		count-roots is start + 6
+		yield-fiber
+		throw divide-by-0
+		r use
+	count-roots is start + 1
+	match f catch-all
+	as ok _
+		unreachable
+	as error e
+		count-roots is start + 1
+		e.exception.divide-by-0!

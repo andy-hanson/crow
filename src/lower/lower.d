@@ -870,13 +870,14 @@ LowExpr maybeAddGcRoot( // TODO: just merge into its only caller ???????????????
 	LowExpr initRoot = genCreateRecord(ctx.alloc, ctx.commonFuns.gcRootType, range, [
 		genPointerCast(ctx.alloc, voidConstPointerType, range, pointerToLocal),
 		markRootFunction,
-		genCallNoGcRoots(ctx.alloc, ctx.commonFuns.gcRootMutPointerType, range, ctx.commonFuns.gcRoot, [])]);
+		genGetGcRoot(ctx, range)]);
 	LowLocal* root = genLocal(ctx.alloc, symbol!"root", nextTempLocalIndex(ctx), ctx.commonFuns.gcRootType);
 	return genLetNoGcRoot(
 		ctx.alloc, range, root,
 		initRoot,
-		genSeq(ctx.alloc, range,
-			genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.setGcRoot, [genPointerToLocal(ctx.commonFuns.gcRootMutPointerType, range, root)]),
+		genSeq(
+			ctx.alloc, range,
+			genSetGcRoot(ctx, range, genPointerToLocal(ctx.commonFuns.gcRootMutPointerType, range, root)),
 			cbThen(exprPos.withIncrNGcRoots)));
 }
 
@@ -1669,12 +1670,13 @@ LowExpr getFinallyExpr(
 	below
 	==>
 	old-jmp-buf = cur-jmp-buf
+	old-gc-root = gc-root
 	store mut __jmp_buf_tag = zeroed
 	err mut = false
 	res = if (&store).setjmp == 0
 		below
 	else
-		TODO: NEED TO RESTORE GC ROOT HERE! ----------------------------------------------------------------------------------
+		gc-root := old-gc-root
 		err = true
 		zeroed
 	res add-gc-root
@@ -1685,25 +1687,27 @@ LowExpr getFinallyExpr(
 	pop-gc-root
 	res
 	*/
-	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) {
-		LowLocal* err = genLocal(ctx.alloc, symbol!"err", nextTempLocalIndex(ctx), boolType);
-		LowExpr res = genSetjmp(
-			ctx, range,
-			getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
-			genSeq(
+	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) =>
+		withRestorableGcRoot(ctx, range, (LowExpr restoreGcRoot) {
+			LowLocal* err = genLocal(ctx.alloc, symbol!"err", nextTempLocalIndex(ctx), boolType);
+			LowExpr res = genSetjmp(
+				ctx, range,
+				getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
+				genSeq(
+					ctx.alloc, range,
+					restoreGcRoot,
+					genLocalSet(ctx.alloc, range, err, genTrue(range)),
+					genZeroed(type, range)));
+			LowExpr afterRes = genSeq(
 				ctx.alloc, range,
-				genLocalSet(ctx.alloc, range, err, genTrue(range)),
-				genZeroed(type, range)));
-		LowExpr afterRes = genSeq(
-			ctx.alloc, range,
-			restoreCurJmpBuf,
-			getLowExpr(ctx, locals, a.right, ExprPos.nonTail),
-			genIf(ctx.alloc, range, genLocalGet(range, err), genRethrowCurrentException(ctx, range), genVoid(range)));
-		return genLetNoGcRoot(
-			ctx.alloc, range, err,
-			genFalse(range),
-			genSeqThenReturnFirstPossiblyGcRoot(ctx, exprPos, range, res, afterRes, expressionMayYield(ctx, a.right)));
-	});
+				restoreCurJmpBuf,
+				getLowExpr(ctx, locals, a.right, ExprPos.nonTail),
+				genIf(ctx.alloc, range, genLocalGet(range, err), genRethrowCurrentException(ctx, range), genVoid(range)));
+			return genLetNoGcRoot(
+				ctx.alloc, range, err,
+				genFalse(range),
+				genSeqThenReturnFirstPossiblyGcRoot(ctx, exprPos, range, res, afterRes, expressionMayYield(ctx, a.right)));
+		}));
 
 LowExpr getTryExpr(
 	ref GetLowExprCtx ctx,
@@ -1760,33 +1764,37 @@ LowExpr getTryOrTryLetExpr(
 		handler
 	==>
 	old-jmp-buf = cur-jmp-buf
+	old-gc-root = gc-root
 	store mut __jmp_buf_tag = zeroed
 	if (&store).setjmp == 0
 		cur-jmp-buf = &store
-		first-block
+		res = first-block
+		cur-jmp-buf := old-jmp-buf
 	else
 		cur-jmp-buf := old-jmp-buf
+		gc-root := old-gc-root
 		match cur-thrown
 		as foo x
 			handler
 		else
 			rethrow-current-exception
 	*/
-	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) {
-		LowExpr* curThrown = allocate(ctx.alloc, genGetCurThrown(ctx, range));
-		LowExpr matchThrown = LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
-			LowExprKind.Switch(
-				value: genUnionKind(range, curThrown),
-				caseValues: exceptionMemberIndices,
-				caseExprs: lowerMatchCases(
-					ctx, locals, exprPos, type, range, curThrown, exceptionMemberIndices, catchCases),
-				default_: genSeq(ctx.alloc, range,
-					genRethrowCurrentException(ctx, range),
-					// 'abort' is just to keep this well-typed
-					genAbort(type, range))))));
-		LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, matchThrown); // TODO: also restore gc-root here!!!!!!!!
-		return genSetjmp(ctx, range, firstBlock(restoreCurJmpBuf), onError);
-	});
+	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) =>
+		withRestorableGcRoot(ctx, range, (LowExpr restoreGcRoot) {
+			LowExpr* curThrown = allocate(ctx.alloc, genGetCurThrown(ctx, range));
+			LowExpr matchThrown = LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
+				LowExprKind.Switch(
+					value: genUnionKind(range, curThrown),
+					caseValues: exceptionMemberIndices,
+					caseExprs: lowerMatchCases(
+						ctx, locals, exprPos, type, range, curThrown, exceptionMemberIndices, catchCases),
+					default_: genSeq(ctx.alloc, range,
+						genRethrowCurrentException(ctx, range),
+						// 'abort' is just to keep this well-typed
+						genAbort(type, range))))));
+			LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, restoreGcRoot, matchThrown);
+			return genSetjmp(ctx, range, firstBlock(restoreCurJmpBuf), onError);
+		}));
 
 LowExpr withRestorableJmpBuf(
 	ref GetLowExprCtx ctx,
@@ -1796,6 +1804,15 @@ LowExpr withRestorableJmpBuf(
 	// Don't need a GC root since 'set-cur-jmp-buf' never yields.
 	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
 		cb(genSetCurJmpBuf(ctx, range, oldJmpBuf)));
+
+LowExpr withRestorableGcRoot(
+	ref GetLowExprCtx ctx,
+	UriAndRange range,
+	in LowExpr delegate(LowExpr restoreGcRoot) @safe @nogc pure nothrow cb,
+) =>
+	// 'gc-root' is not itself a GC root
+	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetGcRoot(ctx, range), (LowExpr oldGcRoot) =>
+		cb(genSetGcRoot(ctx, range, oldGcRoot)));
 
 LowExpr genRethrowCurrentException(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.rethrowCurrentException, []);
@@ -1835,3 +1852,9 @@ LowExpr genGetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range) =>
 
 LowExpr genSetCurJmpBuf(ref GetLowExprCtx ctx, UriAndRange range, LowExpr value) =>
 	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.setCurJmpBuf, [value]);
+
+LowExpr genGetGcRoot(ref GetLowExprCtx ctx, UriAndRange range) =>
+	genCallNoGcRoots(ctx.alloc, ctx.commonFuns.gcRootMutPointerType, range, ctx.commonFuns.gcRoot, []);
+
+LowExpr genSetGcRoot(ref GetLowExprCtx ctx, UriAndRange range, LowExpr root) =>
+	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.setGcRoot, [root]);

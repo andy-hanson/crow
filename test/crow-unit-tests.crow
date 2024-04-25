@@ -59,6 +59,7 @@ import
 	./unit/conditions: dummy-conditions
 	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
+	./unit/gc-roots: dummy-gc-roots
 
 main void() summon
 	license is "public domain"
@@ -78,6 +79,7 @@ main void() summon
 	_ = dummy-closures
 	_ = dummy-exceptions
 	_ = dummy-future-tests
+	_ = dummy-gc-roots
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-map-tests
