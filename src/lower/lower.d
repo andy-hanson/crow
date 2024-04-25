@@ -498,7 +498,7 @@ AllLowFuns getAllLowFuns(
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							getLowTypeCtx,
-							fun.paramsIncludingClosure[0].type));
+							fun.params[0].type));
 					return getMarkVisitForType(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, allTypes, lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs)));
 				} else {
 					if (!isVersion(program.version_, VersionFun.isInterpreted) &&
@@ -511,10 +511,6 @@ AllLowFuns getAllLowFuns(
 			},
 			(Constant _) =>
 				none!LowFunIndex,
-			(ConcreteFunBody.CreateRecord) =>
-				none!LowFunIndex,
-			(ConcreteFunBody.CreateUnion) =>
-				none!LowFunIndex,
 			(EnumFunction _) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.Extern x) {
@@ -525,12 +521,6 @@ AllLowFuns getAllLowFuns(
 			(ConcreteExpr _) =>
 				some(addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
-				none!LowFunIndex,
-			(ConcreteFunBody.RecordFieldGet) =>
-				none!LowFunIndex,
-			(ConcreteFunBody.RecordFieldPointer) =>
-				none!LowFunIndex,
-			(ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.VarGet x) =>
 				none!LowFunIndex,
@@ -543,7 +533,7 @@ AllLowFuns getAllLowFuns(
 	LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
 
 	LowType userMainFunPointerType =
-		lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.rtMain.paramsIncludingClosure[2].type);
+		lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.rtMain.params[2].type);
 
 	//TODO: use temp alloc
 	VarIndices varIndices = makeMapWithIndex!(immutable ConcreteVar*, LowVarIndex, immutable ConcreteVar*)(
@@ -662,7 +652,7 @@ LowFun lowFunFromCause(
 		(ConcreteFun* cf) {
 			LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
 			LowLocal[] params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(
-				getLowTypeCtx.alloc, cf.paramsIncludingClosure, (size_t i, ConcreteLocal* x) =>
+				getLowTypeCtx.alloc, cf.params, (size_t i, ConcreteLocal* x) =>
 					getLowLocalForParameter(getLowTypeCtx, i, x));
 			LowFunBody body_ = getLowFunBody(
 				concreteProgram,
@@ -765,11 +755,11 @@ LowFunBody getLowFunBody(
 			ptrTrustMe(concreteFunToLowFunIndex),
 			commonFuns,
 			castNonScope_ref(varIndices),
-			a.paramsIncludingClosure,
+			a.params,
 			params,
 			curFunIsYielding: concreteProgram.yieldingFuns.has(a),
 			hasTailRecur: false,
-			tempLocalIndex: a.paramsIncludingClosure.length);
+			tempLocalIndex: a.params.length);
 		LowExpr body_ = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
 			getLowExpr(exprCtx, locals, expr, ExprPos(0, ExprPos.Kind.tail)));
 		return LowFunBody(LowFunExprBody(exprCtx.curFunIsYielding, exprCtx.hasTailRecur, body_));
@@ -1043,6 +1033,8 @@ LowExpr getLowExprKind(
 			getLetExpr(ctx, locals, exprPos, type, range, x),
 		(ConcreteExprKind.LocalGet x) =>
 			handleExprPos(ctx, exprPos, getLocalGetExpr(ctx, locals, type, range, x)),
+		(ConcreteExprKind.LocalPointer x) =>
+			handleExprPos(ctx, exprPos, getLocalPointerExpr(ctx, locals, type, range, x)),
 		(ref ConcreteExprKind.LocalSet x) =>
 			handleExprPos(ctx, exprPos, getLocalSetExpr(ctx, locals, range, x)),
 		(ref ConcreteExprKind.Loop x) =>
@@ -1061,12 +1053,10 @@ LowExpr getLowExprKind(
 			getMatchStringLikeExpr(ctx, locals, exprPos, range, x),
 		(ref ConcreteExprKind.MatchUnion x) =>
 			getMatchUnionExpr(ctx, locals, exprPos, type, range, x),
-		(ref ConcreteExprKind.PtrToField x) =>
-			handleExprPos(ctx, exprPos, getPtrToFieldExpr(ctx, locals, type, range, x.target, x.fieldIndex)),
-		(ConcreteExprKind.PtrToLocal x) =>
-			handleExprPos(ctx, exprPos, getPtrToLocalExpr(ctx, locals, type, range, x)),
 		(ConcreteExprKind.RecordFieldGet x) =>
 			handleExprPos(ctx, exprPos, getRecordFieldGet(ctx, locals, type, range, *x.record, x.fieldIndex)),
+		(ConcreteExprKind.RecordFieldPointer x) =>
+			handleExprPos(ctx, exprPos, getRecordFieldPointer(ctx, locals, type, range, *x.record, x.fieldIndex)),
 		(ref ConcreteExprKind.RecordFieldSet x) =>
 			handleExprPos(ctx, exprPos, getRecordFieldSet(ctx, locals, range, x.record, x.fieldIndex, x.value)),
 		(ref ConcreteExprKind.Seq x) =>
@@ -1189,14 +1179,6 @@ LowExpr getCallSpecial(
 			getCallBuiltinExpr(ctx, locals, type, range, called, args, x.kind),
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
-		(ConcreteFunBody.CreateRecord) => // TODO: Just Make this a ConcreteExpr, not a special ConcreteFunBody .........................
-			getCreateRecordExpr(ctx, ExprPos.nonTail, locals, type, range, ConcreteExprKind.CreateRecord(args)),
-		(ConcreteFunBody.CreateUnion x) {
-			LowExpr arg = isEmpty(args)
-				? genVoid(range)
-				: getLowExpr(ctx, locals, only(args), ExprPos.nonTail);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(x.memberIndex, arg))));
-		},
 		(EnumFunction x) =>
 			genEnumFunction(ctx, locals, type, range, x, args),
 		(ConcreteFunBody.Extern) =>
@@ -1217,15 +1199,6 @@ LowExpr getCallSpecial(
 					return genConstantIntegral(type, range, 0);
 			}
 		},
-		(ConcreteFunBody.RecordFieldGet x) =>
-			getRecordFieldGet(ctx, locals, type, range, only(args), x.fieldIndex),
-		(ConcreteFunBody.RecordFieldPointer x) =>
-			getPtrToFieldExpr(ctx, locals, type, range, only(args), x.fieldIndex),
-		(ConcreteFunBody.RecordFieldSet x) {
-			assert(type == voidType);
-			assert(args.length == 2);
-			return getRecordFieldSet(ctx, locals, range, args[0], x.fieldIndex, args[1]);
-		},
 		(ConcreteFunBody.VarGet x) =>
 			LowExpr(type, range, LowExprKind(LowExprKind.VarGet(mustGet(ctx.varIndices, x.var)))),
 		(ConcreteFunBody.VarSet x) =>
@@ -1233,12 +1206,12 @@ LowExpr getCallSpecial(
 				mustGet(ctx.varIndices, x.var),
 				allocate(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail))))));
 
-LowExpr getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, LowType type, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex) =>
+LowExpr getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, LowType type, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex) => // TODO: maybe inline
 	LowExpr(type, range, LowExprKind(LowExprKind.RecordFieldGet(
 		allocate(ctx.alloc, getLowExpr(ctx, locals, record, ExprPos.nonTail)),
 		fieldIndex)));
 
-LowExpr getRecordFieldSet(ref GetLowExprCtx ctx, in Locals locals, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex, ref ConcreteExpr value) {
+LowExpr getRecordFieldSet(ref GetLowExprCtx ctx, in Locals locals, in UriAndRange range, ref ConcreteExpr record, size_t fieldIndex, ref ConcreteExpr value) { // maybe inline?
 	// TODO: transform this into: -------------------------------------------------------------------------------------------------------
 	// target = ...
 	// &target push-gc-root
@@ -1546,16 +1519,16 @@ LowExpr getLocalGetExpr(
 	LowType type,
 	UriAndRange range,
 	in ConcreteExprKind.LocalGet a,
-) =>
+) => // TODO: inline ------------------------------------------------------------------------------------------------------------------
 	genLocalGet(range, getLocal(ctx, locals, a.local));
 
-LowExpr getPtrToLocalExpr(
+LowExpr getLocalPointerExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	LowType type,
 	UriAndRange range,
-	in ConcreteExprKind.PtrToLocal a,
-) =>
+	in ConcreteExprKind.LocalPointer a,
+) => // TODO: inline ------------------------------------------------------------------------------------------------------------------
 	LowExpr(type, range, LowExprKind(LowExprKind.PtrToLocal(getLocal(ctx, locals, a.local))));
 
 LowExpr getLocalSetExpr(
@@ -1563,7 +1536,7 @@ LowExpr getLocalSetExpr(
 	in Locals locals,
 	UriAndRange range,
 	ref ConcreteExprKind.LocalSet a,
-) =>
+) => // TODO: inline ------------------------------------------------------------------------------------------------------------------
 	genLocalSet(ctx.alloc, range, getLocal(ctx, locals, a.local), getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
 
 LowExpr getMatchIntegralExpr(
@@ -1657,16 +1630,16 @@ SmallArray!LowExpr lowerMatchCases(
 						(ExprPos inner) => getLowExpr(ctx, newLocals, case_.then, inner)))
 				: getLowExpr(ctx, locals, case_.then, exprPos)));
 
-LowExpr getPtrToFieldExpr(
+LowExpr getRecordFieldPointer(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	LowType type,
 	in UriAndRange range,
-	ref ConcreteExpr target,
+	ref ConcreteExpr record,
 	size_t fieldIndex,
-) =>
+) => // TODO: maybe inline ------------------------------------------------------------------------------------------------------
 	LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
-		LowExprKind.PtrToField(getLowExpr(ctx, locals, target, ExprPos.nonTail), fieldIndex))));
+		LowExprKind.PtrToField(getLowExpr(ctx, locals, record, ExprPos.nonTail), fieldIndex))));
 
 LowExpr getThrowExpr(
 	ref GetLowExprCtx ctx,

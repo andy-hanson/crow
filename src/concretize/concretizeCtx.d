@@ -7,10 +7,17 @@ import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, Concret
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	genCreateRecord,
+	genCreateUnion,
+	genLocalGet,
 	genRecordFieldCall,
+	genRecordFieldGet,
+	genRecordFieldPointer,
+	genRecordFieldSet,
 	genSeq,
 	genStringLiteralKind,
 	genUnionMemberGet,
+	genVoid,
 	unwrapOptionType;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
@@ -85,6 +92,7 @@ import util.col.array :
 	fold,
 	isEmpty,
 	map,
+	mapPointers,
 	mapPointersWithIndex,
 	mapWithIndex,
 	mapZip,
@@ -92,6 +100,7 @@ import util.col.array :
 	newArray,
 	newSmallArray,
 	only,
+	onlyPointer,
 	small,
 	SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder;
@@ -355,14 +364,14 @@ ConcreteFun* getConcreteFunForLambda(
 	size_t index,
 	ConcreteType returnType,
 	Destructure modelParam,
-	ConcreteLocal[] paramsIncludingClosure,
+	ConcreteLocal[] params,
 	Expr* bodyExpr,
 ) {
 	assert(!isBogus(returnType));
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(containingConcreteFun, bodyExpr, index))),
 		returnType,
-		paramsIncludingClosure));
+		params));
 	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
 	return res;
@@ -724,13 +733,14 @@ public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 }
 
 void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, ConcreteFun* cf) {
-	// set to arbitrary temporarily
-	cf.body_ = ConcreteFunBody(ConcreteFunBody.CreateRecord());
+	// set to arbitrary temporarily. (But it can't be a constant or something will optimize based on that!)
+	cf.body_ = ConcreteFunBody(ConcreteFunBody.Extern(symbol!"bogus"));
 	FunBody funBody = cf.source.match!FunBody(
 		(ConcreteFunKey x) => x.decl.body_,
 		(ref ConcreteFunSource.Lambda x) => FunBody(*x.bodyExpr),
 		(ref ConcreteFunSource.Test x) => assert(false),
 		(ref ConcreteFunSource.WrapMain x) => assert(false));
+	ConcreteLocal[] concreteParams = cf.params;
 	ConcreteFunBody body_ = funBody.match!ConcreteFunBody(
 		(FunBody.Bogus) =>
 			withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) =>
@@ -747,21 +757,23 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		(FunBody.CreateExtern) =>
 			ConcreteFunBody(constantZero),
 		(FunBody.CreateRecord) =>
-			ConcreteFunBody(ConcreteFunBody.CreateRecord()),
+			isEmpty(concreteParams)
+				? ConcreteFunBody(Constant(Constant.Record(emptySmallArray!Constant)))
+				: ConcreteFunBody(genCreateRecord(cf.returnType, cf.range, mapPointers(ctx.alloc, concreteParams, (ConcreteLocal* param) =>
+					genLocalGet(cf.range, param)))),
 		(FunBody.CreateUnion x) =>
-			ConcreteFunBody(ConcreteFunBody.CreateUnion(x.member.memberIndex)),
+			createUnionBody(ctx.alloc, cf, x.member.memberIndex),
 		(FunBody.CreateVariant x) =>
-			ConcreteFunBody(ConcreteFunBody.CreateUnion(
-				ensureVariantMember(
-					ctx, cf.returnType, x.member,
-					cf.paramsIncludingClosure.length == 0 ? voidType(ctx) : only(cf.paramsIncludingClosure).type))),
-		(EnumFunction it) {
-			final switch (it) {
+			createUnionBody(ctx.alloc, cf, ensureVariantMember(
+				ctx, cf.returnType, x.member,
+				isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
+		(EnumFunction x) {
+			final switch (x) {
 				case EnumFunction.equal:
 				case EnumFunction.intersect:
 				case EnumFunction.toIntegral:
 				case EnumFunction.union_:
-					return ConcreteFunBody(it);
+					return ConcreteFunBody(x);
 				case EnumFunction.members:
 					return bodyForEnumOrFlagsMembers(ctx, cf.returnType);
 			}
@@ -779,11 +791,24 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		(FunBody.RecordFieldCall x) =>
 			genRecordFieldCall(ctx, cf, x),
 		(FunBody.RecordFieldGet x) =>
-			ConcreteFunBody(ConcreteFunBody.RecordFieldGet(x.fieldIndex)),
+			ConcreteFunBody(genRecordFieldGet(
+				cf.returnType, cf.range,
+				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
+				x.fieldIndex)),
 		(FunBody.RecordFieldPointer x) =>
-			ConcreteFunBody(ConcreteFunBody.RecordFieldPointer(x.fieldIndex)),
-		(FunBody.RecordFieldSet it) =>
-			ConcreteFunBody(ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
+			ConcreteFunBody(genRecordFieldPointer(
+				cf.returnType, cf.range,
+				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
+				x.fieldIndex)),
+		(FunBody.RecordFieldSet x) {
+			assert(cf.params.length == 2);
+			return ConcreteFunBody(genRecordFieldSet(
+				ctx,
+				cf.range,
+				genLocalGet(cf.range, &cf.params[0]),
+				x.fieldIndex,
+				genLocalGet(cf.range, &cf.params[1])));
+		},
 		(FunBody.UnionMemberGet x) =>
 			genUnionMemberGet(ctx, cf, x.memberIndex),
 		(FunBody.VarGet x) =>
@@ -792,11 +817,16 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			genUnionMemberGet(
 				ctx, cf,
 				ensureVariantMember(
-					ctx, only(cf.paramsIncludingClosure).type, x.member, unwrapOptionType(ctx, cf.returnType))),
+					ctx, only(concreteParams).type, x.member, unwrapOptionType(ctx, cf.returnType))),
 		(FunBody.VarSet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);
 }
+
+ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
+	isEmpty(cf.params)
+		? ConcreteFunBody(Constant(allocate(alloc, Constant.Union(memberIndex, constantZero()))))
+		: ConcreteFunBody(genCreateUnion(alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) =>
 	withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) {

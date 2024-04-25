@@ -233,10 +233,6 @@ immutable struct ConcreteFunBody {
 		BuiltinFun kind; // Never 'lambdaCall' (TODO: can we type this better?) --------------------------------------------
 		ConcreteType[] typeArgs;
 	}
-	immutable struct CreateRecord {} // TODO: this doesn't need to be a FunBody, just generate a body using a CreateRecord expr
-	immutable struct CreateUnion { // TODO: this doesn't need to be a FunBody, just generate a body using a CreateUnion expr
-		size_t memberIndex;
-	}
 	immutable struct Extern {
 		Symbol libraryName;
 	}
@@ -244,33 +240,10 @@ immutable struct ConcreteFunBody {
 		ulong allValue;
 		FlagsFunction fn;
 	}
-	immutable struct RecordFieldGet { // TODO: this doesn't need to be a FunBody, just generate a body using a RecordFieldGet expr
-		size_t fieldIndex;
-	}
-	// TODO: just generate a body in concretize that is a PtrToField ------------------------------------------------------------
-	immutable struct RecordFieldPointer {
-		size_t fieldIndex;
-	}
-	immutable struct RecordFieldSet { // TODO: this doesn't need to be a FunBody, just generate a body using a RecordFieldSet expr
-		size_t fieldIndex;
-	}
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
 
-	mixin Union!(
-		Builtin,
-		Constant,
-		CreateRecord,
-		CreateUnion,
-		EnumFunction,
-		Extern,
-		ConcreteExpr,
-		FlagsFn,
-		RecordFieldGet,
-		RecordFieldPointer,
-		RecordFieldSet,
-		VarGet,
-		VarSet);
+	mixin Union!(Builtin, Constant, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet);
 }
 
 immutable struct ConcreteFunSource {
@@ -300,7 +273,7 @@ immutable struct ConcreteFun {
 
 	ConcreteFunSource source;
 	ConcreteType returnType;
-	ConcreteLocal[] paramsIncludingClosure;
+	ConcreteLocal[] params;
 	private Late!ConcreteFunBody lateBody;
 
 	ref ConcreteFunBody body_() return scope =>
@@ -438,7 +411,9 @@ immutable struct ConcreteExprKind {
 	immutable struct LocalGet {
 		ConcreteLocal* local;
 	}
-
+	immutable struct LocalPointer {
+		ConcreteLocal* local;
+	}
 	immutable struct LocalSet {
 		ConcreteLocal* local;
 		ConcreteExpr value;
@@ -489,17 +464,13 @@ immutable struct ConcreteExprKind {
 		Opt!(ConcreteExpr*) else_;
 	}
 
-	immutable struct PtrToField {
-		ConcreteExpr target;
+	immutable struct RecordFieldGet {
+		ConcreteExpr* record; // May be by-value or by-ref
 		size_t fieldIndex;
 	}
 
-	immutable struct PtrToLocal {
-		ConcreteLocal* local;
-	}
-
-	immutable struct RecordFieldGet {
-		ConcreteExpr* record; // May be by-value or by-ref
+	immutable struct RecordFieldPointer {
+		ConcreteExpr* record;
 		size_t fieldIndex;
 	}
 
@@ -555,6 +526,7 @@ immutable struct ConcreteExprKind {
 		If*,
 		Let*,
 		LocalGet,
+		LocalPointer,
 		LocalSet*,
 		Loop*,
 		LoopBreak*,
@@ -562,9 +534,8 @@ immutable struct ConcreteExprKind {
 		MatchEnumOrIntegral*,
 		MatchStringLike*,
 		MatchUnion*,
-		PtrToField*,
-		PtrToLocal,
 		RecordFieldGet,
+		RecordFieldPointer,
 		RecordFieldSet*,
 		Seq*,
 		Throw*,

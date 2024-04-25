@@ -206,11 +206,6 @@ public void getLinkOptions(
 
 private:
 
-void writeBuiltinFunctions() {
-	
-}
-
-
 CString[] cCompileArgs(
 	ref Alloc alloc,
 	in ExternLibraries externLibraries,

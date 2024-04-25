@@ -74,17 +74,12 @@ CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFun
 				// Otherwise we'd have to track all fun-pointer expressions of a given type
 			},
 			(Constant _) {},
-			(ConcreteFunBody.CreateRecord) {},
-			(ConcreteFunBody.CreateUnion) {},
 			(EnumFunction _) {},
 			(ConcreteFunBody.Extern) {},
 			(ConcreteExpr x) {
 				getCalledByRecur(alloc, res, fun, x);
 			},
 			(ConcreteFunBody.FlagsFn) {},
-			(ConcreteFunBody.RecordFieldGet) {},
-			(ConcreteFunBody.RecordFieldPointer) {},
-			(ConcreteFunBody.RecordFieldSet) {},
 			(ConcreteFunBody.VarGet) {},
 			(ConcreteFunBody.VarSet) {});
 	return res;
@@ -122,6 +117,8 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			cb(x.value) || cb(x.then),
 		(ConcreteExprKind.LocalGet) =>
 			false,
+		(ConcreteExprKind.LocalPointer) =>
+			false,
 		(ConcreteExprKind.LocalSet* x) =>
 			cb(x.value),
 		(ConcreteExprKind.Loop* x) =>
@@ -144,11 +141,9 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			exists2!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
 				cb(case_.then)) ||
 			(has(x.else_) && cb(*force(x.else_))),
-		(ConcreteExprKind.PtrToField* x) =>
-			cb(x.target),
-		(ConcreteExprKind.PtrToLocal) =>
-			false,
 		(ConcreteExprKind.RecordFieldGet x) =>
+			cb(*x.record),
+		(ConcreteExprKind.RecordFieldPointer x) =>
 			cb(*x.record),
 		(ConcreteExprKind.RecordFieldSet* x) =>
 			cb(x.record) || cb(x.value),

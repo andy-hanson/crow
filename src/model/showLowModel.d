@@ -57,7 +57,7 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 			writer ~= '(';
 			writeWithCommas!ConcreteLocal(
 				writer,
-				x.paramsIncludingClosure,
+				x.params,
 				(in ConcreteLocal param) {
 					param.source.matchIn!void(
 						(in Local p) {

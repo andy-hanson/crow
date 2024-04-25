@@ -128,6 +128,11 @@ ref inout(T) only(T)(scope inout T[] a) {
 	return a[0];
 }
 
+T* onlyPointer(T)(T[] a) {
+	assert(a.length == 1);
+	return &a[0];
+}
+
 ref inout(T[2]) only2(T)(return scope inout T[] a) {
 	assert(a.length == 2);
 	return a[0 .. 2];

@@ -776,6 +776,7 @@ immutable string[] specialSymbols = [
 	"unsafe-mul",
 	"unsafe-sub",
 	"unsafe-to",
+	"unsigned",
 	"updates",
 	"user-main",
 	"re-exports",

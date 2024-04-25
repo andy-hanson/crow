@@ -56,6 +56,7 @@ import concretize.generate :
 	genLocalSet,
 	genParamGet,
 	genRecordFieldGet,
+	genRecordFieldPointer,
 	genRecordFieldSet,
 	genThrow,
 	genThrowStringKind,
@@ -174,7 +175,7 @@ ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destru
 		withStackMap!(ConcreteExpr, Local*, LocalOrConstant)((ref Locals locals) {
 			// Ignore closure param, which is never destructured.
 			ConcreteLocal[] paramsToDestructure =
-				cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
+				cf.params[params.length + 1 == cf.params.length ? 1 : 0 .. $];
 			return concretizeWithParamDestructures(exprCtx, cf.returnType, locals, params, paramsToDestructure, e);
 		}));
 
@@ -318,7 +319,7 @@ ConcreteExpr concretizeCallInner(
 		isEmpty(args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
 	ConstantsOrExprs concreteArgs = () {
 		if (isVariadic(*concreteCalled)) {
-			ConcreteType arrayType = only(concreteCalled.paramsIncludingClosure).type;
+			ConcreteType arrayType = only(concreteCalled.params).type;
 			ConcreteType elementType = arrayElementType(arrayType);
 			return constantsOrExprsArr(
 				ctx, range, arrayType,
@@ -328,7 +329,7 @@ ConcreteExpr concretizeCallInner(
 			return asConstantsOrExprsIf(
 				ctx.alloc, argsMayBeConstants,
 				mapZip(
-					ctx.alloc, concreteCalled.paramsIncludingClosure, args,
+					ctx.alloc, concreteCalled.params, args,
 					(ref ConcreteLocal param, ref Expr arg) =>
 						concretizeExpr(ctx, param.type, locals, arg)));
 	}();
@@ -340,7 +341,7 @@ ConcreteExpr concretizeCallInner(
 				? ConcreteExprKind(force(constant))
 				: genCallKindNoAllocArgs(concreteCalled, mapZip(
 					ctx.alloc,
-					concreteCalled.paramsIncludingClosure,
+					concreteCalled.params,
 					constants,
 					(ref ConcreteLocal p, ref Constant x) =>
 						ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))));
@@ -397,13 +398,13 @@ ConcreteExpr concretizeCallOption(
 	ConcreteExpr option = concretizeExpr(ctx, locals, a.firstArg);
 	ConcreteLocal* local = allocate(ctx.alloc, ConcreteLocal(
 		ConcreteLocalSource(ConcreteLocalSource.Generated.destruct),
-		called.paramsIncludingClosure[0].type));
-	assert(a.restArgs.length + 1 == called.paramsIncludingClosure.length);
+		called.params[0].type));
+	assert(a.restArgs.length + 1 == called.params.length);
 	SmallArray!ConcreteExpr allArgs = mapWithFirst!(ConcreteExpr, Expr)(
 		ctx.alloc,
 		genLocalGet(range, local),
 		a.restArgs,
-		(size_t i, ref Expr x) => concretizeExpr(ctx, called.paramsIncludingClosure[i + 1].type, locals, x));
+		(size_t i, ref Expr x) => concretizeExpr(ctx, called.params[i + 1].type, locals, x));
 	ConcreteExpr call = genCallNoAllocArgs(range, called, allArgs);
 	ConcreteExpr someCall = call.type == type ? call : genSome(ctx.concretizeCtx, type, range, call);
 	assert(someCall.type == type);
@@ -464,7 +465,7 @@ ConcreteExpr concretizeClosureGet(ref ConcretizeExprCtx ctx, ConcreteType type, 
 			return getField;
 		case ClosureReferenceKind.allocated:
 			assert(info.pointeeType == type);
-			return genAllocGet(ctx.concretizeCtx, range, getField);
+			return genReferenceRead(ctx.concretizeCtx, range, getField);
 	}
 }
 
@@ -487,7 +488,7 @@ ConcreteExpr concretizeClosureSet(
 	ConcreteExpr field = getClosureField(ctx, range, a.closureRef);
 	ConcreteExpr value = concretizeExpr(ctx, info.pointeeType, locals, *a.value);
 	assert(isVoid(type));
-	return genAllocSet(ctx.concretizeCtx, range, field, value);
+	return genReferenceWrite(ctx.concretizeCtx, range, field, value);
 }
 
 immutable struct ClosureFieldInfo {
@@ -498,7 +499,7 @@ immutable struct ClosureFieldInfo {
 	ClosureReferenceKind referenceKind;
 }
 ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange range, in ClosureRef a) {
-	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
+	ConcreteLocal* closureParam = &ctx.currentConcreteFun.params[0];
 	ConcreteType closureType = closureParam.type;
 	ConcreteStructBody.Record record = closureType.struct_.body_.as!(ConcreteStructBody.Record);
 	ClosureReferenceKind referenceKind = a.closureReferenceKind;
@@ -515,11 +516,11 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange r
 }
 
 // TODO: move to generate.d? -------------------------------------------------------------------------------------------------------------
-ConcreteExpr genAlloc(ref ConcretizeCtx ctx, ConcreteType referenceType, in UriAndRange range, ConcreteExpr value) => // TODO: rename to genReferenceCreate
+ConcreteExpr genReferenceCreate(ref ConcretizeCtx ctx, ConcreteType referenceType, in UriAndRange range, ConcreteExpr value) =>
 	genCreateRecord(ctx.alloc, referenceType, range, [value]);
-ConcreteExpr genAllocGet(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr reference) => // TODO: rename to genReferenceGet
+ConcreteExpr genReferenceRead(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr reference) =>
 	genRecordFieldGet(getReferencedType(ctx, reference.type), range, allocate(ctx.alloc, reference), 0);
-ConcreteExpr genAllocSet(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr reference, ConcreteExpr value) { // TODO: rename to genReferenceSet
+ConcreteExpr genReferenceWrite(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr reference, ConcreteExpr value) {
 	getReferencedType(ctx, reference.type); // assert that it's a reference type
 	return genRecordFieldSet(ctx, range, reference, 0, value);
 }
@@ -594,7 +595,7 @@ ConcreteExpr concretizeLambdaInner(
 		ctx.concretizeCtx,
 		closureFields,
 		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPointer, lambdaIndex)));
-	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx)); // TODO: why not just pass in Ctx instead of concretizeCtx and typeScope separately?
+	ConcreteLocal[] params = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx)); // TODO: why not just pass in Ctx instead of concretizeCtx and typeScope separately?
 
 	ConcreteStruct* lambdaStruct = mustBeByVal(type);
 
@@ -614,7 +615,7 @@ ConcreteExpr concretizeLambdaInner(
 		lambdaIndex,
 		returnType,
 		e.param,
-		paramsIncludingClosure,
+		params,
 		&e.body_());
 	ConcreteLambdaImpl impl = ConcreteLambdaImpl(closureType, fun);
 	return genCreateUnion(ctx.alloc, type, range, nextLambdaImplId(ctx.concretizeCtx, lambdaStruct, impl), closure);
@@ -724,7 +725,10 @@ RootLocalAndExpr concretizeWithDestructure(
 				ConcreteType referenceType = getConcreteType(ctx, force(local.referenceType));
 				ConcreteLocal* referenceLocal = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.reference), referenceType));
 				ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(referenceLocal)));
-				ConcreteExpr allocateThen = genLet(ctx.alloc, type, range, referenceLocal, genAlloc(ctx.concretizeCtx, referenceType, range, genLocalGet(range, rootLocal)), then);
+				ConcreteExpr allocateThen = genLet(
+					ctx.alloc, type, range, referenceLocal,
+					genReferenceCreate(ctx.concretizeCtx, referenceType, range, genLocalGet(range, rootLocal)),
+					then);
 				return RootLocalAndExpr(some(rootLocal), allocateThen);
 			} else
 				return RootLocalAndExpr(some(rootLocal), cb(addLocal(locals, local, LocalOrConstant(rootLocal)))); // TODO: returns some(rootLocal) in either case, so combine
@@ -856,12 +860,12 @@ ConcreteExpr concretizeLocalGet(
 	LocalOrConstant concrete = castNonScope_ref(getLocal(locals, local));
 	return concrete.matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* x) {
-			if (isBogus(x.type)) {
-				return concretizeBogus(ctx, type, range);
-			} else {
-				ConcreteExpr get = genLocalGet(range, x);
-				return localIsAllocated(*local) ? genAllocGet(ctx.concretizeCtx, range, get) : get;
-			}
+			ConcreteExpr get = genLocalGet(range, x);
+			return isBogus(x.type)
+				? concretizeBogus(ctx, type, range)
+				: localIsAllocated(*local)
+				? genReferenceRead(ctx.concretizeCtx, range, get)
+				: get;
 		},
 		(TypedConstant x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)));
@@ -878,22 +882,21 @@ ConcreteExpr concretizePtrToLocal(
 		todo!void("Pointer to local, but it's already a pointer (just cast it)");
 	ConcreteExprKind kind = castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExprKind(
 		(ConcreteLocal* local) =>
-			ConcreteExprKind(ConcreteExprKind.PtrToLocal(local)),
+			ConcreteExprKind(ConcreteExprKind.LocalPointer(local)),
 		(TypedConstant x) =>
 			//TODO: what if pointee is a reference?
 			ConcreteExprKind(getConstantPointer(ctx.alloc, ctx.allConstants, mustBeByVal(x.type), x.value)));
 	return ConcreteExpr(type, range, kind);
 }
 
-ConcreteExpr concretizePtrToField(
+ConcreteExpr concretizePtrToField( // TODO: Inline -------------------------------------------------------------------------------
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
 	ref PtrToFieldExpr a,
 ) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.PtrToField(concretizeExpr(ctx, locals, a.target), a.fieldIndex))));
+	genRecordFieldPointer(type, range, allocate(ctx.alloc, concretizeExpr(ctx, locals, a.target)), a.fieldIndex);
 
 ConcreteExpr concretizeLocalSet(
 	ref ConcretizeExprCtx ctx,
@@ -906,7 +909,7 @@ ConcreteExpr concretizeLocalSet(
 	ConcreteType valueType = localIsAllocated(*a.local) ? getReferencedType(ctx.concretizeCtx, local.type) : local.type;
 	ConcreteExpr value = concretizeExpr(ctx, valueType, locals, *a.value);
 	return localIsAllocated(*a.local)
-		? genAllocSet(ctx.concretizeCtx, range, genLocalGet(range, local), value)
+		? genReferenceWrite(ctx.concretizeCtx, range, genLocalGet(range, local), value)
 		: genLocalSet(ctx.concretizeCtx, range, local, value);
 }
 
@@ -1312,10 +1315,8 @@ Opt!Constant tryEvalConstant(
 				? some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)))
 				: none!Constant;
 		},
-		(in Constant x) =>
+		(in Constant x) => // TODO: this case is redundant to ConcreteExpr that is a constant ... --------------------------------
 			some(x),
-		(in ConcreteFunBody.CreateRecord) => none!Constant,
-		(in ConcreteFunBody.CreateUnion) => none!Constant,
 		(in EnumFunction _) => none!Constant,
 		(in ConcreteFunBody.Extern) => none!Constant,
 		(in ConcreteExpr x) =>
@@ -1323,9 +1324,6 @@ Opt!Constant tryEvalConstant(
 				? some(x.kind.as!Constant)
 				: none!Constant,
 		(in ConcreteFunBody.FlagsFn) => none!Constant,
-		(in ConcreteFunBody.RecordFieldGet) => none!Constant,
-		(in ConcreteFunBody.RecordFieldPointer) => none!Constant,
-		(in ConcreteFunBody.RecordFieldSet) => none!Constant,
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant);
 

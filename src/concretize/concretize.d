@@ -143,7 +143,7 @@ void finishLambdas(ref ConcretizeCtx ctx) {
 		if (fun.body_.isA!(ConcreteFunBody.Builtin)) {
 			ConcreteFunBody.Builtin builtin = fun.body_.as!(ConcreteFunBody.Builtin);
 			if (builtin.kind.isA!(BuiltinFun.CallLambda)) {
-				ConcreteStruct* lambda = mustBeByVal(fun.paramsIncludingClosure[0].type);
+				ConcreteStruct* lambda = mustBeByVal(fun.params[0].type);
 				fun.overwriteBody(generateCallLambda(
 					ctx, fun, lambda.body_.as!(ConcreteStructBody.Union).members,
 					asTemporaryArray(mustGet(ctx.lambdaStructToImpls, lambda))));
