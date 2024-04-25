@@ -134,6 +134,7 @@ immutable struct ConcreteStruct {
 	enum SpecialKind {
 		none,
 		array,
+		fiber,
 		tuple,
 	}
 
@@ -182,6 +183,8 @@ immutable struct ConcreteStruct {
 
 bool isArray(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.array;
+bool isFiber(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.fiber;
 private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
@@ -594,6 +597,7 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* setCurJmpBuf;
 	ConcreteVar* curThrown;
 	ConcreteFun* mark;
+	ConcreteFun* markVisitFiber;
 	ConcreteFun* rethrowCurrentException;
 	ConcreteFun* runFiber;
 	ConcreteFun* rtMain;

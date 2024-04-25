@@ -1554,6 +1554,7 @@ immutable struct CommonTypes {
 	StructInst* char32;
 	StructInst* cString;
 	StructInst* exception;
+	StructInst* fiber;
 	StructInst* float32;
 	StructInst* float64;
 	IntegralTypes integrals;

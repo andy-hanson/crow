@@ -13,6 +13,7 @@ import lower.lowExprHelpers :
 	genAbort,
 	genAddPointer,
 	genBitwiseNegate,
+	genCallFunPointerNoGcRoots,
 	genCallNoGcRoots,
 	genCreateRecord,
 	genConstantIntegral,
@@ -198,7 +199,7 @@ private LowProgram lowerInner(
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternLibraries);
-	checkLowProgram(program, res);
+	checkLowProgram(program, a, res);
 	return res;
 }
 
@@ -542,7 +543,7 @@ AllLowFuns getAllLowFuns(
 
 	LowType gcRootMutPointerType = lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.gcRoot.returnType);
 	LowType gcRootType = *gcRootMutPointerType.as!(LowType.PtrRawMut).pointee;
-	LowCommonFuns commonFuns = LowCommonFuns(
+	LowCommonFuns commonFuns = LowCommonFuns( // TODO: rename the variable from 'commonFuns' then! ---------------------------------------------
 		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
 		curJmpBuf: mustGet(concreteFunToLowFunIndex, program.commonFuns.curJmpBuf),
 		setCurJmpBuf: mustGet(concreteFunToLowFunIndex, program.commonFuns.setCurJmpBuf),
@@ -586,8 +587,8 @@ AllLowFuns getAllLowFuns(
 	return AllLowFuns(
 		moveToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndex),
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(moveToArray(alloc, allLowFuns)),
-		LowFunIndex(mutArrSize(lowFunCauses)),
-		getExternLibraries(getLowTypeCtx.alloc, externLibraryToNames, configExtern));
+		main: LowFunIndex(mutArrSize(lowFunCauses)),
+		allExternLibraries: getExternLibraries(getLowTypeCtx.alloc, externLibraryToNames, configExtern));
 }
 
 public LowFunIndex addLowFun(ref Alloc alloc, scope ref MutArr!LowFunCause lowFunCauses, LowFunCause source) {
@@ -614,6 +615,7 @@ ExternLibraries getExternLibraries(
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
+// Functions that we generate calls to when compiling
 struct LowCommonFuns {
 	LowFunIndex alloc;
 	LowFunIndex curJmpBuf;
@@ -639,7 +641,7 @@ LowFun lowFunFromCause(
 	ref AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
-	in LowCommonFuns commonFuns,
+	in LowCommonFuns commonFuns, // TODO:RENAME --------------------------------------------------------------------------------
 	in MutConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	in VarIndices varIndices,
 	ref MutArr!LowFunCause lowFunCauses,
@@ -1283,7 +1285,7 @@ LowExpr callFunPointerInner(
 	LowExpr arg,
 ) {
 	LowExpr doCall(LowExpr getFunPtr, SmallArray!LowExpr args) =>
-		handleExprPos(ctx, exprPos, LowExpr(type, range, LowExprKind(LowExprKind.CallFunPointer(allocate(ctx.alloc, getFunPtr), args))));
+		handleExprPos(ctx, exprPos, genCallFunPointerNoGcRoots(type, range, allocate(ctx.alloc, getFunPtr), args));
 	Opt!(LowType[]) optArgTypes = tryUnpackTuple(ctx.alloc, ctx.allTypes.allRecords, arg.type);
 	if (has(optArgTypes)) {
 		LowType[] argTypes = force(optArgTypes);

@@ -97,9 +97,9 @@ mark-range bool(start bool mut*, end bool mut*) bare, unsafe
 
 # Normally this is used by the function pointer from a 'gc-root'. Available as a regular function for debugging.
 # Only use this with a record or union type. For a pointer type it directly uses 'mark-visit' instead.
-mark-root[t] void(mark-ctx mark-ctx, pointer void*) builtin, bare, unsafe
+~mark-root[t] void(mark-ctx mark-ctx, pointer void*) builtin, bare, unsafe
 
-mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
+~mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
 
 gc record by-val, mut
 	-lk mut lock

@@ -324,9 +324,18 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	backtrace backtrace
 
 ~fiber record mut, by-ref
+	# GC for this type is generated differently by the compiler; see 'generateMarkVisitFiber'.
+	# So be careful when modifying this type.
+
 	# TODO: this takes up space, just store it on the stack!
 	# This is cleared at the start and never set again.
 	initial-function mut void mut()?
+	# This must be 16-byte aligned
+	stack nat64 mut-array
+	# Null if no roots yet
+	gc-root mut gc-root mut*
+
+	# Rest should not use GC
 	is-running mut bool
 	# Value only matters when not running
 	suspension mut fiber-suspension
@@ -334,17 +343,13 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	cur-exclusion mut exclusion
 	# Used to implement exceptions. The type is actually 'jmp_buf', but that isn't available here
 	cur-jmp-buf mut void mut*
-	# This must be 16-byte aligned
-	stack nat64 mut-array
-	# Null if no roots yet
-	gc-root mut gc-root mut*
 ~cur-fiber thread-local(fiber?)
 
 ~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
 ~fiber-state enum(running, suspended)
 ~gc-root record by-val, mut
-	ptr void*
-	trace void function(ctx mark-ctx, ptr void*)
+	pointer void*
+	trace void function(ctx mark-ctx, pointer void*)
 	next gc-root mut*
 
 ~mark-ctx record by-val, mut

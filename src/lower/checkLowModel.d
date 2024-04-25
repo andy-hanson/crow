@@ -21,6 +21,7 @@ import lower.lowExprHelpers :
 	voidType;
 import model.constant : Constant;
 import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
+import model.concreteModel : ConcreteFun, ConcreteProgram;
 import model.lowModel :
 	asGcOrRawPointee,
 	isPtrGcOrRaw,
@@ -31,6 +32,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
 	LowProgram,
@@ -51,23 +53,25 @@ import util.uri : UrisInfo;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
-void checkLowProgram(in Program program, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(program), ptrTrustMe(a));
+void checkLowProgram(in Program program, in ConcreteProgram concreteProgram, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(program), ptrTrustMe(concreteProgram), ptrTrustMe(a));
 	foreach (ref LowFun fun; a.allFuns)
 		checkLowFun(ctx, fun);
 }
 
 private:
 
-struct Ctx {
+immutable struct Ctx {
 	@safe @nogc pure nothrow:
 
-	immutable Program* modelProgramPtr;
-	immutable LowProgram* programPtr;
+	Program* modelProgramPtr;
+	ConcreteProgram* concreteProgramPtr;
+	LowProgram* programPtr;
 
 	ref Program modelProgram() return scope const =>
 		*modelProgramPtr;
-
+	ref ConcreteProgram concreteProgram() return scope const =>
+		*concreteProgramPtr;
 	ref LowProgram program() return scope const =>
 		*programPtr;
 }
@@ -102,7 +106,10 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.Abort) {},
 		(in LowExprKind.Call x) {
 			LowFun* fun = &ctx.ctx.program.allFuns[x.called];
-			// TODO: if (mayYield(*fun)) assert(ctx.fun.mayYield); --------------------------------------------------------------- (This requires fixing CallLambda!)
+			assert(
+				!mayYield(*fun) ||
+				ctx.fun.mayYield ||
+				ctx.fun.source.as!(ConcreteFun*) == ctx.ctx.concreteProgram.commonFuns.runFiber);
 			checkTypeEqual(ctx, type, fun.returnType);
 			zip!(LowLocal, LowExpr)(fun.params, x.args, (ref LowLocal param, ref LowExpr arg) {
 				checkLowExpr(ctx, param.type, arg, ExprPos.nonTail);

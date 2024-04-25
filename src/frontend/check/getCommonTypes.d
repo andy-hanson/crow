@@ -63,6 +63,7 @@ CommonTypes* getCommonTypes(
 		char32: char32,
 		cString: instantiate1(ctx, pointerConst, char8),
 		exception: nonTemplate(ctx, symbol!"exception"),
+		fiber: nonTemplate(ctx, symbol!"fiber"),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),
 		integrals: integrals,

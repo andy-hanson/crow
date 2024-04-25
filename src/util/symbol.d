@@ -679,6 +679,7 @@ immutable string[] specialSymbols = [
 	"mark-ctx",
 	"mark-root",
 	"mark-visit",
+	"mark-visit-fiber",
 	"matched",
 	"member-index",
 	"member-indices",

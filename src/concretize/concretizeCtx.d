@@ -393,6 +393,8 @@ private ConcreteType getConcreteType_forStructInst(
 							worsePurity(p, purity(ta)));
 					ConcreteStruct.SpecialKind specialKind = decl == ctx.commonTypes.array
 						? ConcreteStruct.SpecialKind.array
+						: inst == ctx.commonTypes.fiber
+						? ConcreteStruct.SpecialKind.fiber
 						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple
 						: ConcreteStruct.SpecialKind.none;

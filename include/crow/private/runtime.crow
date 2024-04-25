@@ -130,12 +130,12 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	# TODO: We need to make sure the func is visible to the GC immediately! ---------------------------------------------------
 	# TODO: This means we need to pin the memory....
 	initial-function: action,
+	stack: stack
+	gc-root: null
 	is-running: false
 	suspension: stack.end-pointer new-fiber-suspension &fiber-func, null
 	cur-exclusion: a.next-exclusion.get-and-increment
 	cur-jmp-buf: null
-	stack: stack
-	gc-root: null
 
 -fiber-func void(arg any-mut-pointer) unsafe
 	arg == null hard-assert

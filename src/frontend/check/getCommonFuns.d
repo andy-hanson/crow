@@ -169,7 +169,7 @@ CommonFunsAndMain getCommonFuns(
 		mark: getFun(
 			CommonModule.alloc,
 			symbol!"mark",
-			Type(commonTypes.bool_),
+			boolType,
 			[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]),
 		newJsonFromPairs: instantiateNonTemplateFun(ctx, getFunDecl(
 			alloc, diagsBuilder, *modules[CommonModule.json], symbol!"new",

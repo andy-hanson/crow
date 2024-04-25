@@ -138,6 +138,12 @@ LowExpr genConstantNat64(UriAndRange range, ulong value) =>
 LowExpr genConstantIntegral(LowType type, UriAndRange range, ulong value) =>
 	LowExpr(type, range, LowExprKind(Constant(IntegralValue(value))));
 
+LowExpr genNull(LowType type, UriAndRange range) =>
+	LowExpr(type, range, LowExprKind(constantZero));
+
+LowExpr genCallFunPointerNoGcRoots(LowType type, UriAndRange range, LowExpr* funPtr, SmallArray!LowExpr args) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.CallFunPointer(funPtr, args)));
+
 LowExpr genCallNoGcRoots(LowType type, UriAndRange range, LowFunIndex called, LowExpr[] args) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.Call(called, small!LowExpr(args))));
 LowExpr genCallNoGcRoots(ref Alloc alloc, LowType type, UriAndRange range, LowFunIndex called, in LowExpr[] args) =>
@@ -158,6 +164,9 @@ LowExpr genWrapMulNat64(ref Alloc alloc, UriAndRange range, LowExpr left, LowExp
 LowExpr genPointerEqual(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
 	LowExpr(boolType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialBinary(BuiltinBinary.eqPtr, [a, b]))));
+
+LowExpr genPointerEqualNull(ref Alloc alloc, UriAndRange range, LowExpr a) =>
+	genPointerEqual(alloc, range, a, genNull(a.type, range));
 
 LowExpr genEnumEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);

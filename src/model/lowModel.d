@@ -9,6 +9,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteVar,
 	isArray,
+	isFiber,
 	isTuple,
 	name,
 	TypeSize;
@@ -57,6 +58,8 @@ TypeSize typeSize(in LowRecord a) =>
 
 bool isArray(in LowRecord a) =>
 	isArray(*a.source);
+bool isFiber(in LowRecord a) =>
+	isFiber(*a.source);
 bool isTuple(in LowRecord a) =>
 	isTuple(*a.source);
 
