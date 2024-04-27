@@ -29,7 +29,7 @@ import lower.lowExprHelpers :
 	genFunPointer,
 	genIf,
 	genLetNoGcRoot,
-	genLetTempNoGcRoot,
+	genLetTempConstNoGcRoot,
 	genLocal,
 	genLocalByValue,
 	genLocalGet,
@@ -96,6 +96,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunFlags,
 	LowFunIndex,
 	LowFunPointerType,
 	LowFunSource,
@@ -679,8 +680,8 @@ LowFun lowFunFromCause(
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
 	LowType char8PtrPtrConstType = LowType(LowType.PtrRawConst(allocate(ctx.alloc, char8PtrConstType)));
 	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
-		genLocalByValue(ctx.alloc, symbol!"argc", 0, int32Type),
-		genLocalByValue(ctx.alloc, symbol!"argv", 1, char8PtrPtrConstType)]);
+		genLocalByValue(ctx.alloc, symbol!"argc", isMutable: false, 0, int32Type),
+		genLocalByValue(ctx.alloc, symbol!"argv", isMutable: false, 1, char8PtrPtrConstType)]);
 	LowExpr userMainFunPointer =
 		genFunPointer(userMainFunPointerType, UriAndRange.empty, userMain);
 	LowExpr call = genCallNoGcRoots(ctx.alloc, int32Type, UriAndRange.empty, rtMainIndex, [
@@ -688,7 +689,7 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 		genLocalGet(UriAndRange.empty, &params[1]),
 		userMainFunPointer
 	]);
-	LowFunBody body_ = LowFunBody(LowFunExprBody(false, false, call));
+	LowFunBody body_ = LowFunBody(LowFunExprBody(LowFunFlags.none, call));
 	return LowFun(
 		LowFunSource(allocate(ctx.alloc, LowFunSource.Generated(symbol!"main", []))),
 		int32Type,
@@ -713,9 +714,20 @@ LowLocalSource getLowLocalSource(
 		(Local* x) =>
 			LowLocalSource(x),
 		(ConcreteLocalSource.Closure x) =>
-			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", getIndex()))),
-		(ConcreteLocalSource.Generated x) =>
-			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbolOfEnum(x), getIndex()))));
+			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", isMutable: false, getIndex()))),
+		(ConcreteLocalSource.Generated x) {
+			bool isMutable = () {
+				final switch (x) {
+					case ConcreteLocalSource.Generated.args:
+					case ConcreteLocalSource.Generated.ignore:
+					case ConcreteLocalSource.Generated.destruct:
+					case ConcreteLocalSource.Generated.member:
+					case ConcreteLocalSource.Generated.reference:
+						return false;
+				}
+			}();
+			return LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbolOfEnum(x), isMutable, getIndex())));
+		});
 
 T withLowLocal(T)(
 	ref GetLowExprCtx ctx,
@@ -760,11 +772,14 @@ LowFunBody getLowFunBody(
 			a.params,
 			params,
 			curFunIsYielding: concreteProgram.yieldingFuns.has(a),
+			hasSetjmp: false,
 			hasTailRecur: false,
 			tempLocalIndex: a.params.length);
 		LowExpr body_ = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
 			getLowExpr(exprCtx, locals, expr, ExprPos(0, ExprPos.Kind.tail)));
-		return LowFunBody(LowFunExprBody(exprCtx.curFunIsYielding, exprCtx.hasTailRecur, body_));
+		return LowFunBody(LowFunExprBody(
+			LowFunFlags(hasSetjmp: exprCtx.hasSetjmp, hasTailRecur: exprCtx.hasTailRecur, mayYield: exprCtx.curFunIsYielding),
+			body_));
 	}
 }
 
@@ -787,7 +802,7 @@ LowExpr genLetTempPossiblyGcRoot(
 	bool thenMayYield,
 	in LowExpr delegate(ExprPos, LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
-	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", nextTempLocalIndex(ctx), value.type);
+	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", isMutable: false, nextTempLocalIndex(ctx), value.type);
 	return genLetPossiblyGcRoot(ctx, range, local, value, exprPos, thenMayYield, (ExprPos inner) =>
 		cbThen(inner, genLocalGet(range, local)));
 }
@@ -873,7 +888,7 @@ LowExpr maybeAddGcRoot( // TODO: just merge into its only caller ???????????????
 		genPointerCast(ctx.alloc, voidConstPointerType, range, pointerToLocal),
 		markRootFunction,
 		genGetGcRoot(ctx, range)]);
-	LowLocal* root = genLocal(ctx.alloc, symbol!"root", nextTempLocalIndex(ctx), ctx.commonFuns.gcRootType);
+	LowLocal* root = genLocal(ctx.alloc, symbol!"root", isMutable: false, nextTempLocalIndex(ctx), ctx.commonFuns.gcRootType);
 	return genLetNoGcRoot(
 		ctx.alloc, range, root,
 		initRoot,
@@ -894,11 +909,12 @@ struct GetLowExprCtx {
 	MutArr!LowFunCause* lowFunCauses;
 	MarkVisitFuns* markVisitFuns;
 	const MutConcreteFunToLowFunIndex* concreteFunToLowFunIndexPtr;
-	LowCommonFuns commonFuns;
+	immutable LowCommonFuns commonFuns;
 	immutable VarIndices varIndices;
-	ConcreteLocal[] concreteParams;
-	LowLocal[] lowParams;
+	immutable ConcreteLocal[] concreteParams;
+	immutable LowLocal[] lowParams;
 	immutable bool curFunIsYielding;
+	bool hasSetjmp;
 	bool hasTailRecur;
 	size_t tempLocalIndex;
 
@@ -1293,10 +1309,10 @@ LowExpr callFunPointerInner(
 			? doCall(funPtr, small!LowExpr(arg.kind.as!(LowExprKind.CreateRecord).args))
 			: argTypes.length == 0
 			// Making sure the side effect order is function then arg
-			? genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
+			? genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
 				genSeq(ctx.alloc, range, arg, doCall(getFunPointer, emptySmallArray!LowExpr)))
-			: genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
-				genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg, (LowExpr getArg) => // TODO: I'm assuming a function pointer is always to 'bare' code that does not yield
+			: genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
+				genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg, (LowExpr getArg) => // TODO: I'm assuming a function pointer is always to 'bare' code that does not yield
 					doCall(getFunPointer, mapWithIndex!(LowExpr, LowType)(
 						ctx.alloc, small!LowType(argTypes), (size_t argIndex, ref LowType argType) =>
 							genRecordFieldGet(ctx.alloc, range, getArg, argType, argIndex)))));
@@ -1390,7 +1406,7 @@ LowExpr maybeOptimizeSpecialBinary(
 	switch (kind) {
 		case BuiltinBinary.addPtrAndNat64:
 			return isEmptyType(*ctx.allTypes, asPtrRawPointee(arg0.type))
-				? genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getA) =>
+				? genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getA) =>
 					genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg1), getA))
 				: unopt();
 		case BuiltinBinary.unsafeDivNat64:
@@ -1559,13 +1575,13 @@ LowExpr getMatchIntegralExpr(
 			? getLowExpr(ctx, locals, *force(a.else_), exprPos)
 			: genAbort(type, range)))));
 
-LowExpr withLetTempNoGcRoot(
+LowExpr withLetTempConstNoGcRoot(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ref ConcreteExpr expr,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cb,
 ) =>
-	genLetTempNoGcRoot(ctx.alloc, expr.range, nextTempLocalIndex(ctx), getLowExpr(ctx, locals, expr, ExprPos.nonTail), cb);
+	genLetTempConstNoGcRoot(ctx.alloc, expr.range, nextTempLocalIndex(ctx), getLowExpr(ctx, locals, expr, ExprPos.nonTail), cb);
 
 LowExpr getMatchStringLikeExpr(
 	ref GetLowExprCtx ctx,
@@ -1575,7 +1591,7 @@ LowExpr getMatchStringLikeExpr(
 	ref ConcreteExprKind.MatchStringLike a,
 ) =>
 	// We don't need a GC root for 'matched' since we use it immediately without yielding
-	withLetTempNoGcRoot(ctx, locals, a.matched, (LowExpr matched) =>
+	withLetTempConstNoGcRoot(ctx, locals, a.matched, (LowExpr matched) =>
 		foldReverse!(LowExpr, ConcreteExprKind.MatchStringLike.Case)(
 			getLowExpr(ctx, locals, a.else_, exprPos),
 			a.cases,
@@ -1596,7 +1612,7 @@ LowExpr getMatchUnionExpr(
 	ref ConcreteExprKind.MatchUnion a,
 ) =>
 	// We don't need a  GC root for 'matched', since each case handles its argument GC root
-	withLetTempNoGcRoot(ctx, locals, a.matched, (LowExpr getMatched) {
+	withLetTempConstNoGcRoot(ctx, locals, a.matched, (LowExpr getMatched) {
 		LowExpr* getMatchedPtr = allocate(ctx.alloc, getMatched);
 		return LowExpr(type, range, LowExprKind(allocate(ctx.alloc,
 			LowExprKind.Switch(
@@ -1691,7 +1707,7 @@ LowExpr getFinallyExpr(
 	*/
 	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) =>
 		withRestorableGcRoot(ctx, range, (LowExpr restoreGcRoot) {
-			LowLocal* err = genLocal(ctx.alloc, symbol!"err", nextTempLocalIndex(ctx), boolType);
+			LowLocal* err = genLocal(ctx.alloc, symbol!"err", isMutable: true, nextTempLocalIndex(ctx), boolType);
 			LowExpr res = genSetjmp(
 				ctx, range,
 				getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
@@ -1804,7 +1820,7 @@ LowExpr withRestorableJmpBuf(
 	in LowExpr delegate(LowExpr restoreJmpBuf) @safe @nogc pure nothrow cb,
 ) =>
 	// Don't need a GC root since 'set-cur-jmp-buf' never yields.
-	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
+	genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
 		cb(genSetCurJmpBuf(ctx, range, oldJmpBuf)));
 
 LowExpr withRestorableGcRoot(
@@ -1813,13 +1829,14 @@ LowExpr withRestorableGcRoot(
 	in LowExpr delegate(LowExpr restoreGcRoot) @safe @nogc pure nothrow cb,
 ) =>
 	// 'gc-root' is not itself a GC root
-	genLetTempNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetGcRoot(ctx, range), (LowExpr oldGcRoot) =>
+	genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetGcRoot(ctx, range), (LowExpr oldGcRoot) =>
 		cb(genSetGcRoot(ctx, range, oldGcRoot)));
 
 LowExpr genRethrowCurrentException(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.rethrowCurrentException, []);
 
 LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowExpr onLongjmp) {
+	ctx.hasSetjmp = true;
 	/*
 	store mut __jmp_buf_tag = zeroed
 	if (&store).setjmp == 0
@@ -1830,7 +1847,7 @@ LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowEx
 	*/
 	LowType jmpBuf = ctx.commonFuns.jmpBufType;
 	LowType jmpBufTag = *jmpBuf.as!(LowType.PtrRawMut).pointee;
-	LowLocal* store = genLocal(ctx.alloc, symbol!"store", nextTempLocalIndex(ctx), jmpBufTag);
+	LowLocal* store = genLocal(ctx.alloc, symbol!"store", isMutable: true, nextTempLocalIndex(ctx), jmpBufTag);
 	LowExpr storePtr = genPointerToLocal(jmpBuf, range, store);
 	LowExpr then = genIf(
 		ctx.alloc, range,

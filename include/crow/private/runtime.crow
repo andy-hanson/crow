@@ -4,22 +4,22 @@ import
 	../col/array: array
 	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../col/mut-array: -, +, begin, begin-pointer, end, end-pointer, mut-array, size, slice, uninitialized-mut-array
+	../col/mut-array: -, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, timestamp
-	../log: default-log-handler, set-log-handler, log-handler
-	../misc: new, void
+	../log: default-log-handler, get-log-handler
+	../misc: new, shared, void
 	../number: ==, is-multiple-of, nat64
 	../option: force, is-empty, new, option
-	../pointer: ==, *, any-mut-pointer, as-const, as-fun-pointer, mut-pointer, null, reference-equal, to
+	../pointer: ==, *, any-mut-pointer, as-const, mut-pointer, null, reference-equal, to
 	../string: string
 	../version: is-wasm
 	./alloc:
 		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,
 		uninit
 	./bootstrap:
-		cur-exclusion, cur-fiber, fiber, fiber-suspension, hard-assert, initial-function, is-running, new,
-		set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, suspension, symbol
+		cur-exclusion, cur-fiber, fiber, fiber-suspension, hard-assert, hard-forbid, initial-function, is-running, new,
+		set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, suspension, symbol, zeroed
 	./task-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-fibers, enqueue-timed-fiber, exclusion,
 		init, pop-task, release-exclusion, slow-is-empty, task-queue, uninit
@@ -27,11 +27,11 @@ import
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
 
-get-global-ctx global-ctx mut*() unsafe
+-global-ctx-var global(global-ctx mut*)
+~get-global-ctx global-ctx mut*() unsafe
 	global-ctx-var
-
-# TODO: this should be a global instead
--global-ctx-var thread-local(global-ctx mut*)
+~set-global-ctx void(value global-ctx mut*) bare, unsafe
+	global-ctx-var := value
 
 cur-exclusion exclusion() unsafe
 	cur-fiber! cur-exclusion
@@ -51,8 +51,6 @@ global-ctx record by-val, mut
 	# protected by 'tasks-lock'
 	tasks mut task-queue
 	symbols-table mut symbol[string] # TODO: just move to where it's used? --------------------------------------------------
-	# TODO: this should be a `global`. But need to atomically set.
-	default-log-handler mut log-handler
 
 	# All below must not be GC allocated
 
@@ -80,7 +78,6 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	gc: uninit
 	tasks: uninit
 	symbols-table: empty-map
-	default-log-handler: log => log default-log-handler # TODO: think about this one too .............................
 	symbols-lock: uninit
 	tasks-lock: uninit
 	n-threads: n-threads
@@ -107,6 +104,10 @@ destroy void(a global-ctx mut*) bare, unsafe
 -new-fiber-suspension fiber-suspension(stack-top nat64 mut*, func void function(x any-mut-pointer), arg any-mut-pointer) builtin, bare
 -switch-fiber-suspension void(from fiber-suspension mut*, to fiber-suspension mut*) builtin, bare
 
+# The suspension will be written to when switching away from it.
+-empty-suspension fiber-suspension() bare, unsafe
+	zeroed
+
 # Regular fibers return to this for the task loop.
 # TODO: This could be by-value. But we currently don't support pointer to thread-local. ------------------------------------
 -thread-base-fiber-suspension thread-local(fiber-suspension mut*)
@@ -114,12 +115,25 @@ destroy void(a global-ctx mut*) bare, unsafe
 -is-valid-stack bool(a nat64 mut-array) bare, unsafe
 	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
 
+# Normally only a fiber can create another fiber. To initialize the first one, set a dummy fiber. Remember to unset when done.
+~set-dummy-fiber void() summon, unsafe
+	fiber fiber = do
+		initial-function: ()
+		log-handler: log => log default-log-handler
+		stack: ()
+		gc-root: null
+		is-running: false
+		suspension: empty-suspension
+		cur-exclusion: 0
+		cur-jmp-buf: null
+	cur-fiber := fiber,
+
 # Caller is responsible for catching all exceptions in 'action'
 add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
 	# TODO: A small stack like this may fail for real programs. I should get around to implementing stack overflow checking.
-	stack1 nat64 mut-array = 0x10000 uninitialized-mut-array
+	stack1 nat64 mut-array = 0x10000 zeroed-mut-array
 	# TODO: getter way to align it -----------------------------------------------------------------------------------------------
 	stack = if stack1 is-valid-stack
 		stack1
@@ -130,6 +144,8 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	# TODO: We need to make sure the func is visible to the GC immediately! ---------------------------------------------------
 	# TODO: This means we need to pin the memory....
 	initial-function: action,
+	# Inherits this fiber's log handler
+	log-handler: get-log-handler
 	stack: stack
 	gc-root: null
 	is-running: false
@@ -168,19 +184,9 @@ delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-# TODO: this is ugly 0--------------------------------------------------------------------------------------------------------------
-dummy record extern, mut
-	a nat64
-	b nat64
-	x mut nat64
-
 thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	# This will be initialized properly the first time we switch away
-	
-	# It needs to set stack[-2]
-	dummy mut dummy = 0, 0, 0
-	dummy-ptr dummy mut* = &dummy
-	my-suspension mut = dummy-ptr.x new-fiber-suspension null.as-fun-pointer, null
+	my-suspension mut = empty-suspension
 	thread-base-fiber-suspension := &my-suspension
 	thread-id-var := thread-id
 	loop
@@ -201,7 +207,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		as shut-down
 			break gctx thread-shut-down
 
-~change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
+-change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
 	# TOOD: PERF: If the exclusion is availalbe immediately, no need to add to queue -----------------------------------------
 	new-exclusion.change-exclusion yield-this-fiber
 
@@ -227,15 +233,15 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 # Runs the fiber until its next yield
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
 	gctx before-task
-	assert cur-fiber is-empty
+	cur-fiber.is-empty hard-assert
 	cur-fiber := fiber,
 
 	thread-base-fiber-suspension switch-fiber-suspension &fiber.suspension
 
 	# It yields to get back here.
-	assert cur-fiber! reference-equal fiber
+	cur-fiber! reference-equal fiber hard-assert
 	cur-fiber := ()
-	forbid fiber is-running
+	fiber.is-running hard-forbid
 
 	gctx.tasks-lock acquire
 	gctx.tasks release-exclusion fiber.cur-exclusion
@@ -275,9 +281,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	gctx.tasks-lock release
 
 ~before-task void(gctx global-ctx mut*) bare, unsafe
-	global-ctx-var := gctx
 	gctx.gc mutator-begin
-	gctx->default-log-handler set-log-handler # TODO: Ideally this would persist across fiber yields.......................
 
 after-task void() bare, unsafe
 	mutator-end
@@ -316,3 +320,18 @@ after-task void() bare, unsafe
 
 	gctx.tasks-lock release
 	res
+
+# This is called by the compiler for 'shared () => ...' lambdas.
+~shared-of-mut-lambda[r, p] r shared(param p)(a r mut(param p)) r shared, p shared
+	trusted
+		exclusion = cur-exclusion
+		wrapper (r, p) force-lambda-shared = a,
+		param =>
+			# TODO:PERF -- if new-exclusion is the same as cur-exclusion, do nothing -------------------------------------------------------
+			# Remember the old exclusion of this fiber. Then change it to the new exclusion and yield.
+			# When it resumes, run 'f[]', then set the exclusion back and yield again.
+			prev-exclusion = cur-exclusion
+			exclusion change-this-fibers-exclusion
+			finally prev-exclusion change-this-fibers-exclusion
+			wrapper.fn[param]
+-force-lambda-shared[r, p] record(fn r mut(param p)) force-shared

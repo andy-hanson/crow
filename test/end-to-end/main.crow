@@ -67,9 +67,7 @@ options:
 # Some tests have different output on Windows
 -is-excluded bool(a string)
 	if trusted is-windows
-		a ends-with "/fail.crow" || a ends-with "/gc.crow"
-	else
-		a ends-with "/gc.crow" # TODO ---------------------------------------------------------------------------------------------------
+		a ends-with "/fail.crow"
 
 -ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension

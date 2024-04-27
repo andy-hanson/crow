@@ -153,14 +153,14 @@ CommonFunsAndMain getCommonFuns(
 		curJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", jmpBuf, []),
 		setCurJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]),
 		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
-		alloc: getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
+		allocate: getFun(CommonModule.alloc, symbol!"allocate", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),
 		createError: getFun(
-			CommonModule.bootstrap, symbol!"error", Type(commonTypes.exception), [param!"a"(stringType)]),
+			CommonModule.exceptionLowLevel, symbol!"error", Type(commonTypes.exception), [param!"a"(stringType)]),
 		lambdaSubscript: getLambdaSubscriptFuns(
 			alloc, commonTypes, *modules[CommonModule.funUtil]),
 		sharedOfMutLambda: getFunDeclInner(
-			*modules[CommonModule.future],
+			*modules[CommonModule.runtime],
 			symbol!"shared-of-mut-lambda",
 			twoTypeParams,
 			rSharedOfP,

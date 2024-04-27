@@ -15,7 +15,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, LocalMutability, StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -272,6 +272,7 @@ Symbol debugName(in LowField a) =>
 immutable struct LowLocalSource {
 	immutable struct Generated {
 		Symbol name;
+		bool isMutable;
 		size_t index;
 	}
 	mixin TaggedUnion!(Local*, Generated*);
@@ -287,21 +288,39 @@ immutable struct LowLocal {
 
 	LowLocalSource source;
 	LowType type;
+
+	// This is whether the local itself is mutable, not whether its value is.
+	bool isMutable() scope =>
+		source.matchIn!bool(
+			(in Local x) =>
+				x.mutability != LocalMutability.immut,
+			(in LowLocalSource.Generated x) =>
+				x.isMutable);
 }
 
-immutable struct LowFunExprBody {
-	bool mayYield;
-	bool hasTailRecur;
-	LowExpr expr;
-}
-
-// Unlike ConcreteFunBody, this is always an expr or extern.
 immutable struct LowFunBody {
 	immutable struct Extern {
 		Symbol libraryName;
 	}
 
 	mixin Union!(Extern, LowFunExprBody);
+}
+
+immutable struct LowFunExprBody {
+	LowFunFlags flags;
+	LowExpr expr;
+
+	alias flags this;
+}
+
+immutable struct LowFunFlags {
+	@safe @nogc pure nothrow:
+	bool hasSetjmp;
+	bool hasTailRecur;
+	bool mayYield;	
+	
+	static LowFunFlags none() =>
+		LowFunFlags(false, false, false);
 }
 
 immutable struct LowFunSource {
@@ -334,21 +353,30 @@ immutable struct LowFun {
 				x.range,
 			(in LowFunSource.Generated) =>
 				UriAndRange.empty);
+	
+	LowFunFlags flags() scope =>
+		body_.matchIn!LowFunFlags(
+			(in LowFunBody.Extern) =>
+				LowFunFlags(
+					hasSetjmp: false,
+					hasTailRecur: false,
+					mayYield: false), // TODO: true if the extern function is 'blocking' ---------------------------------------------------------------
+			(in LowFunExprBody x) =>
+				x.flags);
+	
+	bool hasSetjmp() scope =>
+		flags.hasSetjmp;
+
+	bool mayYield() scope =>
+		flags.mayYield;
+
+	bool isGeneratedMain() scope =>
+		source.matchIn!bool(
+			(in ConcreteFun _) =>
+				false,
+			(in LowFunSource.Generated x) =>
+				x.name == symbol!"main");
 }
-
-bool mayYield(in LowFun a) =>
-	a.body_.matchIn!bool(
-		(in LowFunBody.Extern) =>
-			false, // TODO: true if the extern function is 'blocking' ---------------------------------------------------------------
-		(in LowFunExprBody x) =>
-			x.mayYield);
-
-bool isGeneratedMain(in LowFun a) =>
-	a.source.matchIn!bool(
-		(in ConcreteFun _) =>
-			false,
-		(in LowFunSource.Generated x) =>
-			x.name == symbol!"main");
 
 // TODO: use ConcreteExpr*
 private alias LowExprSource = UriAndRange;

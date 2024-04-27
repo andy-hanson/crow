@@ -46,6 +46,7 @@ import concretize.generate :
 	genFalse,
 	genIf,
 	genLet,
+	genLocalPointer,
 	genLoop,
 	genNone,
 	genOr,
@@ -622,8 +623,7 @@ ConcreteExpr concretizeLambdaInner(
 }
 
 size_t nextLambdaImplId(ref ConcretizeCtx ctx, ConcreteStruct* lambdaStruct, ConcreteLambdaImpl impl) =>
-	nextLambdaImplIdInner(ctx.alloc, impl, getOrAdd(ctx.alloc, ctx.lambdaStructToImpls, lambdaStruct, () =>
-		MutArr!ConcreteLambdaImpl()));
+	nextLambdaImplIdInner(ctx.alloc, impl, mustGet(ctx.lambdaStructToImpls, lambdaStruct));
 size_t nextLambdaImplIdInner(ref Alloc alloc, ConcreteLambdaImpl impl, ref MutArr!ConcreteLambdaImpl impls) {
 	size_t res = mutArrSize(impls);
 	push(alloc, impls, impl);
@@ -877,17 +877,15 @@ ConcreteExpr concretizePtrToLocal(
 	in UriAndRange range,
 	in Locals locals,
 	in PtrToLocalExpr a,
-) {
-	if (localIsAllocated(*a.local))
-		todo!void("Pointer to local, but it's already a pointer (just cast it)");
-	ConcreteExprKind kind = castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExprKind(
+) =>
+	castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
-			ConcreteExprKind(ConcreteExprKind.LocalPointer(local)),
+			localIsAllocated(*a.local)
+				? genRecordFieldPointer(type, range, allocate(ctx.alloc, genLocalGet(range, local)), 0)
+				: genLocalPointer(type, range, local),
 		(TypedConstant x) =>
 			//TODO: what if pointee is a reference?
-			ConcreteExprKind(getConstantPointer(ctx.alloc, ctx.allConstants, mustBeByVal(x.type), x.value)));
-	return ConcreteExpr(type, range, kind);
-}
+			genConstant(type, range, getConstantPointer(ctx.alloc, ctx.allConstants, mustBeByVal(x.type), x.value)));
 
 ConcreteExpr concretizePtrToField( // TODO: Inline -------------------------------------------------------------------------------
 	ref ConcretizeExprCtx ctx,

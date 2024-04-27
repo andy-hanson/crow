@@ -9,14 +9,16 @@ import
 	../io/print: err, print, print-no-newline
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to
+	../option: new
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
 	../string: c-string, interpolate, string, to
 	./alloc: unmanaged-alloc-elements, unmanaged-free
+	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
-	./runtime: before-task, destroy, get-global-ctx, global-ctx, init, thread-function, uninit
+	./runtime: before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
@@ -29,6 +31,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	n-threads = count-processors
 	gctx mut global-ctx = n-threads uninit
 	&gctx init
+	global-ctx := &gctx
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
 	res int32 = main-fut.must-get-result.to # TODO: appropriate error for exit code too big for int32
@@ -52,7 +55,8 @@ init-constants void() builtin, bare, summon, unsafe
 	all-args invoke-main main-pointer
 
 -invoke-main nat64 future(all-args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
-	with : parallel
+	set-dummy-fiber
+	res nat64 future = with : parallel
 		get-global-ctx init-symbol-table
 		match (() => main-pointer[for arg : all-args[1 .. end]; arg to]) catch-all
 		as ok x
@@ -61,6 +65,8 @@ init-constants void() builtin, bare, summon, unsafe
 			err print-no-newline "Uncaught exception: "
 			err print "{x}"
 			1
+	cur-fiber := ()
+	res
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 

@@ -305,9 +305,6 @@ This is a variant type, meaning anything can declare a `variant-member` that is 
 ###
 +exception variant
 
-# Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error variant-member(exception, string)
-
 ###
 Type of a thrown exception.
 
@@ -323,6 +320,40 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
+###
+Log severity.
+The log handler can use this any way it wants.
+The default log handler just prints the level at the beginning of each log.
+###
++log-level enum
+	# Temporary log for debugging
+	debug
+	# Any log message not fitting in other levels can be 'info'.
+	info
+	###
+	This is useful for anything that seems like it might be a problem in the future.
+
+	For example: Something took an unusually long time; or some resource like memory is running low.
+	###
+	warn
+	###
+	An error is for when something has gone wrong (but wasn't worthy of an exception).
+
+	For example: An HTTP request that is expected to normally succeed failed.
+	###
+	error
+
+# Represents a single call to `log`.
++logged record(level log-level, message string) nominal
+
+###
+Function that handles a log message.
+
+For example, this might write it to the console.
+###
++log-handler alias
+	void shared(logged logged)
+
 ~fiber record mut, by-ref
 	# GC for this type is generated differently by the compiler; see 'generateMarkVisitFiber'.
 	# So be careful when modifying this type.
@@ -330,6 +361,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	# TODO: this takes up space, just store it on the stack!
 	# This is cleared at the start and never set again.
 	initial-function mut void mut()?
+	log-handler mut log-handler
 	# This must be 16-byte aligned
 	stack nat64 mut-array
 	# Null if no roots yet

@@ -44,16 +44,17 @@ import
 		cur := cur->next
 
 # Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
-+mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
+~mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	d = dest as-const
 	assert d < src ? d + size <= src : src + size <= d
 	_ = dest.pointer-cast memcpy src.pointer-cast, (size wrap-mul size-of@t)
 
 # Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
-+mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
+~mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memmove src.pointer-cast, (size wrap-mul size-of@t)
 
-+mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
+# Set a range to 0
+~mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
 
 -to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe
@@ -304,6 +305,8 @@ validate-gc void(gc gc*) bare, unsafe
 				break cur.pointer-cast,
 		gc maybe-set-needs-gc
 		gc.lk release
+		if x ?= res
+			x mem-clear size-bytes
 		res
 
 -maybe-set-needs-gc void(gc gc mut*) bare, unsafe
@@ -327,32 +330,33 @@ gc-alloc any-mut-pointer(gc gc-ctx, size nat64) bare
 		# TODO: throw an exception on OOM
 		todo
 
-alloc any-mut-pointer(size-bytes nat64) unsafe
+# Called by the compiler
+allocate any-mut-pointer(size-bytes nat64) unsafe
 	get-gc-ctx gc-alloc size-bytes
 
-alloc-uninitialized[t] t mut*() unsafe
-	1 alloc-uninitialized
+allocate[t] t mut*() unsafe
+	1 allocate
 
-alloc-uninitialized[t] t mut*(count nat64) unsafe
-	get-gc-ctx alloc-uninitialized count
+allocate[t] t mut*(count nat64) unsafe
+	get-gc-ctx allocate count
 
-alloc-uninitialized[t] t mut*(gc gc-ctx, count nat64) bare, unsafe
+allocate[t] t mut*(gc gc-ctx, count nat64) bare, unsafe
 	gc gc-alloc (count wrap-mul size-of@t) pointer-cast
 
-alloc-uninitialized[t] t mut*(gc gc-ctx) bare, unsafe
-	gc alloc-uninitialized 1
+allocate[t] t mut*(gc gc-ctx) bare, unsafe
+	gc allocate 1
 
-try-alloc-uninitialized[t] t mut*?(size nat64) unsafe
-	get-gc-ctx try-alloc-uninitialized size
+try-allocate[t] t mut*?(size nat64) unsafe
+	get-gc-ctx try-allocate size
 
-try-alloc-uninitialized[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe
+try-allocate[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe
 	(gc try-gc-alloc (size wrap-mul size-of@t))?.pointer-cast
 
-try-alloc-uninitialized[t] t mut*?() unsafe
-	1 try-alloc-uninitialized
+try-allocate[t] t mut*?() unsafe
+	1 try-allocate
 
-try-alloc-uninitialized[t] t mut*?(gc gc-ctx) bare, unsafe
-	gc try-alloc-uninitialized 1
+try-allocate[t] t mut*?(gc gc-ctx) bare, unsafe
+	gc try-allocate 1
 
 unmanaged-alloc-uninitialized[t] t mut*() bare, unsafe
 	1 unmanaged-alloc-elements

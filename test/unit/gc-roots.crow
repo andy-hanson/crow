@@ -28,6 +28,25 @@ test trusted
 	count-roots is start + 1
 	r use
 
+# Adds a root for each argument to a call
+test trusted
+	start = count-roots
+	res = start f2 start.f0, start.f1
+	res.x is 3
+	count-roots is start + 1
+	yield-fiber
+-f0 r(start nat) unsafe
+	count-roots is start
+	1,
+-f1 r(start nat) unsafe
+	# The result of 'f0' is on the stack at this point
+	count-roots is start + 1
+	2,
+-f2 r(start nat, a r, b r) unsafe
+	count-roots is start + 2
+	yield-fiber
+	a.x + b.x,
+
 # 'try-let' restores gc-root
 test trusted
 	start = count-roots

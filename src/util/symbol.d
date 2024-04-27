@@ -568,6 +568,7 @@ immutable string[] specialSymbols = [
 	"aliases",
 	"alignment",
 	"allInsts",
+	"allocate",
 	"allocated",
 	"all-tests",
 	"anonymous",

@@ -1524,7 +1524,7 @@ immutable struct CommonFuns {
 	FunInst* curJmpBuf;
 	FunInst* setCurJmpBuf;
 	VarDecl* curThrown;
-	FunInst* alloc;
+	FunInst* allocate;
 	FunInst* and;
 	FunInst* createError;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
@@ -1592,6 +1592,9 @@ Type arrayElementType(in CommonTypes commonTypes, Type type) {
 	assert(type.as!(StructInst*).decl == commonTypes.array);
 	return only(type.as!(StructInst*).typeArgs);
 }
+
+bool isLambdaType(in CommonTypes commonTypes, StructDecl* a) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
 
 private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
 	a == commonTypes.ptrConst || a == commonTypes.ptrMut;

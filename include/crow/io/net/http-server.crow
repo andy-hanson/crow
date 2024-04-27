@@ -2,7 +2,6 @@ import
 	system/errno: EAGAIN, errno
 	system/sys/socket: as-fd, SOCKET
 	system/unistd: write
-	../../future: delay
 	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
@@ -82,10 +81,10 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		if wrote == -1
 			err = errno
 			assert err == EAGAIN : "can't write to socket, errno {err}".error
-			delay
+			yield-fiber
 		else
 			assert wrote > 0
-			delay
+			yield-fiber
 			remaining := remaining[wrote.to .. end]
 
 -finish-request http-request(state http-parse-state)

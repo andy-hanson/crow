@@ -760,6 +760,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			createRecordToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.CreateUnion it) =>
 			createUnionToGcc(ctx, locals, emit, a, it),
+		(in LowExprKind.FunPointer x) =>
+			todo!ExprResult("fun pointer"), // ----------------------------------------------------------------------------------------
 		(in LowExprKind.If it) =>
 			ifToGcc(ctx, locals, emit, a.type, it.cond, it.then, it.else_),
 		(in LowExprKind.InitConstants) =>
@@ -1259,6 +1261,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 			return emitVoid(ctx, emit);
 		case BuiltinUnary.asAnyPtr:
 		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
 		case BuiltinUnary.toFloat64FromFloat32:
@@ -1375,8 +1378,6 @@ ExprResult binaryToGcc(
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_PLUS);
 		case BuiltinBinary.addPtrAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.addNat, left, right);
-		case BuiltinBinary.and:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.and, left, right);
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseAndInt16:
 		case BuiltinBinary.bitwiseAndInt32:
@@ -1443,8 +1444,6 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
-		case BuiltinBinary.orBool:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, left, right);
 		case BuiltinBinary.seq:
 			emitToVoid(ctx, locals, left);
 			return toGccExpr(ctx, locals, emit, right);
@@ -1460,6 +1459,8 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapSubNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MINUS);
+		case BuiltinBinary.switchFiberSuspension:
+			return todo!ExprResult("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		case BuiltinBinary.subPtrAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.subtractNat, left, right);
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
@@ -1772,6 +1773,8 @@ gcc_jit_rvalue* zeroForPrimitiveType(ref ExprCtx ctx, PrimitiveType a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 			return gcc_jit_context_new_rvalue_from_double(ctx.gcc, gccType, 0);
+		case PrimitiveType.fiberSuspension:
+			return todo!(gcc_jit_rvalue*)("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		case PrimitiveType.void_:
 			assert(false);
 	}

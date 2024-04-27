@@ -14,7 +14,7 @@ import model.concreteModel :
 	ReferenceKind;
 import frontend.showModel : ShowCtx, writeLineAndColumn, writeTypeArgsGeneric;
 import model.lowModel :
-	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, mayYield, PrimitiveType;
+	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType;
 import model.model : Local;
 import util.col.array : only;
 import util.sourceRange : UriLineAndColumnRange;
@@ -73,7 +73,7 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 					writeConcreteType(writer, ctx, param.type);
 				});
 			writer ~= ')';
-			if (mayYield(a))
+			if (a.mayYield)
 				writer ~= " may-yield";
 			writer ~= ' ';
 

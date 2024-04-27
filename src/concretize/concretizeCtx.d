@@ -61,6 +61,7 @@ import model.model :
 	FunInst,
 	ImportFileContent,
 	IntegralType,
+	isLambdaType,
 	isTuple,
 	LambdaExpr,
 	Local,
@@ -405,8 +406,11 @@ private ConcreteType getConcreteType_forStructInst(
 					add(ctx.alloc, ctx.allConcreteStructs, res);
 					return res;
 				});
-		if (res.didAdd)
+		if (res.didAdd) {
 			initializeConcreteStruct(ctx, *inst, res.value, typeArgsScope);
+			if (isLambdaType(ctx.commonTypes, decl))
+				mustAdd(ctx.alloc, ctx.lambdaStructToImpls, res.value, MutArr!ConcreteLambdaImpl());
+		}
 		if (!res.value.defaultReferenceKindIsSet)
 			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 			// In that case, it's a recursive record, so it should be by-ref.

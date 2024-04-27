@@ -77,7 +77,7 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.newChar32ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char32Type(ctx)], []));
 	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
 	ConcreteCommonFuns concreteCommonFuns = ConcreteCommonFuns(
-		alloc: getNonTemplateConcreteFun(ctx, commonFuns.alloc),
+		alloc: getNonTemplateConcreteFun(ctx, commonFuns.allocate),
 		curJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.curJmpBuf),
 		setCurJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.setCurJmpBuf),
 		curThrown: getVar(ctx, commonFuns.curThrown),

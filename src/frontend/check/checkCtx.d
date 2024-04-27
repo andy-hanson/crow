@@ -63,7 +63,6 @@ enum CommonModule {
 	compare,
 	exceptionLowLevel,
 	funUtil,
-	future,
 	json,
 	list,
 	misc,

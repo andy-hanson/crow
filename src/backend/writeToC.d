@@ -30,7 +30,6 @@ import model.lowModel :
 	ExternLibrary,
 	isChar8,
 	isChar32,
-	isGeneratedMain,
 	isVoid,
 	LowExpr,
 	LowExprKind,
@@ -38,6 +37,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunFlags,
 	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
@@ -692,7 +692,7 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, scope ref Ctx ctx,
 void writeFunDeclaration(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
 	if (fun.body_.isA!(LowFunBody.Extern))
 		writer ~= "extern ";
-	else if (!isGeneratedMain(fun))
+	else if (!fun.isGeneratedMain)
 		writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= ";\n";
@@ -728,7 +728,7 @@ void writeFunWithExprBody(
 	in LowFun fun,
 	in LowFunExprBody body_,
 ) {
-	if (!isGeneratedMain(fun)) writer ~= "static ";
+	if (!fun.isGeneratedMain) writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= " {";
 	if (body_.hasTailRecur)
@@ -806,10 +806,16 @@ void writeTempOrInlines(
 
 void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBodyCtx ctx, in LowLocal local) {
 	writeNewline(writer, indent);
+	if (localMustBeVolatile(ctx, local))
+		writer ~= "volatile ";
 	writeType(writer, ctx.ctx, local.type);
 	writer ~= ' ';
 	writeLowLocalName(writer, ctx.mangledNames, local);
 }
+
+bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
+	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
+	local.isMutable && ctx.ctx.program.allFuns[ctx.curFun].hasSetjmp;
 
 immutable struct WriteKind {
 	immutable struct Inline {
@@ -938,13 +944,15 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.PtrToField it) =>
 			writePtrToField(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.PtrToLocal it) =>
+		(in LowExprKind.PtrToLocal x) =>
 			inlineableSimple(() {
+				if (localMustBeVolatile(ctx, *x.local))
+					writeCastToType(writer, ctx.ctx, type);
 				writer ~= '&';
-				writeLowLocalName(writer, ctx.mangledNames, *it.local);
+				writeLowLocalName(writer, ctx.mangledNames, *x.local);
 			}),
-		(in LowExprKind.RecordFieldGet it) =>
-			writeRecordFieldGet(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.RecordFieldGet x) =>
+			writeRecordFieldGet(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.RecordFieldSet x) {
 			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, x.target);
 			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, x.value);
@@ -1693,9 +1701,9 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 		(in LowType.FunPointer) {
 			writer ~= "NULL";
 		},
-		(in PrimitiveType it) {
-			assert(it != PrimitiveType.void_);
-			writer ~= '0';
+		(in PrimitiveType x) {
+			assert(x != PrimitiveType.void_);
+			writer ~= (x == PrimitiveType.fiberSuspension ? "(fiber_suspension) {}" : "0");
 		},
 		(in LowPtrCombine _) {
 			writer ~= "NULL";

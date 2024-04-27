@@ -66,7 +66,7 @@ import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString;
 import util.symbol : cStringOfSymbol;
-import util.util : castImmutable, castNonScope_ref, typeAs;
+import util.util : castImmutable, castNonScope_ref, todo, typeAs;
 import util.writer : withWriter, Writer;
 
 immutable struct GccTypes {
@@ -288,6 +288,8 @@ immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, PrimitiveT
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_CHAR);
 		case PrimitiveType.char32:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_INT);
+		case PrimitiveType.fiberSuspension:
+			return todo!(immutable gcc_jit_type*)("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		case PrimitiveType.float32:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_FLOAT);
 		case PrimitiveType.float64:

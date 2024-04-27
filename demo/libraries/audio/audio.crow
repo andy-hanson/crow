@@ -6,7 +6,7 @@ import
 	clear void shared()
 	play playing-sound shared(x sound)
 	play-loop playing-sound shared(x sound)
-	shut-down void^ shared()
+	shut-down void shared()
 
 +playing-sound record shared
 	reset-position void shared()

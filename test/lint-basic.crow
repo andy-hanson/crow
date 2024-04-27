@@ -37,7 +37,7 @@ main nat(_ string[]) summon
 -lint-file failure[](path string) summon
 	text string = path read-file
 	res failure mut[] = ()
-	ext = path.get-extension!
+	ext = path.get-extension ?? ""
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	max-line-length = path max-line-length
 	for line-num, line : text.lines with-index

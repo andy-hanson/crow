@@ -9,7 +9,7 @@ import
 	../pointer:
 		==, <=>, +, *, as-const, as-mut, mut-pointer, pointer-cast, set-subscript, size-of,
 		subscript
-	../private/alloc: alloc-uninitialized, mem-move, mem-clear
+	../private/alloc: allocate, mem-move, mem-clear
 	../private/bootstrap: inner
 	../range: .., high, low, range, size
 	../tuple: new
@@ -114,38 +114,23 @@ set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mu
 		dest.begin-pointer mem-move source.begin-pointer, dest.size
 
 ###
-Allocates a `mut-array` without initializing any of its elements.
+Allocates a `mut-array` full of zeroes.
 If you just want to create a `mut-array`, use a `for` loop instead.
 
-Since `mut-array` is garbage-collected, this will cause problems unless either:
-* You write to all the elements before the current task ends.
-* You don't keep a reference to the `mut-array` or to any uninitialized slice.
+Zero values are not in general safe, but are GC-safe, since the GC ignores null pointers.
 
 Keep exceptions in mind: Don't store a reference to the result until it's initialized,
 since initialization code might throw an exception.
 
-See `zeroed-mut-array` for a somewhat safer alternative.
-###
-+uninitialized-mut-array[t] t mut-array(size nat64) unsafe
-	pointer t mut* = size alloc-uninitialized
-	pointer[0 .. size]
-
-###
-This is like `uninitialized-mut-array` but fills memory with zeroes.
-
-Zeroed memory is GC-safe, since the GC ignores null pointers,
-but is still not safe to expose to readers (who may try to dereference the null pointers).
-
 This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
 ###
 +zeroed-mut-array[t] t mut-array(size nat64) unsafe
-	res t mut-array = size uninitialized-mut-array
-	res zero-memory
-	res
+	pointer t mut* = size allocate
+	pointer[0 .. size]
 
 ###
 Sets every element to `zeroed`.
-See comment on `zeroed-mut-array` for why this is useful.
+See `zeroed-mut-array` for why this is unsafe.
 ###
 +zero-memory[t] void(a t mut-array) bare, unsafe
 	a.begin-pointer mem-clear a.size

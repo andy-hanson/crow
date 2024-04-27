@@ -60,6 +60,7 @@ import
 	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
 	./unit/gc-roots: dummy-gc-roots
+	./unit/log: dummy-log
 
 main void() summon
 	license is "public domain"
@@ -86,6 +87,7 @@ main void() summon
 	_ = dummy-index-set-tests
 	_ = dummy-json-tests
 	_ = dummy-list-tests
+	_ = dummy-log
 	_ = dummy-math-tests
 	_ = dummy-number-tests
 	_ = dummy-set-tests

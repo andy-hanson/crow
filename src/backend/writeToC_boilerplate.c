@@ -66,6 +66,7 @@ __asm__(
 );
 extern void __attribute__((noinline)) switch_fiber_suspension(fiber_suspension* from, const fiber_suspension* to);
 
+// WARN: 'empty-suspension' from 'runtime.crow' makes assumtions about this
 static fiber_suspension new_fiber_suspension(uint64_t* stack_top, void (*target)(uint8_t*), void* arg) {
 	fiber_suspension res;
 	res.rip = (uintptr_t) target;

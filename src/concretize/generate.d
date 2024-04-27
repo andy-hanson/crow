@@ -134,6 +134,9 @@ ConcreteExpr genDrop(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr i
 ConcreteExpr genLocalGet(in UriAndRange range, ConcreteLocal* local) =>
 	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
 
+ConcreteExpr genLocalPointer(ConcreteType type, in UriAndRange range, ConcreteLocal* local) =>
+	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LocalPointer(local)));
+
 ConcreteExpr genLocalSet(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteLocal* local, ConcreteExpr value) =>
 	ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.LocalSet(local, value))));
 

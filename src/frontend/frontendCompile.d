@@ -557,7 +557,6 @@ CommonUris commonUris(Uri includeDir) {
 		includeCrow / symbol!"compare",
 		private_ / symbol!"exception-low-level",
 		includeCrow / symbol!"fun-util",
-		includeCrow / symbol!"future",
 		includeCrow / symbol!"json",
 		col / symbol!"list",
 		includeCrow / symbol!"misc",

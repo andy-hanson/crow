@@ -37,7 +37,6 @@ import model.lowModel :
 	LowLocal,
 	LowProgram,
 	LowType,
-	mayYield,
 	PrimitiveType,
 	targetIsPointer,
 	targetRecordType,
@@ -107,7 +106,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.Call x) {
 			LowFun* fun = &ctx.ctx.program.allFuns[x.called];
 			assert(
-				!mayYield(*fun) ||
+				!fun.mayYield ||
 				ctx.fun.mayYield ||
 				ctx.fun.source.as!(ConcreteFun*) == ctx.ctx.concreteProgram.commonFuns.runFiber);
 			checkTypeEqual(ctx, type, fun.returnType);

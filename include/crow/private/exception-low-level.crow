@@ -11,11 +11,14 @@ import
 	./backtrace: get-backtrace
 	./bootstrap: abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
 export
-	./bootstrap: backtrace, error, exception, exception-and-backtrace
+	./bootstrap: backtrace, exception, exception-and-backtrace
+
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
++error variant-member(exception, string)
 
 +test-failure variant-member(exception, string)
 
-# Just use a thread-local for these, since they will be handled immediately before the fiber suspends
+# Just use a thread-local for these, since they will be handled immediately (not giving the fiber a chance to yield)
 -cur-thrown thread-local(exception)
 -cur-backtrace thread-local(backtrace)
 

@@ -156,6 +156,6 @@ reference-from-pointer[t] t(pointer any-mut-pointer) builtin, bare, unsafe
 
 ###
 True if two references have the same pointer.
-Contrast with `a == b` which can also e true for different pointers with equal contents.
+Contrast with `a == b` which can also be true for different pointers with equal contents.
 ###
-+reference-equal[t] bool(a t, b t) builtin, bare, unsafe # TODO: could implement as 'a.as-any-mut-pointer == b.as-any-mut-pointer'?
++reference-equal[t] bool(a t, b t) builtin, bare, unsafe

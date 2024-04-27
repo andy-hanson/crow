@@ -18,7 +18,7 @@ import
 	../collection: .., -, build, build-options, end, for-loop, set-subscript, subscript, with-block
 	../mut-array:
 		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
-		mut-array-builder, next, set-next, size, slice, uninitialized-mut-array
+		mut-array-builder, next, set-next, size, slice, zeroed-mut-array
 	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
@@ -192,7 +192,7 @@ Or a combination of the two.
 -add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key
 	assert plan.compacted-size > 1
 	trusted
-		compacted t mut-array = plan.compacted-size uninitialized-mut-array
+		compacted t mut-array = plan.compacted-size zeroed-mut-array
 		begin = compacted begin-pointer
 		*begin := value
 		compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
@@ -206,7 +206,7 @@ Or a combination of the two.
 			left, new-remove
 	else
 		trusted
-			compacted t mut-array = plan.compacted-size uninitialized-mut-array
+			compacted t mut-array = plan.compacted-size zeroed-mut-array
 			begin = compacted begin-pointer
 			compactor t compactor = begin.as-const, begin, compacted.end-pointer
 			old-size = plan.add-size-left + plan.compacted-size + 1

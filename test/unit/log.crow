@@ -1,0 +1,16 @@
+dummy-log nat()
+	0
+
+test
+	logs logged mut[] = ()
+	with : (shared log => logs ~= log) temp-log-handler
+		info log "test"
+		# Also works in fibers derived from this one
+		fut void future = with : parallel
+			warn log "test2"
+		fut await
+		error log "test3"
+	logs.to::logged[] is ((info, "test"), (warn, "test2"), (error, "test3"))
+
+== bool(a logged, b logged)
+to json(a logged)

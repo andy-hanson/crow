@@ -9,7 +9,7 @@ import
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
 		size-of, to-mut-pointer, to
 	../../range: .., low, range, size
-	../../private/alloc: alloc-uninitialized, mem-copy
+	../../private/alloc: allocate, mem-copy
 	../../private/bootstrap: new, pointer, size
 	./build: build-options, size-hint
 export
@@ -86,7 +86,7 @@ Calls `f` for each element in `a`.
 		f[builder]
 		builder.size, null
 	else
-		begin t mut* = a.size-hint alloc-uninitialized
+		begin t mut* = a.size-hint allocate
 		builder t array-builder = begin, begin, begin + a.size-hint
 		f[builder]
 		res = (builder.begin .. builder.cur) as-array
@@ -104,7 +104,7 @@ Calls `f` for each element in `a`.
 		if a.cur == a.end
 			cur-size = a.end - a.begin
 			new-capacity nat64 = cur-size == 0 ? 4 : cur-size * 2
-			new-begin t mut* = new-capacity alloc-uninitialized
+			new-begin t mut* = new-capacity allocate
 			new-begin mem-copy a.begin.as-const, cur-size
 			a.begin := new-begin
 			a.cur := new-begin + cur-size
@@ -122,7 +122,7 @@ Calls `f` for each element in `a`.
 			cur-size = a.cur - a.begin
 			min-size = cur-size + values.size
 			new-capacity = min-size.round-up-to-power-of-two
-			new-begin t mut* = new-capacity alloc-uninitialized
+			new-begin t mut* = new-capacity allocate
 			new-begin mem-copy a.begin.as-const, cur-size
 			a.begin := new-begin
 			a.cur := new-begin + cur-size
