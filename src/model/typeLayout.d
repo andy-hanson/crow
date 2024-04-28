@@ -103,4 +103,4 @@ TypeSize primitiveSize(PrimitiveType a) {
 }
 
 public TypeSize fiberSuspensionSize() =>
-	TypeSize(9 * ulong.sizeof, 8); // See writeToC_boilerplate.c
+	TypeSize(ulong.sizeof, ulong.alignof); // See writeToC_boilerplate.c
