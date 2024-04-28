@@ -331,18 +331,14 @@ const struct LineAndColumnGetters {
 	private const Storage* storage;
 
 	LineAndColumnGetter opIndex(Uri uri) scope {
-		if (storage == null) return LineAndColumnGetter(); // -----------------------------------------------------------------------------------------------------------
-
 		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
 		return has(res) ? force(res).value.asTextFile.lineAndColumnGetter : LineAndColumnGetter.empty;
 	}
 
 	UriLineAndColumn opIndex(in UriAndPos pos, PosKind kind) scope =>
-		storage == null ? UriLineAndColumn(Uri.empty, LineAndColumn(0, 0)) : // -----------------------------------------------------------------------------------------------------------
 		UriLineAndColumn(pos.uri, this[pos.uri][pos.pos, kind]);
 
 	UriLineAndColumnRange opIndex(in UriAndRange x) scope =>
-		storage == null ? UriLineAndColumnRange(Uri.empty, LineAndColumnRange(LineAndColumn(0, 0), LineAndColumn(0, 0))) : // -----------------------------------------------------------------------------------------------------------
 		UriLineAndColumnRange(x.uri, this[x.uri][x.range]);
 
 	LineAndCharacterGetters lineAndCharacterGetters() return scope =>

@@ -97,10 +97,5 @@ TypeSize primitiveSize(PrimitiveType a) {
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
 			return TypeSize(8, 8);
-		case PrimitiveType.fiberSuspension:
-			return fiberSuspensionSize;
 	}
 }
-
-public TypeSize fiberSuspensionSize() =>
-	TypeSize(ulong.sizeof, ulong.alignof); // See writeToC_boilerplate.c

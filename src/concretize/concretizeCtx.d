@@ -82,7 +82,6 @@ import model.model :
 	VarDecl,
 	VariantMember,
 	worsePurity;
-import model.typeLayout : fiberSuspensionSize;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray;
 import util.col.array :
@@ -893,7 +892,5 @@ TypeSize getBuiltinStructSize(BuiltinType kind) {
 			return TypeSize(8, 8);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8);
-		case BuiltinType.fiberSuspension: // TODO: maybe we can somehow delay this until later? ------------------------------------
-			return fiberSuspensionSize;
 	}
 }

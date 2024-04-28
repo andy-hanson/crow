@@ -1090,6 +1090,9 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqPtr:
 			fn(&fnEq64Bit);
 			break;
+		case BuiltinBinary.initStack:
+			todo!void("generate initStack"); // ---------------------------------------------------------------------------
+			break;
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessNat8:
 			fn(&fnLessNat8);
@@ -1128,9 +1131,6 @@ void generateSpecialBinary(
 		case BuiltinBinary.mulFloat64:
 			fn(&fnMulFloat64);
 			break;
-		case BuiltinBinary.newFiberSuspension:
-			todo!void("generate newFiberSuspension"); // ---------------------------------------------------------------------------
-			break;
 		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExpr(writer, ctx, locals, after, right);
@@ -1141,8 +1141,8 @@ void generateSpecialBinary(
 		case BuiltinBinary.subFloat64:
 			fn(&fnSubFloat64);
 			break;
-		case BuiltinBinary.switchFiberSuspension:
-			todo!void("generate switchFiberSuspension"); // --------------------------------------------------------------------------
+		case BuiltinBinary.switchFiber:
+			todo!void("generate switchFiber"); // --------------------------------------------------------------------------
 			break;
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:

@@ -2,7 +2,8 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.candidates : Candidate, eachFunInScope, funsInScope, testCandidateForSpecSig, withCandidates;
+import frontend.check.checkCall.candidates :
+	Candidate, eachFunInScope, funsInScope, testCandidateForSpecSig, withCandidates;
 import frontend.check.checkCall.checkCall :
 	checkCall,
 	checkCallAfterChoosingOverload,
@@ -1196,35 +1197,6 @@ Opt!Called funWithName(ref ExprCtx ctx, in LocalsInfo locals, NameAndRange name,
 					return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), name.range, arity));
 			});
  	});
-
-	// TODO: get rid of unused diag FunPointerNotSupported ---------------------------------------------------------------------------
-	/*
-	MutOpt!(FunDecl*) res = MutOpt!(FunDecl*)();
-	MutOpt!(Diag.FunPointerNotSupported.Reason) diag = noneMut!(Diag.FunPointerNotSupported.Reason);
-	eachFunInScope(ctx, name.name, (CalledDecl cd) {
-		cd.matchWithPointers!void(
-			(FunDecl* x) {
-				markUsed(ctx.checkCtx, x);
-				if (has(res))
-					diag = someMut(Diag.FunPointerNotSupported.Reason.multiple);
-				else if (!isEmpty(x.specs))
-					diag = someMut(Diag.FunPointerNotSupported.Reason.hasSpecs);
-				res = someMut(x);
-			},
-			(CalledSpecSig _) {
-				diag = someMut(Diag.FunPointerNotSupported.Reason.isASpec);
-			});
-	});
-	if (has(diag)) {
-		addDiag2(ctx, name.range, Diag(Diag.FunPointerNotSupported(force(diag), name.name)));
-		return none!(FunDecl*);
-	} else if (has(res))
-		return some(force(res));
-	else {
-		addDiag2(ctx, name.range, Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.function_, name.name)));
-		return none!(FunDecl*);
-	}
-	*/
 }
 
 Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SharedAst* ast, ref Expected expected) {

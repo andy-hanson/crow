@@ -276,8 +276,8 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
-		case symbol!"new-fiber-suspension".value:
-			return binary(BuiltinBinary.newFiberSuspension);
+		case symbol!"init-stack".value:
+			return binary(BuiltinBinary.initStack);
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))
@@ -456,8 +456,8 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
 		case symbol!"static-symbols".value:
 			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
-		case symbol!"switch-fiber-suspension".value:
-			return binary(BuiltinBinary.switchFiberSuspension);
+		case symbol!"switch-fiber".value:
+			return binary(BuiltinBinary.switchFiber);
 		case symbol!"truncate-to".value:
 			return unary(isFloat64(p0)
 				? BuiltinUnary.truncateToInt64FromFloat64

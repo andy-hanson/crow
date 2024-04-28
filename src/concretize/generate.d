@@ -131,7 +131,14 @@ private void assertIsOptionType(in ConcretizeCtx ctx, ConcreteType optionType) {
 ConcreteExpr genVoid(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	genConstant(voidType(ctx), range, constantZero);
 
-ConcreteExpr genLet(ref Alloc alloc, ConcreteType type, in UriAndRange range, ConcreteLocal* local, ConcreteExpr value, ConcreteExpr then) =>
+ConcreteExpr genLet(
+	ref Alloc alloc,
+	ConcreteType type,
+	in UriAndRange range,
+	ConcreteLocal* local,
+	ConcreteExpr value,
+	ConcreteExpr then,
+) =>
 	ConcreteExpr(type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Let(local, value, then))));
 
 ConcreteExpr genDrop(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr inner) =>

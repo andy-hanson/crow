@@ -18,6 +18,7 @@ import lower.lowExprHelpers :
 	nat16Type,
 	nat32Type,
 	nat64Type,
+	nat64MutPointerType,
 	voidType;
 import model.constant : Constant;
 import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
@@ -133,7 +134,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			checkLowExpr(ctx, member, it.arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.FunPointer x) {
-			// TODO -----------------------------------------------------------------------------------------------------------------
+			// TODO
 		},
 		(in LowExprKind.If it) {
 			checkLowExpr(ctx, boolType, it.cond, ExprPos.nonTail);
@@ -516,15 +517,15 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.lessPtr:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
+		case BuiltinBinary.initStack:
+			return ExpectBinary(some(nat64MutPointerType), [some(nat64MutPointerType), none!LowType]);
 		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
-		case BuiltinBinary.newFiberSuspension:
-			return ExpectBinary(none!LowType, [none!LowType, none!LowType]); // TODO ---------------------------------------------------
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
-		case BuiltinBinary.switchFiberSuspension:
-			return ExpectBinary(none!LowType, [none!LowType, none!LowType]); // TODO ---------------------------------------------------
+		case BuiltinBinary.switchFiber:
+			return ExpectBinary(some(voidType), [none!LowType, none!LowType]); // return expect(voidType, nat64MutPointerMutPointerType, nat64MutPointerConstPointerType);
 		case BuiltinBinary.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}

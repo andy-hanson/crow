@@ -1316,7 +1316,6 @@ bool isSignedIntegral(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
-		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -1701,7 +1700,7 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 		},
 		(in PrimitiveType x) {
 			assert(x != PrimitiveType.void_);
-			writer ~= (x == PrimitiveType.fiberSuspension ? "(fiber_suspension) {}" : "0");
+			writer ~= '0';
 		},
 		(in LowPtrCombine _) {
 			writer ~= "NULL";
@@ -1813,6 +1812,9 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPtr:
 			return operator("==");
+		case BuiltinBinary.initStack:
+			// defined in writeToC_boilerplace.c
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "init_stack");
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
 		case BuiltinBinary.lessFloat64:
@@ -1837,8 +1839,6 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			return operator("*");
-		case BuiltinBinary.newFiberSuspension:
-			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "new_fiber_suspension"); // defined in writeToC_boilerplace.c
 		case BuiltinBinary.seq:
 			if (!writeKind.isA!(WriteKind.Inline))
 				writeExprVoid(writer, indent, ctx, left);
@@ -1855,8 +1855,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapSubNat32:
 		case BuiltinBinary.wrapSubNat64:
 			return operator("-");
-		case BuiltinBinary.switchFiberSuspension:
-			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber_suspension"); // defined in writeToC_boiilerplace.c
+		case BuiltinBinary.switchFiber:
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber"); // defined in writeToC_boiilerplace.c
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator("<<");
 		case BuiltinBinary.unsafeBitShiftRightNat64:
@@ -2051,8 +2051,6 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 				return "char";
 			case PrimitiveType.char32:
 				return "char32_t";
-			case PrimitiveType.fiberSuspension:
-				return "fiber_suspension"; // See writeToC_boilerplate.c
 			case PrimitiveType.float32:
 				return "float";
 			case PrimitiveType.float64:

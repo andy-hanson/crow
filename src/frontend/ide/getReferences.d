@@ -611,7 +611,9 @@ void referencesForSpecSig(in Program program, in PositionKind.SpecSig a, in Refe
 	Module* itsModule = moduleOf(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, ExprRef x) {
 		Opt!Called called = getCalledAtExpr(x.expr.kind);
-		if (has(called) && force(called).isA!(CalledSpecSig) && force(called).as!(CalledSpecSig).nonInstantiatedSig == a.sig)
+		if (has(called) &&
+			force(called).isA!(CalledSpecSig) &&
+			force(called).as!(CalledSpecSig).nonInstantiatedSig == a.sig)
 			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 	});
 }

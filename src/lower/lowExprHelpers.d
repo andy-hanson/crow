@@ -40,7 +40,8 @@ LowType int64Type() => LowType(PrimitiveType.int64);
 LowType nat8Type = LowType(PrimitiveType.nat8);
 LowType nat16Type() => LowType(PrimitiveType.nat16);
 LowType nat32Type() => LowType(PrimitiveType.nat32);
-LowType nat64Type() => LowType(PrimitiveType.nat64);
+LowType nat64Type = LowType(PrimitiveType.nat64);
+LowType nat64MutPointerType() => LowType(LowType.PtrRawMut(&nat64Type));
 private LowType anyPtrConstType() =>
 	LowType(LowType.PtrRawConst(&nat8Type));
 LowType anyPtrMutType() => LowType(LowType.PtrRawMut(&nat8Type));
@@ -191,7 +192,6 @@ private BuiltinUnary bitwiseNegateForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
-		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -216,7 +216,6 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
-		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -249,7 +248,6 @@ private BuiltinBinary intersectForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
-		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -278,7 +276,6 @@ private BuiltinBinary unionForType(PrimitiveType a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
 		case PrimitiveType.char32:
-		case PrimitiveType.fiberSuspension:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:

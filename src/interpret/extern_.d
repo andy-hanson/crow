@@ -138,9 +138,6 @@ pure size_t sizeWords(in DynCallType a) =>
 					return 1;
 				case PrimitiveType.void_:
 					return 0;
-				case PrimitiveType.fiberSuspension:
-					// This shouldn't be used with any external calls
-					assert(false);
 			}
 		},
 		(in DynCallType.Pointer) =>

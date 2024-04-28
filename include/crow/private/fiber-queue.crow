@@ -20,27 +20,26 @@ import
 export
 	./bootstrap: exclusion, fiber
 
-# WARN: `task-queue` is not thread-safe; acquire `tasks-lock` on `global-ctx` first.
-
-task-queue record by-val, mut
+# WARN: `fiber-queue` is not thread-safe; acquire `fiber-queue-lock` on `global-ctx` first.
+fiber-queue record by-val, mut
 	-non-timed mut fiber exclusion-queue
 	-timed mut (nat64, fiber) bare-priority-queue
 
 # Use for asserts only
-slow-is-empty bool(a task-queue*) bare, unsafe
+slow-is-empty bool(a fiber-queue*) bare, unsafe
 	a.non-timed.slow-is-empty && a.timed.is-empty
 
-uninit task-queue() bare, unsafe
+uninit fiber-queue() bare, unsafe
 	uninit, ()
 
-init void(a task-queue mut*) bare, unsafe
+init void(a fiber-queue mut*) bare, unsafe
 	a.non-timed init
 
-destroy void(a task-queue mut*) bare, unsafe
+destroy void(a fiber-queue mut*) bare, unsafe
 	a.non-timed destroy
 	a.timed destroy
 
-add-gc-roots void(a task-queue*, gc gc mut*) bare, unsafe
+add-gc-roots void(a fiber-queue*, gc gc mut*) bare, unsafe
 	a.non-timed add-gc-roots gc
 	a.timed add-gc-roots gc
 
@@ -51,7 +50,7 @@ pop-fiber-result union mut
 	no-immediate timestamp?
 
 # Caller should call 'release-exclusion' after running the task
-pop-task pop-fiber-result(a task-queue mut*, cur-time timestamp) bare, unsafe
+pop-task pop-fiber-result(a fiber-queue mut*, cur-time timestamp) bare, unsafe
 	a move-timed-tasks cur-time
 	if exclusion, fiber ?= a.non-timed dequeue
 		exclusion == fiber.cur-exclusion hard-assert
@@ -60,20 +59,20 @@ pop-task pop-fiber-result(a task-queue mut*, cur-time timestamp) bare, unsafe
 		a.timed.as-const.peek-key no-immediate
 
 # Move timed tasks to the non-timed queue if they are ready
--move-timed-tasks void(a task-queue mut*, cur-time timestamp) bare, unsafe
+-move-timed-tasks void(a fiber-queue mut*, cur-time timestamp) bare, unsafe
 	while t ?= a.timed dequeue-if-less-or-equal cur-time
 		a.non-timed enqueue t.cur-exclusion, t
 
-release-exclusion void(a task-queue mut*, exclusion exclusion) bare, unsafe
+release-exclusion void(a fiber-queue mut*, exclusion exclusion) bare, unsafe
 	a.non-timed release-exclusion exclusion
 
-enqueue-timed-fiber void(a task-queue mut*, time nat64, fiber fiber) bare, unsafe
+enqueue-timed-fiber void(a fiber-queue mut*, time nat64, fiber fiber) bare, unsafe
 	a.timed enqueue (time, fiber)
 
-enqueue-fiber void(a task-queue mut*, fiber fiber) bare, unsafe
+enqueue-fiber void(a fiber-queue mut*, fiber fiber) bare, unsafe
 	a.non-timed enqueue fiber.cur-exclusion, fiber
 
-enqueue-fibers void(a task-queue mut*, tasks fiber array) bare, unsafe
+enqueue-fibers void(a fiber-queue mut*, tasks fiber array) bare, unsafe
 	cur mut = tasks begin
 	while fiber, next ?= cur next
 		a enqueue-fiber fiber

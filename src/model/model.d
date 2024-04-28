@@ -393,7 +393,6 @@ enum BuiltinType {
 	bool_,
 	char8,
 	char32,
-	fiberSuspension,
 	float32,
 	float64,
 	funPointer,
@@ -424,7 +423,6 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat64:
 			return true;
 		case BuiltinType.bool_:
-		case BuiltinType.fiberSuspension:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
 		case BuiltinType.funPointer:
@@ -435,7 +433,8 @@ bool isCharOrIntegral(BuiltinType a) {
 			return false;
 	}
 }
-
+bool isPointer(BuiltinType a) =>
+	a == BuiltinType.pointerConst || a == BuiltinType.pointerMut;
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -547,6 +546,8 @@ immutable struct StructDecl {
 	bool isTemplate() scope =>
 		!isEmpty(typeParams);
 }
+bool isPointer(in StructDecl a) =>
+	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
 immutable struct StructDeclSource {
 	immutable struct Bogus {
@@ -920,6 +921,7 @@ enum BuiltinBinary {
 	eqNat32,
 	eqNat64,
 	eqPtr,
+	initStack,
 	lessChar8,
 	lessFloat32,
 	lessFloat64,
@@ -934,12 +936,11 @@ enum BuiltinBinary {
 	lessPtr,
 	mulFloat32,
 	mulFloat64,
-	newFiberSuspension,
 	seq,
 	subFloat32,
 	subFloat64,
 	subPtrAndNat64, // RHS is multiplied by size of pointee first
-	switchFiberSuspension,
+	switchFiber,
 	unsafeAddInt8,
 	unsafeAddInt16,
 	unsafeAddInt32,

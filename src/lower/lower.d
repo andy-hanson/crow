@@ -286,8 +286,6 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 						return some(LowType(PrimitiveType.float32));
 					case BuiltinType.float64:
 						return some(LowType(PrimitiveType.float64));
-					case BuiltinType.fiberSuspension:
-						return some(LowType(PrimitiveType.fiberSuspension));
 					case BuiltinType.funPointer: {
 						uint i = safeToUint(arrBuilderSize(allFunPointerSources));
 						add(alloc, allFunPointerSources, concrete);

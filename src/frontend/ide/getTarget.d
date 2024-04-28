@@ -20,6 +20,7 @@ import model.model :
 	FunDecl,
 	FunInst,
 	FunPointerExpr,
+	isPointer,
 	Module,
 	RecordField,
 	StructBody,
@@ -32,6 +33,7 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariantMember;
+import util.col.array : only;
 import util.opt : none, Opt, some;
 import util.union_ : Union;
 
@@ -205,7 +207,8 @@ Target returnTypeTarget(FunDecl* fun) =>
 	Target(fun.returnType.as!(StructInst*).decl);
 
 Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
-	StructDecl* record = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
+	StructInst* inst = fun.params.as!(Destructure[])[0].type.as!(StructInst*);
+	StructDecl* record = isPointer(*inst.decl) ? only(inst.typeArgs).as!(StructInst*).decl : inst.decl;
 	return Target(&record.body_.as!(StructBody.Record).fields[fieldIndex]);
 }
 

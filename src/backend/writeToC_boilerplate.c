@@ -3,15 +3,10 @@
 #include <stdint.h>
 typedef uint32_t char32_t;
 
-// 'fiberSuspensionSize' in the compiler makes assumptions about this
-typedef struct fiber_suspension {
-	uint64_t stackPointer;
-} fiber_suspension;
-
 __asm__(
 	".text\n"
 	".align 8\n"
-	"switch_fiber_suspension:\n"
+	"switch_fiber:\n"
 
 	// Save callee-saved register to the stack.
 	// TODO: could we use 'no_callee_saved_registers' instead?
@@ -37,10 +32,10 @@ __asm__(
 	// The return address also comes from 'to' since we switched to its stack pointer.
 	"ret\n"
 );
-extern void __attribute__((noinline)) switch_fiber_suspension(fiber_suspension* from, const fiber_suspension* to);
+extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* const* to);
 
-static fiber_suspension new_fiber_suspension(uint64_t* stack_top, void (*target)()) {
+static uint64_t* init_stack(uint64_t* stack_top, void (*target)()) {
 	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned
 	// It will pop garbage initial values for r15, r14, r13, r12, rbp, rbx, then return to 'target'
-	return (fiber_suspension) {(uintptr_t) &stack_top[-8]};
+	return stack_top - 8;
 }

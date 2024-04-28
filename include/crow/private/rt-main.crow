@@ -8,9 +8,9 @@ import
 	../exception: catch-all, to
 	../fun-util: subscript
 	../future: future, parallel, with-block
-	../io/print: err, print, print-no-newline
+	../io/print: err, print
 	../misc: new, void
-	../number: ==, <=>, +, -, int32, nat64, to
+	../number: ==, <=>, +, -, int32, max-value, nat64, to, unary-out-of-range
 	../option: new
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
@@ -20,7 +20,8 @@ import
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
-	./runtime: before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
+	./runtime:
+		before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
@@ -36,7 +37,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	global-ctx := &gctx
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
-	res int32 = main-fut.must-get-result.to # TODO: appropriate error for exit code too big for int32
+	res int32 = main-fut.must-get-result
 	&gctx destroy
 	res
 
@@ -46,7 +47,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 
 init-constants void() builtin, bare, summon, unsafe
 
--add-main-task nat64 future(
+-add-main-task int32 future(
 	gctx global-ctx mut*,
 	argc int32,
 	argv c-string*,
@@ -56,16 +57,19 @@ init-constants void() builtin, bare, summon, unsafe
 	gctx before-task # Fake a ctx
 	all-args invoke-main main-pointer
 
--invoke-main nat64 future(all-args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
+-invoke-main int32 future(all-args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
 	set-dummy-fiber
-	res nat64 future = with : parallel
+	res int32 future = with : parallel
 		get-global-ctx init-symbol-table
 		match (() => main-pointer[all-args[1 .. end] convert-args]) catch-all
 		as ok x
-			x
+			try
+				x to
+			catch unary-out-of-range _
+				err print "'main' must return a number <= {max-value::int32}; got {x}"
+				max-value
 		as error x
-			err print-no-newline "Uncaught exception: "
-			err print "{x}"
+			err print "Uncaught exception: {x}"
 			1
 	cur-fiber := ()
 	res

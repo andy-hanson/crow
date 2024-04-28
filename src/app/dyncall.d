@@ -253,7 +253,6 @@ pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
 				case PrimitiveType.float64:
 					dcArgDouble(dcVm, float64OfBits(value));
 					break;
-				case PrimitiveType.fiberSuspension:
 				case PrimitiveType.void_:
 					assert(false);
 			}
@@ -307,8 +306,6 @@ pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
 			return dataPush(stacks, bitsOfFloat64(dcCallDouble(dcVm, ptr)));
 		case PrimitiveType.void_:
 			return dcCallVoid(dcVm, ptr);
-		case PrimitiveType.fiberSuspension:
-			assert(false);
 	}
 }
 
@@ -394,8 +391,6 @@ pure char dynCallSigChar(in DynCallType a) =>
 					return 'L';
 				case PrimitiveType.void_:
 					return 'v';
-				case PrimitiveType.fiberSuspension:
-					assert(false);
 			}
 		},
 		(in DynCallType.Pointer) =>
@@ -432,7 +427,6 @@ pure char dynCallSigChar(in DynCallType a) =>
 					return dataPush(stacks, dcbArgUInt(args));
 				case PrimitiveType.nat64:
 					return dataPush(stacks, dcbArgULongLong(args));
-				case PrimitiveType.fiberSuspension:
 				case PrimitiveType.void_:
 					assert(false);
 			}
@@ -487,8 +481,6 @@ pure char dynCallSigChar(in DynCallType a) =>
 					break;
 				case PrimitiveType.void_:
 					break;
-				case PrimitiveType.fiberSuspension:
-					assert(false);
 			}
 		},
 		(in DynCallType.Pointer) @trusted {

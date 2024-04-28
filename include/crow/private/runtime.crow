@@ -4,7 +4,8 @@ import
 	../col/array: array
 	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../col/mut-array: -, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
+	../col/mut-array:
+		-, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, get-log-handler
@@ -15,14 +16,15 @@ import
 	../string: string
 	../version: is-wasm
 	./alloc:
-		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,
-		uninit
+		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin,
+		mutator-end, uninit
 	./bootstrap:
-		cur-exclusion, cur-fiber, fiber, fiber-suspension, hard-assert, hard-forbid, initial-function, is-running, new,
-		set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, suspension, symbol, zeroed
-	./task-queue:
+		cur-exclusion, cur-fiber, fiber, hard-assert, hard-forbid, initial-function, is-running,
+		new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, stack-pointer,
+		symbol
+	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-fibers, enqueue-timed-fiber, exclusion,
-		init, pop-task, release-exclusion, slow-is-empty, task-queue, uninit
+		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
@@ -48,15 +50,15 @@ global-ctx record by-val, mut
 
 	gc mut gc
 
-	# protected by 'tasks-lock'
-	tasks mut task-queue
-	symbols-table mut symbol[string] # TODO: just move to where it's used? --------------------------------------------------
+	# protected by 'fiber-queue-lock'
+	fiber-queue mut fiber-queue
+	symbols-table mut symbol[string]
 
 	# All below must not be GC allocated
 
 	symbols-lock mut lock
 	# protects 'tasks'
-	-tasks-lock mut lock
+	-fiber-queue-lock mut lock
 	-n-threads nat64
 	-n-waiting-threads mut thread-safe-counter
 	-next-exclusion mut thread-safe-counter
@@ -76,10 +78,10 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	may-be-work-to-do: uninit
 	any-unhandled-exceptions: false
 	gc: uninit
-	tasks: uninit
+	fiber-queue: uninit
 	symbols-table: empty-map
 	symbols-lock: uninit
-	tasks-lock: uninit
+	fiber-queue-lock: uninit
 	n-threads: n-threads
 	n-waiting-threads: uninit
 	next-exclusion: uninit
@@ -89,28 +91,30 @@ init void(a global-ctx mut*) bare, unsafe
 	a.global-lock init
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
-	a.tasks init
+	a.fiber-queue init
 	a.symbols-lock init
-	a.tasks-lock init
+	a.fiber-queue-lock init
 	a.n-waiting-threads init
 	a.next-exclusion init
 
 destroy void(a global-ctx mut*) bare, unsafe
-	a.tasks destroy
+	a.fiber-queue destroy
 	a.may-be-work-to-do destroy-condition
 
-# stack-top must be 16-byte aligned
-# TODO: move to where they're used ---------------------------------------------------------------------------------------
--new-fiber-suspension fiber-suspension(stack-top nat64 mut*, func void function()) builtin, bare
--switch-fiber-suspension void(from fiber-suspension mut*, to fiber-suspension mut*) builtin, bare
+###
+`stack-top` must be 16-byte aligned. This will grow down, meaning it starts at the greatest value.
+Initializes the stack, then returns the new stack pointer.
+###
+-init-stack stack-pointer(stack-top stack-pointer, func void function()) builtin, bare
+###
+Takes a pointer to the current stack pointer and updates it.
+Then resumes from the stack pointer at 'to'.
+###
+-switch-fiber void(from stack-pointer mut*, to stack-pointer mut*) builtin, bare
 
-# The suspension will be written to when switching away from it.
--empty-suspension fiber-suspension() bare, unsafe
-	zeroed
-
-# Regular fibers return to this for the task loop.
-# TODO: This could be by-value. But we currently don't support pointer to thread-local. ------------------------------------
--thread-base-fiber-suspension thread-local(fiber-suspension mut*)
+# Stack pointer for the runtime. Regular fibers return to this when they yield.
+# TODO: This could be by-value. But we currently don't support pointer to thread-local.
+-thread-base-stack-pointer thread-local(stack-pointer mut*)
 
 -is-valid-stack bool(a nat64 mut-array) bare, unsafe
 	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
@@ -123,7 +127,8 @@ destroy void(a global-ctx mut*) bare, unsafe
 		stack: ()
 		gc-root: null
 		is-running: false
-		suspension: empty-suspension
+		# This will be written to the first time we call 'switch-fiber'.
+		stack-pointer: null
 		cur-exclusion: 0
 		cur-jmp-buf: null
 	cur-fiber := fiber,
@@ -149,7 +154,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	stack: stack
 	gc-root: null
 	is-running: false
-	suspension: stack.end-pointer new-fiber-suspension &fiber-func
+	stack-pointer: stack.end-pointer init-stack &fiber-func
 	cur-exclusion: a.next-exclusion.get-and-increment
 	cur-jmp-buf: null
 
@@ -163,30 +168,30 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 
 enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
 	forbid fiber is-running
-	a.tasks-lock acquire
-	a.tasks enqueue-fiber fiber
-	a.tasks-lock release
+	a.fiber-queue-lock acquire
+	a.fiber-queue enqueue-fiber fiber
+	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
 enqueue-fibers void(a global-ctx mut*, fibers fiber array) bare, unsafe # TODO: is this still needed? Could just run 'enqueue-fiber' in a loop?
-	a.tasks-lock acquire
-	a.tasks enqueue-fibers fibers
-	a.tasks-lock release
+	a.fiber-queue-lock acquire
+	a.fiber-queue enqueue-fibers fibers
+	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
 delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted
 	target-nsec.delay-until-time yield-this-fiber
 
 -enqueue-timed-fiber void(a global-ctx mut*, time timestamp, fiber fiber) bare, unsafe
-	a.tasks-lock acquire
-	a.tasks enqueue-timed-fiber time, fiber
-	a.tasks-lock release
+	a.fiber-queue-lock acquire
+	a.fiber-queue enqueue-timed-fiber time, fiber
+	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
 thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	# This will be initialized properly the first time we switch away
-	my-suspension mut = empty-suspension
-	thread-base-fiber-suspension := &my-suspension
+	stack-pointer-value mut stack-pointer = null
+	thread-base-stack-pointer := &stack-pointer-value
 	thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
@@ -227,7 +232,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-yield-request := request,
 	fiber = cur-fiber!
 	fiber.is-running := false
-	&fiber.suspension switch-fiber-suspension thread-base-fiber-suspension
+	&fiber.stack-pointer switch-fiber thread-base-stack-pointer
 
 # Runs the fiber until its next yield
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
@@ -235,16 +240,16 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-fiber.is-empty hard-assert
 	cur-fiber := fiber,
 
-	thread-base-fiber-suspension switch-fiber-suspension &fiber.suspension
+	thread-base-stack-pointer switch-fiber &fiber.stack-pointer
 
 	# It yields to get back here.
 	cur-fiber! reference-equal fiber hard-assert
 	cur-fiber := ()
 	fiber.is-running hard-forbid
 
-	gctx.tasks-lock acquire
-	gctx.tasks release-exclusion fiber.cur-exclusion
-	gctx.tasks-lock release
+	gctx.fiber-queue-lock acquire
+	gctx.fiber-queue release-exclusion fiber.cur-exclusion
+	gctx.fiber-queue-lock release
 
 	match cur-yield-request!
 	as add-to-queue
@@ -268,16 +273,16 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 -do-gc void(gctx global-ctx mut*) bare, unsafe
 	gc = gctx gc
 	if gc gc-begin
-		gctx.as-const.tasks add-gc-roots gc
+		gctx.as-const.fiber-queue add-gc-roots gc
 		gc gc-add-root gctx->symbols-table
 		gc gc-complete
 	gc gc-end
 
 -thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe
 	gctx.may-be-work-to-do broadcast
-	gctx.tasks-lock acquire
-	gctx.as-const.tasks.slow-is-empty hard-assert
-	gctx.tasks-lock release
+	gctx.fiber-queue-lock acquire
+	gctx.as-const.fiber-queue.slow-is-empty hard-assert
+	gctx.fiber-queue-lock release
 
 ~before-task void(gctx global-ctx mut*) bare, unsafe
 	gctx.gc mutator-begin
@@ -299,12 +304,12 @@ after-task void() bare, unsafe
 		0
 	else
 		get-monotime-nsec
-	gctx.tasks-lock acquire
+	gctx.fiber-queue-lock acquire
 
 	res = if gctx.gc->needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time
+		match gctx.fiber-queue pop-task cur-time
 		as popped x
 			x fiber
 		as no-immediate first-task-time
@@ -317,7 +322,7 @@ after-task void() bare, unsafe
 			else
 				first-task-time wait-for-task
 
-	gctx.tasks-lock release
+	gctx.fiber-queue-lock release
 	res
 
 # This is called by the compiler for 'shared () => ...' lambdas.

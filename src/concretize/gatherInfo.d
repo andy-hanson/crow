@@ -26,14 +26,18 @@ import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.util : todo;
 
-Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonFuns commonFuns, immutable ConcreteFun*[] allConcreteFuns) {
+Set!(immutable ConcreteFun*) getYieldingFuns(
+	ref Alloc alloc,
+	in ConcreteCommonFuns commonFuns,
+	immutable ConcreteFun*[] allConcreteFuns,
+) {
 	const CalledBy calledBy = getCalledBy(alloc, allConcreteFuns); // TODO: use a temp alloc? ------------------------------------------------------------
 
-	// There is just 1 intrinsically yielding function: 'switch-fiber-suspension'
+	// There is just 1 intrinsically yielding function: 'switch-fiber'
 	ConcreteFun* switchFiberSuspension = mustFind!(immutable ConcreteFun*)(allConcreteFuns, (ref immutable ConcreteFun* f) {
 		if (f.body_.isA!(ConcreteFunBody.Builtin)) {
 			ConcreteFunBody.Builtin builtin = f.body_.as!(ConcreteFunBody.Builtin);
-			return builtin.kind.isA!(BuiltinBinary) && builtin.kind.as!(BuiltinBinary) == BuiltinBinary.switchFiberSuspension;
+			return builtin.kind.isA!(BuiltinBinary) && builtin.kind.as!(BuiltinBinary) == BuiltinBinary.switchFiber;
 		} else
 			return false;
 	});

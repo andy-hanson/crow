@@ -359,15 +359,16 @@ For example, this might write it to the console.
 
 	# Rest should not use GC
 	is-running mut bool
-	# Value only matters when not running
-	suspension mut fiber-suspension
+	# Value only matters when not running (when running it uses a register for the stack pointer)
+	stack-pointer mut stack-pointer
 	# The fiber can change its exclusion when calling into a function with a different exclusion
 	cur-exclusion mut exclusion
 	# Used to implement exceptions. The type is actually 'jmp_buf', but that isn't available here
 	cur-jmp-buf mut void mut*
 ~cur-fiber thread-local(fiber?)
 
-~fiber-suspension builtin # TODO: I think we can get rid of this and just store the suspension on the stack? -----------
+stack-pointer alias
+	nat64 mut*
 ~fiber-state enum(running, suspended)
 ~gc-root record by-val, mut
 	pointer void*

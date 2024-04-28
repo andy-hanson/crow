@@ -148,7 +148,7 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 			if bools[i]
 				out ~= x
 
-# TODO: DOCUMENT ----------------------------------------------------------------------------------------------------------------
+# Works like `parallel`, but works in groups of 'chunk-size' elements to reduce the amount of parallelism.
 +chunked-parallel[col] record(collection col, chunk-size nat64) nominal
 
 +chunkable[col, iter, elem] spec col shared, elem shared, (col, iter) groupable, (col, elem) iterate

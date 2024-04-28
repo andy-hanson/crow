@@ -1,0 +1,3 @@
+exit code: big
+stderr:
+'main' must return a number <= 2147483647; got 18446744073709551615
