@@ -101,7 +101,7 @@ destroy void(a global-ctx mut*) bare, unsafe
 
 # stack-top must be 16-byte aligned
 # TODO: move to where they're used ---------------------------------------------------------------------------------------
--new-fiber-suspension fiber-suspension(stack-top nat64 mut*, func void function(x any-mut-pointer), arg any-mut-pointer) builtin, bare
+-new-fiber-suspension fiber-suspension(stack-top nat64 mut*, func void function()) builtin, bare
 -switch-fiber-suspension void(from fiber-suspension mut*, to fiber-suspension mut*) builtin, bare
 
 # The suspension will be written to when switching away from it.
@@ -149,12 +149,11 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	stack: stack
 	gc-root: null
 	is-running: false
-	suspension: stack.end-pointer new-fiber-suspension &fiber-func, null
+	suspension: stack.end-pointer new-fiber-suspension &fiber-func
 	cur-exclusion: a.next-exclusion.get-and-increment
 	cur-jmp-buf: null
 
--fiber-func void(arg any-mut-pointer) unsafe
-	arg == null hard-assert
+-fiber-func void() unsafe
 	gc-root == null hard-assert
 	fiber = cur-fiber!
 	func = fiber.initial-function!

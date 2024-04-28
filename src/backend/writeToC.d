@@ -712,8 +712,6 @@ void writeFunDefinition(
 		(in LowFunExprBody x) {
 			// TODO: only if a flag is set
 			writer ~= "/* ";
-			writeFunName(writer, ctx.printCtx, ctx.program, funIndex);
-			writer ~= ' ';
 			writeFunSig(writer, ctx.printCtx, ctx.program, fun);
 			writer ~= " */\n";
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, x);
@@ -976,11 +974,11 @@ WriteExprResult writeExpr(
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary x) {
+			if (false) // Giving this lambda a type
+				return writeExprDone();
 			final switch (x.kind) {
 				case BuiltinTernary.interpreterBacktrace:
 					assert(false);
-				case BuiltinTernary.newFiberSuspension:
-					return specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "new_fiber_suspension"); // defined in writeToC_boilerplace.c
 			}
 		},
 		(in LowExprKind.Switch x) =>
@@ -1839,6 +1837,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			return operator("*");
+		case BuiltinBinary.newFiberSuspension:
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "new_fiber_suspension"); // defined in writeToC_boilerplace.c
 		case BuiltinBinary.seq:
 			if (!writeKind.isA!(WriteKind.Inline))
 				writeExprVoid(writer, indent, ctx, left);

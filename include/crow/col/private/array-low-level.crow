@@ -1,16 +1,17 @@
 no-std
 import
 	../../bool: &&, bool, false, true
-	../../compare: <=, >
+	../../compare: >
 	../../fun-util: subscript
 	../../misc: new, void
-	../../number: ==, +, -, *, nat64, round-up-to-power-of-two
+	../../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
-		size-of, to-mut-pointer, to
+		==, <=>, +, -, *, as-const, as-mut, const-pointer, mut-pointer, null, pointer-cast,
+		set-subscript, size-of
 	../../range: .., low, range, size
 	../../private/alloc: allocate, mem-copy
-	../../private/bootstrap: new, pointer, size
+	../../private/bootstrap: inner, mut-array, new, pointer, size
+	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
 	../../private/bootstrap: array
@@ -75,63 +76,46 @@ Calls `f` for each element in `a`.
 				continue
 
 +array-builder[t] record mut
-	-begin mut t mut*
-	# If `size-of@t == 0`, we store the size here instead of an actual pointer
-	-cur mut t mut*
-	-end mut t mut*
-+build[t] t array(a build-options, f void mut(out t array-builder))
-	trusted if size-of@t == 0
-		# store size in 'cur'
-		builder t array-builder = null, 0.to-mut-pointer, null
-		f[builder]
-		builder.size, null
-	else
-		begin t mut* = a.size-hint allocate
-		builder t array-builder = begin, begin, begin + a.size-hint
-		f[builder]
-		res = (builder.begin .. builder.cur) as-array
-		builder.begin := null
-		builder.cur := null
-		builder.end := null
-		res
-
-+~=[t] void(a t array-builder, value t)
-	trusted if size-of@t == 0
-		a.cur := (a.cur.to + 1).to-mut-pointer
-	else
-		forbid a.begin == null
-		assert a.cur <= a.end
-		if a.cur == a.end
-			cur-size = a.end - a.begin
-			new-capacity nat64 = cur-size == 0 ? 4 : cur-size * 2
-			new-begin t mut* = new-capacity allocate
-			new-begin mem-copy a.begin.as-const, cur-size
-			a.begin := new-begin
-			a.cur := new-begin + cur-size
-			a.end := new-begin + new-capacity
-		*a.cur := value
-		a.cur +:= 1
-
-+~~=[t] void(a t array-builder, values t array)
-	trusted if size-of@t == 0
-		a.cur := (a.cur.to + values.size).to-mut-pointer
-	else
-		forbid a.begin == null
-		assert a.cur <= a.end
-		if a.cur + values.size > a.end
-			cur-size = a.cur - a.begin
-			min-size = cur-size + values.size
-			new-capacity = min-size.round-up-to-power-of-two
-			new-begin t mut* = new-capacity allocate
-			new-begin mem-copy a.begin.as-const, cur-size
-			a.begin := new-begin
-			a.cur := new-begin + cur-size
-			a.end := new-begin + new-capacity
-		a.cur mem-copy values.begin-pointer, values.size
-		a.cur +:= values size
+	-buffer mut t mut-array
+	-cur-size mut nat64
++build[t] t array(a build-options, f void mut(out t array-builder)) trusted
+	builder t array-builder = a.size-hint.zeroed-mut-array, 0
+	f[builder]
+	res t array = builder.cur-size, builder.buffer.inner.begin-pointer
+	builder.buffer := (0, null),
+	builder.cur-size := max-value
+	res
 
 +size[t] nat64(a t array-builder)
-	trusted if size-of@t == 0
-		a.cur to
-	else
-		a.cur - a.begin
+	forbid a.cur-size == max-value
+	a cur-size
+
++~=[t] void(a t array-builder, value t) trusted
+	forbid a.cur-size == max-value
+	capacity = a.buffer size
+	if a.cur-size == capacity
+		new-capacity nat64 = capacity == 0 ? 4 : capacity * 2
+		new-buffer t mut-array = new-capacity zeroed-mut-array
+		new-buffer.begin-pointer mem-copy a.buffer.begin-pointer.as-const, capacity
+		a.buffer := new-buffer
+	a.buffer.begin-pointer[a.cur-size] := value
+	a.cur-size +:= 1
+
++~~=[t] void(a t array-builder, values t array) trusted
+	forbid a.cur-size == max-value
+	capacity = a.buffer size
+	if a.cur-size + values.size > capacity
+		new-size = a.cur-size + values.size
+		new-capacity = new-size round-up-to-power-of-two
+		new-buffer t mut-array = new-capacity zeroed-mut-array
+		new-buffer.begin-pointer mem-copy a.buffer.begin-pointer.as-const, a.cur-size
+		a.buffer := new-buffer
+	a.buffer.begin-pointer + a.cur-size mem-copy values.begin-pointer, values.size
+	a.cur-size +:= values size
+
+-zeroed-mut-array[t] t mut-array(size nat64) unsafe
+	(size, size.allocate.as-const),
+-size[t] nat64(a t mut-array)
+	a.inner size
+-begin-pointer[t] t mut*(a t mut-array) unsafe
+	a.inner.begin-pointer as-mut

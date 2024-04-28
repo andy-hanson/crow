@@ -24,10 +24,8 @@ import
 				out ~= cur
 				break
 
-+groups-of[col, iter] col[](
-	a col,
-	group-size nat64,
-) (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
++groupable[col, iter] spec (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
++groups-of[col, iter] col[](a col, group-size nat64) (col, iter) groupable
 	div = a.size / group-size
 	out-size = div * group-size == a.size ? div : div + 1
 	iter mut = a begin

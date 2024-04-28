@@ -986,9 +986,6 @@ void generateSpecialTernary(
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case BuiltinTernary.newFiberSuspension:
-			todo!void("generate newFiberSuspension"); // ---------------------------------------------------------------------------
-			break;
 	}
 }
 
@@ -1130,6 +1127,9 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.mulFloat64:
 			fn(&fnMulFloat64);
+			break;
+		case BuiltinBinary.newFiberSuspension:
+			todo!void("generate newFiberSuspension"); // ---------------------------------------------------------------------------
 			break;
 		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);

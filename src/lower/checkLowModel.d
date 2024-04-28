@@ -518,6 +518,8 @@ ExpectBinary binaryExpected(
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
+		case BuiltinBinary.newFiberSuspension:
+			return ExpectBinary(none!LowType, [none!LowType, none!LowType]); // TODO ---------------------------------------------------
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);

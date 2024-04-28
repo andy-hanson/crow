@@ -5,26 +5,23 @@ dummy-bare-map-tests nat()
 	0
 
 -bm record nominal
--with-block void(_ bm, cb void mut(map (nat, value) bare-map mut*)) unsafe
-	map mut (nat, value) bare-map = 1,
-	a (nat, value) bare-map mut* = &map
+-with-block void(_ bm, cb void mut(map value bare-map mut*)) unsafe
+	map mut value bare-map = 1,
+	a value bare-map mut* = &map
 	finally a destroy
 	cb[a]
 
--invalid nat()
+
+-value record(key nat, id mut string, moved mut nat, destroyed mut bool) by-val, mut
+
+-invalid-key nat()
 	max-value
+-new value(key nat) bare
+	key, "default", 0, false
 
--value record(id mut string, moved mut nat, destroyed mut bool) by-val, mut
-
--new value() bare
-	"default",
-
--new value(id string) bare
-	id, 0, false
-
--move-from void(dest (nat, value) map-pair mut*, src (nat, value) map-pair*) bare, unsafe
+-move-from void(dest value mut*, src value*) bare, unsafe
 	*dest := *src
-	dest.value->moved +:= 1
+	dest->moved +:= 1
 
 -destroy void(a value mut*) bare, unsafe
 	forbid a->destroyed
@@ -37,8 +34,8 @@ test
 	trusted with a : bm
 		ptr, f = a find-or-insert-and-inserted 0
 		f is inserted
-		ptr.value->id is "default"
-		ptr.value->id := "a"
+		ptr->id is "default"
+		ptr->id := "a"
 
 		ptr2, f2 = a find-or-insert-and-inserted 0
 		f2 is found
@@ -66,15 +63,15 @@ test
 	trusted with a : bm
 		for i : 0::nat64 .. 10
 			p = a find-or-insert i * 4
-			p.value->id := "{i}"
+			p->id := "{i}"
 		for i : 0::nat64 .. 10
-			(a.as-const must-find i * 4).value->id is "{i}"
+			(a.as-const must-find i * 4)->id is "{i}"
 
 test
 	trusted with a : bm
 		for i : 0::nat64 .. 10
 			p = a find-or-insert i
-			p.value->id := "{i}"
+			p->id := "{i}"
 		for i : 0::nat64 .. 10
 			a remove (a must-find i)
 		assert a.as-const slow-is-empty

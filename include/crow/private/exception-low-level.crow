@@ -9,7 +9,8 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
+	./bootstrap:
+		abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
 export
 	./bootstrap: backtrace, exception, exception-and-backtrace
 
@@ -18,7 +19,8 @@ export
 
 +test-failure variant-member(exception, string)
 
-# Just use a thread-local for these, since they will be handled immediately (not giving the fiber a chance to yield)
+# Just use a thread-local for these, since they will be handled immediately
+# (not giving the fiber a chance to yield)
 -cur-thrown thread-local(exception)
 -cur-backtrace thread-local(backtrace)
 

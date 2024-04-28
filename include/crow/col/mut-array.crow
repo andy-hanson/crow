@@ -14,10 +14,10 @@ import
 	../range: .., high, low, range, size
 	../tuple: new
 	./array:
-		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, size,
-		slice, subscript
+		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
+		size, slice, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, range-relative-to-end, subscript
+	./collection: build-options, for-loop, range-relative-to-end, set-subscript, subscript
 export
 	../private/bootstrap: mut-array
 
@@ -45,9 +45,14 @@ Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-+to[t] t mut-array(a t array)
-	for x : a
-		x
++to[t] t mut-array(a t array) trusted
+	# Not using a 'for' loop because the compiler may think it may yield (due to the virtual call)
+	res t mut-array = a.size zeroed-mut-array
+	i mut nat64 = 0
+	while i < a.size
+		res[i] := a[i]
+		i +:= 1
+	res
 
 ###
 Copies the elements to an immutable array.
@@ -125,8 +130,7 @@ since initialization code might throw an exception.
 This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
 ###
 +zeroed-mut-array[t] t mut-array(size nat64) unsafe
-	pointer t mut* = size allocate
-	pointer[0 .. size]
+	(size.allocate::t mut*)[0 .. size]
 
 ###
 Sets every element to `zeroed`.

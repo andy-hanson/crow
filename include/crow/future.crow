@@ -2,14 +2,16 @@ no-std
 import
 	./bool: bool
 	./col/collection: build, flatten, for-loop, iterate, size, subscript, with-block, with-index
+	./col/util: groupable, groups-of
 	./col/list: ~~, +, ~=, begin, build, iterate, list, new, next, size
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
 	./log: error, log
+	./number: nat64
 	./misc: shared, new, void
 	./pointer: any-mut-pointer, as-any-mut-pointer, mut-pointer, reference-from-pointer
 	./private/bootstrap: fiber, lk, new, rejected, resolved
-	./private/future-low-level: add-awaiting-fiber, get-result, reject, resolve, unresolved
+	./private/future-low-level: get-result, reject, resolve, try-add-awaiting-fiber, unresolved
 	./private/runtime: add-new-fiber, add-to-queue, await-future, get-global-ctx, yield-this-fiber
 	./private/thread-utils: init, lock, uninit
 	./result: result
@@ -34,7 +36,7 @@ export
 
 add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) unsafe
 	typed t future = future reference-from-pointer
-	typed add-awaiting-fiber fiber
+	typed try-add-awaiting-fiber fiber
 
 -lock[t] lock mut*(a t future) unsafe
 	&a.lk
@@ -141,7 +143,38 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 	f bool shared(elem elem),
 ) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
 	bools bool[] = a for-loop f
-	with out : a.collection.size build
+	with out : build
+		for i, x : a.collection with-index
+			if bools[i]
+				out ~= x
+
+# TODO: DOCUMENT ----------------------------------------------------------------------------------------------------------------
++chunked-parallel[col] record(collection col, chunk-size nat64) nominal
+
++chunkable[col, iter, elem] spec col shared, elem shared, (col, iter) groupable, (col, elem) iterate
+
++for-loop[out-elem, in-col, in-iter, in-elem] out-elem[](
+	a in-col chunked-parallel,
+	f out-elem shared(elem in-elem),
+) out-elem shared, (in-col, in-iter, in-elem) chunkable
+	for chunk : a.collection groups-of a.chunk-size parallel-concat
+		for x : chunk
+			f[x]
+
++for-loop[in-col, in-iter, in-elem] void(
+	a in-col chunked-parallel,
+	f void shared(elem in-elem),
+) (in-col, in-iter, in-elem) chunkable
+	for chunk : a.collection groups-of a.chunk-size parallel
+		for x : chunk
+			f[x]
+
++filter[out-col, in-col, in-iter, elem, builder] out-col(
+	a in-col chunked-parallel,
+	f bool shared(elem elem),
+) out-col shared, (in-col, in-iter, elem) chunkable, (out-col, elem, builder) build
+	bools bool[] = a for-loop f
+	with out : build
 		for i, x : a.collection with-index
 			if bools[i]
 				out ~= x

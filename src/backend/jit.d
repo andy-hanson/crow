@@ -303,8 +303,6 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 					debugLogWithWriter((scope ref Writer writer) {
 						writer ~= "Stub ";
 						writer ~= funIndex.index;
-						writeFunName(writer, todo!ShowCtx("!"), program, funIndex);
-						writer ~= ' ';
 						writeFunSig(writer, todo!ShowCtx("!"), program, fun);
 					});
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));

@@ -51,8 +51,21 @@ Set!(immutable ConcreteFun*) getYieldingFuns(ref Alloc alloc, in ConcreteCommonF
 	while (!mutArrIsEmpty(toPropagate)) {
 		ConcreteFun* fun = mustPop(toPropagate);
 		eachValueForKey!(immutable ConcreteFun*, immutable ConcreteFun*)(calledBy, fun, (immutable ConcreteFun* caller) {
-			if (caller != commonFuns.runFiber)
+			if (caller != commonFuns.runFiber) {
+				// ---------------------------------------------------------------------------------------------------------------
+				if (false) {
+					import frontend.showModel : ShowCtx;
+					import model.showLowModel : writeConcreteFunSig;
+					import util.writer : debugLogWithWriter, Writer;
+					debugLogWithWriter((scope ref Writer writer) {
+						ShowCtx ctx = ShowCtx();
+						writeConcreteFunSig(writer, ctx, *caller, false);
+						writer ~= " may yield because it calls ";
+						writeConcreteFunSig(writer, ctx, *fun, false);
+					});
+				}
 				add(caller);
+			}
 		});
 	}
 
@@ -86,7 +99,6 @@ CalledBy getCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteFun
 }
 
 void getCalledByRecur(ref Alloc alloc, ref CalledBy res, ConcreteFun* f, ref ConcreteExpr expr) {
-	// TODO: this ignores Alloc calling an alloc function, or Throw calling a throw function. But those don't yield so it doesn't matter?
 	if (expr.kind.isA!(ConcreteExprKind.Call))
 		add(alloc, res, expr.kind.as!(ConcreteExprKind.Call).called, f);
 	existsDirectChildExpr(expr, (ref ConcreteExpr child) {

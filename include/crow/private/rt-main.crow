@@ -1,8 +1,10 @@
 no-std
 import
-	../col/array: +, -, array, begin, end, iterate, size, slice, subscript
-	../col/collection: .., end, for-loop, subscript
-	../col/list: ~=, build, list
+	../compare: <
+	../col/array: +, -, array, begin, end, next, size, slice, subscript
+	../col/mut-array: +, begin, cast-immutable, mut-array, zeroed-mut-array, set-next
+	../col/collection: .., end, set-subscript, subscript
+	../col/list: list, to
 	../exception: catch-all, to
 	../fun-util: subscript
 	../future: future, parallel, with-block
@@ -58,7 +60,7 @@ init-constants void() builtin, bare, summon, unsafe
 	set-dummy-fiber
 	res nat64 future = with : parallel
 		get-global-ctx init-symbol-table
-		match (() => main-pointer[for arg : all-args[1 .. end]; arg to]) catch-all
+		match (() => main-pointer[all-args[1 .. end] convert-args]) catch-all
 		as ok x
 			x
 		as error x
@@ -67,6 +69,16 @@ init-constants void() builtin, bare, summon, unsafe
 			1
 	cur-fiber := ()
 	res
+
+# Avoiding a lambda here or the compiler may erroneously think this may yield
+-convert-args string[](args c-string array) trusted
+	size = args size
+	res string mut-array = size zeroed-mut-array
+	i mut nat64 = 0
+	while i < size
+		res[i] := args[i] to
+		i +:= 1
+	res.cast-immutable to
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 

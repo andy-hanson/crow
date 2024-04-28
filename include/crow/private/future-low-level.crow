@@ -1,30 +1,31 @@
 no-std
 import
 	../bool: bool, false, true
-	../col/mut-list: move-to
+	../col/mut-list: ~=, move-to, new
 	../misc: new, void
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		awaited-by, empty, exception-and-backtrace, fiber, future, future-state, hard-unreachable, is-running, lk, new, rejected, resolved, set-state, state, todo
+		awaited-by, awaited-by-multiple, empty, exception-and-backtrace, fiber, future,
+		future-state, hard-unreachable, is-running, lk, new, rejected, resolved, set-state, state
 	./exception-low-level: rethrow
 	./runtime: enqueue-fiber, enqueue-fibers, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
 # If the future is already complete, returns 'false'
-~add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
+~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) unsafe
 	forbid fiber is-running
 	&a.lk acquire
 	res bool = match a state
 	as empty
 		a.state := fiber awaited-by
 		true
-	as awaited-by _
-		todo
-		#a.state := (x, fiber) awaited-by-multiple
-		#true
-	as awaited-by-multiple _
-		todo
+	as awaited-by x
+		a.state := (x, fiber) awaited-by-multiple
+		true
+	as awaited-by-multiple x
+		x ~= fiber
+		true
 	as resolved _
 		false
 	as rejected _

@@ -277,7 +277,7 @@ FunBody inner(
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"new-fiber-suspension".value:
-			return ternary(BuiltinTernary.newFiberSuspension);
+			return binary(BuiltinBinary.newFiberSuspension);
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))

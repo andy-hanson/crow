@@ -49,7 +49,7 @@ options:
 	failures failure[] = for x : tests parallel-concat
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
-		out print "ran {tests size} crow tests"
+		out print "Ran {tests size} crow tests"
 		()
 	else
 		failures.print-failures

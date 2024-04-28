@@ -934,6 +934,7 @@ enum BuiltinBinary {
 	lessPtr,
 	mulFloat32,
 	mulFloat64,
+	newFiberSuspension,
 	seq,
 	subFloat32,
 	subFloat64,
@@ -992,7 +993,7 @@ enum BuiltinBinaryMath {
 	atan2Float64,
 }
 
-enum BuiltinTernary { interpreterBacktrace, newFiberSuspension }
+enum BuiltinTernary { interpreterBacktrace }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:

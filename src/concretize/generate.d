@@ -104,7 +104,13 @@ ConcreteExpr genContinue(ConcreteType type, in UriAndRange range) =>
 ConcreteExpr genBreak(ref Alloc alloc, in UriAndRange range, ConcreteExpr value) =>
 	ConcreteExpr(value.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.LoopBreak(value))));
 
-ConcreteExpr genCreateUnion(ref Alloc alloc, ConcreteType type, in UriAndRange range, size_t memberIndex, ConcreteExpr arg) =>
+ConcreteExpr genCreateUnion(
+	ref Alloc alloc,
+	ConcreteType type,
+	in UriAndRange range,
+	size_t memberIndex,
+	ConcreteExpr arg,
+) =>
 	ConcreteExpr(type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.CreateUnion(memberIndex, arg))));
 
 ConcreteExpr genSome(ref ConcretizeCtx ctx, ConcreteType optionType, in UriAndRange range, ConcreteExpr arg) {

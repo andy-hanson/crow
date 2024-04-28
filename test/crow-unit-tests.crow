@@ -59,6 +59,7 @@ import
 	./unit/conditions: dummy-conditions
 	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
+	./unit/future: dummy-future
 	./unit/gc-roots: dummy-gc-roots
 	./unit/log: dummy-log
 
@@ -79,6 +80,7 @@ main void() summon
 	_ = dummy-conditions
 	_ = dummy-closures
 	_ = dummy-exceptions
+	_ = dummy-future
 	_ = dummy-future-tests
 	_ = dummy-gc-roots
 	_ = dummy-map-tests

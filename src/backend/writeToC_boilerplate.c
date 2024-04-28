@@ -12,8 +12,7 @@ typedef struct fiber_suspension {
 	uint64_t r14;
 	uint64_t r15;
 
-	// parameter registers
-	uint64_t rdi;
+	uint64_t KILLME; // -----------------------------------------------------------------------------------------------------------------
 
 	// stack and instruction registers
 	uint64_t rsp;
@@ -25,9 +24,9 @@ __asm__(
 	".text\n"
 	".align 4\n"
 	"switch_fiber_suspension:\n"
-		// Save context 'from'
+	// Save context 'from'
 
-		// Store callee-preserved registers
+	// Store callee-preserved registers
 	"movq        %rbx, 0x00(%rdi)\n" /* FIBER_REG_RBX */
 	"movq        %rbp, 0x08(%rdi)\n" /* FIBER_REG_RBP */
 	"movq        %r12, 0x10(%rdi)\n" /* FIBER_REG_R12 */
@@ -54,9 +53,6 @@ __asm__(
 	"movq        0x20(%r8), %r14\n" /* FIBER_REG_R14 */
 	"movq        0x28(%r8), %r15\n" /* FIBER_REG_R15 */
 
-	// Load first parameter, this is only used for the first time a fiber gains control
-	"movq        0x30(%r8), %rdi\n" /* FIBER_REG_RDI */
-
 	// Load stack pointer
 	"movq        0x38(%r8), %rsp\n" /* FIBER_REG_RSP */
 
@@ -67,10 +63,9 @@ __asm__(
 extern void __attribute__((noinline)) switch_fiber_suspension(fiber_suspension* from, const fiber_suspension* to);
 
 // WARN: 'empty-suspension' from 'runtime.crow' makes assumtions about this
-static fiber_suspension new_fiber_suspension(uint64_t* stack_top, void (*target)(uint8_t*), void* arg) {
+static fiber_suspension new_fiber_suspension(uint64_t* stack_top, void (*target)()) {
 	fiber_suspension res;
 	res.rip = (uintptr_t) target;
-	res.rdi = (uintptr_t) arg;
 	res.rsp = (uintptr_t) &stack_top[-3];
 	stack_top[-2] = 0;
 	return res;

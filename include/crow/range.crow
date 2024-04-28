@@ -12,6 +12,9 @@ export
 
 region iteration
 
++add-nat[t] spec
+	+ t(a t, n nat64)
+
 +==[t] bool(a t range, b t range) bare, t equal
 
 +is-empty[t] bool(a t range) bare, t equal
@@ -26,6 +29,16 @@ region iteration
 +<=>[t] comparison(a t range-iterator, b t range-iterator) bare, t compare
 	assert a.collection == b.collection : iterator-not-comparable
 	a.next-value <=> b.next-value
+
++-[t] nat64(a t range-iterator, b t range-iterator) t subtract-to-nat
+	a.next-value - b.next-value
+++[t] t range-iterator(a t range-iterator, n nat64) t compare, t add-nat
+	value t = a.next-value + n
+	assert value <= a.collection.high
+	a.collection, value
++slice[t] t range(a t range-iterator, b t range-iterator) t compare
+	assert a.next-value <= b.next-value
+	a.next-value .. b.next-value
 
 +begin[t] t range-iterator(a t range) bare
 	a, a.low

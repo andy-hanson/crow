@@ -1,4 +1,3 @@
-# TODO: For safety, this now needs to always return 0'd memory. Since a yield can happen anywhere. -----------------------
 no-std
 import
 	system/stdlib: free, malloc
@@ -96,8 +95,13 @@ mark-range bool(start bool mut*, end bool mut*) bare, unsafe
 		cur +:= 1
 	marked-anything
 
-# Normally this is used by the function pointer from a 'gc-root'. Available as a regular function for debugging.
-# Only use this with a record or union type. For a pointer type it directly uses 'mark-visit' instead.
+###
+Normally this is used by the compiler to provide function pointer for a 'gc-root'.
+Available as a regular function for debugging.
+
+This is only defined for record or union types.
+For a pointer type, it uses 'mark-visit' directly instead.
+###
 ~mark-root[t] void(mark-ctx mark-ctx, pointer void*) builtin, bare, unsafe
 
 ~mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, bare, unsafe
@@ -310,10 +314,9 @@ validate-gc void(gc gc*) bare, unsafe
 		res
 
 -maybe-set-needs-gc void(gc gc mut*) bare, unsafe
-	if false # TODO: In order to have GC, we now need to implement fiber stack scanning! ------------------------
-		cur-word = gc->mark-cur - gc->mark-begin
-		if cur-word > (gc->size-words unsafe-div 2)
-			gc->needs-gc := true
+	cur-word = gc->mark-cur - gc->mark-begin
+	if cur-word > (gc->size-words unsafe-div 2)
+		gc->needs-gc := true
 
 -first-non-free bool mut*?(mark bool mut*, end bool mut*) bare, unsafe
 	if mark == end

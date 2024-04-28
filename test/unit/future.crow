@@ -1,0 +1,13 @@
+dummy-future nat()
+	0
+
+# Test future awaited by multiple fibers at once
+test
+	f nat future = with : later
+		1
+	a0 nat future = with : parallel
+		f.await + 1
+	a1 nat future = with : parallel
+		f.await + 2
+	a0.await is 2
+	a1.await is 3

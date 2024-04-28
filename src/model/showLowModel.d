@@ -53,38 +53,44 @@ private void writeLowTypeArgs(
 void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
-			writeConcreteType(writer, ctx, x.returnType);
-			writer ~= '(';
-			writeWithCommas!ConcreteLocal(
-				writer,
-				x.params,
-				(in ConcreteLocal param) {
-					param.source.matchIn!void(
-						(in Local p) {
-							writer ~= p.name;
-						},
-						(in ConcreteLocalSource.Closure) {
-							writer ~= "<closure>";
-						},
-						(in ConcreteLocalSource.Generated x) {
-							writer ~= stringOfEnum(x);
-						});
-					writer ~= ' ';
-					writeConcreteType(writer, ctx, param.type);
-				});
-			writer ~= ')';
-			if (a.mayYield)
-				writer ~= " may-yield";
-			writer ~= ' ';
-
-			UriLineAndColumnRange range = ctx.lineAndColumnGetters[x.range];
-			writer ~= range.uri;
-			writer ~= ' ';
-			writeLineAndColumn(writer, range.range.start);
+			writeConcreteFunSig(writer, ctx, x, a.mayYield);
 		},
 		(in LowFunSource.Generated) {
-			writer ~= "(generated)";
+			writeFunName(writer, ctx, lowProgram, a);
 		});
+}
+
+void writeConcreteFunSig(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a, bool mayYield) {
+	writeConcreteFunName(writer, ctx, a);
+	writer ~= ' ';
+	writeConcreteType(writer, ctx, a.returnType);
+	writer ~= '(';
+	writeWithCommas!ConcreteLocal(
+		writer,
+		a.params,
+		(in ConcreteLocal param) {
+			param.source.matchIn!void(
+				(in Local p) {
+					writer ~= p.name;
+				},
+				(in ConcreteLocalSource.Closure) {
+					writer ~= "<closure>";
+				},
+				(in ConcreteLocalSource.Generated x) {
+					writer ~= stringOfEnum(x);
+				});
+			writer ~= ' ';
+			writeConcreteType(writer, ctx, param.type);
+		});
+	writer ~= ')';
+	if (mayYield)
+		writer ~= " may-yield";
+	writer ~= ' ';
+
+	UriLineAndColumnRange range = ctx.lineAndColumnGetters[a.range];
+	writer ~= range.uri;
+	writer ~= ' ';
+	writeLineAndColumn(writer, range.range.start);
 }
 
 void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {
