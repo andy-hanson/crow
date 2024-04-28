@@ -168,8 +168,8 @@ SmallArray!T newSmallArray(T)(ref Alloc alloc, scope T[] values) =>
 	makeArray(alloc, size, (size_t _) => value);
 
 bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
-	has(findIndex!T(arr, cb));
-bool exists2(T)(in T[] arr, in bool delegate(ref T) @safe @nogc pure nothrow cb) {// TODO: make this the only one --------------------
+	.exists!T(arr, (ref const T x) => cb(x));
+bool exists(T)(in T[] arr, in bool delegate(ref const T) @safe @nogc pure nothrow cb) {
 	foreach (ref const T x; arr)
 		if (cb(x))
 			return true;

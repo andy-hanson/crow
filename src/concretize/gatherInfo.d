@@ -16,7 +16,7 @@ import model.concreteModel :
 import model.constant : Constant;
 import model.model : BuiltinBinary, BuiltinFun, EnumFunction, FlagsFunction;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists2, mustFind, only2;
+import util.col.array : exists, mustFind, only2;
 import util.col.map : mustGet;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
@@ -110,13 +110,13 @@ void getCalledByRecur(ref Alloc alloc, ref CalledBy res, ConcreteFun* f, ref Con
 public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) => // TODO: MOVE
 	a.kind.matchWithPointers!bool(
 		(ConcreteExprKind.Call x) =>
-			exists2!ConcreteExpr(x.args, cb),
+			exists!ConcreteExpr(x.args, cb),
 		(Constant x) =>
 			false,
 		(ConcreteExprKind.CreateArray x) =>
-			exists2!ConcreteExpr(x.args, cb),
+			exists!ConcreteExpr(x.args, cb),
 		(ConcreteExprKind.CreateRecord x) =>
-			exists2!ConcreteExpr(x.args, cb),
+			exists!ConcreteExpr(x.args, cb),
 		(ConcreteExprKind.CreateUnion* x) =>
 			cb(x.arg),
 		(ConcreteExprKind.Drop* x) =>
@@ -141,16 +141,16 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			false,
 		(ConcreteExprKind.MatchEnumOrIntegral* x) =>
 			cb(x.matched) ||
-			exists2!ConcreteExpr(x.caseExprs, cb) ||
+			exists!ConcreteExpr(x.caseExprs, cb) ||
 			(has(x.else_) && cb(*force(x.else_))),
 		(ConcreteExprKind.MatchStringLike* x) =>
 			cb(x.matched) ||
-			exists2!(ConcreteExprKind.MatchStringLike.Case)(x.cases, (ref ConcreteExprKind.MatchStringLike.Case case_) =>
+			exists!(ConcreteExprKind.MatchStringLike.Case)(x.cases, (ref ConcreteExprKind.MatchStringLike.Case case_) =>
 				cb(case_.value) || cb(case_.then)) ||
 			cb(x.else_),
 		(ConcreteExprKind.MatchUnion* x) =>
 			cb(x.matched) ||
-			exists2!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
 				cb(case_.then)) ||
 			(has(x.else_) && cb(*force(x.else_))),
 		(ConcreteExprKind.RecordFieldGet x) =>
@@ -165,7 +165,7 @@ public bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref Concr
 			cb(x.thrown),
 		(ConcreteExprKind.Try* x) =>
 			cb(x.tried) ||
-			exists2!(ConcreteExprKind.MatchUnion.Case)(x.catchCases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.catchCases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
 				cb(case_.then)),
 		(ConcreteExprKind.TryLet* x) =>
 			cb(x.value) || cb(x.catch_.then) || cb(x.then),

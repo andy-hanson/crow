@@ -53,7 +53,7 @@ import lower.lowExprHelpers :
 	voidType,
 	voidConstPointerType;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists2, mapPointers, newArray, newSmallArray, SmallArray;
+import util.col.array : exists, mapPointers, newArray, newSmallArray, SmallArray;
 import util.col.fullIndexMap : fullIndexMapSize;
 import util.col.mutArr : MutArr;
 import util.col.mutIndexMap : getOrAdd, mustGet, MutIndexMap, newMutIndexMap;
@@ -169,7 +169,7 @@ private Opt!LowFunIndex getMarkVisitForRecord(
 	getOrAdd!(LowType.Record, Opt!LowFunIndex)(markVisitFuns.recordValToVisit, type, () {
 		LowRecord record = allTypes.allRecords[type];
 		return optIf(
-			isArray(record) || isFiber(record) || exists2!LowField(record.fields, (ref LowField field) =>
+			isArray(record) || isFiber(record) || exists!LowField(record.fields, (ref LowField field) =>
 				has(getMarkVisitForType(alloc, lowFunCauses, markVisitFuns, allTypes, field.type))),
 			() => addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.MarkVisit(LowType(type)))));
 	});
@@ -183,7 +183,7 @@ private Opt!LowFunIndex getMarkVisitForUnion(
 ) =>
 	getOrAdd!(LowType.Union, Opt!LowFunIndex)(markVisitFuns.unionToVisit, type, () =>
 		optIf(
-			exists2!LowType(allTypes.allUnions[type].members, (ref LowType member) =>
+			exists!LowType(allTypes.allUnions[type].members, (ref LowType member) =>
 				has(getMarkVisitForType(alloc, lowFunCauses, markVisitFuns, allTypes, member))),
 			() => addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.MarkVisit(LowType(type))))));
 

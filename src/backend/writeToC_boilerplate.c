@@ -14,6 +14,8 @@ __asm__(
 	"switch_fiber_suspension:\n"
 
 	// Save callee-saved register to the stack.
+	// TODO: could we use 'no_callee_saved_registers' instead?
+	// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
 	"push %rbx\n"
 	"push %rbp\n"
 	"push %r12\n"

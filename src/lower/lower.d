@@ -134,7 +134,6 @@ import util.col.array :
 	applyNTimes,
 	emptySmallArray,
 	exists,
-	exists2,
 	foldPointers,
 	foldReverse,
 	indexOfPointer,
@@ -819,7 +818,7 @@ LowExpr withPushAllGcRoots(
 	LowExpr[] args,
 	in LowExpr delegate(ExprPos, LowExpr[]) @safe @nogc pure nothrow cb,
 ) {
-	bool hasRoots = isYieldingCall && exists2!LowExpr(args, (ref LowExpr x) =>
+	bool hasRoots = isYieldingCall && exists!LowExpr(args, (ref LowExpr x) =>
 		has(getMarkRootForType(ctx.alloc, *ctx.lowFunCauses, *ctx.markVisitFuns, *ctx.allTypes, x.type)));
 	if (hasRoots) {
 		ArrayBuilder!LowExpr argGetters;
@@ -1000,10 +999,7 @@ LowExpr getLowExpr(
 		import frontend.storage : LineAndColumnGetters;
 		import util.uri : UrisInfo;
 		debugLogWithWriter((scope ref Writer writer) {
-			writer ~= "Type is not as expected for concrete expr kind ";
-			writer ~= expr.kind.kind;
-			writer ~= " output as low expr kind ";
-			writer ~= res.kind.kind;
+			writer ~= "Type is not as expected. ";
 			ShowCtx showCtx = ShowCtx(LineAndColumnGetters(), UrisInfo(), ShowOptions()); // TODO: fill this in -----------------
 			writer ~= "\nResult type: ";
 			writeLowType(writer, showCtx, *ctx.allTypes, res.type);
@@ -1126,7 +1122,7 @@ LowExpr getAllocExpr2(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriA
 bool mayHaveSideEffects(in LowExpr a) =>
 	!a.kind.isA!Constant && !a.kind.isA!(LowExprKind.LocalGet) && (
 		!a.kind.isA!(LowExprKind.CreateRecord) ||
-		exists2!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (ref LowExpr x) => mayHaveSideEffects(x)));
+		exists!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => mayHaveSideEffects(x)));
 
 LowExpr getCallExpr(
 	ref GetLowExprCtx ctx,
@@ -1452,7 +1448,7 @@ LowExpr getCreateArrayExpr(
 	LowExpr nElements = genConstantNat64(range, a.args.length);
 	LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
 	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.commonFuns.alloc, range, elementPtrType, sizeBytes);
-	bool argsMayYield = exists2!ConcreteExpr(a.args, (ref ConcreteExpr x) => expressionMayYield(ctx, x));
+	bool argsMayYield = exists!ConcreteExpr(a.args, (in ConcreteExpr x) => expressionMayYield(ctx, x));
 	return genLetTempPossiblyGcRoot(ctx, exprPos, range, allocatePtr, argsMayYield, (ExprPos inner, LowExpr getPtr) {
 		LowExpr recur(LowExpr cur, size_t prevIndex) { // TODO: use applyNTimes? -------------------------------------------------------
 			if (prevIndex == 0)
