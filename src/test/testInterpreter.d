@@ -49,7 +49,7 @@ import interpret.fakeExtern : fakeSyntheticFunPointers, unreachableWriteCb, with
 import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPointerReference;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
-import interpret.stacks : dataBegin, dataPop, dataPush, Stacks;
+import interpret.stacks : dataPop, dataPush, Stacks;
 import lower.lowExprHelpers : nat64Type;
 import model.lowModel :
 	AllConstantsLow,
@@ -79,7 +79,7 @@ import util.integralValues : integralValuesRange;
 import util.memory : allocate;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
 import versionInfo : OS, versionInfoForInterpret, VersionOptions;
 
 void testInterpreter(ref Test test) {
@@ -459,12 +459,15 @@ void testStackRef(ref Test test) {
 			writeReturn(writer, source);
 		},
 		(scope ref Stacks stacks, Operation* operation) {
+			todo!void("testStackRef"); // --------------------------------------------------------------------------------------------
+			/*
 			ulong stack0 = cast(ulong) dataBegin(stacks);
 			ulong stack3 = cast(ulong) ((cast(immutable uint*) dataBegin(stacks)) + 3);
 			stepUntilBreakAndExpect(test, stacks, [1, 2], operation);
 			stepUntilBreakAndExpect(test, stacks, [1, 2, stack0], operation);
 			stepUntilBreakAndExpect(test, stacks, [1, 2, stack0, stack3], operation);
 			stepUntilExitAndExpect(test, stacks, [1, 2, stack0, stack3], operation);
+			*/
 		});
 }
 
@@ -500,6 +503,8 @@ void testStackRef(ref Test test) {
 			writeReturn(writer, source);
 		},
 		(scope ref Stacks stacks, Operation* operation) {
+			todo!void("TESTREADSUBWORD");
+			/*
 			ulong value = u.value;
 			stepUntilBreakAndExpect(test, stacks, [value], operation);
 			ulong ptr = cast(ulong) dataBegin(stacks);
@@ -509,6 +514,7 @@ void testStackRef(ref Test test) {
 			stepUntilBreakAndExpect(test, stacks, [value, 0x01234567, 0x89ab], operation);
 			stepUntilBreakAndExpect(test, stacks, [value, 0x01234567, 0x89ab, ptr], operation);
 			stepUntilExitAndExpect(test, stacks, [value, 0x01234567, 0x89ab, 0xcd], operation);
+			*/
 		});
 }
 
@@ -524,10 +530,13 @@ void testStackRef(ref Test test) {
 			writeReturn(writer, source);
 		},
 		(scope ref Stacks stacks, Operation* operation) {
+			todo!void("TESTREADWORDS\n"); //////////////////////////////////////////////////////////////////////////////////////////////
+			/*
 			stepUntilBreakAndExpect(test, stacks, [1, 2, 3], operation);
 			ulong ptr = cast(ulong) dataBegin(stacks);
 			stepUntilBreakAndExpect(test, stacks, [1, 2, 3, ptr], operation);
 			stepUntilExitAndExpect(test, stacks, [1, 2, 3, 2, 3], operation);
+			*/
 		});
 }
 
@@ -579,6 +588,8 @@ void testStackRef(ref Test test) {
 			writeReturn(writer, source);
 		},
 		(scope ref Stacks stacks, Operation* operation) {
+			todo!void("testWriteSubword"); ////////////////////////////////////////////////////////////////////////////////////
+			/*
 			ulong ptr = cast(ulong) dataBegin(stacks);
 
 			stepUntilBreakAndExpect(test, stacks, [0], operation);
@@ -595,6 +606,7 @@ void testStackRef(ref Test test) {
 				[toUlong(S(0x89abcdef, 0xcdef, 0, 0)), ptr, 0x0123456789abcdef],
 				operation);
 			stepUntilExitAndExpect(test, stacks, [toUlong(S(0x89abcdef, 0xcdef, 0xef, 0))], operation);
+			*/
 		});
 }
 
@@ -612,11 +624,14 @@ void testStackRef(ref Test test) {
 			writeReturn(writer, source);
 		},
 		(scope ref Stacks stacks, Operation* operation) {
+			todo!void("TESTWRITEWORDS"); /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/*
 			stepUntilBreakAndExpect(test, stacks, [0, 0, 0], operation);
 			ulong ptr = cast(ulong) dataBegin(stacks);
 			stepUntilBreakAndExpect(test, stacks, [0, 0, 0, ptr], operation);
 			stepUntilBreakAndExpect(test, stacks, [0, 0, 0, ptr, 1, 2], operation);
 			stepUntilExitAndExpect(test, stacks, [0, 1, 2], operation);
+			*/
 		});
 }
 

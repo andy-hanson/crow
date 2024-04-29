@@ -6,13 +6,13 @@ import frontend.showModel : ShowCtx, writeUriAndPos;
 import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.runBytecode : operationOpStopInterpretation;
-import interpret.stacks : returnPeek, returnStackSize, Stacks;
+import interpret.stacks : returnPeek, Stacks;
 import model.concreteModel : ConcreteFun;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.showLowModel : writeFunName;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.col.array : isPointerInRange;
-import util.memory : overwriteMemory;
+import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : LineAndColumn, PosKind, UriAndPos;
 import util.string : CString;
@@ -78,10 +78,17 @@ private struct Ptr64(T) {
 	in Stacks stacks,
 ) =>
 	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) @trusted {
-		size_t resSize = min(returnStackSize(stacks) - skip, max);
-		foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
-			overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));
-		return out_ + resSize;
+		// First return entry is 'null', see 'opInitStack'
+		BacktraceEntry* curOut = out_;
+		size_t i = 0;
+		for (; i < max; i++) {
+			Operation* op = returnPeek(stacks, skip + i);
+			if (op == null)
+				break;
+			else
+				initMemory(&out_[i], getBacktraceEntry(alloc, info, op));
+		}
+		return out_ + i;
 	})(backtraceStringsStorage);
 
 private static ulong[0x1000] backtraceStringsStorage = void;

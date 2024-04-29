@@ -64,6 +64,9 @@ immutable struct FunPointer {
 	ulong asUlong() =>
 		cast(ulong) pointer;
 
+	@system static FunPointer fromUlong(ulong value) =>
+		FunPointer(cast(immutable void*) value);
+
 	ExternPointer asExternPointer() =>
 		ExternPointer(pointer);
 }

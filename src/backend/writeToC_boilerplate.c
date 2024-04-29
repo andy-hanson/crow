@@ -8,6 +8,8 @@ __asm__(
 	".align 8\n"
 	"switch_fiber:\n"
 
+	// 'from' is %rdi, 'to' is %rsi
+
 	// Save callee-saved register to the stack.
 	// TODO: could we use 'no_callee_saved_registers' instead?
 	// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
@@ -21,7 +23,7 @@ __asm__(
 	"movq %rsp, (%rdi)\n"
 
 	// Get the new stack pointer from the second argument
-	"movq (%rsi), %rsp\n"
+	"movq %rsi, %rsp\n"
 	// Load the registers it had saved
 	"pop %r15\n"
 	"pop %r14\n"
@@ -32,7 +34,7 @@ __asm__(
 	// The return address also comes from 'to' since we switched to its stack pointer.
 	"ret\n"
 );
-extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* const* to);
+extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* to);
 
 static uint64_t* init_stack(uint64_t* stack_top, void (*target)()) {
 	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned

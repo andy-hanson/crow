@@ -110,7 +110,7 @@ Initializes the stack, then returns the new stack pointer.
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
 ###
--switch-fiber void(from stack-pointer mut*, to stack-pointer mut*) builtin, bare
+-switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare
 
 # Stack pointer for the runtime. Regular fibers return to this when they yield.
 # TODO: This could be by-value. But we currently don't support pointer to thread-local.
@@ -232,7 +232,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-yield-request := request,
 	fiber = cur-fiber!
 	fiber.is-running := false
-	&fiber.stack-pointer switch-fiber thread-base-stack-pointer
+	&fiber.stack-pointer switch-fiber *thread-base-stack-pointer
 
 # Runs the fiber until its next yield
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
@@ -240,7 +240,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-fiber.is-empty hard-assert
 	cur-fiber := fiber,
 
-	thread-base-stack-pointer switch-fiber &fiber.stack-pointer
+	thread-base-stack-pointer switch-fiber fiber.stack-pointer
 
 	# It yields to get back here.
 	cur-fiber! reference-equal fiber hard-assert

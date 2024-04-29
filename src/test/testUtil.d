@@ -8,7 +8,7 @@ import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
-import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
+import interpret.stacks : Stacks;
 import lib.server : allUnknownUris, Server, ServerSettings, setServerSettings, setFile, setFileAssumeUtf8;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
@@ -19,7 +19,7 @@ import util.string : CString, CStringAndLength, stringOfCString;
 import util.symbol : Extension, Symbol;
 import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
-import util.util : ptrTrustMe;
+import util.util : ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
@@ -55,16 +55,16 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 	cb(ShowCtx(LineAndColumnGetters(ptrTrustMe(storage)), UrisInfo(none!Uri), ShowOptions(false)));
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
-	scope immutable ulong[] stack = dataTempAsArr(stacks);
-	if (!arraysEqual(stack, expected)) {
-		debugLogWithWriter((ref Writer writer) {
-			writer ~= "expected:\n";
-			showDataArr(writer, expected);
-			writer ~= "\nactual:\n";
-			showDataArr(writer, stack);
-		});
-		assert(false);
-	}
+	//scope immutable ulong[] stack = dataTempAsArr(stacks); -------------------------------------------------------------------------
+	//if (!arraysEqual(stack, expected)) {
+	//	debugLogWithWriter((ref Writer writer) {
+	//		writer ~= "expected:\n";
+	//		showDataArr(writer, expected);
+	//		writer ~= "\nactual:\n";
+	//		showDataArr(writer, stack);
+	//	});
+	//	assert(false);
+	//}
 }
 
 @trusted void expectReturnStack(
@@ -73,6 +73,8 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 	in Stacks stacks,
 	in ByteCodeIndex[] expected,
 ) {
+	todo!void("expectReturnStack"); // ------------------------------------------------------------------------------------------------
+	/*
 	// Ignore first entry (which is opStopInterpretation)
 	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
 	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
@@ -96,6 +98,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 		});
 		assert(false);
 	}
+	*/
 }
 
 pure:

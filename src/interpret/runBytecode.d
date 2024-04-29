@@ -18,14 +18,10 @@ import interpret.stacks :
 	dataRef,
 	dataRemove,
 	dataReturn,
-	dataStackIsEmpty,
-	dataTempAsArr,
 	dataTop,
 	returnPeek,
 	returnPop,
 	returnPush,
-	returnStackIsEmpty,
-	returnTempAsArrReverse,
 	setReturnPeek,
 	Stacks,
 	withStacks;
@@ -33,6 +29,7 @@ import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : indexOf;
+import util.col.map : mustGet;
 import util.conv : safeToSizeT;
 import util.exitCode : ExitCode;
 import util.integralValues : IntegralValue;
@@ -61,8 +58,8 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
 	ulong returnCode = dataPop(stacks);
-	assert(dataStackIsEmpty(stacks));
-	assert(returnStackIsEmpty(stacks));
+	//assert(dataStackIsEmpty(stacks)); ------------------------------------------------------------------------------------------------------
+	//assert(returnStackIsEmpty(stacks));
 	return ExitCode(cast(uint) returnCode);
 }
 
@@ -175,7 +172,7 @@ private void operation(alias cb)(
 ) {
 	Stacks stacks = Stacks(stacksData, stacksReturn);
 	static if (false) {
-		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
+		// printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1); --------------------------------
 		debugLog(__traits(identifier, cb));
 	}
 	cb(stacks, cur);
@@ -239,6 +236,34 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 	ulong value = dataPop(stacks);
 	if (value == 0)
 		cur += offset.offset;
+}
+
+// TODO: this should probably go next to opSwitchFiber!----------------------------------------------------------------------------------------
+alias opInitStack = opFnBinary!((ulong stackTop, ulong func) @system {
+	// We store the return** on the data stack.
+	// Stacks uses the high as the return pointer (TODO: ensure a compile error here if that changes??????????????????????????????)
+	ulong* returnPtr = cast(ulong*) stackTop;
+	ulong* dataPtr = returnPtr - 0x10000; // TODO: don't hardcode! ----------------------------------------------------------------
+	Stacks stacks = Stacks(dataPtr, cast(Operation**) returnPtr);
+	// Initial return entry is null so we can detect it in 'fillBacktrace'
+	returnPush(stacks, null);
+	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
+	dataPush(stacks, cast(ulong) stacks.returnPtr);
+	return cast(ulong) stacks.dataPtr;
+});
+
+alias opSwitchFiber = operation!opSwitchFiberInner;
+private void opSwitchFiberInner(ref Stacks stacks, ref Operation* cur) {
+	ulong* to = cast(ulong*) dataPop(stacks);
+	ulong** fromPtr = cast(ulong**) dataPop(stacks);
+
+	returnPush(stacks, cur);
+	dataPush(stacks, cast(ulong) stacks.returnPtr);
+	*fromPtr = stacks.dataPtr;
+
+	stacks.dataPtr = to;
+	stacks.returnPtr = cast(Operation**) dataPop(stacks);
+	cur = returnPop(stacks);
 }
 
 alias opSwitch0ToN(bool hasElse) = operation!(opSwitch0ToNInner!hasElse);

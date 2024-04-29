@@ -95,6 +95,7 @@ import interpret.bytecodeWriter :
 	writeReturnData,
 	writeSet,
 	writeSwitchDelay,
+	writeSwitchFiber,
 	writeThreadLocalPtr,
 	writeWrite;
 import interpret.extern_ : ExternPointersForAllLibraries, FunPointer;
@@ -102,6 +103,7 @@ import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, registerCall, registerFunPointerReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
+import interpret.runBytecode : opInitStack, opSwitchFiber;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
@@ -323,7 +325,8 @@ void generateExpr(
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.FunPointer x) {
-			todo!void("FUN POINTER"); // ---------------------------------------------------------------------------------------
+			writeConstantFunPointer(writer, ctx, source, expr.type, x.fun);
+			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.If it) {
 			generateIf(
@@ -390,8 +393,8 @@ void generateExpr(
 			writeFnUnary(writer, source, fnForUnaryMath(x.kind));
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.SpecialBinary it) {
-			generateSpecialBinary(writer, ctx, source, locals, after, it);
+		(in LowExprKind.SpecialBinary x) {
+			generateSpecialBinary(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.SpecialBinaryMath x) {
 			foreach (scope ref LowExpr arg; castNonScope(x.args))
@@ -737,10 +740,8 @@ void generateConstant(
 					assert(false);
 			}
 		},
-		(in Constant.FunPointer it) {
-			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, it.fun);
-			ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
-			registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
+		(in Constant.FunPointer x) {
+			writeConstantFunPointer(writer, ctx, source, type, mustGet(ctx.program.concreteFunToLowFunIndex, x.fun));
 		},
 		(in IntegralValue it) {
 			writePushConstant(writer, source, it.value);
@@ -773,6 +774,17 @@ void generateConstant(
 		(in Constant.Zero) {
 			writeZeroed(writer, source, typeSizeBytes(ctx, type));
 		});
+}
+
+void writeConstantFunPointer(
+	scope ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in LowType type,
+	LowFunIndex fun,
+) {
+	ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
+	registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
 }
 
 void writeZeroed(ref ByteCodeWriter writer, ByteCodeSource source, size_t sizeBytes) {
@@ -998,10 +1010,10 @@ void generateSpecialBinary(
 	in LowExprKind.SpecialBinary a,
 ) {
 	LowExpr left = a.args[0], right = a.args[1];
-	void fn(Operation.Fn fn) {
+	void fn(Operation.Fn fn, bool returnVoid = false) {
 		generateExprAndContinue(writer, ctx, locals, left);
 		generateExprAndContinue(writer, ctx, locals, right);
-		writeFnBinary(writer, source, fn);
+		writeFnBinary(writer, source, fn, returnVoid);
 		handleAfter(writer, ctx, source, after);
 	}
 
@@ -1091,7 +1103,7 @@ void generateSpecialBinary(
 			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.initStack:
-			todo!void("generate initStack"); // ---------------------------------------------------------------------------
+			fn(&opInitStack);
 			break;
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessNat8:
@@ -1142,7 +1154,7 @@ void generateSpecialBinary(
 			fn(&fnSubFloat64);
 			break;
 		case BuiltinBinary.switchFiber:
-			todo!void("generate switchFiber"); // --------------------------------------------------------------------------
+			fn(&opSwitchFiber, returnVoid: true);
 			break;
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:

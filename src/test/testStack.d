@@ -10,13 +10,12 @@ import interpret.stacks :
 	dataPush,
 	dataRemove,
 	dataReturn,
-	dataStackIsEmpty,
 	dataTop,
-	returnStackIsEmpty,
 	Stacks,
 	withStacks;
 import test.testUtil : expectDataStack, Test;
 import util.col.array : arraysEqual;
+import util.util : todo;
 
 void testStack(ref Test test) {
 	testPushPop(test);
@@ -30,6 +29,8 @@ private:
 }
 
 @system void testPushPop(ref Test test, Stacks a) {
+	todo!void("TESTPUSHPOP"); // ------------------------------------------------------------------------------------------------
+	/*
 	assert(dataStackIsEmpty(a));
 	assert(returnStackIsEmpty(a));
 
@@ -71,6 +72,7 @@ private:
 	assert(dataPop(a) == 5);
 	assert(dataStackIsEmpty(a));
 	assert(returnStackIsEmpty(a));
+	*/
 }
 
 @trusted void testDataReturn(ref Test test) {

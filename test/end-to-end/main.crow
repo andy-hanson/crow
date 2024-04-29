@@ -77,7 +77,7 @@ options:
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
-	interpret-failures = ()::failure[] # path-to-crow run-single path, interpret, overwrite -----------------------------------
+	interpret-failures = path-to-crow run-single path, interpret, overwrite
 	jit-failures = if options.include-jit && interpret-failures.is-empty && !overwrite
 		path-to-crow run-single path, jit, overwrite
 	else
