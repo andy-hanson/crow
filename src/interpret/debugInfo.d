@@ -6,7 +6,7 @@ import frontend.showModel : ShowCtx, writeUriAndPos;
 import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.runBytecode : operationOpStopInterpretation;
-import interpret.stacks : returnPeek, Stacks;
+import interpret.stacks : returnPeek, returnTempAsArrReverse, Stacks;
 import model.concreteModel : ConcreteFun;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.showLowModel : writeFunName;
@@ -78,17 +78,11 @@ private struct Ptr64(T) {
 	in Stacks stacks,
 ) =>
 	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) @trusted {
-		// First return entry is 'null', see 'opInitStack'
-		BacktraceEntry* curOut = out_;
-		size_t i = 0;
-		for (; i < max; i++) {
-			Operation* op = returnPeek(stacks, skip + i);
-			if (op == null)
-				break;
-			else
-				initMemory(&out_[i], getBacktraceEntry(alloc, info, op));
-		}
-		return out_ + i;
+		scope const Operation*[] ops = returnTempAsArrReverse(stacks)[skip .. $];
+		size_t resSize = min(ops.length, max);
+		foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
+			initMemory(&entry, getBacktraceEntry(alloc, info, ops[i]));
+		return out_ + resSize;
 	})(backtraceStringsStorage);
 
 private static ulong[0x1000] backtraceStringsStorage = void;

@@ -8,6 +8,7 @@ import interpret.bytecode :
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : countParameterEntries, DoDynCall, doDynCall, DynCallSig, FunPointer, sizeWords;
 import interpret.stacks :
+	assertStacksAtOriginalState,
 	dataDupWords,
 	dataEnd,
 	dataPeek,
@@ -30,7 +31,7 @@ import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : indexOf;
 import util.col.map : mustGet;
-import util.conv : safeToSizeT;
+import util.conv : safeToUint, safeToSizeT;
 import util.exitCode : ExitCode;
 import util.integralValues : IntegralValue;
 import util.memory : memcpy, memmove, overwriteMemory;
@@ -58,9 +59,8 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
 	ulong returnCode = dataPop(stacks);
-	//assert(dataStackIsEmpty(stacks)); ------------------------------------------------------------------------------------------------------
-	//assert(returnStackIsEmpty(stacks));
-	return ExitCode(cast(uint) returnCode);
+	assertStacksAtOriginalState(stacks);
+	return ExitCode(safeToUint(returnCode));
 }
 
 void syntheticCall(

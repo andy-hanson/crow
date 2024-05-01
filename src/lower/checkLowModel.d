@@ -407,8 +407,8 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.subFloat64:
 		case BuiltinBinary.unsafeDivFloat64:
 			return expect(float64Type, float64Type, float64Type);
-		case BuiltinBinary.addPtrAndNat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 			assert(returnType == arg0Type);
 			assert(isPtrGcOrRaw(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
@@ -513,8 +513,8 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.lessNat64:
 			return expect(boolType, nat64Type, nat64Type);
-		case BuiltinBinary.eqPtr:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.lessPointer:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.initStack:
@@ -526,7 +526,7 @@ ExpectBinary binaryExpected(
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case BuiltinBinary.switchFiber:
 			return ExpectBinary(some(voidType), [none!LowType, none!LowType]); // return expect(voidType, nat64MutPointerMutPointerType, nat64MutPointerConstPointerType);
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}
 }

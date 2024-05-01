@@ -1018,8 +1018,8 @@ void generateSpecialBinary(
 	}
 
 	final switch (a.kind) {
-		case BuiltinBinary.addPtrAndNat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 			LowType pointee = asPtrRawPointee(left.type);
 			generateExprAndContinue(writer, ctx, locals, left);
 			StackEntry afterLeft = getNextStackEntry(writer);
@@ -1032,7 +1032,7 @@ void generateSpecialBinary(
 				writeRemove(writer, source, StackEntries(afterLeft, 1));
 			else
 				writeFnBinary(
-					writer, source, a.kind == BuiltinBinary.addPtrAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
+					writer, source, a.kind == BuiltinBinary.addPointerAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
 			handleAfter(writer, ctx, source, after);
 			break;
 		case BuiltinBinary.addFloat32:
@@ -1099,7 +1099,7 @@ void generateSpecialBinary(
 			break;
 		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat64:
-		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.eqPointer:
 			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.initStack:
@@ -1116,7 +1116,7 @@ void generateSpecialBinary(
 			fn(&fnLessNat32);
 			break;
 		case BuiltinBinary.lessNat64:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.lessPointer:
 			fn(&fnLessNat64);
 			break;
 		case BuiltinBinary.lessFloat32:
@@ -1219,7 +1219,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.wrapMulNat64:
 			fn(&fnWrapMulIntegral);
 			break;
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExprAndContinue(writer, ctx, locals, right);
 			size_t size = typeSizeBytes(ctx, right.type);

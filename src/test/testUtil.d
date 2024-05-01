@@ -8,7 +8,7 @@ import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
-import interpret.stacks : Stacks;
+import interpret.stacks : returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, ServerSettings, setServerSettings, setFile, setFileAssumeUtf8;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
@@ -55,6 +55,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 	cb(ShowCtx(LineAndColumnGetters(ptrTrustMe(storage)), UrisInfo(none!Uri), ShowOptions(false)));
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
+	todo!void("expectDataStack");
 	//scope immutable ulong[] stack = dataTempAsArr(stacks); -------------------------------------------------------------------------
 	//if (!arraysEqual(stack, expected)) {
 	//	debugLogWithWriter((ref Writer writer) {
@@ -73,10 +74,8 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 	in Stacks stacks,
 	in ByteCodeIndex[] expected,
 ) {
-	todo!void("expectReturnStack"); // ------------------------------------------------------------------------------------------------
-	/*
 	// Ignore first entry (which is opStopInterpretation)
-	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
+	scope const Operation*[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
 	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,
@@ -98,7 +97,6 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 		});
 		assert(false);
 	}
-	*/
 }
 
 pure:

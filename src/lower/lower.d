@@ -1398,7 +1398,7 @@ LowExpr maybeOptimizeSpecialBinary(
 		LowExpr(type, range, LowExprKind(allocate(ctx. alloc, LowExprKind.SpecialBinary(kind, [arg0, arg1]))));
 
 	switch (kind) {
-		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
 			return isEmptyType(*ctx.allTypes, asPtrRawPointee(arg0.type))
 				? genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), arg0, (LowExpr getA) =>
 					genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg1), getA))
@@ -1814,8 +1814,9 @@ LowExpr withRestorableJmpBuf(
 	in LowExpr delegate(LowExpr restoreJmpBuf) @safe @nogc pure nothrow cb,
 ) =>
 	// Don't need a GC root since 'set-cur-jmp-buf' never yields.
-	genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
-		cb(genSetCurJmpBuf(ctx, range, oldJmpBuf)));
+	genLetTempConstNoGcRoot(
+		ctx.alloc, range, nextTempLocalIndex(ctx), genGetCurJmpBuf(ctx, range), (LowExpr oldJmpBuf) =>
+			cb(genSetCurJmpBuf(ctx, range, oldJmpBuf)));
 
 LowExpr withRestorableGcRoot(
 	ref GetLowExprCtx ctx,

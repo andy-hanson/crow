@@ -5,7 +5,8 @@ import
 +run-all-tests void() summon
 	tests = all-tests
 	out print "Running {tests size} tests"
-	for x : tests chunked-parallel 0x10
+	# TODO:  chunked-parallel 0x10 ------------------------------------------------------------------------------------------------
+	for x : tests
 		x[]
 	out print "Done running tests"
 	()

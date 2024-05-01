@@ -1761,7 +1761,7 @@ WriteExprResult writeSpecialBinary(
 	final switch (a.kind) {
 		case BuiltinBinary.addFloat32:
 		case BuiltinBinary.addFloat64:
-		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.addPointerAndNat64:
 		case BuiltinBinary.unsafeAddInt8:
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
@@ -1810,7 +1810,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat16:
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
-		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.eqPointer:
 			return operator("==");
 		case BuiltinBinary.initStack:
 			// defined in writeToC_boilerplace.c
@@ -1826,7 +1826,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.lessNat16:
 		case BuiltinBinary.lessNat32:
 		case BuiltinBinary.lessNat64:
-		case BuiltinBinary.lessPtr:
+		case BuiltinBinary.lessPointer:
 			return operator("<");
 		case BuiltinBinary.mulFloat32:
 		case BuiltinBinary.mulFloat64:
@@ -1845,7 +1845,7 @@ WriteExprResult writeSpecialBinary(
 			return writeExpr(writer, indent, ctx, writeKind, right);
 		case BuiltinBinary.subFloat32:
 		case BuiltinBinary.subFloat64:
-		case BuiltinBinary.subPtrAndNat64:
+		case BuiltinBinary.subPointerAndNat64:
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
@@ -1874,7 +1874,7 @@ WriteExprResult writeSpecialBinary(
 			return operator("/");
 		case BuiltinBinary.unsafeModNat64:
 			return operator("%");
-		case BuiltinBinary.writeToPtr:
+		case BuiltinBinary.writeToPointer:
 			WriteExprResult temp0 = arg0();
 			WriteExprResult temp1 = arg1();
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {

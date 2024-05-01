@@ -400,7 +400,7 @@ enum BuiltinType {
 	int16,
 	int32,
 	int64,
-	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'. TODO: this is different from the others. ... .......
+	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
 	nat8,
 	nat16,
 	nat32,
@@ -883,7 +883,7 @@ private enum BuiltinUnaryMath_ {
 enum BuiltinBinary {
 	addFloat32,
 	addFloat64,
-	addPtrAndNat64, // RHS is multiplied by size of pointee first
+	addPointerAndNat64, // RHS is multiplied by size of pointee first
 	bitwiseAndInt8,
 	bitwiseAndInt16,
 	bitwiseAndInt32,
@@ -920,7 +920,7 @@ enum BuiltinBinary {
 	eqNat16,
 	eqNat32,
 	eqNat64,
-	eqPtr,
+	eqPointer,
 	initStack,
 	lessChar8,
 	lessFloat32,
@@ -933,13 +933,13 @@ enum BuiltinBinary {
 	lessNat16,
 	lessNat32,
 	lessNat64,
-	lessPtr,
+	lessPointer,
 	mulFloat32,
 	mulFloat64,
 	seq,
 	subFloat32,
 	subFloat64,
-	subPtrAndNat64, // RHS is multiplied by size of pointee first
+	subPointerAndNat64, // RHS is multiplied by size of pointee first
 	switchFiber,
 	unsafeAddInt8,
 	unsafeAddInt16,
@@ -978,7 +978,7 @@ enum BuiltinBinary {
 	wrapSubNat16,
 	wrapSubNat32,
 	wrapSubNat64,
-	writeToPtr,
+	writeToPointer,
 }
 
 // These all have a lazy second argument

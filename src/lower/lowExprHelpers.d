@@ -79,7 +79,7 @@ LowExpr genUnionMatch(
 
 LowExpr genAddPointer(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.addPtrAndNat64, [ptr, added]))));
+		LowExprKind.SpecialBinary(BuiltinBinary.addPointerAndNat64, [ptr, added]))));
 
 LowExpr genAsAnyPointerConst(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
@@ -164,14 +164,15 @@ LowExpr genWrapMulNat64(ref Alloc alloc, UriAndRange range, LowExpr left, LowExp
 
 LowExpr genPointerEqual(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
 	LowExpr(boolType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.eqPtr, [a, b]))));
+		LowExprKind.SpecialBinary(BuiltinBinary.eqPointer, [a, b]))));
 
 LowExpr genPointerEqualNull(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	genPointerEqual(alloc, range, a, genNull(a.type, range));
 
 LowExpr genEnumEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExpr(boolType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), [a, b]))));
+	return LowExpr(boolType, range, LowExprKind(allocate(alloc,
+		LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), [a, b]))));
 }
 
 LowExpr genBitwiseNegate(ref Alloc alloc, UriAndRange range, LowExpr a) =>
@@ -321,7 +322,8 @@ LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1,
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2, line3));
 
 LowExpr genWriteToPointer(ref Alloc alloc, UriAndRange range, LowExpr pointer, LowExpr value) =>
-	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.writeToPtr, [pointer, value]))));
+	LowExpr(voidType, range, LowExprKind(allocate(alloc,
+		LowExprKind.SpecialBinary(BuiltinBinary.writeToPointer, [pointer, value]))));
 
 LowExpr genVoid(UriAndRange source) =>
 	genZeroed(voidType, source);

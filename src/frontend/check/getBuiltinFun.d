@@ -107,7 +107,7 @@ FunBody inner(
 				: isBinaryFloat64()
 				? BuiltinBinary.addFloat64
 				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.addPtrAndNat64
+				? BuiltinBinary.addPointerAndNat64
 				: failBinary);
 		case symbol!"-".value:
 			return binary(isFloat32(rt)
@@ -115,7 +115,7 @@ FunBody inner(
 				: isBinaryFloat64()
 				? BuiltinBinary.subFloat64
 				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.subPtrAndNat64
+				? BuiltinBinary.subPointerAndNat64
 				: failBinary);
 		case symbol!"*".value:
 			return isPointerConstOrMut(p0)
@@ -140,7 +140,7 @@ FunBody inner(
 				isInt64(p0) ? BuiltinBinary.eqInt64 :
 				isFloat32(p0) ? BuiltinBinary.eqFloat32 :
 				isFloat64(p0) ? BuiltinBinary.eqFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.eqPtr :
+				isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
 				failBinary);
 		case symbol!"&&".value:
 			return binaryLazy(isBool(rt) && isBool(p0) && isBool(p1) ? BuiltinBinaryLazy.boolAnd : failBinaryLazy);
@@ -267,7 +267,7 @@ FunBody inner(
 				isNat64(p0) ? BuiltinBinary.lessNat64 :
 				isFloat32(p0) ? BuiltinBinary.lessFloat32 :
 				isFloat64(p0) ? BuiltinBinary.lessFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.lessPtr :
+				isPointerConstOrMut(p0) ? BuiltinBinary.lessPointer :
 				failBinary);
 		case symbol!"mark-root".value:
 			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
@@ -285,11 +285,11 @@ FunBody inner(
 		case symbol!"null".value:
 			return FunBody(BuiltinFun(constantZero));
 		case symbol!"reference-equal".value:
-			return binary(BuiltinBinary.eqPtr);
+			return binary(BuiltinBinary.eqPointer);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
 		case symbol!"set-deref".value:
-			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPtr : failBinary);
+			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
 		case symbol!"sin".value:
 			return unaryMath(BuiltinUnaryMath.sinFloat32, BuiltinUnaryMath.sinFloat64);
 		case symbol!"sinh".value:
