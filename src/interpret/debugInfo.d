@@ -138,7 +138,7 @@ void printDebugInfo(
 	}
 }
 
-void showDataArr(scope ref Writer writer, in immutable ulong[] values) {
+void showDataArr(scope ref Writer writer, in ulong[] values) {
 	writer ~= "data (";
 	writer ~= values.length;
 	writer ~= "): ";

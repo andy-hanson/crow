@@ -8,11 +8,11 @@ import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
-import interpret.stacks : returnTempAsArrReverse, Stacks;
+import interpret.stacks : dataEnd, returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, ServerSettings, setServerSettings, setFile, setFileAssumeUtf8;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
-import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
+import util.col.array : arraysEqual, arrayOfRange, arraysCorrespond, endPtr, indexOf, isEmpty, makeArray, map;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, CStringAndLength, stringOfCString;
@@ -54,28 +54,30 @@ void withShowDiagCtxForTestImpure(
 private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storage storage) =>
 	cb(ShowCtx(LineAndColumnGetters(ptrTrustMe(storage)), UrisInfo(none!Uri), ShowOptions(false)));
 
-@trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
-	todo!void("expectDataStack");
-	//scope immutable ulong[] stack = dataTempAsArr(stacks); -------------------------------------------------------------------------
-	//if (!arraysEqual(stack, expected)) {
-	//	debugLogWithWriter((ref Writer writer) {
-	//		writer ~= "expected:\n";
-	//		showDataArr(writer, expected);
-	//		writer ~= "\nactual:\n";
-	//		showDataArr(writer, stack);
-	//	});
-	//	assert(false);
-	//}
+@trusted void expectDataStack(ref Test test, in ulong[] storage, in Stacks stacks, in immutable ulong[] expected) {
+	scope const ulong[] stack = arrayOfRange(storage.ptr, dataEnd(stacks));
+	if (!arraysEqual(stack, expected)) {
+		debugLogWithWriter((ref Writer writer) {
+			writer ~= "expected:\n";
+			showDataArr(writer, expected);
+			writer ~= "\nactual:\n";
+			showDataArr(writer, stack);
+		});
+		assert(false);
+	}
 }
 
 @trusted void expectReturnStack(
 	ref Test test,
 	in ByteCode byteCode,
+	in ulong[] stacksStorage, // TODO: unused (but I could use it just to assert that returnTempAsArrReverse detected the end correctly)
 	in Stacks stacks,
 	in ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
-	scope const Operation*[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
+	scope const Operation*[] reversed = returnTempAsArrReverse(stacks)[0 .. $ - 1];
+	assert(endPtr(reversed) == (cast(Operation**) endPtr(stacksStorage)) - 2); // - 1 for null, - 1 for opStopInterpretation (TODO: why do we need both?)
+	scope const Operation*[] stack = reverse(test.alloc, reversed); // TODO: USE TEMP ALLOC --------------------------------------
 	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,

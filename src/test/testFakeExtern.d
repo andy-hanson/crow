@@ -5,7 +5,7 @@ module test.testFakeExtern;
 import interpret.extern_ :
 	doDynCall, DynCallType, DynCallSig, Extern, ExternPointersForAllLibraries, ExternPointersForLibrary, FunPointer;
 import interpret.fakeExtern : unreachableWriteCb, withFakeExtern, WriteCb;
-import interpret.stacks : dataPop, dataPush, Stacks, withStacks;
+import interpret.stacks : dataPop, dataPush, Stacks, stacksForRange, withDefaultStacks;
 import lib.lsp.lspTypes : Pipe;
 import model.lowModel : ExternLibrary, PrimitiveType;
 import test.testUtil : Test;
@@ -40,7 +40,7 @@ private:
 		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType(PrimitiveType.nat64)];
 		scope DynCallSig mallocSig = DynCallSig(small!DynCallType(mallocSigTypes));
 
-		withStacks!void((scope ref Stacks stacks) @trusted {
+		return withDefaultStacks!void((ref Stacks stacks) {
 			dataPush(stacks, 8);
 			doDynCall(extern_.doDynCall, stacks, mallocSig, malloc);
 			ubyte* ptr1 = cast(ubyte*) dataPop(stacks);
@@ -60,7 +60,6 @@ private:
 			dataPush(stacks, cast(ulong) ptr1);
 			doDynCall(extern_.doDynCall, stacks, freeSig, free);
 		});
-		return ExitCode(0);
 	});
 }
 
@@ -96,22 +95,22 @@ void testWrite(ref Test test) {
 			];
 			DynCallSig sig = DynCallSig(small!DynCallType(sigTypes));
 
-			withStacks!void((scope ref Stacks stacks) {
-				dataPush(stacks, [1, cast(ulong) cString!"gnarly".ptr, 4]);
-				doDynCall(extern_.doDynCall, stacks, sig, write);
-				ulong res1 = dataPop(stacks);
-				assert(res1 == 4);
+			ulong[8] stacksStorage;
+			Stacks stacks = stacksForRange(stacksStorage);
+			dataPush(stacks, [1, cast(ulong) cString!"gnarly".ptr, 4]);
+			doDynCall(extern_.doDynCall, stacks, sig, write);
+			ulong res1 = dataPop(stacks);
+			assert(res1 == 4);
 
-				dataPush(stacks, [2, cast(ulong) cString!"tubular".ptr, 2]);
-				doDynCall(extern_.doDynCall, stacks, sig, write);
-				ulong res2 = dataPop(stacks);
-				assert(res2 == 2);
+			dataPush(stacks, [2, cast(ulong) cString!"tubular".ptr, 2]);
+			doDynCall(extern_.doDynCall, stacks, sig, write);
+			ulong res2 = dataPop(stacks);
+			assert(res2 == 2);
 
-				dataPush(stacks, [1, cast(ulong) cString!"way cool".ptr, 5]);
-				doDynCall(extern_.doDynCall, stacks, sig, write);
-				ulong res3 = dataPop(stacks);
-				assert(res3 == 5);
-			});
+			dataPush(stacks, [1, cast(ulong) cString!"way cool".ptr, 5]);
+			doDynCall(extern_.doDynCall, stacks, sig, write);
+			ulong res3 = dataPop(stacks);
+			assert(res3 == 5);
 			return ExitCode(42);
 		});
 	assert(result.value == 42);

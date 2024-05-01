@@ -25,7 +25,8 @@ import interpret.stacks :
 	returnPush,
 	setReturnPeek,
 	Stacks,
-	withStacks;
+	stacksForRange,
+	withDefaultStacks;
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
@@ -48,13 +49,14 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 	in ByteCode byteCode,
 	in CString[] allArgs,
 ) =>
-	withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
-		dataPush(stacks, allArgs.length);
-		dataPush(stacks, cast(ulong) allArgs.ptr);
-		return withMeasureNoAlloc!(ExitCode, () @trusted =>
-			runBytecodeInner(stacks, initialOperationPointer(byteCode))
-		)(perf, PerfMeasure.run);
-	});
+	withDefaultStacks!ExitCode((ref Stacks stacks) =>
+		withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, stacks, () {
+			dataPush(stacks, allArgs.length);
+			dataPush(stacks, cast(ulong) allArgs.ptr);
+			return withMeasureNoAlloc!(ExitCode, () @trusted =>
+				runBytecodeInner(stacks, initialOperationPointer(byteCode))
+			)(perf, PerfMeasure.run);
+		}));
 
 private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
@@ -68,7 +70,7 @@ void syntheticCall(
 	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPushArgs,
 	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPopResult,
 ) =>
-	withStacks!void((scope ref Stacks stacks) {
+	withDefaultStacks!void((scope ref Stacks stacks) {
 		cbPushArgs(stacks);
 		syntheticCallWithStacks(stacks, operationPtr);
 		cbPopResult(stacks);
@@ -105,12 +107,13 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 	operation = nextOperationPtr;
 }
 
-@safe T withInterpreter(T)(
+@trusted T withInterpreter(T)( // TODO: this should probably just be @system! ------------------------------------------------------
 	in DoDynCall doDynCall_,
 	in ShowCtx printCtx,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
-	in T delegate(ref Stacks) @nogc nothrow cb,
+	ref Stacks stacks,
+	in T delegate() @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
 		ptrTrustMe(printCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
@@ -118,22 +121,21 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPointerToOperationPointer,
 		castNonScope_ref(doDynCall_)));
-	return withStacks!T((scope ref Stacks stacks) @trusted {
-		// Ensure the last 'return' returns to here
-		returnPush(stacks, operationOpStopInterpretation.ptr);
 
-		static if (is(T == void))
-			cb(stacks);
-		else
-			T res = cb(stacks);
+	// Ensure the last 'return' returns to here (NOTE: For fiber stacks, they will have 'null' instead, since the fiber shouldn't be allowed to complete)
+	returnPush(stacks, operationOpStopInterpretation.ptr);
 
-		debug {
-			setGlobals(InterpreterGlobals(null, FunPointerToOperationPointer(), null));
-		}
+	static if (is(T == void))
+		cb();
+	else
+		T res = cb();
 
-		static if (!is(T == void))
-			return res;
-	});
+	debug {
+		setGlobals(InterpreterGlobals(null, FunPointerToOperationPointer(), null));
+	}
+
+	static if (!is(T == void))
+		return res;
 }
 
 private void setNext(Stacks stacks, Operation* operationPtr) {
@@ -243,10 +245,7 @@ alias opInitStack = opFnBinary!((ulong stackTop, ulong func) @system {
 	// We store the return** on the data stack.
 	// Stacks uses the high as the return pointer (TODO: ensure a compile error here if that changes??????????????????????????????)
 	ulong* returnPtr = cast(ulong*) stackTop;
-	ulong* dataPtr = returnPtr - 0x10000; // TODO: don't hardcode! ----------------------------------------------------------------
-	Stacks stacks = Stacks(dataPtr, cast(Operation**) returnPtr);
-	// Initial return entry is null so we can detect it in 'fillBacktrace'
-	returnPush(stacks, null);
+	Stacks stacks = stacksForRange((returnPtr - 0xfff0)[0 .. 0xfff0]); // TODO: don't hardcode! Also it should be 0x10000 ----------------------------------------------------------------
 	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
 	dataPush(stacks, cast(ulong) stacks.returnPtr);
 	return cast(ulong) stacks.dataPtr;

@@ -26,9 +26,9 @@ Stacks loadStacks() {
 WARN: In case this is reentrant, the interpreter must call 'saveStacks' before.
 The callback should have a net 0 effect on the stack depth.
 */
-@trusted T withStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
+@trusted T withDefaultStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
 	if (!stacksInitialized) {
-		savedStacks = Stacks(stacksStorage.ptr - 1, cast(Operation**) endPtr(stacksStorage));
+		savedStacks = stacksForRange(stacksStorage);
 		stacksInitialized = true;
 	}
 
@@ -48,8 +48,9 @@ The callback should have a net 0 effect on the stack depth.
 }
 
 void assertStacksAtOriginalState(in Stacks a) {
-	assert(a.dataPtr == stacksStorage.ptr - 1);
-	assert(a.returnPtr == cast(Operation**) endPtr(stacksStorage));
+	assert(dataEnd(a) == stacksStorage.ptr);
+	assert(a.returnPtr == (cast(Operation**) endPtr(stacksStorage)) - 1);
+	assert(*a.returnPtr == null);
 }
 
 pure:
@@ -60,8 +61,15 @@ pure:
 //}
 
 struct Stacks {
-	ulong* dataPtr;
-	Operation** returnPtr;
+	ulong* dataPtr; // Pointer to the previous pushed value.
+	Operation** returnPtr; // Pointer to the previous pushed value.
+}
+
+@trusted Stacks stacksForRange(ulong[] range) { // TODO: not trusteD? --------------------------------------------------------
+	Stacks res = Stacks(cast(ulong*) range.ptr - 1, cast(Operation**) endPtr(range));
+	// Initial return entry is null so we can detect it in 'fillBacktrace'
+	returnPush(res, null);
+	return res;
 }
 
 //bool dataStackIsEmpty(in Stacks a) { -------------------------------------------------------------------------------------
@@ -123,9 +131,13 @@ ulong* dataTop(ref Stacks a) =>
 //const(ulong*) dataBegin(in Stacks a) => ===================================================================================
 //	stacksStorage.ptr;
 
-// One past the last data value pushed
-ulong* dataEnd(ref Stacks a) =>
+// One past the last data value pushed; meaning a pointer to the next pushed value
+inout(ulong*) dataEnd(ref inout Stacks a) =>
 	a.dataPtr + 1;
+
+// One past the last return pointer pushed; meaning a pointer to the next return pointer
+inout(Operation**) returnEnd(ref inout Stacks a) =>
+	a.returnPtr - 1;
 
 //immutable(ulong[]) dataTempAsArr(ref const Stacks a) => =================================================================
 //	cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
