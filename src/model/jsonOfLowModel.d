@@ -207,7 +207,7 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.LoopContinue) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in LowExprKind.PtrCast x) =>
+		(in LowExprKind.PointerCast x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-cast",
 				field!"target"(jsonOfLowExpr(alloc, ctx, x.target))]),

@@ -367,7 +367,7 @@ void generateExpr(
 		(in LowExprKind.LoopContinue x) {
 			generateLoopContinue(writer, ctx, source, locals, after, x);
 		},
-		(in LowExprKind.PtrCast it) {
+		(in LowExprKind.PointerCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
 		(in LowExprKind.PtrToField x) =>

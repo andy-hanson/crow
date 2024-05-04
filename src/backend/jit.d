@@ -884,7 +884,7 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			loopBreakToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LoopContinue) =>
 			loopContinueToGcc(ctx, locals, emit),
-		(in LowExprKind.PtrCast it) =>
+		(in LowExprKind.PointerCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.PtrToField it) =>
 			ptrToFieldToGcc(ctx, locals, emit, a, it),
@@ -1178,7 +1178,7 @@ ExprResult ptrCastToGcc(
 	ref Locals locals,
 	ExprEmit emit,
 	in LowExpr expr,
-	in LowExprKind.PtrCast a,
+	in LowExprKind.PointerCast a,
 ) {
 	//if (lowTypeEqualCombinePtr(expr.type, a.target.type)) TODO: this is due to comment '// TODO: the type is wrong for localAlreadyPointer, but currently that's unchecked' in lower
 	//	// We don't have 'const' at low-level, so some casts are unnecessary.

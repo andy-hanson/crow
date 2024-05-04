@@ -165,7 +165,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.LoopContinue x) {
 			assert(exprPos == ExprPos.loop);
 		},
-		(in LowExprKind.PtrCast x) {
+		(in LowExprKind.PointerCast x) {
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},

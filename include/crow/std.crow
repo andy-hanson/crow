@@ -20,13 +20,13 @@ export
 	./exception
 	./flags-util
 	./fun-util
-	./future
 	./hash
 	./json
 	./log
 	./misc
 	./number
 	./option
+	./parallel
 	./pointer
 	./range
 	./result

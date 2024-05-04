@@ -1,17 +1,17 @@
 no-std
 import
 	../compare: <
-	../col/array: +, -, array, begin, end, next, size, slice, subscript
+	../col/array: +, array, begin, next, size, subscript
 	../col/mut-array: +, begin, cast-immutable, mut-array, zeroed-mut-array, set-next
-	../col/collection: .., end, set-subscript, subscript
+	../col/collection: set-subscript, subscript
 	../col/list: list, to
 	../exception: catch-all, to
 	../fun-util: subscript
-	../future: future, parallel, with-block
 	../io/print: err, print
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, max-value, nat64, to, unary-out-of-range
 	../option: new
+	../parallel: future, parallel, with-block
 	../pointer:
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
@@ -21,7 +21,8 @@ import
 	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
 	./runtime:
-		before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
+		before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx,
+		thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
@@ -53,15 +54,15 @@ init-constants void() builtin, bare, summon, unsafe
 	argv c-string*,
 	main-pointer main-pointer,
 ) bare, summon, trusted
-	all-args = argv[0 .. argc.to]
+	all-args = argv[1 .. argc.to] # First arg is the executable
 	gctx before-task # Fake a ctx
 	all-args invoke-main main-pointer
 
--invoke-main int32 future(all-args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
+-invoke-main int32 future(args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
 	set-dummy-fiber
 	res int32 future = with : parallel
 		get-global-ctx init-symbol-table
-		match (() => main-pointer[all-args[1 .. end] convert-args]) catch-all
+		match (() => main-pointer[args convert-args]) catch-all
 		as ok x
 			try
 				x to
@@ -76,10 +77,9 @@ init-constants void() builtin, bare, summon, unsafe
 
 # Avoiding a lambda here or the compiler may erroneously think this may yield
 -convert-args string[](args c-string array) trusted
-	size = args size
-	res string mut-array = size zeroed-mut-array
+	res string mut-array = args.size zeroed-mut-array
 	i mut nat64 = 0
-	while i < size
+	while i < args.size
 		res[i] := args[i] to
 		i +:= 1
 	res.cast-immutable to

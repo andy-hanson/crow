@@ -77,13 +77,16 @@ LowExpr genUnionMatch(
 			genAbort(type, range)))));
 }
 
+private LowExpr genUnary(ref Alloc alloc, LowType type, UriAndRange range, BuiltinUnary kind, LowExpr arg) =>
+	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(kind, arg))));
+private LowExpr genBinary(ref Alloc alloc, LowType type, UriAndRange range, BuiltinBinary kind, LowExpr arg0, LowExpr arg1) =>
+	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(kind, [arg0, arg1]))));
+
 LowExpr genAddPointer(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
-	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.addPointerAndNat64, [ptr, added]))));
+	genBinary(alloc, LowType(ptrType), range, BuiltinBinary.addPointerAndNat64, ptr, added);
 
 LowExpr genAsAnyPointerConst(ref Alloc alloc, UriAndRange range, LowExpr a) =>
-	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialUnary(BuiltinUnary.asAnyPtr, a))));
+	genUnary(alloc, anyPtrConstType, range, BuiltinUnary.asAnyPtr, a);
 
 LowExpr genPointerToLocal(LowType type, UriAndRange range, LowLocal* local) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.PtrToLocal(local)));
@@ -94,28 +97,16 @@ LowExpr genFunPointer(LowType type, UriAndRange range, LowFunIndex fun) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.FunPointer(fun)));
 
 LowExpr genDrop(ref Alloc alloc, UriAndRange range, LowExpr a) =>
-	a.type == voidType
-		? a
-		: LowExpr(voidType, range, LowExprKind(allocate(alloc,
-			LowExprKind.SpecialUnary(BuiltinUnary.drop, a))));
+	a.type == voidType ? a : genUnary(alloc, voidType, range, BuiltinUnary.drop, a);
 
 private LowExpr genDerefGcOrRawPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
-	genUnary(alloc, range, asGcOrRawPointee(ptr.type), BuiltinUnary.deref, ptr);
+	genUnary(alloc, asGcOrRawPointee(ptr.type), range, BuiltinUnary.deref, ptr);
 
 LowExpr genDerefGcPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPointer(alloc, range, ptr);
 
 LowExpr genDerefRawPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPointer(alloc, range, ptr);
-
-private LowExpr genUnary(
-	ref Alloc alloc,
-	UriAndRange range,
-	LowType type,
-	BuiltinUnary kind,
-	LowExpr arg,
-) =>
-	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(kind, arg))));
 
 LowExpr genIf(ref Alloc alloc, UriAndRange range, LowExpr cond, LowExpr then, LowExpr else_) =>
 	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.If(cond, then, else_))));
@@ -159,33 +150,30 @@ LowExpr genLocalSet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr
 	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.LocalSet(local, value))));
 
 LowExpr genWrapMulNat64(ref Alloc alloc, UriAndRange range, LowExpr left, LowExpr right) =>
-	LowExpr(nat64Type, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.wrapMulNat64, [left, right]))));
+	genBinary(alloc, nat64Type, range, BuiltinBinary.wrapMulNat64, left, right);
 
 LowExpr genPointerEqual(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
-	LowExpr(boolType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.eqPointer, [a, b]))));
+	genBinary(alloc, boolType, range, BuiltinBinary.eqPointer, a, b);
 
 LowExpr genPointerEqualNull(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	genPointerEqual(alloc, range, a, genNull(a.type, range));
 
 LowExpr genEnumEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExpr(boolType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), [a, b]))));
+	return genBinary(alloc, boolType, range, eqForType(a.type.as!PrimitiveType), a, b);
 }
 
 LowExpr genBitwiseNegate(ref Alloc alloc, UriAndRange range, LowExpr a) =>
-	LowExpr(a.type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(bitwiseNegateForType(a.type.as!PrimitiveType), a))));
+	genUnary(alloc, a.type, range, bitwiseNegateForType(a.type.as!PrimitiveType), a);
 
 LowExpr genEnumIntersect(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExpr(a.type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(intersectForType(a.type.as!PrimitiveType), [a, b]))));
+	return genBinary(alloc, a.type, range, intersectForType(a.type.as!PrimitiveType), a, b);
 }
 
 LowExpr genEnumUnion(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExpr(a.type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), [a, b]))));
+	return genBinary(alloc, a.type, range, unionForType(a.type.as!PrimitiveType), a, b);
 }
 
 private BuiltinUnary bitwiseNegateForType(PrimitiveType a) {
@@ -241,8 +229,10 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 }
 
 LowExpr genUnionKindEquals(ref Alloc alloc, UriAndRange range, LowExpr a, ulong value) =>
-	LowExpr(boolType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(
-		BuiltinBinary.eqNat64, [genUnionKind(range, allocate(alloc, a)), genConstantNat64(range, value)]))));
+	genBinary(
+		alloc, boolType, range, BuiltinBinary.eqNat64,
+		genUnionKind(range, allocate(alloc, a)),
+		genConstantNat64(range, value));
 
 private BuiltinBinary intersectForType(PrimitiveType a) {
 	final switch (a) {
@@ -301,10 +291,10 @@ private BuiltinBinary unionForType(PrimitiveType a) {
 }
 
 LowExpr genEnumToIntegral(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
-	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(BuiltinUnary.enumToIntegral, inner))));
+	genUnary(alloc, type, range, BuiltinUnary.enumToIntegral, inner);
 
 LowExpr genPointerCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
-	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner)))); /// TODO: rename to PointerCfast ------------
+	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PointerCast(inner))));
 
 LowExpr genCreateRecord(ref Alloc alloc, LowType type, UriAndRange range, in LowExpr[] args) =>
 	genCreateRecord(type, range, newArray(alloc, args));
@@ -315,15 +305,14 @@ LowExpr genRecordFieldGet(ref Alloc alloc, UriAndRange range, LowExpr target, Lo
 	LowExpr(fieldType, range, LowExprKind(LowExprKind.RecordFieldGet(allocate(alloc, target), fieldIndex)));
 
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr first, LowExpr then) =>
-	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.seq, [first, then]))));
+	genBinary(alloc, then.type, range, BuiltinBinary.seq, first, then);
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1, LowExpr line2) =>
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2));
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1, LowExpr line2, LowExpr line3) =>
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2, line3));
 
 LowExpr genWriteToPointer(ref Alloc alloc, UriAndRange range, LowExpr pointer, LowExpr value) =>
-	LowExpr(voidType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(BuiltinBinary.writeToPointer, [pointer, value]))));
+	genBinary(alloc, voidType, range, BuiltinBinary.writeToPointer, pointer, value);
 
 LowExpr genVoid(UriAndRange source) =>
 	genZeroed(voidType, source);

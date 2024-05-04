@@ -933,11 +933,11 @@ WriteExprResult writeExpr(
 			writeLoopBreak(writer, indent, ctx, writeKind, x),
 		(in LowExprKind.LoopContinue) =>
 			writeLoopContinue(writer, indent, writeKind),
-		(in LowExprKind.PtrCast it) =>
-			inlineableSingleArg(it.target, (in WriteExprResult arg) {
+		(in LowExprKind.PointerCast x) =>
+			inlineableSingleArg(x.target, (in WriteExprResult arg) {
 				writer ~= '(';
 				writeCastToType(writer, ctx.ctx, type);
-				writeTempOrInline(writer, ctx, it.target, arg);
+				writeTempOrInline(writer, ctx, x.target, arg);
 				writer ~= ')';
 			}),
 		(in LowExprKind.PtrToField it) =>

@@ -12,10 +12,13 @@ import
 	./number-low-level: wrap-mul
 
 ###
+Hash table that uses 'malloc'. 't' can be a GC type, but you must use 'add-gc-roots' manually.
+The key is implicit in 't'; see the 'entry' spec.
+
 Note: All values in the map will be kept valid, including unused entries.
 So 'new' initializes all values, and 'destroy' and 'add-gc-roots' ignore keys entirely.
 ###
-bare-map[t] record by-val, mut # TODO: RENAME -----------------------------------------------------------------------------------------
+bare-map[t] record by-val, mut
 	###
 	There are logically 2 different maps, each of size 'half-capacity'.
 	Keys prefer to be in the left map; if that is empty the key won't be in the right map.
@@ -99,7 +102,10 @@ find-or-insert[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
 	res
 
 found-or-inserted enum(found, inserted)
-find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
+find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
+	a t bare-map mut*,
+	key k,
+) bare, unsafe, (t, k) entry
 	hash = key hash
 	loop
 		left = a entry-left hash

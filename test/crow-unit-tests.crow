@@ -47,7 +47,6 @@ import
 	../include/crow/private/tests/bare-map-tests: dummy-bare-map-tests
 	../include/crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
 	../include/crow/private/tests/bits-tests: dummy-bits-tests
-	../include/crow/private/tests/future-tests: dummy-future-tests
 	../include/crow/private/tests/json-tests: dummy-json-tests
 	../include/crow/private/tests/math-tests: dummy-math-tests
 	../include/crow/private/tests/number-tests: dummy-number-tests
@@ -59,9 +58,9 @@ import
 	./unit/conditions: dummy-conditions
 	./unit/closures: dummy-closures
 	./unit/exceptions: dummy-exceptions
-	./unit/future: dummy-future
 	./unit/gc-roots: dummy-gc-roots
 	./unit/log: dummy-log
+	./unit/parallel: dummy-parallel
 
 main void() summon
 	license is "public domain"
@@ -80,8 +79,6 @@ main void() summon
 	_ = dummy-conditions
 	_ = dummy-closures
 	_ = dummy-exceptions
-	_ = dummy-future
-	_ = dummy-future-tests
 	_ = dummy-gc-roots
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
@@ -92,6 +89,7 @@ main void() summon
 	_ = dummy-log
 	_ = dummy-math-tests
 	_ = dummy-number-tests
+	_ = dummy-parallel
 	_ = dummy-set-tests
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests

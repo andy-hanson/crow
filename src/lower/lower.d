@@ -1607,7 +1607,7 @@ LowExpr getMatchUnionExpr(
 	UriAndRange range,
 	ref ConcreteExprKind.MatchUnion a,
 ) =>
-	// We don't need a  GC root for 'matched', since each case handles its argument GC root
+	// We don't need a GC root for 'matched', since each case handles its argument GC root
 	withLetTempConstNoGcRoot(ctx, locals, a.matched, (LowExpr getMatched) {
 		LowExpr* getMatchedPtr = allocate(ctx.alloc, getMatched);
 		return LowExpr(type, range, LowExprKind(allocate(ctx.alloc,

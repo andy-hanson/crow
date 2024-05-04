@@ -467,16 +467,16 @@ immutable struct LowExprKind {
 	}
 	immutable struct LoopContinue {}
 
-	immutable struct PtrCast {
+	immutable struct PointerCast {
 		LowExpr target;
 	}
 
-	immutable struct PtrToField {
+	immutable struct PtrToField { // TODO: RecordFieldPointer -----------------------------------------------------------------------------
 		LowExpr target;
 		size_t fieldIndex;
 	}
 
-	immutable struct PtrToLocal {
+	immutable struct PtrToLocal { // TODO: LocalPointer ----------------------------------------------------------------------
 		LowLocal* local;
 	}
 
@@ -565,7 +565,7 @@ immutable struct LowExprKind {
 		Loop*,
 		LoopBreak*,
 		LoopContinue,
-		PtrCast*,
+		PointerCast*,
 		PtrToField*,
 		PtrToLocal,
 		RecordFieldGet,
