@@ -108,7 +108,6 @@ import interpret.runBytecode : opInitStack, opSwitchFiber;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
-	funPtrType,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -121,8 +120,6 @@ import model.lowModel :
 	LowVar,
 	LowVarIndex,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
@@ -314,7 +311,7 @@ void generateExpr(
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, *x.funPtr);
 			generateArgsAndContinue(writer, ctx, locals, x.args);
-			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[funPtrType(x)]);
+			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[x.funPointerType]);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.CreateRecord it) {
@@ -351,6 +348,8 @@ void generateExpr(
 				writeDupEntries(writer, source, entries);
 			handleAfter(writer, ctx, source, after);
 		},
+		(in LowExprKind.LocalPointer x) =>
+			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
 		(in LowExprKind.LocalSet it) {
 			StackEntries entries = getLocal(ctx, locals, it.local);
 			generateExprAndContinue(writer, ctx, locals, it.value);
@@ -370,14 +369,12 @@ void generateExpr(
 		(in LowExprKind.PointerCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
-		(in LowExprKind.PtrToField x) =>
-			generatePtrToField(writer, ctx, source, locals, after, x),
-		(in LowExprKind.PtrToLocal x) =>
-			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
 		(in LowExprKind.RecordFieldGet it) {
 			generateRecordFieldGet(writer, ctx, source, locals, it);
 			handleAfter(writer, ctx, source, after);
 		},
+		(in LowExprKind.RecordFieldPointer x) =>
+			generateRecordFieldPointer(writer, ctx, source, locals, after, x),
 		(in LowExprKind.RecordFieldSet x) {
 			generateRecordFieldSet(writer, ctx, source, locals, x);
 			handleAfter(writer, ctx, source, after);
@@ -917,21 +914,21 @@ void generatePtrToLocal(
 	handleAfter(writer, ctx, source, after);
 }
 
-void generatePtrToField(
+void generateRecordFieldPointer(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ByteCodeSource source,
 	in Locals locals,
 	scope ref ExprAfter after,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) {
-	size_t offset = ctx.program.allRecords[targetRecordType(a)].fields[a.fieldIndex].offset;
+	size_t offset = ctx.program.allRecords[a.targetRecordType].fields[a.fieldIndex].offset; // TODO: make a function in recordfieldpointer?
 	if (offset != 0) {
-		generateExprAndContinue(writer, ctx, locals, a.target);
+		generateExprAndContinue(writer, ctx, locals, *a.target);
 		writeAddConstantNat64(writer, source, offset);
 		handleAfter(writer, ctx, source, after);
 	} else
-		generateExpr(writer, ctx, locals, after, a.target);
+		generateExpr(writer, ctx, locals, after, *a.target);
 }
 
 void generateRecordFieldGet(
@@ -946,8 +943,8 @@ void generateRecordFieldGet(
 	StackEntries targetEntries = StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
-	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
-	if (targetIsPointer(a)) {
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, a.targetRecordType, a.fieldIndex);
+	if (a.targetIsPointer) {
 		if (offsetAndSize.size == 0)
 			writeRemove(writer, source, targetEntries);
 		else
@@ -974,11 +971,10 @@ void generateRecordFieldSet(
 	in LowExprKind.RecordFieldSet a,
 ) {
 	StackEntry before = getNextStackEntry(writer);
-	assert(targetIsPointer(a));
 	generateExprAndContinue(writer, ctx, locals, a.target);
 	StackEntry mid = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
-	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, a.targetRecordType, a.fieldIndex);
 	assert(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 	assert(getNextStackEntry(writer) == before);

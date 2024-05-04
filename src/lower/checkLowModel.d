@@ -39,8 +39,6 @@ import model.lowModel :
 	LowProgram,
 	LowType,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, BuiltinUnary, BuiltinUnaryMath, Program;
 import model.showLowModel : writeFunName;
@@ -145,16 +143,19 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.InitConstants) {
 			assert(isVoid(type));
 		},
-		(in LowExprKind.Let it) {
-			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
-			checkLowExpr(ctx, type, it.then, exprPos);
+		(in LowExprKind.Let x) {
+			checkLowExpr(ctx, x.local.type, x.value, ExprPos.nonTail);
+			checkLowExpr(ctx, type, x.then, exprPos);
 		},
-		(in LowExprKind.LocalGet it) {
-			checkTypeEqual(ctx, type, it.local.type);
+		(in LowExprKind.LocalGet x) {
+			checkTypeEqual(ctx, type, x.local.type);
 		},
-		(in LowExprKind.LocalSet it) {
+		(in LowExprKind.LocalPointer x) {
+			checkTypeEqual(ctx, asGcOrRawPointee(type), x.local.type);
+		},
+		(in LowExprKind.LocalSet x) {
 			checkTypeEqual(ctx, type, voidType);
-			checkLowExpr(ctx, it.local.type, it.value, ExprPos.nonTail);
+			checkLowExpr(ctx, x.local.type, x.value, ExprPos.nonTail);
 		},
 		(in LowExprKind.Loop x) {
 			checkLowExpr(ctx, type, x.body_, ExprPos.loop);
@@ -169,33 +170,29 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},
-		(in LowExprKind.PtrToField x) {
-			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(x)].fields[x.fieldIndex].type;
-			checkTypeEqual(ctx, asGcOrRawPointee(type), fieldType);
-		},
-		(in LowExprKind.PtrToLocal it) {
-			checkTypeEqual(ctx, asGcOrRawPointee(type), it.local.type);
-		},
 		(in LowExprKind.RecordFieldGet x) {
-			LowType.Record recordType = targetRecordType(x);
+			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkTypeEqual(ctx, type, fieldType);
 		},
+		(in LowExprKind.RecordFieldPointer x) {
+			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
+			LowType fieldType = ctx.ctx.program.allRecords[x.targetRecordType].fields[x.fieldIndex].type;
+			checkTypeEqual(ctx, asGcOrRawPointee(type), fieldType);
+		},
 		(in LowExprKind.RecordFieldSet x) {
-			LowType.Record recordType = targetRecordType(x);
-			assert(targetIsPointer(x)); // TODO: then this function doesn't need to exist
+			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, x.value, ExprPos.nonTail);
 			checkTypeEqual(ctx, type, voidType);
 		},
-		(in Constant it) {
+		(in Constant _) {
 			// Constants are untyped, so can't check more
 		},
-		(in LowExprKind.SpecialUnary it) {
-			checkSpecialUnary(ctx, type, it);
+		(in LowExprKind.SpecialUnary x) {
+			checkSpecialUnary(ctx, type, x);
 		},
 		(in LowExprKind.SpecialUnaryMath x) {
 			LowType actual = unaryMathType(x.kind);

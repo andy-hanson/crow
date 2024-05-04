@@ -51,8 +51,6 @@ import model.lowModel :
 	LowUnion,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinType, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
@@ -925,6 +923,13 @@ WriteExprResult writeExpr(
 			inlineableSimple(() {
 				writeLowLocalName(writer, ctx.mangledNames, *it.local);
 			}),
+		(in LowExprKind.LocalPointer x) =>
+			inlineableSimple(() {
+				if (localMustBeVolatile(ctx, *x.local))
+					writeCastToType(writer, ctx.ctx, type);
+				writer ~= '&';
+				writeLowLocalName(writer, ctx.mangledNames, *x.local);
+			}),
 		(in LowExprKind.LocalSet it) =>
 			writeLocalSet(writer, indent, ctx, writeKind, it),
 		(in LowExprKind.Loop x) =>
@@ -940,23 +945,16 @@ WriteExprResult writeExpr(
 				writeTempOrInline(writer, ctx, x.target, arg);
 				writer ~= ')';
 			}),
-		(in LowExprKind.PtrToField it) =>
-			writePtrToField(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.PtrToLocal x) =>
-			inlineableSimple(() {
-				if (localMustBeVolatile(ctx, *x.local))
-					writeCastToType(writer, ctx.ctx, type);
-				writer ~= '&';
-				writeLowLocalName(writer, ctx.mangledNames, *x.local);
-			}),
 		(in LowExprKind.RecordFieldGet x) =>
 			writeRecordFieldGet(writer, indent, ctx, writeKind, type, x),
+		(in LowExprKind.RecordFieldPointer x) =>
+			writeRecordFieldPointer(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.RecordFieldSet x) {
 			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, x.target);
 			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
 				writeTempOrInline(writer, ctx, x.target, recordValue);
-				writeRecordFieldRef(writer, ctx, targetIsPointer(x), targetRecordType(x), x.fieldIndex);
+				writeRecordFieldRef(writer, ctx, true, x.targetRecordType, x.fieldIndex);
 				writer ~= " = ";
 				writeTempOrInline(writer, ctx, x.value, fieldValue);
 			});
@@ -1501,18 +1499,18 @@ void writeStringLiteralInner(scope ref Writer writer, bool isMSVC, in string a) 
 	});
 }
 
-WriteExprResult writePtrToField(
+WriteExprResult writeRecordFieldPointer(
 	scope ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
 	in LowType type,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) =>
-	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.target, (in WriteExprResult recordValue) {
+	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		writer ~= "(&";
-		writeTempOrInline(writer, ctx, a.target, recordValue);
-		writeRecordFieldRef(writer, ctx, true, targetRecordType(a), a.fieldIndex);
+		writeTempOrInline(writer, ctx, *a.target, recordValue);
+		writeRecordFieldRef(writer, ctx, true, a.targetRecordType, a.fieldIndex);
 		writer ~= ')';
 	});
 
@@ -1527,7 +1525,7 @@ WriteExprResult writeRecordFieldGet(
 	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		if (!isEmptyType(ctx, type)) {
 			writeTempOrInline(writer, ctx, *a.target, recordValue);
-			writeRecordFieldRef(writer, ctx, targetIsPointer(a), targetRecordType(a), a.fieldIndex);
+			writeRecordFieldRef(writer, ctx, a.targetIsPointer, a.targetRecordType, a.fieldIndex);
 		}
 	});
 

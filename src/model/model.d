@@ -1951,6 +1951,7 @@ immutable struct ExprKind {
 		LiteralExpr,
 		LiteralStringLikeExpr,
 		LocalGetExpr,
+		LocalPointerExpr,
 		LocalSetExpr,
 		LoopExpr*,
 		LoopBreakExpr*,
@@ -1961,8 +1962,7 @@ immutable struct ExprKind {
 		MatchStringLikeExpr*,
 		MatchUnionExpr*,
 		MatchVariantExpr*,
-		PtrToFieldExpr*,
-		PtrToLocalExpr,
+		RecordFieldPointerExpr*,
 		SeqExpr*,
 		ThrowExpr*,
 		TrustedExpr*,
@@ -2099,6 +2099,10 @@ immutable struct LocalGetExpr {
 	Local* local;
 }
 
+immutable struct LocalPointerExpr {
+	Local* local;
+}
+
 immutable struct LocalSetExpr {
 	Local* local;
 	Expr* value;
@@ -2217,7 +2221,7 @@ immutable struct MatchVariantExpr {
 		matched.type.as!(StructInst*);
 }
 
-immutable struct PtrToFieldExpr {
+immutable struct RecordFieldPointerExpr {
 	@safe @nogc pure nothrow:
 
 	ExprAndType target; // This will be a pointer or by-ref type
@@ -2232,10 +2236,6 @@ immutable struct PtrToFieldExpr {
 
 	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
 		&recordDecl(commonTypes).body_.as!(StructBody.Record).fields[fieldIndex];
-}
-
-immutable struct PtrToLocalExpr {
-	Local* local;
 }
 
 immutable struct SeqExpr {

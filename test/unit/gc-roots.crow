@@ -4,7 +4,8 @@ import
 dummy-gc-roots nat()
 	0
 
--r record(x nat) by-ref
+-r record(x mut nat) by-ref, mut
+-r2 record(x r, y r) by-ref, mut
 
 -use void(_ r)
 	()
@@ -32,15 +33,37 @@ test trusted
 test trusted
 	start = count-roots
 	res = start f2 start.f0, start.f1
-	res.x is 3
 	count-roots is start + 1
 	yield-fiber
+	res.x is 3
+# Same for create record
+test trusted
+	start = count-roots
+	res r2 = start.f0, start.f1
+	count-roots is start + 1
+	yield-fiber
+	res.x use
+# Same for create array
+test trusted
+	start = count-roots
+	res r array = start.f0, start.f1
+	count-roots is start + 1
+	yield-fiber
+	res[0] use
+# Same for record field set
+test trusted
+	start = count-roots
+	(1,).x := do
+		count-roots is start + 1
+		yield-fiber
+		2
 -f0 r(start nat) unsafe
 	count-roots is start
 	1,
 -f1 r(start nat) unsafe
 	# The result of 'f0' is on the stack at this point
 	count-roots is start + 1
+	yield-fiber
 	2,
 -f2 r(start nat, a r, b r) unsafe
 	count-roots is start + 2

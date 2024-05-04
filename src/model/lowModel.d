@@ -418,6 +418,10 @@ immutable struct LowExprKind {
 
 		LowExpr* funPtr;
 		SmallArray!LowExpr args;
+
+
+		LowType.FunPointer funPointerType() scope =>
+			funPtr.type.as!(LowType.FunPointer);
 	}
 
 	immutable struct CreateRecord {
@@ -454,6 +458,10 @@ immutable struct LowExprKind {
 		LowLocal* local;
 	}
 
+	immutable struct LocalPointer {
+		LowLocal* local;
+	}
+
 	immutable struct LocalSet {
 		LowLocal* local;
 		LowExpr value;
@@ -471,26 +479,39 @@ immutable struct LowExprKind {
 		LowExpr target;
 	}
 
-	immutable struct PtrToField { // TODO: RecordFieldPointer -----------------------------------------------------------------------------
-		LowExpr target;
-		size_t fieldIndex;
-	}
-
-	immutable struct PtrToLocal { // TODO: LocalPointer ----------------------------------------------------------------------
-		LowLocal* local;
-	}
-
 	immutable struct RecordFieldGet {
+		@safe @nogc pure nothrow:
+
 		LowExpr* target; // Call 'targetIsPointer' to see if this is x.y or x->y
 		size_t fieldIndex;
+
+		LowType.Record targetRecordType() scope =>
+			(targetIsPointer ? asGcOrRawPointee(target.type) : target.type).as!(LowType.Record);
+
+		bool targetIsPointer() scope =>
+			isPtrGcOrRaw(target.type);
 	}
 
-	// No 'RecordFieldPointer', use 'PtrToField'
+	immutable struct RecordFieldPointer {
+		@safe @nogc pure nothrow:
+
+		LowExpr* target; // Always a pointer
+		size_t fieldIndex;
+
+		LowType.Record targetRecordType() scope =>
+			asGcOrRawPointee(target.type).as!(LowType.Record);
+	}
 
 	immutable struct RecordFieldSet {
-		LowExpr target;
+		@safe @nogc pure nothrow:
+
+		LowExpr target; // Always a pointer
 		size_t fieldIndex;
 		LowExpr value;
+
+		// Use a template to avoid forward reference errors
+		LowType.Record targetRecordType()() scope =>
+			asGcOrRawPointee(target.type).as!(LowType.Record);
 	}
 
 	immutable struct SpecialUnary {
@@ -561,14 +582,14 @@ immutable struct LowExprKind {
 		InitConstants,
 		Let*,
 		LocalGet,
+		LocalPointer,
 		LocalSet*,
 		Loop*,
 		LoopBreak*,
 		LoopContinue,
 		PointerCast*,
-		PtrToField*,
-		PtrToLocal,
 		RecordFieldGet,
+		RecordFieldPointer,
 		RecordFieldSet*,
 		Constant,
 		SpecialUnary*,
@@ -588,25 +609,6 @@ version (WebAssembly) {
 } else {
 	static assert(LowExprKind.sizeof == LowExprKind.Call.sizeof + ulong.sizeof);
 }
-
-LowType.FunPointer funPtrType(in LowExprKind.CallFunPointer a) =>
-	a.funPtr.type.as!(LowType.FunPointer);
-
-LowType.Record targetRecordType(in LowExprKind.PtrToField a) =>
-	asGcOrRawPointee(a.target.type).as!(LowType.Record);
-
-bool targetIsPointer(in LowExprKind.RecordFieldGet a) =>
-	isPtrGcOrRaw(a.target.type);
-
-LowType.Record targetRecordType(in LowExprKind.RecordFieldGet a) =>
-	(isPtrGcOrRaw(a.target.type) ? asGcOrRawPointee(a.target.type) : a.target.type).as!(LowType.Record);
-
-//TODO: this is always true
-bool targetIsPointer(in LowExprKind.RecordFieldSet a) =>
-	isPtrGcOrRaw(a.target.type);
-
-LowType.Record targetRecordType(in LowExprKind.RecordFieldSet a) =>
-	asGcOrRawPointee(a.target.type).as!(LowType.Record);
 
 immutable struct UpdateParam {
 	LowLocal* param;

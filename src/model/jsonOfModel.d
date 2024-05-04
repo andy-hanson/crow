@@ -39,6 +39,7 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LocalMutability,
 	LoopBreakExpr,
@@ -53,8 +54,7 @@ import model.model :
 	Module,
 	NameReferents,
 	Params,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	Purity,
 	SeqExpr,
 	SpecDecl,
@@ -427,6 +427,10 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
 				field!"name"(x.local.name)]),
+		(in LocalPointerExpr x) =>
+			jsonObject(alloc, [
+				kindField!"local-pointer",
+				field!"name"(x.local.name)]),
 		(in LocalSetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"local-set",
@@ -490,15 +494,11 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
 				field!"cases"(jsonOfMatchVariantCases(alloc, ctx, x.cases)),
 				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
-		(in PtrToFieldExpr x) =>
+		(in RecordFieldPointerExpr x) =>
 			jsonObject(alloc, [
-				kindField!"pointer-to-field",
+				kindField!"field-pointer",
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
-		(in PtrToLocalExpr x) =>
-			jsonObject(alloc, [
-				kindField!"pointer-to-local",
-				field!"name"(x.local.name)]),
 		(in SeqExpr a) =>
 			jsonObject(alloc, [
 				kindField!"seq",

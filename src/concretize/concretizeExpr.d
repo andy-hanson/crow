@@ -117,6 +117,7 @@ import model.model :
 	Local,
 	LocalGetExpr,
 	LocalMutability,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -128,8 +129,7 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Purity,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecInst,
 	ThrowExpr,
@@ -876,7 +876,7 @@ ConcreteExpr concretizePtrToLocal(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	in PtrToLocalExpr a,
+	in LocalPointerExpr a,
 ) =>
 	castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
@@ -892,7 +892,7 @@ ConcreteExpr concretizePtrToField( // TODO: Inline -----------------------------
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref PtrToFieldExpr a,
+	ref RecordFieldPointerExpr a,
 ) =>
 	genRecordFieldPointer(type, range, allocate(ctx.alloc, concretizeExpr(ctx, locals, a.target)), a.fieldIndex);
 
@@ -1242,6 +1242,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLiteralStringLike(ctx, type, range, x.kind, x.value),
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
+		(LocalPointerExpr x) =>
+			concretizePtrToLocal(ctx, type, range, locals, x),
 		(LocalSetExpr x) =>
 			concretizeLocalSet(ctx, type, range, locals, x),
 		(ref LoopExpr x) =>
@@ -1262,10 +1264,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeMatchUnion(ctx, type, range, locals, x),
 		(ref MatchVariantExpr x) =>
 			concretizeMatchVariant(ctx, type, range, locals, x),
-		(ref PtrToFieldExpr x) =>
+		(ref RecordFieldPointerExpr x) =>
 			concretizePtrToField(ctx, type, range, locals, x),
-		(PtrToLocalExpr x) =>
-			concretizePtrToLocal(ctx, type, range, locals, x),
 		(ref SeqExpr x) {
 			ConcreteExpr first = concretizeExpr(ctx, voidType(ctx), locals, x.first);
 			ConcreteExpr then = concretizeExpr(ctx, type, locals, x.then);

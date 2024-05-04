@@ -124,8 +124,6 @@ import model.lowModel :
 	lowTypeEqualCombinePtr,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
-	targetIsPointer,
-	targetRecordType,
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
@@ -876,6 +874,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			letToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LocalGet it) =>
 			localGetToGcc(ctx, locals, emit, it),
+		(in LowExprKind.LocalPointer x) =>
+			localPointerToGcc(ctx, locals, emit, x),
 		(in LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.Loop it) =>
@@ -886,18 +886,16 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			loopContinueToGcc(ctx, locals, emit),
 		(in LowExprKind.PointerCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.PtrToField it) =>
-			ptrToFieldToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.PtrToLocal it) =>
-			ptrToLocalToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
+		(in LowExprKind.RecordFieldPointer x) =>
+			recordFieldPointerToGcc(ctx, locals, emit, a, x),
 		(in LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(in Constant it) =>
-			constantToGcc(ctx, emit, a.type, it),
-		(in LowExprKind.SpecialUnary it) =>
-			unaryToGcc(ctx, locals, emit, a.type, it),
+		(in Constant x) =>
+			constantToGcc(ctx, emit, a.type, x),
+		(in LowExprKind.SpecialUnary x) =>
+			unaryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
 		(in LowExprKind.SpecialBinary x) =>
@@ -1191,22 +1189,22 @@ ExprResult ptrCastToGcc(
 			getGccType(ctx.types, expr.type)));
 }
 
-ExprResult ptrToFieldToGcc(
+ExprResult recordFieldPointerToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
 	in LowExpr expr,
-	in LowExprKind.PtrToField a,
+	in LowExprKind.RecordFieldPointer a,
 ) {
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
 	return emitSimpleYesSideEffects(
 		ctx, emit, expr.type,
 		gcc_jit_lvalue_get_address(
-			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field),
+			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, *a.target), null, field),
 			null));
 }
 
-ExprResult ptrToLocalToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.PtrToLocal a) =>
+ExprResult localPointerToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalPointer a) =>
 	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null));
 
 ExprResult recordFieldGetToGcc(
@@ -1216,8 +1214,8 @@ ExprResult recordFieldGetToGcc(
 	in LowExprKind.RecordFieldGet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	return emitSimpleNoSideEffects(ctx, emit, targetIsPointer(a)
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
+	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
@@ -1261,8 +1259,7 @@ ExprResult recordFieldSetToGcc(
 	in LowExprKind.RecordFieldSet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	assert(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
 	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);

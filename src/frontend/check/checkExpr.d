@@ -155,6 +155,7 @@ import model.model :
 	Local,
 	LocalGetExpr,
 	localMustHaveNameRange,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LocalMutability,
 	LoopBreakExpr,
@@ -167,8 +168,7 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Mutability,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	Purity,
 	purityRange,
 	ReturnAndParamTypes,
@@ -1046,7 +1046,7 @@ Expr checkPointerInner(
 			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.writeable)
 			markIsUsedSetOnStack(locals, local);
-		return check(ctx, expected, pointerType, source, ExprKind(PtrToLocalExpr(local)));
+		return check(ctx, expected, pointerType, source, ExprKind(LocalPointerExpr(local)));
 	} else if (inner.kind.isA!CallExpr)
 		return checkPointerOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
@@ -1082,7 +1082,7 @@ Expr checkPointerOfCall(
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
 				return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
 			} else if (target.kind.isA!CallExpr) {
 				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
@@ -1098,7 +1098,7 @@ Expr checkPointerOfCall(
 						return bogus(expected, source);
 					} else
 						return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-							PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
 				} else
 					return fail();
 			} else

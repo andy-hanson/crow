@@ -26,6 +26,7 @@ import model.model :
 	LiteralExpr,
 	LiteralStringLikeExpr,
 	LocalGetExpr,
+	LocalPointerExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -36,8 +37,7 @@ import model.model :
 	MatchStringLikeExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
+	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecInst,
 	SpecDecl,
@@ -300,6 +300,8 @@ Opt!T findDirectChildExpr(T)(
 			assert(a.type == x.local.type);
 			return none!T;
 		},
+		(LocalPointerExpr _) =>
+			none!T,
 		(LocalSetExpr x) {
 			assert(a.type == voidType);
 			return cb(ExprRef(x.value, x.local.type));
@@ -343,10 +345,8 @@ Opt!T findDirectChildExpr(T)(
 				cb(toRef(x.matched)),
 				() => directChildInMatchVariantCases(x.cases),
 				() => cb(sameType(x.else_))),
-		(PtrToFieldExpr* x) =>
+		(RecordFieldPointerExpr* x) =>
 			cb(toRef(x.target)),
-		(PtrToLocalExpr _) =>
-			none!T,
 		(SeqExpr* x) =>
 			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(x.then))),
 		(ThrowExpr* x) =>

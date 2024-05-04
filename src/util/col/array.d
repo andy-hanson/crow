@@ -643,20 +643,30 @@ bool arraysEqual(T)(in T[] a, in T[] b) =>
 T applyNTimes(T)(T start, size_t times, in T delegate(T) @safe @nogc pure nothrow cb) =>
 	times == 0 ? start : applyNTimes(cb(start), times - 1, cb);
 
-T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
+T fold(T, U)(T start, in U[] arr, in T delegate(T, in U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
-T foldPointers(T, U)(T start, in U[] arr, in T delegate(T a, U* b) @safe @nogc pure nothrow cb) =>
+T foldPointers(T, U)(T start, in U[] arr, in T delegate(T, U*) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
 		: foldPointers!(T, U)(cb(start, &arr[0]), arr[1 .. $], cb);
 
-T foldReverse(T, U)(T start, in U[] arr, in T delegate(T a, ref U b) @safe @nogc pure nothrow cb) =>
+T foldReverse(T, U)(T start, in U[] arr, in T delegate(T, ref U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
 		: foldReverse!(T, U)(cb(start, arr[$ - 1]), arr[0 .. $ - 1], cb);
+
+T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U) @safe @nogc pure nothrow cb) =>
+	isEmpty(arr)
+		? start
+		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
+
+T reduce(T)(in T[] array, in T delegate(T, T) @safe @nogc pure nothrow cb) {
+	assert(!isEmpty(array));
+	return fold(array[0], array[1 .. $], (T x, in T y) => cb(x, y));
+}
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

@@ -22,7 +22,7 @@ import model.model :
 	Test,
 	VarDecl;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
+import util.col.array : arraysEqual, isEmpty, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.col.set : Set;
 import util.hash : HashCode, Hasher, hashPtr;
@@ -367,11 +367,21 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct CreateArray {
+		@safe @nogc pure nothrow:
 		ConcreteExpr[] args;
+		this(ConcreteExpr[] a) {
+			args = a;
+			assert(!isEmpty(args));
+		}
 	}
 
 	immutable struct CreateRecord {
+		@safe @nogc pure nothrow:
 		ConcreteExpr[] args;
+		this(ConcreteExpr[] a) {
+			args = a;
+			assert(!isEmpty(args));
+		}
 	}
 
 	immutable struct CreateUnion {

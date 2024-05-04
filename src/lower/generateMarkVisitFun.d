@@ -430,20 +430,20 @@ LowFun generateMarkVisitFiber(
 			? genVoid(range)
 			: genCallNoGcRoots(alloc, voidType, range, force(visitField), [
 				markCtx,
-				genRecordFieldGet(alloc, range, fiber, fieldType, fieldIndex)]);
+				genRecordFieldGet(alloc, fieldType, range, fiber, fieldIndex)]);
 	}
 	LowExpr visitInitialFunction = genVisitField(0);
 	// 'log-handler' might never need a closure and so might not need a visit
 	LowExpr visitLogHandler = genVisitField(1, true);
 	LowExpr visitStack = genVisitField(2);
 	LowField* gcRoot = &fiberRecord.fields[3];
-	LowExpr getGcRoot = genRecordFieldGet(alloc, range, fiber, gcRoot.type, 3);
+	LowExpr getGcRoot = genRecordFieldGet(alloc, gcRoot.type, range, fiber, 3);
 	
 	LowLocal* cur = genLocal(alloc, symbol!"cur", isMutable: true, 2, gcRoot.type);
 	LowExpr getCur = genLocalGet(range, cur);
 	LowRecord* gcRootRecord = &allTypes.allRecords[cur.type.as!(LowType.PtrRawMut).pointee.as!(LowType.Record)];
 	LowExpr gcRootField(size_t fieldIndex) =>
-		genRecordFieldGet(alloc, range, getCur, gcRootRecord.fields[fieldIndex].type, fieldIndex);
+		genRecordFieldGet(alloc, gcRootRecord.fields[fieldIndex].type, range, getCur, fieldIndex);
 	LowExpr curPointer = gcRootField(0);
 	LowExpr curTrace = gcRootField(1);
 	LowExpr curNext = gcRootField(2);
@@ -481,7 +481,7 @@ LowFunExprBody visitRecordBody(
 			Opt!LowExpr newAccum = () {
 				Opt!LowFunIndex fun = getMarkVisitForType(alloc, lowFunCauses, markVisitFuns, allTypes, fieldType);
 				if (has(fun)) {
-					LowExpr fieldGet = genRecordFieldGet(alloc, range, value, fieldType, fieldIndex);
+					LowExpr fieldGet = genRecordFieldGet(alloc, fieldType, range, value, fieldIndex);
 					LowExpr call = genCallNoGcRoots(alloc, voidType, range, force(fun), [markCtx, fieldGet]);
 					return some(has(accum) ? genSeq(alloc, range, force(accum), call) : call);
 				} else

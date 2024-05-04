@@ -173,9 +173,7 @@ ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunB
 			default:
 				ConcreteExpr[] args = mapPointers(ctx.alloc, fun.params[1 .. $], (ConcreteLocal* param) =>
 					genParamGet(ctx.alloc, range, param));
-				return ConcreteExpr(
-					callFun.params[1].type, range,
-					ConcreteExprKind(ConcreteExprKind.CreateRecord(args)));
+				return genCreateRecord(callFun.params[1].type, range, args);
 		}
 	}();
 	return ConcreteFunBody(genCall(ctx.alloc, range, callFun, [getFun, arg]));
