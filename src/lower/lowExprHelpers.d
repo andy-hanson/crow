@@ -304,7 +304,7 @@ LowExpr genEnumToIntegral(ref Alloc alloc, LowType type, UriAndRange range, LowE
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(BuiltinUnary.enumToIntegral, inner))));
 
 LowExpr genPointerCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
-	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner))));
+	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner)))); /// TODO: rename to PointerCfast ------------
 
 LowExpr genCreateRecord(ref Alloc alloc, LowType type, UriAndRange range, in LowExpr[] args) =>
 	genCreateRecord(type, range, newArray(alloc, args));

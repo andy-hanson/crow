@@ -116,7 +116,7 @@ import model.model :
 	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
-	localIsAllocated,
+	LocalMutability,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -540,7 +540,7 @@ SmallArray!ConcreteField concretizeClosureFields(ref ConcretizeExprCtx ctx, Smal
 				case ClosureReferenceKind.direct:
 					return baseType;
 				case ClosureReferenceKind.allocated:
-					return getConcreteType(ctx, force(x.local.referenceType));
+					return getConcreteType(ctx, Type(x.local.mutability.as!(LocalMutability.MutableAllocated).referenceType));
 			}
 		}();
 		// Even if the variable is mutable, it's a const field holding a mut pointer
@@ -721,8 +721,8 @@ RootLocalAndExpr concretizeWithDestructure(
 		},
 		(Local* local) {
 			ConcreteLocal* rootLocal = concretizeLocal(ctx, local);
-			if (localIsAllocated(*local)) {
-				ConcreteType referenceType = getConcreteType(ctx, force(local.referenceType));
+			if (local.isAllocated) {
+				ConcreteType referenceType = getConcreteType(ctx, Type(local.mutability.as!(LocalMutability.MutableAllocated).referenceType));
 				ConcreteLocal* referenceLocal = allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.reference), referenceType));
 				ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(referenceLocal)));
 				ConcreteExpr allocateThen = genLet(
@@ -863,7 +863,7 @@ ConcreteExpr concretizeLocalGet(
 			ConcreteExpr get = genLocalGet(range, x);
 			return isBogus(x.type)
 				? concretizeBogus(ctx, type, range)
-				: localIsAllocated(*local)
+				: local.isAllocated
 				? genReferenceRead(ctx.concretizeCtx, range, get)
 				: get;
 		},
@@ -880,7 +880,7 @@ ConcreteExpr concretizePtrToLocal(
 ) =>
 	castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
-			localIsAllocated(*a.local)
+			a.local.isAllocated
 				? genRecordFieldPointer(type, range, allocate(ctx.alloc, genLocalGet(range, local)), 0)
 				: genLocalPointer(type, range, local),
 		(TypedConstant x) =>
@@ -904,9 +904,9 @@ ConcreteExpr concretizeLocalSet(
 	LocalSetExpr a,
 ) {
 	ConcreteLocal* local = getLocal(locals, a.local).as!(ConcreteLocal*);
-	ConcreteType valueType = localIsAllocated(*a.local) ? getReferencedType(ctx.concretizeCtx, local.type) : local.type;
+	ConcreteType valueType = a.local.isAllocated ? getReferencedType(ctx.concretizeCtx, local.type) : local.type;
 	ConcreteExpr value = concretizeExpr(ctx, valueType, locals, *a.value);
-	return localIsAllocated(*a.local)
+	return a.local.isAllocated
 		? genReferenceWrite(ctx.concretizeCtx, range, genLocalGet(range, local), value)
 		: genLocalSet(ctx.concretizeCtx, range, local, value);
 }

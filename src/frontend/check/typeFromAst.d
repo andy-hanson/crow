@@ -481,13 +481,11 @@ Destructure checkDestructure(
 					if (has(x.mut) && kind == DestructureKind.param) {
 						Opt!Range mutRange = x.mutRange;
 						addDiag(ctx, force(mutRange), Diag(Diag.ParamMutable()));
-						return LocalMutability.immut;
+						return LocalMutability.immutable_;
 					} else
-						return has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut;
+						return has(x.mut) ? LocalMutability.mutableOnStack : LocalMutability.immutable_;
 				}();
-				Opt!Type referenceType = some(Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.reference, [type]))); // TODO: we shouldn't have to do this in frontend
-				return Destructure(allocate(ctx.alloc, Local(
-					LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type, referenceType)));
+				return Destructure(allocate(ctx.alloc, Local(LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type)));
 			}
 		},
 		(DestructureAst.Void x) {

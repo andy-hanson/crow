@@ -196,12 +196,9 @@ Operation* returnPop(ref Stacks a) {
 	return res;
 }
 
-const(Operation*[]) returnTempAsArrReverse(ref const Stacks a) { // TODO: come up with a better name ..............................
-	size_t max = 1000; // TODO:KILL --------------------------------------------------------------------------------------------------------
+const(Operation*[]) returnTempAsArrReverse(ref const Stacks a) {
 	const(Operation*)* cur = a.returnPtr;
-	while (*cur != null) {
-		if (cur - a.returnPtr >= max) assert(false);
+	while (*cur != null)
 		cur++;
-	}
 	return arrayOfRange(a.returnPtr, cur);
 }

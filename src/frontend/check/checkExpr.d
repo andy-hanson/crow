@@ -964,11 +964,11 @@ Opt!Expr checkWithLocal(
 		locals.lambda,
 		someMut(ptrTrustMe(localNode)));
 	Opt!Expr res = cb(newLocals);
-	if (localNode.local.mutability == LocalMutability.mutOnStack &&
+	if (localNode.local.mutability.isA!(LocalMutability.MutableOnStack) &&
 		(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
 		 localNode.isUsed[LocalAccessKind.setThroughClosure])) {
 		//TODO:BETTER
-		overwriteMemory(&local.mutability, LocalMutability.mutAllocated);
+		overwriteMemory(&local.mutability, LocalMutability(LocalMutability.MutableAllocated(instantiateStructNeverDelay(ctx.instantiateCtx, ctx.commonTypes.reference, [local.type]))));
 	}
 	addUnusedLocalDiags(ctx, local, localNode);
 	return res;
@@ -977,7 +977,7 @@ Opt!Expr checkWithLocal(
 void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node) {
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
-	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
+	if (!isGot || (!isSet && local.isMutable))
 		addDiag2(ctx, localMustHaveNameRange(*local), Diag(
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
@@ -1042,7 +1042,7 @@ Expr checkPointerInner(
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);
 	if (inner.kind.isA!LocalGetExpr) {
 		Local* local = inner.kind.as!LocalGetExpr.local;
-		if (local.mutability < expectedMutability)
+		if (expectedMutability != PointerMutability.readOnly && !local.isMutable)
 			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.writeable)
 			markIsUsedSetOnStack(locals, local);
@@ -1238,7 +1238,7 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 			Diag.SharedLambdaTypeIsNotShared.Kind.returnType, typeWithContainer(ctx, res.returnType))));
 
 	bool allShared = every!VariableRef(res.expr.kind.as!(LambdaExpr*).closure, (in VariableRef x) =>
-		x.mutability == LocalMutability.immut && isShared(ctx.outermostFunSpecs, x.type));
+		x.mutability.isImmutable && isShared(ctx.outermostFunSpecs, x.type));
 	if (allShared)
 		diag(Diag(Diag.SharedLambdaUnused()));
 	return res.expr;

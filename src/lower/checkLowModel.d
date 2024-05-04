@@ -53,17 +53,18 @@ import util.uri : UrisInfo;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
-void checkLowProgram(in Program program, in ConcreteProgram concreteProgram, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(program), ptrTrustMe(concreteProgram), ptrTrustMe(a));
+void checkLowProgram(in ShowCtx showCtx, in Program program, in ConcreteProgram concreteProgram, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(showCtx), ptrTrustMe(program), ptrTrustMe(concreteProgram), ptrTrustMe(a));
 	foreach (ref LowFun fun; a.allFuns)
 		checkLowFun(ctx, fun);
 }
 
 private:
 
-immutable struct Ctx {
+const struct Ctx {
 	@safe @nogc pure nothrow:
 
+	ShowCtx* showCtx;
 	Program* modelProgramPtr;
 	ConcreteProgram* concreteProgramPtr;
 	LowProgram* programPtr;
@@ -551,8 +552,7 @@ void checkTypeEqual(in FunCtx ctx, in LowType expected, in LowType actual) {
 	if (expected != actual)
 		debugLogWithWriter((scope ref Alloc alloc, scope ref Writer writer) {
 			writer ~= "In ";
-			ShowCtx showCtx = ShowCtx(LineAndColumnGetters(), UrisInfo(), ShowOptions()); // TODO --------------------------------------
-			writeFunName(writer, showCtx, ctx.ctx.program, ctx.fun);
+			writeFunName(writer, *ctx.ctx.showCtx, ctx.ctx.program, ctx.fun);
 			writer ~= ":\nType is not as expected. Expected:\n";
 			writer ~= jsonOfLowType2(alloc, ctx.ctx.program, expected);
 			writer ~= "\nActual:\n";

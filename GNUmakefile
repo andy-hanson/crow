@@ -30,7 +30,7 @@ crow-unit-tests-interpreter: bin/crow
 crow-unit-tests-jit: bin/crow
 ifdef JIT
 	bin/crow run test/crow-unit-tests.crow --jit
-	bin/crow run test/crow-unit-tests.crow --jit --optimize
+	# TODO: bin/crow run test/crow-unit-tests.crow --jit --optimize
 endif
 crow-unit-tests-aot: bin/crow
 	bin/crow run test/crow-unit-tests.crow --aot

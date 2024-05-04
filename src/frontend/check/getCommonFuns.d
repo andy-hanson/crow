@@ -231,7 +231,7 @@ private Symbol setjmpName() {
 
 Destructure makeParam(ref Alloc alloc, ParamShort param) =>
 	Destructure(allocate(alloc, Local(
-		LocalSource(allocate(alloc, LocalSource.Generated(param.name))), LocalMutability.immut, param.type)));
+		LocalSource(allocate(alloc, LocalSource.Generated(param.name))), LocalMutability.immutable_, param.type)));
 
 Params makeParams(ref Alloc alloc, in ParamsShort params) =>
 	params.match!Params(

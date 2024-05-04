@@ -4,6 +4,7 @@ module lower.lower;
 
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import concretize.gatherInfo : existsDirectChildExpr;
+import frontend.showModel : ShowCtx, ShowOptions;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateMarkVisitFun : getMarkRootForType, getMarkVisitForType, generateMarkRoot, generateMarkVisit, initMarkVisitFuns, MarkRoot, MarkVisitFuns;
 import lower.lowExprHelpers :
@@ -174,14 +175,16 @@ import versionInfo : isVersion, VersionFun;
 LowProgram lower(
 	scope ref Perf perf,
 	ref Alloc alloc,
+	in ShowCtx showCtx,
 	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
 ) =>
-	withMeasure!(LowProgram, () => lowerInner(alloc, configExtern, program, a))(perf, alloc, PerfMeasure.lower);
+	withMeasure!(LowProgram, () => lowerInner(alloc, showCtx, configExtern, program, a))(perf, alloc, PerfMeasure.lower);
 
 private LowProgram lowerInner(
 	ref Alloc alloc,
+	in ShowCtx showCtx,
 	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
@@ -199,7 +202,7 @@ private LowProgram lowerInner(
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternLibraries);
-	checkLowProgram(program, a, res);
+	checkLowProgram(showCtx, program, a, res);
 	return res;
 }
 
@@ -992,7 +995,6 @@ LowExpr getLowExpr(
 	LowExpr res = getLowExprKind(ctx, locals, type, expr, exprPos); // TODO: that is misnamed then ............................
 	if (res.type != type) { // ---------------------------------------------------------------------------------------------------
 		import util.writer : debugLogWithWriter, Writer;
-		import frontend.showModel : ShowCtx, ShowOptions;
 		import model.showLowModel : writeLowType;
 		import frontend.storage : LineAndColumnGetters;
 		import util.uri : UrisInfo;
@@ -1718,7 +1720,8 @@ LowExpr getFinallyExpr(
 			return genLetNoGcRoot(
 				ctx.alloc, range, err,
 				genFalse(range),
-				genSeqThenReturnFirstPossiblyGcRoot(ctx, exprPos, range, res, afterRes, expressionMayYield(ctx, a.right)));
+				genSeqThenReturnFirstPossiblyGcRoot(
+					ctx, exprPos, range, res, afterRes, expressionMayYield(ctx, a.right)));
 		}));
 
 LowExpr getTryExpr(

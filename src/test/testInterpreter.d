@@ -120,7 +120,7 @@ ByteCode dummyByteCode(return scope Operations operations) =>
 void doInterpret(
 	ref Test test,
 	in ByteCode byteCode,
-	in void delegate(in ulong[] stacksStorage, scope ref Stacks stacks, Operation*) @system @nogc nothrow runInterpreter,
+	in void delegate(in ulong[] stacksStorage, scope ref Stacks, Operation*) @system @nogc nothrow runInterpreter,
 ) {
 	LowFun[1] lowFun = [LowFun(
 		LowFunSource(allocate(test.alloc, LowFunSource.Generated(symbol!"test", []))),

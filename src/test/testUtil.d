@@ -70,14 +70,15 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 @trusted void expectReturnStack(
 	ref Test test,
 	in ByteCode byteCode,
-	in ulong[] stacksStorage, // TODO: unused (but I could use it just to assert that returnTempAsArrReverse detected the end correctly)
+	in ulong[] stacksStorage,
 	in Stacks stacks,
 	in ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
 	scope const Operation*[] reversed = returnTempAsArrReverse(stacks)[0 .. $ - 1];
-	assert(endPtr(reversed) == (cast(Operation**) endPtr(stacksStorage)) - 2); // - 1 for null, - 1 for opStopInterpretation (TODO: why do we need both?)
-	scope const Operation*[] stack = reverse(test.alloc, reversed); // TODO: USE TEMP ALLOC --------------------------------------
+	// - 1 for null, - 1 for opStopInterpretation
+	assert(endPtr(reversed) == (cast(Operation**) endPtr(stacksStorage)) - 2);
+	scope const Operation*[] stack = reverse(test.alloc, reversed);
 	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,

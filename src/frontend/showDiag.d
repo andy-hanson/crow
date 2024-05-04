@@ -165,7 +165,7 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 		(in Diag.Unused.Kind.Local x) {
 			writer ~= "Local ";
 			writeName(writer, ctx, x.local.name);
-			writer ~= (x.local.mutability == LocalMutability.immut)
+			writer ~= !x.local.isMutable
 				? " is unused"
 				: x.usedGet
 				? " is mutable but never reassigned"

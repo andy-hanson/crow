@@ -174,7 +174,7 @@ private void operation(alias cb)(
 ) {
 	Stacks stacks = Stacks(stacksData, stacksReturn);
 	static if (false) {
-		// printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1); --------------------------------
+		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
 		debugLog(__traits(identifier, cb));
 	}
 	cb(stacks, cur);

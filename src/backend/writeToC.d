@@ -31,6 +31,7 @@ import model.lowModel :
 	isChar8,
 	isChar32,
 	isVoid,
+	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -812,8 +813,7 @@ void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBody
 }
 
 bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
-	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
-	local.isMutable && ctx.ctx.program.allFuns[ctx.curFun].hasSetjmp;
+	.localMustBeVolatile(local, ctx.ctx.program.allFuns[ctx.curFun]);
 
 immutable struct WriteKind {
 	immutable struct Inline {

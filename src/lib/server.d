@@ -737,7 +737,7 @@ Programs buildToLowProgram(
 		ShowCtx ctx = getShowDiagCtx(server, program.program);
 		ConcreteProgram concreteProgram = concretize(
 			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
-		LowProgram lowProgram = lower(perf, alloc, program.mainConfig.extern_, program.program, concreteProgram);
+		LowProgram lowProgram = lower(perf, alloc, ctx, program.mainConfig.extern_, program.program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
 	}
 }

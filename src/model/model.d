@@ -1766,7 +1766,6 @@ immutable struct Local {
 	LocalSource source;
 	LocalMutability mutability;
 	Type type;
-	Opt!Type referenceType; // TODO: figure out a way to not have this on the Model. Only needed for concretize. --------------------------------------------
 
 	Symbol name() scope =>
 		source.matchIn!Symbol(
@@ -1774,17 +1773,24 @@ immutable struct Local {
 				x.name.name,
 			(in LocalSource.Generated x) =>
 				x.name);
-}
 
-bool localIsAllocated(in Local a) scope {
-	final switch (a.mutability) {
-		case LocalMutability.immut:
-		case LocalMutability.mutOnStack:
-			return false;
-		case LocalMutability.mutAllocated:
-			assert(has(a.referenceType));
-			return true;
-	}
+	bool isMutable() scope =>
+		mutability.matchIn!bool(
+			(in LocalMutability.Immutable) =>
+				false,
+			(in LocalMutability.MutableOnStack) =>
+				true,
+			(in LocalMutability.MutableAllocated) =>
+				true);
+
+	bool isAllocated() scope =>
+		mutability.matchIn!bool(
+			(in LocalMutability.Immutable) =>
+				false,
+			(in LocalMutability.MutableOnStack) =>
+				false,
+			(in LocalMutability.MutableAllocated) =>
+				true);
 }
 
 Range localMustHaveNameRange(in Local a) =>
@@ -1793,22 +1799,31 @@ Range localMustHaveNameRange(in Local a) =>
 private Range localMustHaveRange(in Local a) =>
 	a.source.as!(DestructureAst.Single*).range;
 
-enum LocalMutability {
-	immut,
-	mutOnStack, // Mutable and on the stack
-	mutAllocated, // Mutable and must be heap-allocated since it's used in a closure
+immutable struct LocalMutability {
+	@safe @nogc pure nothrow:
+	immutable struct Immutable {}
+	immutable struct MutableOnStack {}
+	immutable struct MutableAllocated { StructInst* referenceType; }
+	mixin Union!(Immutable, MutableOnStack, MutableAllocated);
+
+	static LocalMutability immutable_() =>
+		LocalMutability(LocalMutability.Immutable());
+	static LocalMutability mutableOnStack() =>
+		LocalMutability(LocalMutability.MutableOnStack());
+
+	bool isImmutable() =>
+		isA!Immutable;
 }
 
 enum Mutability { immut, mut }
-Mutability toMutability(LocalMutability a) {
-	final switch (a) {
-		case LocalMutability.immut:
-			return Mutability.immut;
-		case LocalMutability.mutOnStack:
-		case LocalMutability.mutAllocated:
-			return Mutability.mut;
-	}
-}
+Mutability toMutability(LocalMutability a) =>
+	a.matchIn!Mutability(
+		(in LocalMutability.Immutable) =>
+			Mutability.immut,
+		(in LocalMutability.MutableOnStack) =>
+			Mutability.mut,
+		(in LocalMutability.MutableAllocated) =>
+			Mutability.mut);
 
 immutable struct ClosureRef {
 	@safe @nogc pure nothrow:
@@ -1860,16 +1875,14 @@ immutable struct VariableRef {
 		matchWithPointers!(Local*)(
 			(Local* x) => x,
 			(ClosureRef x) => x.local);
-	ClosureReferenceKind closureReferenceKind() scope {
-		final switch (local.mutability) {
-			case LocalMutability.immut:
-				return ClosureReferenceKind.direct;
-			case LocalMutability.mutOnStack:
-				assert(false);
-			case LocalMutability.mutAllocated:
-				return ClosureReferenceKind.allocated;
-		}
-	}
+	ClosureReferenceKind closureReferenceKind() scope =>
+		local.mutability.matchIn!ClosureReferenceKind(
+			(in LocalMutability.Immutable) =>
+				ClosureReferenceKind.direct,
+			(in LocalMutability.MutableOnStack) =>
+				assert(false),
+			(in LocalMutability.MutableAllocated) =>
+				ClosureReferenceKind.allocated);
 }
 
 immutable struct Destructure {

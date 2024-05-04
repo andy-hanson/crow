@@ -61,7 +61,7 @@ test trusted
 
 # 'finally' block has correct gc-root
 test trusted
-	ok mut = false
+	ran-finally mut = false
 	try
 		start = count-roots
 		r r = 1,
@@ -70,7 +70,7 @@ test trusted
 		finally do
 			count-roots is start + 1
 			r use
-			ok := true
+			ran-finally := true
 		r2 r = 2,
 		yield-fiber
 		count-roots is start + 2
@@ -78,7 +78,7 @@ test trusted
 		r2 use
 		should-throw
 	catch divide-by-0
-		assert ok
+		assert ran-finally
 
 # 'catch' restores gc-root
 test trusted

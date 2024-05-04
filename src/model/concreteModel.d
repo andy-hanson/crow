@@ -15,7 +15,6 @@ import model.model :
 	IntegralType,
 	isTuple,
 	Local,
-	localIsAllocated,
 	Params,
 	Purity,
 	StructDecl,
@@ -39,7 +38,7 @@ import versionInfo : VersionInfo;
 
 immutable struct ConcreteStructBody {
 	immutable struct Builtin {
-		BuiltinType kind; // Never 'lambda'. Can we type this better? ---------------------------------------------------------
+		BuiltinType kind;
 		SmallArray!ConcreteType typeArgs;
 	}
 	immutable struct Enum {
@@ -233,7 +232,7 @@ immutable struct ConcreteLocal {
 
 immutable struct ConcreteFunBody {
 	immutable struct Builtin {
-		BuiltinFun kind; // Never 'lambdaCall' (TODO: can we type this better?) --------------------------------------------
+		BuiltinFun kind;
 		ConcreteType[] typeArgs;
 	}
 	immutable struct Extern {
@@ -311,16 +310,6 @@ immutable struct ConcreteFunKey {
 	FunDecl* decl;
 	SmallArray!ConcreteType typeArgs;
 	SmallArray!(immutable ConcreteFun*) specImpls;
-
-	this(FunDecl* d, SmallArray!ConcreteType ta, SmallArray!(immutable ConcreteFun*) si) { // -----------------------------
-		decl = d;
-		typeArgs = ta;
-		specImpls = si;
-		if (decl.body_.isA!BuiltinFun) {
-			BuiltinFun bf = decl.body_.as!BuiltinFun;
-			assert(!bf.isA!BuiltinBinaryLazy);
-		}
-	}
 
 	bool opEquals(scope ConcreteFunKey b) scope =>
 		decl == b.decl &&

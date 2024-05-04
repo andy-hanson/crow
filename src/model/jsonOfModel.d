@@ -40,6 +40,7 @@ import model.model :
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
+	LocalMutability,
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
@@ -561,8 +562,18 @@ Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 	jsonObject(alloc, [
 		kindField!"local",
 		field!"name"(a.name),
-		field!"mutability"(stringOfEnum(a.mutability)),
+		field!"mutability"(jsonOfLocalMutability(alloc, ctx, a.mutability)),
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
+Json jsonOfLocalMutability(ref Alloc alloc, in Ctx ctx, in LocalMutability a) =>
+	a.matchIn!Json(
+		(in LocalMutability.Immutable) =>
+			jsonString("immutable"),
+		(in LocalMutability.MutableOnStack) =>
+			jsonString("mutable-on-stack"),
+		(in LocalMutability.MutableAllocated x) =>
+			jsonObject(alloc, [
+				kindField!"mutable-allocated",
+				field!"reference-type"(jsonOfStructInst(alloc, ctx, *x.referenceType))]));
 
 Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 	a.matchIn!Json(

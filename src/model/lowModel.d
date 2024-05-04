@@ -15,7 +15,14 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, LocalMutability, StructBody;
+	BuiltinUnary,
+	BuiltinUnaryMath,
+	BuiltinBinary,
+	BuiltinBinaryMath,
+	BuiltinTernary,
+	Local,
+	LocalMutability,
+	StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -292,10 +299,13 @@ immutable struct LowLocal {
 	bool isMutable() scope =>
 		source.matchIn!bool(
 			(in Local x) =>
-				x.mutability != LocalMutability.immut,
+				x.isMutable,
 			(in LowLocalSource.Generated x) =>
 				x.isMutable);
 }
+bool localMustBeVolatile(in LowLocal local, in LowFun curFun) =>
+	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
+	local.isMutable && curFun.hasSetjmp;
 
 immutable struct LowFunBody {
 	immutable struct Extern {
@@ -316,8 +326,8 @@ immutable struct LowFunFlags {
 	@safe @nogc pure nothrow:
 	bool hasSetjmp;
 	bool hasTailRecur;
-	bool mayYield;	
-	
+	bool mayYield;
+
 	static LowFunFlags none() =>
 		LowFunFlags(false, false, false);
 }
@@ -352,17 +362,17 @@ immutable struct LowFun {
 				x.range,
 			(in LowFunSource.Generated) =>
 				UriAndRange.empty);
-	
+
 	LowFunFlags flags() scope =>
 		body_.matchIn!LowFunFlags(
 			(in LowFunBody.Extern) =>
 				LowFunFlags(
 					hasSetjmp: false,
 					hasTailRecur: false,
-					mayYield: false), // TODO: true if the extern function is 'blocking' ---------------------------------------------------------------
+					mayYield: false),
 			(in LowFunExprBody x) =>
 				x.flags);
-	
+
 	bool hasSetjmp() scope =>
 		flags.hasSetjmp;
 
@@ -419,7 +429,8 @@ immutable struct LowExprKind {
 		LowExpr arg;
 	}
 
-	// Sometimes this will be a Constant.FunPointer instead, but that's only possible for functions known to ConcreteModel
+	// Sometimes this will be a Constant.FunPointer instead,
+	// but that's only possible for functions known to ConcreteModel
 	immutable struct FunPointer {
 		LowFunIndex fun;
 	}
@@ -637,7 +648,7 @@ immutable struct AllConstantsLow {
 	PointerTypeAndConstantsLow[] pointers;
 }
 
-alias ConcreteFunToLowFunIndex = Map!(ConcreteFun*, LowFunIndex); // TODO: used outside of lower? --------------------------------------------
+alias ConcreteFunToLowFunIndex = Map!(ConcreteFun*, LowFunIndex);
 
 immutable struct LowVarIndex {
 	size_t index;

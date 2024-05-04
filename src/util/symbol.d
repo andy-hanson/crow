@@ -729,6 +729,7 @@ immutable string[] specialSymbols = [
 	"question-pos",
 	"records",
 	"reference",
+	"reference-type",
 	"refKeys",
 	"refPairs",
 	"rest-args",
