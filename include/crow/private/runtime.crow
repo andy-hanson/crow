@@ -102,10 +102,10 @@ destroy void(a global-ctx mut*) bare, unsafe
 	a.may-be-work-to-do destroy-condition
 
 ###
-`stack-top` must be 16-byte aligned. This will grow down, meaning it starts at the greatest value.
+`stack-low` and `stack-high` must be 16-byte aligned. This will grow down, meaning it starts at the greatest value.
 Initializes the stack, then returns the new stack pointer.
 ###
--init-stack stack-pointer(stack-top stack-pointer, func void function()) builtin, bare
+-init-stack stack-pointer(stack-low stack-pointer, stack-high stack-pointer, func void function()) builtin, bare
 ###
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
@@ -154,7 +154,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	stack: stack
 	gc-root: null
 	is-running: false
-	stack-pointer: stack.end-pointer init-stack &fiber-func
+	stack-pointer: stack.begin-pointer init-stack stack.end-pointer, &fiber-func
 	cur-exclusion: a.next-exclusion.get-and-increment
 	cur-jmp-buf: null
 

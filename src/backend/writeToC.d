@@ -974,9 +974,10 @@ WriteExprResult writeExpr(
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary x) {
-			if (false) // Giving this lambda a type
-				return writeExprDone();
 			final switch (x.kind) {
+				case BuiltinTernary.initStack:
+					// defined in writeToC_boilerplace.c
+					return specialCallTernary(writer, indent, ctx, writeKind, type, x.args, "init_stack");
 				case BuiltinTernary.interpreterBacktrace:
 					assert(false);
 			}
@@ -1672,6 +1673,17 @@ WriteExprResult specialCallBinary(
 ) =>
 	specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
 
+WriteExprResult specialCallTernary(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExpr[3] args,
+	in string name,
+) =>
+	specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
+
 WriteExprResult specialCallBinaryOrTernary(
 	scope ref Writer writer,
 	size_t indent,
@@ -1812,9 +1824,6 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
 			return operator("==");
-		case BuiltinBinary.initStack:
-			// defined in writeToC_boilerplace.c
-			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "init_stack");
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
 		case BuiltinBinary.lessFloat64:

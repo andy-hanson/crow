@@ -36,7 +36,7 @@ __asm__(
 );
 extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* to);
 
-static uint64_t* init_stack(uint64_t* stack_top, void (*target)()) {
+static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*target)()) {
 	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned
 	// It will pop garbage initial values for r15, r14, r13, r12, rbp, rbx, then return to 'target'
 	return stack_top - 8;

@@ -921,7 +921,6 @@ enum BuiltinBinary {
 	eqNat32,
 	eqNat64,
 	eqPointer,
-	initStack,
 	lessChar8,
 	lessFloat32,
 	lessFloat64,
@@ -994,7 +993,7 @@ enum BuiltinBinaryMath {
 	atan2Float64,
 }
 
-enum BuiltinTernary { interpreterBacktrace }
+enum BuiltinTernary { initStack, interpreterBacktrace }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:

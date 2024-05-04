@@ -42,7 +42,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinUnary, BuiltinUnaryMath, Program;
+import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, BuiltinUnary, BuiltinUnaryMath, Program;
 import model.showLowModel : writeFunName;
 import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
@@ -211,8 +211,18 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			foreach (scope ref LowExpr arg; castNonScope(x.args))
 				checkLowExpr(ctx, actual, arg, ExprPos.nonTail);
 		},
-		(in LowExprKind.SpecialTernary) {
-			// TODO
+		(in LowExprKind.SpecialTernary x) {
+			final switch (x.kind) {
+				case BuiltinTernary.initStack:
+					checkTypeEqual(ctx, type, nat64MutPointerType);
+					checkLowExpr(ctx, nat64MutPointerType, x.args[0], ExprPos.nonTail);
+					checkLowExpr(ctx, nat64MutPointerType, x.args[1], ExprPos.nonTail);
+					// TODO: check third arg is a 'void function()'
+					break;
+				case BuiltinTernary.interpreterBacktrace:
+					// TODO
+					break;
+			}
 		},
 		(in LowExprKind.Switch x) {
 			checkLowExpr(ctx, x.value.type, x.value, ExprPos.nonTail);
@@ -518,8 +528,6 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.lessPointer:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
-		case BuiltinBinary.initStack:
-			return ExpectBinary(some(nat64MutPointerType), [some(nat64MutPointerType), none!LowType]);
 		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
 		case BuiltinBinary.seq:

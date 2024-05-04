@@ -77,6 +77,7 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupEntries,
 	writeFnBinary,
+	writeFnTernary,
 	writeFnUnary,
 	writeInterpreterBacktrace,
 	writeMulConstantNat64,
@@ -994,6 +995,9 @@ void generateSpecialTernary(
 	foreach (ref LowExpr arg; castNonScope(a).args)
 		generateExprAndContinue(writer, ctx, locals, arg);
 	final switch (a.kind) {
+		case BuiltinTernary.initStack:
+			writeFnTernary(writer, source, &opInitStack);
+			break;
 		case BuiltinTernary.interpreterBacktrace:
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
@@ -1101,9 +1105,6 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
 			fn(&fnEq64Bit);
-			break;
-		case BuiltinBinary.initStack:
-			fn(&opInitStack);
 			break;
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessNat8:

@@ -277,7 +277,7 @@ FunBody inner(
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"init-stack".value:
-			return binary(BuiltinBinary.initStack);
+			return ternary(BuiltinTernary.initStack);
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))

@@ -30,7 +30,7 @@ import interpret.stacks :
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
-import util.col.array : indexOf;
+import util.col.array : arrayOfRange, indexOf;
 import util.col.map : mustGet;
 import util.conv : safeToUint, safeToSizeT;
 import util.exitCode : ExitCode;
@@ -241,11 +241,10 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 }
 
 // TODO: this should probably go next to opSwitchFiber!----------------------------------------------------------------------------------------
-alias opInitStack = opFnBinary!((ulong stackTop, ulong func) @system {
+alias opInitStack = opFnTernary!((ulong stackLow, ulong stackHigh, ulong func) @system {
 	// We store the return** on the data stack.
-	// Stacks uses the high as the return pointer (TODO: ensure a compile error here if that changes??????????????????????????????)
-	ulong* returnPtr = cast(ulong*) stackTop;
-	Stacks stacks = stacksForRange((returnPtr - 0xfff0)[0 .. 0xfff0]); // TODO: don't hardcode! Also it should be 0x10000 ----------------------------------------------------------------
+	// Stacks uses the high as the return pointer (TODO: ensure a compile error here if that changes??????????????????????????????)????????
+	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));
 	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
 	dataPush(stacks, cast(ulong) stacks.returnPtr);
 	return cast(ulong) stacks.dataPtr;
@@ -461,6 +460,14 @@ private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
 	ulong y = dataPop(stacks);
 	ulong x = dataPop(stacks);
 	dataPush(stacks, cb(x, y));
+}
+
+alias opFnTernary(alias cb) = operation!(opFnTernaryInner!cb);
+private void opFnTernaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
+	ulong z = dataPop(stacks);
+	ulong y = dataPop(stacks);
+	ulong x = dataPop(stacks);
+	dataPush(stacks, cb(x, y, z));
 }
 
 private Operation readOperation(scope ref Operation* cur) {

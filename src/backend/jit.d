@@ -127,10 +127,10 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinUnary;
+import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
 import util.alloc.alloc : Alloc;
-import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapWithIndex, zip;
+import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapStatic, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
@@ -143,7 +143,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.union_ : TaggedUnion;
-import util.util : castImmutable, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted ExitCode jitAndRun(
@@ -354,7 +354,7 @@ immutable struct ConversionFunctions {
 	gcc_jit_function* nat64ToPtr;
 }
 
-// TODO: I could just do this in Crow code with 'if is-interpreted' ............
+// TODO: I could just do this in Crow code with 'if is-interpreted' ..............................................................
 immutable(gcc_jit_function*) makeInitStackFunction(
 	ref gcc_jit_context ctx,
 	immutable gcc_jit_type* crowVoidType,
@@ -365,8 +365,9 @@ immutable(gcc_jit_function*) makeInitStackFunction(
 	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
 	immutable gcc_jit_type* voidFunctionPointerType = gcc_jit_context_new_function_ptr_type(
 		ctx, null, crowVoidType, 0, null, false);
-	immutable gcc_jit_param*[2] initStackParams = [
-		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_top"),
+	immutable gcc_jit_param*[3] initStackParams = [
+		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_low"),
+		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_high"),
 		gcc_jit_context_new_param(ctx, null, voidFunctionPointerType, "target"),
 	];
 	gcc_jit_function* res = gcc_jit_context_new_function(
@@ -379,8 +380,8 @@ immutable(gcc_jit_function*) makeInitStackFunction(
 		initStackParams.ptr,
 		false);
 
-	immutable gcc_jit_rvalue* stackTop = gcc_jit_param_as_rvalue(gcc_jit_function_get_param(res, 0));
-	immutable gcc_jit_rvalue* target = gcc_jit_param_as_rvalue(gcc_jit_function_get_param(res, 1));
+	immutable gcc_jit_rvalue* stackTop = gcc_jit_param_as_rvalue(gcc_jit_function_get_param(res, 1));
+	immutable gcc_jit_rvalue* target = gcc_jit_param_as_rvalue(gcc_jit_function_get_param(res, 2));
 	immutable gcc_jit_rvalue* negTwo = gcc_jit_context_new_rvalue_from_long(ctx, int64Type, -2);
 	immutable gcc_jit_rvalue* negEight = gcc_jit_context_new_rvalue_from_long(ctx, int64Type, -8);
 
@@ -899,12 +900,12 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			unaryToGcc(ctx, locals, emit, a.type, it),
 		(in LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
-		(in LowExprKind.SpecialBinary it) =>
-			binaryToGcc(ctx, locals, emit, a.type, it),
+		(in LowExprKind.SpecialBinary x) =>
+			binaryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
-		(in LowExprKind.SpecialTernary) =>
-			assert(false),
+		(in LowExprKind.SpecialTernary x) =>
+			ternaryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.TailRecur it) =>
@@ -1456,6 +1457,25 @@ ExprResult callBuiltinBinary(
 		ctx.gcc, null, ctx.builtinFunctions[function_], argsGcc.length, argsGcc.ptr));
 }
 
+ExprResult ternaryToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.SpecialTernary a,
+) {
+	final switch (a.kind) {
+		case BuiltinTernary.initStack:
+			immutable gcc_jit_rvalue*[3] args = mapStatic(a.args, (LowExpr arg) => emitToRValue(ctx, locals, arg));
+			return emitSimpleYesSideEffects(
+				ctx, emit, type,
+				castImmutable(gcc_jit_context_new_call(
+					ctx.gcc, null, ctx.initStackFunction, args.length, castNonScope(args).ptr)));
+		case BuiltinTernary.interpreterBacktrace:
+			assert(false);
+	}
+}
+
 ExprResult binaryToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1537,8 +1557,6 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
-		case BuiltinBinary.initStack:
-			return callFn(ctx.initStackFunction);
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
 		case BuiltinBinary.lessFloat64:
