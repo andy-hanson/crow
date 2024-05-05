@@ -485,7 +485,8 @@ Destructure checkDestructure(
 					} else
 						return has(x.mut) ? LocalMutability.mutableOnStack : LocalMutability.immutable_;
 				}();
-				return Destructure(allocate(ctx.alloc, Local(LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type)));
+				return Destructure(allocate(ctx.alloc,
+					Local(LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type)));
 			}
 		},
 		(DestructureAst.Void x) {

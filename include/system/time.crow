@@ -11,7 +11,7 @@ import
 
 +tm extern
 
-+nanosleep err-t(requested_time timespec*, remaining timespec mut*) c extern, pure # TODO: NOT PURE _---------------------------------
++nanosleep err-t(requested_time timespec*, remaining timespec mut*) c extern
 
 # TODO: should not be 'pure'
 +clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) c extern, pure

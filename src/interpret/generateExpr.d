@@ -922,7 +922,7 @@ void generateRecordFieldPointer(
 	scope ref ExprAfter after,
 	in LowExprKind.RecordFieldPointer a,
 ) {
-	size_t offset = ctx.program.allRecords[a.targetRecordType].fields[a.fieldIndex].offset; // TODO: make a function in recordfieldpointer?
+	size_t offset = ctx.program.allRecords[a.targetRecordType].fields[a.fieldIndex].offset;
 	if (offset != 0) {
 		generateExprAndContinue(writer, ctx, locals, *a.target);
 		writeAddConstantNat64(writer, source, offset);
@@ -1032,7 +1032,8 @@ void generateSpecialBinary(
 				writeRemove(writer, source, StackEntries(afterLeft, 1));
 			else
 				writeFnBinary(
-					writer, source, a.kind == BuiltinBinary.addPointerAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
+					writer, source,
+					a.kind == BuiltinBinary.addPointerAndNat64 ? &fnWrapAddIntegral : &fnWrapSubIntegral);
 			handleAfter(writer, ctx, source, after);
 			break;
 		case BuiltinBinary.addFloat32:

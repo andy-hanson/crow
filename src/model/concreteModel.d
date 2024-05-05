@@ -22,13 +22,13 @@ import model.model :
 	Test,
 	VarDecl;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, isEmpty, only, PtrAndSmallNumber, SmallArray;
+import util.col.array : arraysEqual, exists, isEmpty, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.col.set : Set;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
@@ -608,3 +608,70 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* setGcRoot;
 	ConcreteFun* popGcRoot;
 }
+
+bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) => // TODO: MOVE
+	a.kind.matchWithPointers!bool(
+		(ConcreteExprKind.Call x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(Constant x) =>
+			false,
+		(ConcreteExprKind.CreateArray x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(ConcreteExprKind.CreateRecord x) =>
+			exists!ConcreteExpr(x.args, cb),
+		(ConcreteExprKind.CreateUnion* x) =>
+			cb(x.arg),
+		(ConcreteExprKind.Drop* x) =>
+			cb(x.arg),
+		(ConcreteExprKind.Finally* x) =>
+			cb(x.right) || cb(x.below),
+		(ConcreteExprKind.If* x) =>
+			cb(x.cond) || cb(x.then) || cb(x.else_),
+		(ConcreteExprKind.Let* x) =>
+			cb(x.value) || cb(x.then),
+		(ConcreteExprKind.LocalGet) =>
+			false,
+		(ConcreteExprKind.LocalPointer) =>
+			false,
+		(ConcreteExprKind.LocalSet* x) =>
+			cb(x.value),
+		(ConcreteExprKind.Loop* x) =>
+			cb(x.body_),
+		(ConcreteExprKind.LoopBreak* x) =>
+			cb(x.value),
+		(ConcreteExprKind.LoopContinue) =>
+			false,
+		(ConcreteExprKind.MatchEnumOrIntegral* x) =>
+			cb(x.matched) ||
+			exists!ConcreteExpr(x.caseExprs, cb) ||
+			(has(x.else_) && cb(*force(x.else_))),
+		(ConcreteExprKind.MatchStringLike* x) =>
+			cb(x.matched) ||
+			exists!(ConcreteExprKind.MatchStringLike.Case)(x.cases, (ref ConcreteExprKind.MatchStringLike.Case case_) =>
+				cb(case_.value) || cb(case_.then)) ||
+			cb(x.else_),
+		(ConcreteExprKind.MatchUnion* x) =>
+			cb(x.matched) ||
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.cases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)) ||
+			(has(x.else_) && cb(*force(x.else_))),
+		(ConcreteExprKind.RecordFieldGet x) =>
+			cb(*x.record),
+		(ConcreteExprKind.RecordFieldPointer x) =>
+			cb(*x.record),
+		(ConcreteExprKind.RecordFieldSet* x) =>
+			cb(x.record) || cb(x.value),
+		(ConcreteExprKind.Seq* x) =>
+			cb(x.first) || cb(x.then),
+		(ConcreteExprKind.Throw* x) =>
+			cb(x.thrown),
+		(ConcreteExprKind.Try* x) =>
+			cb(x.tried) ||
+			exists!(ConcreteExprKind.MatchUnion.Case)(x.catchCases, (ref ConcreteExprKind.MatchUnion.Case case_) =>
+				cb(case_.then)),
+		(ConcreteExprKind.TryLet* x) =>
+			cb(x.value) || cb(x.catch_.then) || cb(x.then),
+		(ConcreteExprKind.UnionAs x) =>
+			cb(*x.union_),
+		(ConcreteExprKind.UnionKind x) =>
+			cb(*x.union_));

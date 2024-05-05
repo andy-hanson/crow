@@ -190,8 +190,10 @@ Out withConcretizeExprCtx(Out)(
 }
 
 ConcreteExpr concretizeBogus(ref ConcretizeExprCtx ctx, ConcreteType type, UriAndRange range) =>
+	concretizeBogus(ctx.concretizeCtx, type, range);
+ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRange range) =>
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
-ConcreteExprKind concretizeBogusKind(ref ConcretizeExprCtx ctx, in UriAndRange range) =>
+ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	genThrowStringKind(ctx, range, "Reached compile error");
 
 private:
@@ -1152,7 +1154,7 @@ ConcreteExpr concretizeAssertOrForbid(
 	ref AssertOrForbidExpr a,
 ) {
 	ConcreteExpr defaultThrown() =>
-		genError(ctx, range, defaultAssertOrForbidMessage(ctx, expr, a));
+		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, expr, a));
 	ConcreteExpr throwNoDestructure() =>
 		genThrow(ctx.alloc, type, range, has(a.thrown)
 			? concretizeExpr(ctx, exceptionType(ctx.concretizeCtx), locals, *force(a.thrown))

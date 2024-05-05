@@ -531,7 +531,8 @@ ExpectBinary binaryExpected(
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case BuiltinBinary.switchFiber:
-			return ExpectBinary(some(voidType), [none!LowType, none!LowType]); // return expect(voidType, nat64MutPointerMutPointerType, nat64MutPointerConstPointerType);
+			assert(*arg0Type.as!(LowType.PtrRawMut).pointee == nat64MutPointerType);
+			return expect(voidType, arg0Type, nat64MutPointerType);
 		case BuiltinBinary.writeToPointer:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}

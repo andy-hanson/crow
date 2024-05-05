@@ -151,7 +151,8 @@ CommonFunsAndMain getCommonFuns(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
 		curJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", jmpBuf, []),
-		setCurJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]),
+		setCurJmpBuf: getFun(
+			CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]),
 		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
 		allocate: getFun(CommonModule.alloc, symbol!"allocate", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),

@@ -55,27 +55,17 @@ void assertStacksAtOriginalState(in Stacks a) {
 
 pure:
 
-//private inout(Operation)** storageEnd(ref inout Stacks a) { ////////////////////////////////////////////////////////////////////////
-//	debug assert(stacksStorage.length == stacksStorageSize);
-//	return cast(inout(Operation)**) endPtr(stacksStorage);
-//}
-
 struct Stacks {
 	ulong* dataPtr; // Pointer to the previous pushed value.
 	Operation** returnPtr; // Pointer to the previous pushed value.
 }
 
-@trusted Stacks stacksForRange(ulong[] range) { // TODO: not trusteD? --------------------------------------------------------
+Stacks stacksForRange(ulong[] range) {
 	Stacks res = Stacks(cast(ulong*) range.ptr - 1, cast(Operation**) endPtr(range));
 	// Initial return entry is null so we can detect it in 'fillBacktrace'
 	returnPush(res, null);
 	return res;
 }
-
-//bool dataStackIsEmpty(in Stacks a) { -------------------------------------------------------------------------------------
-//	debug assert(a.dataPtr >= dataBegin(a) - 1);
-//	return a.dataPtr == dataBegin(a) - 1;
-//}
 
 void dataPush(ref Stacks a, ulong value) {
 	a.dataPtr++;
@@ -127,10 +117,6 @@ immutable(ulong[]) dataPopN(return ref Stacks a, size_t n) {
 ulong* dataTop(ref Stacks a) =>
 	a.dataPtr;
 
-// Pointer to the value at the bottom of the data stack
-//const(ulong*) dataBegin(in Stacks a) => ===================================================================================
-//	stacksStorage.ptr;
-
 // One past the last data value pushed; meaning a pointer to the next pushed value
 inout(ulong*) dataEnd(ref inout Stacks a) =>
 	a.dataPtr + 1;
@@ -138,9 +124,6 @@ inout(ulong*) dataEnd(ref inout Stacks a) =>
 // One past the last return pointer pushed; meaning a pointer to the next return pointer
 inout(Operation**) returnEnd(ref inout Stacks a) =>
 	a.returnPtr - 1;
-
-//immutable(ulong[]) dataTempAsArr(ref const Stacks a) => =================================================================
-//	cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
 
 ulong dataRemove(ref Stacks a, size_t offset) {
 	ulong res = dataPeek(a, offset);
@@ -161,24 +144,7 @@ void dataReturn(ref Stacks a, size_t offsetWords, size_t sizeWords) {
 		outPtr[i] = inPtr[i];
 	a.dataPtr -= (offsetWords + 1 - sizeWords);
 }
-
-//bool returnStackIsEmpty(in Stacks a) { /////////////////////////////////////////////////////////////////////////////////////////
-//	debug assert(a.returnPtr <= storageEnd(a));
-//	return a.returnPtr == storageEnd(a);
-//}
-
-//size_t returnStackSize(in Stacks a) => ////////////////////////////////////////////////////////////////////////////////////////
-//	storageEnd(a) - a.returnPtr;
-
 void returnPush(ref Stacks a, Operation* value) {
-	//debug { /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//	const ulong* begin = dataBegin(a);
-	//	Operation** end = storageEnd(a);
-	//	assert(begin - 1 <= a.dataPtr);
-	//	assert(a.dataPtr < cast(ulong*) a.returnPtr);
-	//	assert(a.returnPtr <= end);
-	//}
-
 	a.returnPtr--;
 	*a.returnPtr = value;
 }

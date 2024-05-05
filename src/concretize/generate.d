@@ -234,13 +234,19 @@ ConcreteExpr concretizeAutoFun(ref ConcretizeExprCtx ctx, ref AutoFun a) {
 	}
 }
 
-ConcreteFunBody generateCallLambda(ref ConcretizeCtx ctx, ConcreteFun* fun, SmallArray!ConcreteType memberTypes, in ConcreteLambdaImpl[] impls) {
+ConcreteFunBody generateCallLambda(
+	ref ConcretizeCtx ctx,
+	ConcreteFun* fun,
+	SmallArray!ConcreteType memberTypes,
+	in ConcreteLambdaImpl[] impls,
+) {
 	UriAndRange range = UriAndRange.empty;
 	assert(fun.params.length == 2);
 	ConcreteExpr lambda = genParamGet(ctx.alloc, range, &fun.params[0]);
 	ConcreteExpr arg = genParamGet(ctx.alloc, range, &fun.params[1]);
-	return ConcreteFunBody(genMatchUnion(ctx, fun.returnType, range, memberTypes, lambda, (size_t i, ConcreteExpr closure) =>
-		genCall(ctx.alloc, range, impls[i].impl, [closure, arg])));
+	return ConcreteFunBody(
+		genMatchUnion(ctx, fun.returnType, range, memberTypes, lambda, (size_t i, ConcreteExpr closure) =>
+			genCall(ctx.alloc, range, impls[i].impl, [closure, arg])));
 }
 
 ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, ConcreteExpr thrown) =>
@@ -249,10 +255,10 @@ ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, Con
 private ConcreteExprKind genThrowKind(ref Alloc alloc, ConcreteExpr thrown) =>
 	ConcreteExprKind(allocate(alloc, ConcreteExprKind.Throw(thrown)));
 
-ConcreteExpr genError(ref ConcretizeExprCtx ctx, UriAndRange range, string message) => // TOOD: just take concretizeCtx -----
-	genCall(ctx.alloc, range, ctx.concretizeCtx.createErrorFunction, [genStringLiteral(ctx.concretizeCtx, range, message)]);
+ConcreteExpr genError(ref ConcretizeCtx ctx, UriAndRange range, string message) =>
+	genCall(ctx.alloc, range, ctx.createErrorFunction, [genStringLiteral(ctx, range, message)]);
 
-ConcreteExprKind genThrowStringKind(ref ConcretizeExprCtx ctx, UriAndRange range, string message) =>
+ConcreteExprKind genThrowStringKind(ref ConcretizeCtx ctx, UriAndRange range, string message) =>
 	genThrowKind(ctx.alloc, genError(ctx, range, message));
 
 ConcreteExpr genStringLiteral(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
@@ -352,7 +358,11 @@ T foldRange(T)(
 	return recur(cbGet(0), 1);
 }
 
-ConcreteExpr concretizeCompareUnion(ref ConcretizeExprCtx ctx, SmallArray!ConcreteType members, in Called[] memberCompares) {
+ConcreteExpr concretizeCompareUnion(
+	ref ConcretizeExprCtx ctx,
+	SmallArray!ConcreteType members,
+	in Called[] memberCompares,
+) {
 	assert(sizeEq(members, memberCompares));
 	UriAndRange range = ctx.currentConcreteFunPointer.range;
 	if (members.length == 0)
@@ -385,7 +395,11 @@ ConcreteExpr concretizeEqualRecord(ref ConcretizeExprCtx ctx, in ConcreteField[]
 		() => genTrue(ctx.concretizeCtx, ctx.currentConcreteFunPointer.range),
 		(ConcreteExpr x, ConcreteExpr y) => genAnd(ctx.concretizeCtx, ctx.currentConcreteFunPointer.range, x, y));
 
-ConcreteExpr concretizeEqualUnion(ref ConcretizeExprCtx ctx, SmallArray!ConcreteType members, in Called[] memberEquals) {
+ConcreteExpr concretizeEqualUnion(
+	ref ConcretizeExprCtx ctx,
+	SmallArray!ConcreteType members,
+	in Called[] memberEquals,
+) {
 	UriAndRange range = ctx.currentConcreteFunPointer.range;
 	if (members.length == 0)
 		return genTrue(ctx.concretizeCtx, range);
@@ -396,7 +410,10 @@ ConcreteExpr concretizeEqualUnion(ref ConcretizeExprCtx ctx, SmallArray!Concrete
 		ConcreteExpr* p1 = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &params[1]));
 		return genAnd(
 			ctx.concretizeCtx, range,
-			genEqualNat64(ctx.concretizeCtx, range, genUnionKind(ctx.concretizeCtx, range, p0), genUnionKind(ctx.concretizeCtx, range, p1)),
+			genEqualNat64(
+				ctx.concretizeCtx, range,
+				genUnionKind(ctx.concretizeCtx, range, p0),
+				genUnionKind(ctx.concretizeCtx, range, p1)),
 			matchUnionsSameKind(ctx, range, p0, p1, members, memberEquals));
 	}
 }
@@ -428,7 +445,8 @@ ConcreteExpr matchUnionsSameKind(
 ConcreteExpr concretizeRecordToJson(ref ConcretizeExprCtx ctx, in ConcreteField[] fields, in Called[] fieldToJson) {
 	assert(sizeEq(fields, fieldToJson));
 	UriAndRange range = ctx.currentConcreteFunPointer.range;
-	ConcreteExpr* getParam = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &only(ctx.currentConcreteFunPointer.params)));
+	ConcreteExpr* getParam = allocate(ctx.alloc,
+		genParamGet(ctx.alloc, range, &only(ctx.currentConcreteFunPointer.params)));
 	return genNewJson(ctx.concretizeCtx, range, mapZipWithIndex!(ConcreteExpr, RecordField, Called)(
 		ctx.alloc, recordFieldsForNames(only(ctx.currentConcreteFunPointer.params).type), fieldToJson,
 		(size_t fieldIndex, ref RecordField field, ref Called called) =>
@@ -436,7 +454,11 @@ ConcreteExpr concretizeRecordToJson(ref ConcretizeExprCtx ctx, in ConcreteField[
 				genRecordFieldGet(fields[fieldIndex].type, range, getParam, fieldIndex)]))));
 }
 
-ConcreteExpr concretizeUnionToJson(ref ConcretizeExprCtx ctx, in SmallArray!ConcreteType memberTypes, in Called[] memberToJson) {
+ConcreteExpr concretizeUnionToJson(
+	ref ConcretizeExprCtx ctx,
+	in SmallArray!ConcreteType memberTypes,
+	in Called[] memberToJson,
+) {
 	UriAndRange range = ctx.currentConcreteFunPointer.range;
 	UnionMember[] members = unionMembersForNames(only(ctx.currentConcreteFunPointer.params).type);
 	assert(sizeEq3(memberTypes, memberToJson, members));
@@ -467,7 +489,7 @@ ConcreteExpr concretizeAndCall(
 	Opt!(ConcreteFun*) fun = getConcreteFunFromCalled(ctx, called);
 	return has(fun)
 		? genCall(ctx.alloc, range, force(fun), args)
-		: concretizeBogus(ctx, getConcreteType(ctx, called.returnType), range);
+		: concretizeBogus(ctx.concretizeCtx, getConcreteType(ctx, called.returnType), range);
 }
 
 ConcreteExpr genMatchUnion(
@@ -497,7 +519,7 @@ ConcreteType symbolJsonTupleType(ref ConcretizeCtx ctx) =>
 	arrayElementType(only(ctx.newJsonFromPairsFunction.params).type);
 
 ConcreteExpr genSymbolJsonTuple(ref ConcretizeCtx ctx, UriAndRange range, Symbol symbol, ConcreteExpr value) =>
-	genCreateRecord(ctx.alloc, symbolJsonTupleType(ctx), range, [constantSymbolExpr(ctx, range, symbol), value]);
+	genCreateRecord(ctx.alloc, symbolJsonTupleType(ctx), range, [genConstantSymbol(ctx, range, symbol), value]);
 
 ConcreteExpr genComparisonLess(ConcreteType comparisonType, UriAndRange range) =>
 	genConstant(comparisonType, range, Constant(IntegralValue(0)));
@@ -529,18 +551,25 @@ ConcreteExpr genCreateRecord(ref Alloc alloc, ConcreteType type, UriAndRange ran
 public ConcreteExpr genCreateRecord(ConcreteType type, UriAndRange range, ConcreteExpr[] args) =>
 	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.CreateRecord(args)));
 
-ConcreteExpr constantSymbolExpr(ref ConcretizeCtx ctx, UriAndRange range, Symbol value) => // TODO: genConstantSymbol -------------------
+ConcreteExpr genConstantSymbol(ref ConcretizeCtx ctx, UriAndRange range, Symbol value) =>
 	genConstant(symbolType(ctx), range, constantSymbol(ctx, value));
 
 public ConcreteExpr genParamGet(ref Alloc alloc, UriAndRange range, ConcreteLocal* param) =>
 	ConcreteExpr(param.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(param)));
 
-public ConcreteExpr genRecordFieldGet(ConcreteType fieldType, UriAndRange range, ConcreteExpr* arg, size_t fieldIndex) =>
+public ConcreteExpr genRecordFieldGet(
+	ConcreteType fieldType, UriAndRange range, ConcreteExpr* arg, size_t fieldIndex,
+) =>
 	ConcreteExpr(fieldType, range, ConcreteExprKind(ConcreteExprKind.RecordFieldGet(arg, fieldIndex)));
-public ConcreteExpr genRecordFieldPointer(ConcreteType pointerType, UriAndRange range, ConcreteExpr* record, size_t fieldIndex) =>
+public ConcreteExpr genRecordFieldPointer(
+	ConcreteType pointerType, UriAndRange range, ConcreteExpr* record, size_t fieldIndex,
+) =>
 	ConcreteExpr(pointerType, range, ConcreteExprKind(ConcreteExprKind.RecordFieldPointer(record, fieldIndex)));
-public ConcreteExpr genRecordFieldSet(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr record, size_t fieldIndex, ConcreteExpr value) =>
-	ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.RecordFieldSet(record, fieldIndex, value))));
+public ConcreteExpr genRecordFieldSet(
+	ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr record, size_t fieldIndex, ConcreteExpr value,
+) =>
+	ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc,
+		ConcreteExprKind.RecordFieldSet(record, fieldIndex, value))));
 
 public ConcreteExpr genUnionKind(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr* arg) =>
 	ConcreteExpr(nat64Type(ctx), range, ConcreteExprKind(ConcreteExprKind.UnionKind(arg)));

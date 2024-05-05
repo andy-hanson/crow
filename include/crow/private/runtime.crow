@@ -332,9 +332,6 @@ after-task void() bare, unsafe
 		exclusion = cur-exclusion
 		wrapper (r, p) force-lambda-shared = a,
 		param =>
-			# TODO:PERF -- if new-exclusion is the same as cur-exclusion, do nothing -------------------------------------------------------
-			# Remember the old exclusion of this fiber. Then change it to the new exclusion and yield.
-			# When it resumes, run 'f[]', then set the exclusion back and yield again.
 			prev-exclusion = cur-exclusion
 			exclusion change-this-fibers-exclusion
 			finally prev-exclusion change-this-fibers-exclusion

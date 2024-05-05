@@ -107,7 +107,7 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 	operation = nextOperationPtr;
 }
 
-@trusted T withInterpreter(T)( // TODO: this should probably just be @system! ------------------------------------------------------
+T withInterpreter(T)(
 	in DoDynCall doDynCall_,
 	in ShowCtx printCtx,
 	in LowProgram lowProgram,
@@ -122,7 +122,8 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 		castNonScope_ref(byteCode).funPointerToOperationPointer,
 		castNonScope_ref(doDynCall_)));
 
-	// Ensure the last 'return' returns to here (NOTE: For fiber stacks, they will have 'null' instead, since the fiber shouldn't be allowed to complete)
+	// Ensure the last 'return' returns to here.
+	// (NOTE: For fiber stacks, they will have 'null' instead, since the fiber shouldn't be allowed to complete)
 	returnPush(stacks, operationOpStopInterpretation.ptr);
 
 	static if (is(T == void))
@@ -240,10 +241,8 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 		cur += offset.offset;
 }
 
-// TODO: this should probably go next to opSwitchFiber!----------------------------------------------------------------------------------------
 alias opInitStack = opFnTernary!((ulong stackLow, ulong stackHigh, ulong func) @system {
 	// We store the return** on the data stack.
-	// Stacks uses the high as the return pointer (TODO: ensure a compile error here if that changes??????????????????????????????)????????
 	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));
 	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
 	dataPush(stacks, cast(ulong) stacks.returnPtr);

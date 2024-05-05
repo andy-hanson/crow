@@ -648,6 +648,15 @@ T fold(T, U)(T start, in U[] arr, in T delegate(T, in U) @safe @nogc pure nothro
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
+T foldWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U) @safe @nogc pure nothrow cb) {
+	T recur(T acc, size_t index) {
+		return index == arr.length
+			? acc
+			: recur(cb(acc, index, arr[index]), index + 1);
+	}
+	return recur(start, 0);
+}
+
 T foldPointers(T, U)(T start, in U[] arr, in T delegate(T, U*) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start

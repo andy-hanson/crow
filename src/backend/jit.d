@@ -184,7 +184,7 @@ private:
 
 int runMain(scope ref Perf perf, ref Alloc alloc, in CString[] allArgs, MainType main) =>
 	withMeasure!(int, () @trusted =>
-		main(cast(int) allArgs.length, cast(immutable char**) allArgs.ptr)
+		main(safeToInt(allArgs.length), cast(immutable char**) allArgs.ptr)
 	)(perf, alloc, PerfMeasure.run);
 
 pure:
@@ -368,7 +368,7 @@ immutable(gcc_jit_function*) makeInitStackFunction(
 		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_high"),
 		gcc_jit_context_new_param(ctx, null, voidFunctionPointerType, "target"),
 	];
-	gcc_jit_function* res = gcc_jit_context_new_function(
+	gcc_jit_function* res = gcc_jit_context_new_function( // TODO: HELPER FOR gcc_jit_context_new_function ????????????????????????????
 		ctx,
 		null,
 		gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
@@ -517,7 +517,7 @@ GlobalsForConstants generateGlobalsForConstants(
 						ctx,
 						null,
 						gccElementType,
-						cast(int) values.length);
+						safeToInt(values.length));
 					//TODO:NO ALLOC
 					CString name = withWriter(alloc, (scope ref Writer writer) {
 						writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
@@ -618,7 +618,7 @@ GccVars generateGccVars(
 		writeLowFunMangledName(writer, mangledNames, funIndex, fun);
 	});
 	return gcc_jit_context_new_function(
-		ctx, null, kind, returnType, name.ptr, cast(int) params.length, params.ptr, false);
+		ctx, null, kind, returnType, name.ptr, safeToInt(params.length), params.ptr, false);
 }
 
 struct ExprEmit {
@@ -955,20 +955,26 @@ ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowT
 		: zeroedToGcc(ctx, emit, type);
 }
 
-@trusted ExprResult callToGcc(
+ExprResult callToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
 	in LowType type,
 	in LowExprKind.Call a,
-) {
-	const gcc_jit_function* called = ctx.gccFuns[a.called];
-	//TODO:NO ALLOC
-	immutable gcc_jit_rvalue*[] argsGcc =
-		map(ctx.alloc, a.args, (ref LowExpr arg) => emitToRValue(ctx, locals, arg));
-	return emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
-		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
-}
+) =>	
+	makeCall(
+		ctx, emit, type, ctx.gccFuns[a.called],
+		map(ctx.alloc, a.args, (ref LowExpr arg) => emitToRValue(ctx, locals, arg)));
+
+@trusted ExprResult makeCall(
+	ref ExprCtx ctx,
+	ExprEmit emit,
+	in LowType type,
+	const gcc_jit_function* called,
+	in immutable gcc_jit_rvalue*[] args,
+) =>
+	emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
+		gcc_jit_context_new_call(ctx.gcc, null, called, safeToInt(args.length), args.ptr)));
 
 @trusted ExprResult callFunPointerToGcc(
 	ref ExprCtx ctx,
@@ -985,7 +991,7 @@ ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowT
 		ctx.gcc,
 		null,
 		funPtrGcc,
-		cast(int) argsGcc.length,
+		safeToInt(argsGcc.length),
 		argsGcc.ptr));
 }
 
@@ -1492,11 +1498,8 @@ ExprResult binaryToGcc(
 			emitToRValue(ctx, locals, left),
 			emitToRValue(ctx, locals, right)));
 	}
-	ExprResult callFn(const gcc_jit_function* func) {
-		immutable gcc_jit_rvalue*[2] args = [emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right)];
-		return emitSimpleYesSideEffects(ctx, emit, type,
-			castImmutable(gcc_jit_context_new_call(ctx.gcc, null, func, args.length, args.ptr))); // TODO: share code with callToGcc
-	}
+	ExprResult callFn(const gcc_jit_function* func) =>
+		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right)]);
 
 	final switch (a.kind) {
 		case BuiltinBinary.addFloat32:
@@ -1834,7 +1837,7 @@ ExprResult switchToGcc(
 				// TODO: use cases of appropriate type?
 				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
 				defaultBlock,
-				cast(int) cases.length,
+				safeToInt(cases.length),
 				&cases[0]);
 		});
 }

@@ -208,7 +208,7 @@ struct Alloc {
 	}
 
 	AllocKind allocKind;
-	MetaAlloc* meta;
+	public MetaAlloc* meta;
 	BlockNode* curBlock;
 	word* curWord;
 }

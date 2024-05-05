@@ -748,8 +748,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	ConcreteLocal[] concreteParams = cf.params;
 	ConcreteFunBody body_ = funBody.match!ConcreteFunBody(
 		(FunBody.Bogus) =>
-			withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) =>
-				ConcreteFunBody(concretizeBogus(exprCtx, cf.returnType, cf.range))),
+			ConcreteFunBody(concretizeBogus(ctx, cf.returnType, cf.range)),
 		(AutoFun x) =>
 			withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) =>
 				ConcreteFunBody(concretizeAutoFun(exprCtx, x))),
@@ -841,7 +840,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref Fu
 			(string x) =>
 				genStringLiteralKind(ctx, cf.range, x),
 			(ImportFileContent.Bogus) =>
-				concretizeBogusKind(exprCtx, cf.range));
+				concretizeBogusKind(exprCtx.concretizeCtx, cf.range));
 		return ConcreteExpr(cf.returnType, cf.range, exprKind); // TODO: why even have the cf.body be a ConcreteExpr then?-------
 	});
 

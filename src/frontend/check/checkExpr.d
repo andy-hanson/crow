@@ -967,8 +967,9 @@ Opt!Expr checkWithLocal(
 	if (localNode.local.mutability.isA!(LocalMutability.MutableOnStack) &&
 		(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
 		 localNode.isUsed[LocalAccessKind.setThroughClosure])) {
-		//TODO:BETTER
-		overwriteMemory(&local.mutability, LocalMutability(LocalMutability.MutableAllocated(instantiateStructNeverDelay(ctx.instantiateCtx, ctx.commonTypes.reference, [local.type]))));
+		// TODO: Better way than overwriteMemory?
+		overwriteMemory(&local.mutability, LocalMutability(LocalMutability.MutableAllocated(
+			instantiateStructNeverDelay(ctx.instantiateCtx, ctx.commonTypes.reference, [local.type]))));
 	}
 	addUnusedLocalDiags(ctx, local, localNode);
 	return res;
@@ -1126,12 +1127,20 @@ PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	}
 }
 
-Expr checkFunPointer(ref ExprCtx ctx, in LocalsInfo locals, ExprAst* source, in PtrAst ast, ExpectedPointee.FunPointer expectedPointee, ref Expected expected) {
+Expr checkFunPointer(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	ExprAst* source,
+	in PtrAst ast,
+	ExpectedPointee.FunPointer expectedPointee,
+	ref Expected expected,
+) {
 	Opt!NameAndTypeArg name = getNameAndTypeArg(ast.inner);
 	if (has(name))
-		return checkFunPointerInner(ctx, locals, source, force(name).name, force(name).typeArg, expectedPointee, expected);
+		return checkFunPointerInner(
+			ctx, locals, source, force(name).name, force(name).typeArg, expectedPointee, expected);
 	else {
-		addDiag2(ctx, source.range, Diag(Diag.FunPointerExprMustBeName())); // TODO: BETTER DIAG ------------------------------------------------------
+		addDiag2(ctx, source.range, Diag(Diag.FunPointerExprMustBeName()));
 		return bogus(expected, source);
 	}
 }
@@ -1151,8 +1160,16 @@ Opt!NameAndTypeArg getNameAndTypeArg(in ExprAst ast) {
 		return none!NameAndTypeArg;
 }
 
-Expr checkFunPointerInner(ref ExprCtx ctx, in LocalsInfo locals, ExprAst* source, NameAndRange name, Opt!(TypeAst*) typeArg, ExpectedPointee.FunPointer expectedPointee, ref Expected expected) {
-	Opt!Called optCalled = funWithName(ctx, locals, name, typeArg, expectedPointee);
+Expr checkFunPointerInner(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	ExprAst* source,
+	NameAndRange name,
+	Opt!(TypeAst*) typeArg,
+	ExpectedPointee.FunPointer expectedPointee,
+	ref Expected expected,
+) {
+	Opt!Called optCalled = findFunctionForPointer(ctx, locals, name, typeArg, expectedPointee);
 	if (!has(optCalled))
 		return bogus(expected, source);
 	else {
@@ -1160,11 +1177,15 @@ Expr checkFunPointerInner(ref ExprCtx ctx, in LocalsInfo locals, ExprAst* source
 		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
 		StructInst* structInst = instantiateStructNeverDelay(
 			ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [called.returnType, paramType]);
-		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called))); // TODO: checking it again should be redundant ............................................
+		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
 	}
 }
 
-Out withReturnAndParamTypes(Out)(ref CommonTypes commonTypes, ExpectedPointee.FunPointer a, in Out delegate(in ReturnAndParamTypes) @safe @nogc pure nothrow cb) {
+Out withReturnAndParamTypes(Out)(
+	ref CommonTypes commonTypes,
+	ExpectedPointee.FunPointer a,
+	in Out delegate(in ReturnAndParamTypes) @safe @nogc pure nothrow cb,
+) {
 	scope Type[] paramTypes = unpackTuple(commonTypes, &a.paramTypes);
 	return withStackArray(
 		paramTypes.length + 1,
@@ -1172,9 +1193,15 @@ Out withReturnAndParamTypes(Out)(ref CommonTypes commonTypes, ExpectedPointee.Fu
 		(scope Type[] xs) => cb(ReturnAndParamTypes(small!Type(xs))));
 }
 
-Opt!Called funWithName(ref ExprCtx ctx, in LocalsInfo locals, NameAndRange name, Opt!(TypeAst*) typeArgAst, ExpectedPointee.FunPointer expected) { //TODO:RENAME
+Opt!Called findFunctionForPointer(
+	ref ExprCtx ctx,
+	in LocalsInfo locals,
+	NameAndRange name,
+	Opt!(TypeAst*) typeArgAst,
+	ExpectedPointee.FunPointer expected,
+) {
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
-	return withReturnAndParamTypes!(Opt!Called)(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) {
+	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) {
 		size_t arity = returnAndParamTypes.paramTypes.length;
 		return withCandidates!(Opt!Called)(
 			funsInScope(ctx),
@@ -1185,7 +1212,7 @@ Opt!Called funWithName(ref ExprCtx ctx, in LocalsInfo locals, NameAndRange name,
 				testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
 			(scope Candidate[] candidates) {
 				if (candidates.length != 1) {
-					// TODO: if there is a function with the name, at least indicate that in the diag --------------------------------------------------
+					// TODO: If there is a function with the name, at least indicate that in the diag
 					addDiag2(ctx, name.range, candidates.length == 0
 						? Diag(Diag.FunPointerNoMatch(
 							name.name, ctx.typeContainer,
