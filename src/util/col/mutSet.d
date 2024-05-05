@@ -4,7 +4,6 @@ module util.col.mutSet;
 
 import util.alloc.alloc : Alloc;
 import util.col.hashTable : getOrAdd, hasKey, mayAdd, mayDelete, MutHashTable;
-import util.col.set : Set;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {

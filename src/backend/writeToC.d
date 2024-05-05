@@ -811,7 +811,7 @@ void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBody
 }
 
 bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
-	.localMustBeVolatile(local, ctx.ctx.program.allFuns[ctx.curFun]);
+	.localMustBeVolatile(ctx.ctx.program.allFuns[ctx.curFun], local);
 
 immutable struct WriteKind {
 	immutable struct Inline {

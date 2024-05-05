@@ -1084,7 +1084,7 @@ ExprResult emitWithLocal(
 		writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
 	});
 	immutable gcc_jit_type* type = getGccType(ctx.types, lowLocal.type);
-	immutable gcc_jit_type* fullType = localMustBeVolatile(*lowLocal, *ctx.curLowFun)
+	immutable gcc_jit_type* fullType = localMustBeVolatile(*ctx.curLowFun, *lowLocal)
 		? gcc_jit_type_get_volatile(type)
 		: type;
 	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(ctx.curFun, null, fullType, name.ptr);
@@ -1096,7 +1096,7 @@ ExprResult emitWithLocal(
 
 ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalGet a) {
 	immutable gcc_jit_rvalue* value = gcc_jit_lvalue_as_rvalue(getLocal(ctx, locals, a.local));
-	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(*a.local, *ctx.curLowFun)
+	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(*ctx.curLowFun, *a.local)
 		? gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, a.local.type))
 		: value);
 }

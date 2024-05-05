@@ -3,7 +3,13 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
-import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, ConcretizeExprCtx, concretizeFunBody, ensureVariantMember, withConcretizeExprCtx;
+import concretize.concretizeExpr :
+	concretizeBogus,
+	concretizeBogusKind,
+	ConcretizeExprCtx,
+	concretizeFunBody,
+	ensureVariantMember,
+	withConcretizeExprCtx;
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
@@ -122,28 +128,8 @@ import versionInfo : VersionInfo;
 
 alias TypeArgsScope = SmallArray!ConcreteType;
 
-private immutable struct ConcreteStructKey {
-	@safe @nogc pure nothrow:
-
-	StructDecl* decl;
-	SmallArray!ConcreteType typeArgs;
-
-	bool opEquals(scope ref ConcreteStructKey b) scope =>
-		decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
-
-	HashCode hash() scope {
-		Hasher hasher;
-		hasher ~= decl;
-		foreach (ConcreteType t; typeArgs)
-			hasher ~= t.struct_;
-		return hasher.finish();
-	}
-}
-
-private ConcreteStructKey getStructKey(return in ConcreteStruct* a) {
-	ConcreteStructSource.Inst inst = a.source.as!(ConcreteStructSource.Inst);
-	return ConcreteStructKey(inst.decl, inst.typeArgs); // TODO: ConcreteStructSouce.Inst is just ConcreteStructKey then! ------------------------------------------
-}
+private ConcreteStructSource.Inst getStructKey(return in ConcreteStruct* a) =>
+	a.source.as!(ConcreteStructSource.Inst);
 
 private VarDecl* getVarKey(return in ConcreteVar* a) =>
 	a.source;
@@ -151,24 +137,8 @@ private VarDecl* getVarKey(return in ConcreteVar* a) =>
 ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
 	a.source.as!ConcreteFunKey;
 
-ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(a.decl.moduleUri, a.decl.specs, a.typeArgs, a.specImpls);
-
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	a.typeArgs;
-
-immutable struct ContainingFunInfo { // TODO: I think everything here can come from the ConcreteFunSource? -------------------------
-	@safe @nogc pure nothrow:
-
-	Uri uri;
-	Specs specs;
-	SmallArray!ConcreteType typeArgs;
-	SmallArray!(immutable ConcreteFun*) specImpls;
-
-	// For generated code, just use empty ContainingFunInfo
-	static ContainingFunInfo generated() =>
-		ContainingFunInfo(Uri.empty, emptySmallArray!(immutable SpecInst*), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
-}
 
 TypeArgsScope typeArgsScopeForFun(ConcreteFun* a) =>
 	a.source.match!TypeArgsScope(
@@ -183,7 +153,7 @@ TypeArgsScope typeArgsScopeForFun(ConcreteFun* a) =>
 
 immutable struct SpecsScope {
 	SmallArray!(immutable SpecInst*) specs;
-	SmallArray!(immutable ConcreteFun*) specImpls;	
+	SmallArray!(immutable ConcreteFun*) specImpls;
 }
 SpecsScope specsScopeForFun(ConcreteFun* a) =>
 	a.source.match!SpecsScope(
@@ -214,7 +184,7 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
 	AllConstantsBuilder allConstants;
-	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
+	MutHashTable!(ConcreteStruct*, ConcreteStructSource.Inst, getStructKey) nonLambdaConcreteStructs;
 	ArrayBuilder!(ConcreteStruct*) allConcreteStructs;
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
@@ -331,6 +301,12 @@ ConcreteType symbolType(ref ConcretizeCtx a) =>
 ConcreteStruct* symbolArrayType(ref ConcretizeCtx a) =>
 	mustBeByVal(getConcreteType_forStructInst(a, a.commonTypes.symbolArray, emptySmallArray!ConcreteType));
 
+ConcreteType getReferencedType(in ConcretizeCtx ctx, ConcreteType type) {
+	ConcreteStructSource.Inst inst = type.struct_.source.as!(ConcreteStructSource.Inst);
+	assert(inst.decl == ctx.commonTypes.reference);
+	return only(inst.typeArgs);
+}
+
 Constant constantCString(ref ConcretizeCtx a, string value) =>
 	getConstantCString(a.alloc, a.allConstants, value);
 
@@ -386,9 +362,9 @@ private ConcreteType getConcreteType_forStructInst(
 ) =>
 	withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
 		StructDecl* decl = inst.decl;
-		scope ConcreteStructKey key = ConcreteStructKey(decl, small!ConcreteType(typeArgs));
+		scope ConcreteStructSource.Inst key = ConcreteStructSource.Inst(decl, small!ConcreteType(typeArgs));
 		ValueAndDidAdd!(ConcreteStruct*) res =
-			getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructKey, getStructKey)(
+			getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructSource.Inst, getStructKey)(
 				ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
 					Purity purity = fold!(Purity, ConcreteType)(
 						decl.purity, typeArgs, (Purity p, in ConcreteType ta) =>
@@ -557,7 +533,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteType nat64 = nat64Type(ctx);
 	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(
-		ConcreteExprKind.Call(innerMain, emptySmallArray!ConcreteExpr))); // TODO: add to clalers...-----------------------------------------
+		ConcreteExprKind.Call(innerMain, emptySmallArray!ConcreteExpr)));
 	ConcreteExpr zero = ConcreteExpr(nat64, range, ConcreteExprKind(constantZero));
 	ConcreteExpr body_ = genSeq(ctx.alloc, range, callMain, zero);
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
@@ -766,9 +742,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(genConstant(cf.returnType, cf.range, constantZero)),
 		(FunBody.CreateRecord) =>
 			isEmpty(concreteParams)
-				? ConcreteFunBody(genConstant(cf.returnType, cf.range, Constant(Constant.Record(emptySmallArray!Constant))))
-				: ConcreteFunBody(genCreateRecord(cf.returnType, cf.range, mapPointers(ctx.alloc, concreteParams, (ConcreteLocal* param) =>
-					genLocalGet(cf.range, param)))),
+				? ConcreteFunBody(genConstant(
+					cf.returnType, cf.range, Constant(Constant.Record(emptySmallArray!Constant))))
+				: ConcreteFunBody(genCreateRecord(
+					cf.returnType, cf.range, mapPointers(ctx.alloc, concreteParams, (ConcreteLocal* param) =>
+						genLocalGet(cf.range, param)))),
 		(FunBody.CreateUnion x) =>
 			createUnionBody(ctx.alloc, cf, x.member.memberIndex),
 		(FunBody.CreateVariant x) =>
@@ -833,8 +811,10 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 
 ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
 	isEmpty(cf.params)
-		? ConcreteFunBody(genConstant(cf.returnType, cf.range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero())))))
-		: ConcreteFunBody(genCreateUnion(alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
+		? ConcreteFunBody(genConstant(
+			cf.returnType, cf.range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero())))))
+		: ConcreteFunBody(genCreateUnion(
+			alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) =>
 	withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) {
@@ -845,7 +825,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref Fu
 				genStringLiteralKind(ctx, cf.range, x),
 			(ImportFileContent.Bogus) =>
 				concretizeBogusKind(exprCtx.concretizeCtx, cf.range));
-		return ConcreteExpr(cf.returnType, cf.range, exprKind); // TODO: why even have the cf.body be a ConcreteExpr then?-------
+		return ConcreteExpr(cf.returnType, cf.range, exprKind);
 	});
 
 Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte[] bytes) {

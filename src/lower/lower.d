@@ -534,7 +534,7 @@ AllLowFuns getAllLowFuns(
 				return some(addLowFun(alloc, lowFunCauses, LowFunCause(fun)));
 			},
 			(ConcreteExpr x) =>
-				optIf(!x.kind.isA!Constant, () => addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
+				some(addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.VarGet x) =>
@@ -1155,13 +1155,13 @@ LowExpr getCallExpr(
 	ExprPos exprPos,
 	LowType type,
 	UriAndRange range,
-	ConcreteFun* called,
+	ConcreteFun* concreteCalled,
 	in SmallArray!ConcreteExpr args,
 ) {
-	Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, called);
+	Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, concreteCalled);
 	return has(opCalled)
-		? getCallRegular(ctx, locals, type, range, exprPos, args, called, force(opCalled))
-		: handleExprPos(ctx, exprPos, getCallSpecial(ctx, locals, type, range, called, args));
+		? getCallRegular(ctx, locals, type, range, exprPos, args, concreteCalled, force(opCalled))
+		: handleExprPos(ctx, exprPos, getCallSpecial(ctx, locals, type, range, concreteCalled, args));
 }
 
 LowExpr getCallEquals(

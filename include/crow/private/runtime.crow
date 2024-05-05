@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: &&, ||, bool, false, true
-	../col/array: array
 	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
 	../col/mut-array:
@@ -23,7 +22,7 @@ import
 		new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, stack-pointer,
 		symbol
 	./fiber-queue:
-		add-gc-roots, destroy, enqueue-fiber, enqueue-fibers, enqueue-timed-fiber, exclusion,
+		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
@@ -106,7 +105,11 @@ destroy void(a global-ctx mut*) bare, unsafe
 This will grow down, meaning it starts at the greatest value.
 Initializes the stack, then returns the new stack pointer. (This is a bit below 'stack-high'.)
 ###
--init-stack stack-pointer(stack-low stack-pointer, stack-high stack-pointer, func void function()) builtin, bare
+-init-stack stack-pointer(
+	stack-low stack-pointer,
+	stack-high stack-pointer,
+	func void function(),
+) builtin, bare
 ###
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
@@ -120,8 +123,13 @@ Then resumes from the stack pointer at 'to'.
 -is-valid-stack bool(a nat64 mut-array) bare, unsafe
 	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
 
-# Normally only a fiber can create another fiber. To initialize the first one, set a dummy fiber. Remember to unset when done.
+###
+Normally only a fiber can create another fiber.
+To initialize the first one, set a dummy fiber.
+It will be initialized properly the first time you switch to another fiber.
+###
 ~set-dummy-fiber void() summon, unsafe
+	cur-fiber.is-empty hard-assert
 	fiber fiber = do
 		initial-function: ()
 		log-handler: log => log default-log-handler
@@ -138,17 +146,11 @@ Then resumes from the stack pointer at 'to'.
 add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
-	# TODO: A small stack like this may fail for real programs. I should get around to implementing stack overflow checking.
-	stack1 nat64 mut-array = 0x10000 zeroed-mut-array
-	# TODO: getter way to align it -----------------------------------------------------------------------------------------------
-	stack = if stack1 is-valid-stack
-		stack1
-	else
-		stack1[1 .. end - 1]
+	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
+	# Align the stack
+	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
 	stack.is-valid-stack hard-assert
 
-	# TODO: We need to make sure the func is visible to the GC immediately! ---------------------------------------------------
-	# TODO: This means we need to pin the memory....
 	initial-function: action,
 	# Inherits this fiber's log handler
 	log-handler: get-log-handler
@@ -171,12 +173,6 @@ enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
 	forbid fiber is-running
 	a.fiber-queue-lock acquire
 	a.fiber-queue enqueue-fiber fiber
-	a.fiber-queue-lock release
-	a.may-be-work-to-do broadcast
-
-enqueue-fibers void(a global-ctx mut*, fibers fiber array) bare, unsafe # TODO: is this still needed? Could just run 'enqueue-fiber' in a loop?
-	a.fiber-queue-lock acquire
-	a.fiber-queue enqueue-fibers fibers
 	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
@@ -213,13 +209,13 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 			break gctx thread-shut-down
 
 -change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
-	# TOOD: PERF: If the exclusion is availalbe immediately, no need to add to queue -----------------------------------------
 	new-exclusion.change-exclusion yield-this-fiber
 
 ~yield-request union mut
 	# Add this fiber back to the queue of runnable fibers.
 	add-to-queue
-	# Since 'future' has many types, we need a pointer to the function for adding a fiber to the future
+	# Takes a pointer to a future and a function for adding the fiber to it.
+	# Uses 'any-mut-pointer' in order to handle all instances of the 'future' type.
 	await-future (any-mut-pointer, bool function(future any-mut-pointer, fiber fiber))
 	# Change this fiber's exclusion to a new one, then enqueue it again.
 	change-exclusion exclusion

@@ -27,7 +27,15 @@ import concretize.generate : generateCallLambda;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
-	ConcreteCommonFuns, ConcreteFun, ConcreteFunBody, ConcreteProgram, ConcreteStruct, ConcreteStructInfo, ConcreteStructBody, ConcreteType, mustBeByVal;
+	ConcreteCommonFuns,
+	ConcreteFun,
+	ConcreteFunBody,
+	ConcreteProgram,
+	ConcreteStruct,
+	ConcreteStructInfo,
+	ConcreteStructBody,
+	ConcreteType,
+	mustBeByVal;
 import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small, SmallArray;
@@ -132,7 +140,8 @@ ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
 
 void finishLambdas(ref ConcretizeCtx ctx) {
 	foreach (ConcreteStruct* struct_, MutArr!ConcreteLambdaImpl impls; ctx.lambdaStructToImpls) {
-		ConcreteType[] memberTypes = map(ctx.alloc, asTemporaryArray(impls), (ref ConcreteLambdaImpl x) => x.closureType);
+		ConcreteType[] memberTypes = map(ctx.alloc, asTemporaryArray(impls), (ref ConcreteLambdaImpl x) =>
+			x.closureType);
 		struct_.info = ConcreteStructInfo(
 			body_: ConcreteStructBody(ConcreteStructBody.Union(late(small!ConcreteType(memberTypes)))),
 			isSelfMutable: false);

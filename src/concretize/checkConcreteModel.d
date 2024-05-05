@@ -13,9 +13,12 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteType,
 	isBogus,
+	isPointer,
 	isVoid,
+	mustBeByRef,
 	mustBeByVal,
-	pointeeType;
+	pointeeType,
+	ReferenceKind;
 import model.constant : Constant;
 import model.model : BuiltinType, isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
@@ -142,7 +145,16 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			assert(x.record.type.struct_.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type == type);
 		},
 		(in ConcreteExprKind.RecordFieldPointer x) {
-			checkExprAnyType(ctx, *x.record); // TODO: do more checking .........................................................
+			checkExprAnyType(ctx, *x.record);
+			ConcreteStruct* record = () {
+				final switch (x.record.type.reference) {
+					case ReferenceKind.byVal:
+						return mustBeByVal(pointeeType(x.record.type));
+					case ReferenceKind.byRef:
+						return x.record.type.struct_;
+				}
+			}();
+			assert(record.body_.as!(ConcreteStructBody.Record).fields[x.fieldIndex].type == pointeeType(type));
 		},
 		(in ConcreteExprKind.RecordFieldSet x) {
 			assert(isVoid(type));

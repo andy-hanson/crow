@@ -408,7 +408,7 @@ extern(C) {
 		GCC_JIT_FN_ATTRIBUTE_CONST,
 		GCC_JIT_FN_ATTRIBUTE_WEAK,
 		GCC_JIT_FN_ATTRIBUTE_NONNULL,
-	};
+	}
 	void gcc_jit_function_add_attribute(gcc_jit_function* func, gcc_jit_fn_attribute attribute);
 
 	immutable(gcc_jit_type*) gcc_jit_type_get_volatile(immutable gcc_jit_type* type);

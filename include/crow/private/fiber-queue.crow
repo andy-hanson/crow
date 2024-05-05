@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: &&, bool
-	../col/array: array, begin, next
 	../io/private/time-low-level: timestamp
 	../misc: new, void
 	../number: ==, <=>, nat64
@@ -70,9 +69,3 @@ enqueue-timed-fiber void(a fiber-queue mut*, time nat64, fiber fiber) bare, unsa
 
 enqueue-fiber void(a fiber-queue mut*, fiber fiber) bare, unsafe
 	a.non-timed enqueue fiber.cur-exclusion, fiber
-
-enqueue-fibers void(a fiber-queue mut*, tasks fiber array) bare, unsafe
-	cur mut = tasks begin
-	while fiber, next ?= cur next
-		a enqueue-fiber fiber
-		cur := next

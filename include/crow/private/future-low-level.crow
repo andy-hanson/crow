@@ -1,7 +1,8 @@
 no-std
 import
 	../bool: bool, false, true
-	../col/mut-list: ~=, move-to, new
+	../col/collection: for-loop
+	../col/mut-list: ~=, iterate, new
 	../misc: new, void
 	../pointer: mut-pointer
 	../result: error, ok, result
@@ -9,7 +10,7 @@ import
 		awaited-by, awaited-by-multiple, empty, exception-and-backtrace, fiber, future,
 		future-state, hard-unreachable, is-running, lk, new, rejected, resolved, set-state, state
 	./exception-low-level: rethrow
-	./runtime: enqueue-fiber, enqueue-fibers, get-global-ctx
+	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
 # If the future is already complete, returns 'false'
@@ -71,7 +72,8 @@ import
 	as awaited-by fiber
 		get-global-ctx enqueue-fiber fiber
 	as awaited-by-multiple fibers
-		get-global-ctx enqueue-fibers fibers.move-to
+		for fiber : fibers
+			get-global-ctx enqueue-fiber fiber
 	as resolved _
 		hard-unreachable
 	as rejected _

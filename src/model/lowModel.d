@@ -303,7 +303,7 @@ immutable struct LowLocal {
 			(in LowLocalSource.Generated x) =>
 				x.isMutable);
 }
-bool localMustBeVolatile(in LowLocal local, in LowFun curFun) =>
+bool localMustBeVolatile(in LowFun curFun, in LowLocal local) =>
 	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
 	local.isMutable && curFun.hasSetjmp;
 

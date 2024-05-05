@@ -101,6 +101,10 @@ immutable struct TypeSize {
 Purity purity(ConcreteType a) =>
 	a.struct_.purity;
 
+ConcreteStruct* mustBeByRef(ConcreteType a) {
+	assert(a.reference == ReferenceKind.byRef);
+	return a.struct_;
+}
 ConcreteStruct* mustBeByVal(ConcreteType a) {
 	assert(a.reference == ReferenceKind.byVal);
 	return a.struct_;
@@ -115,8 +119,20 @@ immutable struct ConcreteStructSource {
 	immutable struct Bogus {}
 
 	immutable struct Inst {
+		@safe @nogc pure nothrow:
 		StructDecl* decl;
 		SmallArray!ConcreteType typeArgs;
+
+		bool opEquals(in Inst b) scope =>
+			decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
+
+		HashCode hash() scope {
+			Hasher hasher;
+			hasher ~= decl;
+			foreach (ConcreteType t; typeArgs)
+				hasher ~= t.struct_;
+			return hasher.finish();
+		}
 	}
 
 	immutable struct Lambda {
