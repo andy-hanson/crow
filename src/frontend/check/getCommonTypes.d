@@ -78,8 +78,8 @@ CommonTypes* getCommonTypes(
 		char8List: instantiate1(ctx, list, char8),
 		char32List: instantiate1(ctx, list, char32),
 		option: getDecl(ctx, symbol!"option", 1),
-		ptrConst: pointerConst,
-		ptrMut: getDecl(ctx, symbol!"mut-pointer", 1),
+		pointerConst: pointerConst,
+		pointerMut: getDecl(ctx, symbol!"mut-pointer", 1),
 		reference: getDecl(ctx, symbol!"reference", 1),
 		tuples2Through9: [
 			getDecl(ctx, symbol!"tuple2", 2),

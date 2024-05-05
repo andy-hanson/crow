@@ -4,7 +4,6 @@ module concretize.generate;
 
 import concretize.allConstantsBuilder : getConstantArray;
 import concretize.concretizeCtx :
-	arrayElementType,
 	boolType,
 	char8ArrayType,
 	char32ArrayType,
@@ -21,6 +20,7 @@ import concretize.concretizeCtx :
 	voidType;
 import concretize.concretizeExpr : concretizeBogus, ConcretizeExprCtx, getConcreteFunFromCalled, getConcreteType;
 import model.concreteModel :
+	arrayElementType,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,

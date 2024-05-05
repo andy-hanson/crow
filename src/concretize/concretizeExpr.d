@@ -4,7 +4,6 @@ module concretize.concretizeExpr;
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantPointer;
 import concretize.concretizeCtx :
-	arrayElementType,
 	boolType,
 	ConcreteLambdaImpl,
 	concreteTypeFromClosure,
@@ -66,6 +65,7 @@ import concretize.generate :
 	unwrapOptionType;
 import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
 import model.concreteModel :
+	arrayElementType,
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
@@ -1315,8 +1315,6 @@ Opt!Constant tryEvalConstant(
 				? some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)))
 				: none!Constant;
 		},
-		(in Constant x) => // TODO: this case is redundant to ConcreteExpr that is a constant ... --------------------------------
-			some(x),
 		(in EnumFunction _) => none!Constant,
 		(in ConcreteFunBody.Extern) => none!Constant,
 		(in ConcreteExpr x) =>

@@ -1571,15 +1571,15 @@ immutable struct CommonTypes {
 	StructInst* char8List;
 	StructInst* char32List;
 	StructDecl* option;
-	StructDecl* ptrConst;
-	StructDecl* ptrMut;
+	StructDecl* pointerConst;
+	StructDecl* pointerMut;
 	StructDecl* reference;
 	// No tuple0 and tuple1, so this is 2-9 inclusive
 	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
 	EnumMap!(FunKind, StructDecl*) funStructs;
 
-	StructDecl* funPtrStruct() =>
+	StructDecl* funPointerStruct() =>
 		funStructs[FunKind.function_];
 
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
@@ -1597,8 +1597,8 @@ Type arrayElementType(in CommonTypes commonTypes, Type type) {
 bool isLambdaType(in CommonTypes commonTypes, StructDecl* a) =>
 	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
 
-private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
-	a == commonTypes.ptrConst || a == commonTypes.ptrMut;
+bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
+	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:

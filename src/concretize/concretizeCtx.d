@@ -7,6 +7,7 @@ import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, Concret
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	genConstant,
 	genCreateRecord,
 	genCreateUnion,
 	genLocalGet,
@@ -62,6 +63,7 @@ import model.model :
 	ImportFileContent,
 	IntegralType,
 	isLambdaType,
+	isNonFunctionPointer,
 	isTuple,
 	LambdaExpr,
 	Local,
@@ -395,6 +397,8 @@ private ConcreteType getConcreteType_forStructInst(
 						? ConcreteStruct.SpecialKind.array
 						: inst == ctx.commonTypes.fiber
 						? ConcreteStruct.SpecialKind.fiber
+						: isNonFunctionPointer(ctx.commonTypes, decl)
+						? ConcreteStruct.SpecialKind.pointer
 						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple
 						: ConcreteStruct.SpecialKind.none;
@@ -757,12 +761,12 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				? bodyForAllTests(ctx, cf.returnType)
 				: ConcreteFunBody(ConcreteFunBody.Builtin(x, cf.source.as!ConcreteFunKey.typeArgs)),
 		(FunBody.CreateEnumOrFlags x) =>
-			ConcreteFunBody(Constant(IntegralValue(x.member.value.value))),
+			ConcreteFunBody(genConstant(cf.returnType, cf.range, Constant(IntegralValue(x.member.value.value)))),
 		(FunBody.CreateExtern) =>
-			ConcreteFunBody(constantZero),
+			ConcreteFunBody(genConstant(cf.returnType, cf.range, constantZero)),
 		(FunBody.CreateRecord) =>
 			isEmpty(concreteParams)
-				? ConcreteFunBody(Constant(Constant.Record(emptySmallArray!Constant)))
+				? ConcreteFunBody(genConstant(cf.returnType, cf.range, Constant(Constant.Record(emptySmallArray!Constant))))
 				: ConcreteFunBody(genCreateRecord(cf.returnType, cf.range, mapPointers(ctx.alloc, concreteParams, (ConcreteLocal* param) =>
 					genLocalGet(cf.range, param)))),
 		(FunBody.CreateUnion x) =>
@@ -829,7 +833,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 
 ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
 	isEmpty(cf.params)
-		? ConcreteFunBody(Constant(allocate(alloc, Constant.Union(memberIndex, constantZero()))))
+		? ConcreteFunBody(genConstant(cf.returnType, cf.range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero())))))
 		: ConcreteFunBody(genCreateUnion(alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) =>
@@ -861,9 +865,6 @@ ulong getAllFlagsValue(ConcreteStruct* a) =>
 		a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags).members,
 		(ulong a, in EnumOrFlagsMember b) =>
 			a | b.value.asUnsigned());
-
-public ConcreteType arrayElementType(ConcreteType arrayType) =>
-	only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
 
 TypeSize getBuiltinStructSize(BuiltinType kind) {
 	final switch (kind) {

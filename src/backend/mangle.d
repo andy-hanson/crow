@@ -308,7 +308,7 @@ bool conflictsWithCName(Symbol a) {
 		case symbol!"void".value:
 		case symbol!"while".value:
 
-		// Not core keywords, but common libraries ------------------------------------------------------------------------------
+		// Not core keywords, but common libraries
 		case symbol!"remove".value:
 		case symbol!"stderr".value:
 		case symbol!"stdout".value:

@@ -151,10 +151,6 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 	a.matchIn!Json(
 		(in ConcreteFunBody.Builtin x) =>
 			jsonOfConcreteFunBodyBuiltin(alloc, x),
-		(in Constant x) =>
-			jsonObject(alloc, [
-				kindField!"constant",
-				field!"value"(jsonOfConstant(alloc, x))]),
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",

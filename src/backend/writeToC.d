@@ -1863,7 +1863,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapSubNat64:
 			return operator("-");
 		case BuiltinBinary.switchFiber:
-			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber"); // defined in writeToC_boiilerplace.c
+			// defined in writeToC_boiilerplace.c
+			return specialCallBinary(writer, indent, ctx, writeKind, type, a.args, "switch_fiber");
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator("<<");
 		case BuiltinBinary.unsafeBitShiftRightNat64:

@@ -174,10 +174,10 @@ bool isOptionType(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
-	instantiateStructNeverDelay(ctx, commonTypes.ptrConst, [pointeeType]);
+	instantiateStructNeverDelay(ctx, commonTypes.pointerConst, [pointeeType]);
 
 StructInst* makeMutPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
-	instantiateStructNeverDelay(ctx, commonTypes.ptrMut, [pointeeType]);
+	instantiateStructNeverDelay(ctx, commonTypes.pointerMut, [pointeeType]);
 
 SpecInst* instantiateSpec(InstantiateCtx ctx, SpecDecl* decl, in Type[] typeArgs) =>
 	instantiateSpec(ctx, decl, small!Type(typeArgs), noneMut!(DelaySpecInsts*));

@@ -119,12 +119,12 @@ CommonFunsAndMain getCommonFuns(
 	Type voidType = Type(commonTypes.void_);
 	Type stringType = Type(commonTypes.string_);
 	Type stringListType = instantiateType(listDecl, [stringType]);
-	Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
-	Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
+	Type nat8ConstPointerType = instantiateType(commonTypes.pointerConst, [nat8Type]);
+	Type nat8MutPointerType = instantiateType(commonTypes.pointerMut, [nat8Type]);
 	Type char8ArrayType = instantiateType(arrayDecl, [Type(commonTypes.char8)]);
 	Type cStringType = Type(commonTypes.cString);
-	Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
-	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64Type, stringListType]);
+	Type cStringConstPointerType = instantiateType(commonTypes.pointerConst, [cStringType]);
+	Type mainPointerType = instantiateType(commonTypes.funPointerStruct, [nat64Type, stringListType]);
 	Type jsonType = getType(CommonModule.json, symbol!"json");
 
 	Type tList = instantiateType(commonTypes.list, [typeParam0]);
@@ -139,11 +139,11 @@ CommonFunsAndMain getCommonFuns(
 	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.setjmp], symbol!"jmp_buf");
 
 	Type gcRoot = getType(CommonModule.bootstrap, symbol!"gc-root");
-	Type gcRootMutPointer = instantiateType(commonTypes.ptrMut, [gcRoot]);
+	Type gcRootMutPointer = instantiateType(commonTypes.pointerMut, [gcRoot]);
 
 	Type fiber = getType(CommonModule.bootstrap, symbol!"fiber");
 	Type globalCtx = getType(CommonModule.runtime, symbol!"global-ctx");
-	Type globalCtxMutPointer = instantiateType(commonTypes.ptrMut, [globalCtx]);
+	Type globalCtxMutPointer = instantiateType(commonTypes.pointerMut, [globalCtx]);
 
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);

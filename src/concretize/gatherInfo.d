@@ -80,11 +80,11 @@ CalledBy buildCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteF
 			(ConcreteFunBody.Builtin x) {
 				assert(!x.kind.isA!(BuiltinFun.CallLambda));
 			},
-			(Constant _) {},
 			(EnumFunction _) {},
 			(ConcreteFunBody.Extern) {},
 			(ConcreteExpr x) {
-				buildCalledByRecur(alloc, res, fun, x);
+				if (!x.kind.isA!Constant)
+					buildCalledByRecur(alloc, res, fun, x);
 			},
 			(ConcreteFunBody.FlagsFn) {},
 			(ConcreteFunBody.VarGet) {},

@@ -1013,13 +1013,13 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected)
 	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
-		if (inst.decl == ctx.commonTypes.ptrConst)
+		if (inst.decl == ctx.commonTypes.pointerConst)
 			return ExpectedPointee(ExpectedPointee.Pointer(
 				Type(inst), only(inst.typeArgs), PointerMutability.readOnly));
-		else if (inst.decl == ctx.commonTypes.ptrMut)
+		else if (inst.decl == ctx.commonTypes.pointerMut)
 			return ExpectedPointee(ExpectedPointee.Pointer(
 				Type(inst), only(inst.typeArgs), PointerMutability.writeable));
-		else if (inst.decl == ctx.commonTypes.funPtrStruct) {
+		else if (inst.decl == ctx.commonTypes.funPointerStruct) {
 			assert(inst.typeArgs.length == 2);
 			return ExpectedPointee(ExpectedPointee.FunPointer(inst.typeArgs[0], inst.typeArgs[1]));
 		} else
@@ -1119,10 +1119,10 @@ bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
 }
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
-	if (a == ctx.commonTypes.ptrConst)
+	if (a == ctx.commonTypes.pointerConst)
 		return PointerMutability.readOnly;
 	else {
-		assert(a == ctx.commonTypes.ptrMut);
+		assert(a == ctx.commonTypes.pointerMut);
 		return PointerMutability.writeable;
 	}
 }
@@ -1176,7 +1176,7 @@ Expr checkFunPointerInner(
 		Called called = force(optCalled);
 		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
 		StructInst* structInst = instantiateStructNeverDelay(
-			ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [called.returnType, paramType]);
+			ctx.instantiateCtx, ctx.commonTypes.funPointerStruct, [called.returnType, paramType]);
 		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
 	}
 }

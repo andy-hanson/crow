@@ -526,8 +526,6 @@ AllLowFuns getAllLowFuns(
 					return none!LowFunIndex;
 				}
 			},
-			(Constant _) =>
-				none!LowFunIndex,
 			(EnumFunction _) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.Extern x) {
@@ -535,8 +533,8 @@ AllLowFuns getAllLowFuns(
 				addExternSymbol(x.libraryName, force(optName));
 				return some(addLowFun(alloc, lowFunCauses, LowFunCause(fun)));
 			},
-			(ConcreteExpr _) =>
-				some(addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
+			(ConcreteExpr x) =>
+				optIf(!x.kind.isA!Constant, () => addLowFun(alloc, lowFunCauses, LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.VarGet x) =>
@@ -1219,14 +1217,12 @@ LowExpr getCallSpecial(
 	called.body_.match!LowExpr(
 		(ConcreteFunBody.Builtin x) =>
 			getCallBuiltinExpr(ctx, locals, type, range, called, args, x.kind),
-		(Constant x) =>
-			LowExpr(type, range, LowExprKind(x)),
 		(EnumFunction x) =>
 			genEnumFunction(ctx, locals, type, range, x, args),
 		(ConcreteFunBody.Extern) =>
 			assert(false),
-		(ConcreteExpr _) =>
-			assert(false),
+		(ConcreteExpr x) =>
+			LowExpr(type, range, LowExprKind(x.kind.as!Constant)),
 		(ConcreteFunBody.FlagsFn x) {
 			final switch (x.fn) {
 				case FlagsFunction.all:

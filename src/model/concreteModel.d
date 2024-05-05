@@ -134,6 +134,7 @@ immutable struct ConcreteStruct {
 		none,
 		array,
 		fiber,
+		pointer, // mut or const
 		tuple,
 	}
 
@@ -182,8 +183,18 @@ immutable struct ConcreteStruct {
 
 bool isArray(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.array;
+ConcreteType arrayElementType(ConcreteType arrayType) {
+	assert(isArray(*mustBeByVal(arrayType)));
+	return only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
+}
 bool isFiber(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.fiber;
+bool isPointer(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.pointer;
+ConcreteType pointeeType(ConcreteType pointerType) {
+	assert(isPointer(*mustBeByVal(pointerType)));
+	return only(mustBeByVal(pointerType).source.as!(ConcreteStructSource.Inst).typeArgs);
+}
 private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
@@ -245,7 +256,7 @@ immutable struct ConcreteFunBody {
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
 
-	mixin Union!(Builtin, Constant, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet);
+	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet);
 }
 
 immutable struct ConcreteFunSource {
@@ -609,7 +620,7 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* popGcRoot;
 }
 
-bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) => // TODO: MOVE
+bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) =>
 	a.kind.matchWithPointers!bool(
 		(ConcreteExprKind.Call x) =>
 			exists!ConcreteExpr(x.args, cb),

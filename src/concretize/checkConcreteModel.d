@@ -14,7 +14,8 @@ import model.concreteModel :
 	ConcreteType,
 	isBogus,
 	isVoid,
-	mustBeByVal;
+	mustBeByVal,
+	pointeeType;
 import model.constant : Constant;
 import model.model : BuiltinType, isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
@@ -93,8 +94,8 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		(in ConcreteExprKind.LocalGet x) {
 			checkType(ctx, type, x.local.type);
 		},
-		(in ConcreteExprKind.LocalPointer) {
-			// TODO -----------------------------------------------------------------------------------------------------------
+		(in ConcreteExprKind.LocalPointer x) {
+			checkType(ctx, pointeeType(type), x.local.type);
 		},
 		(in ConcreteExprKind.LocalSet x) {
 			assert(isVoid(type));
