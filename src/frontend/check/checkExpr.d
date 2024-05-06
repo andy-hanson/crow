@@ -16,7 +16,7 @@ import frontend.check.checkCall.checkCall :
 	checkCallSpecialCbN,
 	filterCandidateByExplicitTypeArg;
 import frontend.check.checkCall.checkCallSpecs :
-	ArgsKind, checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
+	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
 import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
 import frontend.check.checkStructBodies : checkLiteralIntegral;
 import frontend.check.exprCtx :
@@ -54,12 +54,10 @@ import frontend.check.inferringType :
 	TypeContext,
 	withCopyWithNewExpectedType,
 	withExpect,
-	withExpectAndInfer,
 	withExpectLoop,
 	withExpectOption,
 	withInfer;
-import frontend.check.instantiate :
-	instantiateFun, instantiateSpec, instantiateStructNeverDelay, instantiateType, noDelayStructInsts;
+import frontend.check.instantiate : instantiateSpec, instantiateStructNeverDelay, instantiateType, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
 	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure, unpackTuple;
@@ -111,14 +109,12 @@ import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
-	asTuple,
 	BogusExpr,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
 	Called,
 	CalledDecl,
-	CalledSpecSig,
 	CallExpr,
 	CharType,
 	ClosureGetExpr,
@@ -127,9 +123,7 @@ import model.model :
 	CommonTypes,
 	Condition,
 	Destructure,
-	emptySpecImpls,
 	emptySpecs,
-	emptyTypeArgs,
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	Expr,
@@ -178,7 +172,6 @@ import model.model :
 	StructBody,
 	StructDecl,
 	StructInst,
-	Test,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -221,7 +214,7 @@ import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,

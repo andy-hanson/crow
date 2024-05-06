@@ -47,12 +47,10 @@ import model.ast :
 import model.diag : DeclKind, Diag, TypeContainer;
 import model.model :
 	AutoFun,
-	BogusExpr,
 	CommonTypes,
 	Destructure,
 	emptySpecs,
 	Expr,
-	ExprKind,
 	FunBody,
 	FunDecl,
 	FunDeclSource,

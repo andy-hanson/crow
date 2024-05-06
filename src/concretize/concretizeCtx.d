@@ -24,7 +24,6 @@ import concretize.generate :
 	genSeq,
 	genStringLiteralKind,
 	genUnionMemberGet,
-	genVoid,
 	unwrapOptionType;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
@@ -58,7 +57,6 @@ import model.model :
 	BuiltinType,
 	CommonTypes,
 	Destructure,
-	emptySpecs,
 	EnumFunction,
 	EnumOrFlagsMember,
 	Expr,
@@ -71,7 +69,6 @@ import model.model :
 	isLambdaType,
 	isNonFunctionPointer,
 	isTuple,
-	LambdaExpr,
 	Local,
 	Module,
 	paramsArray,
@@ -79,7 +76,6 @@ import model.model :
 	Purity,
 	RecordField,
 	SpecInst,
-	Specs,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -93,7 +89,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray;
 import util.col.array :
-	arraysEqual,
 	emptySmallArray,
 	every,
 	exists,
@@ -102,7 +97,6 @@ import util.col.array :
 	map,
 	mapPointers,
 	mapPointersWithIndex,
-	mapWithIndex,
 	mapZip,
 	maxBy,
 	newArray,
@@ -114,19 +108,17 @@ import util.col.array :
 import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
-import util.col.mutMap : getOrAddAndDidAdd, mustAdd, mustDelete, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
-import util.hash : HashCode, Hasher;
 import util.late : Late, late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
-import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
 
-alias TypeArgsScope = SmallArray!ConcreteType;
+private alias TypeArgsScope = SmallArray!ConcreteType;
 
 private ConcreteStructSource.Inst getStructKey(return in ConcreteStruct* a) =>
 	a.source.as!(ConcreteStructSource.Inst);
@@ -134,11 +126,8 @@ private ConcreteStructSource.Inst getStructKey(return in ConcreteStruct* a) =>
 private VarDecl* getVarKey(return in ConcreteVar* a) =>
 	a.source;
 
-ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
+private ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
 	a.source.as!ConcreteFunKey;
-
-TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
-	a.typeArgs;
 
 TypeArgsScope typeArgsScopeForFun(ConcreteFun* a) =>
 	a.source.match!TypeArgsScope(
@@ -461,7 +450,7 @@ private void setConcreteStructRecordSize(ref Alloc alloc, ConcreteStruct* a) {
 private:
 
 ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ConcreteFunKey key) {
-	TypeArgsScope typeScope = typeArgsScope(key);
+	TypeArgsScope typeScope = key.typeArgs;
 	ConcreteType returnType = getConcreteType(ctx, key.decl.returnType, typeScope);
 	ConcreteLocal[] params = concretizeFunctionParams(ctx, paramsArray(key.decl.params), typeScope);
 	return allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key), returnType, params));

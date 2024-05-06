@@ -4,7 +4,6 @@ module util.col.mutIndexMap;
 
 import util.alloc.alloc : Alloc;
 import util.col.array : fillArray;
-import util.col.mutMap : ValueAndDidAdd;
 import util.memory : overwriteMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;
 

@@ -12,7 +12,6 @@ import concretize.concretizeCtx :
 	constantOfBytes,
 	constantSymbol,
 	getConcreteFun,
-	getFunKey,
 	getReferencedType,
 	nat64Type,
 	stringType,
@@ -35,7 +34,7 @@ import model.concreteModel :
 	isVoid,
 	mustBeByVal;
 import model.constant : Constant, constantBool, constantZero;
-import model.model : AutoFun, Called, EnumOrFlagsMember, FunBody, FunKind, RecordField, StructBody, UnionMember;
+import model.model : AutoFun, Called, EnumOrFlagsMember, FunBody, RecordField, StructBody, UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
@@ -60,7 +59,6 @@ import util.sourceRange : UriAndRange;
 import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
 import util.unicode : mustUnicodeDecode;
-import util.util : ptrTrustMe;
 
 ConcreteExpr genConstant(ConcreteType type, UriAndRange range, Constant value) =>
 	ConcreteExpr(type, range, ConcreteExprKind(value));
@@ -71,7 +69,7 @@ ConcreteExpr genFalse(ref ConcretizeCtx ctx, UriAndRange range) =>
 ConcreteExpr genTrue(ref ConcretizeCtx ctx, UriAndRange range) =>
 	genBool(ctx, range, true);
 
-ConcreteExpr genBool(ref ConcretizeCtx ctx, UriAndRange range, bool value) =>
+private ConcreteExpr genBool(ref ConcretizeCtx ctx, UriAndRange range, bool value) =>
 	genConstant(boolType(ctx), range, constantBool(value));
 
 ConcreteExpr genCall(ref Alloc alloc, in UriAndRange range, ConcreteFun* called, in ConcreteExpr[] args) =>
@@ -83,9 +81,10 @@ ConcreteExpr genCallNoAllocArgs(in UriAndRange range, ConcreteFun* called, Concr
 ConcreteExprKind genCallKindNoAllocArgs(ConcreteFun* called, ConcreteExpr[] args) =>
 	ConcreteExprKind(ConcreteExprKind.Call(called, small!ConcreteExpr(args)));
 
-ConcreteExpr genIf(ref Alloc alloc, UriAndRange range, ConcreteExpr cond, ConcreteExpr then, ConcreteExpr else_) =>
+private ConcreteExpr genIf(
+	ref Alloc alloc, UriAndRange range, ConcreteExpr cond, ConcreteExpr then, ConcreteExpr else_,
+) =>
 	ConcreteExpr(then.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.If(cond, then, else_))));
-
 
 ConcreteExpr genLoop(ref ConcretizeExprCtx ctx, ConcreteType type, in UriAndRange range, ConcreteExpr body_) =>
 	ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Loop(body_))));
@@ -294,10 +293,10 @@ ConcreteExpr genChar32List(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRa
 	ConcreteExpr(type, range, ConcreteExprKind(
 		ConcreteExprKind.Call(ctx.newChar32ListFunction, newSmallArray(ctx.alloc, [
 			genChar32Array(ctx, range, value)]))));
-ConcreteExpr genCallVariadic(ref Alloc alloc, UriAndRange range, ConcreteFun* called, ConcreteExpr[] args) =>
+private ConcreteExpr genCallVariadic(ref Alloc alloc, UriAndRange range, ConcreteFun* called, ConcreteExpr[] args) =>
 	genCall(alloc, range, called, [genCreateArray(alloc, only(called.params).type, range, args)]);
 
-ConcreteExpr genCreateArray(ref Alloc alloc, ConcreteType arrayType, UriAndRange range, ConcreteExpr[] args) =>
+private ConcreteExpr genCreateArray(ref Alloc alloc, ConcreteType arrayType, UriAndRange range, ConcreteExpr[] args) =>
 	ConcreteExpr(arrayType, range, ConcreteExprKind(ConcreteExprKind.CreateArray(args)));
 
 private ConcreteExpr genCreateRecord(ref Alloc alloc, ConcreteType type, UriAndRange range, in ConcreteExpr[] args) =>

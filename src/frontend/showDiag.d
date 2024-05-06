@@ -44,7 +44,6 @@ import model.model :
 	EnumOrFlagsMember,
 	FunDeclAndTypeArgs,
 	Local,
-	LocalMutability,
 	maxValue,
 	minValue,
 	nTypeParams,
@@ -71,7 +70,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
 import util.uri : baseName, compareUriAlphabetically, Uri;
-import util.util : stringOfEnum, max, todo;
+import util.util : stringOfEnum, max;
 import util.writer :
 	makeStringWithWriter,
 	writeFloatLiteral,

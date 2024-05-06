@@ -16,7 +16,6 @@ import interpret.stacks :
 	stacksForRange;
 import test.testUtil : expectDataStack, Test;
 import util.col.array : arraysEqual, endPtr;
-import util.util : todo;
 
 void testStack(ref Test test) {
 	testPushPop(test);

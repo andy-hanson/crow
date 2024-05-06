@@ -19,7 +19,7 @@ import util.string : CString, CStringAndLength, stringOfCString;
 import util.symbol : Extension, Symbol;
 import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
-import util.util : ptrTrustMe, todo;
+import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {

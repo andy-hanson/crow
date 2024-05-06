@@ -38,10 +38,10 @@ import model.concreteModel :
 	mustBeByVal;
 import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, small, SmallArray;
+import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
-import util.col.mutArr : asTemporaryArray, moveAndMapToArray, moveToSmallArray, MutArr, push;
-import util.col.mutMap : isEmpty, mapToMap, mustGet;
+import util.col.mutArr : asTemporaryArray, moveAndMapToArray, MutArr, push;
+import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : castNonScope_ref, ptrTrustMe;

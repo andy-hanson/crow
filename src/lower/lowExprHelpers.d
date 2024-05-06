@@ -20,7 +20,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
-import util.col.array : mapWithIndex, newArray, newSmallArray, small, SmallArray;
+import util.col.array : mapWithIndex, newArray, small, SmallArray;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, integralValuesRange;
 import util.memory : allocate;
@@ -132,7 +132,7 @@ LowExpr genConstantNat64(UriAndRange range, ulong value) =>
 LowExpr genConstantIntegral(LowType type, UriAndRange range, ulong value) =>
 	LowExpr(type, range, LowExprKind(Constant(IntegralValue(value))));
 
-LowExpr genNull(LowType type, UriAndRange range) =>
+private LowExpr genNull(LowType type, UriAndRange range) =>
 	LowExpr(type, range, LowExprKind(constantZero));
 
 LowExpr genCallFunPointerNoGcRoots(LowType type, UriAndRange range, LowExpr* funPtr, SmallArray!LowExpr args) =>
@@ -229,12 +229,6 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 			return BuiltinBinary.eqNat64;
 	}
 }
-
-LowExpr genUnionKindEquals(ref Alloc alloc, UriAndRange range, LowExpr a, ulong value) =>
-	genBinary(
-		alloc, boolType, range, BuiltinBinary.eqNat64,
-		genUnionKind(range, allocate(alloc, a)),
-		genConstantNat64(range, value));
 
 private BuiltinBinary intersectForType(PrimitiveType a) {
 	final switch (a) {

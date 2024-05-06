@@ -391,7 +391,6 @@ extern(C) {
 		const gcc_jit_function* fn,
 		gcc_jit_location* loc);
 
-	struct gcc_jit_extended_asm;
 	void gcc_jit_context_add_top_level_asm(ref gcc_jit_context ctxt, gcc_jit_location* loc, const char* asm_stmts);
 
 	enum gcc_jit_fn_attribute {

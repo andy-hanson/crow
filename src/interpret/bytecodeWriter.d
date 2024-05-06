@@ -45,7 +45,6 @@ import interpret.runBytecode :
 	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
-	opSwitchFiber,
 	opSwitchWithValues,
 	opThreadLocalPtr,
 	opWrite;
@@ -111,11 +110,6 @@ void writeAbort(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 // (Though in non-tail-recursive builds, all operations return.)
 void writeBreak(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 	pushOperationFn(writer, source, &opBreak);
-}
-
-void writeSwitchFiber(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opSwitchFiber);
-	writer.nextStackEntry -= 2;
 }
 
 ByteCodeIndex writeCallDelayed(

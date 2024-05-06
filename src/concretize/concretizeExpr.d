@@ -16,7 +16,6 @@ import concretize.concretizeCtx :
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteFunForLambda,
 	getConcreteFun,
-	getNonTemplateConcreteFun,
 	getReferencedType,
 	SpecsScope,
 	specsScopeForFun,
@@ -42,8 +41,6 @@ import concretize.generate :
 	genDoAndContinue,
 	genDrop,
 	genError,
-	genFalse,
-	genIf,
 	genLet,
 	genLocalPointer,
 	genLoop,
@@ -55,13 +52,11 @@ import concretize.generate :
 	genParamGet,
 	genRecordFieldGet,
 	genRecordFieldPointer,
-	genRecordFieldSet,
 	genReferenceCreate, genReferenceRead, genReferenceWrite,
 	genSome,
 	genLocalGet,
 	genThrow,
 	genThrowStringKind,
-	genTrue,
 	genVoid,
 	unwrapOptionType;
 import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
@@ -86,7 +81,6 @@ import model.concreteModel :
 	mustBeByVal,
 	name,
 	purity,
-	ReferenceKind,
 	returnType;
 import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
@@ -155,12 +149,10 @@ import util.col.array :
 	newSmallArray,
 	only,
 	only2,
-	PtrAndSmallNumber,
 	sizeEq,
-	small,
 	SmallArray;
 import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
-import util.col.mutMap : getOrAdd, mustGet;
+import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.integralValues : IntegralValue, IntegralValues, integralValuesRange, mapToIntegralValues;
 import util.memory : allocate;
@@ -169,7 +161,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
+import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>

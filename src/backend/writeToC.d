@@ -2,8 +2,6 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
-immutable string boilerplate = import("writeToC_boilerplate.c");
-
 import backend.mangle :
 	buildMangledNames,
 	MangledNames,
@@ -38,7 +36,6 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	LowFunFlags,
 	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
@@ -52,8 +49,8 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinType, BuiltinUnary;
-import model.showLowModel : writeFunName, writeFunSig;
+import model.model : BuiltinBinary, BuiltinTernary, BuiltinType, BuiltinUnary;
+import model.showLowModel : writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : contains, every, exists, isEmpty, map, only, sizeEq, zip;
@@ -81,6 +78,8 @@ import util.writer :
 	writeWithCommasZip,
 	writeWithSpaces;
 import versionInfo : isWindows;
+
+private immutable string boilerplate = import("writeToC_boilerplate.c");
 
 immutable struct PathAndArgs {
 	FilePath path;

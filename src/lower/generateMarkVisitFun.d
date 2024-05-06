@@ -53,16 +53,15 @@ import lower.lowExprHelpers :
 	voidType,
 	voidConstPointerType;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists, foldWithIndex, mapPointers, newArray, newSmallArray, SmallArray;
+import util.col.array : exists, foldWithIndex, newArray, newSmallArray, SmallArray;
 import util.col.fullIndexMap : fullIndexMapSize;
 import util.col.mutArr : MutArr;
-import util.col.mutIndexMap : getOrAdd, mustGet, MutIndexMap, newMutIndexMap;
-import util.col.mutMap : getOrAdd, MutMap, ValueAndDidAdd;
+import util.col.mutIndexMap : getOrAdd, MutIndexMap, newMutIndexMap;
+import util.col.mutMap : getOrAdd, MutMap;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol;
-import util.util : todo, typeAs;
 
 struct MarkVisitFuns {
 	@safe @nogc pure nothrow:

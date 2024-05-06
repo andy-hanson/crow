@@ -3,7 +3,7 @@ module lower.lower;
 @safe @nogc pure nothrow:
 
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
-import frontend.showModel : ShowCtx, ShowOptions;
+import frontend.showModel : ShowCtx;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateMarkVisitFun :
 	getMarkRootForType,
@@ -26,7 +26,6 @@ import lower.lowExprHelpers :
 	genConstantIntegral,
 	genConstantInt32,
 	genConstantNat64,
-	genDerefGcPointer,
 	genDrop,
 	genEnumEq,
 	genEnumIntersect,
@@ -54,14 +53,12 @@ import lower.lowExprHelpers :
 	genTrue,
 	genUnionAs,
 	genUnionKind,
-	genUnionKindEquals,
 	genVarGet,
 	genVarSet,
 	genVoid,
 	genWrapMulNat64,
 	genWriteToPointer,
 	genZeroed,
-	getElementPointerTypeFromArrType,
 	int32Type,
 	voidConstPointerType,
 	voidType;
@@ -86,7 +83,7 @@ import model.concreteModel :
 	name,
 	PointerTypeAndConstantsConcrete,
 	ReferenceKind;
-import model.constant : Constant, constantZero;
+import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
@@ -96,7 +93,6 @@ import model.lowModel :
 	ConcreteFunToLowFunIndex,
 	ExternLibraries,
 	ExternLibrary,
-	isArray,
 	isPrimitiveType,
 	isTuple,
 	LowExpr,
@@ -144,7 +140,6 @@ import util.col.array :
 	applyNTimes,
 	emptySmallArray,
 	exists,
-	foldPointers,
 	foldReverse,
 	foldReverseWithIndex,
 	indexOfPointer,
@@ -152,35 +147,31 @@ import util.col.array :
 	map,
 	mapPointersWithIndex,
 	mapWithIndex,
-	mapWithIndexAndAppend,
-	mapZip,
 	mapZipPtrFirst,
 	newArray,
 	newSmallArray,
 	only,
 	only2,
-	reduce,
 	small,
 	SmallArray,
 	zipPtrFirst;
 import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
-import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr, fullIndexMapSize;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr;
 import util.col.mutArr : moveToArray, MutArr, mutArrSize, push;
-import util.col.mutIndexMap : mustGet, MutIndexMap, newMutIndexMap;
-import util.col.mutMap : getOrAdd, moveToMap, mustAdd, mustGet, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, moveToMap, mustAdd, mustGet, MutMap, MutMap;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue, IntegralValues, singleIntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.union_ : Union;
-import util.util : castNonScope_ref, enumConvert, ptrTrustMe, todo, typeAs;
+import util.util : castNonScope_ref, enumConvert, ptrTrustMe;
 import versionInfo : isVersion, VersionFun;
 
 LowProgram lower(
@@ -458,7 +449,7 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType type) {
 			return inner;
 		case ReferenceKind.byRef:
 			return getOrAdd(ctx.alloc, ctx.concreteStructToPtrType, type.struct_, () =>
-				LowType(LowType.PtrGc(allocate(ctx.alloc, inner))));
+				getLowGcPtrType(ctx, inner));
 	}
 }
 
@@ -1238,11 +1229,12 @@ LowExpr getCallSpecial(
 			}
 		},
 		(ConcreteFunBody.VarGet x) =>
-			LowExpr(type, range, LowExprKind(LowExprKind.VarGet(mustGet(ctx.varIndices, x.var)))),
+			genVarGet(type, range, mustGet(ctx.varIndices, x.var)),
 		(ConcreteFunBody.VarSet x) =>
-			LowExpr(type, range, LowExprKind(LowExprKind.VarSet(
+			genVarSet(
+				ctx.alloc, range,
 				mustGet(ctx.varIndices, x.var),
-				allocate(ctx.alloc, getLowExpr(ctx, locals, only(args), ExprPos.nonTail))))));
+				getLowExpr(ctx, locals, only(args), ExprPos.nonTail)));
 
 LowExpr getRecordFieldSet(
 	ref GetLowExprCtx ctx,

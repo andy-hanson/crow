@@ -241,13 +241,14 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 		cur += offset.offset;
 }
 
-alias opInitStack = opFnTernary!((ulong stackLow, ulong stackHigh, ulong func) @system {
+alias opInitStack = opFnTernary!opInitStackInner;
+private ulong opInitStackInner(ulong stackLow, ulong stackHigh, ulong func) {
 	// We store the return** on the data stack.
 	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));
 	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
 	dataPush(stacks, cast(ulong) stacks.returnPtr);
 	return cast(ulong) stacks.dataPtr;
-});
+}
 
 alias opSwitchFiber = operation!opSwitchFiberInner;
 private void opSwitchFiberInner(ref Stacks stacks, ref Operation* cur) {
@@ -461,7 +462,7 @@ private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
 	dataPush(stacks, cb(x, y));
 }
 
-alias opFnTernary(alias cb) = operation!(opFnTernaryInner!cb);
+private alias opFnTernary(alias cb) = operation!(opFnTernaryInner!cb);
 private void opFnTernaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
 	ulong z = dataPop(stacks);
 	ulong y = dataPop(stacks);

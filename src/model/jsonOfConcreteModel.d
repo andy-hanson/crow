@@ -29,7 +29,7 @@ import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
-import util.util : stringOfEnum, todo;
+import util.util : stringOfEnum;
 
 Json jsonOfConcreteProgram(ref Alloc alloc, in LineAndColumnGetters lcg, in ConcreteProgram a) {
 	Ctx ctx = Ctx(lcg);

@@ -46,8 +46,3 @@ bool mutSetMayDelete(T)(scope ref MutSet!T a, T value) {
 	MutOpt!T deleted = mayDelete(a.inner, value);
 	return has(deleted);
 }
-
-void mustSetMustDelete(T)(scope ref MutSet!T a, T value) {
-	bool ok = mutSetMayDelete!T(a, value);
-	assert(ok);
-}

@@ -4,9 +4,7 @@ module interpret.applyFn;
 
 import interpret.bytecode : Operation;
 import interpret.runBytecode : opFnBinary, opFnUnary;
-import interpret.stacks : dataPush, returnPush, Stacks;
 import model.model : BuiltinBinaryMath, BuiltinUnaryMath;
-import util.col.map : mustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfLong, float32OfBits, float64OfBits;
 
 private alias binaryFloat32s(alias cb) = opFnBinary!((ulong a, ulong b) =>

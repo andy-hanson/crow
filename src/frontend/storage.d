@@ -27,10 +27,8 @@ import util.opt : ConstOpt, force, has, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange :
 	LineAndCharacterGetter,
-	LineAndColumn,
 	LineAndColumnGetter,
 	lineAndColumnGetterForText,
-	LineAndColumnRange,
 	Pos,
 	PosKind,
 	Range,

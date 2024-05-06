@@ -2,30 +2,16 @@ module concretize.gatherInfo;
 
 @safe @nogc pure nothrow:
 
-import concretize.concretizeCtx : ConcreteLambdaImpl;
 import model.concreteModel :
-	ConcreteCommonFuns,
-	ConcreteExpr,
-	ConcreteExprKind,
-	ConcreteFun,
-	ConcreteFunBody,
-	ConcreteFunKey,
-	ConcreteLocal,
-	ConcreteStruct,
-	existsDirectChildExpr,
-	mustBeByVal;
+	ConcreteCommonFuns, ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteFunBody, existsDirectChildExpr;
 import model.constant : Constant;
-import model.model : BuiltinBinary, BuiltinFun, EnumFunction, FlagsFunction;
+import model.model : BuiltinBinary, BuiltinFun, EnumFunction;
 import util.alloc.alloc : Alloc, withTempAlloc;
-import util.col.array : exists, mustFind, only2;
-import util.col.map : mustGet;
+import util.col.array : mustFind;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMultiMap : eachValueForKey, MutMultiMap, add;
-import util.col.mutSet : mayAddToMutSet, MutSet, mustSetMustDelete;
+import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
-import util.opt : force, has, Opt;
-import util.symbol : Symbol;
-import util.util : todo;
 
 Set!(immutable ConcreteFun*) getYieldingFuns(
 	ref Alloc alloc,

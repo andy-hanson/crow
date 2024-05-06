@@ -4,10 +4,8 @@ module model.concreteModel;
 
 import model.constant : Constant;
 import model.model :
-	BuiltinBinaryLazy,
 	BuiltinFun,
 	BuiltinType,
-	ClosureReferenceKind,
 	EnumFunction,
 	Expr,
 	FlagsFunction,
@@ -18,18 +16,15 @@ import model.model :
 	Params,
 	Purity,
 	StructDecl,
-	StructInst,
 	Test,
 	VarDecl;
-import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, exists, isEmpty, only, PtrAndSmallNumber, SmallArray;
-import util.col.map : Map;
+import util.col.array : arraysEqual, exists, isEmpty, only, SmallArray;
 import util.col.set : Set;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion, Union;
@@ -101,10 +96,6 @@ immutable struct TypeSize {
 Purity purity(ConcreteType a) =>
 	a.struct_.purity;
 
-ConcreteStruct* mustBeByRef(ConcreteType a) {
-	assert(a.reference == ReferenceKind.byRef);
-	return a.struct_;
-}
 ConcreteStruct* mustBeByVal(ConcreteType a) {
 	assert(a.reference == ReferenceKind.byVal);
 	return a.struct_;

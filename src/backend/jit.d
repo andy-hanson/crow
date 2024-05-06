@@ -104,7 +104,7 @@ import backend.mangle :
 import backend.writeToC : getLinkOptions;
 import frontend.showModel : ShowCtx;
 import frontend.lang : JitOptions, OptimizationLevel;
-import model.constant : Constant, constantBool;
+import model.constant : Constant;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
 	localMustBeVolatile,
@@ -121,12 +121,11 @@ import model.lowModel :
 	LowVar,
 	LowVarIndex,
 	LowType,
-	lowTypeEqualCombinePtr,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary;
-import model.showLowModel : writeFunName, writeFunSig;
+import model.showLowModel : writeFunSig;
 import util.alloc.alloc : Alloc, withTempAlloc;
 import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapStatic, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
@@ -138,7 +137,6 @@ import util.exitCode : ExitCode;
 import util.integralValues : IntegralValue;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.union_ : TaggedUnion;
 import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
@@ -1615,47 +1613,6 @@ ExprResult operatorForLhsRhs(
 		getGccType(ctx.types, type),
 		lhs,
 		rhs));
-
-enum LogicalOperator { and, or }
-
-ExprResult logicalOperatorToGcc(
-	ref ExprCtx ctx,
-	ref Locals locals,
-	ExprEmit emit,
-	LogicalOperator operator,
-	in LowExpr left,
-	in LowExpr right,
-) {
-	if (true) {//isReturn(emit)) {
-		final switch (operator) {
-			case LogicalOperator.and:
-				// if (left) return right; else return false;
-				return ifToGcc(ctx, locals, emit, boolType, left, right, boolExpr(false));
-			case LogicalOperator.or:
-				// if (left) return true; else return right;
-				return ifToGcc(ctx, locals, emit, boolType, left, boolExpr(true), right);
-		}
-	} else {
-		// TODO:KILL
-		// This only works if left and right sides have no side effects.
-		// Else 'emitSimpleYesSideEffects' will cause 'right' to evaluate anyway.
-		gcc_jit_binary_op op = () {
-			final switch (operator) {
-				case LogicalOperator.and:
-					return gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_AND;
-				case LogicalOperator.or:
-					return gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_OR;
-			}
-		}();
-		return binaryOperator(ctx, locals, emit, boolType, op, left, right);
-	}
-}
-
-LowType boolType() =>
-	LowType(PrimitiveType.bool_);
-
-LowExpr boolExpr(bool value) =>
-	LowExpr(boolType, UriAndRange.empty, LowExprKind(constantBool(value)));
 
 enum PtrArith { addNat, subtractNat }
 

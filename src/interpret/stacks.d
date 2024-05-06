@@ -121,10 +121,6 @@ ulong* dataTop(ref Stacks a) =>
 inout(ulong*) dataEnd(ref inout Stacks a) =>
 	a.dataPtr + 1;
 
-// One past the last return pointer pushed; meaning a pointer to the next return pointer
-inout(Operation**) returnEnd(ref inout Stacks a) =>
-	a.returnPtr - 1;
-
 ulong dataRemove(ref Stacks a, size_t offset) {
 	ulong res = dataPeek(a, offset);
 	dataReturn(a, offset, offset);

@@ -2,8 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.showModel : ShowCtx, ShowOptions;
-import frontend.storage : LineAndColumnGetters;
+import frontend.showModel : ShowCtx;
 import lower.lowExprHelpers :
 	boolType,
 	char8Type,
@@ -33,7 +32,6 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
 	LowProgram,
@@ -47,7 +45,6 @@ import util.col.array : sizeEq;
 import util.col.array : zip;
 import util.json : field, Json, jsonObject, jsonString, kindField;
 import util.opt : force, has, none, Opt, some;
-import util.uri : UrisInfo;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 

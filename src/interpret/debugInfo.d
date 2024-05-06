@@ -6,7 +6,7 @@ import frontend.showModel : ShowCtx, writeUriAndPos;
 import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.runBytecode : operationOpStopInterpretation;
-import interpret.stacks : returnPeek, returnTempAsArrReverse, Stacks;
+import interpret.stacks : returnTempAsArrReverse, Stacks;
 import model.concreteModel : ConcreteFun;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.showLowModel : writeFunName;

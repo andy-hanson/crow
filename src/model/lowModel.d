@@ -15,14 +15,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary,
-	BuiltinUnaryMath,
-	BuiltinBinary,
-	BuiltinBinaryMath,
-	BuiltinTernary,
-	Local,
-	LocalMutability,
-	StructBody;
+	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -226,9 +219,6 @@ immutable struct LowType {
 				LowTypeCombinePointer(x));
 }
 static assert(LowType.sizeof <= 16);
-
-bool lowTypeEqualCombinePtr(LowType a, LowType b) =>
-	a == b || (isPtrGcOrRaw(a) && isPtrGcOrRaw(b) && asGcOrRawPointee(a) == asGcOrRawPointee(b));
 
 bool isChar8(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.char8;

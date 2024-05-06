@@ -13,16 +13,13 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteType,
 	isBogus,
-	isPointer,
 	isVoid,
-	mustBeByRef,
 	mustBeByVal,
 	pointeeType,
 	ReferenceKind;
 import model.constant : Constant;
 import model.model : BuiltinType, isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
-import util.alloc.alloc : Alloc;
 import util.col.array : every, only, zip;
 import util.conv : safeToSizeT;
 import util.integralValues : IntegralValues, singleIntegralValue;

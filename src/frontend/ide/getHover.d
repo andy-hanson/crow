@@ -8,7 +8,6 @@ import frontend.showModel :
 	writeCalled,
 	writeFile,
 	writeFunDecl,
-	writeFunInst,
 	writeLineAndColumn,
 	writeName,
 	writeSpecInst,

@@ -456,19 +456,6 @@ void filterUnorderedButDontRemoveAll(T)(
 	return res[0 .. outI];
 }
 
-@trusted Out[] mapWithIndexAndAppend(Out, In)(
-	ref Alloc alloc,
-	In[] a,
-	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
-	Out appended,
-) {
-	Out[] res = allocateElements!Out(alloc, a.length + 1);
-	foreach (size_t i, ref In x; a)
-		initMemory!Out(&res[i], cb(i, x));
-	initMemory!Out(&res[a.length], appended);
-	return res;
-}
-
 SmallArray!Out mapWithIndex(Out, In)(
 	ref Alloc alloc,
 	in SmallArray!In a,
@@ -657,11 +644,6 @@ T foldWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U) @safe
 	return recur(start, 0);
 }
 
-T foldPointers(T, U)(T start, in U[] arr, in T delegate(T, U*) @safe @nogc pure nothrow cb) =>
-	isEmpty(arr)
-		? start
-		: foldPointers!(T, U)(cb(start, &arr[0]), arr[1 .. $], cb);
-
 T foldReverse(T, U)(T start, in U[] arr, in T delegate(T, ref U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
@@ -671,11 +653,6 @@ T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U
 	isEmpty(arr)
 		? start
 		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
-
-T reduce(T)(in T[] array, in T delegate(T, T) @safe @nogc pure nothrow cb) {
-	assert(!isEmpty(array));
-	return fold(array[0], array[1 .. $], (T x, in T y) => cb(x, y));
-}
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

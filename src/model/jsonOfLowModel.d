@@ -26,7 +26,7 @@ import model.lowModel :
 	LowUnion,
 	PrimitiveType,
 	UpdateParam;
-import model.model : BuiltinFun, Local;
+import model.model : Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef, jsonOfIntegralValues;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, Json, jsonList, jsonString, kindField;
