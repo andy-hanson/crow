@@ -49,11 +49,6 @@ To put it another way, a type works with `data` if it is:
 
 ###
 Specifies that a type must be safe to share between tasks that may run in parallel.
-
 Anything that satisfies `data` satisfies `shared`.
-In addition, `future` and `ref` types are shared if their type arguments are.
-(`nat mut[]^` is not shared.)
-
-In the future, parallel-safe collections may be included here.
 ###
 +shared[t] spec builtin

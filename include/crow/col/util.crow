@@ -5,7 +5,8 @@ import
 	../misc: new
 	../number: ==, <=>, +, *, /, nat64
 	../private/range-low-level: subtract-to-nat
-	./collection: begin-end, for-loop, iterate, next, size, skip-next, slice, try-split-once, with-block
+	./collection:
+		begin-end, for-loop, iterate, next, size, skip-next, slice, try-split-once, with-block
 	./list: ~=, build, iterate, list
 	./private/build: build
 

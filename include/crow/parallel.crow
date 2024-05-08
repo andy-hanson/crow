@@ -47,10 +47,6 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) unsafe
 	trusted res.lock init
 	res
 
-# Future resolved to `()`.
-+new[t] t future() t new
-	(),
-
 # Future resolved with an exception.
 +rejected[t] t future(err exception-and-backtrace)
 	res t future = trusted uninit, err.rejected

@@ -3,8 +3,6 @@
 
 	<p>
 		You can write unit tests for code in <code class="keyword">test</code> blocks.
-		<br />
-		The block is expected to be of type <code class="type">void</code> or <code class="type">void^</code>.
 	</p>
 	<p>
 		A <code class="keyword">test</code> can also be marked <code class="keyword">summon</code> or
@@ -20,19 +18,12 @@
 			crow/io/print: out, print
 			crow/test-util/test-runner: run-all-tests
 
-		main nat^(_ string[]) summon
-			&lt;- run-all-tests
-			()
+		main void() summon
+			run-all-tests
 
 		test
 			1::nat + 1 is 2
 			2::nat + 2 is 4
-
-		test
-			res nat[] &lt;- for x : (1, 2, 3)::nat[] parallel
-				x * x,
-			res is (1, 4, 9)
-			()
 
 		test summon, trusted
 			x nat = 3

@@ -37,7 +37,7 @@ tutorial-pages path-and-content[]() summon
 	lambdas: Lambdas
 	for-and-with: "For" and "with" expressions
 	exceptions: Exceptions
-	futures: Futures
+	fibers: Fibers
 	io: I/O
 	modules: Modules
 	templates: Templates

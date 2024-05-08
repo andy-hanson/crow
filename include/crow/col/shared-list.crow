@@ -7,9 +7,9 @@ import
 	../private/thread-utils: acquire, init, lock, release, uninit
 	../pointer: mut-pointer
 	./array: array
-	./collection: build-options
+	./collection: build-options, subscript
 	./list: list
-	./mut-list: ~=, build, clear, mut-list, move-to, new, size, to
+	./mut-list: +, ~=, begin, build, clear, mut-list, move-to, next, new, size, to
 
 ###
 Shared equivalent to 'mut-list'.
@@ -60,6 +60,9 @@ and iterate it at your leisure.
 +~=[t] void(a t shared[], value t)
 	trusted a with-lock x =>
 		x ~= value
+
++subscript[t] t(a t shared[], index nat64)
+	trusted a with-lock x => x[index]
 
 region build
 

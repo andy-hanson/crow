@@ -175,7 +175,7 @@ prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz 
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
-	bin/crow site-src/serve.crow
+	bin/crow run site-src/serve.crow --aot
 
 ### publish ###
 

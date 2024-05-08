@@ -12,7 +12,7 @@ import
 	../../c-types: c-int, fd-t
 	../../private/bootstrap: todo
 	../../version: is-windows
-	../duration: msec
+	../duration: millisecond
 	../posix-util: check-posix-error
 	../print: err, print
 	../time: delay
@@ -101,7 +101,7 @@ close-client void(client SOCKET) summon, unsafe
 		num-events = state.epoll-fd epoll_wait &event, 1, timeout
 		match num-events
 		as 0
-			100.msec delay
+			100.millisecond delay
 			state tcp-server-loop-linux
 		as 1
 			event-flags = event events

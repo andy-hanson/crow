@@ -13,19 +13,19 @@ import
 	0,
 
 # Duration of `a` seconds.
-+sec duration(a float64)
++second duration(a float64)
 	a * 1_000_000_000,
 
 # Duration of `a` milliseconds.
-+msec duration(a float64)
++millisecond duration(a float64)
 	a * 1000000,
 
 # Duration of `a` microseconds.
-+usec duration(a float64)
++microsecond duration(a float64)
 	a * 1000,
 
 # Duration of `a` nanoseconds.
-+nsec duration(a float64)
++nanosecond duration(a float64)
 	a,
 
 # Number of seconds in `a`.
@@ -33,17 +33,17 @@ import
 	a.nanos / 1_000_000_000
 
 # Number of milliseconds in `a`.
-+msec float64(a duration)
++milliseconds float64(a duration)
 	# TODO:ROUND
-	a.nsec / 1_000_000
+	a.nanoseconds / 1_000_000
 
 # Number of microseconds in `a`.
-+usec float64(a duration)
++microseconds float64(a duration)
 	# TODO:ROUND
-	a.nsec / 1000
+	a.nanoseconds / 1000
 
 # Number of nanoseconds in `a`.
-+nsec float64(a duration)
++nanoseconds float64(a duration)
 	a nanos
 
 # Tries to pick an appropriate format for the value, like `1.5s` or `2.3us`.
@@ -51,8 +51,8 @@ import
 	if a.nanos >= 1_000_000_000
 		"{a seconds}s"
 	elif a.nanos >= 1_000_000
-		"{a msec}ms"
+		"{a milliseconds}ms"
 	elif a.nanos >= 1_000
-		"{a usec}us"
+		"{a microseconds}us"
 	else
-		"{a nsec}ns"
+		"{a nanoseconds}ns"

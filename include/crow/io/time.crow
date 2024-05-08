@@ -9,7 +9,7 @@ import
 	../pointer: null
 	../private/runtime: delay-cur-fiber-until-time
 	../version: is-windows
-	./duration: duration, nsec
+	./duration: duration, nanoseconds
 export
 	./private/time-low-level: get-monotime-nsec
 
@@ -26,7 +26,7 @@ export
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void(duration duration) summon
-	get-monotime-nsec + duration.nsec.to delay-cur-fiber-until-time
+	get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
 
 +interval record
 	-time duration
@@ -38,7 +38,7 @@ export
 	f-loop out break-or-continue mut(),
 ) summon, out shared
 	start-nsec mut = get-monotime-nsec
-	interval-nsec nat64 = interval.time.nsec.to
+	interval-nsec nat64 = interval.time.nanoseconds.to
 	loop
 		match f-loop[]
 		as loop-break v

@@ -2,8 +2,8 @@
 	<h2>Levels of purity</h2>
 	<p>
 		Every type in crow has a <em>purity</em>.
-		The purpose is to control what can be shared between different contexts that may be running in paralle.
-		The precise details will be explained in {{tutorial/futures}}.
+		The purpose is to control what can be shared between different contexts that may be running in parallel.
+		The precise details will be explained in {{tutorial/fibers}}.
 	</p>
 	<p>
 		There are 3 levels or purity:
@@ -46,9 +46,8 @@
 		main void()
 			()
 		has-data record(x string)
-		# 'string^' is a string future type, which is 'shared'.
-		has-shared record(x string^) shared
-		has-mutable record(x string-builder) mut
+		has-shared record(x string shared[]) shared
+		has-mutable record(x string mut[]) mut
 	</crow-runnable>
 
 	<aside class="small">
