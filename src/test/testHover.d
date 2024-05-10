@@ -12,7 +12,7 @@ import lib.server : getProgramForAll, getShowDiagCtx, Server;
 import model.model : Module, Program;
 import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, isEmpty;
+import util.col.array : arraysEqual, filter, isEmpty;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
@@ -32,7 +32,7 @@ private:
 
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
-	string expected = import(outputFileName);
+	immutable string expected = removeCarriageReturn(test.alloc, import(outputFileName));
 	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, in Program program, in Module* module_) {
 		string actual = jsonToStringPretty(test.alloc, hoverResult(test.alloc, content, ctx, program, module_));
 		if (actual != expected) {
@@ -45,6 +45,13 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 			assert(false);
 		}
 	});
+}
+
+string removeCarriageReturn(ref Alloc alloc, string a) {
+	version (Windows)
+		return filter!(immutable char)(alloc, a, (in immutable char x) => x != '\r');
+	else
+		return a;
 }
 
 void withHoverTest(string fileName)(

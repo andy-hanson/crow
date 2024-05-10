@@ -79,7 +79,11 @@ import util.writer :
 	writeWithSpaces;
 import versionInfo : isWindows;
 
-private immutable string boilerplate = import("writeToC_boilerplate.c");
+version (Windows) {
+	private immutable string boilerplate = import("writeToC_boilerplate_windows.c");
+} else {
+	private immutable string boilerplate = import("writeToC_boilerplate.c");
+}
 
 immutable struct PathAndArgs {
 	FilePath path;
