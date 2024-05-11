@@ -795,6 +795,7 @@ immutable struct BuiltinFun {
 		BuiltinBinaryLazy,
 		BuiltinBinaryMath,
 		BuiltinTernary,
+		Builtin4ary,
 		CallLambda,
 		CallFunPointer,
 		Constant,
@@ -994,7 +995,8 @@ enum BuiltinBinaryMath {
 	atan2Float64,
 }
 
-enum BuiltinTernary { initStack, interpreterBacktrace }
+enum BuiltinTernary { interpreterBacktrace }
+enum Builtin4ary { switchFiberInitial }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:

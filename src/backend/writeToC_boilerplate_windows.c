@@ -34,7 +34,7 @@ static unsigned char switch_fiber_code[] = {
 };
 #define switch_fiber(from, to) ((void (*)(uint64_t**, uint64_t*)) switch_fiber_code)(from, to)
 
-static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*target)()) {
+static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void* fiber, void (*target)()) {
 	// For optimized builds on Windows, it apparently uses up to 0x40 bytes *beyond* the initial pointer.
 	stack_top -= 0x40;
 	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned

@@ -14,25 +14,23 @@ import
 		null, pointer-cast, set-deref, size-of, to-const-pointer, to
 	../version: is-wasm
 	./bootstrap:
-		cur-fiber, gc-root, hard-assert, hard-unreachable, lock, mark-ctx, marks, memory-size-words,
-		memory-start, nat64, next, new, set-gc-root, todo, void
+		gc-root, hard-assert, hard-unreachable, lock, mark-ctx, marks, memory-size-words,
+		memory-start, must-cur-fiber, nat64, next, new, set-gc-root, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 # Called by the compiler.
 ~gc-root gc-root mut*() unsafe
-	guard fiber ?= cur-fiber : hard-unreachable
-	fiber.gc-root
+	must-cur-fiber gc-root
 
 # Called by the compiler. 'value' is allocated on the stack and passed here by pointer.
 ~set-gc-root void(value gc-root mut*) unsafe
-	guard fiber ?= cur-fiber : hard-unreachable
-	fiber.gc-root := value
+	must-cur-fiber.gc-root := value
 
 # Called by the compiler.
 ~pop-gc-root void() unsafe
-	guard fiber ?= cur-fiber : hard-unreachable
+	fiber = must-cur-fiber
 	fiber.gc-root := fiber.gc-root->next
 
 ~gc-roots record nominal

@@ -20,7 +20,7 @@ import
 	./bootstrap:
 		cur-exclusion, cur-fiber, fiber, hard-assert, hard-forbid, initial-function, is-running,
 		must-cur-fiber, new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running,
-		stack-pointer, symbol
+		set-stack-pointer, stack, stack-pointer, symbol
 	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
@@ -101,15 +101,19 @@ destroy void(a global-ctx mut*) bare, unsafe
 	a.may-be-work-to-do destroy-condition
 
 ###
-`stack-low` and `stack-high` must be 16-byte aligned.
+This switches away from the runtime into a fiber for the first time. (And like 'switch-fiber', returns when the fiber switches back.)
+
+`stack-high` must be 16-byte aligned.
 This will grow down, meaning it starts at the greatest value.
 Initializes the stack, then returns the new stack pointer. (This is a bit below 'stack-high'.)
 ###
--init-stack stack-pointer(
-	stack-low stack-pointer,
+-switch-fiber-initial void(
+	fiber fiber,
+	from stack-pointer mut*,
 	stack-high stack-pointer,
-	func void function(),
+	func void function(a fiber),
 ) builtin, bare
+
 ###
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
@@ -150,23 +154,26 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	# Align the stack
 	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
 	stack.is-valid-stack hard-assert
+	res fiber = do
+		initial-function: action,
+		# Inherits this fiber's log handler
+		log-handler: get-log-handler
+		stack: stack # TODO: ALLOCATE THIS LAZILY! -----------------------------------------------------------
+		gc-root: null
+		is-running: false
+		stack-pointer: null
+		cur-exclusion: a.next-exclusion.get-and-increment
+		cur-jmp-buf: null
+	res
 
-	initial-function: action,
-	# Inherits this fiber's log handler
-	log-handler: get-log-handler
-	stack: stack
-	gc-root: null
-	is-running: false
-	stack-pointer: stack.begin-pointer init-stack stack.end-pointer, &fiber-func
-	cur-exclusion: a.next-exclusion.get-and-increment
-	cur-jmp-buf: null
-
--fiber-func void() unsafe
+-fiber-func void(fiber fiber) force-ctx, unsafe
+	cur-fiber := fiber,
 	gc-root == null hard-assert
-	fiber = must-cur-fiber
 	func = fiber.initial-function!
 	fiber.initial-function := ()
+	get-global-ctx.gc mutator-begin
 	func[]
+	mutator-end
 	done yield-this-fiber
 
 enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
@@ -229,22 +236,21 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-yield-request := request,
 	fiber = must-cur-fiber
 	fiber.is-running := false
+	mutator-end
+	cur-fiber := () # TODO: It should work without this? ------------------------------------------------------------
 	&fiber.stack-pointer switch-fiber *thread-base-stack-pointer
+	get-global-ctx.gc mutator-begin
 	fiber.is-running hard-forbid
 	fiber.is-running := true
 	cur-fiber := fiber,
 
 # Runs the fiber until its next yield
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
-	gctx before-task
-	cur-fiber.is-empty hard-assert
-	cur-fiber := fiber,
-
-	thread-base-stack-pointer switch-fiber fiber.stack-pointer
-
-	# It yields to get back here.
-	must-cur-fiber reference-equal fiber hard-assert
-	cur-fiber := ()
+	fiber.is-running hard-forbid
+	if _ ?= fiber.initial-function
+		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack.end-pointer, &fiber-func
+	else
+		thread-base-stack-pointer switch-fiber fiber.stack-pointer
 	fiber.is-running hard-forbid
 
 	gctx.fiber-queue-lock acquire
@@ -268,8 +274,6 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 
 	cur-yield-request := ()
 
-	after-task
-
 -do-gc void(gctx global-ctx mut*) bare, unsafe
 	gc = gctx gc
 	if gc gc-begin
@@ -283,12 +287,6 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	gctx.fiber-queue-lock acquire
 	gctx.as-const.fiber-queue.slow-is-empty hard-assert
 	gctx.fiber-queue-lock release
-
-~before-task void(gctx global-ctx mut*) bare, unsafe
-	gctx.gc mutator-begin
-
-after-task void() bare, unsafe
-	mutator-end
 
 -what-to-do union mut
 	fiber fiber

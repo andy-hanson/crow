@@ -17,12 +17,11 @@ import
 		set-deref, set-subscript, subscript
 	../range: ..
 	../string: c-string, interpolate, string, to
-	./alloc: unmanaged-alloc-elements, unmanaged-free
+	./alloc: mutator-begin, mutator-end, unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
 	./runtime:
-		before-task, destroy, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx,
-		thread-function, uninit
+		destroy, gc, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
@@ -55,8 +54,10 @@ init-constants void() builtin, bare, summon, unsafe
 	main-pointer main-pointer,
 ) bare, summon, trusted
 	all-args = argv[1 .. argc.to] # First arg is the executable
-	gctx before-task # Fake a ctx
-	all-args invoke-main main-pointer
+	gctx.gc mutator-begin
+	res = all-args invoke-main main-pointer
+	mutator-end
+	res
 
 -invoke-main int32 future(args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
 	set-dummy-fiber

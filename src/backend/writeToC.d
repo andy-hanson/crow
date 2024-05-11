@@ -49,7 +49,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinTernary, BuiltinType, BuiltinUnary;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinTernary, BuiltinType, BuiltinUnary;
 import model.showLowModel : writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -982,11 +982,16 @@ WriteExprResult writeExpr(
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary x) {
 			final switch (x.kind) {
-				case BuiltinTernary.initStack:
-					// defined in writeToC_boilerplace.c
-					return specialCallTernary(writer, indent, ctx, writeKind, type, x.args, "init_stack");
 				case BuiltinTernary.interpreterBacktrace:
 					assert(false);
+					return writeExprDone(); // needed to give the lambda a return type
+			}
+		},
+		(in LowExprKind.Special4ary x) {
+			final switch (x.kind) {
+				case Builtin4ary.switchFiberInitial:
+					// defined in writeToC_boilerplace.c
+					return specialCallNary(writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
 			}
 		},
 		(in LowExprKind.Switch x) =>
@@ -1682,20 +1687,9 @@ WriteExprResult specialCallBinary(
 	in LowExpr[2] args,
 	in string name,
 ) =>
-	specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
+	specialCallNary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
 
-WriteExprResult specialCallTernary(
-	scope ref Writer writer,
-	size_t indent,
-	scope ref FunBodyCtx ctx,
-	in WriteKind writeKind,
-	in LowType type,
-	in LowExpr[3] args,
-	in string name,
-) =>
-	specialCallBinaryOrTernary(writer, indent, ctx, writeKind, type, castNonScope_ref(args), name);
-
-WriteExprResult specialCallBinaryOrTernary(
+WriteExprResult specialCallNary(
 	scope ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,

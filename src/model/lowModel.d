@@ -15,7 +15,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+	Builtin4ary, BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -529,6 +529,11 @@ immutable struct LowExprKind {
 		LowExpr[3] args;
 	}
 
+	immutable struct Special4ary {
+		Builtin4ary kind;
+		LowExpr[4] args;
+	}
+
 	immutable struct Switch {
 		@safe @nogc pure nothrow:
 		LowExpr value;
@@ -587,6 +592,7 @@ immutable struct LowExprKind {
 		SpecialBinary*,
 		SpecialBinaryMath*,
 		SpecialTernary*,
+		Special4ary*,
 		Switch*,
 		TailRecur,
 		UnionAs,

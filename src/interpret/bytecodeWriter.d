@@ -566,7 +566,7 @@ void writeInterpreterBacktrace(scope ref ByteCodeWriter writer, ByteCodeSource s
 	writer.nextStackEntry -= 2;
 }
 
-void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid = false) {
+void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid = false) { // TODO: i think returnVoid is unused now
 	pushOperationFn(writer, source, fn);
 	writer.nextStackEntry -= (returnVoid ? 2 : 1);
 }
@@ -574,6 +574,11 @@ void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Opera
 void writeFnTernary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {
 	pushOperationFn(writer, source, fn);
 	writer.nextStackEntry -= 2;
+}
+
+void writeFn4ary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid) {
+	pushOperationFn(writer, source, fn);
+	writer.nextStackEntry -= (returnVoid ? 4 : 3);
 }
 
 void writeFnUnary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {

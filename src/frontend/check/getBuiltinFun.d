@@ -8,6 +8,7 @@ import frontend.check.instantiate : isOptionType;
 import model.constant : constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
+	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
@@ -67,6 +68,8 @@ FunBody inner(
 		arity == 2 && kind != failBinary ? FunBody(BuiltinFun(kind)) : fail();
 	FunBody ternary(BuiltinTernary kind) =>
 		arity == 3 ? FunBody(BuiltinFun(kind)) : fail();
+	FunBody fourary(Builtin4ary kind) =>
+		arity == 4 ? FunBody(BuiltinFun(kind)) : fail();
 
 	bool isUnaryFloat32() =>
 		arity == 1 && isFloat32(rt) && isFloat32(p0);
@@ -276,8 +279,6 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
-		case symbol!"init-stack".value:
-			return ternary(BuiltinTernary.initStack);
 		case symbol!"jump-to-catch".value:
 			return unary(BuiltinUnary.jumpToCatch); // TODO: CHECK THE TYPE ------------------------------------------------------
 		case symbol!"new-void".value:
@@ -462,6 +463,8 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
 		case symbol!"switch-fiber".value:
 			return binary(BuiltinBinary.switchFiber);
+		case symbol!"switch-fiber-initial".value:
+			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"truncate-to".value:
 			return unary(isFloat64(p0)
 				? BuiltinUnary.truncateToInt64FromFloat64

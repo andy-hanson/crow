@@ -39,7 +39,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.string : CString;
-import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
+import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, todo;
 
 @safe ExitCode runBytecode(
 	scope ref Perf perf,
@@ -241,13 +241,20 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 		cur += offset.offset;
 }
 
-alias opInitStack = opFnTernary!opInitStackInner;
-private ulong opInitStackInner(ulong stackLow, ulong stackHigh, ulong func) {
+alias opSwitchFiberInitial = operation!opSwitchFiberInitialInner;
+private void opSwitchFiberInitialInner(ref Stacks stacks, ref Operation* cur) {
+	ulong func = dataPop(stacks);
+	ulong stackHigh = dataPop(stacks);
+	ulong from = dataPop(stacks);
+	ulong fiber = dataPop(stacks);
+	return todo!void("opSwitchFiberInitialInner"); ////////////////////////////////////////////////////////////////////////////////////////
+	/*
 	// We store the return** on the data stack.
 	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));
 	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
 	dataPush(stacks, cast(ulong) stacks.returnPtr);
 	return cast(ulong) stacks.dataPtr;
+	*/
 }
 
 alias opSwitchFiber = operation!opSwitchFiberInner;

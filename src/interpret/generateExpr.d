@@ -78,6 +78,7 @@ import interpret.bytecodeWriter :
 	writeDupEntries,
 	writeFnBinary,
 	writeFnTernary,
+	writeFn4ary,
 	writeFnUnary,
 	writeInterpreterBacktrace,
 	writeMulConstantNat64,
@@ -104,7 +105,7 @@ import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, registerCall, registerFunPointerReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
-import interpret.runBytecode : opInitStack, opSetupCatch, opSwitchFiber;
+import interpret.runBytecode : opSetupCatch, opSwitchFiber, opSwitchFiberInitial;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
@@ -121,7 +122,7 @@ import model.lowModel :
 	LowVarIndex,
 	PrimitiveType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
@@ -402,6 +403,9 @@ void generateExpr(
 		},
 		(in LowExprKind.SpecialTernary it) {
 			generateSpecialTernary(writer, ctx, source, locals, after, it);
+		},
+		(in LowExprKind.Special4ary x) {
+			generateSpecial4ary(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.Switch x) {
 			generateSwitch(writer, ctx, source, locals, after, x);
@@ -999,12 +1003,26 @@ void generateSpecialTernary(
 	foreach (ref LowExpr arg; castNonScope(a).args)
 		generateExprAndContinue(writer, ctx, locals, arg);
 	final switch (a.kind) {
-		case BuiltinTernary.initStack:
-			writeFnTernary(writer, source, &opInitStack);
-			break;
 		case BuiltinTernary.interpreterBacktrace:
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
+			break;
+	}
+}
+
+void generateSpecial4ary(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowExprKind.Special4ary a,
+) {
+	foreach (ref LowExpr arg; castNonScope(a).args)
+		generateExprAndContinue(writer, ctx, locals, arg);
+	final switch (a.kind) {
+		case Builtin4ary.switchFiberInitial:
+			writeFn4ary(writer, source, &opSwitchFiberInitial, returnVoid: true);
 			break;
 	}
 }
