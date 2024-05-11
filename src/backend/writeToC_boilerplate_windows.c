@@ -39,6 +39,7 @@ __declspec(allocate(".text"))
 static unsigned char switch_fiber_initial_code[] = {
 	// fiber = rcx, from = rdx, stack_high = r8, func = r9
 	// First part is identical to switch_fiber (but argument registers are different)
+	// Note: We just leave 'fiber' alone, since it is the first argument to 'func'
 	0x53, // push rbx
 	0x55, // push rbp
 	0x56, // push rsi
@@ -56,7 +57,8 @@ static unsigned char switch_fiber_initial_code[] = {
 	0x4C, 0x89, 0x0C, 0x24, // mov [rsp], r9
 	0xC3 // ret
 };
-#define switch_fiber_initial(fiber, from, stack_high, func) ((void (*)(void*, uint64_t**, uint64_t*, void (*)())) switch_fiber_initial_code)(fiber, from, stack_high, func);
+struct fiber;
+#define switch_fiber_initial(fiber_arg, from, stack_high, func) ((void (*)(struct fiber*, uint64_t**, uint64_t*, void (*)(struct fiber*))) switch_fiber_initial_code)(fiber_arg, from, stack_high, func);
 
 static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void* fiber, void (*target)()) {
 	// For optimized builds on Windows, it apparently uses up to 0x40 bytes *beyond* the initial pointer.

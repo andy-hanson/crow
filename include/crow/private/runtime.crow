@@ -136,6 +136,7 @@ It will be initialized properly the first time you switch to another fiber.
 		log-handler: log => log default-log-handler
 		stack: ()
 		gc-root: null
+		next-awaiting: ()
 		yield-request: none
 		is-running: false
 		# This will be written to the first time we call 'switch-fiber'.
@@ -158,6 +159,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 		log-handler: get-log-handler
 		stack: stack # TODO: ALLOCATE THIS LAZILY! -----------------------------------------------------------
 		gc-root: null
+		next-awaiting: ()
 		yield-request: none
 		is-running: false
 		stack-pointer: null

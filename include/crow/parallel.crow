@@ -34,7 +34,7 @@ export
 +yield-fiber void() trusted
 	add-to-queue yield-this-fiber
 
-add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) unsafe
+add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe
 	typed t future = future reference-from-pointer
 	typed try-add-awaiting-fiber fiber
 

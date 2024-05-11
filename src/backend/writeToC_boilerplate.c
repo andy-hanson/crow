@@ -37,6 +37,31 @@ __asm__(
 );
 extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* to);
 
+__asm__(
+	// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
+	// Note: We just leave 'fiber' alone, since it is the first argument to 'func'
+	".text\n"
+	".align 8\n"
+	"switch_fiber_initial:\n"
+
+	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+	"push %rbx\n"
+	"push %rbp\n"
+	"push %r12\n"
+	"push %r13\n"
+	"push %r14\n"
+	"push %r15\n"
+	"movq %rsp, (%rsi)\n"
+
+	"movq %rdx, %rsp\n"
+	// Set it up so we'll return to 'func'
+	"subq $8, %rsp\n" // For alignment (since stack should be 16-byte aligned, but push %rcx is only 8 bytes)
+	"push %rcx\n"
+	"ret\n"
+);
+struct fiber;
+extern void __attribute__((noinline)) switch_fiber_initial(struct fiber* fiber, uint64_t** from, uint64_t* stack_high, void (*func)(struct fiber*));
+
 // This should match 'makeInitStackFunction' in 'jit.d'
 static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*target)()) {
 	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned
@@ -44,6 +69,45 @@ static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*tar
 	return stack_top - 8;
 }
 
-TODO: setupCatch
+__asm__(
+	".text\n"
+	".align 8\n"
+	"setup_catch:\n"
 
-TODO: jumpToCatch
+	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+	"movq %rbx, (%rdi)\n"
+	"movq %rbp, 0x08(%rdi)\n"
+	"movq %r12, 0x10(%rdi)\n"
+	"movq %r13, 0x18(%rdi)\n"
+	"movq %r14, 0x20(%rdi)\n"
+	"movq %r15, 0x28(%rdi)\n"
+	"movq %rsp, 0x30(%rdi)\n"
+	// Also write the return address
+	"movq (%rsp), %rax\n"
+	"movq %rax, 0x38(%rdi)\n"
+	"xor %al, %al\n"
+	"ret\n"
+);
+// TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? --------------------------------
+extern _Bool __attribute__((noinline, returns_twice)) setup_catch(void* jmp_buf);
+
+__asm__(
+	".text\n"
+	".align 8\n"
+	"jump_to_catch:\n"
+
+	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+	"movq (%rdi), %rbx\n"
+	"movq 0x08(%rdi), %rbp\n"
+	"movq 0x10(%rdi), %r12\n"
+	"movq 0x18(%rdi), %r13\n"
+	"movq 0x20(%rdi), %r14\n"
+	"movq 0x28(%rdi), %r15\n"
+	"movq 0x30(%rdi), %rsp\n"
+	"movq 0x38(%rdi), %rax\n"
+	// Overwrite the return address
+	"movq %rax, (%rsp)\n"
+	"mov $1, %al\n"
+	"ret\n"
+);
+extern void __attribute__((noreturn)) jump_to_catch(void* jmp_buf);

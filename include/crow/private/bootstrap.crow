@@ -74,7 +74,7 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 +mut-array[t] record by-val, mut
 	~inner t array
 
-# Needed here since it's used in 'future'
+# Needed here since it's used in 'future' (TODO: no longer used in 'future'!) ----------------------------------------------------
 ###
 Mutable array type that can change in size.
 This is represented as a reference to a `mut-array` with extra capacity.
@@ -355,8 +355,10 @@ For example, this might write it to the console.
 	stack nat64 mut-array
 	# Null if no roots yet
 	gc-root mut gc-root mut*
+	# Next fiber in a chain of fibers awaiting a future
+	next-awaiting mut fiber? # TODO: GC MUST TRACE THIS! (combine with yield-request, initial-function, is-running) -----------------------------------------------------------------------
 
-	# TODO: combine with 'initial-function' and 'is-running' since only one of these can be set at a time. (NOTE: I'll have to update mark-visit-fiber) ------------------------------------------------
+	# TODO: combine with 'initial-function' and 'is-running' and 'next-awaiting' since only one of these can be set at a time. (NOTE: I'll have to update mark-visit-fiber) ------------------------------------------------
 	yield-request mut yield-request
 	# Rest should not use GC
 	is-running mut bool # TODO: WHAT IS THIS FOR? ----------------------------------------------------------------
@@ -407,10 +409,8 @@ stack-pointer alias
 
 future-state[t] union mut
 	empty
-	# The future is not resolved, and a fiber is waiting on it
+	# The future is not resolved, and a fiber is waiting on it. Remember to check 'fiber.next-awaiting'!
 	awaited-by fiber
-	# Rarely, multiple fibers could wait on a future at once.
-	awaited-by-multiple fiber mut[]
 	# The future was resolved successfully.
 	resolved t
 	# The future resolved with an exception.

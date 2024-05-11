@@ -611,13 +611,10 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 				declareStruct(writer, ctx, x);
 		},
 		(ConcreteStruct* source, in Opt!TypeSize typeSize) {
-			if (has(typeSize)) {
-				if (ctx.isMSVC) {
-					writer ~= "__declspec(align(";
-					writer ~= force(typeSize).alignmentBytes;
-					writer ~= ")) ";
-				} else
-					todo!void("SPECIFY ALIGNMENT"); // ----------------------------------------------------------------------------
+			if (has(typeSize) && ctx.isMSVC) {
+				writer ~= "__declspec(align(";
+				writer ~= force(typeSize).alignmentBytes;
+				writer ~= ")) ";
 			}
 			writer ~= "struct ";
 			writeStructMangledName(writer, ctx.mangledNames, source);
@@ -625,6 +622,11 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 				writer ~= " { char __sizer[";
 				writer ~= force(typeSize).sizeBytes;
 				writer ~= "]; }";
+				if (!ctx.isMSVC) {
+					writer ~= " __attribute__((aligned(";
+					writer ~= force(typeSize).alignmentBytes;
+					writer ~= ")))";
+				}
 			}
 			writer ~= ";\n";
 		},

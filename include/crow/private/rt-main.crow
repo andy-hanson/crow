@@ -37,7 +37,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	global-ctx := &gctx
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
-	res int32 = main-fut.must-get-result
+	res = main-fut must-get-result
 	&gctx destroy
 	res
 

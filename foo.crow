@@ -1,5 +1,0 @@
-main void() summon
-	info log "START"
-	xs nat[] = for x : 0::nat .. 10 parallel
-		x
-	info log "JOINED {xs[9]}"

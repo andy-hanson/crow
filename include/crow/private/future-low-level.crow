@@ -1,31 +1,30 @@
 no-std
 import
 	../bool: bool, false, true
-	../col/collection: for-loop
-	../col/mut-list: ~=, iterate, new
 	../misc: new, void
+	../option: is-empty, new
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		awaited-by, awaited-by-multiple, empty, exception-and-backtrace, fiber, future,
-		future-state, hard-unreachable, is-running, lk, new, rejected, resolved, set-state, state
+		awaited-by, empty, exception-and-backtrace, fiber, future, future-state, hard-assert,
+		hard-forbid, hard-unreachable, is-running, lk, next-awaiting, new, rejected, resolved,
+		set-next-awaiting, set-state, state
 	./exception-low-level: rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
 # If the future is already complete, returns 'false'
-~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) unsafe
-	forbid fiber is-running
+~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
+	fiber.is-running hard-forbid
+	fiber.next-awaiting.is-empty hard-assert
 	&a.lk acquire
 	res bool = match a state
 	as empty
 		a.state := fiber awaited-by
 		true
 	as awaited-by x
-		a.state := (x, fiber) awaited-by-multiple
-		true
-	as awaited-by-multiple x
-		x ~= fiber
+		fiber.next-awaiting := x,
+		a.state := fiber awaited-by
 		true
 	as resolved _
 		false
@@ -54,8 +53,6 @@ import
 		false
 	as awaited-by _
 		false
-	as awaited-by-multiple _
-		false
 	as resolved _
 		true
 	as rejected _
@@ -70,10 +67,15 @@ import
 	as empty
 		()
 	as awaited-by fiber
-		get-global-ctx enqueue-fiber fiber
-	as awaited-by-multiple fibers
-		for fiber : fibers
-			get-global-ctx enqueue-fiber fiber
+		cur mut = fiber
+		loop
+			get-global-ctx enqueue-fiber cur
+			if next ?= cur next-awaiting
+				cur.next-awaiting := ()
+				cur := next
+				continue
+			else
+				break
 	as resolved _
 		hard-unreachable
 	as rejected _
@@ -93,8 +95,6 @@ import
 	as empty
 		hard-unreachable
 	as awaited-by _
-		hard-unreachable
-	as awaited-by-multiple _
 		hard-unreachable
 	as resolved x
 		x ok

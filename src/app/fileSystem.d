@@ -276,8 +276,6 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 private alias TempStrForPath = char[0x1000];
 
 @trusted Opt!FilePath findPathToCCompiler() {
-	return some(parseFilePath("c:/program files/microsoft visual studio/2022/community/vc/tools/msvc/14.39.33519/bin/hostx64/x64/cl.exe"));
-	/*
 	version (Windows) {
 		TempStrForPath res = void;
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
@@ -288,7 +286,6 @@ private alias TempStrForPath = char[0x1000];
 			return some(parseFilePath(CString(cast(immutable) res.ptr)));
 	} else
 		return some(parseFilePath(cString!"/usr/bin/cc"));
-	*/
 }
 
 @trusted ReadFileResult tryReadFile(ref Alloc alloc, Uri uri) {

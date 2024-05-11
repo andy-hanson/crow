@@ -1,6 +1,6 @@
 import
 	# unused fun
-	crow/io/duration: sec
+	crow/io/duration: second
 	# unused type
 	crow/io/time-format: time-locale
 	# unused type alias
