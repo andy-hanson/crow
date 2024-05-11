@@ -293,7 +293,7 @@ void generateExpr(
 ) {
 	assert(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
 	ByteCodeSource source = ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
-	expr.kind.matchIn!void(
+	expr.kind.matchIn!void( // TODO: just use a regular match, that way generateSpecial4Ary doesn't need to use castNonScope -----------------------
 		(in LowExprKind.Abort x) {
 			writeAbort(writer, source);
 			setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
@@ -1023,6 +1023,7 @@ void generateSpecial4ary(
 	final switch (a.kind) {
 		case Builtin4ary.switchFiberInitial:
 			writeFn4ary(writer, source, &opSwitchFiberInitial, returnVoid: true);
+			handleAfter(writer, ctx, source, after);
 			break;
 	}
 }

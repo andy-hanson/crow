@@ -207,16 +207,19 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		},
 		(in LowExprKind.SpecialTernary x) {
 			final switch (x.kind) {
-				case BuiltinTernary.initStack:
-					checkTypeEqual(ctx, type, nat64MutPointerType);
-					checkLowExpr(ctx, nat64MutPointerType, x.args[0], ExprPos.nonTail);
-					checkLowExpr(ctx, nat64MutPointerType, x.args[1], ExprPos.nonTail);
-					// TODO: check third arg is a 'void function()'
-					break;
 				case BuiltinTernary.interpreterBacktrace:
 					// TODO
 					break;
 			}
+		},
+		(in LowExprKind.Special4ary x) {
+			// TODO ----------------------------------------------------------------------------------------------------------------
+			//				case BuiltinTernary.initStack:
+			//		checkTypeEqual(ctx, type, nat64MutPointerType);
+			//		checkLowExpr(ctx, nat64MutPointerType, x.args[0], ExprPos.nonTail);
+			//		checkLowExpr(ctx, nat64MutPointerType, x.args[1], ExprPos.nonTail);
+			//		// TODO: check third arg is a 'void function()'
+			//		break;
 		},
 		(in LowExprKind.Switch x) {
 			checkLowExpr(ctx, x.value.type, x.value, ExprPos.nonTail);

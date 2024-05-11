@@ -10,9 +10,9 @@ import
 	./number: nat64
 	./misc: shared, new, void
 	./pointer: any-mut-pointer, as-any-mut-pointer, mut-pointer, reference-from-pointer
-	./private/bootstrap: fiber, lk, new, rejected, resolved
+	./private/bootstrap: add-to-queue, await-future, fiber, lk, new, rejected, resolved
 	./private/future-low-level: get-result, reject, resolve, try-add-awaiting-fiber, unresolved
-	./private/runtime: add-new-fiber, add-to-queue, await-future, get-global-ctx, yield-this-fiber
+	./private/runtime: add-new-fiber, get-global-ctx, yield-this-fiber
 	./private/thread-utils: init, lock, uninit
 	./result: result
 	./string: interpolate

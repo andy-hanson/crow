@@ -356,9 +356,12 @@ For example, this might write it to the console.
 	# Null if no roots yet
 	gc-root mut gc-root mut*
 
+	# TODO: combine with 'initial-function' and 'is-running' since only one of these can be set at a time. (NOTE: I'll have to update mark-visit-fiber) ------------------------------------------------
+	yield-request mut yield-request
 	# Rest should not use GC
 	is-running mut bool # TODO: WHAT IS THIS FOR? ----------------------------------------------------------------
-	# Value only matters when not running (when running it uses a register for the stack pointer)
+	# This is not always the current stack pointer; that uses the stack pointer register.
+	# This is the saved value when the fiber is not running.
 	stack-pointer mut stack-pointer
 	# The fiber can change its exclusion when calling into a function with a different exclusion
 	cur-exclusion mut exclusion
@@ -366,7 +369,20 @@ For example, this might write it to the console.
 	cur-jmp-buf mut void mut*
 ~cur-fiber thread-local(fiber?)
 
-must-cur-fiber fiber() bare, unsafe # TODO: NAME? ---------------------------------------------------------------------------------------
+~yield-request union mut
+	none
+	# Add this fiber back to the queue of runnable fibers.
+	add-to-queue
+	# Takes a pointer to a future and a function for adding the fiber to it.
+	# Uses 'any-mut-pointer' in order to handle all instances of the 'future' type.
+	await-future (nat8 mut*, bool function(future nat8 mut*, fiber fiber))
+	# Change this fiber's exclusion to a new one, then enqueue it again.
+	change-exclusion exclusion
+	# Like 'add-to-queue', but adds to the timed queue. Value is a timestamp.
+	delay-until-time nat64
+	done
+
+~must-cur-fiber fiber() bare, unsafe # TODO: NAME? ---------------------------------------------------------------------------------------
 	if x ?= cur-fiber
 		x
 	else

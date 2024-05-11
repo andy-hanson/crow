@@ -34,6 +34,30 @@ static unsigned char switch_fiber_code[] = {
 };
 #define switch_fiber(from, to) ((void (*)(uint64_t**, uint64_t*)) switch_fiber_code)(from, to)
 
+#pragma section(".text")
+__declspec(allocate(".text"))
+static unsigned char switch_fiber_initial_code[] = {
+	// fiber = rcx, from = rdx, stack_high = r8, func = r9
+	// First part is identical to switch_fiber (but argument registers are different)
+	0x53, // push rbx
+	0x55, // push rbp
+	0x56, // push rsi
+	0x57, // push rdi
+	0x41, 0x54, // push r12
+	0x41, 0x55, // push r13
+	0x41, 0x56, // push r14
+	0x41, 0x57, // push r15
+	0x48, 0x89, 0x22, // mov [rdx], rsp
+	0x49, 0x8B, 0xE0, // mov rsp, r8
+
+	// Optimized builds on Windows apparently need extra space (TODO: but I think it was 64 bytes, not 64 words)
+	0x48, 0x81, 0xec, 0x00, 0x02, 0x00, 0x00, // sub rsp, 0x200
+	// Make it so 'ret' will return to 'func'
+	0x4C, 0x89, 0x0C, 0x24, // mov [rsp], r9
+	0xC3 // ret
+};
+#define switch_fiber_initial(fiber, from, stack_high, func) ((void (*)(void*, uint64_t**, uint64_t*, void (*)())) switch_fiber_initial_code)(fiber, from, stack_high, func);
+
 static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void* fiber, void (*target)()) {
 	// For optimized builds on Windows, it apparently uses up to 0x40 bytes *beyond* the initial pointer.
 	stack_top -= 0x40;

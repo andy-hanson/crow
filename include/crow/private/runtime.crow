@@ -11,16 +11,16 @@ import
 	../misc: new, shared, void
 	../number: ==, is-multiple-of, nat64
 	../option: force, is-empty, new, option
-	../pointer: ==, *, any-mut-pointer, as-const, mut-pointer, null, reference-equal, to
+	../pointer: ==, *, as-const, mut-pointer, null, to
 	../string: string
 	../version: is-wasm
 	./alloc:
 		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin,
 		mutator-end, uninit
 	./bootstrap:
-		cur-exclusion, cur-fiber, fiber, hard-assert, hard-forbid, initial-function, is-running,
-		must-cur-fiber, new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running,
-		set-stack-pointer, stack, stack-pointer, symbol
+		change-exclusion, cur-exclusion, cur-fiber, delay-until-time, done, fiber, hard-assert, hard-forbid, hard-unreachable, initial-function, is-running,
+		must-cur-fiber, new, none, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running,
+		set-stack-pointer, set-yield-request, stack, stack-pointer, symbol, yield-request
 	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
@@ -36,9 +36,6 @@ import
 
 cur-exclusion exclusion() unsafe
 	must-cur-fiber cur-exclusion
-
-# Only set right before yielding and unset right after
--cur-yield-request thread-local(yield-request?)
 
 global-ctx record by-val, mut
 	global-lock mut lock
@@ -139,6 +136,7 @@ It will be initialized properly the first time you switch to another fiber.
 		log-handler: log => log default-log-handler
 		stack: ()
 		gc-root: null
+		yield-request: none
 		is-running: false
 		# This will be written to the first time we call 'switch-fiber'.
 		stack-pointer: null
@@ -150,7 +148,7 @@ It will be initialized properly the first time you switch to another fiber.
 add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
-	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
+	stack1 nat64 mut-array = 0x20000 zeroed-mut-array # WARN: 'opSwitchFiberInitial' hardcodes this size!!!!!!!!!!!!!!!!!!!
 	# Align the stack
 	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
 	stack.is-valid-stack hard-assert
@@ -160,6 +158,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 		log-handler: get-log-handler
 		stack: stack # TODO: ALLOCATE THIS LAZILY! -----------------------------------------------------------
 		gc-root: null
+		yield-request: none
 		is-running: false
 		stack-pointer: null
 		cur-exclusion: a.next-exclusion.get-and-increment
@@ -171,6 +170,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	gc-root == null hard-assert
 	func = fiber.initial-function!
 	fiber.initial-function := ()
+	# It will 'mutator-end' every time it yields and 'mutator-begin' upon resuming
 	get-global-ctx.gc mutator-begin
 	func[]
 	mutator-end
@@ -218,23 +218,19 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 -change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
 	new-exclusion.change-exclusion yield-this-fiber
 
-~yield-request union mut
-	# Add this fiber back to the queue of runnable fibers.
-	add-to-queue
-	# Takes a pointer to a future and a function for adding the fiber to it.
-	# Uses 'any-mut-pointer' in order to handle all instances of the 'future' type.
-	await-future (any-mut-pointer, bool function(future any-mut-pointer, fiber fiber))
-	# Change this fiber's exclusion to a new one, then enqueue it again.
-	change-exclusion exclusion
-	# Like 'add-to-queue', but adds to the timed queue
-	delay-until-time timestamp
-	done
+-is-none bool(a yield-request) bare
+	# TODO: NEATER ---------------------------------------------------------------------------------------------------------------------
+	match a
+	as none
+		true
+	else
+		false
 
 # The caller should do something to ensure the fiber will eventually be resumed.
 ~yield-this-fiber void(request yield-request) unsafe
-	assert cur-yield-request is-empty
-	cur-yield-request := request,
 	fiber = must-cur-fiber
+	assert fiber.yield-request is-none
+	fiber.yield-request := request
 	fiber.is-running := false
 	mutator-end
 	cur-fiber := () # TODO: It should work without this? ------------------------------------------------------------
@@ -248,7 +244,8 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
 	fiber.is-running hard-forbid
 	if _ ?= fiber.initial-function
-		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack.end-pointer, &fiber-func
+		fiber.stack-pointer := fiber.stack.end-pointer # TODO: does it actually matter? This will be wrong immediately anyway. It should work without this...
+		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack-pointer, &fiber-func
 	else
 		thread-base-stack-pointer switch-fiber fiber.stack-pointer
 	fiber.is-running hard-forbid
@@ -257,7 +254,11 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	gctx.fiber-queue release-exclusion fiber.cur-exclusion
 	gctx.fiber-queue-lock release
 
-	match cur-yield-request!
+	req = fiber yield-request
+	fiber.yield-request := none
+	match req
+	as none
+		hard-unreachable
 	as add-to-queue
 		gctx enqueue-fiber fiber
 	as await-future future, add-awaiting-fiber
@@ -271,8 +272,6 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		gctx enqueue-timed-fiber timestamp, fiber
 	as done
 		()
-
-	cur-yield-request := ()
 
 -do-gc void(gctx global-ctx mut*) bare, unsafe
 	gc = gctx gc

@@ -243,11 +243,23 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 
 alias opSwitchFiberInitial = operation!opSwitchFiberInitialInner;
 private void opSwitchFiberInitialInner(ref Stacks stacks, ref Operation* cur) {
-	ulong func = dataPop(stacks);
-	ulong stackHigh = dataPop(stacks);
-	ulong from = dataPop(stacks);
+	ulong func = cast(Operation*) dataPop(stacks);
+	ulong* stackHigh = cast(ulong*) dataPop(stacks);
+	ulong** fromPtr = cast(ulong**) dataPop(stacks);
 	ulong fiber = dataPop(stacks);
-	return todo!void("opSwitchFiberInitialInner"); ////////////////////////////////////////////////////////////////////////////////////////
+
+	returnPush(stacks, cur);
+	dataPush(stacks, cast(ulong) stacks.returnPtr); // TODO: this is same as opSwitchFiberInner, share code????????????????????
+	*fromPtr = stacks.dataPtr;
+
+	stacks.returnPtr = cast(Operation**) stackHigh;
+	stacks.dataPtr = stackHigh - 0x20000; // TODO: this size comes from 'create-new-fiber' --------------------------------------
+
+	returnPush(stacks, null); // TODO: this should not be necessary, I'm just being paranoid... maybe have 'opAbort'? ......................
+	dataPush(stacks, fiber);
+	cur = mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func));
+
+	// OLD VERSION (opInitStacks) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/*
 	// We store the return** on the data stack.
 	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));

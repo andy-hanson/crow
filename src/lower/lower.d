@@ -119,6 +119,7 @@ import model.lowModel :
 	PrimitiveType,
 	UpdateParam;
 import model.model :
+	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
@@ -1340,6 +1341,10 @@ LowExpr getCallBuiltinExpr(
 		getArg(args[0]);
 	LowExpr getArg1() =>
 		getArg(args[1]);
+	LowExpr getArg2() =>
+		getArg(args[2]);
+	LowExpr getArg3() =>
+		getArg(args[3]);
 	return kind.match!LowExpr(
 		(BuiltinFun.AllTests) =>
 			assert(false), // handled in concretize
@@ -1360,12 +1365,17 @@ LowExpr getCallBuiltinExpr(
 		(BuiltinBinaryMath kind) {
 			assert(args.length == 2);
 			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(
-				kind, [getArg0,getArg1]))));
+				kind, [getArg0, getArg1]))));
 		},
 		(BuiltinTernary kind) {
 			assert(args.length == 3);
 			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(
-				kind, [getArg0, getArg1, getArg(args[2])]))));
+				kind, [getArg0, getArg1, getArg2]))));
+		},
+		(Builtin4ary kind) {
+			assert(args.length == 4);
+			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Special4ary(
+				kind, [getArg0, getArg1, getArg2, getArg3]))));
 		},
 		(BuiltinFun.CallLambda) =>
 			assert(false), // handled in concretize

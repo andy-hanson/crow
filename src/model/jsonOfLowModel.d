@@ -31,7 +31,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, Json, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
-import util.util : castNonScope, stringOfEnum;
+import util.util : castNonScope, stringOfEnum, todo;
 
 Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
 	Ctx ctx = Ctx(lineAndColumnGetters);
@@ -263,6 +263,8 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"operation"(stringOfEnum(x.kind)),
 				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),
+		(in LowExprKind.Special4ary x) =>
+			todo!Json("SPECIAL4ARY"), // ----------------------------------------------------------------------------------------
 		(in LowExprKind.Switch x) =>
 			jsonObject(alloc, [
 				kindField!"switch",
