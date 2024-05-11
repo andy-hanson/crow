@@ -83,21 +83,18 @@ Result entries are temporary, must copy!
 ) bare, unsafe
 	process = GetCurrentProcess
 	thread = GetCurrentThread
+	if process SymInitialize null, true
+		# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
+		context mut CONTEXT = CONTEXT_FULL,
+		&context RtlCaptureContext
+		frame mut STACKFRAME64 = &context,
 
-	ok0 = process SymInitialize null, true
-	ok0 hard-assert
-
-	# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
-	context mut CONTEXT = CONTEXT_FULL,
-	&context RtlCaptureContext
-	frame mut STACKFRAME64 = &context,
-
-	_ = SYMOPT_LOAD_LINES SymSetOptions
-	max-end = entries + max-entries
-	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
-	ok1 = process SymCleanup
-	ok1 hard-assert
-	(entries .. end).as-array,
+		_ = SYMOPT_LOAD_LINES SymSetOptions
+		max-end = entries + max-entries
+		end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
+		ok = process SymCleanup
+		ok hard-assert
+		(entries .. end).as-array,
 
 -windows-backtrace-vars record by-val, mut
 	offset nat64 mut*

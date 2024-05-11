@@ -51,6 +51,7 @@ import lower.lowExprHelpers :
 	genSeqThenReturnFirstNoGcRoot,
 	genSizeOf,
 	genTrue,
+	genUnary,
 	genUnionAs,
 	genUnionKind,
 	genVarGet,
@@ -556,7 +557,6 @@ AllLowFuns getAllLowFuns(
 		curThrown: mustGet(varIndices, program.commonFuns.curThrown),
 		exceptionType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curThrown.type),
 		mark: mustGet(concreteFunToLowFunIndex, program.commonFuns.mark),
-		setjmp: mustGet(concreteFunToLowFunIndex, program.commonFuns.setjmp),
 		rethrowCurrentException: mustGet(concreteFunToLowFunIndex, program.commonFuns.rethrowCurrentException),
 		throwImpl: mustGet(concreteFunToLowFunIndex, program.commonFuns.throwImpl),
 		gcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.gcRoot),
@@ -631,7 +631,6 @@ struct LowCommonFuns {
 	LowType exceptionType;
 	LowFunIndex mark;
 	LowFunIndex rethrowCurrentException;
-	LowFunIndex setjmp;
 	LowFunIndex throwImpl;
 
 	LowFunIndex gcRoot;
@@ -781,14 +780,14 @@ LowFunBody getLowFunBody(
 			a.params,
 			params,
 			curFunIsYielding: concreteProgram.yieldingFuns.has(a),
-			hasSetjmp: false,
+			hasSetupCatch: false,
 			hasTailRecur: false,
 			tempLocalIndex: a.params.length);
 		LowExpr body_ = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
 			getLowExpr(exprCtx, locals, expr, ExprPos(0, ExprPos.Kind.tail)));
 		return LowFunBody(LowFunExprBody(
 			LowFunFlags(
-				hasSetjmp: exprCtx.hasSetjmp,
+				hasSetupCatch: exprCtx.hasSetupCatch,
 				hasTailRecur: exprCtx.hasTailRecur,
 				mayYield: exprCtx.curFunIsYielding),
 			body_));
@@ -939,7 +938,7 @@ struct GetLowExprCtx {
 	immutable ConcreteLocal[] concreteParams;
 	immutable LowLocal[] lowParams;
 	immutable bool curFunIsYielding;
-	bool hasSetjmp;
+	bool hasSetupCatch;
 	bool hasTailRecur;
 	size_t tempLocalIndex;
 
@@ -1648,7 +1647,7 @@ LowExpr getFinallyExpr(
 	old-gc-root = gc-root
 	store mut __jmp_buf_tag = zeroed
 	err mut = false
-	res = if (&store).setjmp == 0
+	res = if !(&store setup-catch)
 		below
 	else
 		gc-root := old-gc-root
@@ -1665,7 +1664,7 @@ LowExpr getFinallyExpr(
 	withRestorableJmpBuf(ctx, range, (LowExpr restoreCurJmpBuf) =>
 		withRestorableGcRoot(ctx, range, (LowExpr restoreGcRoot) {
 			LowLocal* err = genLocal(ctx.alloc, symbol!"err", isMutable: true, nextTempLocalIndex(ctx), boolType);
-			LowExpr res = genSetjmp(
+			LowExpr res = genSetupCatch(
 				ctx, range,
 				getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
 				genSeq(
@@ -1746,7 +1745,7 @@ LowExpr getTryOrTryLetExpr(
 	old-jmp-buf = cur-jmp-buf
 	old-gc-root = gc-root
 	store mut __jmp_buf_tag = zeroed
-	if (&store).setjmp == 0
+	if !(&store setup-catch)
 		cur-jmp-buf = &store
 		res = first-block
 		cur-jmp-buf := old-jmp-buf
@@ -1773,7 +1772,7 @@ LowExpr getTryOrTryLetExpr(
 						// 'abort' is just to keep this well-typed
 						genAbort(type, range))))));
 			LowExpr onError = genSeq(ctx.alloc, range, restoreCurJmpBuf, restoreGcRoot, matchThrown);
-			return genSetjmp(ctx, range, firstBlock(restoreCurJmpBuf), onError);
+			return genSetupCatch(ctx, range, firstBlock(restoreCurJmpBuf), onError);
 		}));
 
 LowExpr withRestorableJmpBuf(
@@ -1797,11 +1796,11 @@ LowExpr withRestorableGcRoot(
 LowExpr genRethrowCurrentException(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.rethrowCurrentException, []);
 
-LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowExpr onLongjmp) {
-	ctx.hasSetjmp = true;
+LowExpr genSetupCatch(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowExpr onLongjmp) {
+	ctx.hasSetupCatch = true;
 	/*
 	store mut __jmp_buf_tag = zeroed
-	if (&store).setjmp == 0
+	if !(&store setup-catch)
 		cur_jmp_buf = &store
 		tried
 	else
@@ -1813,17 +1812,11 @@ LowExpr genSetjmp(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, LowEx
 	LowExpr storePtr = genLocalPointer(jmpBuf, range, store);
 	LowExpr then = genIf(
 		ctx.alloc, range,
-		genEqInt32(
-			ctx.alloc, range,
-			genCallNoGcRoots(ctx.alloc, int32Type, range, ctx.commonFuns.setjmp, [storePtr]),
-			genConstantInt32(range, 0)),
-		genSeq(ctx.alloc, range, genSetCurJmpBuf(ctx, range, storePtr), tried),
-		onLongjmp);
+		genUnary(ctx.alloc, boolType, range, BuiltinUnary.setupCatch, storePtr),
+		onLongjmp,
+		genSeq(ctx.alloc, range, genSetCurJmpBuf(ctx, range, storePtr), tried));
 	return genLetNoGcRoot(ctx.alloc, range, store, genZeroed(jmpBufTag, range), then);
 }
-
-LowExpr genEqInt32(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
-	LowExpr(boolType, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.eqInt32, [a, b]))));
 
 LowExpr genGetCurThrown(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genVarGet(ctx.commonFuns.exceptionType, range, ctx.commonFuns.curThrown);

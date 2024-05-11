@@ -88,6 +88,7 @@ import interpret.bytecodeWriter :
 	writeJump,
 	writeJumpDelayed,
 	writeJumpIfFalseDelayed,
+	writeJumpToCatch,
 	writePack,
 	writeStackRef,
 	writeRead,
@@ -103,7 +104,7 @@ import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, registerCall, registerFunPointerReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
-import interpret.runBytecode : opInitStack, opSwitchFiber;
+import interpret.runBytecode : opInitStack, opSetupCatch, opSwitchFiber;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
@@ -133,7 +134,7 @@ import util.integralValues : IntegralValue;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
-import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, todo;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -882,6 +883,14 @@ void generateSpecialUnary(
 			if (size != 0)
 				writeRead(writer, source, 0, size);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case BuiltinUnary.jumpToCatch:
+			generateArg();
+			writeJumpToCatch(writer, source);
+			handleAfter(writer, ctx, source, after); // TODO: not really necessary .......................................
+			break;
+		case BuiltinUnary.setupCatch:
+			fn(&opSetupCatch);
 			break;
 		case BuiltinUnary.toFloat32FromFloat64:
 			fn(&fnFloat32FromFloat64);

@@ -1,0 +1,8 @@
+#!/usr/bin/env crow
+import
+	crow/test-util/test-runner: run-all-tests
+	./include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
+
+main void() summon
+	_ = dummy-shared-map-tests
+	run-all-tests

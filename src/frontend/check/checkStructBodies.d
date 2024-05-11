@@ -185,6 +185,7 @@ bool isValidAlignment(uint alignment) {
 		case 2:
 		case 4:
 		case 8:
+		case 16:
 			return true;
 		default:
 			return false;

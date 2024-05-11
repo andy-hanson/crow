@@ -167,7 +167,7 @@ bin\crow-demo-windows.tar.xz: demo\*
 	rmdir /s /q crow-demo
 
 bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
-	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
+	cd editor\vscode && node .\node_modules\@vscode\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
 
 install-vscode-extension: bin\crow.vsix
 	code --install-extension bin\crow.vsix

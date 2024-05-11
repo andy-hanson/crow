@@ -22,8 +22,10 @@ import util.opt : none, Opt, some;
 import util.util : isMultipleOf;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
-	foreach (ref LowExternType x; program.allExternTypes)
-		writers.cbWriteExternWithSize(x.source, getElementAndCountForExtern(typeSize(x)));
+	foreach (ref LowExternType x; program.allExternTypes) {
+		TypeSize size = typeSize(x);
+		writers.cbWriteExternWithSize(x.source, size.alignmentBytes == 0 ? none!TypeSize : some(size)); // TODO: it should be stored as optional then .......
+	}
 
 	// TODO: use a temp alloc...
 	scope StructStates structStates = StructStates(
@@ -85,12 +87,13 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 
 immutable struct TypeWriters {
 	void delegate(ConcreteStruct*) @safe @nogc pure nothrow cbDeclareStruct;
-	void delegate(ConcreteStruct*, in Opt!ElementAndCount) @safe @nogc pure nothrow cbWriteExternWithSize;
+	void delegate(ConcreteStruct*, in Opt!TypeSize) @safe @nogc pure nothrow cbWriteExternWithSize;
 	void delegate(LowType.FunPointer, in LowFunPointerType) @safe @nogc pure nothrow cbWriteFunPointer;
 	void delegate(LowType.Record, in LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(LowType.Union, in LowUnion) @safe @nogc pure nothrow cbWriteUnion;
 }
 
+/* I'll just use a pragma to align. .. -----------------------------------------------------------------------------------------------------------------------
 immutable struct ElementAndCount {
 	PrimitiveType elementType;
 	size_t count;
@@ -110,10 +113,14 @@ Opt!ElementAndCount getElementAndCountForExtern(TypeSize size) {
 		case 8:
 			assert(isMultipleOf(size.sizeBytes, 8));
 			return some(ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
+		case 16:
+			assert(isMultipleOf(size.sizeBytes, 16)); // TODO: is this checked? ----------------------------------------------------------
+			return some(ElementAndCount(PrimitiveType.nat128, ))
 		default:
 			assert(false);
 	}
 }
+*/
 
 private:
 

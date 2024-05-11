@@ -367,6 +367,12 @@ For example, this might write it to the console.
 	cur-jmp-buf mut void mut*
 ~cur-fiber thread-local(fiber?)
 
+must-cur-fiber fiber() bare, unsafe # TODO: NAME? ---------------------------------------------------------------------------------------
+	if x ?= cur-fiber
+		x
+	else
+		hard-unreachable
+
 stack-pointer alias
 	nat64 mut*
 ~fiber-state enum(running, suspended)

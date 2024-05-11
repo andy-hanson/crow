@@ -93,7 +93,6 @@ ConcreteProgram concretizeInner(
 		rethrowCurrentException: getNonTemplateConcreteFun(ctx, commonFuns.rethrowCurrentException),
 		runFiber: getNonTemplateConcreteFun(ctx, commonFuns.runFiber),
 		rtMain: getNonTemplateConcreteFun(ctx, commonFuns.rtMain),
-		setjmp: getNonTemplateConcreteFun(ctx, commonFuns.setjmp),
 		throwImpl: getNonTemplateConcreteFun(ctx, commonFuns.throwImpl),
 		userMain: concretizeMainFun(ctx, program.mainFun),
 		gcRoot: getNonTemplateConcreteFun(ctx, commonFuns.gcRoot),

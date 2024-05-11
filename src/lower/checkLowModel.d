@@ -279,6 +279,10 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
 		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
+		case BuiltinUnary.jumpToCatch:
+			return ExpectUnary(some(voidType), none!LowType); // TODO: arg is a jmp_buf -----------------------------------------------------
+		case BuiltinUnary.setupCatch:
+			return ExpectUnary(some(boolType), none!LowType); // TODO: arg is a jmp_buf --------------------------------------------------
 		case BuiltinUnary.toChar8FromNat8:
 			return expect(char8Type, nat8Type);
 		case BuiltinUnary.toFloat32FromFloat64:

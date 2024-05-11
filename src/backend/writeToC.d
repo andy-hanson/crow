@@ -14,7 +14,7 @@ import backend.mangle :
 	writeRecordName,
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
-import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
+import backend.writeTypes : TypeWriters, writeTypes;
 import frontend.lang : CCompileOptions, CVersion, OptimizationLevel;
 import frontend.showModel : ShowCtx;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
@@ -610,14 +610,20 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			if (!isEmptyType(*x))
 				declareStruct(writer, ctx, x);
 		},
-		(ConcreteStruct* source, in Opt!ElementAndCount ec) {
+		(ConcreteStruct* source, in Opt!TypeSize typeSize) {
+			if (has(typeSize)) {
+				if (ctx.isMSVC) {
+					writer ~= "__declspec(align(";
+					writer ~= force(typeSize).alignmentBytes;
+					writer ~= ")) ";
+				} else
+					todo!void("SPECIFY ALIGNMENT"); // ----------------------------------------------------------------------------
+			}
 			writer ~= "struct ";
 			writeStructMangledName(writer, ctx.mangledNames, source);
-			if (has(ec)) {
-				writer ~= " { ";
-				writePrimitiveType(writer, force(ec).elementType);
-				writer ~= " __sizer[";
-				writer ~= force(ec).count;
+			if (has(typeSize)) {
+				writer ~= " { char __sizer[";
+				writer ~= force(typeSize).sizeBytes;
 				writer ~= "]; }";
 			}
 			writer ~= ";\n";
@@ -1642,6 +1648,10 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.countOnesNat64:
 			string name = ctx.ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
 			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
+		case BuiltinUnary.jumpToCatch:
+			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "jump_to_catch");
+		case BuiltinUnary.setupCatch:
+			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "setup_catch");
 	}
 }
 

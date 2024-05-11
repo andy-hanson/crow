@@ -278,6 +278,8 @@ FunBody inner(
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"init-stack".value:
 			return ternary(BuiltinTernary.initStack);
+		case symbol!"jump-to-catch".value:
+			return unary(BuiltinUnary.jumpToCatch); // TODO: CHECK THE TYPE ------------------------------------------------------
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))
@@ -290,6 +292,8 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
 		case symbol!"set-deref".value:
 			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
+		case symbol!"setup-catch".value:
+			return unary(BuiltinUnary.setupCatch); // TODO: CHECK THE TYPE ------------------------------------------------------
 		case symbol!"sin".value:
 			return unaryMath(BuiltinUnaryMath.sinFloat32, BuiltinUnaryMath.sinFloat64);
 		case symbol!"sinh".value:

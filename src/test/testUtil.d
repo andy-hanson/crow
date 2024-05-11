@@ -255,7 +255,6 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/version.crow",
 	"system/errno.crow",
 	"system/pthread.crow",
-	"system/setjmp.crow",
 	"system/stdio.crow",
 	"system/stdlib.crow",
 	"system/string.crow",

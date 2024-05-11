@@ -413,23 +413,20 @@ private void opCallFunPointerExternInner(ref Stacks stacks, ref Operation* cur) 
 	doDynCall(globals.doDynCall, stacks, sig, funPtr);
 }
 
-alias opSetjmp = operation!opSetjmpInner;
-private void opSetjmpInner(ref Stacks stacks, ref Operation* cur) {
+alias opSetupCatch = operation!opSetupCatchInner;
+private void opSetupCatchInner(ref Stacks stacks, ref Operation* cur) {
 	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
-	*jmpBufPtr = FakeJmpBufTag(stacks, returnPeek(stacks), cur);
-	// The return from the setjmp is in the handler for 'longjmp'
+	*jmpBufPtr = FakeJmpBufTag(42, stacks, cur);
 	dataPush(stacks, 0);
 }
 
-alias opLongjmp = operation!opLongjmpInner;
-private void opLongjmpInner(ref Stacks stacks, ref Operation* cur) {
-	ulong val = dataPop(stacks);
+alias opJumpToCatch = operation!opJumpToCatchInner;
+private void opJumpToCatchInner(ref Stacks stacks, ref Operation* cur) {
 	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
 	stacks = jmpBufPtr.stacks;
-	setReturnPeek(stacks, jmpBufPtr.returnPeek);
 	cur = jmpBufPtr.nextOperationPtr;
-	// return value of 'setjmp'
-	dataPush(stacks, val);
+	// return value of 'setup-catch'
+	dataPush(stacks, 1);
 }
 
 alias opInterpreterBacktrace = operation!opInterpreterBacktraceInner;
@@ -443,12 +440,12 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 }
 
 private struct FakeJmpBufTag {
+	ulong magic; // ----------------------------------------------------------------------------------------------------------------------
 	Stacks stacks;
-	Operation* returnPeek;
 	Operation* nextOperationPtr;
 }
-// see setjmp.crow
-static assert(FakeJmpBufTag.sizeof <= 288);
+// see exception-low-level.crow
+static assert(FakeJmpBufTag.sizeof <= 64);
 
 alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
 private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {

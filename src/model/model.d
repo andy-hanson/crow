@@ -807,8 +807,7 @@ immutable struct BuiltinFun {
 		VersionFun);
 }
 
-alias BuiltinUnary = immutable BuiltinUnary_;
-private enum BuiltinUnary_ {
+enum BuiltinUnary {
 	asAnyPtr,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
@@ -818,7 +817,9 @@ private enum BuiltinUnary_ {
 	deref,
 	drop,
 	enumToIntegral,
+	jumpToCatch,
 	referenceFromPointer,
+	setupCatch,
 	toChar8FromNat8,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
@@ -1540,7 +1541,6 @@ immutable struct CommonFuns {
 	FunInst* equalNat64;
 	FunInst* lessNat64;
 	FunInst* rethrowCurrentException;
-	FunInst* setjmp;
 
 	FunInst* gcRoot;
 	FunInst* setGcRoot;

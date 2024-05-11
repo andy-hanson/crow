@@ -295,7 +295,7 @@ immutable struct LowLocal {
 }
 bool localMustBeVolatile(in LowFun curFun, in LowLocal local) =>
 	// https://stackoverflow.com/questions/7996825/why-volatile-works-for-setjmp-longjmp
-	local.isMutable && curFun.hasSetjmp;
+	local.isMutable && curFun.hasSetupCatch;
 
 immutable struct LowFunBody {
 	immutable struct Extern {
@@ -314,7 +314,7 @@ immutable struct LowFunExprBody {
 
 immutable struct LowFunFlags {
 	@safe @nogc pure nothrow:
-	bool hasSetjmp;
+	bool hasSetupCatch;
 	bool hasTailRecur;
 	bool mayYield;
 
@@ -357,14 +357,14 @@ immutable struct LowFun {
 		body_.matchIn!LowFunFlags(
 			(in LowFunBody.Extern) =>
 				LowFunFlags(
-					hasSetjmp: false,
+					hasSetupCatch: false,
 					hasTailRecur: false,
 					mayYield: false),
 			(in LowFunExprBody x) =>
 				x.flags);
 
-	bool hasSetjmp() scope =>
-		flags.hasSetjmp;
+	bool hasSetupCatch() scope =>
+		flags.hasSetupCatch;
 
 	bool mayYield() scope =>
 		flags.mayYield;

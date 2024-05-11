@@ -19,8 +19,8 @@ import
 		mutator-end, uninit
 	./bootstrap:
 		cur-exclusion, cur-fiber, fiber, hard-assert, hard-forbid, initial-function, is-running,
-		new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running, stack-pointer,
-		symbol
+		must-cur-fiber, new, set-cur-exclusion, set-cur-fiber, set-initial-function, set-is-running,
+		stack-pointer, symbol
 	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
@@ -35,7 +35,7 @@ import
 	global-ctx-var := value
 
 cur-exclusion exclusion() unsafe
-	cur-fiber! cur-exclusion
+	must-cur-fiber cur-exclusion
 
 # Only set right before yielding and unset right after
 -cur-yield-request thread-local(yield-request?)
@@ -163,7 +163,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 
 -fiber-func void() unsafe
 	gc-root == null hard-assert
-	fiber = cur-fiber!
+	fiber = must-cur-fiber
 	func = fiber.initial-function!
 	fiber.initial-function := ()
 	func[]
@@ -227,9 +227,12 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 ~yield-this-fiber void(request yield-request) unsafe
 	assert cur-yield-request is-empty
 	cur-yield-request := request,
-	fiber = cur-fiber!
+	fiber = must-cur-fiber
 	fiber.is-running := false
 	&fiber.stack-pointer switch-fiber *thread-base-stack-pointer
+	fiber.is-running hard-forbid
+	fiber.is-running := true
+	cur-fiber := fiber,
 
 # Runs the fiber until its next yield
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
@@ -240,7 +243,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	thread-base-stack-pointer switch-fiber fiber.stack-pointer
 
 	# It yields to get back here.
-	cur-fiber! reference-equal fiber hard-assert
+	must-cur-fiber reference-equal fiber hard-assert
 	cur-fiber := ()
 	fiber.is-running hard-forbid
 

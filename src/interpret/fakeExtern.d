@@ -158,10 +158,6 @@ Opt!FunPointer getFakeExternFunC(Symbol name) {
 			return some(FunPointer(&memset));
 		case symbol!"write".value:
 			return some(FunPointer(&write));
-		case symbol!"longjmp".value:
-		case symbol!"setjmp".value:
-			// these are treated specially by the interpreter
-			return some(FunPointer(&wontBeCalled));
 		default:
 			return none!FunPointer;
 	}

@@ -26,7 +26,7 @@ import interpret.runBytecode :
 	opDupWords,
 	opDupWordsVariable,
 	opInterpreterBacktrace,
-	opLongjmp,
+	opJumpToCatch,
 	opPack,
 	opPushValue64,
 	opSet,
@@ -42,7 +42,6 @@ import interpret.runBytecode :
 	opReturnData,
 	opReturnDataVariable,
 	opReturn,
-	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
 	opSwitchWithValues,
@@ -541,13 +540,9 @@ SwitchDelayed writeSwitchDelay(
 	overwriteMemory(start + switchEntry, diff);
 }
 
-void writeSetjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opSetjmp);
-}
-
-void writeLongjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opLongjmp);
-	writer.nextStackEntry -= 2;
+void writeJumpToCatch(scope ref ByteCodeWriter writer, ByteCodeSource source) {
+	pushOperationFn(writer, source, &opJumpToCatch);
+	writer.nextStackEntry -= 1;
 }
 
 private @trusted void writeArray(T)(scope ref ByteCodeWriter writer, ByteCodeSource source, in T[] values) {

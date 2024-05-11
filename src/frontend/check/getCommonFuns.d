@@ -136,7 +136,7 @@ CommonFunsAndMain getCommonFuns(
 	Type symbolJsonTuple = instantiateType(tuple2Decl, [symbolType, jsonType]);
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
 
-	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.setjmp], symbol!"jmp_buf");
+	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.exceptionLowLevel], symbol!"jmp_buf"); // TODO: RENAME
 
 	Type gcRoot = getType(CommonModule.bootstrap, symbol!"gc-root");
 	Type gcRootMutPointer = instantiateType(commonTypes.pointerMut, [gcRoot]);
@@ -150,9 +150,9 @@ CommonFunsAndMain getCommonFuns(
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
-		curJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", jmpBuf, []),
+		curJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", jmpBuf, []), // TODO:RENAME ===============================================
 		setCurJmpBuf: getFun(
-			CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]),
+			CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]), // TODO: RENAME ==============
 		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
 		allocate: getFun(CommonModule.alloc, symbol!"allocate", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),
@@ -210,8 +210,6 @@ CommonFunsAndMain getCommonFuns(
 			CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]),
 		rethrowCurrentException: getFun(
 			CommonModule.exceptionLowLevel, symbol!"rethrow-current-exception", voidType, []),
-		setjmp: getFun(CommonModule.setjmp, setjmpName, int32Type, [
-			param!"a"(jmpBuf)]),
 		gcRoot: getFun(CommonModule.alloc, symbol!"gc-root", gcRootMutPointer, []),
 		setGcRoot: getFun(CommonModule.alloc, symbol!"set-gc-root", voidType, [
 			param!"value"(gcRootMutPointer)]),
@@ -220,14 +218,6 @@ CommonFunsAndMain getCommonFuns(
 		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64Type, stringListType, voidType))
 		: none!MainFun;
 	return CommonFunsAndMain(smallFinish(alloc, diagsBuilder), commonFuns, main);
-}
-
-private Symbol setjmpName() {
-	version (Windows) {
-		return symbol!"_setjmp";
-	} else {
-		return symbol!"setjmp";
-	}
 }
 
 Destructure makeParam(ref Alloc alloc, ParamShort param) =>

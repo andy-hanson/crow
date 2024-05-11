@@ -12,7 +12,7 @@ __asm__(
 	// 'from' is %rdi, 'to' is %rsi
 
 	// Save callee-saved register to the stack.
-	// TODO: could we use 'no_callee_saved_registers' instead?
+	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
 	// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
 	"push %rbx\n"
 	"push %rbp\n"
@@ -43,3 +43,7 @@ static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*tar
 	// It will pop garbage initial values for r15, r14, r13, r12, rbp, rbx, then return to 'target'
 	return stack_top - 8;
 }
+
+TODO: setupCatch
+
+TODO: jumpToCatch
