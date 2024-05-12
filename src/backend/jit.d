@@ -834,8 +834,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			funPointerToGcc(ctx, emit, a.type, x.fun),
 		(in LowExprKind.If it) =>
 			ifToGcc(ctx, locals, emit, a.type, it.cond, it.then, it.else_),
-		(in LowExprKind.InitConstants) =>
-			initConstantsToGcc(ctx, emit),
+		(in LowExprKind.Init x) =>
+			initToGcc(ctx, emit, x.kind),
 		(in LowExprKind.Let it) =>
 			letToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LocalGet it) =>
@@ -1856,41 +1856,46 @@ gcc_jit_rvalue* arbitraryValue(ref ExprCtx ctx, LowType type) {
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}));
 }
 
-ExprResult initConstantsToGcc(ref ExprCtx ctx, ExprEmit emit) {
-	zip!(immutable gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
-		ctx.globalsForConstants.arrs,
-		ctx.program.allConstants.arrs,
-		(ref immutable gcc_jit_rvalue*[] globals, ref ArrTypeAndConstantsLow tc) {
-			zip!(immutable gcc_jit_rvalue*, immutable Constant[])(
-				globals,
-				tc.constants,
-				(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
-					assert(!isEmpty(elements)); // Not sure how GCC would handle an empty global
-					foreach (size_t index, Constant elementValue; elements) {
-						gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
-							ctx.gcc,
-							null,
-							global,
-							//TODO: maybe cache these values?
-							gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, index));
-						emitToLValueCb(elementLValue, (ExprEmit emitElement) =>
-							constantToGcc(ctx, emitElement, tc.elementType, elementValue));
-					}
+ExprResult initToGcc(ref ExprCtx ctx, ExprEmit emit, BuiltinFun.Init.Kind kind) {
+	final switch (kind) {
+		case BuiltinFun.Init.Kind.global:
+			zip!(immutable gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
+				ctx.globalsForConstants.arrs,
+				ctx.program.allConstants.arrs,
+				(ref immutable gcc_jit_rvalue*[] globals, ref ArrTypeAndConstantsLow tc) {
+					zip!(immutable gcc_jit_rvalue*, immutable Constant[])(
+						globals,
+						tc.constants,
+						(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
+							assert(!isEmpty(elements)); // Not sure how GCC would handle an empty global
+							foreach (size_t index, Constant elementValue; elements) {
+								gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
+									ctx.gcc,
+									null,
+									global,
+									//TODO: maybe cache these values?
+									gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, index));
+								emitToLValueCb(elementLValue, (ExprEmit emitElement) =>
+									constantToGcc(ctx, emitElement, tc.elementType, elementValue));
+							}
+						});
 				});
-		});
-	zip!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
-		ctx.globalsForConstants.pointers,
-		ctx.program.allConstants.pointers,
-		(ref gcc_jit_lvalue*[] globals, ref PointerTypeAndConstantsLow tc) {
-			zip!(gcc_jit_lvalue*, Constant)(
-				globals,
-				tc.constants,
-				(ref gcc_jit_lvalue* global, ref Constant value) {
-					emitToLValueCb(global, (ExprEmit emitPointee) =>
-						constantToGcc(ctx, emitPointee, tc.pointeeType, value));
+			zip!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
+				ctx.globalsForConstants.pointers,
+				ctx.program.allConstants.pointers,
+				(ref gcc_jit_lvalue*[] globals, ref PointerTypeAndConstantsLow tc) {
+					zip!(gcc_jit_lvalue*, Constant)(
+						globals,
+						tc.constants,
+						(ref gcc_jit_lvalue* global, ref Constant value) {
+							emitToLValueCb(global, (ExprEmit emitPointee) =>
+								constantToGcc(ctx, emitPointee, tc.pointeeType, value));
+						});
 				});
-		});
-	return emitVoid(ctx, emit);
+			return emitVoid(ctx, emit);
+		case BuiltinFun.Init.Kind.perThread:
+			return emitVoid(ctx, emit);
+	}
 }
 
 } // GccJitAvailable

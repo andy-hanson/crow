@@ -780,7 +780,10 @@ immutable struct BuiltinFun {
 	immutable struct AllTests {}
 	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
-	immutable struct InitConstants {}
+	immutable struct Init {
+		enum Kind { global, perThread }
+		Kind kind;
+	}
 	immutable struct MarkRoot {}
 	immutable struct MarkVisit {}
 	immutable struct PointerCast {}
@@ -799,7 +802,7 @@ immutable struct BuiltinFun {
 		CallLambda,
 		CallFunPointer,
 		Constant,
-		InitConstants,
+		Init,
 		MarkRoot,
 		MarkVisit,
 		PointerCast,

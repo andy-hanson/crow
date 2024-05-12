@@ -180,8 +180,10 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"condition"(jsonOfLowExpr(alloc, ctx, x.cond)),
 				field!"then"(jsonOfLowExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfLowExpr(alloc, ctx, x.else_))]),
-		(in LowExprKind.InitConstants) =>
-			jsonString!"init-const" ,
+		(in LowExprKind.Init x) =>
+			jsonObject(alloc, [
+				kindField!"init",
+				field!"which"(stringOfEnum(x.kind))]),
 		(in LowExprKind.Let x) =>
 			jsonObject(alloc, [
 				kindField!"let",

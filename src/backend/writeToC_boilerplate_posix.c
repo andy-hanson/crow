@@ -110,4 +110,4 @@ __asm__(
 	"mov $1, %al\n"
 	"ret\n"
 );
-extern void __attribute__((noreturn)) jump_to_catch(void* jmp_buf);
+extern void __attribute__((noinline, noreturn)) jump_to_catch(void* jmp_buf);

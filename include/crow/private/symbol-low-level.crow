@@ -11,7 +11,7 @@ import
 	../pointer: ==, +, *, as-const, mut-pointer, set-deref
 	../string: ==, <=>, as-string, char8, c-string, hash-mix, size-char8s, string, to
 	../tuple: new
-	./alloc: unmanaged-alloc-elements
+	./alloc: unmanaged-alloc-uninitialized-elements
 	./bootstrap: symbol-to-c-string
 	./runtime: get-global-ctx, global-ctx, set-deref-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
@@ -51,7 +51,7 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 			symbol
 
 -to-malloced-c-string c-string(a string) unsafe
-	res char8 mut* = a.size-char8s + 1 unmanaged-alloc-elements
+	res char8 mut* = a.size-char8s + 1 unmanaged-alloc-uninitialized-elements
 	cur mut = res
 	for x : a.to::char8[]
 		*cur := x

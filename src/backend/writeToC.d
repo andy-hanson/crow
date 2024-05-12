@@ -49,7 +49,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
-import model.model : Builtin4ary, BuiltinBinary, BuiltinTernary, BuiltinType, BuiltinUnary;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinType, BuiltinUnary;
 import model.showLowModel : writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -79,11 +79,8 @@ import util.writer :
 	writeWithSpaces;
 import versionInfo : isWindows;
 
-version (Windows) {
-	private immutable string boilerplate = import("writeToC_boilerplate_windows.c");
-} else {
-	private immutable string boilerplate = import("writeToC_boilerplate.c");
-}
+private immutable string boilerplatePosix = import("writeToC_boilerplate_posix.c");
+private immutable string boilerplateMsvc = import("writeToC_boilerplate_msvc.c");
 
 immutable struct PathAndArgs {
 	FilePath path;
@@ -107,7 +104,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeCommandComment(writer, params.cCompiler, args);
-		writer ~= boilerplate;
+		writeWithoutCr(writer, isMSVC ? boilerplateMsvc : boilerplatePosix);
 		if (isMSVC) {
 			writer ~= "unsigned short __popcnt16(unsigned short value);\n";
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
@@ -147,6 +144,16 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 			});
 	});
 	return WriteToCResult(PathAndArgs(params.cCompiler, args), content);
+}
+
+// On Windows builds, the imported file might have CRLF line endings, but we don't want those in our output
+private void writeWithoutCr(scope ref Writer writer, in string a) {
+	version (Windows) {
+		foreach (char c; a)
+			if (c != '\r')
+				writer ~= c;
+	} else
+		writer ~= a;
 }
 
 private void writeCommandComment(scope ref Writer writer, FilePath cCompiler, in CString[] args) {
@@ -362,22 +369,39 @@ void writeEscapedCharForC(scope ref Writer writer, dchar a) {
 }
 
 void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
-	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
-		writer ~= () {
-			final switch (var.kind) {
-				case LowVar.Kind.externGlobal:
-					return "extern ";
-				case LowVar.Kind.global:
-					return "static ";
-				case LowVar.Kind.threadLocal:
-					return ctx.isMSVC ? "static __declspec(thread) " : "static _Thread_local ";
+	if (ctx.isMSVC) {
+		writer ~= "struct ThreadLocals {\n";
+		fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+			if (var.kind == LowVar.Kind.threadLocal) {
+				writer ~= '\t';
+				writeVarTypeAndName(writer, ctx, varIndex, var);
+				writer ~= ";\n";
 			}
-		}();
-		writeType(writer, ctx, var.type);
-		writer ~= ' ';
-		writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
-		writer ~= ";\n";
+		});		
+		writer ~= "};\n";
+	}
+
+	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+		if (!(ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)) {
+			writer ~= () {
+				final switch (var.kind) {
+					case LowVar.Kind.externGlobal:
+						return "extern ";
+					case LowVar.Kind.global:
+						return "static ";
+					case LowVar.Kind.threadLocal:
+						return "static _Thread_local ";
+				}
+			}();
+			writeVarTypeAndName(writer, ctx, varIndex, var);
+			writer ~= ";\n";
+		}
 	});
+}
+void writeVarTypeAndName(scope ref Writer writer, in Ctx ctx, LowVarIndex varIndex, in LowVar var) {
+	writeType(writer, ctx, var.type);
+	writer ~= ' ';
+	writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 }
 
 void declareConstantArrStorage(
@@ -443,6 +467,9 @@ struct FunBodyCtx {
 
 	ref MangledNames mangledNames() return scope const =>
 		ctx.mangledNames;
+	
+	bool isMSVC() scope const =>
+		ctx.isMSVC;
 }
 
 size_t nextLoopIndex(ref FunBodyCtx ctx) {
@@ -814,15 +841,33 @@ void writeTempOrInlines(
 
 void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBodyCtx ctx, in LowLocal local) {
 	writeNewline(writer, indent);
-	if (localMustBeVolatile(ctx, local))
+	bool isVolatile = localMustBeVolatile(ctx, local);
+	if (isVolatile)
 		writer ~= "volatile ";
 	writeType(writer, ctx.ctx, local.type);
+	// It seems that 'volatile' alone doesn't to the job with MSVC (it optimizes 'setjmp' assuming that only one branch happens),
+	// but allocating it with a volatile pointee works.
+	bool isAlloca = ctx.isMSVC && isVolatile;
+	if (isAlloca)
+		writer ~= '*';
 	writer ~= ' ';
 	writeLowLocalName(writer, ctx.mangledNames, local);
+	if (isAlloca) {
+		writer ~= " = _alloca(sizeof(";
+		writeType(writer, ctx.ctx, local.type);
+		writer ~= "))";
+	}
+	writer ~= ';';
 }
 
 bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
 	.localMustBeVolatile(ctx.ctx.program.allFuns[ctx.curFun], local);
+
+void writeAccessLocal(scope ref Writer writer, in FunBodyCtx ctx, in LowLocal local) {
+	if (ctx.isMSVC && localMustBeVolatile(ctx, local))
+		writer ~= '*';
+	writeLowLocalName(writer, ctx.mangledNames, local);
+}
 
 immutable struct WriteKind {
 	immutable struct Inline {
@@ -925,21 +970,33 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.If it) =>
 			writeIf(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.InitConstants) =>
-			// writeToC doesn't need to do anything in 'init-constants'
-			writeReturnVoid(writer, indent, ctx, writeKind),
+		(in LowExprKind.Init x) {
+			if (ctx.isMSVC) {
+				writeNewline(writer, indent);
+				writer ~= () {
+					final switch (x.kind) {
+						case BuiltinFun.Init.Kind.global:
+							return "THREAD_LOCALS_INDEX = TlsAlloc();";
+						case BuiltinFun.Init.Kind.perThread:
+							return "TlsSetValue(THREAD_LOCALS_INDEX, (struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));";
+					}
+				}();
+			} // No init needed otherwise
+			return writeReturnVoid(writer, indent, ctx, writeKind);
+		},
 		(in LowExprKind.Let it) =>
 			writeLet(writer, indent, ctx, writeKind, it),
 		(in LowExprKind.LocalGet it) =>
 			inlineableSimple(() {
-				writeLowLocalName(writer, ctx.mangledNames, *it.local);
+				writeAccessLocal(writer, ctx, *it.local);
 			}),
 		(in LowExprKind.LocalPointer x) =>
 			inlineableSimple(() {
 				if (localMustBeVolatile(ctx, *x.local))
 					writeCastToType(writer, ctx.ctx, type);
+				// TODO: on msvc this will be '&*' which is redundant, improve? -------------------------------------------------------
 				writer ~= '&';
-				writeLowLocalName(writer, ctx.mangledNames, *x.local);
+				writeAccessLocal(writer, ctx, *x.local);
 			}),
 		(in LowExprKind.LocalSet it) =>
 			writeLocalSet(writer, indent, ctx, writeKind, it),
@@ -1009,7 +1066,7 @@ WriteExprResult writeExpr(
 			writeUnionKind(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.VarGet x) =>
 			inlineableSimple(() {
-				writeLowVarMangledName(writer, ctx.mangledNames, x.varIndex, ctx.program.vars[x.varIndex]);
+				writeLowVarAccess(writer, ctx.ctx, x.varIndex);
 			}),
 		(in LowExprKind.VarSet x) {
 			WriteKind varWriteKind = WriteKind(x.varIndex);
@@ -1042,12 +1099,12 @@ WriteExprResult writeNonInlineable(
 		(in WriteKind.InlineOrTemp) =>
 			makeTemp(),
 		(in LowLocal x) {
-			writeLowLocalName(writer, ctx.mangledNames, x);
+			writeAccessLocal(writer, ctx, x);
 			writer ~= " = ";
 			return writeExprDone();
 		},
 		(in LowVarIndex x) {
-			writeLowVarMangledName(writer, ctx.mangledNames, x, ctx.program.vars[x]);
+			writeLowVarAccess(writer, ctx.ctx, x);
 			writer ~= " = ";
 			return writeExprDone();
 		},
@@ -1070,6 +1127,13 @@ WriteExprResult writeNonInlineable(
 	if (!writeKind.isA!(WriteKind.Inline))
 		writer ~= ';';
 	return res;
+}
+
+void writeLowVarAccess(scope ref Writer writer, in Ctx ctx, in LowVarIndex varIndex) {
+	LowVar var() => ctx.program.vars[varIndex];
+	if (ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)
+		writer ~= "threadLocals()->";
+	writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 }
 
 WriteExprResult writeVoid(in WriteKind writeKind) {
@@ -1184,7 +1248,7 @@ WriteExprResult writeAbort(
 	if (writeKind.isA!(LoopInfo*) || writeKind.isA!(WriteKind.Return) || writeKind.isA!(WriteKind.Void)) {
 		writeNewline(writer, indent);
 		writer ~= "abort();";
-		if (ctx.ctx.isMSVC) { // MSVC doesn't recognize abort as aborting, so need a fake return
+		if (ctx.isMSVC) { // MSVC doesn't recognize abort as aborting, so need a fake return
 			if (writeKind.isA!(LoopInfo*)) {
 				writeNewline(writer, indent);
 				return writeLoopContinue(writer, indent, writeKind);
@@ -1653,7 +1717,7 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.bitwiseNotNat64:
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
-			string name = ctx.ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
+			string name = ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
 			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
 		case BuiltinUnary.jumpToCatch:
 			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "jump_to_catch");
@@ -1988,7 +2052,6 @@ WriteExprResult writeLet(
 			writeExprVoid(writer, indent, ctx, a.value);
 		else {
 			writeDeclareLocal(writer, indent, ctx, *a.local);
-			writer ~= ';';
 			WriteKind localWriteKind = WriteKind(a.local);
 			cast(void) writeExpr(writer, indent, ctx, localWriteKind, a.value);
 			writeNewline(writer, indent);

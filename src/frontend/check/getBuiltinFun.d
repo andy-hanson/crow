@@ -452,8 +452,10 @@ FunBody inner(
 			return FunBody(BuiltinFun(constantZero));
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPtr);
-		case symbol!"init-constants".value:
-			return FunBody(BuiltinFun(BuiltinFun.InitConstants()));
+		case symbol!"global-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();
+		case symbol!"per-thread-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.perThread))) : fail();
 		case symbol!"reference-from-pointer".value:
 			return unary(BuiltinUnary.referenceFromPointer);
 		case symbol!"pointer-cast-from-extern".value:

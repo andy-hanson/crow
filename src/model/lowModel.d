@@ -15,7 +15,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	Builtin4ary, BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+	Builtin4ary, BuiltinFun, BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -435,7 +435,9 @@ immutable struct LowExprKind {
 		LowExpr else_;
 	}
 
-	immutable struct InitConstants {}
+	immutable struct Init {
+		BuiltinFun.Init.Kind kind;
+	}
 
 	immutable struct Let {
 		// A heap-allocated mutable local will become a read-only local whose type is a gc-ptr
@@ -574,7 +576,7 @@ immutable struct LowExprKind {
 		CreateUnion*,
 		FunPointer,
 		If*,
-		InitConstants,
+		Init,
 		Let*,
 		LocalGet,
 		LocalPointer,

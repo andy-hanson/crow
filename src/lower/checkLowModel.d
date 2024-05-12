@@ -137,7 +137,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			checkLowExpr(ctx, type, it.then, exprPos);
 			checkLowExpr(ctx, type, it.else_, exprPos);
 		},
-		(in LowExprKind.InitConstants) {
+		(in LowExprKind.Init) {
 			assert(isVoid(type));
 		},
 		(in LowExprKind.Let x) {

@@ -1383,8 +1383,8 @@ LowExpr getCallBuiltinExpr(
 			callFunPointer(ctx, ExprPos.nonTail, locals, range, type, only2(args)),
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
-		(BuiltinFun.InitConstants) =>
-			LowExpr(type, range, LowExprKind(LowExprKind.InitConstants())),
+		(BuiltinFun.Init x) =>
+			LowExpr(type, range, LowExprKind(LowExprKind.Init(x.kind))),
 		(BuiltinFun.MarkRoot) =>
 			// Handled in getAllLowFuns
 			assert(false),

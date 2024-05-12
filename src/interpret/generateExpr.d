@@ -337,8 +337,8 @@ void generateExpr(
 					generateExpr(writer, ctx, locals, innerAfter, it.else_);
 				});
 		},
-		(in LowExprKind.InitConstants) {
-			// bytecode interpreter doesn't need to do anything in 'init-constants'
+		(in LowExprKind.Init) {
+			// bytecode interpreter doesn't need to init anything
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.Let it) =>

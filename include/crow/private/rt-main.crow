@@ -17,7 +17,7 @@ import
 		set-deref, set-subscript, subscript
 	../range: ..
 	../string: c-string, interpolate, string, to
-	./alloc: mutator-begin, mutator-end, unmanaged-alloc-elements, unmanaged-free
+	./alloc: mutator-begin, mutator-end, unmanaged-alloc-uninitialized-elements, unmanaged-free
 	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
 	./runtime:
@@ -30,7 +30,8 @@ import
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe
-	do-init-constants
+	global-init
+	per-thread-init
 	n-threads = count-processors
 	gctx mut global-ctx = n-threads uninit
 	&gctx init
@@ -41,11 +42,10 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	&gctx destroy
 	res
 
-# TODO:KILL (using this to narrow down scope of error)
--do-init-constants void() bare, summon, unsafe
-	init-constants
-
-init-constants void() builtin, bare, summon, unsafe
+# Call this once at start of program
+-global-init void() builtin, bare, summon, unsafe
+# Call this once at start of each thread
+-per-thread-init void() builtin, bare, summon, unsafe
 
 -add-main-task int32 future(
 	gctx global-ctx mut*,
@@ -89,8 +89,8 @@ init-constants void() builtin, bare, summon, unsafe
 
 # Each thread will get the thread ID, and the common arguments.
 -run-threads void(n-threads nat64, gctx global-ctx mut*) bare, summon, unsafe
-	threads thread-handle mut* = n-threads unmanaged-alloc-elements
-	thread-args thread-args mut* = n-threads unmanaged-alloc-elements
+	threads thread-handle mut* = n-threads unmanaged-alloc-uninitialized-elements
+	thread-args thread-args mut* = n-threads unmanaged-alloc-uninitialized-elements
 
 	actual-n-threads = n-threads - 1
 
@@ -115,6 +115,7 @@ init-constants void() builtin, bare, summon, unsafe
 		i +:= 1
 
 -thread-fun any-mut-pointer(args-pointer any-mut-pointer) bare, summon, unsafe
+	per-thread-init
 	args thread-args mut* = args-pointer pointer-cast
 	args->thread-id thread-function args->gctx
 	null

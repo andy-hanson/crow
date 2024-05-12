@@ -71,7 +71,6 @@ static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void* fibe
 #pragma section(".text")
 __declspec(allocate(".text"))
 static unsigned char setup_catch_code[] = {
-	// TODO: handle xmm6 through xmm15 (remember to increase size of jmp_buf) -------------------------------------------------------------------------------------------------
 	0x48, 0x89, 0x19, // mov [rcx], rbx
 	0x48, 0x89, 0x69, 0x08, // mov [rcx + 0x08], rbp
 	0x48, 0x89, 0x71, 0x10, // mov [rcx + 0x10], rsi
@@ -125,6 +124,16 @@ static unsigned char jump_to_catch_code[] = {
 	0x44, 0x0F, 0x28, 0xB1, 0xD0, 0x00, 0x00, 0x00, // movaps xmm14, [rcx + 0xd0] 
 	0x44, 0x0F, 0x28, 0xB9, 0xE0, 0x00, 0x00, 0x00, // movaps xmm15, [rcx + 0xe0]
 	0xB0, 0x01, // mov al, 1
-	0xC3, // ret
+	0xc3, // ret
+	// TODO: TRY: 0xff, 0x61, 0x48, // jmp qword ptr [rcx + 0x48] -------------------------------------------------------------------------------------------
 };
 #define jump_to_catch(arg) ((void (*)(void*)) jump_to_catch_code)(arg)
+
+extern int TlsAlloc();
+extern void* TlsGetValue(int index);
+extern _Bool TlsSetValue(int index, void* value);
+
+static int THREAD_LOCALS_INDEX;
+static struct ThreadLocals* threadLocals() {
+	return TlsGetValue(THREAD_LOCALS_INDEX);
+}

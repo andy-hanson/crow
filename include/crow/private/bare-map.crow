@@ -8,7 +8,7 @@ import
 	../option: force, new, option
 	../pointer: ==, +, *, as-const, as-mut, const-pointer, mut-pointer, set-deref, zeroed
 	../tuple: new
-	./alloc: gc, unmanaged-alloc-elements, unmanaged-free-elements
+	./alloc: gc, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
 	./number-low-level: wrap-mul
 
 ###
@@ -61,7 +61,7 @@ entry[t, k] spec k data, k equal
 new[t, k] t bare-map(half-capacity nat64) bare, unsafe, (t, k) entry
 	forbid half-capacity == 0
 	full-capacity = half-capacity * 2
-	begin t mut* = full-capacity unmanaged-alloc-elements
+	begin t mut* = full-capacity unmanaged-alloc-uninitialized-elements
 	cur mut = begin
 	until cur == begin + full-capacity
 		*cur := (invalid-key,)

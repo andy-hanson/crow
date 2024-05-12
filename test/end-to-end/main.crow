@@ -44,15 +44,23 @@ options:
 	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
 		"./test/end-to-end" child-path name
 	path-to-crow = crow-dir crow-path
-	tests = for path : paths parallel-concat
+	tests = for path : paths parallel-concat-non-windows
 		path list-tests options.match-test
-	failures failure[] = for x : tests parallel-concat
+	failures failure[] = for x : tests parallel-concat-non-windows
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		out print "Ran {tests size} crow tests"
 		()
 	else
 		failures.print-failures
+
+-parallel-concat-non-windows[t] record(col t[]) nominal
+-for-loop[out, in] out[](a in parallel-concat-non-windows, f out[] shared(x in)) out shared, in shared
+	if trusted is-windows
+		for x : a.col and-concat
+			f[x]
+	else
+		a.col.parallel-concat for-loop f
 
 -crow-path string(crow-dir string)
 	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")

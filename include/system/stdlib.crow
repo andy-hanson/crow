@@ -4,5 +4,6 @@ import
 	crow/pointer: any-mut-pointer
 	crow/private/bootstrap: void
 
-+malloc any-mut-pointer(size size_t) c extern, pure
++calloc any-mut-pointer(n-elems size_t, sizeof-elem size_t) c extern, pure
++malloc any-mut-pointer(size-bytes size_t) c extern, pure
 +free void(p any-mut-pointer) c extern, pure

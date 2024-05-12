@@ -5,8 +5,11 @@
 
 clean:
 	@call <<COMMANDS.bat
-@IF EXIST bin rmdir /s /q bin
-@IF EXIST site rmdir /s /q site
+@if exist bin rmdir /s /q bin
+:: rmdir has an exit code of 0 even on failure!
+@if exist bin exit 1
+@if exist site rmdir /s /q site
+@if exist site exit 1
 <<
 
 all: clean test lint serve
