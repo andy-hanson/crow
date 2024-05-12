@@ -366,7 +366,6 @@ LowExpr generateMarkVisitArray(
 		return genDrop(alloc, range, callMark);
 }
 
-
 /*
 mark-visit void(mark-ctx mark-ctx, a fiber)
 	mark-ctx mark-visit fiber.initial-function
@@ -399,7 +398,7 @@ LowExpr generateMarkVisitFiber(
 				markCtx,
 				genRecordFieldGet(alloc, fieldType, range, fiber, fieldIndex)]);
 	}
-	LowExpr visitInitialFunction = genVisitField(0);
+	LowExpr visitState = genVisitField(0);
 	// 'log-handler' might never need a closure and so might not need a visit
 	LowExpr visitLogHandler = genVisitField(1, true);
 	LowExpr visitStack = genVisitField(2);
@@ -424,7 +423,7 @@ LowExpr generateMarkVisitFiber(
 		genLoopBreak(alloc, voidType, range, genVoid(range)),
 		genSeq(alloc, range, callTrace, updateCur, genLoopContinue(voidType, range))));
 	LowExpr letCurAndLoop = genLetNoGcRoot(alloc, range, cur, getGcRoot, loop);
-	return genSeq(alloc, range, visitInitialFunction, visitLogHandler, visitStack, letCurAndLoop);
+	return genSeq(alloc, range, visitState, visitLogHandler, visitStack, letCurAndLoop);
 }
 
 LowExpr generateMarkVisitRecord(

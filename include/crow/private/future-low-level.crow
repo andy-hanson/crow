@@ -2,28 +2,26 @@ no-std
 import
 	../bool: bool, false, true
 	../misc: new, void
-	../option: is-empty, new
+	../option: ??, new
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		awaited-by, empty, exception-and-backtrace, fiber, future, future-state, hard-assert,
-		hard-forbid, hard-unreachable, is-running, lk, next-awaiting, new, rejected, resolved,
-		set-next-awaiting, set-state, state
+		awaiting-future, awaited-by, empty, exception-and-backtrace, fiber, future, future-state,
+		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state
 	./exception-low-level: rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
 # If the future is already complete, returns 'false'
 ~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
-	fiber.is-running hard-forbid
-	fiber.next-awaiting.is-empty hard-assert
 	&a.lk acquire
 	res bool = match a state
 	as empty
 		a.state := fiber awaited-by
+		fiber.state := () awaiting-future
 		true
 	as awaited-by x
-		fiber.next-awaiting := x,
+		fiber.state := (x,) awaiting-future
 		a.state := fiber awaited-by
 		true
 	as resolved _
@@ -58,7 +56,7 @@ import
 	as rejected _
 		true
 
--resolve-or-reject[t] void(a t future, new-state t future-state) unsafe
+-resolve-or-reject[t] void(a t future, new-state t future-state) bare, unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -69,9 +67,10 @@ import
 	as awaited-by fiber
 		cur mut = fiber
 		loop
+			opt-next = cur.state.awaiting-future ?? hard-unreachable
+			cur.state := queued
 			get-global-ctx enqueue-fiber cur
-			if next ?= cur next-awaiting
-				cur.next-awaiting := ()
+			if next ?= opt-next
 				cur := next
 				continue
 			else

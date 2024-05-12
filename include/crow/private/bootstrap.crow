@@ -74,20 +74,6 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 +mut-array[t] record by-val, mut
 	~inner t array
 
-# Needed here since it's used in 'future' (TODO: no longer used in 'future'!) ----------------------------------------------------
-###
-Mutable array type that can change in size.
-This is represented as a reference to a `mut-array` with extra capacity.
-Appending (or removing) elements to the end is amortized O(1),
-but appending (or removing) from the beginning is always O(N).
-###
-+mut-list[t] record mut
-	# Fields should only be used in mut-list.crow
-	# backing.size is the capacity
-	# For the GC's sake, unused parts of backing are filled with 'zeroed'
-	~backing mut t mut-array
-	~mut-list-size mut nat64
-
 region string
 
 # This could be any byte in a UTF-8 string.
@@ -347,21 +333,13 @@ For example, this might write it to the console.
 ~fiber record mut, by-ref
 	# GC for this type is generated differently by the compiler; see 'generateMarkVisitFiber'.
 	# So be careful when modifying this type.
-
-	# This is cleared at the start and never set again. TODO: Maybe store this in the same union as 'yield-request'. ----------------
-	initial-function mut void mut()?
+	state mut fiber-state
 	log-handler mut log-handler
 	# This must be 16-byte aligned
 	stack nat64 mut-array
 	# Null if no roots yet
 	gc-root mut gc-root mut*
-	# Next fiber in a chain of fibers awaiting a future
-	next-awaiting mut fiber? # TODO: GC MUST TRACE THIS! (combine with yield-request, initial-function, is-running) -----------------------------------------------------------------------
 
-	# TODO: combine with 'initial-function' and 'is-running' and 'next-awaiting' since only one of these can be set at a time. (NOTE: I'll have to update mark-visit-fiber) ------------------------------------------------
-	yield-request mut yield-request
-	# Rest should not use GC
-	is-running mut bool # TODO: WHAT IS THIS FOR? ----------------------------------------------------------------
 	# This is not always the current stack pointer; that uses the stack pointer register.
 	# This is the saved value when the fiber is not running.
 	stack-pointer mut stack-pointer
@@ -371,8 +349,20 @@ For example, this might write it to the console.
 	cur-jmp-buf mut void mut*
 ~cur-fiber thread-local(fiber?)
 
+~fiber-state union mut
+	# Stores the fiber function
+	queued-initial void mut()
+	# This could be on the regular queue or the timed queue
+	queued
+	running
+	# This state will only exist temporarily, before calling 'switch-fiber.
+	# It's a way to communicate across the context switch.
+	yield-request yield-request
+	# Stores the next fiber in the awaiting chainn
+	awaiting-future fiber?
+	done
+
 ~yield-request union mut
-	none
 	# Add this fiber back to the queue of runnable fibers.
 	add-to-queue
 	# Takes a pointer to a future and a function for adding the fiber to it.
@@ -392,7 +382,6 @@ For example, this might write it to the console.
 
 stack-pointer alias
 	nat64 mut*
-~fiber-state enum(running, suspended)
 ~gc-root record by-val, mut
 	pointer void*
 	trace void function(ctx mark-ctx, pointer void*)
