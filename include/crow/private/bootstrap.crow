@@ -397,12 +397,14 @@ stack-pointer alias
 	state mut t future-state
 
 future-state[t] union mut
+	# The future is not resolved and nothing is awaiting it yet.
 	empty
-	# The future is not resolved, and a fiber is waiting on it. Remember to check 'fiber.next-awaiting'!
+	# The future is not resolved, and fibers are waiting on it.
+	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
 	awaited-by fiber
-	# The future was resolved successfully.
+	# The future completed successfully.
 	resolved t
-	# The future resolved with an exception.
+	# The future completed with an exception.
 	rejected exception-and-backtrace
 
 region lock

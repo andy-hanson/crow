@@ -6,7 +6,8 @@ import
 	../number: ==, +, *, nat64
 	../option: new, option
 	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, set-deref
-	./alloc: gc, gc-add-root, mem-copy, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
+	./alloc:
+		gc, gc-add-root, mem-copy, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
 
 bare-queue[t] record by-val, mut
 	-alloc-begin mut t mut*

@@ -18,9 +18,10 @@ import
 		gc, gc-root, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin,
 		mutator-end, uninit
 	./bootstrap:
-		change-exclusion, cur-exclusion, cur-fiber, delay-until-time, done, fiber, fiber-state, hard-assert,
-		hard-unreachable, must-cur-fiber, new, queued, queued-initial, running, set-cur-exclusion, set-cur-fiber,
-		set-stack-pointer, set-state, stack, stack-pointer, state, symbol, yield-request
+		change-exclusion, cur-exclusion, cur-fiber, delay-until-time, done, fiber, fiber-state,
+		hard-assert, hard-unreachable, must-cur-fiber, new, queued, queued-initial, running,
+		set-cur-exclusion, set-cur-fiber, set-stack-pointer, set-state, stack, stack-pointer, state,
+		symbol, yield-request
 	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit

@@ -7,7 +7,9 @@ import
 	../option: force, new, option
 	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, new, set-deref, swap
 	../tuple: a, b
-	./alloc: gc, gc-add-root, mem-copy, mem-move, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
+	./alloc:
+		gc, gc-add-root, mem-copy, mem-move, unmanaged-alloc-uninitialized-elements,
+		unmanaged-free-elements
 
 # TODO: actual heap implementation
 bare-priority-queue[k, v] record by-val, mut

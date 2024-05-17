@@ -377,7 +377,7 @@ void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullInde
 				writeVarTypeAndName(writer, ctx, varIndex, var);
 				writer ~= ";\n";
 			}
-		});		
+		});
 		writer ~= "};\n";
 	}
 

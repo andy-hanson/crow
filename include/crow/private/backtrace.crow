@@ -91,7 +91,8 @@ Result entries are temporary, must copy!
 
 		_ = SYMOPT_LOAD_LINES SymSetOptions
 		max-end = entries + max-entries
-		end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
+		end = gc windows-walk-backtrace entries,
+			max-end, skip, process, thread, &context, &frame, vars
 		ok = process SymCleanup
 		ok hard-assert
 		(entries .. end).as-array,

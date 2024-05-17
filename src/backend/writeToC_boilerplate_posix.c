@@ -4,110 +4,91 @@
 typedef uint32_t char32_t;
 
 // This should match 'makeSwitchFiberFunction' in 'jit.d'
-__asm__(
-	".text\n"
-	".align 8\n"
-	"switch_fiber:\n"
+static void __attribute__((naked, noinline)) switch_fiber(uint64_t** from, uint64_t* to) {
+	__asm(
+		// 'from' is %rdi, 'to' is %rsi
 
-	// 'from' is %rdi, 'to' is %rsi
+		// Save callee-saved register to the stack.
+		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
+		"push %rbx\n"
+		"push %rbp\n"
+		"push %r12\n"
+		"push %r13\n"
+		"push %r14\n"
+		"push %r15\n"
+		// Write the stack pointer to the first argument.
+		"movq %rsp, (%rdi)\n"
 
-	// Save callee-saved register to the stack.
-	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
-	// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
-	"push %rbx\n"
-	"push %rbp\n"
-	"push %r12\n"
-	"push %r13\n"
-	"push %r14\n"
-	"push %r15\n"
-	// Write the stack pointer to the first argument.
-	"movq %rsp, (%rdi)\n"
-
-	// Get the new stack pointer from the second argument
-	"movq %rsi, %rsp\n"
-	// Load the registers it had saved
-	"pop %r15\n"
-	"pop %r14\n"
-	"pop %r13\n"
-	"pop %r12\n"
-	"pop %rbp\n"
-	"pop %rbx\n"
-	// The return address also comes from 'to' since we switched to its stack pointer.
-	"ret\n"
-);
-extern void __attribute__((noinline)) switch_fiber(uint64_t** from, uint64_t* to);
-
-__asm__(
-	// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
-	// Note: We just leave 'fiber' alone, since it is the first argument to 'func'
-	".text\n"
-	".align 8\n"
-	"switch_fiber_initial:\n"
-
-	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
-	"push %rbx\n"
-	"push %rbp\n"
-	"push %r12\n"
-	"push %r13\n"
-	"push %r14\n"
-	"push %r15\n"
-	"movq %rsp, (%rsi)\n"
-
-	"movq %rdx, %rsp\n"
-	// Set it up so we'll return to 'func'
-	"subq $8, %rsp\n" // For alignment (since stack should be 16-byte aligned, but push %rcx is only 8 bytes)
-	"push %rcx\n"
-	"ret\n"
-);
-struct fiber;
-extern void __attribute__((noinline)) switch_fiber_initial(struct fiber* fiber, uint64_t** from, uint64_t* stack_high, void (*func)(struct fiber*));
-
-// This should match 'makeInitStackFunction' in 'jit.d'
-static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void (*target)()) {
-	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned
-	// It will pop garbage initial values for r15, r14, r13, r12, rbp, rbx, then return to 'target'
-	return stack_top - 8;
+		// Get the new stack pointer from the second argument
+		"movq %rsi, %rsp\n"
+		// Load the registers it had saved
+		"pop %r15\n"
+		"pop %r14\n"
+		"pop %r13\n"
+		"pop %r12\n"
+		"pop %rbp\n"
+		"pop %rbx\n"
+		// The return address also comes from 'to' since we switched to its stack pointer.
+		"ret\n"
+	);
 }
 
-__asm__(
-	".text\n"
-	".align 8\n"
-	"setup_catch:\n"
+struct fiber;
+static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* fiber, uint64_t** from, uint64_t* stack_high, void (*func)(struct fiber*)) {
+	__asm(
+		// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
+		// Note: We just leave 'fiber' alone, since it is the first argument to 'func'
+		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		"push %rbx\n"
+		"push %rbp\n"
+		"push %r12\n"
+		"push %r13\n"
+		"push %r14\n"
+		"push %r15\n"
+		"movq %rsp, (%rsi)\n"
 
-	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
-	"movq %rbx, (%rdi)\n"
-	"movq %rbp, 0x08(%rdi)\n"
-	"movq %r12, 0x10(%rdi)\n"
-	"movq %r13, 0x18(%rdi)\n"
-	"movq %r14, 0x20(%rdi)\n"
-	"movq %r15, 0x28(%rdi)\n"
-	"movq %rsp, 0x30(%rdi)\n"
-	// Also write the return address
-	"movq (%rsp), %rax\n"
-	"movq %rax, 0x38(%rdi)\n"
-	"xor %al, %al\n"
-	"ret\n"
-);
+		"movq %rdx, %rsp\n"
+		// Set it up so we'll return to 'func'
+		"subq $8, %rsp\n" // For alignment (since stack should be 16-byte aligned, but push %rcx is only 8 bytes)
+		"push %rcx\n"
+		"ret\n"
+	);
+}
+
 // TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? --------------------------------
-extern _Bool __attribute__((noinline, returns_twice)) setup_catch(void* jmp_buf);
+static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* jmp_buf) {
+	__asm(
+		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		"movq %rbx, (%rdi)\n"
+		"movq %rbp, 0x08(%rdi)\n"
+		"movq %r12, 0x10(%rdi)\n"
+		"movq %r13, 0x18(%rdi)\n"
+		"movq %r14, 0x20(%rdi)\n"
+		"movq %r15, 0x28(%rdi)\n"
+		"movq %rsp, 0x30(%rdi)\n"
+		// Also write the return address
+		"movq (%rsp), %rax\n"
+		"movq %rax, 0x38(%rdi)\n"
+		"xor %al, %al\n"
+		"ret\n"
+	);
+}
 
-__asm__(
-	".text\n"
-	".align 8\n"
-	"jump_to_catch:\n"
-
-	// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
-	"movq (%rdi), %rbx\n"
-	"movq 0x08(%rdi), %rbp\n"
-	"movq 0x10(%rdi), %r12\n"
-	"movq 0x18(%rdi), %r13\n"
-	"movq 0x20(%rdi), %r14\n"
-	"movq 0x28(%rdi), %r15\n"
-	"movq 0x30(%rdi), %rsp\n"
-	"movq 0x38(%rdi), %rax\n"
-	// Overwrite the return address
-	"movq %rax, (%rsp)\n"
-	"mov $1, %al\n"
-	"ret\n"
-);
-extern void __attribute__((noinline, noreturn)) jump_to_catch(void* jmp_buf);
+static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* jmp_buf) {
+	__asm(
+		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		"movq (%rdi), %rbx\n"
+		"movq 0x08(%rdi), %rbp\n"
+		"movq 0x10(%rdi), %r12\n"
+		"movq 0x18(%rdi), %r13\n"
+		"movq 0x20(%rdi), %r14\n"
+		"movq 0x28(%rdi), %r15\n"
+		"movq 0x30(%rdi), %rsp\n"
+		"movq 0x38(%rdi), %rax\n"
+		// Overwrite the return address
+		"movq %rax, (%rsp)\n"
+		"mov $1, %al\n"
+		"ret\n"
+	);
+}

@@ -14,8 +14,8 @@ export
 	./bootstrap: backtrace, exception, exception-and-backtrace
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
-# (The problem with using 'setjmp' and 'longjmp' directly is they don't work with fibers on Windows.)
-# This is visible for use by the compiler.
+# ('setjmp' and 'longjmp' don't work with fibers on Windows.)
+# This is visible for use by the compiler, which uses it in 'try' expressions.
 ~setup-catch bool(env jmp_buf) bare, builtin
 ~jump-to-catch void(env jmp_buf) bare, builtin
 # TODO: RENAME THESE -----------------------------------------------------------------------------------------------------------
