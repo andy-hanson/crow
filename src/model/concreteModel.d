@@ -610,8 +610,8 @@ immutable struct ConcreteProgram {
 }
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* alloc;
-	ConcreteFun* curJmpBuf;
-	ConcreteFun* setCurJmpBuf;
+	ConcreteFun* curCatchPoint;
+	ConcreteFun* setCurCatchPoint;
 	ConcreteVar* curThrown;
 	ConcreteFun* mark;
 	ConcreteFun* markVisitFiber;

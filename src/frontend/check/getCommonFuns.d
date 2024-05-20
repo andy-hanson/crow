@@ -136,7 +136,8 @@ CommonFunsAndMain getCommonFuns(
 	Type symbolJsonTuple = instantiateType(tuple2Decl, [symbolType, jsonType]);
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
 
-	Type jmpBuf = getTypeAlias(alloc, diagsBuilder, *modules[CommonModule.exceptionLowLevel], symbol!"jmp_buf"); // TODO: RENAME
+	Type catchPoint = getType(CommonModule.bootstrap, symbol!"catch-point");
+	Type catchPointConstPointer = instantiateType(commonTypes.pointerConst, [catchPoint]);
 
 	Type gcRoot = getType(CommonModule.bootstrap, symbol!"gc-root");
 	Type gcRootMutPointer = instantiateType(commonTypes.pointerMut, [gcRoot]);
@@ -150,9 +151,9 @@ CommonFunsAndMain getCommonFuns(
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
-		curJmpBuf: getFun(CommonModule.exceptionLowLevel, symbol!"cur-jmp-buf", jmpBuf, []), // TODO:RENAME ===============================================
-		setCurJmpBuf: getFun(
-			CommonModule.exceptionLowLevel, symbol!"set-cur-jmp-buf", voidType, [param!"value"(jmpBuf)]), // TODO: RENAME ==============
+		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
+		setCurCatchPoint: getFun(
+			CommonModule.exceptionLowLevel, symbol!"set-cur-catch-point", voidType, [param!"value"(catchPointConstPointer)]),
 		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
 		allocate: getFun(CommonModule.alloc, symbol!"allocate", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),

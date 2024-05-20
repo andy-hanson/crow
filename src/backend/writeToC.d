@@ -845,7 +845,8 @@ void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBody
 	if (isVolatile)
 		writer ~= "volatile ";
 	writeType(writer, ctx.ctx, local.type);
-	// It seems that 'volatile' alone doesn't to the job with MSVC (it optimizes 'setjmp' assuming that only one branch happens),
+	// It seems that 'volatile' alone doesn't to the job with MSVC
+	// (it optimizes 'setup-catch' assuming only one branch happens),
 	// but allocating it with a volatile pointee works.
 	bool isAlloca = ctx.isMSVC && isVolatile;
 	if (isAlloca)

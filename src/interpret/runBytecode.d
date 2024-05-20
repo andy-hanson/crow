@@ -458,8 +458,8 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 	dataPush(stacks, cast(size_t) res);
 }
 
-private struct FakeJmpBufTag {
-	ulong magic; // ----------------------------------------------------------------------------------------------------------------------
+private struct FakeJmpBufTag { // TODO: RENAME ----------------------------------------------------------------------------------------------------------------------
+	ulong magic;
 	Stacks stacks;
 	Operation* nextOperationPtr;
 }

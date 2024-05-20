@@ -1528,8 +1528,8 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
-	FunInst* curJmpBuf;
-	FunInst* setCurJmpBuf;
+	FunInst* curCatchPoint;
+	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
 	FunInst* allocate;
 	FunInst* and;

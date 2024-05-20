@@ -57,7 +57,7 @@ static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* 
 }
 
 // TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? --------------------------------
-static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* jmp_buf) {
+static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* catch_point) {
 	__asm(
 		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
 		"movq %rbx, (%rdi)\n"
@@ -75,7 +75,7 @@ static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* j
 	);
 }
 
-static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* jmp_buf) {
+static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* catch_point) {
 	__asm(
 		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
 		"movq (%rdi), %rbx\n"

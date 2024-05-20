@@ -86,8 +86,8 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
 	ConcreteCommonFuns concreteCommonFuns = ConcreteCommonFuns(
 		alloc: getNonTemplateConcreteFun(ctx, commonFuns.allocate),
-		curJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.curJmpBuf),
-		setCurJmpBuf: getNonTemplateConcreteFun(ctx, commonFuns.setCurJmpBuf),
+		curCatchPoint: getNonTemplateConcreteFun(ctx, commonFuns.curCatchPoint),
+		setCurCatchPoint: getNonTemplateConcreteFun(ctx, commonFuns.setCurCatchPoint),
 		curThrown: getVar(ctx, commonFuns.curThrown),
 		mark: getNonTemplateConcreteFun(ctx, commonFuns.mark),
 		rethrowCurrentException: getNonTemplateConcreteFun(ctx, commonFuns.rethrowCurrentException),

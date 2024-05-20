@@ -4,25 +4,21 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: nat64
-	../pointer: mut-pointer, pointer-cast, zeroed
+	../pointer: const-pointer, mut-pointer, pointer-cast, zeroed
 	../result: error, ok, result
 	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap:
-		abort, array, cur-fiber, cur-jmp-buf, hard-unreachable, new, set-cur-jmp-buf, string
+		abort, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
+		set-cur-catch-point, string
 export
 	./bootstrap: backtrace, exception, exception-and-backtrace
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
 # ('setjmp' and 'longjmp' don't work with fibers on Windows.)
 # This is visible for use by the compiler, which uses it in 'try' expressions.
-~setup-catch bool(env jmp_buf) bare, builtin
-~jump-to-catch void(env jmp_buf) bare, builtin
-# TODO: RENAME THESE -----------------------------------------------------------------------------------------------------------
-# TODO: Only needs 64 bytes on Linux. (Also only needs 16-byte alignment on Windows.) And much less in interpreter. Maybe make this a builtin with varying size. -------------------
-~__jmp_buf_tag extern(240, 16)
-~jmp_buf alias
-	__jmp_buf_tag mut*
+~setup-catch bool(env catch-point mut*) bare, builtin
+~jump-to-catch void(env catch-point*) bare, builtin
 
 # Thrown when an exception is not specified in an 'assert' or 'forbid'.
 +error variant-member(exception, string)
@@ -34,17 +30,16 @@ export
 -cur-thrown thread-local(exception)
 -cur-backtrace thread-local(backtrace)
 
-cur-jmp-buf jmp_buf() unsafe
-	guard fiber ?= cur-fiber : hard-unreachable
-	fiber.cur-jmp-buf pointer-cast
-set-cur-jmp-buf void(value jmp_buf) unsafe
-	guard fiber ?= cur-fiber : hard-unreachable
-	fiber.cur-jmp-buf := value.pointer-cast
+# Visible for use by compiler
+~cur-catch-point catch-point*() unsafe
+	must-cur-fiber cur-catch-point
+~set-cur-catch-point void(value catch-point*) unsafe
+	must-cur-fiber.cur-catch-point := value.pointer-cast
 
 # Used by the compiler when implementing 'try-catch' and 'finally'
 rethrow-current-exception void() bare, unsafe
 	if fiber ?= cur-fiber
-		fiber.cur-jmp-buf.pointer-cast jump-to-catch
+		fiber.cur-catch-point jump-to-catch
 	else
 		# Throwing outside of a fiber aborts
 		abort
@@ -52,11 +47,11 @@ rethrow-current-exception void() bare, unsafe
 +catch-all[t] (t, exception-and-backtrace) result(tried t mut())
 	trusted
 		old-gc-root = gc-root
-		old-jmp-buf = cur-jmp-buf
-		store mut __jmp_buf_tag = ()
+		old-catch-point = cur-catch-point
+		store mut catch-point = ()
 		if &store setup-catch
 			# Get here if something is thrown
-			cur-jmp-buf := old-jmp-buf
+			cur-catch-point := old-catch-point
 			gc-root := old-gc-root
 			thrown = cur-thrown
 			cur-thrown := zeroed
@@ -65,10 +60,10 @@ rethrow-current-exception void() bare, unsafe
 			(thrown, backtrace) error
 		else
 			# Get here after initial call to 'setup-catch'
-			cur-jmp-buf := &store
+			cur-catch-point := &store
 			# If it throws, we'll go to the above branch.
 			res = tried[]
-			cur-jmp-buf := old-jmp-buf
+			cur-catch-point := old-catch-point
 			res ok
 
 ###

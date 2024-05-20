@@ -140,7 +140,7 @@ It will be initialized properly the first time you switch to another fiber.
 		# This will be written to the first time we call 'switch-fiber'.
 		stack-pointer: null
 		cur-exclusion: 0
-		cur-jmp-buf: null
+		cur-catch-point: null
 	cur-fiber := fiber,
 
 # Caller is responsible for catching all exceptions in 'action'
@@ -159,7 +159,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 		gc-root: null
 		stack-pointer: null
 		cur-exclusion: a.next-exclusion.get-and-increment
-		cur-jmp-buf: null
+		cur-catch-point: null
 	res
 
 -fiber-func void(fiber fiber) force-ctx, unsafe
