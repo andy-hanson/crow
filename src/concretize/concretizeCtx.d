@@ -116,7 +116,7 @@ import util.opt : force, has, none, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvert, max, roundUp, typeAs;
-import versionInfo : VersionInfo;
+import versionInfo : OS, VersionInfo;
 
 private alias TypeArgsScope = SmallArray!ConcreteType;
 
@@ -612,7 +612,7 @@ void initializeConcreteStruct(
 				res.info = ConcreteStructInfo(
 					ConcreteStructBody(allocate(ctx.alloc, ConcreteStructBody.Builtin(x, typeArgs))),
 					false);
-				res.typeSize = getBuiltinStructSize(x);
+				res.typeSize = getBuiltinStructSize(x, ctx.versionInfo);
 			}
 		},
 		(ref StructBody.Enum x) {
@@ -835,7 +835,7 @@ ulong getAllFlagsValue(ConcreteStruct* a) =>
 		(ulong a, in EnumOrFlagsMember b) =>
 			a | b.value.asUnsigned());
 
-TypeSize getBuiltinStructSize(BuiltinType kind) {
+TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 	final switch (kind) {
 		case BuiltinType.void_:
 			return TypeSize(0, 1);
@@ -861,5 +861,17 @@ TypeSize getBuiltinStructSize(BuiltinType kind) {
 			return TypeSize(8, 8);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8);
+		case BuiltinType.catchPoint:
+			if (version_.isInterpreted)
+				return TypeSize(0x18, 8); // Keep in sync with 'struct CatchPoint' in 'runBytecode.d'
+			else
+				final switch (version_.os) {
+					case OS.linux:
+						return TypeSize(0x40, 8); // Keep in sync with 'catch point size' comment in writeToC_boilerplate_posix.c
+					case OS.web:
+						assert(false); // Always interpreted
+					case OS.windows:
+						return TypeSize(0x100, 16); // Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
+				}
 	}
 }

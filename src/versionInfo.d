@@ -30,7 +30,7 @@ immutable struct VersionInfo {
 	private:
 	public OS os;
 	VersionOptions options;
-	bool isInterpreted;
+	public bool isInterpreted;
 	bool isJit;
 }
 

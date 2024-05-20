@@ -83,8 +83,7 @@ immutable struct LowFunPointerType {
 	LowType[] paramTypes;
 }
 
-alias PrimitiveType = immutable PrimitiveType_;
-private enum PrimitiveType_ : ubyte {
+enum PrimitiveType : ubyte {
 	bool_,
 	char8,
 	char32,

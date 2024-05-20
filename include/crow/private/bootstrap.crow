@@ -348,7 +348,7 @@ For example, this might write it to the console.
 	cur-catch-point mut catch-point*
 ~cur-fiber thread-local(fiber?)
 # Represents the point to jump to in 'jump-to-catch'. Stores the state of the stack and registers.
-~catch-point extern(400, 16) # TODO: USE A BUILTIN -----------------------------------------------------------------------------------
+~catch-point builtin
 
 ~fiber-state union mut
 	# Stores the fiber function

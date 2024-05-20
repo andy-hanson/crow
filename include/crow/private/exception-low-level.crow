@@ -48,7 +48,7 @@ rethrow-current-exception void() bare, unsafe
 	trusted
 		old-gc-root = gc-root
 		old-catch-point = cur-catch-point
-		store mut catch-point = ()
+		store mut catch-point = zeroed
 		if &store setup-catch
 			# Get here if something is thrown
 			cur-catch-point := old-catch-point

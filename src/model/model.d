@@ -391,6 +391,7 @@ Symbol nameOfUnionMember(in UnionMember* a) =>
 
 enum BuiltinType {
 	bool_,
+	catchPoint,
 	char8,
 	char32,
 	float32,
@@ -423,6 +424,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat64:
 			return true;
 		case BuiltinType.bool_:
+		case BuiltinType.catchPoint:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
 		case BuiltinType.funPointer:

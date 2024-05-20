@@ -60,13 +60,7 @@ static unsigned char switch_fiber_initial_code[] = {
 struct fiber;
 #define switch_fiber_initial(fiber_arg, from, stack_high, func) ((void (*)(struct fiber*, uint64_t**, uint64_t*, void (*)(struct fiber*))) switch_fiber_initial_code)(fiber_arg, from, stack_high, func);
 
-static uint64_t* init_stack(uint64_t* stack_low, uint64_t* stack_top, void* fiber, void (*target)()) {
-	// For optimized builds on Windows, it apparently uses up to 0x40 bytes *beyond* the initial pointer.
-	stack_top -= 0x40;
-	stack_top[-2] = (uint64_t) target; // Use -2 because we want it 16-byte aligned
-	// It will pop garbage initial values for r15, r14, r13, r12, rdi, rsi, rbp, rbx, then return to 'target'
-	return stack_top - 10;
-}
+// Catch point size is 0x100 (and alignment of 16 due to requirement of 'movaps'); see 'getBuiltinStructSize'.
 
 #pragma section(".text")
 __declspec(allocate(".text"))

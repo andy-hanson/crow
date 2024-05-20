@@ -282,12 +282,20 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 		return LowType(LowType.Union(i));
 	}
 
+	LowType addExtern(ConcreteStruct* s) {
+		uint i = safeToUint(arrBuilderSize(allExternTypes));
+		add(alloc, allExternTypes, LowExternType(s));
+		return LowType(LowType.Extern(i));
+	}
+
 	foreach (ConcreteStruct* concrete; program.allStructs) {
 		Opt!LowType lowType = concrete.body_.matchIn!(Opt!LowType)(
 			(in ConcreteStructBody.Builtin it) {
 				final switch (it.kind) {
 					case BuiltinType.bool_:
 						return some(LowType(PrimitiveType.bool_));
+					case BuiltinType.catchPoint:
+						return some(addExtern(concrete));
 					case BuiltinType.char8:
 						return some(LowType(PrimitiveType.char8));
 					case BuiltinType.char32:
@@ -310,6 +318,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 					case BuiltinType.int64:
 						return some(LowType(PrimitiveType.int64));
 					case BuiltinType.lambda:
+						// TODO: IS THIS REACHABLE? (if not, 'addUnion' is only used in one place..................................................)
 						return some(addUnion(concrete));
 					case BuiltinType.nat8:
 						return some(LowType(PrimitiveType.nat8));
@@ -328,11 +337,8 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 			},
 			(in ConcreteStructBody.Enum x) =>
 				some(LowType(typeOfIntegralType(x.storage))),
-			(in ConcreteStructBody.Extern it) {
-				uint i = safeToUint(arrBuilderSize(allExternTypes));
-				add(alloc, allExternTypes, LowExternType(concrete));
-				return some(LowType(LowType.Extern(i)));
-			},
+			(in ConcreteStructBody.Extern x) =>
+				some(addExtern(concrete)),
 			(in ConcreteStructBody.Flags x) =>
 				some(LowType(typeOfIntegralType(x.storage))),
 			(in ConcreteStructBody.Record) {

@@ -434,16 +434,16 @@ private void opCallFunPointerExternInner(ref Stacks stacks, ref Operation* cur) 
 
 alias opSetupCatch = operation!opSetupCatchInner;
 private void opSetupCatchInner(ref Stacks stacks, ref Operation* cur) {
-	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
-	*jmpBufPtr = FakeJmpBufTag(42, stacks, cur);
+	CatchPoint* point = cast(CatchPoint*) dataPop(stacks);
+	*point = CatchPoint(stacks, cur);
 	dataPush(stacks, 0);
 }
 
 alias opJumpToCatch = operation!opJumpToCatchInner;
 private void opJumpToCatchInner(ref Stacks stacks, ref Operation* cur) {
-	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
-	stacks = jmpBufPtr.stacks;
-	cur = jmpBufPtr.nextOperationPtr;
+	CatchPoint* point = cast(CatchPoint*) dataPop(stacks);
+	stacks = point.stacks;
+	cur = point.nextOperationPtr;
 	// return value of 'setup-catch'
 	dataPush(stacks, 1);
 }
@@ -458,13 +458,11 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 	dataPush(stacks, cast(size_t) res);
 }
 
-private struct FakeJmpBufTag { // TODO: RENAME ----------------------------------------------------------------------------------------------------------------------
-	ulong magic;
+private struct CatchPoint {
 	Stacks stacks;
 	Operation* nextOperationPtr;
 }
-// see exception-low-level.crow
-static assert(FakeJmpBufTag.sizeof <= 64);
+static assert(CatchPoint.sizeof == 0x18);
 
 alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
 private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {

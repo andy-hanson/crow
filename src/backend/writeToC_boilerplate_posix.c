@@ -9,7 +9,7 @@ static void __attribute__((naked, noinline)) switch_fiber(uint64_t** from, uint6
 		// 'from' is %rdi, 'to' is %rsi
 
 		// Save callee-saved register to the stack.
-		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		// TODO: In a newer GCC, this could use 'no_callee_saved_registers' instead.
 		// https://gcc.gnu.org/onlinedocs/gcc/x86-Function-Attributes.html
 		"push %rbx\n"
 		"push %rbp\n"
@@ -39,7 +39,7 @@ static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* 
 	__asm(
 		// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
 		// Note: We just leave 'fiber' alone, since it is the first argument to 'func'
-		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		// TODO: In a newer GCC, this could use 'no_callee_saved_registers' instead.
 		"push %rbx\n"
 		"push %rbp\n"
 		"push %r12\n"
@@ -56,10 +56,12 @@ static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* 
 	);
 }
 
-// TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? --------------------------------
+// Catch point size is 0x40. See 'getBuiltinStructSize' in the compiler.
+
+// TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? ---------------------------------------
 static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* catch_point) {
 	__asm(
-		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
+		// TODO: In a newer GCC, this could use 'no_callee_saved_registers' instead.
 		"movq %rbx, (%rdi)\n"
 		"movq %rbp, 0x08(%rdi)\n"
 		"movq %r12, 0x10(%rdi)\n"
@@ -77,7 +79,6 @@ static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* c
 
 static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* catch_point) {
 	__asm(
-		// TODO: could we use 'no_callee_saved_registers' instead? -------------------------------------------------------------------------
 		"movq (%rdi), %rbx\n"
 		"movq 0x08(%rdi), %rbp\n"
 		"movq 0x10(%rdi), %r12\n"
