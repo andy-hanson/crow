@@ -375,7 +375,7 @@ For example, this might write it to the console.
 	delay-until-time nat64
 	done
 
-~must-cur-fiber fiber() bare, unsafe # TODO: NAME? ---------------------------------------------------------------------------------------
+~must-cur-fiber fiber() bare, unsafe
 	if x ?= cur-fiber
 		x
 	else

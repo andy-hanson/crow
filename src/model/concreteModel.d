@@ -140,6 +140,7 @@ immutable struct ConcreteStruct {
 	enum SpecialKind {
 		none,
 		array,
+		catchPoint,
 		fiber,
 		pointer, // mut or const
 		tuple,
@@ -194,6 +195,8 @@ ConcreteType arrayElementType(ConcreteType arrayType) {
 	assert(isArray(*mustBeByVal(arrayType)));
 	return only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
+bool isCatchPoint(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.catchPoint;
 bool isFiber(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.fiber;
 bool isPointer(in ConcreteStruct a) =>
@@ -609,6 +612,7 @@ immutable struct ConcreteProgram {
 	ConcreteCommonFuns commonFuns;
 }
 immutable struct ConcreteCommonFuns {
+	@safe @nogc pure nothrow:
 	ConcreteFun* alloc;
 	ConcreteFun* curCatchPoint;
 	ConcreteFun* setCurCatchPoint;
@@ -624,6 +628,9 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* gcRoot;
 	ConcreteFun* setGcRoot;
 	ConcreteFun* popGcRoot;
+
+	ConcreteType fiberReferenceType() =>
+		runFiber.params[1].type;
 }
 
 bool existsDirectChildExpr(ref ConcreteExpr a, in bool delegate(ref ConcreteExpr) @safe @nogc pure nothrow cb) =>

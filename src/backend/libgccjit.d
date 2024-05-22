@@ -137,6 +137,8 @@ extern(C) {
 
 	immutable(gcc_jit_type*) gcc_jit_struct_as_type(const gcc_jit_struct* struct_type);
 
+	immutable(gcc_jit_type*) gcc_jit_type_get_aligned(immutable gcc_jit_type* type, size_t alignment_in_bytes);
+
 	immutable(gcc_jit_type*) gcc_jit_context_new_union_type(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
@@ -149,7 +151,7 @@ extern(C) {
 		gcc_jit_location* loc,
 		const gcc_jit_type* return_type,
 		int num_params,
-		const gcc_jit_type** param_types,
+		scope const gcc_jit_type** param_types,
 		int is_variadic);
 
 	immutable(gcc_jit_param*) gcc_jit_context_new_param(

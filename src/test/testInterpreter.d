@@ -139,6 +139,7 @@ void doInterpret(
 			emptyFullIndexMap!(LowType.Union, LowUnion)),
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
+		LowType(PrimitiveType.void_),
 		[]);
 	withFakeExtern!void(test.alloc, unreachableWriteCb, (scope ref Extern extern_) {
 		Storage storage = Storage(test.metaAlloc);

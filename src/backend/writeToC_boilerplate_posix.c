@@ -58,7 +58,6 @@ static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* 
 
 // Catch point size is 0x40. See 'getBuiltinStructSize' in the compiler.
 
-// TODO: now that this is marked 'returns_twice', maybe I don't need to mark locals as 'volatile'? ---------------------------------------
 static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* catch_point) {
 	__asm(
 		// TODO: In a newer GCC, this could use 'no_callee_saved_registers' instead.

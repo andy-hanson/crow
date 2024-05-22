@@ -683,6 +683,7 @@ immutable struct LowProgram {
 	AllLowTypes allTypes;
 	FullIndexMap!(LowFunIndex, LowFun) allFuns;
 	LowFunIndex main;
+	LowType fiberPointerType;
 	ExternLibraries externLibraries;
 
 	ref immutable(FullIndexMap!(LowType.Extern, LowExternType)) allExternTypes() scope return =>

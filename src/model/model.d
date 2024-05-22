@@ -1530,6 +1530,7 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
+	@safe @nogc pure nothrow:
 	FunInst* curCatchPoint;
 	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
@@ -1552,6 +1553,11 @@ immutable struct CommonFuns {
 	FunInst* gcRoot;
 	FunInst* setGcRoot;
 	FunInst* popGcRoot;
+
+	StructInst* catchPointPointerType() =>
+		curCatchPoint.returnType.as!(StructInst*);
+	StructInst* catchPointType() =>
+		only(catchPointPointerType.typeArgs).as!(StructInst*);
 }
 
 immutable struct CommonTypes {

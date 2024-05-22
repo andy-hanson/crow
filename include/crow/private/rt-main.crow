@@ -21,7 +21,8 @@ import
 	./bootstrap: set-cur-fiber
 	./future-low-level: must-get-result
 	./runtime:
-		destroy, gc, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx, thread-function, uninit
+		destroy, gc, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx,
+		thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 

@@ -646,7 +646,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			writer ~= "struct ";
 			writeStructMangledName(writer, ctx.mangledNames, source);
 			if (has(typeSize)) {
-				writer ~= " { char __sizer[";
+				writer ~= " { uint8_t __sizer[";
 				writer ~= force(typeSize).sizeBytes;
 				writer ~= "]; }";
 				if (!ctx.isMSVC) {
@@ -2127,7 +2127,7 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 	writer ~= () {
 		final switch (a) {
 			case PrimitiveType.bool_:
-				return "uint8_t";
+				return "uint8_t"; // TODO: try '_Bool' ------------------------------------------------------------------------
 			case PrimitiveType.char8:
 				return "char";
 			case PrimitiveType.char32:

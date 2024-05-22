@@ -341,6 +341,8 @@ SmallArray!Out map(Out, In)(ref Alloc alloc, in SmallArray!In a, in Out delegate
 		return [cb(a[0]), cb(a[1])];
 	else static if (n == 3)
 		return [cb(a[0]), cb(a[1]), cb(a[2])];
+	else static if (n == 4)
+		return [cb(a[0]), cb(a[1]), cb(a[2]), cb(a[3])];
 	else
 		static assert(false, "TODO");
 }

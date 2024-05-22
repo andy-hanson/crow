@@ -20,7 +20,7 @@ import
 	./bootstrap:
 		change-exclusion, cur-exclusion, cur-fiber, delay-until-time, done, fiber, fiber-state,
 		hard-assert, hard-unreachable, must-cur-fiber, new, queued, queued-initial, running,
-		set-cur-exclusion, set-cur-fiber, set-stack-pointer, set-state, stack, stack-pointer, state,
+		set-cur-exclusion, set-cur-fiber, set-state, stack, stack-pointer, state,
 		symbol, yield-request
 	./fiber-queue:
 		add-gc-roots, destroy, enqueue-fiber, enqueue-timed-fiber, exclusion,
@@ -99,7 +99,8 @@ destroy void(a global-ctx mut*) bare, unsafe
 	a.may-be-work-to-do destroy-condition
 
 ###
-This switches away from the runtime into a fiber for the first time. (And like 'switch-fiber', returns when the fiber switches back.)
+This switches away from the runtime into a fiber for the first time.
+(And like 'switch-fiber', returns when the fiber switches back.)
 
 `stack-high` must be 16-byte aligned.
 This will grow down, meaning it starts at the greatest value.
@@ -147,7 +148,7 @@ It will be initialized properly the first time you switch to another fiber.
 add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
-	stack1 nat64 mut-array = 0x20000 zeroed-mut-array # WARN: 'opSwitchFiberInitial' hardcodes this size!!!!!!!!!!!!!!!!!!!
+	stack1 nat64 mut-array = 0x20000 zeroed-mut-array # WARN: 'opSwitchFiberInitial' hardcodes this size
 	# Align the stack
 	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
 	stack.is-valid-stack hard-assert
@@ -155,7 +156,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 		state: action queued-initial
 		# Inherits this fiber's log handler
 		log-handler: get-log-handler
-		stack: stack # TODO: ALLOCATE THIS LAZILY! -----------------------------------------------------------
+		stack: stack
 		gc-root: null
 		stack-pointer: null
 		cur-exclusion: a.next-exclusion.get-and-increment
@@ -224,21 +225,11 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 -change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
 	new-exclusion.change-exclusion yield-this-fiber
 
--is-running bool(a fiber-state)
-	# TODO: NEATER ---------------------------------------------------------------------------------------------------------------
-	match a
-	as running
-		true
-	else
-		false
-
 # The caller should do something to ensure the fiber will eventually be resumed.
 ~yield-this-fiber void(request yield-request) unsafe
 	fiber = must-cur-fiber
-	assert fiber.state is-running
 	fiber.state := request yield-request
 	mutator-end
-	cur-fiber := () # TODO: It should work without this? ------------------------------------------------------------
 	&fiber.stack-pointer switch-fiber *thread-base-stack-pointer
 	get-global-ctx.gc mutator-begin
 	fiber.state := running
@@ -248,9 +239,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 ~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
 	match fiber state
 	as queued-initial _
-		# 'fiber-func' will update the state
-		fiber.stack-pointer := fiber.stack.end-pointer # TODO: does it actually matter? This will be wrong immediately anyway. It should work without this...
-		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack-pointer, &fiber-func
+		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack.end-pointer, &fiber-func
 	as queued
 		thread-base-stack-pointer switch-fiber fiber.stack-pointer
 	else

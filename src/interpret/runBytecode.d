@@ -253,20 +253,11 @@ private void opSwitchFiberInitialInner(ref Stacks stacks, ref Operation* cur) {
 	*fromPtr = stacks.dataPtr;
 
 	stacks.returnPtr = cast(Operation**) stackHigh;
-	stacks.dataPtr = stackHigh - 0x20000; // TODO: this size comes from 'create-new-fiber' --------------------------------------
+	stacks.dataPtr = stackHigh - 0x20000; // Size hardcoded in 'create-new-fiber'
 
 	returnPush(stacks, null); // TODO: this should not be necessary, I'm just being paranoid... maybe have 'opAbort'? ......................
 	dataPush(stacks, fiber);
 	cur = mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func));
-
-	// OLD VERSION (opInitStacks) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/*
-	// We store the return** on the data stack.
-	Stacks stacks = stacksForRange(arrayOfRange(cast(ulong*) stackLow, cast(ulong*) stackHigh));
-	returnPush(stacks, mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func)));
-	dataPush(stacks, cast(ulong) stacks.returnPtr);
-	return cast(ulong) stacks.dataPtr;
-	*/
 }
 
 alias opSwitchFiber = operation!opSwitchFiberInner;

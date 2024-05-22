@@ -8,8 +8,8 @@ import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath, BuiltinF
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
 	AssertFieldOffsetsType,
-	ExternTypeInfo,
 	ExternTypeArrayInfo,
+	ExternTypeInfo,
 	GccTypes,
 	generateAssertFieldOffsetsFunction,
 	getGccType,
@@ -104,6 +104,7 @@ import backend.mangle :
 import backend.writeToC : getLinkOptions;
 import frontend.showModel : ShowCtx;
 import frontend.lang : JitOptions, OptimizationLevel;
+import model.concreteModel : isCatchPoint;
 import model.constant : Constant;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
@@ -124,7 +125,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary;
+import model.model : Builtin4ary, BuiltinBinary, BuiltinFun, BuiltinTernary, BuiltinUnary;
 import model.showLowModel : writeFunSig;
 import util.alloc.alloc : Alloc, withTempAlloc;
 import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapStatic, mapWithIndex, zip;
@@ -261,14 +262,19 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 			(LowFunIndex funIndex, in LowFun fun) =>
 				toGccFunctionSignature(alloc, ctx, program, mangledNames, gccTypes, funIndex, fun));
 
+	immutable gcc_jit_type* boolType = getGccType(gccTypes, LowType(PrimitiveType.bool_));
 	immutable gcc_jit_type* nat64Type = getGccType(gccTypes, LowType(PrimitiveType.nat64));
 	immutable gcc_jit_function* abortFunction = makeFunction(
 		ctx, crowVoidType, "abort", [], gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
 	BuiltinFunctions builtinFunctions = generateBuiltinFunctions(ctx);
 	ConversionFunctions conversionFunctions = generateConversionFunctions(ctx);
-	immutable gcc_jit_function* initStackFunction =
-		makeInitStackFunction(ctx, crowVoidType, conversionFunctions.ptrToNat64);
+
+	immutable gcc_jit_type* voidPointerType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
+	immutable gcc_jit_type* fiberPointerType = getGccType(gccTypes, program.fiberPointerType);
+	immutable gcc_jit_function* jumpToCatchFunction = makeJumpToCatchFunction(ctx, crowVoidType, voidPointerType);
+	immutable gcc_jit_function* setupCatchFunction = makeSetupCatchFunction(ctx, boolType, voidPointerType);
 	immutable gcc_jit_function* switchFiberFunction = makeSwitchFiberFunction(ctx, crowVoidType);
+	immutable gcc_jit_function* switchFiberInitialFunction = makeSwitchFiberInitialFunction(ctx, crowVoidType, fiberPointerType);
 
 	// Now fill in the body of every function.
 	fullIndexMapZip!(LowFunIndex, LowFun, gcc_jit_function*)(
@@ -293,9 +299,12 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 					entryBlock,
 					entryBlock,
 					nat64Type,
+					// TODO: these should be named args ------------------------------------------------------------------------------
 					abortFunction,
-					initStackFunction,
+					jumpToCatchFunction,
+					setupCatchFunction,
 					switchFiberFunction,
+					switchFiberInitialFunction,
 					&builtinFunctions,
 					&conversionFunctions,
 					globalVoid);
@@ -342,38 +351,58 @@ immutable struct ConversionFunctions {
 	gcc_jit_function* nat64ToPtr;
 }
 
-// This should match 'init_stack' in 'writeToC_boilerplate.c'
-immutable(gcc_jit_function*) makeInitStackFunction(
-	ref gcc_jit_context ctx,
-	immutable gcc_jit_type* crowVoidType,
-	immutable gcc_jit_function* ptrToNat64,
-) {
-	immutable gcc_jit_type* int64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_LONG);
-	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
-	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
-	immutable gcc_jit_type* voidFunctionPointerType = gcc_jit_context_new_function_ptr_type(
-		ctx, null, crowVoidType, 0, null, false);
-	immutable gcc_jit_param*[3] initStackParams = [
-		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_low"),
-		gcc_jit_context_new_param(ctx, null, stackPointerType, "stack_high"),
-		gcc_jit_context_new_param(ctx, null, voidFunctionPointerType, "target"),
-	];
-	gcc_jit_function* res = makeFunction(ctx, stackPointerType, "init_stack", initStackParams);
+immutable(gcc_jit_function*) makeJumpToCatchFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType, immutable gcc_jit_type* voidPointerType) {
+	immutable gcc_jit_param*[1] params = [gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")];
+	gcc_jit_function* res = makeFunction(
+		ctx, crowVoidType, "jump_to_catch", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
+		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
+	}
+	gcc_jit_context_add_top_level_asm( // TODO: note what this needs to be in sync with -------------------------------------------
+		ctx, null,
+		".text\n" ~
+		".align 8\n" ~
+		"jump_to_catch:\n" ~
+		"movq (%rdi), %rbx\n" ~
+		"movq 0x08(%rdi), %rbp\n" ~
+		"movq 0x10(%rdi), %r12\n" ~
+		"movq 0x18(%rdi), %r13\n" ~
+		"movq 0x20(%rdi), %r14\n" ~
+		"movq 0x28(%rdi), %r15\n" ~
+		"movq 0x30(%rdi), %rsp\n" ~
+		"movq 0x38(%rdi), %rax\n" ~
+		"movq %rax, (%rsp)\n" ~
+		"mov $1, %al\n" ~
+		"ret\n"
+	);
+	return res;
+}
 
-	immutable gcc_jit_rvalue* stackTop = gcc_jit_param_as_rvalue(initStackParams[1]);
-	immutable gcc_jit_rvalue* target = gcc_jit_param_as_rvalue(initStackParams[2]);
-	immutable gcc_jit_rvalue* negTwo = gcc_jit_context_new_rvalue_from_long(ctx, int64Type, -2);
-	immutable gcc_jit_rvalue* negEight = gcc_jit_context_new_rvalue_from_long(ctx, int64Type, -8);
-
-	gcc_jit_block* block = gcc_jit_function_new_block(res, "entry");
-	gcc_jit_block_add_assignment(
-		block, null,
-		gcc_jit_context_new_array_access(ctx, null, stackTop, negTwo),
-		gcc_jit_context_new_call(ctx, null, ptrToNat64, 1, &target));
-	gcc_jit_block_end_with_return(
-		block,
-		null,
-		gcc_jit_lvalue_get_address(gcc_jit_context_new_array_access(ctx, null, stackTop, negEight), null));
+immutable(gcc_jit_function*) makeSetupCatchFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* boolType, immutable gcc_jit_type* voidPointerType) {
+	// TODO: helper for making a function from assembly ---------------------------------------------------------------------------------------------	
+	immutable gcc_jit_param*[1] params = [gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")];
+	gcc_jit_function* res = makeFunction(
+		ctx, boolType, "setup_catch", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
+		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
+	}
+	gcc_jit_context_add_top_level_asm( // TODO: note what this needs to be in sync with -------------------------------------------
+		ctx, null,
+		".text\n" ~
+		".align 8\n" ~
+		"setup_catch:\n" ~
+		"movq %rbx, (%rdi)\n" ~
+		"movq %rbp, 0x08(%rdi)\n" ~
+		"movq %r12, 0x10(%rdi)\n" ~
+		"movq %r13, 0x18(%rdi)\n" ~
+		"movq %r14, 0x20(%rdi)\n" ~
+		"movq %r15, 0x28(%rdi)\n" ~
+		"movq %rsp, 0x30(%rdi)\n" ~
+		"movq (%rsp), %rax\n" ~
+		"movq %rax, 0x38(%rdi)\n" ~
+		"xor %al, %al\n" ~
+		"ret\n"
+	);
 	return res;
 }
 
@@ -382,13 +411,13 @@ immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, im
 	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
 	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
 	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
-	immutable gcc_jit_param*[2] switchFiberParams = [
+	immutable gcc_jit_param*[2] params = [
 		gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
 		gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
 	];
 	gcc_jit_function* res = makeFunction(
-		ctx, crowVoidType, "switch_fiber", switchFiberParams, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
-	static if (false) { // TODO: This requires a newer libgccjit
+		ctx, crowVoidType, "switch_fiber", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
 		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
 	}
 	gcc_jit_context_add_top_level_asm(ctx, null,
@@ -402,7 +431,6 @@ immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, im
 		"push %r14\n" ~
 		"push %r15\n" ~
 		"movq %rsp, (%rdi)\n" ~
-
 		"movq %rsi, %rsp\n" ~
 		"pop %r15\n" ~
 		"pop %r14\n" ~
@@ -411,6 +439,41 @@ immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, im
 		"pop %rbp\n" ~
 		"pop %rbx\n" ~
 		"ret"
+	);
+	return res;
+}
+
+immutable(gcc_jit_function*) makeSwitchFiberInitialFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType, immutable gcc_jit_type* fiberPointerType) {
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
+	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
+	immutable gcc_jit_type* funcType = gcc_jit_context_new_function_ptr_type(ctx, null, crowVoidType, 1, &fiberPointerType, false);
+
+	immutable gcc_jit_param*[4] params = [
+		gcc_jit_context_new_param(ctx, null, fiberPointerType, "fiber"),
+		gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
+		gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
+		gcc_jit_context_new_param(ctx, null, funcType, "func"),
+	];
+	gcc_jit_function* res = makeFunction(ctx, crowVoidType, "switch_fiber_initial", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
+		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
+	}
+	gcc_jit_context_add_top_level_asm(ctx, null, // TODO: note what to keep this in sync with .................................................
+		".text\n" ~
+		".align 8\n" ~
+		"switch_fiber_initial:\n" ~
+		"push %rbx\n" ~
+		"push %rbp\n" ~
+		"push %r12\n" ~
+		"push %r13\n" ~
+		"push %r14\n" ~
+		"push %r15\n" ~
+		"movq %rsp, (%rsi)\n" ~
+		"movq %rdx, %rsp\n" ~
+		"subq $8, %rsp\n" ~
+		"push %rcx\n" ~
+		"ret\n"
 	);
 	return res;
 }
@@ -785,8 +848,10 @@ struct ExprCtx {
 	gcc_jit_block* curBlock;
 	immutable gcc_jit_type* nat64Type;
 	immutable gcc_jit_function* abortFunction;
-	immutable gcc_jit_function* initStackFunction;
+	immutable gcc_jit_function* jumpToCatchFunction;
+	immutable gcc_jit_function* setupCatchFunction;
 	immutable gcc_jit_function* switchFiberFunction;
+	immutable gcc_jit_function* switchFiberInitialFunction;
 	BuiltinFunctions* builtinFunctionsPtr;
 	ConversionFunctions* conversionFunctionsPtr;
 	immutable gcc_jit_rvalue* globalVoid;
@@ -841,7 +906,7 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 		(in LowExprKind.LocalGet it) =>
 			localGetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LocalPointer x) =>
-			localPointerToGcc(ctx, locals, emit, x),
+			localPointerToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.Loop it) =>
@@ -870,6 +935,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
 		(in LowExprKind.SpecialTernary x) =>
 			ternaryToGcc(ctx, locals, emit, a.type, x),
+		(in LowExprKind.Special4ary x) =>
+			fouraryToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.TailRecur it) =>
@@ -1010,7 +1077,9 @@ ExprResult emitRecordCb(
 		foreach (size_t i, immutable gcc_jit_field* field; fields) {
 			gcc_jit_rvalue* value = emitToRValueCb((ExprEmit emitArg) =>
 				cbEmitArg(i, emitArg));
-			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_lvalue_access_field(lvalue, null, field), value);
+			gcc_jit_lvalue* accessField = gcc_jit_lvalue_access_field(lvalue, null, field);
+			assert(accessField != null); // TODO: RM -----------------------------------------------------------------------------------
+			gcc_jit_block_add_assignment(ctx.curBlock, null, accessField, value);
 		}
 	});
 
@@ -1082,9 +1151,7 @@ ExprResult emitWithLocal(
 		writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
 	});
 	immutable gcc_jit_type* type = getGccType(ctx.types, lowLocal.type);
-	immutable gcc_jit_type* fullType = localMustBeVolatile(*ctx.curLowFun, *lowLocal)
-		? gcc_jit_type_get_volatile(type)
-		: type;
+	immutable gcc_jit_type* fullType = localMustBeVolatile(ctx, *lowLocal) ? gcc_jit_type_get_volatile(type) : type;
 	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(ctx.curFun, null, fullType, name.ptr);
 	emitToLValueCb(gccLocal, (ExprEmit valueEmit) =>
 		cbValue(valueEmit));
@@ -1094,10 +1161,16 @@ ExprResult emitWithLocal(
 
 ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalGet a) {
 	immutable gcc_jit_rvalue* value = gcc_jit_lvalue_as_rvalue(getLocal(ctx, locals, a.local));
-	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(*ctx.curLowFun, *a.local)
+	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
 		? gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, a.local.type))
 		: value);
 }
+
+bool localMustBeVolatile(in ExprCtx ctx, in LowLocal local) =>
+	// The 'catch-state' doesn't really need to be volatile, and having it volatile causes compile errors when initializing it
+	localMustBeVolatile(*ctx.curLowFun, local) && !isCatchPoint(ctx, local.type);
+bool isCatchPoint(in ExprCtx ctx, in LowType type) =>
+	type.isA!(LowType.Extern) && isCatchPoint(*ctx.program.allTypes.allExternTypes[type.as!(LowType.Extern)].source);
 
 ExprResult localSetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalSet a) {
 	emitToLValue(ctx, locals, getLocal(ctx, locals, a.local), a.value);
@@ -1171,8 +1244,12 @@ ExprResult recordFieldPointerToGcc(
 			null));
 }
 
-ExprResult localPointerToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalPointer a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null));
+ExprResult localPointerToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowType type, in LowExprKind.LocalPointer a) {
+	immutable gcc_jit_rvalue* pointer = gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null);
+	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
+		? gcc_jit_context_new_cast(ctx.gcc, null, pointer, getGccType(ctx.types, type))
+		: pointer);
+}
 
 ExprResult recordFieldGetToGcc(
 	ref ExprCtx ctx,
@@ -1370,6 +1447,12 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowF
 				null,
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, type)));
+		case BuiltinUnary.jumpToCatch:
+			immutable gcc_jit_rvalue*[1] args = [emitToRValue(ctx, locals, a.arg)];
+			return emitSimpleYesSideEffects(ctx, emit, type, gcc_jit_context_new_call(ctx.gcc, null, ctx.jumpToCatchFunction, args.length, args.ptr));
+		case BuiltinUnary.setupCatch:
+			immutable gcc_jit_rvalue*[1] args = [emitToRValue(ctx, locals, a.arg)];
+			return emitSimpleYesSideEffects(ctx, emit, type, gcc_jit_context_new_call(ctx.gcc, null, ctx.setupCatchFunction, args.length, args.ptr)); // TODO: helper for calling a fn
 		case BuiltinUnary.toNat64FromPtr:
 			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, castImmutable(
@@ -1429,14 +1512,25 @@ ExprResult ternaryToGcc(
 	in LowExprKind.SpecialTernary a,
 ) {
 	final switch (a.kind) {
-		case BuiltinTernary.initStack:
-			immutable gcc_jit_rvalue*[3] args = mapStatic(a.args, (LowExpr arg) => emitToRValue(ctx, locals, arg));
+		case BuiltinTernary.interpreterBacktrace:
+			assert(false);
+	}
+}
+
+ExprResult fouraryToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.Special4ary a,
+) {
+	final switch (a.kind) {
+		case Builtin4ary.switchFiberInitial:
+			immutable gcc_jit_rvalue*[4] args = mapStatic(a.args, (LowExpr arg) => emitToRValue(ctx, locals, arg));
 			return emitSimpleYesSideEffects(
 				ctx, emit, type,
 				castImmutable(gcc_jit_context_new_call(
-					ctx.gcc, null, ctx.initStackFunction, args.length, castNonScope(args).ptr)));
-		case BuiltinTernary.interpreterBacktrace:
-			assert(false);
+					ctx.gcc, null, ctx.switchFiberInitialFunction, args.length, castNonScope_ref(args).ptr)));
 	}
 }
 
@@ -1795,21 +1889,19 @@ ExprResult externZeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowType.Extern type
 		ExternTypeInfo info = ctx.types.extern_[type];
 		if (has(info.array)) {
 			ExternTypeArrayInfo array = force(info.array);
-			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, array.elementAndCount.elementType);
+			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, PrimitiveType.nat8);
 			//TODO: no alloc
 			immutable gcc_jit_rvalue*[] elementValues = fillArray!(immutable gcc_jit_rvalue*)(
-				ctx.alloc, array.elementAndCount.count, elementValue);
+				ctx.alloc, array.elementCount, elementValue);
 			gcc_jit_rvalue* arrayValue = gcc_jit_context_new_array_constructor(
 				ctx.gcc,
 				null,
-				array.gccArrayType,
+				array.arrayType,
 				elementValues.length,
 				&elementValues[0]);
-			gcc_jit_block_add_assignment(
-				ctx.curBlock,
-				null,
-				gcc_jit_lvalue_access_field(lvalue, null, array.field),
-				arrayValue);
+			gcc_jit_lvalue* accessField = gcc_jit_lvalue_access_field(lvalue, null, array.field);
+			assert(accessField != null); // TODO: RM ---------------------------------------------------------------------------------------
+			gcc_jit_block_add_assignment(ctx.curBlock, null, accessField, arrayValue);
 		}
 	});
 

@@ -208,6 +208,7 @@ private LowProgram lowerInner(
 		allTypes.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
+		lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType),
 		allFuns.allExternLibraries);
 	checkLowProgram(showCtx, program, a, res);
 	return res;

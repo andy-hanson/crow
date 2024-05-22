@@ -55,6 +55,7 @@ import model.model :
 	AutoFun,
 	BuiltinFun,
 	BuiltinType,
+	CommonFuns,
 	CommonTypes,
 	Destructure,
 	EnumFunction,
@@ -162,7 +163,7 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	CommonTypes* commonTypesPtr;
+	CommonTypes* commonTypesPtr; // TODO: this is just part of the program, so just use that? --------------------------------------
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
 	Late!(ConcreteFun*) createErrorFunction_;
@@ -360,6 +361,8 @@ private ConcreteType getConcreteType_forStructInst(
 							worsePurity(p, purity(ta)));
 					ConcreteStruct.SpecialKind specialKind = decl == ctx.commonTypes.array
 						? ConcreteStruct.SpecialKind.array
+						: inst == ctx.program.commonFuns.catchPointType
+						? ConcreteStruct.SpecialKind.catchPoint
 						: inst == ctx.commonTypes.fiber
 						? ConcreteStruct.SpecialKind.fiber
 						: isNonFunctionPointer(ctx.commonTypes, decl)
