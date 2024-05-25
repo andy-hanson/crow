@@ -6,6 +6,7 @@ import model.lowModel :
 	AllLowTypes,
 	isArray,
 	isFiber,
+	LowCommonTypes,
 	LowExpr,
 	LowField,
 	LowFun,
@@ -18,11 +19,11 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	PrimitiveType;
-import lower.lower : addLowFun, LowFunCause;
+import model.model : BuiltinUnary;
+import lower.lower : addLowFun, GetLowTypeCtx, getPointerConst, LowFunCause;
 import lower.lowExprHelpers :
 	boolType,
 	genAddPointer,
-	genAsAnyPointerConst,
 	genCallFunPointerNoGcRoots,
 	genCallNoGcRoots,
 	genDerefGcPointer,
@@ -46,12 +47,12 @@ import lower.lowExprHelpers :
 	genRecordFieldGet,
 	genSeq,
 	genSizeOf,
+	genUnary,
 	genUnionMatch,
 	genVoid,
 	genWrapMulNat64,
 	getElementPointerTypeFromArrType,
-	voidType,
-	voidConstPointerType;
+	voidType;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, foldWithIndex, newArray, newSmallArray, SmallArray;
 import util.col.fullIndexMap : fullIndexMapSize;
@@ -68,6 +69,7 @@ struct MarkVisitFuns {
 	private:
 
 	AllLowTypes* allTypesPtr;
+	LowCommonTypes* commonTypesPtr;
 	// If a type is not in one of these maps, it means we didn't need to generate a function for the type.
 
 	// Every type with a 'mark-root' needs a 'mark-visit', but not the other way around.
@@ -82,11 +84,14 @@ struct MarkVisitFuns {
 
 	ref AllLowTypes allTypes() return scope =>
 		*allTypesPtr;
+	ref LowCommonTypes commonTypes() return scope =>
+		*commonTypesPtr;
 }
 
-MarkVisitFuns initMarkVisitFuns(ref Alloc alloc, AllLowTypes* allTypes) =>
+MarkVisitFuns initMarkVisitFuns(ref Alloc alloc, AllLowTypes* allTypes, LowCommonTypes* commonTypes) =>
 	MarkVisitFuns(
 		allTypes,
+		commonTypes,
 		newMutIndexMap!(LowType.Record, Opt!LowFunIndex)(alloc, fullIndexMapSize(allTypes.allRecords)),
 		newMutIndexMap!(LowType.Union, Opt!LowFunIndex)(alloc, fullIndexMapSize(allTypes.allUnions)),
 		newMutIndexMap!(LowType.Record, Opt!LowFunIndex)(alloc, fullIndexMapSize(allTypes.allRecords)),
@@ -110,13 +115,13 @@ Opt!MarkRoot getMarkRootForType(
 			none!MarkRoot,
 		(PrimitiveType _) =>
 			none!MarkRoot,
-		(LowType.PtrGc x) =>
+		(LowType.PointerGc x) =>
 			some(MarkRoot(
 				MarkRoot.Kind.localAlreadyPointer,
-				getMarkVisitForPtrGc(alloc, lowFunCauses, markVisitFuns, x))),
-		(LowType.PtrRawConst x) =>
+				getMarkVisitForPointerGc(alloc, lowFunCauses, markVisitFuns, x))),
+		(LowType.PointerConst x) =>
 			none!MarkRoot,
-		(LowType.PtrRawMut x) =>
+		(LowType.PointerMut x) =>
 			none!MarkRoot,
 		(LowType.Record x) {
 			Opt!LowFunIndex res = getOrAdd!(LowType.Record, Opt!LowFunIndex)(markVisitFuns.recordToMarkRoot, x, () =>
@@ -145,22 +150,22 @@ Opt!LowFunIndex getMarkVisitForType(
 			none!LowFunIndex,
 		(PrimitiveType _) =>
 			none!LowFunIndex,
-		(LowType.PtrGc x) =>
-			some(getMarkVisitForPtrGc(alloc, lowFunCauses, markVisitFuns, x)),
-		(LowType.PtrRawConst) =>
+		(LowType.PointerGc x) =>
+			some(getMarkVisitForPointerGc(alloc, lowFunCauses, markVisitFuns, x)),
+		(LowType.PointerConst) =>
 			none!LowFunIndex,
-		(LowType.PtrRawMut) =>
+		(LowType.PointerMut) =>
 			none!LowFunIndex,
 		(LowType.Record x) =>
 			getMarkVisitForRecord(alloc, lowFunCauses, markVisitFuns, x),
 		(LowType.Union x) =>
 			getMarkVisitForUnion(alloc, lowFunCauses, markVisitFuns, x));
 
-private LowFunIndex getMarkVisitForPtrGc(
+private LowFunIndex getMarkVisitForPointerGc(
 	ref Alloc alloc,
 	scope ref MutArr!LowFunCause lowFunCauses,
 	scope ref MarkVisitFuns markVisitFuns,
-	LowType.PtrGc type,
+	LowType.PointerGc type,
 ) =>
 	getOrAdd(alloc, markVisitFuns.gcPointeeToVisit, *type.pointee, () =>
 		addLowFun(alloc, lowFunCauses, LowFunCause(LowFunCause.MarkVisit(LowType(type)))));
@@ -193,6 +198,7 @@ private Opt!LowFunIndex getMarkVisitForUnion(
 
 LowFun generateMarkRoot(
 	ref Alloc alloc,
+	ref GetLowTypeCtx getLowTypeCtx,
 	scope ref MutArr!LowFunCause lowFunCauses,
 	scope ref MarkVisitFuns markVisitFuns,
 	LowType markCtxType,
@@ -208,11 +214,11 @@ LowFun generateMarkRoot(
 	*/
 	LowLocal[] params = newArray!LowLocal(alloc, [
 		genLocalByValue(alloc, symbol!"mark-ctx", isMutable: false, 0, markCtxType),
-		genLocalByValue(alloc, symbol!"pointer", isMutable: false, 1, voidConstPointerType)]);
+		genLocalByValue(alloc, symbol!"pointer", isMutable: false, 1, getPointerConst(getLowTypeCtx, voidType))]);
 	UriAndRange range = UriAndRange.empty;
 	LowExpr markCtx = genLocalGet(range, &params[0]);
 	LowExpr pointer = genLocalGet(range, &params[1]);
-	LowType tPointer = LowType(LowType.PtrRawConst(allocate(alloc, type)));
+	LowType tPointer = getPointerConst(getLowTypeCtx, type);
 	LowExpr deref = genDerefRawPointer(alloc, range, genPointerCast(alloc, tPointer, range, pointer));
 	LowExpr callVisit = genCallNoGcRoots(alloc, voidType, range, visit, [markCtx, deref]);
 	return LowFun(
@@ -241,6 +247,7 @@ LowFun generateMarkVisit(
 	Opt!LowFunIndex getMarkVisit(LowType x) =>
 		getMarkVisitForType(alloc, lowFunCauses, markVisitFuns, x);
 	ref AllLowTypes allTypes() => markVisitFuns.allTypes;
+	ref LowCommonTypes commonTypes() => markVisitFuns.commonTypes;
 	LowExpr body_ = type.match!LowExpr(
 		(LowType.Extern) =>
 			assert(false),
@@ -248,19 +255,20 @@ LowFun generateMarkVisit(
 			assert(false),
 		(PrimitiveType _) =>
 			assert(false),
-		(LowType.PtrGc x) =>
-			generateMarkVisitGcPtr(
-				alloc, allTypes, markCtxType, markFun, range, markCtx, value, *x.pointee, getMarkVisit(*x.pointee)),
-		(LowType.PtrRawConst) =>
+		(LowType.PointerGc x) =>
+			generateMarkVisitPointerGc(
+				alloc, allTypes, commonTypes, markCtxType, markFun, range, markCtx,
+				value, *x.pointee, getMarkVisit(*x.pointee)),
+		(LowType.PointerConst) =>
 			assert(false),
-		(LowType.PtrRawMut) =>
+		(LowType.PointerMut) =>
 			assert(false),
 		(LowType.Record x) {
 			LowRecord* record = &allTypes.allRecords[x];
 			if (isArray(*record)) {
-				LowType.PtrRawConst elementPointerType = getElementPointerTypeFromArrType(allTypes, x);
+				LowType.PointerConst elementPointerType = getElementPointerTypeFromArrType(allTypes, x);
 				return generateMarkVisitArray(
-					alloc, allTypes, markFun, markCtx, value, elementPointerType,
+					alloc, allTypes, commonTypes, markFun, markCtx, value, elementPointerType,
 					getMarkVisit(*elementPointerType.pointee));
 			} else if (isFiber(*record))
 				return generateMarkVisitFiber(alloc, allTypes, range, markCtx, value, *record, (LowType x) =>
@@ -281,9 +289,13 @@ LowFun generateMarkVisit(
 
 private:
 
-LowExpr generateMarkVisitGcPtr(
+LowExpr genAsAnyPointerConst(ref Alloc alloc, ref LowCommonTypes commonTypes, UriAndRange range, LowExpr a) =>
+	genUnary(alloc, commonTypes.nat8ConstPointer, range, BuiltinUnary.asAnyPointer, a);
+
+LowExpr generateMarkVisitPointerGc(
 	ref Alloc alloc,
 	in AllLowTypes allTypes,
+	ref LowCommonTypes commonTypes,
 	LowType markCtxType,
 	LowFunIndex markFun,
 	UriAndRange range,
@@ -294,7 +306,7 @@ LowExpr generateMarkVisitGcPtr(
 ) {
 	LowExpr mark = genCallNoGcRoots(alloc, boolType, range, markFun, [
 		markCtx,
-		genAsAnyPointerConst(alloc, range, value),
+		genAsAnyPointerConst(alloc, commonTypes, range, value),
 		genSizeOf(allTypes, range, pointeeType)]);
 	if (has(visitPointee)) {
 		LowExpr valueDeref = genDerefGcPointer(alloc, range, value);
@@ -321,10 +333,11 @@ mark-visit void(mark-ctx mark-ctx, a element[])
 LowExpr generateMarkVisitArray(
 	ref Alloc alloc,
 	in AllLowTypes allTypes,
+	ref LowCommonTypes commonTypes,
 	LowFunIndex markFun,
 	LowExpr getMarkCtx,
 	LowExpr getA,
-	LowType.PtrRawConst elementPointerType,
+	LowType.PointerConst elementPointerType,
 	Opt!LowFunIndex markVisitElementFun,
 ) {
 	LowType elementType = *elementPointerType.pointee;
@@ -334,7 +347,7 @@ LowExpr generateMarkVisitArray(
 	// mark-ctx mark a.data.pointer-cast, a.size * size-of@<a>
 	LowExpr callMark = genCallNoGcRoots(alloc, boolType, range, markFun, [
 		getMarkCtx,
-		genAsAnyPointerConst(alloc, range, getData),
+		genAsAnyPointerConst(alloc, commonTypes, range, getData),
 		genWrapMulNat64(alloc, range, getSize, genSizeOf(allTypes, range, elementType))]);
 	if (has(markVisitElementFun)) {
 		LowExpr voidValue = genVoid(range);
@@ -407,7 +420,7 @@ LowExpr generateMarkVisitFiber(
 
 	LowLocal* cur = genLocal(alloc, symbol!"cur", isMutable: true, 2, gcRoot.type);
 	LowExpr getCur = genLocalGet(range, cur);
-	LowRecord* gcRootRecord = &allTypes.allRecords[cur.type.as!(LowType.PtrRawMut).pointee.as!(LowType.Record)];
+	LowRecord* gcRootRecord = &allTypes.allRecords[cur.type.as!(LowType.PointerMut).pointee.as!(LowType.Record)];
 	LowExpr gcRootField(size_t fieldIndex) =>
 		genRecordFieldGet(alloc, gcRootRecord.fields[fieldIndex].type, range, getCur, fieldIndex);
 	LowExpr curPointer = gcRootField(0);

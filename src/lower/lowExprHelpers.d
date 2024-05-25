@@ -6,7 +6,7 @@ import model.concreteModel : ConcreteFun;
 import model.constant : Constant, constantZero;
 import model.model : BuiltinUnary, BuiltinBinary;
 import model.lowModel :
-	asGcOrRawPointee,
+	asPointee,
 	AllLowTypes,
 	debugName,
 	LowExpr,
@@ -27,26 +27,20 @@ import util.memory : allocate;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 
-LowType boolType = LowType(PrimitiveType.bool_);
-LowType char8Type = LowType(PrimitiveType.char8);
-LowType char32Type = LowType(PrimitiveType.char32);
-LowType char8PtrConstType() => LowType(LowType.PtrRawConst(&char8Type));
+LowType boolType() => LowType(PrimitiveType.bool_);
+LowType char8Type() => LowType(PrimitiveType.char8);
+LowType char32Type() => LowType(PrimitiveType.char32);
 LowType float32Type() => LowType(PrimitiveType.float32);
 LowType float64Type() => LowType(PrimitiveType.float64);
 LowType int8Type() => LowType(PrimitiveType.int8);
 LowType int16Type() => LowType(PrimitiveType.int16);
 LowType int32Type() => LowType(PrimitiveType.int32);
 LowType int64Type() => LowType(PrimitiveType.int64);
-LowType nat8Type = LowType(PrimitiveType.nat8);
+LowType nat8Type() => LowType(PrimitiveType.nat8);
 LowType nat16Type() => LowType(PrimitiveType.nat16);
 LowType nat32Type() => LowType(PrimitiveType.nat32);
-LowType nat64Type = LowType(PrimitiveType.nat64);
-LowType nat64MutPointerType() => LowType(LowType.PtrRawMut(&nat64Type));
-private LowType anyPtrConstType() =>
-	LowType(LowType.PtrRawConst(&nat8Type));
-LowType anyPtrMutType() => LowType(LowType.PtrRawMut(&nat8Type));
-LowType voidType = LowType(PrimitiveType.void_);
-LowType voidConstPointerType() => LowType(LowType.PtrRawConst(&voidType));
+LowType nat64Type() => LowType(PrimitiveType.nat64);
+LowType voidType() => LowType(PrimitiveType.void_);
 
 LowExpr genAbort(LowType type, UriAndRange range) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.Abort()));
@@ -84,11 +78,8 @@ private LowExpr genBinary(
 ) =>
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(kind, [arg0, arg1]))));
 
-LowExpr genAddPointer(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
+LowExpr genAddPointer(ref Alloc alloc, LowType.PointerConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	genBinary(alloc, LowType(ptrType), range, BuiltinBinary.addPointerAndNat64, ptr, added);
-
-LowExpr genAsAnyPointerConst(ref Alloc alloc, UriAndRange range, LowExpr a) =>
-	genUnary(alloc, anyPtrConstType, range, BuiltinUnary.asAnyPtr, a);
 
 LowExpr genLocalPointer(LowType type, UriAndRange range, LowLocal* local) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.LocalPointer(local)));
@@ -102,7 +93,7 @@ LowExpr genDrop(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	a.type == voidType ? a : genUnary(alloc, voidType, range, BuiltinUnary.drop, a);
 
 private LowExpr genDerefGcOrRawPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
-	genUnary(alloc, asGcOrRawPointee(ptr.type), range, BuiltinUnary.deref, ptr);
+	genUnary(alloc, asPointee(ptr.type), range, BuiltinUnary.deref, ptr);
 
 LowExpr genDerefGcPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPointer(alloc, range, ptr);
@@ -113,7 +104,7 @@ LowExpr genDerefRawPointer(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 LowExpr genIf(ref Alloc alloc, UriAndRange range, LowExpr cond, LowExpr then, LowExpr else_) =>
 	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.If(cond, then, else_))));
 
-LowExpr genIncrPointer(ref Alloc alloc, UriAndRange range, LowType.PtrRawConst pointerType, LowExpr pointer) =>
+LowExpr genIncrPointer(ref Alloc alloc, UriAndRange range, LowType.PointerConst pointerType, LowExpr pointer) =>
 	genAddPointer(alloc, pointerType, range, pointer, genConstantNat64(range, 1));
 
 LowExpr genFalse(UriAndRange range) =>
@@ -346,15 +337,15 @@ LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, size_t
 LowExpr genGetArrSize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
 	genRecordFieldGet(alloc, nat64Type, range, arr, 0);
 
-LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.PtrRawConst elementPointerType) =>
+LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.PointerConst elementPointerType) =>
 	genRecordFieldGet(alloc, LowType(elementPointerType), range, arr, 1);
 
-LowType.PtrRawConst getElementPointerTypeFromArrType(in AllLowTypes allTypes, LowType.Record arrType) {
+LowType.PointerConst getElementPointerTypeFromArrType(in AllLowTypes allTypes, LowType.Record arrType) {
 	LowRecord arrRecord = allTypes.allRecords[arrType];
 	assert(arrRecord.fields.length == 2);
 	assert(debugName(arrRecord.fields[0]) == symbol!"size");
 	assert(debugName(arrRecord.fields[1]) == symbol!"pointer");
-	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
+	return arrRecord.fields[1].type.as!(LowType.PointerConst);
 }
 
 @trusted LowExpr genLoop(ref Alloc alloc, LowType type, UriAndRange range, LowExpr body_) =>

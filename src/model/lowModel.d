@@ -117,33 +117,35 @@ immutable struct LowType {
 	immutable struct FunPointer {
 		mixin IndexType;
 	}
-	// May be gc-allocated or not; gc will try to trace
-	immutable struct PtrGc {
+	// Warn: Do not construct directly, use 'getPointerGc' from 'lower.d'
+	immutable struct PointerGc {
 		@safe @nogc pure nothrow:
 		LowType* pointee;
 
 		@system void* asPointerForTaggedUnion() =>
 			cast(void*) pointee;
-		@system static PtrGc fromPointerForTaggedUnion(void* a) =>
-			PtrGc(cast(LowType*) a);
+		@system static PointerGc fromPointerForTaggedUnion(void* a) =>
+			PointerGc(cast(LowType*) a);
 	}
-	immutable struct PtrRawConst {
+	// Warn: Do not construct directly, use 'getPointerConst' from 'lower.d'
+	immutable struct PointerConst {
 		@safe @nogc pure nothrow:
 		LowType* pointee;
 
 		@system void* asPointerForTaggedUnion() =>
 			cast(void*) pointee;
-		@system static PtrRawConst fromPointerForTaggedUnion(void* a) =>
-			PtrRawConst(cast(LowType*) a);
+		@system static PointerConst fromPointerForTaggedUnion(void* a) =>
+			PointerConst(cast(LowType*) a);
 	}
-	immutable struct PtrRawMut {
+	// Warn: Do not construct directly, use 'getPointerMut' from 'lower.d'
+	immutable struct PointerMut {
 		@safe @nogc pure nothrow:
 		LowType* pointee;
 
 		@system void* asPointerForTaggedUnion() =>
 			cast(void*) pointee;
-		@system static PtrRawMut fromPointerForTaggedUnion(void* a) =>
-			PtrRawMut(cast(LowType*) a);
+		@system static PointerMut fromPointerForTaggedUnion(void* a) =>
+			PointerMut(cast(LowType*) a);
 	}
 	immutable struct Record {
 		@safe @nogc pure nothrow:
@@ -162,9 +164,9 @@ immutable struct LowType {
 		Extern,
 		FunPointer,
 		PrimitiveType,
-		PtrGc,
-		PtrRawConst,
-		PtrRawMut,
+		PointerGc,
+		PointerConst,
+		PointerMut,
 		Record,
 		Union);
 
@@ -176,12 +178,12 @@ immutable struct LowType {
 				b.isA!FunPointer && b.as!FunPointer.index == x.index,
 			(in PrimitiveType x) =>
 				b.isA!PrimitiveType && b.as!PrimitiveType == x,
-			(in PtrGc x) =>
-				b.isA!PtrGc && *b.as!PtrGc.pointee == *x.pointee,
-			(in PtrRawConst x) =>
-				b.isA!PtrRawConst && *b.as!PtrRawConst.pointee == *x.pointee,
-			(in PtrRawMut x) =>
-				b.isA!PtrRawMut && *b.as!PtrRawMut.pointee == *x.pointee,
+			(in PointerGc x) =>
+				b.isA!PointerGc && b.as!PointerGc.pointee == x.pointee,
+			(in PointerConst x) =>
+				b.isA!PointerConst && b.as!PointerConst.pointee == x.pointee,
+			(in PointerMut x) =>
+				b.isA!PointerMut && b.as!PointerMut.pointee == x.pointee,
 			(in Record x) =>
 				b.isA!Record && b.as!Record.index == x.index,
 			(in Union x) =>
@@ -195,11 +197,11 @@ immutable struct LowType {
 				hashUint(x.index),
 			(in PrimitiveType x) =>
 				hashEnum(x),
-			(in PtrGc x) =>
+			(in PointerGc x) =>
 				x.pointee.hash(),
-			(in PtrRawConst x) =>
+			(in PointerConst x) =>
 				x.pointee.hash(),
-			(in PtrRawMut x) =>
+			(in PointerMut x) =>
 				x.pointee.hash(),
 			(in Record x) =>
 				hashUint(x.index),
@@ -214,12 +216,12 @@ immutable struct LowType {
 				LowTypeCombinePointer(x),
 			(PrimitiveType x) =>
 				LowTypeCombinePointer(x),
-			(LowType.PtrGc x) =>
-				LowTypeCombinePointer(LowPtrCombine(*x.pointee)),
-			(LowType.PtrRawConst x) =>
-				LowTypeCombinePointer(LowPtrCombine(*x.pointee)),
-			(LowType.PtrRawMut x) =>
-				LowTypeCombinePointer(LowPtrCombine(*x.pointee)),
+			(LowType.PointerGc x) =>
+				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
+			(LowType.PointerConst x) =>
+				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
+			(LowType.PointerMut x) =>
+				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
 			(LowType.Record x) =>
 				LowTypeCombinePointer(x),
 			(LowType.Union x) =>
@@ -235,29 +237,29 @@ bool isChar32(LowType a) =>
 bool isVoid(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.void_;
 
-private bool isPtrRawConstOrMut(LowType a) =>
-	a.isA!(LowType.PtrRawConst) || a.isA!(LowType.PtrRawMut);
+bool isPointerNonGc(LowType a) =>
+	a.isA!(LowType.PointerConst) || a.isA!(LowType.PointerMut);
 
-bool isPtrGcOrRaw(LowType a) =>
-	a.isA!(LowType.PtrGc) || isPtrRawConstOrMut(a);
+bool isPointerGcOrRaw(LowType a) =>
+	a.isA!(LowType.PointerGc) || isPointerNonGc(a);
 
-@trusted LowType asGcOrRawPointee(return scope LowType a) =>
-	a.combinePointer.as!LowPtrCombine.pointee;
+@trusted LowType asPointee(return scope LowType a) =>
+	a.combinePointer.as!LowPointerCombine.pointee;
 
-immutable(LowType) asPtrGcPointee(LowType a) =>
-	*a.as!(LowType.PtrGc).pointee;
+immutable(LowType) asGcPointee(LowType a) =>
+	*a.as!(LowType.PointerGc).pointee;
 
-immutable(LowType) asPtrRawPointee(LowType a) {
-	assert(isPtrRawConstOrMut(a));
-	return asGcOrRawPointee(a);
+immutable(LowType) asNonGcPointee(LowType a) {
+	assert(isPointerNonGc(a));
+	return asPointee(a);
 }
 
-immutable struct LowPtrCombine {
+immutable struct LowPointerCombine {
 	LowType pointee;
 }
 
 private immutable struct LowTypeCombinePointer {
-	mixin Union!(LowType.Extern, LowType.FunPointer, PrimitiveType, LowPtrCombine, LowType.Record, LowType.Union);
+	mixin Union!(LowType.Extern, LowType.FunPointer, PrimitiveType, LowPointerCombine, LowType.Record, LowType.Union);
 }
 
 bool isPrimitiveType(LowType a, PrimitiveType p) =>
@@ -485,10 +487,10 @@ immutable struct LowExprKind {
 		size_t fieldIndex;
 
 		LowType.Record targetRecordType() scope =>
-			(targetIsPointer ? asGcOrRawPointee(target.type) : target.type).as!(LowType.Record);
+			(targetIsPointer ? asPointee(target.type) : target.type).as!(LowType.Record);
 
 		bool targetIsPointer() scope =>
-			isPtrGcOrRaw(target.type);
+			isPointerGcOrRaw(target.type);
 	}
 
 	immutable struct RecordFieldPointer {
@@ -498,7 +500,7 @@ immutable struct LowExprKind {
 		size_t fieldIndex;
 
 		LowType.Record targetRecordType() scope =>
-			asGcOrRawPointee(target.type).as!(LowType.Record);
+			asPointee(target.type).as!(LowType.Record);
 	}
 
 	immutable struct RecordFieldSet {
@@ -510,7 +512,7 @@ immutable struct LowExprKind {
 
 		// Use a template to avoid forward reference errors
 		LowType.Record targetRecordType()() scope =>
-			asGcOrRawPointee(target.type).as!(LowType.Record);
+			asPointee(target.type).as!(LowType.Record);
 	}
 
 	immutable struct SpecialUnary {
@@ -713,9 +715,13 @@ immutable struct LowCommonTypes {
 	LowType catchPointConstPointer;
 	LowType catchPointMutPointer;
 	LowType fiberReference;
+	LowType nat8ConstPointer;
+	LowType nat8MutPointer;
+	LowType nat64MutPointer;
+	LowType nat64MutPointerMutPointer;
 
 	LowType catchPoint() =>
-		*catchPointConstPointer.as!(LowType.PtrRawConst).pointee;
+		*catchPointConstPointer.as!(LowType.PointerConst).pointee;
 }
 
 alias ExternLibraries = immutable ExternLibrary[];

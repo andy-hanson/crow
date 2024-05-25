@@ -107,7 +107,7 @@ import interpret.generateText :
 import interpret.runBytecode : opSetupCatch, opSwitchFiber, opSwitchFiberInitial;
 import model.constant : Constant;
 import model.lowModel :
-	asPtrRawPointee,
+	asNonGcPointee,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -813,7 +813,7 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
-		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
@@ -1046,7 +1046,7 @@ void generateSpecialBinary(
 	final switch (a.kind) {
 		case BuiltinBinary.addPointerAndNat64:
 		case BuiltinBinary.subPointerAndNat64:
-			LowType pointee = asPtrRawPointee(left.type);
+			LowType pointee = asNonGcPointee(left.type);
 			generateExprAndContinue(writer, ctx, locals, left);
 			StackEntry afterLeft = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, right);

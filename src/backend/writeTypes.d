@@ -8,7 +8,7 @@ import model.lowModel :
 	LowField,
 	LowFunPointerType,
 	LowProgram,
-	LowPtrCombine,
+	LowPointerCombine,
 	LowRecord,
 	LowType,
 	LowUnion,
@@ -114,8 +114,8 @@ bool canReferenceTypeAsValue(in StructStates states, in LowType a) =>
 			states.funPtrStates[it],
 		(PrimitiveType) =>
 			true,
-		(LowPtrCombine it) =>
-			canReferenceTypeAsPointee(states, it.pointee),
+		(LowPointerCombine x) =>
+			canReferenceTypeAsPointee(states, x.pointee),
 		(LowType.Record it) =>
 			states.recordStates[it] == StructState.defined,
 		(LowType.Union it) =>
@@ -127,10 +127,10 @@ bool canReferenceTypeAsPointee(in StructStates states, in LowType a) =>
 			true,
 		(LowType.FunPointer it) =>
 			states.funPtrStates[it],
-		(PrimitiveType) =>
+		(PrimitiveType _) =>
 			true,
-		(LowPtrCombine it) =>
-			canReferenceTypeAsPointee(states, it.pointee),
+		(LowPointerCombine x) =>
+			canReferenceTypeAsPointee(states, x.pointee),
 		(LowType.Record it) =>
 			states.recordStates[it] != StructState.none,
 		(LowType.Union it) =>

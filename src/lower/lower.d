@@ -14,9 +14,8 @@ import lower.generateMarkVisitFun :
 	MarkRoot,
 	MarkVisitFuns;
 import lower.lowExprHelpers :
-	anyPtrMutType,
 	boolType,
-	char8PtrConstType,
+	char8Type,
 	genAbort,
 	genAddPointer,
 	genBitwiseNegate,
@@ -60,7 +59,8 @@ import lower.lowExprHelpers :
 	genWriteToPointer,
 	genZeroed,
 	int32Type,
-	voidConstPointerType,
+	nat8Type,
+	nat64Type,
 	voidType;
 import model.concreteModel :
 	AllConstantsConcrete,
@@ -88,8 +88,8 @@ import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
-	asPtrGcPointee,
-	asPtrRawPointee,
+	asGcPointee,
+	asNonGcPointee,
 	ConcreteFunToLowFunIndex,
 	ExternLibraries,
 	ExternLibrary,
@@ -198,10 +198,15 @@ private LowProgram lowerInner(
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	LowType catchPointConstPointerType = lowTypeFromConcreteType(
 		allTypes.getLowTypeCtx, a.commonFuns.curCatchPoint.returnType);
+	LowType nat64MutPointer = getPointerMut(allTypes.getLowTypeCtx, nat64Type);
 	LowCommonTypes commonTypes = LowCommonTypes(
 		catchPointConstPointer: catchPointConstPointerType,
-		catchPointMutPointer: LowType(LowType.PtrRawMut(catchPointConstPointerType.as!(LowType.PtrRawConst).pointee)),
-		fiberReference: lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType));
+		catchPointMutPointer: LowType(LowType.PointerMut(catchPointConstPointerType.as!(LowType.PointerConst).pointee)),
+		fiberReference: lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType),
+		nat8ConstPointer: getPointerConst(allTypes.getLowTypeCtx, nat8Type),
+		nat8MutPointer: getPointerMut(allTypes.getLowTypeCtx, nat8Type),
+		nat64MutPointer: nat64MutPointer,
+		nat64MutPointerMutPointer: getPointerMut(allTypes.getLowTypeCtx, nat64MutPointer));
 	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
 	AllLowFuns allFuns = getAllLowFuns(
 		alloc, showCtx, allTypes.allTypes, allTypes.getLowTypeCtx, commonTypes, configExtern, a, vars);
@@ -270,11 +275,24 @@ struct GetLowTypeCtx {
 
 	Alloc* allocPtr;
 	immutable Map!(ConcreteStruct*, LowType) concreteStructToType;
-	MutMap!(ConcreteStruct*, LowType) concreteStructToPtrType;
+	MutMap!(LowType, LowType*) typeToAllocated;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 }
+
+LowType* allocateLowType(ref GetLowTypeCtx ctx, LowType a) =>
+	getOrAdd(ctx.alloc, ctx.typeToAllocated, a, () =>
+		allocate(ctx.alloc, a));
+
+LowType getPointerGc(ref GetLowTypeCtx ctx, LowType pointee) =>
+	LowType(LowType.PointerGc(allocateLowType(ctx, pointee)));
+
+LowType getPointerConst(ref GetLowTypeCtx ctx, LowType pointee) =>
+	LowType(LowType.PointerConst(allocateLowType(ctx, pointee)));
+
+LowType getPointerMut(ref GetLowTypeCtx ctx, LowType pointee) =>
+	LowType(LowType.PointerMut(allocateLowType(ctx, pointee)));
 
 AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 	MapBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
@@ -424,29 +442,18 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 		getLowTypeCtx.alloc, s.body_.as!(ConcreteStructBody.Union).members, (ref ConcreteType member) =>
 			lowTypeFromConcreteType(getLowTypeCtx, member)));
 
-LowType getLowRawPtrConstType(ref GetLowTypeCtx ctx, LowType pointee) {
-	//TODO:PERF Cache creation of pointer types by pointee
-	return LowType(LowType.PtrRawConst(allocate(ctx.alloc, pointee)));
-}
-
-LowType getLowGcPtrType(ref GetLowTypeCtx ctx, LowType pointee) {
-	//TODO:PERF Cache creation of pointer types by pointee
-	return LowType(LowType.PtrGc(allocate(ctx.alloc, pointee)));
-}
-
 LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* struct_) {
 	Opt!LowType res = ctx.concreteStructToType[struct_];
 	if (has(res))
 		return force(res);
 	else {
 		ConcreteStructBody.Builtin* builtin = struct_.body_.as!(ConcreteStructBody.Builtin*);
-		//TODO: cache the creation.. don't want an allocation for every BuiltinType.ptr to the same target type
-		LowType* inner = allocate(ctx.alloc, lowTypeFromConcreteType(ctx, only(builtin.typeArgs)));
+		LowType inner = lowTypeFromConcreteType(ctx, only(builtin.typeArgs));
 		switch (builtin.kind) {
 			case BuiltinType.pointerConst:
-				return LowType(LowType.PtrRawConst(inner));
+				return getPointerConst(ctx, inner);
 			case BuiltinType.pointerMut:
-				return LowType(LowType.PtrRawMut(inner));
+				return getPointerMut(ctx, inner);
 			default:
 				assert(false);
 		}
@@ -459,8 +466,7 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType type) {
 		case ReferenceKind.byVal:
 			return inner;
 		case ReferenceKind.byRef:
-			return getOrAdd(ctx.alloc, ctx.concreteStructToPtrType, type.struct_, () =>
-				getLowGcPtrType(ctx, inner));
+			return getPointerGc(ctx, inner);
 	}
 }
 
@@ -489,7 +495,7 @@ AllLowFuns getAllLowFuns(
 ) {
 	MutConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	MutArr!LowFunCause lowFunCauses;
-	MarkVisitFuns markVisitFuns = initMarkVisitFuns(alloc, ptrTrustMe(allTypes));
+	MarkVisitFuns markVisitFuns = initMarkVisitFuns(alloc, ptrTrustMe(allTypes), ptrTrustMe(commonTypes));
 	Late!LowType markCtxTypeLate = late!LowType;
 
 	MutMultiMap!(Symbol, Symbol) externLibraryToNames; // Fun and Var combined
@@ -559,7 +565,7 @@ AllLowFuns getAllLowFuns(
 			immutable KeyValuePair!(immutable ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
 	LowType gcRootMutPointerType = lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.gcRoot.returnType);
-	LowType gcRootType = *gcRootMutPointerType.as!(LowType.PtrRawMut).pointee;
+	LowType gcRootType = *gcRootMutPointerType.as!(LowType.PointerMut).pointee;
 
 	LowCommonFuns commonFuns = LowCommonFuns(
 		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
@@ -692,15 +698,16 @@ LowFun lowFunFromCause(
 			return LowFun(LowFunSource(cf), returnType, params, body_);
 		},
 		(LowFunCause.MarkRoot x) =>
-			generateMarkRoot(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, markCtxType, commonFuns.mark, x.type),
+			generateMarkRoot(
+				getLowTypeCtx.alloc, getLowTypeCtx, lowFunCauses, markVisitFuns, markCtxType, commonFuns.mark, x.type),
 		(LowFunCause.MarkVisit x) =>
 			generateMarkVisit(getLowTypeCtx.alloc, lowFunCauses, markVisitFuns, markCtxType, commonFuns.mark, x.type));
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
-	LowType char8PtrPtrConstType = LowType(LowType.PtrRawConst(allocate(ctx.alloc, char8PtrConstType)));
+	LowType char8PointerPointer = getPointerConst(ctx, getPointerConst(ctx, char8Type));
 	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
 		genLocalByValue(ctx.alloc, symbol!"argc", isMutable: false, 0, int32Type),
-		genLocalByValue(ctx.alloc, symbol!"argv", isMutable: false, 1, char8PtrPtrConstType)]);
+		genLocalByValue(ctx.alloc, symbol!"argv", isMutable: false, 1, char8PointerPointer)]);
 	LowExpr userMainFunPointer =
 		genFunPointer(userMainFunPointerType, UriAndRange.empty, userMain);
 	LowExpr call = genCallNoGcRoots(ctx.alloc, int32Type, UriAndRange.empty, rtMainIndex, [
@@ -898,7 +905,7 @@ LowExpr maybeAddGcRoot(
 			case MarkRoot.Kind.localAlreadyPointer:
 				return genLocalGet(range, local);
 			case MarkRoot.Kind.pointerToLocal:
-				return genLocalPointer(LowType(LowType.PtrRawMut(allocate(ctx.alloc, local.type))), range, local);
+				return genLocalPointer(getPointerMut(ctx.typeCtx, local.type), range, local);
 		}
 	}();
 	LowExpr markRootFunction = () {
@@ -920,7 +927,7 @@ LowExpr maybeAddGcRoot(
 	res
 	*/
 	LowExpr initRoot = genCreateRecordNoGcRoots(ctx.alloc, ctx.commonFuns.gcRootType, range, [
-		genPointerCast(ctx.alloc, voidConstPointerType, range, pointerToLocal),
+		genPointerCast(ctx.alloc, getPointerConst(ctx.typeCtx, voidType), range, pointerToLocal),
 		markRootFunction,
 		genGetGcRoot(ctx, range)]);
 	LowLocal* root = genLocal(
@@ -1122,13 +1129,14 @@ LowExpr getLowExpr(
 }
 
 LowExpr getAllocateExpr(
-	ref Alloc alloc,
-	LowFunIndex allocFunIndex,
+	ref GetLowExprCtx ctx,
 	UriAndRange range,
 	LowType ptrType,
 	LowExpr size,
 ) =>
-	genPointerCast(alloc, ptrType, range, genCallNoGcRoots(alloc, anyPtrMutType, range, allocFunIndex, [size]));
+	genPointerCast(
+		ctx.alloc, ptrType, range,
+		genCallNoGcRoots(ctx.alloc, ctx.commonTypes.nat8MutPointer, range, ctx.commonFuns.alloc, [size]));
 
 LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAndRange range, LowExpr arg) {
 	if (isEmptyType(*ctx.allTypes, arg.type))
@@ -1136,9 +1144,7 @@ LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAn
 			? genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg), genZeroed(type, range))
 			: genZeroed(type, range));
 	else {
-		LowExpr ptr = getAllocateExpr(
-			ctx.alloc, ctx.commonFuns.alloc, range, type,
-			genSizeOf(*ctx.allTypes, range, arg.type));
+		LowExpr ptr = getAllocateExpr(ctx, range, type, genSizeOf(*ctx.allTypes, range, arg.type));
 		// `x = arg; ptr = (T*) alloc(sizeof(T)); *ptr = x; return ptr;``
 		return genLetTempConstNoGcRoot(ctx, range, arg, (LowExpr getArg) =>
 			genLetTempConstNoGcRoot(ctx, range, ptr, (LowExpr getPtr) =>
@@ -1435,7 +1441,7 @@ LowExpr maybeOptimizeSpecialBinary(
 
 	switch (kind) {
 		case BuiltinBinary.addPointerAndNat64:
-			return isEmptyType(*ctx.allTypes, asPtrRawPointee(arg0.type))
+			return isEmptyType(*ctx.allTypes, asNonGcPointee(arg0.type))
 				? genLetTempConstNoGcRoot(ctx, range, arg0, (LowExpr getA) =>
 					genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg1), getA))
 				: unopt();
@@ -1478,11 +1484,11 @@ LowExpr getCreateArrayExpr(
 		LowType elementType = lowTypeFromConcreteType(
 			ctx.typeCtx,
 			only(mustBeByVal(concreteArrType).source.as!(ConcreteStructSource.Inst).typeArgs));
-		LowType elementPtrType = getLowRawPtrConstType(ctx.typeCtx, elementType);
+		LowType elementPtrType = getPointerConst(ctx.typeCtx, elementType);
 		LowExpr elementSize = genSizeOf(*ctx.allTypes, range, elementType);
 		LowExpr nElements = genConstantNat64(range, a.args.length);
 		LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
-		LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.commonFuns.alloc, range, elementPtrType, sizeBytes);
+		LowExpr allocatePtr = getAllocateExpr(ctx, range, elementPtrType, sizeBytes);
 		return genLetTempConstNoGcRoot(ctx, range, allocatePtr, (LowExpr getPtr) =>
 			handleExprPos(ctx, innerPos, foldReverseWithIndex!(LowExpr, LowExpr)(
 				genCreateRecordNoGcRoots(ctx.alloc, arrType, range, [nElements, getPtr]),
@@ -1490,7 +1496,7 @@ LowExpr getCreateArrayExpr(
 				(LowExpr nextExpr, size_t index, ref LowExpr arg) {
 					LowExpr elementPtr = genAddPointer(
 						ctx.alloc,
-						elementPtrType.as!(LowType.PtrRawConst),
+						elementPtrType.as!(LowType.PointerConst),
 						range,
 						getPtr,
 						genConstantNat64(range, index));
@@ -1508,8 +1514,8 @@ LowExpr getCreateRecordExpr(
 	in ConcreteExprKind.CreateRecord a,
 ) =>
 	withPushAllGcRoots(ctx, locals, range, exprPos, isYieldingCall: false, a.args, (ExprPos innerPos, LowExpr[] args) {
-		bool alloc = type.isA!(LowType.PtrGc);
-		LowType recordType = alloc ? asPtrGcPointee(type) : type;
+		bool alloc = type.isA!(LowType.PointerGc);
+		LowType recordType = alloc ? asGcPointee(type) : type;
 		LowExpr record = genCreateRecordNoGcRoots(recordType, range, args);
 		return alloc
 			? getAllocExpr(ctx, exprPos, type, range, record)

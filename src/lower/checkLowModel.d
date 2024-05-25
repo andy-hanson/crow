@@ -17,14 +17,14 @@ import lower.lowExprHelpers :
 	nat16Type,
 	nat32Type,
 	nat64Type,
-	nat64MutPointerType,
 	voidType;
 import model.constant : Constant;
 import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
 import model.concreteModel : ConcreteFun, ConcreteProgram;
 import model.lowModel :
-	asGcOrRawPointee,
-	isPtrGcOrRaw,
+	asNonGcPointee,
+	asPointee,
+	isPointerNonGc,
 	isVoid,
 	LowCommonTypes,
 	LowExpr,
@@ -156,7 +156,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			checkTypeEqual(ctx, type, x.local.type);
 		},
 		(in LowExprKind.LocalPointer x) {
-			checkTypeEqual(ctx, asGcOrRawPointee(type), x.local.type);
+			checkTypeEqual(ctx, asNonGcPointee(type), x.local.type);
 		},
 		(in LowExprKind.LocalSet x) {
 			checkTypeEqual(ctx, type, voidType);
@@ -184,7 +184,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 		(in LowExprKind.RecordFieldPointer x) {
 			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
 			LowType fieldType = ctx.program.allRecords[x.targetRecordType].fields[x.fieldIndex].type;
-			checkTypeEqual(ctx, asGcOrRawPointee(type), fieldType);
+			checkTypeEqual(ctx, asNonGcPointee(type), fieldType);
 		},
 		(in LowExprKind.RecordFieldSet x) {
 			LowType.Record recordType = x.targetRecordType;
@@ -225,10 +225,8 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 				case Builtin4ary.switchFiberInitial:
 					checkTypeEqual(ctx, type, voidType);
 					checkLowExpr(ctx, ctx.commonTypes.fiberReference, x.args[0], ExprPos.nonTail);
-					LowType n64p = nat64MutPointerType;
-					LowType nat64MutPointerMutPointer = LowType(LowType.PtrRawMut(&n64p));
-					checkLowExpr(ctx, nat64MutPointerMutPointer, x.args[1], ExprPos.nonTail);
-					checkLowExpr(ctx, nat64MutPointerType, x.args[2], ExprPos.nonTail);
+					checkLowExpr(ctx, ctx.commonTypes.nat64MutPointerMutPointer, x.args[1], ExprPos.nonTail);
+					checkLowExpr(ctx, ctx.commonTypes.nat64MutPointer, x.args[2], ExprPos.nonTail);
 					// TODO: x.args[3] is a 'void function(a fiber)'
 					break;
 			}
@@ -277,7 +275,7 @@ ExpectUnary unaryExpected(
 ) {
 	final switch (kind) {
 		case BuiltinUnary.referenceFromPointer:
-		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.asAnyPointer:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
 		case BuiltinUnary.enumToIntegral:
@@ -292,7 +290,7 @@ ExpectUnary unaryExpected(
 		case BuiltinUnary.countOnesNat64:
 			return expect(nat64Type, nat64Type);
 		case BuiltinUnary.deref:
-			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
+			return ExpectUnary(some(asPointee(argType)), none!LowType);
 		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
 		case BuiltinUnary.jumpToCatch:
@@ -326,10 +324,10 @@ ExpectUnary unaryExpected(
 		case BuiltinUnary.toNat64FromNat32:
 			return expect(nat64Type, nat32Type);
 		case BuiltinUnary.toNat64FromPtr:
-			assert(isPtrGcOrRaw(argType));
+			assert(isPointerNonGc(argType));
 			return ExpectUnary(some(nat64Type), none!LowType);
 		case BuiltinUnary.toPtrFromNat64:
-			assert(isPtrGcOrRaw(returnType));
+			assert(isPointerNonGc(returnType));
 			return ExpectUnary(none!LowType, some(nat64Type));
 		case BuiltinUnary.truncateToInt64FromFloat64:
 			return expect(int64Type, float64Type);
@@ -403,7 +401,7 @@ ExpectUnary expect(LowType return_, LowType arg) =>
 	ExpectUnary(some(return_), some(arg));
 
 void checkSpecialBinary(ref FunCtx ctx, in LowType type, in LowExprKind.SpecialBinary a, in ExprPos exprPos) {
-	ExpectBinary expected = binaryExpected(a.kind, type, a.args[0].type, a.args[1].type);
+	ExpectBinary expected = binaryExpected(ctx.commonTypes, a.kind, type, a.args[0].type, a.args[1].type);
 	if (has(expected.return_))
 		checkTypeEqual(ctx, force(expected.return_), type);
 	foreach (size_t i; 0 .. a.args.length)
@@ -416,6 +414,7 @@ bool canTailRecurse(BuiltinBinary a) =>
 	a == BuiltinBinary.seq;
 
 ExpectBinary binaryExpected(
+	ref LowCommonTypes commonTypes,
 	in BuiltinBinary kind,
 	in LowType returnType,
 	return scope LowType arg0Type,
@@ -435,7 +434,7 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.addPointerAndNat64:
 		case BuiltinBinary.subPointerAndNat64:
 			assert(returnType == arg0Type);
-			assert(isPtrGcOrRaw(returnType));
+			assert(isPointerNonGc(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseOrInt8:
@@ -548,10 +547,9 @@ ExpectBinary binaryExpected(
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case BuiltinBinary.switchFiber:
-			assert(*arg0Type.as!(LowType.PtrRawMut).pointee == nat64MutPointerType);
-			return expect(voidType, arg0Type, nat64MutPointerType);
+			return expect(voidType, commonTypes.nat64MutPointerMutPointer, commonTypes.nat64MutPointer);
 		case BuiltinBinary.writeToPointer:
-			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
+			return ExpectBinary(some(voidType), [none!LowType, some(asPointee(arg0Type))]);
 	}
 }
 
@@ -592,17 +590,17 @@ Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
 			jsonString!"some-fun-ptr", //TODO: more detail
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),
-		(in LowType.PtrGc x) =>
+		(in LowType.PointerGc x) =>
 			jsonObject(alloc, [
-				kindField!"gc-pointer",
+				kindField!"pointer-gc",
 				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
-		(in LowType.PtrRawConst x) =>
+		(in LowType.PointerConst x) =>
 			jsonObject(alloc, [
-				kindField!"ptr-const",
+				kindField!"pointer-const",
 				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
-		(in LowType.PtrRawMut x) =>
+		(in LowType.PointerMut x) =>
 			jsonObject(alloc, [
-				kindField!"ptr-mut",
+				kindField!"pointer-mut",
 				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
 		(in LowType.Record x) =>
 			jsonOfConcreteStructRef(alloc, *program.allRecords[x].source),

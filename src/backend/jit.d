@@ -117,8 +117,8 @@ import model.lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowLocal,
+	LowPointerCombine,
 	LowProgram,
-	LowPtrCombine,
 	LowVar,
 	LowVarIndex,
 	LowType,
@@ -1385,7 +1385,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowFunIndex fun) {
 	gcc_jit_rvalue* value = gcc_jit_function_get_address(ctx.gccFuns[fun], null);
 	gcc_jit_rvalue* castValue = () {
-		if (type.isA!(LowType.PtrRawConst))
+		if (type.isA!(LowType.PointerConst))
 			// We need to cast function pointer to any-ptr for 'all-funs'
 			return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
 		else {
@@ -1428,7 +1428,7 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowF
 		case BuiltinUnary.drop:
 			emitToVoid(ctx, locals, a.arg);
 			return emitVoid(ctx, emit);
-		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
@@ -1877,7 +1877,7 @@ ExprResult zeroedToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type) {
 			x == PrimitiveType.void_
 				? emitVoid(ctx, emit)
 				: emitSimpleNoSideEffects(ctx, emit, zeroForPrimitiveType(ctx, x)),
-		(in LowPtrCombine _) =>
+		(in LowPointerCombine _) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
 		(in LowType.Record record) {
 			LowField[] fields = ctx.program.allRecords[record].fields;
@@ -1950,7 +1950,7 @@ gcc_jit_rvalue* arbitraryValue(ref ExprCtx ctx, LowType type) {
 		(in PrimitiveType _) =>
 			emitToRValueCb((ExprEmit emit) =>
 				zeroedToGcc(ctx, emit, type)),
-		(in LowPtrCombine) =>
+		(in LowPointerCombine) =>
 			nullValue(),
 		(in LowType.Record) =>
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}),

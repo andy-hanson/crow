@@ -7,7 +7,7 @@ import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
-	asPtrGcPointee,
+	asGcPointee,
 	LowField,
 	LowFunIndex,
 	LowProgram,
@@ -213,7 +213,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 		(in IntegralValue _) {},
 		(in Constant.Pointer it) {
 			PointerTypeAndConstantsLow* ptrs = &ctx.program.allConstants.pointers[it.typeIndex];
-			assert(ptrs.pointeeType == asPtrGcPointee(t));
+			assert(ptrs.pointeeType == asGcPointee(t));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
 				it.typeIndex, ptrs.pointeeType, it.index, ptrs.constants[it.index]);

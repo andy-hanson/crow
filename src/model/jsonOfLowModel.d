@@ -65,12 +65,12 @@ Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 			jsonObject(alloc, [kindField!"fun-pointer", field!"index"(x.index)]),
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),
-		(in LowType.PtrGc x) =>
-			jsonObject(alloc, [kindField!"gc-ptr", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
-		(in LowType.PtrRawConst x) =>
-			jsonObject(alloc, [kindField!"ptr-const", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
-		(in LowType.PtrRawMut x) =>
-			jsonObject(alloc, [kindField!"ptr-mut", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
+		(in LowType.PointerGc x) =>
+			jsonObject(alloc, [kindField!"pointer-gc", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
+		(in LowType.PointerConst x) =>
+			jsonObject(alloc, [kindField!"pointer-const", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
+		(in LowType.PointerMut x) =>
+			jsonObject(alloc, [kindField!"pointer-mut", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
 		(in LowType.Record x) =>
 			jsonObject(alloc, [kindField!"record", field!"index"(x.index)]),
 		(in LowType.Union x) =>

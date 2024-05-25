@@ -132,7 +132,7 @@ void doInterpret(
 		versionInfoForInterpret(OS.linux, VersionOptions()),
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),
-		LowCommonTypes(voidType, voidType, voidType),
+		LowCommonTypes(voidType, voidType, voidType, voidType, voidType, voidType, voidType),
 		emptyFullIndexMap!(LowVarIndex, LowVar),
 		AllLowTypes(
 			emptyFullIndexMap!(LowType.Extern, LowExternType),

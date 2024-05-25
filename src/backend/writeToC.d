@@ -22,12 +22,13 @@ import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
-	asPtrGcPointee,
+	asGcPointee,
 	debugName,
 	ExternLibraries,
 	ExternLibrary,
 	isChar8,
 	isChar32,
+	isPointerNonGc,
 	isVoid,
 	localMustBeVolatile,
 	LowExpr,
@@ -39,7 +40,7 @@ import model.lowModel :
 	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
-	LowPtrCombine,
+	LowPointerCombine,
 	LowProgram,
 	LowRecord,
 	LowVar,
@@ -496,7 +497,7 @@ void writeType(scope ref Writer writer, scope ref Ctx ctx, in LowType t) {
 		(in PrimitiveType it) {
 			writePrimitiveType(writer, it);
 		},
-		(in LowPtrCombine it) {
+		(in LowPointerCombine it) {
 			writeType(writer, ctx, it.pointee);
 			writer ~= '*';
 		},
@@ -1459,20 +1460,11 @@ void writeConstantRef(
 			}
 			writeFloatLiteral(writer, x.value);
 		},
-		(in Constant.FunPointer it) {
-			bool isRawPtr = type.match!bool(
-				(LowType.Extern) => assert(false),
-				(LowType.FunPointer) => false,
-				(PrimitiveType _) => assert(false),
-				(LowType.PtrGc) => assert(false),
-				(LowType.PtrRawConst) => true,
-				(LowType.PtrRawMut) => true,
-				(LowType.Record) => assert(false),
-				(LowType.Union) => assert(false));
-			if (isRawPtr)
+		(in Constant.FunPointer x) {
+			if (isPointerNonGc(type))
 				writer ~= "((uint8_t*)";
-			writeFunPointer(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, it.fun));
-			if (isRawPtr)
+			writeFunPointer(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, x.fun));
+			if (isPointerNonGc(type))
 				writer ~= ')';
 		},
 		(in IntegralValue x) {
@@ -1480,7 +1472,7 @@ void writeConstantRef(
 		},
 		(in Constant.Pointer it) {
 			writer ~= '&';
-			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asPtrGcPointee(type), it.index);
+			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asGcPointee(type), it.index);
 		},
 		(in Constant.Record it) {
 			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
@@ -1664,7 +1656,7 @@ WriteExprResult writeSpecialUnary(
 			});
 
 	final switch (a.kind) {
-		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.asAnyPointer:
 			return prefix("(uint8_t*) ");
 		case BuiltinUnary.deref:
 			return prefix("*");
@@ -1774,7 +1766,7 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 			assert(x != PrimitiveType.void_);
 			writer ~= '0';
 		},
-		(in LowPtrCombine _) {
+		(in LowPointerCombine _) {
 			writer ~= "NULL";
 		},
 		(in LowType.Record it) {

@@ -46,8 +46,8 @@ import model.lowModel :
 	LowExternType,
 	LowField,
 	LowFunPointerType,
+	LowPointerCombine,
 	LowProgram,
-	LowPtrCombine,
 	LowRecord,
 	LowType,
 	LowUnion,
@@ -251,10 +251,10 @@ immutable(gcc_jit_type*) getGccType(in GccTypes types, in LowType a) =>
 			types.extern_[x].type,
 		(in LowType.FunPointer x) =>
 			types.funPtrs[x],
-		(in PrimitiveType it) =>
-			types.primitiveTypes[it],
-		(in LowPtrCombine it) =>
-			gcc_jit_type_get_pointer(getGccType(types, it.pointee)),
+		(in PrimitiveType x) =>
+			types.primitiveTypes[x],
+		(in LowPointerCombine x) =>
+			gcc_jit_type_get_pointer(getGccType(types, x.pointee)),
 		(in LowType.Record x) =>
 			gcc_jit_struct_as_type(types.records[x]),
 		(in LowType.Union x) =>
@@ -268,10 +268,10 @@ immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, LowType a) =>
 			typesWip.extern_[x].type,
 		(LowType.FunPointer x) =>
 			castImmutable(force(typesWip.funPtrs[x])),
-		(PrimitiveType it) =>
-			typesWip.primitiveTypes[it],
-		(LowPtrCombine it) =>
-			gcc_jit_type_get_pointer(getGccType(typesWip, it.pointee)),
+		(PrimitiveType x) =>
+			typesWip.primitiveTypes[x],
+		(LowPointerCombine x) =>
+			gcc_jit_type_get_pointer(getGccType(typesWip, x.pointee)),
 		(LowType.Record x) =>
 			gcc_jit_struct_as_type(typesWip.records[x]),
 		(LowType.Union x) =>

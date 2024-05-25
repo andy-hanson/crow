@@ -114,18 +114,18 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 		(in PrimitiveType x) {
 			writer ~= stringOfEnum(x);
 		},
-		(in LowType.PtrGc x) {
-			writer ~= "gc-ptr(";
+		(in LowType.PointerGc x) {
+			writer ~= "pointer-gc(";
 			writeLowType(writer, ctx, lowTypes, *x.pointee);
 			writer ~= ')';
 		},
-		(in LowType.PtrRawConst x) {
-			writer ~= "raw-ptr-const(";
+		(in LowType.PointerConst x) {
+			writer ~= "pointer-const(";
 			writeLowType(writer, ctx, lowTypes, *x.pointee);
 			writer ~= ')';
 		},
-		(in LowType.PtrRawMut x) {
-			writer ~= "raw-ptr-mut(";
+		(in LowType.PointerMut x) {
+			writer ~= "pointer-mut(";
 			writeLowType(writer, ctx, lowTypes, *x.pointee);
 			writer ~= ')';
 		},

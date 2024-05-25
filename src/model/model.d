@@ -814,7 +814,7 @@ immutable struct BuiltinFun {
 }
 
 enum BuiltinUnary {
-	asAnyPtr,
+	asAnyPointer,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
 	bitwiseNotNat32,

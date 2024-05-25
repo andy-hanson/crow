@@ -49,7 +49,7 @@ import model.lowModel :
 	LowFunPointerType,
 	LowLocal,
 	LowProgram,
-	LowPtrCombine,
+	LowPointerCombine,
 	LowRecord,
 	LowType,
 	LowUnion,
@@ -301,11 +301,11 @@ DynCallType toDynCallType(ref DynCallTypeCtx ctx, in LowType a) =>
 			DynCallType.pointer,
 		(in PrimitiveType x) =>
 			DynCallType(x),
-		(in LowType.PtrGc) =>
+		(in LowType.PointerGc) =>
 			DynCallType.pointer,
-		(in LowType.PtrRawConst) =>
+		(in LowType.PointerConst) =>
 			DynCallType.pointer,
-		(in LowType.PtrRawMut) =>
+		(in LowType.PointerMut) =>
 			DynCallType.pointer,
 		(in LowType.Record x) =>
 			recordOrUnionToDynCallType(ctx, ctx.records, x),
@@ -328,7 +328,7 @@ void eachFlattenedField(in LowProgram program, in LowType type, size_t baseOffse
 			cb(baseOffset, type),
 		(in PrimitiveType _) =>
 			cb(baseOffset, type),
-		(in LowPtrCombine _) =>
+		(in LowPointerCombine _) =>
 			cb(baseOffset, type),
 		(in LowType.Record x) {
 			LowRecord record = program.allRecords[x];

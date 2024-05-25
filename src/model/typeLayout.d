@@ -4,7 +4,8 @@ module model.typeLayout;
 
 import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
-import model.lowModel : AllLowTypes, LowField, LowProgram, LowPtrCombine, LowRecord, LowType, PrimitiveType, typeSize;
+import model.lowModel :
+	AllLowTypes, LowField, LowProgram, LowPointerCombine, LowRecord, LowType, PrimitiveType, typeSize;
 import util.col.array : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp, isMultipleOf;
@@ -27,7 +28,7 @@ TypeSize sizeOfType(in AllLowTypes types, in LowType a) =>
 			funPtrSize,
 		(PrimitiveType it) =>
 			primitiveSize(it),
-		(LowPtrCombine) =>
+		(LowPointerCombine) =>
 			ptrSize,
 		(LowType.Record index) =>
 			typeSize(types.allRecords[index]),
