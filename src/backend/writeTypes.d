@@ -24,7 +24,7 @@ import util.util : isMultipleOf;
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
 	foreach (ref LowExternType x; program.allExternTypes) {
 		TypeSize size = typeSize(x);
-		writers.cbWriteExternWithSize(x.source, size.alignmentBytes == 0 ? none!TypeSize : some(size)); // TODO: it should be stored as optional then .......
+		writers.cbWriteExternWithSize(x.source, size.alignmentBytes == 0 ? none!TypeSize : some(size));
 	}
 
 	// TODO: use a temp alloc...
@@ -92,35 +92,6 @@ immutable struct TypeWriters {
 	void delegate(LowType.Record, in LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(LowType.Union, in LowUnion) @safe @nogc pure nothrow cbWriteUnion;
 }
-
-/* I'll just use a pragma to align. .. -----------------------------------------------------------------------------------------------------------------------
-immutable struct ElementAndCount {
-	PrimitiveType elementType;
-	size_t count;
-}
-Opt!ElementAndCount getElementAndCountForExtern(TypeSize size) {
-	switch (size.alignmentBytes) {
-		case 0:
-			return none!ElementAndCount;
-		case 1:
-			return some(ElementAndCount(PrimitiveType.nat8, size.sizeBytes));
-		case 2:
-			assert(isMultipleOf(size.sizeBytes, 2));
-			return some(ElementAndCount(PrimitiveType.nat16, size.sizeBytes / 2));
-		case 4:
-			assert(isMultipleOf(size.sizeBytes, 4));
-			return some(ElementAndCount(PrimitiveType.nat32, size.sizeBytes / 4));
-		case 8:
-			assert(isMultipleOf(size.sizeBytes, 8));
-			return some(ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
-		case 16:
-			assert(isMultipleOf(size.sizeBytes, 16)); // TODO: is this checked? ----------------------------------------------------------
-			return some(ElementAndCount(PrimitiveType.nat128, ))
-		default:
-			assert(false);
-	}
-}
-*/
 
 private:
 

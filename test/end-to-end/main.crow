@@ -55,7 +55,10 @@ options:
 		failures.print-failures
 
 -parallel-concat-non-windows[t] record(col t[]) nominal
--for-loop[out, in] out[](a in parallel-concat-non-windows, f out[] shared(x in)) out shared, in shared
+-for-loop[out, in] out[](
+	a in parallel-concat-non-windows,
+	f out[] shared(x in),
+) out shared, in shared
 	if trusted is-windows
 		for x : a.col and-concat
 			f[x]

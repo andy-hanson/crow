@@ -35,6 +35,7 @@ static void __attribute__((naked, noinline)) switch_fiber(uint64_t** from, uint6
 }
 
 struct fiber;
+// This should match 'makeSwitchFiberInitialFunction' in 'jit.d'
 static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* fiber, uint64_t** from, uint64_t* stack_high, void (*func)(struct fiber*)) {
 	__asm(
 		// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
@@ -58,6 +59,7 @@ static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* 
 
 // Catch point size is 0x40. See 'getBuiltinStructSize' in the compiler.
 
+// This should match 'makeSetupCatchFunction' in 'jit.d'
 static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* catch_point) {
 	__asm(
 		// TODO: In a newer GCC, this could use 'no_callee_saved_registers' instead.
@@ -76,6 +78,7 @@ static _Bool __attribute__((naked, noinline, returns_twice)) setup_catch(void* c
 	);
 }
 
+// This should match 'makeJumpToCatchFunction' in 'jit.d'
 static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* catch_point) {
 	__asm(
 		"movq (%rdi), %rbx\n"

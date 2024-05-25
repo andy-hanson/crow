@@ -266,7 +266,11 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.Special4ary x) =>
-			todo!Json("SPECIAL4ARY"), // ----------------------------------------------------------------------------------------
+			jsonObject(alloc, [
+				kindField!"4ary",
+				field!"operation"(stringOfEnum(x.kind)),
+				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
+					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.Switch x) =>
 			jsonObject(alloc, [
 				kindField!"switch",

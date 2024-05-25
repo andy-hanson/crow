@@ -2,10 +2,13 @@
 import
 	crow/io/print: out, print
 	crow/private/thread-utils: count-processors
+	crow/version: is-interpreted
 
 main nat(_ string[]) summon
+	if trusted is-interpreted
+		warn log "Try with '--aot'"
 	out print "running with {trusted count-processors} processors"
-	primes nat[] = (1_000_000::nat .. 1_010_000) chunked-parallel 0x100 filter x => x is-prime
+	primes nat[] = (1_000_000::nat .. 1_010_000) chunked-parallel 100 filter x => x is-prime
 	out print "primes: {primes.to::json}"
 	()
 

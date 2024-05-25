@@ -96,6 +96,7 @@ import model.lowModel :
 	ExternLibrary,
 	isPrimitiveType,
 	isTuple,
+	LowCommonTypes,
 	LowExpr,
 	LowExprKind,
 	LowExternType,
@@ -196,19 +197,25 @@ private LowProgram lowerInner(
 	ref ConcreteProgram a,
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
+	LowType catchPointConstPointerType = lowTypeFromConcreteType(
+		allTypes.getLowTypeCtx, a.commonFuns.curCatchPoint.returnType);
+	LowCommonTypes commonTypes = LowCommonTypes(
+		catchPointConstPointer: catchPointConstPointerType,
+		catchPointMutPointer: LowType(LowType.PtrRawMut(catchPointConstPointerType.as!(LowType.PtrRawConst).pointee)),
+		fiberReference: lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType));
 	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
 	AllLowFuns allFuns = getAllLowFuns(
-		alloc, showCtx, allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
+		alloc, showCtx, allTypes.allTypes, allTypes.getLowTypeCtx, commonTypes, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
 		a.version_,
 		allFuns.concreteFunToLowFunIndex,
 		allConstants,
+		commonTypes,
 		vars,
 		allTypes.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
-		lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType),
 		allFuns.allExternLibraries);
 	checkLowProgram(showCtx, program, a, res);
 	return res;
@@ -277,12 +284,6 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 	ArrayBuilder!(ConcreteStruct*) allRecordSources;
 	ArrayBuilder!(ConcreteStruct*) allUnionSources;
 
-	LowType addUnion(ConcreteStruct* s) {
-		uint i = safeToUint(arrBuilderSize(allUnionSources));
-		add(alloc, allUnionSources, s);
-		return LowType(LowType.Union(i));
-	}
-
 	LowType addExtern(ConcreteStruct* s) {
 		uint i = safeToUint(arrBuilderSize(allExternTypes));
 		add(alloc, allExternTypes, LowExternType(s));
@@ -319,8 +320,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 					case BuiltinType.int64:
 						return some(LowType(PrimitiveType.int64));
 					case BuiltinType.lambda:
-						// TODO: IS THIS REACHABLE? (if not, 'addUnion' is only used in one place..................................................)
-						return some(addUnion(concrete));
+						assert(false); // Compiled away by concretize
 					case BuiltinType.nat8:
 						return some(LowType(PrimitiveType.nat8));
 					case BuiltinType.nat16:
@@ -347,8 +347,11 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 				add(alloc, allRecordSources, concrete);
 				return some(LowType(LowType.Record(i)));
 			},
-			(in ConcreteStructBody.Union) =>
-				some(addUnion(concrete)));
+			(in ConcreteStructBody.Union) {
+				uint i = safeToUint(arrBuilderSize(allUnionSources));
+				add(alloc, allUnionSources, concrete);
+				return some(LowType(LowType.Union(i)));
+			});
 		if (has(lowType))
 			mustAddToMap(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
 	}
@@ -480,6 +483,7 @@ AllLowFuns getAllLowFuns(
 	in ShowCtx showCtx,
 	ref AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
+	ref LowCommonTypes commonTypes,
 	in ConfigExternUris configExtern,
 	ref ConcreteProgram program,
 	in immutable FullIndexMap!(LowVarIndex, LowVar) allVars,
@@ -557,18 +561,12 @@ AllLowFuns getAllLowFuns(
 
 	LowType gcRootMutPointerType = lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.gcRoot.returnType);
 	LowType gcRootType = *gcRootMutPointerType.as!(LowType.PtrRawMut).pointee;
-	
-	LowType catchPointConstPointerType = lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curCatchPoint.returnType);
-	LowType catchPointType = *catchPointConstPointerType.as!(LowType.PtrRawConst).pointee;
-	LowType catchPointMutPointerType = LowType(LowType.PtrRawMut(allocate(alloc, catchPointType)));
 
 	LowCommonFuns commonFuns = LowCommonFuns(
 		alloc: mustGet(concreteFunToLowFunIndex, program.commonFuns.alloc),
 		curCatchPoint: mustGet(concreteFunToLowFunIndex, program.commonFuns.curCatchPoint),
 		setCurCatchPoint: mustGet(concreteFunToLowFunIndex, program.commonFuns.setCurCatchPoint),
-		catchPointType: catchPointType,
-		catchPointConstPointerType: catchPointConstPointerType,
-		catchPointMutPointerType: catchPointMutPointerType,
+		commonTypes: commonTypes,
 		curThrown: mustGet(varIndices, program.commonFuns.curThrown),
 		exceptionType: lowTypeFromConcreteType(getLowTypeCtx, program.commonFuns.curThrown.type),
 		mark: mustGet(concreteFunToLowFunIndex, program.commonFuns.mark),
@@ -638,12 +636,11 @@ alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
 // Functions that we generate calls to when compiling
 struct LowCommonFuns {
+	LowCommonTypes commonTypes;
+
 	LowFunIndex alloc;
 	LowFunIndex curCatchPoint;
 	LowFunIndex setCurCatchPoint;
-	LowType catchPointType;
-	LowType catchPointConstPointerType;
-	LowType catchPointMutPointerType;
 	LowVarIndex curThrown;
 	LowType exceptionType;
 	LowFunIndex mark;
@@ -967,6 +964,9 @@ struct GetLowExprCtx {
 
 	ref const(MutConcreteFunToLowFunIndex) concreteFunToLowFunIndex() return scope const =>
 		*concreteFunToLowFunIndexPtr;
+
+	ref LowCommonTypes commonTypes() return const =>
+		commonFuns.commonTypes;
 }
 
 alias Locals = StackMap!(ConcreteLocal*, LowLocal*);
@@ -1832,20 +1832,26 @@ LowExpr genSetupCatch(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, L
 	else
 		onCatch
 	*/
-	LowLocal* store = genLocal(ctx.alloc, symbol!"store", isMutable: true, nextTempLocalIndex(ctx), ctx.commonFuns.catchPointType);
+	LowLocal* store = genLocal(
+		ctx.alloc, symbol!"store", isMutable: true, nextTempLocalIndex(ctx), ctx.commonTypes.catchPoint);
 	LowExpr then = genIf(
 		ctx.alloc, range,
-		genUnary(ctx.alloc, boolType, range, BuiltinUnary.setupCatch, genLocalPointer(ctx.commonFuns.catchPointMutPointerType, range, store)),
+		genUnary(
+			ctx.alloc, boolType, range, BuiltinUnary.setupCatch,
+			genLocalPointer(ctx.commonTypes.catchPointMutPointer, range, store)),
 		onCatch,
-		genSeq(ctx.alloc, range, genSetCurCatchPoint(ctx, range, genLocalPointer(ctx.commonFuns.catchPointConstPointerType, range, store)), tried));
-	return genLetNoGcRoot(ctx.alloc, range, store, genZeroed(ctx.commonFuns.catchPointType, range), then);
+		genSeq(
+			ctx.alloc, range,
+			genSetCurCatchPoint(ctx, range, genLocalPointer(ctx.commonTypes.catchPointConstPointer, range, store)),
+			tried));
+	return genLetNoGcRoot(ctx.alloc, range, store, genZeroed(ctx.commonTypes.catchPoint, range), then);
 }
 
 LowExpr genGetCurThrown(ref GetLowExprCtx ctx, UriAndRange range) =>
 	genVarGet(ctx.commonFuns.exceptionType, range, ctx.commonFuns.curThrown);
 
 LowExpr genGetCurCatchPoint(ref GetLowExprCtx ctx, UriAndRange range) =>
-	genCallNoGcRoots(ctx.alloc, ctx.commonFuns.catchPointConstPointerType, range, ctx.commonFuns.curCatchPoint, []);
+	genCallNoGcRoots(ctx.alloc, ctx.commonTypes.catchPointConstPointer, range, ctx.commonFuns.curCatchPoint, []);
 
 LowExpr genSetCurCatchPoint(ref GetLowExprCtx ctx, UriAndRange range, LowExpr value) =>
 	genCallNoGcRoots(ctx.alloc, voidType, range, ctx.commonFuns.setCurCatchPoint, [value]);

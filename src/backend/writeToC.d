@@ -467,7 +467,7 @@ struct FunBodyCtx {
 
 	ref MangledNames mangledNames() return scope const =>
 		ctx.mangledNames;
-	
+
 	bool isMSVC() scope const =>
 		ctx.isMSVC;
 }
@@ -971,20 +971,8 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.If it) =>
 			writeIf(writer, indent, ctx, writeKind, type, it),
-		(in LowExprKind.Init x) {
-			if (ctx.isMSVC) {
-				writeNewline(writer, indent);
-				writer ~= () {
-					final switch (x.kind) {
-						case BuiltinFun.Init.Kind.global:
-							return "THREAD_LOCALS_INDEX = TlsAlloc();";
-						case BuiltinFun.Init.Kind.perThread:
-							return "TlsSetValue(THREAD_LOCALS_INDEX, (struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));";
-					}
-				}();
-			} // No init needed otherwise
-			return writeReturnVoid(writer, indent, ctx, writeKind);
-		},
+		(in LowExprKind.Init x) =>
+			writeInit(writer, indent, ctx, writeKind, x),
 		(in LowExprKind.Let it) =>
 			writeLet(writer, indent, ctx, writeKind, it),
 		(in LowExprKind.LocalGet it) =>
@@ -995,7 +983,6 @@ WriteExprResult writeExpr(
 			inlineableSimple(() {
 				if (localMustBeVolatile(ctx, *x.local))
 					writeCastToType(writer, ctx.ctx, type);
-				// TODO: on msvc this will be '&*' which is redundant, improve? -------------------------------------------------------
 				writer ~= '&';
 				writeAccessLocal(writer, ctx, *x.local);
 			}),
@@ -1051,7 +1038,8 @@ WriteExprResult writeExpr(
 			final switch (x.kind) {
 				case Builtin4ary.switchFiberInitial:
 					// defined in writeToC_boilerplace.c
-					return specialCallNary(writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
+					return specialCallNary(
+						writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
 			}
 		},
 		(in LowExprKind.Switch x) =>
@@ -2023,6 +2011,28 @@ WriteExprResult writeIf(
 	return nested.result;
 }
 
+WriteExprResult writeInit(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in WriteKind writeKind,
+	in LowExprKind.Init a,
+) {
+	if (ctx.isMSVC) {
+		writeNewline(writer, indent);
+		writer ~= () {
+			final switch (a.kind) {
+				case BuiltinFun.Init.Kind.global:
+					return "THREAD_LOCALS_INDEX = TlsAlloc();";
+				case BuiltinFun.Init.Kind.perThread:
+					return "TlsSetValue(THREAD_LOCALS_INDEX, " ~
+						"(struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));";
+			}
+		}();
+	} // No init needed otherwise
+	return writeReturnVoid(writer, indent, ctx, writeKind);
+}
+
 WriteExprResult writeCallFunPointer(
 	scope ref Writer writer,
 	size_t indent,
@@ -2127,7 +2137,7 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 	writer ~= () {
 		final switch (a) {
 			case PrimitiveType.bool_:
-				return "uint8_t"; // TODO: try '_Bool' ------------------------------------------------------------------------
+				return "_Bool";
 			case PrimitiveType.char8:
 				return "char";
 			case PrimitiveType.char32:

@@ -15,7 +15,15 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	Builtin4ary, BuiltinFun, BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+	Builtin4ary,
+	BuiltinFun,
+	BuiltinUnary,
+	BuiltinUnaryMath,
+	BuiltinBinary,
+	BuiltinBinaryMath,
+	BuiltinTernary,
+	Local,
+	StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -679,11 +687,11 @@ immutable struct LowProgram {
 	VersionInfo version_;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	AllConstantsLow allConstants;
+	LowCommonTypes commonTypes;
 	FullIndexMap!(LowVarIndex, LowVar) vars;
 	AllLowTypes allTypes;
 	FullIndexMap!(LowFunIndex, LowFun) allFuns;
 	LowFunIndex main;
-	LowType fiberPointerType;
 	ExternLibraries externLibraries;
 
 	ref immutable(FullIndexMap!(LowType.Extern, LowExternType)) allExternTypes() scope return =>
@@ -697,6 +705,17 @@ immutable struct LowProgram {
 
 	ref immutable(FullIndexMap!(LowType.Union, LowUnion)) allUnions() scope return =>
 		allTypes.allUnions;
+}
+
+immutable struct LowCommonTypes {
+	@safe @nogc pure nothrow:
+
+	LowType catchPointConstPointer;
+	LowType catchPointMutPointer;
+	LowType fiberReference;
+
+	LowType catchPoint() =>
+		*catchPointConstPointer.as!(LowType.PtrRawConst).pointee;
 }
 
 alias ExternLibraries = immutable ExternLibrary[];

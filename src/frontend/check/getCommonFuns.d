@@ -153,7 +153,8 @@ CommonFunsAndMain getCommonFuns(
 	CommonFuns commonFuns = CommonFuns(
 		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
 		setCurCatchPoint: getFun(
-			CommonModule.exceptionLowLevel, symbol!"set-cur-catch-point", voidType, [param!"value"(catchPointConstPointer)]),
+			CommonModule.exceptionLowLevel, symbol!"set-cur-catch-point",
+			voidType, [param!"value"(catchPointConstPointer)]),
 		curThrown: getVar(CommonModule.exceptionLowLevel, symbol!"cur-thrown", VarKind.threadLocal),
 		allocate: getFun(CommonModule.alloc, symbol!"allocate", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
 		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),

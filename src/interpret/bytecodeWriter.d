@@ -566,7 +566,7 @@ void writeInterpreterBacktrace(scope ref ByteCodeWriter writer, ByteCodeSource s
 	writer.nextStackEntry -= 2;
 }
 
-void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid = false) { // TODO: i think returnVoid is unused now
+void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid = false) {
 	pushOperationFn(writer, source, fn);
 	writer.nextStackEntry -= (returnVoid ? 2 : 1);
 }

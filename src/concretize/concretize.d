@@ -71,11 +71,7 @@ ConcreteProgram concretizeInner(
 	ref Alloc alloc() =>
 		*allocPtr;
 	ConcretizeCtx ctx = ConcretizeCtx(
-		allocPtr,
-		versionInfo,
-		program.program.commonTypes,
-		ptrTrustMe(program.program),
-		castNonScope_ref(fileContentGetters));
+		allocPtr, versionInfo, ptrTrustMe(program.program), castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
 	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));

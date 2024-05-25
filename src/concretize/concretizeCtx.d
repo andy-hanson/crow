@@ -163,7 +163,6 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	CommonTypes* commonTypesPtr; // TODO: this is just part of the program, so just use that? --------------------------------------
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
 	Late!(ConcreteFun*) createErrorFunction_;
@@ -200,8 +199,10 @@ struct ConcretizeCtx {
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 
+	ref Program program() return scope const =>
+		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
-		*commonTypesPtr;
+		*program.commonTypes;
 	ConcreteFun* char8ArrayTrustAsString() return scope const =>
 		lateGet(char8ArrayTrustAsString_);
 	ConcreteFun* equalNat64Function() return scope const =>
@@ -216,8 +217,6 @@ struct ConcretizeCtx {
 		lateGet(newJsonFromPairsFunction_);
 	ConcreteFun* createErrorFunction() return scope const =>
 		lateGet(createErrorFunction_);
-	ref Program program() return scope const =>
-		*programPtr;
 }
 
 immutable struct ConcreteLambdaImpl {
@@ -866,15 +865,19 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 			return TypeSize(16, 8);
 		case BuiltinType.catchPoint:
 			if (version_.isInterpreted)
-				return TypeSize(0x18, 8); // Keep in sync with 'struct CatchPoint' in 'runBytecode.d'
+				// Keep in sync with 'struct CatchPoint' in 'runBytecode.d'
+				return TypeSize(0x18, 8);
 			else
 				final switch (version_.os) {
 					case OS.linux:
-						return TypeSize(0x40, 8); // Keep in sync with 'catch point size' comment in writeToC_boilerplate_posix.c
+						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_posix.c
+						return TypeSize(0x40, 8);
 					case OS.web:
-						assert(false); // Always interpreted
+						// Always interpreted
+						assert(false);
 					case OS.windows:
-						return TypeSize(0x100, 16); // Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
+						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
+						return TypeSize(0x100, 16);
 				}
 	}
 }

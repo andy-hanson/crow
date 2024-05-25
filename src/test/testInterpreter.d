@@ -50,11 +50,12 @@ import interpret.funToReferences :
 	FunPointerTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPointerReference;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
 import interpret.stacks : dataEnd, dataPop, dataPush, Stacks, stacksForRange;
-import lower.lowExprHelpers : nat64Type;
+import lower.lowExprHelpers : nat64Type, voidType;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ConcreteFunToLowFunIndex,
+	LowCommonTypes,
 	LowExternType,
 	LowFun,
 	LowFunBody,
@@ -131,6 +132,7 @@ void doInterpret(
 		versionInfoForInterpret(OS.linux, VersionOptions()),
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),
+		LowCommonTypes(voidType, voidType, voidType),
 		emptyFullIndexMap!(LowVarIndex, LowVar),
 		AllLowTypes(
 			emptyFullIndexMap!(LowType.Extern, LowExternType),
@@ -139,7 +141,6 @@ void doInterpret(
 			emptyFullIndexMap!(LowType.Union, LowUnion)),
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
-		LowType(PrimitiveType.void_),
 		[]);
 	withFakeExtern!void(test.alloc, unreachableWriteCb, (scope ref Extern extern_) {
 		Storage storage = Storage(test.metaAlloc);

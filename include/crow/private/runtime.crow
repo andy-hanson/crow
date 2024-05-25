@@ -148,7 +148,8 @@ It will be initialized properly the first time you switch to another fiber.
 add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
-	stack1 nat64 mut-array = 0x20000 zeroed-mut-array # WARN: 'opSwitchFiberInitial' hardcodes this size
+	# WARN: 'opSwitchFiberInitial' hardcodes this size
+	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
 	# Align the stack
 	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
 	stack.is-valid-stack hard-assert

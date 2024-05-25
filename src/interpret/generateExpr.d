@@ -293,7 +293,7 @@ void generateExpr(
 ) {
 	assert(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
 	ByteCodeSource source = ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
-	expr.kind.matchIn!void( // TODO: just use a regular match, that way generateSpecial4Ary doesn't need to use castNonScope -----------------------
+	expr.kind.matchIn!void(
 		(in LowExprKind.Abort x) {
 			writeAbort(writer, source);
 			setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
@@ -891,7 +891,7 @@ void generateSpecialUnary(
 		case BuiltinUnary.jumpToCatch:
 			generateArg();
 			writeJumpToCatch(writer, source);
-			handleAfter(writer, ctx, source, after); // TODO: not really necessary .......................................
+			handleAfter(writer, ctx, source, after);
 			break;
 		case BuiltinUnary.setupCatch:
 			fn(&opSetupCatch);

@@ -422,7 +422,8 @@ GccExternTypes gccExternTypes(
 			Opt!ExternTypeArrayInfo arrayInfo = () {
 				if (typeSize.sizeBytes != 0) {
 					immutable gcc_jit_type* elementType = getOnePrimitiveType(ctx, PrimitiveType.nat8);
-					immutable gcc_jit_type* arrayType = gcc_jit_context_new_array_type(ctx, null, elementType, safeToInt(typeSize.sizeBytes));
+					immutable gcc_jit_type* arrayType = gcc_jit_context_new_array_type(
+						ctx, null, elementType, safeToInt(typeSize.sizeBytes));
 					immutable gcc_jit_field* field = gcc_jit_context_new_field(ctx, null, arrayType, "__sizer");
 					gcc_jit_struct_set_fields(struct_, null, 1, &field);
 					return some(ExternTypeArrayInfo(typeSize.sizeBytes, field, arrayType));
@@ -430,7 +431,9 @@ GccExternTypes gccExternTypes(
 					return none!ExternTypeArrayInfo;
 			}();
 			immutable gcc_jit_type* structType = gcc_jit_struct_as_type(struct_);
-			immutable gcc_jit_type* type = typeSize.alignmentBytes == 0 ? structType : gcc_jit_type_get_aligned(structType, typeSize.alignmentBytes);
+			immutable gcc_jit_type* type = typeSize.alignmentBytes == 0
+				? structType
+				: gcc_jit_type_get_aligned(structType, typeSize.alignmentBytes);
 			return ExternTypeInfo(type, arrayInfo);
 		});
 

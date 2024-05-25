@@ -270,11 +270,12 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 	ConversionFunctions conversionFunctions = generateConversionFunctions(ctx);
 
 	immutable gcc_jit_type* voidPointerType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
-	immutable gcc_jit_type* fiberPointerType = getGccType(gccTypes, program.fiberPointerType);
+	immutable gcc_jit_type* fiberReferenceType = getGccType(gccTypes, program.commonTypes.fiberReference);
 	immutable gcc_jit_function* jumpToCatchFunction = makeJumpToCatchFunction(ctx, crowVoidType, voidPointerType);
 	immutable gcc_jit_function* setupCatchFunction = makeSetupCatchFunction(ctx, boolType, voidPointerType);
 	immutable gcc_jit_function* switchFiberFunction = makeSwitchFiberFunction(ctx, crowVoidType);
-	immutable gcc_jit_function* switchFiberInitialFunction = makeSwitchFiberInitialFunction(ctx, crowVoidType, fiberPointerType);
+	immutable gcc_jit_function* switchFiberInitialFunction = makeSwitchFiberInitialFunction(
+		ctx, crowVoidType, fiberReferenceType);
 
 	// Now fill in the body of every function.
 	fullIndexMapZip!(LowFunIndex, LowFun, gcc_jit_function*)(
@@ -286,28 +287,27 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram pro
 			(LowFunExprBody expr) {
 				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
-					ptrTrustMe(alloc),
-					ptrTrustMe(program),
-					ptrTrustMe(ctx),
-					ptrTrustMe(mangledNames),
-					ptrTrustMe(gccTypes),
-					ptrTrustMe(globalsForConstants),
-					ptrTrustMe(gccVars),
-					gccFuns,
-					ptrTrustMe(fun),
-					curFun,
-					entryBlock,
-					entryBlock,
-					nat64Type,
-					// TODO: these should be named args ------------------------------------------------------------------------------
-					abortFunction,
-					jumpToCatchFunction,
-					setupCatchFunction,
-					switchFiberFunction,
-					switchFiberInitialFunction,
-					&builtinFunctions,
-					&conversionFunctions,
-					globalVoid);
+					allocPtr: ptrTrustMe(alloc),
+					programPtr: ptrTrustMe(program),
+					gccPtr: ptrTrustMe(ctx),
+					mangledNamesPtr: ptrTrustMe(mangledNames),
+					typesPtr: ptrTrustMe(gccTypes),
+					globalsForConstantsPtr: ptrTrustMe(globalsForConstants),
+					gccVarsPtr: ptrTrustMe(gccVars),
+					gccFuns: gccFuns,
+					curLowFun: ptrTrustMe(fun),
+					curFun: curFun,
+					entryBlock: entryBlock,
+					curBlock: entryBlock,
+					nat64Type: nat64Type,
+					abortFunction: abortFunction,
+					jumpToCatchFunction: jumpToCatchFunction,
+					setupCatchFunction: setupCatchFunction,
+					switchFiberFunction: switchFiberFunction,
+					switchFiberInitialFunction: switchFiberInitialFunction,
+					builtinFunctionsPtr: &builtinFunctions,
+					conversionFunctionsPtr: &conversionFunctions,
+					globalVoid: globalVoid);
 
 				if (isStubFunction(funIndex)) {
 					debugLogWithWriter((scope ref Writer writer) {
@@ -351,133 +351,6 @@ immutable struct ConversionFunctions {
 	gcc_jit_function* nat64ToPtr;
 }
 
-immutable(gcc_jit_function*) makeJumpToCatchFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType, immutable gcc_jit_type* voidPointerType) {
-	immutable gcc_jit_param*[1] params = [gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")];
-	gcc_jit_function* res = makeFunction(
-		ctx, crowVoidType, "jump_to_catch", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
-	if (false) { // TODO: This requires a newer libgccjit
-		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
-	}
-	gcc_jit_context_add_top_level_asm( // TODO: note what this needs to be in sync with -------------------------------------------
-		ctx, null,
-		".text\n" ~
-		".align 8\n" ~
-		"jump_to_catch:\n" ~
-		"movq (%rdi), %rbx\n" ~
-		"movq 0x08(%rdi), %rbp\n" ~
-		"movq 0x10(%rdi), %r12\n" ~
-		"movq 0x18(%rdi), %r13\n" ~
-		"movq 0x20(%rdi), %r14\n" ~
-		"movq 0x28(%rdi), %r15\n" ~
-		"movq 0x30(%rdi), %rsp\n" ~
-		"movq 0x38(%rdi), %rax\n" ~
-		"movq %rax, (%rsp)\n" ~
-		"mov $1, %al\n" ~
-		"ret\n"
-	);
-	return res;
-}
-
-immutable(gcc_jit_function*) makeSetupCatchFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* boolType, immutable gcc_jit_type* voidPointerType) {
-	// TODO: helper for making a function from assembly ---------------------------------------------------------------------------------------------	
-	immutable gcc_jit_param*[1] params = [gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")];
-	gcc_jit_function* res = makeFunction(
-		ctx, boolType, "setup_catch", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
-	if (false) { // TODO: This requires a newer libgccjit
-		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
-	}
-	gcc_jit_context_add_top_level_asm( // TODO: note what this needs to be in sync with -------------------------------------------
-		ctx, null,
-		".text\n" ~
-		".align 8\n" ~
-		"setup_catch:\n" ~
-		"movq %rbx, (%rdi)\n" ~
-		"movq %rbp, 0x08(%rdi)\n" ~
-		"movq %r12, 0x10(%rdi)\n" ~
-		"movq %r13, 0x18(%rdi)\n" ~
-		"movq %r14, 0x20(%rdi)\n" ~
-		"movq %r15, 0x28(%rdi)\n" ~
-		"movq %rsp, 0x30(%rdi)\n" ~
-		"movq (%rsp), %rax\n" ~
-		"movq %rax, 0x38(%rdi)\n" ~
-		"xor %al, %al\n" ~
-		"ret\n"
-	);
-	return res;
-}
-
-// This should match 'switch_fiber' in 'writeToC_boilerplate.c'
-immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType) {
-	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
-	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
-	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
-	immutable gcc_jit_param*[2] params = [
-		gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
-		gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
-	];
-	gcc_jit_function* res = makeFunction(
-		ctx, crowVoidType, "switch_fiber", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
-	if (false) { // TODO: This requires a newer libgccjit
-		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
-	}
-	gcc_jit_context_add_top_level_asm(ctx, null,
-		".text\n" ~
-		".align 8\n" ~
-		"switch_fiber:\n" ~
-		"push %rbx\n" ~
-		"push %rbp\n" ~
-		"push %r12\n" ~
-		"push %r13\n" ~
-		"push %r14\n" ~
-		"push %r15\n" ~
-		"movq %rsp, (%rdi)\n" ~
-		"movq %rsi, %rsp\n" ~
-		"pop %r15\n" ~
-		"pop %r14\n" ~
-		"pop %r13\n" ~
-		"pop %r12\n" ~
-		"pop %rbp\n" ~
-		"pop %rbx\n" ~
-		"ret"
-	);
-	return res;
-}
-
-immutable(gcc_jit_function*) makeSwitchFiberInitialFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType, immutable gcc_jit_type* fiberPointerType) {
-	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
-	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
-	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
-	immutable gcc_jit_type* funcType = gcc_jit_context_new_function_ptr_type(ctx, null, crowVoidType, 1, &fiberPointerType, false);
-
-	immutable gcc_jit_param*[4] params = [
-		gcc_jit_context_new_param(ctx, null, fiberPointerType, "fiber"),
-		gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
-		gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
-		gcc_jit_context_new_param(ctx, null, funcType, "func"),
-	];
-	gcc_jit_function* res = makeFunction(ctx, crowVoidType, "switch_fiber_initial", params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
-	if (false) { // TODO: This requires a newer libgccjit
-		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
-	}
-	gcc_jit_context_add_top_level_asm(ctx, null, // TODO: note what to keep this in sync with .................................................
-		".text\n" ~
-		".align 8\n" ~
-		"switch_fiber_initial:\n" ~
-		"push %rbx\n" ~
-		"push %rbp\n" ~
-		"push %r12\n" ~
-		"push %r13\n" ~
-		"push %r14\n" ~
-		"push %r15\n" ~
-		"movq %rsp, (%rsi)\n" ~
-		"movq %rdx, %rsp\n" ~
-		"subq $8, %rsp\n" ~
-		"push %rcx\n" ~
-		"ret\n"
-	);
-	return res;
-}
-
 @trusted ConversionFunctions generateConversionFunctions(ref gcc_jit_context ctx) {
 	immutable gcc_jit_type* voidPtrType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
 	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
@@ -514,6 +387,136 @@ immutable(gcc_jit_function*) makeConversionFunction(
 		null,
 		gcc_jit_rvalue_access_field(gcc_jit_lvalue_as_rvalue(local), null, outField));
 	return castImmutable(res);
+}
+
+// This should match 'switch_fiber' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSwitchFiberFunction(ref gcc_jit_context ctx, immutable gcc_jit_type* crowVoidType) {
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
+	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
+	return makeAssemblyFunction(
+		ctx, crowVoidType, "switch_fiber",
+		[
+			gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
+			gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
+		],
+		".text\n" ~
+		".align 8\n" ~
+		"switch_fiber:\n" ~
+		"push %rbx\n" ~
+		"push %rbp\n" ~
+		"push %r12\n" ~
+		"push %r13\n" ~
+		"push %r14\n" ~
+		"push %r15\n" ~
+		"movq %rsp, (%rdi)\n" ~
+		"movq %rsi, %rsp\n" ~
+		"pop %r15\n" ~
+		"pop %r14\n" ~
+		"pop %r13\n" ~
+		"pop %r12\n" ~
+		"pop %rbp\n" ~
+		"pop %rbx\n" ~
+		"ret");
+}
+
+// This should match 'switch_fiber_initial' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSwitchFiberInitialFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* crowVoidType,
+	immutable gcc_jit_type* fiberPointerType,
+) {
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_type* stackPointerType = gcc_jit_type_get_pointer(nat64Type);
+	immutable gcc_jit_type* stackPointerMutPointerType = gcc_jit_type_get_pointer(stackPointerType);
+	immutable gcc_jit_type* funcType = gcc_jit_context_new_function_ptr_type(
+		ctx, null, crowVoidType, 1, &fiberPointerType, false);
+	return makeAssemblyFunction(
+		ctx, crowVoidType, "switch_fiber_initial",
+		[
+			gcc_jit_context_new_param(ctx, null, fiberPointerType, "fiber"),
+			gcc_jit_context_new_param(ctx, null, stackPointerMutPointerType, "from"),
+			gcc_jit_context_new_param(ctx, null, stackPointerType, "to"),
+			gcc_jit_context_new_param(ctx, null, funcType, "func"),
+		],
+		".text\n" ~
+		".align 8\n" ~
+		"switch_fiber_initial:\n" ~
+		"push %rbx\n" ~
+		"push %rbp\n" ~
+		"push %r12\n" ~
+		"push %r13\n" ~
+		"push %r14\n" ~
+		"push %r15\n" ~
+		"movq %rsp, (%rsi)\n" ~
+		"movq %rdx, %rsp\n" ~
+		"subq $8, %rsp\n" ~
+		"push %rcx\n" ~
+		"ret\n");
+}
+
+// This should match 'setup_catch' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeSetupCatchFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* boolType,
+	immutable gcc_jit_type* voidPointerType,
+) =>
+	makeAssemblyFunction(
+		ctx, boolType, "setup_catch",
+		[gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")],
+		".text\n" ~
+		".align 8\n" ~
+		"setup_catch:\n" ~
+		"movq %rbx, (%rdi)\n" ~
+		"movq %rbp, 0x08(%rdi)\n" ~
+		"movq %r12, 0x10(%rdi)\n" ~
+		"movq %r13, 0x18(%rdi)\n" ~
+		"movq %r14, 0x20(%rdi)\n" ~
+		"movq %r15, 0x28(%rdi)\n" ~
+		"movq %rsp, 0x30(%rdi)\n" ~
+		"movq (%rsp), %rax\n" ~
+		"movq %rax, 0x38(%rdi)\n" ~
+		"xor %al, %al\n" ~
+		"ret\n");
+
+// This should match 'jump_to_catch' in 'writeToC_boilerplate_posix.c'
+immutable(gcc_jit_function*) makeJumpToCatchFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* crowVoidType,
+	immutable gcc_jit_type* voidPointerType,
+) =>
+	makeAssemblyFunction(
+		ctx, crowVoidType, "jump_to_catch",
+		[gcc_jit_context_new_param(ctx, null, voidPointerType, "catch_point")],
+		".text\n" ~
+		".align 8\n" ~
+		"jump_to_catch:\n" ~
+		"movq (%rdi), %rbx\n" ~
+		"movq 0x08(%rdi), %rbp\n" ~
+		"movq 0x10(%rdi), %r12\n" ~
+		"movq 0x18(%rdi), %r13\n" ~
+		"movq 0x20(%rdi), %r14\n" ~
+		"movq 0x28(%rdi), %r15\n" ~
+		"movq 0x30(%rdi), %rsp\n" ~
+		"movq 0x38(%rdi), %rax\n" ~
+		"movq %rax, (%rsp)\n" ~
+		"mov $1, %al\n" ~
+		"ret\n");
+
+immutable(gcc_jit_function*) makeAssemblyFunction(
+	ref gcc_jit_context ctx,
+	immutable gcc_jit_type* returnType,
+	immutable char* name,
+	in immutable gcc_jit_param*[] params,
+	immutable char* assembly,
+) {
+	gcc_jit_function* res = makeFunction(
+		ctx, returnType, name, params, gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED);
+	if (false) { // TODO: This requires a newer libgccjit
+		gcc_jit_function_add_attribute(res, gcc_jit_fn_attribute.GCC_JIT_FN_ATTRIBUTE_NOINLINE);
+	}
+	gcc_jit_context_add_top_level_asm(ctx, null, assembly);
+	return res;
 }
 
 @trusted gcc_jit_function* makeFunction(
@@ -1005,9 +1008,14 @@ ExprResult callToGcc(
 	in LowType type,
 	const gcc_jit_function* called,
 	in immutable gcc_jit_rvalue*[] args,
-) =>
-	emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
-		gcc_jit_context_new_call(ctx.gcc, null, called, safeToInt(args.length), args.ptr)));
+	bool noSideEffects = false
+) {
+	immutable gcc_jit_rvalue* call = castImmutable(
+		gcc_jit_context_new_call(ctx.gcc, null, called, safeToInt(args.length), args.ptr));
+	return noSideEffects
+		? emitSimpleNoSideEffects(ctx, emit, call)
+		: emitSimpleYesSideEffects(ctx, emit, type, call);
+}
 
 @trusted ExprResult callFunPointerToGcc(
 	ref ExprCtx ctx,
@@ -1077,9 +1085,7 @@ ExprResult emitRecordCb(
 		foreach (size_t i, immutable gcc_jit_field* field; fields) {
 			gcc_jit_rvalue* value = emitToRValueCb((ExprEmit emitArg) =>
 				cbEmitArg(i, emitArg));
-			gcc_jit_lvalue* accessField = gcc_jit_lvalue_access_field(lvalue, null, field);
-			assert(accessField != null); // TODO: RM -----------------------------------------------------------------------------------
-			gcc_jit_block_add_assignment(ctx.curBlock, null, accessField, value);
+			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_lvalue_access_field(lvalue, null, field), value);
 		}
 	});
 
@@ -1167,7 +1173,8 @@ ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in L
 }
 
 bool localMustBeVolatile(in ExprCtx ctx, in LowLocal local) =>
-	// The 'catch-state' doesn't really need to be volatile, and having it volatile causes compile errors when initializing it
+	// The 'catch-point' doesn't really need to be volatile,
+	// and having it volatile causes compile errors when initializing it
 	localMustBeVolatile(*ctx.curLowFun, local) && !isCatchPoint(ctx, local.type);
 bool isCatchPoint(in ExprCtx ctx, in LowType type) =>
 	type.isA!(LowType.Extern) && isCatchPoint(*ctx.program.allTypes.allExternTypes[type.as!(LowType.Extern)].source);
@@ -1244,7 +1251,13 @@ ExprResult recordFieldPointerToGcc(
 			null));
 }
 
-ExprResult localPointerToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowType type, in LowExprKind.LocalPointer a) {
+ExprResult localPointerToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowType type,
+	in LowExprKind.LocalPointer a,
+) {
 	immutable gcc_jit_rvalue* pointer = gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null);
 	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
 		? gcc_jit_context_new_cast(ctx.gcc, null, pointer, getGccType(ctx.types, type))
@@ -1390,9 +1403,10 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowF
 	in LowType type,
 	in LowExprKind.SpecialUnary a,
 ) {
-	ExprResult builtin(BuiltinFunction x) {
-		return callBuiltinUnary(ctx, locals, emit, a.arg, x);
-	}
+	ExprResult builtin(BuiltinFunction x) =>
+		callBuiltinUnary(ctx, locals, emit, a.arg, x);
+	ExprResult callFn(const gcc_jit_function* func, bool noSideEffects = false) =>
+		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
 
 	final switch (a.kind) {
 		case BuiltinUnary.bitwiseNotNat8:
@@ -1448,15 +1462,11 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowF
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, type)));
 		case BuiltinUnary.jumpToCatch:
-			immutable gcc_jit_rvalue*[1] args = [emitToRValue(ctx, locals, a.arg)];
-			return emitSimpleYesSideEffects(ctx, emit, type, gcc_jit_context_new_call(ctx.gcc, null, ctx.jumpToCatchFunction, args.length, args.ptr));
+			return callFn(ctx.jumpToCatchFunction);
 		case BuiltinUnary.setupCatch:
-			immutable gcc_jit_rvalue*[1] args = [emitToRValue(ctx, locals, a.arg)];
-			return emitSimpleYesSideEffects(ctx, emit, type, gcc_jit_context_new_call(ctx.gcc, null, ctx.setupCatchFunction, args.length, args.ptr)); // TODO: helper for calling a fn
+			return callFn(ctx.setupCatchFunction);
 		case BuiltinUnary.toNat64FromPtr:
-			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
-			return emitSimpleNoSideEffects(ctx, emit, castImmutable(
-				gcc_jit_context_new_call(ctx.gcc, null, ctx.conversionFunctions.ptrToNat64, 1, &arg)));
+			return callFn(ctx.conversionFunctions.ptrToNat64, noSideEffects: true);
 		case BuiltinUnary.toPtrFromNat64:
 			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
@@ -1899,9 +1909,9 @@ ExprResult externZeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowType.Extern type
 				array.arrayType,
 				elementValues.length,
 				&elementValues[0]);
-			gcc_jit_lvalue* accessField = gcc_jit_lvalue_access_field(lvalue, null, array.field);
-			assert(accessField != null); // TODO: RM ---------------------------------------------------------------------------------------
-			gcc_jit_block_add_assignment(ctx.curBlock, null, accessField, arrayValue);
+			gcc_jit_block_add_assignment(
+				ctx.curBlock, null,
+				gcc_jit_lvalue_access_field(lvalue, null, array.field), arrayValue);
 		}
 	});
 

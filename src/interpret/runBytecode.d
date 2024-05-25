@@ -249,13 +249,13 @@ private void opSwitchFiberInitialInner(ref Stacks stacks, ref Operation* cur) {
 	ulong fiber = dataPop(stacks);
 
 	returnPush(stacks, cur);
-	dataPush(stacks, cast(ulong) stacks.returnPtr); // TODO: this is same as opSwitchFiberInner, share code????????????????????
+	dataPush(stacks, cast(ulong) stacks.returnPtr);
 	*fromPtr = stacks.dataPtr;
 
 	stacks.returnPtr = cast(Operation**) stackHigh;
 	stacks.dataPtr = stackHigh - 0x20000; // Size hardcoded in 'create-new-fiber'
 
-	returnPush(stacks, null); // TODO: this should not be necessary, I'm just being paranoid... maybe have 'opAbort'? ......................
+	returnPush(stacks, null); // Should not ever be popped, but better 'null' than something arbitrary
 	dataPush(stacks, fiber);
 	cur = mustGet(globals.funPointerToOperationPointer, FunPointer.fromUlong(func));
 }
