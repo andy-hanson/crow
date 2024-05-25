@@ -77,7 +77,6 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupEntries,
 	writeFnBinary,
-	writeFnTernary,
 	writeFn4ary,
 	writeFnUnary,
 	writeInterpreterBacktrace,
@@ -135,7 +134,7 @@ import util.integralValues : IntegralValue;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
-import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, todo;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,

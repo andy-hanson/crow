@@ -145,13 +145,6 @@ void returnPush(ref Stacks a, Operation* value) {
 	*a.returnPtr = value;
 }
 
-Operation* returnPeek(in Stacks a, size_t offset = 0) =>
-	*(a.returnPtr + offset);
-
-void setReturnPeek(ref Stacks a, Operation* value) {
-	*a.returnPtr = value;
-}
-
 Operation* returnPop(ref Stacks a) {
 	Operation* res = *a.returnPtr;
 	a.returnPtr++;

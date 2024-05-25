@@ -217,14 +217,11 @@ Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	return none!T;
 }
 
-T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
-	force(findPointer!T(a, cb));
-
-Opt!(T*) findPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (ref T x; a)
 		if (cb(x))
-			return some(&x);
-	return none!(T*);
+			return &x;
+	assert(false);
 }
 
 Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {

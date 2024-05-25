@@ -140,7 +140,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.string : CString;
 import util.union_ : TaggedUnion;
-import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted ExitCode jitAndRun(

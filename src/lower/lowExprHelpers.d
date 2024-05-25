@@ -123,9 +123,6 @@ LowExpr genTrue(UriAndRange range) =>
 private LowExpr genConstantBool(UriAndRange range, bool value) =>
 	genConstantIntegral(boolType, range, value);
 
-LowExpr genConstantInt32(UriAndRange range, int value) =>
-	genConstantIntegral(int32Type, range, value);
-
 LowExpr genConstantNat64(UriAndRange range, ulong value) =>
 	genConstantIntegral(nat64Type, range, value);
 

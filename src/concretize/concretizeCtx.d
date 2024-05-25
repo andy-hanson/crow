@@ -55,7 +55,6 @@ import model.model :
 	AutoFun,
 	BuiltinFun,
 	BuiltinType,
-	CommonFuns,
 	CommonTypes,
 	Destructure,
 	EnumFunction,

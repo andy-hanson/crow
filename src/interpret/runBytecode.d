@@ -20,17 +20,14 @@ import interpret.stacks :
 	dataRemove,
 	dataReturn,
 	dataTop,
-	returnPeek,
 	returnPop,
 	returnPush,
-	setReturnPeek,
 	Stacks,
-	stacksForRange,
 	withDefaultStacks;
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
-import util.col.array : arrayOfRange, indexOf;
+import util.col.array : indexOf;
 import util.col.map : mustGet;
 import util.conv : safeToUint, safeToSizeT;
 import util.exitCode : ExitCode;
@@ -39,7 +36,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.string : CString;
-import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, todo;
+import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 
 @safe ExitCode runBytecode(
 	scope ref Perf perf,
@@ -453,7 +450,7 @@ private struct CatchPoint {
 	Stacks stacks;
 	Operation* nextOperationPtr;
 }
-static assert(CatchPoint.sizeof == 0x18);
+static assert(CatchPoint.sizeof <= 0x18); // Keep in sync with 'getBuiltinStructSize'
 
 alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
 private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
@@ -465,14 +462,6 @@ private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
 	ulong y = dataPop(stacks);
 	ulong x = dataPop(stacks);
 	dataPush(stacks, cb(x, y));
-}
-
-private alias opFnTernary(alias cb) = operation!(opFnTernaryInner!cb);
-private void opFnTernaryInner(alias cb)(ref Stacks stacks, ref Operation* cur) {
-	ulong z = dataPop(stacks);
-	ulong y = dataPop(stacks);
-	ulong x = dataPop(stacks);
-	dataPush(stacks, cb(x, y, z));
 }
 
 private Operation readOperation(scope ref Operation* cur) {

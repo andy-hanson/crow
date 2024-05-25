@@ -17,7 +17,6 @@ import interpret.bytecodeWriter :
 	StackEntries,
 	StackEntry,
 	writeCallFunPointerExtern,
-	writeJumpToCatch,
 	writeReturn;
 import interpret.extern_ :
 	AggregateCbs,
@@ -64,9 +63,8 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize,
 import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
 import util.col.mutMap : getOrAddAndDidAdd, MutMap, ValueAndDidAdd;
 import util.memory : allocate;
-import util.opt : force, has, Opt;
+import util.opt : force, has;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : Symbol, symbol;
 import util.util : castImmutable, castMutable, castNonScope_ref, ptrTrustMe, todo;
 
 ByteCode generateBytecode(

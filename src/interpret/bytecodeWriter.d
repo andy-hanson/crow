@@ -571,11 +571,6 @@ void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Opera
 	writer.nextStackEntry -= (returnVoid ? 2 : 1);
 }
 
-void writeFnTernary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {
-	pushOperationFn(writer, source, fn);
-	writer.nextStackEntry -= 2;
-}
-
 void writeFn4ary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn, bool returnVoid) {
 	pushOperationFn(writer, source, fn);
 	writer.nextStackEntry -= (returnVoid ? 4 : 3);

@@ -235,9 +235,6 @@ void skipBlankLines(
 	}
 }
 
-bool isNewlineChar(char c) =>
-	c == '\r' || c == '\n';
-
 void skipRestOfLineAndNewline(ref MutCString ptr) {
 	skipUntilNewline(ptr);
 	cast(void) tryTakeNewline(ptr);

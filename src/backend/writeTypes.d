@@ -19,7 +19,6 @@ import util.col.array : every;
 import util.col.fullIndexMap :
 	FullIndexMap, fullIndexMapEachKey, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
-import util.util : isMultipleOf;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
 	foreach (ref LowExternType x; program.allExternTypes) {

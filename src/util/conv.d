@@ -32,6 +32,12 @@ size_t safeToSizeT(ulong a) {
 	return cast(size_t) a;
 }
 
+size_t safeMul(size_t a, size_t b) {
+	size_t res = a * b;
+	assert(b == 0 || res / b == a);
+	return res;
+}
+
 uint bitsOfFloat32(float value) =>
 	Converter32(asFloat32: value).asUint;
 

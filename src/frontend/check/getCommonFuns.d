@@ -33,7 +33,6 @@ import model.model :
 	ParamShort,
 	ParamsShort,
 	Purity,
-	StructAlias,
 	StructBody,
 	StructInst,
 	StructOrAlias,
@@ -48,17 +47,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
-	arraysCorrespond,
-	copyArray,
-	emptySmallArray,
-	findIndex,
-	findPointer,
-	isEmpty,
-	makeArray,
-	map,
-	sizeEq,
-	small,
-	SmallArray;
+	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -282,23 +271,6 @@ Type getNonTemplateType(
 	StructDecl* decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name, 0);
 	assert(!decl.isTemplate);
 	return Type(instantiateStructNeverDelay(ctx, decl, []));
-}
-
-Type getTypeAlias(
-	ref Alloc alloc,
-	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
-	ref Module module_,
-	Symbol name,
-) {
-	Opt!(StructAlias*) alias_ = findPointer!StructAlias(module_.aliases, (in StructAlias x) => x.name == name);
-	if (has(alias_))
-		return Type(force(alias_).target);
-	else {
-		add(alloc, diagsBuilder, UriAndDiagnostic(
-			UriAndRange(module_.uri, Range.empty),
-			Diag(Diag.CommonTypeMissing(name))));
-		return Type.bogus;
-	}
 }
 
 StructDecl* getStructDeclOrAddDiag(

@@ -24,7 +24,6 @@ import lower.lowExprHelpers :
 	genCallNoGcRoots,
 	genCreateRecordNoGcRoots,
 	genConstantIntegral,
-	genConstantInt32,
 	genConstantNat64,
 	genDrop,
 	genEnumEq,

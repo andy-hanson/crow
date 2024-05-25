@@ -547,9 +547,7 @@ MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) =>
 
 CommonUris commonUris(Uri includeDir) {
 	Uri includeCrow = includeDir / symbol!"crow";
-	Uri system = includeDir / symbol!"system";
 	Uri private_ = includeCrow / symbol!"private";
-	Uri col = includeCrow / symbol!"col";
 	return enumMapMapValues!(CommonModule, Uri, Uri)(CommonUris([
 		private_ / symbol!"bootstrap",
 		private_ / symbol!"alloc",
@@ -558,7 +556,7 @@ CommonUris commonUris(Uri includeDir) {
 		private_ / symbol!"exception-low-level",
 		includeCrow / symbol!"fun-util",
 		includeCrow / symbol!"json",
-		col / symbol!"list",
+		includeCrow / symbol!"col" / symbol!"list",
 		includeCrow / symbol!"misc",
 		private_ / symbol!"number-low-level",
 		includeCrow / symbol!"std",
