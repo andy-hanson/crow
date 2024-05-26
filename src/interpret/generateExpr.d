@@ -113,16 +113,19 @@ import model.lowModel :
 	LowField,
 	LowFunExprBody,
 	LowFunIndex,
+	LowFunPointerType,
 	LowLocal,
 	LowProgram,
 	LowRecord,
 	LowType,
+	LowUnion,
 	LowVar,
 	LowVarIndex,
 	PrimitiveType,
 	UpdateParam;
 import model.model : Builtin4ary, BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
-import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
+import model.typeLayout :
+	nStackEntriesForRecord, nStackEntriesForUnion, nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
 import util.col.arrayBuilder : add;
@@ -264,16 +267,6 @@ size_t typeSizeBytes(in ExprCtx ctx, LowType t) =>
 size_t nStackEntriesForType(in ExprCtx ctx, LowType t) =>
 	nStackEntriesForType(ctx.program, t);
 
-size_t nStackEntriesForRecordType(in ExprCtx ctx, LowType.Record t) {
-	LowType type = LowType(t);
-	return nStackEntriesForType(ctx, type);
-}
-
-size_t nStackEntriesForUnionType(in ExprCtx ctx, LowType.Union t) {
-	LowType type = LowType(t);
-	return nStackEntriesForType(ctx, type);
-}
-
 alias Locals = StackMap!(LowLocal*, StackEntries);
 alias addLocal = stackMapAdd!(LowLocal*, StackEntries);
 StackEntries getLocal(in ExprCtx ctx, in Locals locals, in LowLocal* local) {
@@ -311,15 +304,17 @@ void generateExpr(
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, *x.funPtr);
 			generateArgsAndContinue(writer, ctx, locals, x.args);
-			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[x.funPointerType]);
+			writeCallFunPointer(
+				writer, source, stackEntryBeforeArgs,
+				ctx.funPtrTypeToDynCallSig[ctx.program.indexOfFunPointerType(x.funPointerType)]);
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.CreateRecord it) {
-			generateCreateRecord(writer, ctx, expr.type.as!(LowType.Record), source, locals, it);
+		(in LowExprKind.CreateRecord x) {
+			generateCreateRecord(writer, ctx, *expr.type.as!(LowRecord*), source, locals, x);
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.CreateUnion it) {
-			generateCreateUnion(writer, ctx, expr.type.as!(LowType.Union), source, locals, it);
+		(in LowExprKind.CreateUnion x) {
+			generateCreateUnion(writer, ctx, *expr.type.as!(LowUnion*), source, locals, x);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.FunPointer x) {
@@ -537,8 +532,7 @@ void generateUnionAs(
 	size_t unionEntries = getNextStackEntry(writer).entry - startStack.entry;
 	assert(unionEntries == nStackEntriesForType(ctx, a.union_.type));
 	// Remove extra space after the member
-	LowType memberType = ctx.program.allUnions[a.union_.type.as!(LowType.Union)].members[a.memberIndex];
-	size_t memberEntries = nStackEntriesForType(ctx, memberType);
+	size_t memberEntries = nStackEntriesForType(ctx, a.union_.type.as!(LowUnion*).members[a.memberIndex]);
 	writeRemove(writer, source, StackEntries(
 		StackEntry(startStack.entry + 1 + memberEntries),
 		unionEntries - 1 - memberEntries));
@@ -626,75 +620,62 @@ void generateArgsAndContinue(ref ByteCodeWriter writer, ref ExprCtx ctx, in Loca
 void generateCreateRecord(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	LowType.Record type,
+	in LowRecord record,
 	ByteCodeSource source,
 	in Locals locals,
 	in LowExprKind.CreateRecord it,
 ) {
-	generateCreateRecordOrConstantRecord(
-		writer,
-		ctx,
-		type,
-		source,
-		(size_t fieldIndex, LowType fieldType) {
-			LowExpr arg = it.args[fieldIndex];
-			assert(arg.type == fieldType);
-			generateExprAndContinue(writer, ctx, locals, arg);
-		});
+	generateCreateRecordOrConstantRecord(writer, ctx, record, source, (size_t fieldIndex, LowType fieldType) {
+		LowExpr arg = it.args[fieldIndex];
+		assert(arg.type == fieldType);
+		generateExprAndContinue(writer, ctx, locals, arg);
+	});
 }
 
 void generateCreateRecordOrConstantRecord(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	LowType.Record type,
+	in LowRecord record,
 	ByteCodeSource source,
 	in void delegate(size_t, LowType) @safe @nogc pure nothrow cbGenerateField,
 ) {
 	StackEntry before = getNextStackEntry(writer);
 
-	LowRecord record = ctx.program.allRecords[type];
 	foreach (size_t i, ref LowField field; record.fields)
 		cbGenerateField(i, field.type);
 
-	Opt!Pack optPack = optPack(ctx.tempAlloc, ctx.program, type);
+	Opt!Pack optPack = optPack(ctx.tempAlloc, ctx.program, record);
 	if (has(optPack))
 		writePack(writer, source, force(optPack));
 
-	assert(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecordType(ctx, type));
+	assert(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecord(ctx.program, record));
 }
 
 void generateCreateUnion(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	LowType.Union type,
+	in LowUnion union_,
 	ByteCodeSource source,
 	in Locals locals,
-	in LowExprKind.CreateUnion it,
+	in LowExprKind.CreateUnion a,
 ) {
-	generateCreateUnionOrConstantUnion(
-		writer,
-		ctx,
-		type,
-		it.memberIndex,
-		source,
-		(LowType) {
-			generateExprAndContinue(writer, ctx, locals, it.arg);
-		});
+	generateCreateUnionOrConstantUnion(writer, ctx, union_, a.memberIndex, source, (LowType _) {
+		generateExprAndContinue(writer, ctx, locals, a.arg);
+	});
 }
 
 void generateCreateUnionOrConstantUnion(
 	ref ByteCodeWriter writer,
 	ref const ExprCtx ctx,
-	LowType.Union type,
+	in LowUnion union_,
 	size_t memberIndex,
 	ByteCodeSource source,
 	in void delegate(LowType) @safe @nogc pure nothrow cbGenerateMember,
 ) {
 	StackEntry before = getNextStackEntry(writer);
-	size_t size = nStackEntriesForUnionType(ctx, type);
+	size_t size = nStackEntriesForUnion(ctx.program, union_);
 	writePushConstant(writer, source, memberIndex);
-	LowType memberType = ctx.program.allUnions[type].members[memberIndex];
-	cbGenerateMember(memberType);
+	cbGenerateMember(union_.members[memberIndex]);
 	StackEntry after = getNextStackEntry(writer);
 	if (before.entry + size != after.entry) {
 		// Some members of a union are smaller than the union.
@@ -708,8 +689,8 @@ immutable struct FieldOffsetAndSize {
 	size_t size;
 }
 
-FieldOffsetAndSize getFieldOffsetAndSize(ref const ExprCtx ctx, LowType.Record record, size_t fieldIndex) {
-	LowField field = ctx.program.allRecords[record].fields[fieldIndex];
+FieldOffsetAndSize getFieldOffsetAndSize(ref const ExprCtx ctx, in LowRecord* record, size_t fieldIndex) {
+	LowField field = record.fields[fieldIndex];
 	return FieldOffsetAndSize(field.offset, typeSizeBytes(ctx, field.type));
 }
 
@@ -753,22 +734,13 @@ void generateConstant(
 		},
 		(in Constant.Record it) {
 			generateCreateRecordOrConstantRecord(
-				writer,
-				ctx,
-				type.as!(LowType.Record),
-				source,
-				(size_t argIndex, LowType argType) {
+				writer, ctx, *type.as!(LowRecord*), source, (size_t argIndex, LowType argType) {
 					generateConstant(writer, ctx, source, argType, it.args[argIndex]);
 				});
 		},
 		(in Constant.Union x) {
 			generateCreateUnionOrConstantUnion(
-				writer,
-				ctx,
-				type.as!(LowType.Union),
-				x.memberIndex,
-				source,
-				(LowType memberType) {
+				writer, ctx, *type.as!(LowUnion*), x.memberIndex, source, (LowType memberType) {
 					generateConstant(writer, ctx, source, memberType, x.arg);
 				});
 		},
@@ -785,7 +757,10 @@ void writeConstantFunPointer(
 	LowFunIndex fun,
 ) {
 	ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
-	registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
+	registerFunPointerReference(
+		ctx.tempAlloc, ctx.funToReferences,
+		ctx.program.indexOfFunPointerType(type.as!(LowFunPointerType*)),
+		fun, where);
 }
 
 void writeZeroed(ref ByteCodeWriter writer, ByteCodeSource source, size_t sizeBytes) {
@@ -933,7 +908,7 @@ void generateRecordFieldPointer(
 	scope ref ExprAfter after,
 	in LowExprKind.RecordFieldPointer a,
 ) {
-	size_t offset = ctx.program.allRecords[a.targetRecordType].fields[a.fieldIndex].offset;
+	size_t offset = a.targetRecordType.fields[a.fieldIndex].offset;
 	if (offset != 0) {
 		generateExprAndContinue(writer, ctx, locals, *a.target);
 		writeAddConstantNat64(writer, source, offset);

@@ -7,7 +7,7 @@ import interpret.stacks : loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, LowFunIndex, PrimitiveType;
 import util.col.array : SmallArray, sum;
 import util.col.map : Map;
-import util.hash : HashCode, hashPtr;
+import util.hash : HashCode, hashPointer;
 import util.opt : Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
@@ -59,7 +59,7 @@ immutable struct FunPointer {
 	void* pointer;
 
 	HashCode hash() scope =>
-		hashPtr(pointer);
+		hashPointer(pointer);
 
 	ulong asUlong() =>
 		cast(ulong) pointer;
@@ -78,7 +78,7 @@ immutable struct ExternPointer {
 	void* pointer;
 
 	HashCode hash() scope =>
-		hashPtr(pointer);
+		hashPointer(pointer);
 
 	ulong asUlong() =>
 		cast(ulong) pointer;

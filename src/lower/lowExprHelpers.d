@@ -340,8 +340,7 @@ LowExpr genGetArrSize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
 LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.PointerConst elementPointerType) =>
 	genRecordFieldGet(alloc, LowType(elementPointerType), range, arr, 1);
 
-LowType.PointerConst getElementPointerTypeFromArrType(in AllLowTypes allTypes, LowType.Record arrType) {
-	LowRecord arrRecord = allTypes.allRecords[arrType];
+LowType.PointerConst getElementPointerTypeFromArrType(in AllLowTypes allTypes, in LowRecord* arrRecord) {
 	assert(arrRecord.fields.length == 2);
 	assert(debugName(arrRecord.fields[0]) == symbol!"size");
 	assert(debugName(arrRecord.fields[1]) == symbol!"pointer");

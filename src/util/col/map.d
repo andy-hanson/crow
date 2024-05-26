@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : zip;
 import util.col.mutMap : hasKey, mapToArray, moveToMap, mustAdd, mustGet, MutMap, MutMapValues, size, values;
 public import util.col.mutMap : KeyValuePair;
-import util.opt : Opt;
+import util.opt : force, has, Opt;
 import util.util : ptrTrustMe;
 
 immutable struct Map(K, V) {
@@ -70,11 +70,25 @@ Map!(K, V) makeMapWithIndex(K, V, T)(
 
 Map!(K, V) makeMapFromKeys(K, V)(
 	ref Alloc alloc,
-	scope immutable K[] keys,
+	in immutable K[] keys,
 	in immutable(V) delegate(immutable K) @safe @nogc pure nothrow getValue,
 ) =>
 	makeMap!(K, V, K)(alloc, keys, (in K key) =>
 		immutable KeyValuePair!(K, V)(key, getValue(key)));
+
+Map!(immutable K, immutable V) makeMapFromKeysOptional(K, V)(
+	ref Alloc alloc,
+	in immutable K[] keys,
+	in Opt!V delegate(immutable K) @safe @nogc pure nothrow getValue,
+) {
+	MutMap!(immutable K, immutable V) res;
+	foreach (immutable K key; keys) {
+		Opt!V value = getValue(key);
+		if (has(value))
+			mustAdd!(immutable K, immutable V)(alloc, res, key, force(value));
+	}
+	return moveToMap!(immutable K, immutable V)(alloc, res);
+}
 
 @trusted immutable(V) mustGet(K, V)(Map!(K, V) a, in K key) =>
 	.mustGet(a.inner, key);

@@ -111,14 +111,17 @@ import model.lowModel :
 	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
-	LowField,
+	LowExternType,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
+	LowFunPointerType,
 	LowLocal,
 	LowPointerCombine,
 	LowProgram,
+	LowRecord,
+	LowUnion,
 	LowVar,
 	LowVarIndex,
 	LowType,
@@ -721,7 +724,7 @@ ExprResult emitSimpleNoSideEffects(ref ExprCtx ctx, ExprEmit emit, gcc_jit_rvalu
 }
 
 // We need to ensure side effects happen in order since GCC seems to evaluate call arguments in reverse.
-ExprResult emitSimpleYesSideEffects(ref ExprCtx ctx, ExprEmit emit, in LowType type, gcc_jit_rvalue* value) =>
+ExprResult emitSimpleYesSideEffects(ref ExprCtx ctx, ExprEmit emit, LowType type, gcc_jit_rvalue* value) =>
 	emit.isA!(ExprEmit.Value)
 		? ExprResult(getRValueUsingLocal(ctx, type, (gcc_jit_lvalue* local) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, local, value);
@@ -730,7 +733,7 @@ ExprResult emitSimpleYesSideEffects(ref ExprCtx ctx, ExprEmit emit, in LowType t
 
 gcc_jit_rvalue* getRValueUsingLocal(
 	ref ExprCtx ctx,
-	in LowType type,
+	LowType type,
 	in void delegate(gcc_jit_lvalue*) @safe @nogc pure nothrow cb,
 ) {
 	gcc_jit_lvalue* local = gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp");
@@ -741,7 +744,7 @@ gcc_jit_rvalue* getRValueUsingLocal(
 ExprResult emitWriteToLValue(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in void delegate(gcc_jit_lvalue*) @safe @nogc pure nothrow cb,
 ) =>
 	emit.matchWithPointers!ExprResult(
@@ -783,7 +786,7 @@ ExprResult emitVoid(ref ExprCtx ctx, ExprEmit emit) =>
 ExprResult emitWithBranching(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	immutable char* endBlockName,
 	in void delegate(
 		gcc_jit_block* originalBlock,
@@ -886,71 +889,76 @@ struct ExprCtx {
 		*conversionFunctionsPtr;
 }
 
-ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExpr a) =>
-	a.kind.matchIn!ExprResult(
-		(in LowExprKind.Abort x) =>
+immutable(gcc_jit_field*[]) recordFields(in ExprCtx ctx, in LowRecord* record) =>
+	ctx.types.recordFields[ctx.program.indexOfRecord(record)];
+immutable(gcc_jit_field*) recordField(in ExprCtx ctx, in LowRecord* record, size_t fieldIndex) =>
+	recordFields(ctx, record)[fieldIndex];
+
+ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowExpr a) =>
+	a.kind.match!ExprResult(
+		(LowExprKind.Abort x) =>
 			abortToGcc(ctx, locals, emit, a.type),
-		(in LowExprKind.Call it) =>
+		(LowExprKind.Call it) =>
 			callToGcc(ctx, locals, emit, a.type, it),
-		(in LowExprKind.CallFunPointer it) =>
+		(LowExprKind.CallFunPointer it) =>
 			callFunPointerToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.CreateRecord it) =>
+		(LowExprKind.CreateRecord it) =>
 			createRecordToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.CreateUnion it) =>
+		(ref LowExprKind.CreateUnion it) =>
 			createUnionToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.FunPointer x) =>
+		(LowExprKind.FunPointer x) =>
 			funPointerToGcc(ctx, emit, a.type, x.fun),
-		(in LowExprKind.If it) =>
+		(ref LowExprKind.If it) =>
 			ifToGcc(ctx, locals, emit, a.type, it.cond, it.then, it.else_),
-		(in LowExprKind.Init x) =>
+		(LowExprKind.Init x) =>
 			initToGcc(ctx, emit, x.kind),
-		(in LowExprKind.Let it) =>
+		(ref LowExprKind.Let it) =>
 			letToGcc(ctx, locals, emit, it),
-		(in LowExprKind.LocalGet it) =>
+		(LowExprKind.LocalGet it) =>
 			localGetToGcc(ctx, locals, emit, it),
-		(in LowExprKind.LocalPointer x) =>
+		(LowExprKind.LocalPointer x) =>
 			localPointerToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.LocalSet it) =>
+		(ref LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
-		(in LowExprKind.Loop it) =>
+		(ref LowExprKind.Loop it) =>
 			loopToGcc(ctx, locals, emit, a.type, it),
-		(in LowExprKind.LoopBreak it) =>
+		(ref LowExprKind.LoopBreak it) =>
 			loopBreakToGcc(ctx, locals, emit, it),
-		(in LowExprKind.LoopContinue) =>
+		(LowExprKind.LoopContinue) =>
 			loopContinueToGcc(ctx, locals, emit),
-		(in LowExprKind.PointerCast it) =>
+		(ref LowExprKind.PointerCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.RecordFieldGet it) =>
+		(LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
-		(in LowExprKind.RecordFieldPointer x) =>
+		(LowExprKind.RecordFieldPointer x) =>
 			recordFieldPointerToGcc(ctx, locals, emit, a, x),
-		(in LowExprKind.RecordFieldSet it) =>
+		(ref LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(in Constant x) =>
+		(Constant x) =>
 			constantToGcc(ctx, emit, a.type, x),
-		(in LowExprKind.SpecialUnary x) =>
+		(ref LowExprKind.SpecialUnary x) =>
 			unaryToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.SpecialUnaryMath x) =>
+		(ref LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
-		(in LowExprKind.SpecialBinary x) =>
+		(ref LowExprKind.SpecialBinary x) =>
 			binaryToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.SpecialBinaryMath x) =>
+		(ref LowExprKind.SpecialBinaryMath x) =>
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
-		(in LowExprKind.SpecialTernary x) =>
+		(ref LowExprKind.SpecialTernary x) =>
 			ternaryToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.Special4ary x) =>
+		(ref LowExprKind.Special4ary x) =>
 			fouraryToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.Switch x) =>
+		(ref LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),
-		(in LowExprKind.TailRecur it) =>
+		(LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
-		(in LowExprKind.UnionAs x) =>
+		(LowExprKind.UnionAs x) =>
 			unionAsToGcc(ctx, locals, emit, x),
-		(in LowExprKind.UnionKind x) =>
+		(LowExprKind.UnionKind x) =>
 			unionKindToGcc(ctx, locals, emit, x),
-		(in LowExprKind.VarGet x) =>
+		(LowExprKind.VarGet x) =>
 			varGetToGcc(ctx, locals, emit, x),
-		(in LowExprKind.VarSet x) =>
+		(LowExprKind.VarSet x) =>
 			varSetToGcc(ctx, locals, emit, x));
 
 gcc_jit_rvalue* emitToRValueCb(
@@ -960,7 +968,7 @@ gcc_jit_rvalue* emitToRValueCb(
 	return cbEmit(emit).as!(gcc_jit_rvalue*);
 }
 
-immutable(gcc_jit_rvalue*) emitToRValue(ref ExprCtx ctx, ref Locals locals, in LowExpr a) =>
+immutable(gcc_jit_rvalue*) emitToRValue(ref ExprCtx ctx, ref Locals locals, ref LowExpr a) =>
 	emitToRValueCb((ExprEmit emit) =>
 		toGccExpr(ctx, locals, emit, a));
 
@@ -972,18 +980,18 @@ void emitToLValueCb(
 	assert(result.isA!(ExprResult.Void));
 }
 
-void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in LowExpr a) {
+void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, ref LowExpr a) {
 	emitToLValueCb(lvalue, (ExprEmit emitArg) @safe =>
 		toGccExpr(ctx, locals, emitArg, a));
 }
 
-void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
+void emitToVoid(ref ExprCtx ctx, ref Locals locals, ref LowExpr a) {
 	ExprEmit emitVoid = ExprEmit(ExprEmit.Void());
 	ExprResult result = toGccExpr(ctx, locals, emitVoid, a);
 	assert(result.isA!(ExprResult.Void));
 }
 
-ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowType type) {
+ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, LowType type) {
 	gcc_jit_block_add_eval(ctx.curBlock, null, gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null));
 	// Do something arbitrary to satisfy GCC that the block is ended.
 	return emit.isA!(ExprEmit.Loop*)
@@ -995,7 +1003,7 @@ ExprResult callToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in LowExprKind.Call a,
 ) =>
 	makeCall(
@@ -1005,7 +1013,7 @@ ExprResult callToGcc(
 @trusted ExprResult makeCall(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	const gcc_jit_function* called,
 	in immutable gcc_jit_rvalue*[] args,
 	bool noSideEffects = false
@@ -1077,12 +1085,11 @@ ExprResult varSetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in Low
 ExprResult emitRecordCb(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in ExprResult delegate(size_t, ExprEmit) @safe @nogc pure nothrow cbEmitArg,
 ) =>
 	emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
-		immutable gcc_jit_field*[] fields = ctx.types.recordFields[type.as!(LowType.Record)];
-		foreach (size_t i, immutable gcc_jit_field* field; fields) {
+		foreach (size_t i, immutable gcc_jit_field* field; recordFields(ctx, type.as!(LowRecord*))) {
 			gcc_jit_rvalue* value = emitToRValueCb((ExprEmit emitArg) =>
 				cbEmitArg(i, emitArg));
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_lvalue_access_field(lvalue, null, field), value);
@@ -1092,9 +1099,9 @@ ExprResult emitRecordCb(
 ExprResult emitRecordCbWithArgs(T)(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in T[] args,
-	in ExprResult delegate(size_t, ExprEmit, in T) @safe @nogc pure nothrow cbEmitArg,
+	in ExprResult delegate(size_t, ExprEmit, ref T) @safe @nogc pure nothrow cbEmitArg,
 ) =>
 	emitRecordCb(ctx, emit, type, (size_t argIndex, ExprEmit emitArg) =>
 		cbEmitArg(argIndex, emitArg, args[argIndex]));
@@ -1103,21 +1110,21 @@ ExprResult createRecordToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr expr,
-	in LowExprKind.CreateRecord a,
+	ref LowExpr expr,
+	ref LowExprKind.CreateRecord a,
 ) =>
-	emitRecordCbWithArgs!LowExpr(ctx, emit, expr.type, a.args, (size_t _, ExprEmit emitArg, in LowExpr arg) =>
+	emitRecordCbWithArgs!LowExpr(ctx, emit, expr.type, a.args, (size_t _, ExprEmit emitArg, ref LowExpr arg) =>
 		toGccExpr(ctx, locals, emitArg, arg));
 
 ExprResult emitUnion(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	size_t memberIndex,
 	in ExprResult delegate(ExprEmit) @safe @nogc pure nothrow cbEmitArg,
 ) =>
 	emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
-		UnionFields unionFields = ctx.types.unionFields[type.as!(LowType.Union)];
+		UnionFields unionFields = getUnionFields(ctx, type);
 		gcc_jit_block_add_assignment(
 			ctx.curBlock,
 			null,
@@ -1134,13 +1141,13 @@ ExprResult createUnionToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr expr,
-	in LowExprKind.CreateUnion a,
+	ref LowExpr expr,
+	ref LowExprKind.CreateUnion a,
 ) =>
 	emitUnion(ctx, emit, expr.type, a.memberIndex, (ExprEmit emitArg) =>
 		toGccExpr(ctx, locals, emitArg, a.arg));
 
-ExprResult letToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.Let a) =>
+ExprResult letToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowExprKind.Let a) =>
 	emitWithLocal(ctx, locals, emit, a.local, a.then, (ExprEmit valueEmit) =>
 		toGccExpr(ctx, locals, valueEmit, a.value));
 
@@ -1149,7 +1156,7 @@ ExprResult emitWithLocal(
 	ref Locals locals,
 	ExprEmit emit,
 	in LowLocal* lowLocal,
-	in LowExpr then,
+	ref LowExpr then,
 	in ExprResult delegate(ExprEmit) @safe @nogc pure nothrow cbValue,
 ) {
 	//TODO:NO ALLOC
@@ -1176,15 +1183,15 @@ bool localMustBeVolatile(in ExprCtx ctx, in LowLocal local) =>
 	// The 'catch-point' doesn't really need to be volatile,
 	// and having it volatile causes compile errors when initializing it
 	localMustBeVolatile(*ctx.curLowFun, local) && !isCatchPoint(ctx, local.type);
-bool isCatchPoint(in ExprCtx ctx, in LowType type) =>
-	type.isA!(LowType.Extern) && isCatchPoint(*ctx.program.allTypes.allExternTypes[type.as!(LowType.Extern)].source);
+bool isCatchPoint(in ExprCtx ctx, LowType type) =>
+	type.isA!(LowExternType*) && isCatchPoint(*type.as!(LowExternType*).source);
 
-ExprResult localSetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LocalSet a) {
+ExprResult localSetToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowExprKind.LocalSet a) {
 	emitToLValue(ctx, locals, getLocal(ctx, locals, a.local), a.value);
 	return emitVoid(ctx, emit);
 }
 
-ExprResult loopToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowType type, in LowExprKind.Loop a) =>
+ExprResult loopToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, LowType type, ref LowExprKind.Loop a) =>
 	emitWithBranching(
 		ctx, emit, type, "loopEnd",
 		(
@@ -1205,7 +1212,7 @@ ExprResult loopToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowTy
 			assert(innerResult.isA!(ExprResult.BreakContinueOrReturn));
 		});
 
-ExprResult loopBreakToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExprKind.LoopBreak a) {
+ExprResult loopBreakToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowExprKind.LoopBreak a) {
 	ExprEmit.Loop loop = *emit.as!(ExprEmit.Loop*);
 	// Give 'breakEmit' to the inner expr, so it does whatever is needed by the loop
 	ExprResult result = toGccExpr(ctx, locals, loop.breakEmit, a.value);
@@ -1227,8 +1234,8 @@ ExprResult ptrCastToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr expr,
-	in LowExprKind.PointerCast a,
+	ref LowExpr expr,
+	ref LowExprKind.PointerCast a,
 ) =>
 	emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
 		ctx.gcc,
@@ -1240,23 +1247,24 @@ ExprResult recordFieldPointerToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr expr,
-	in LowExprKind.RecordFieldPointer a,
-) {
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
-	return emitSimpleYesSideEffects(
+	ref LowExpr expr,
+	ref LowExprKind.RecordFieldPointer a,
+) =>
+	emitSimpleYesSideEffects(
 		ctx, emit, expr.type,
 		gcc_jit_lvalue_get_address(
-			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, *a.target), null, field),
+			gcc_jit_rvalue_dereference_field(
+				emitToRValue(ctx, locals, *a.target),
+				null,
+				recordField(ctx, a.targetRecordType, a.fieldIndex)),
 			null));
-}
 
 ExprResult localPointerToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
-	in LowExprKind.LocalPointer a,
+	LowType type,
+	ref LowExprKind.LocalPointer a,
 ) {
 	immutable gcc_jit_rvalue* pointer = gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null);
 	return emitSimpleNoSideEffects(ctx, emit, localMustBeVolatile(ctx, *a.local)
@@ -1268,17 +1276,17 @@ ExprResult recordFieldGetToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExprKind.RecordFieldGet a,
+	ref LowExprKind.RecordFieldGet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
+	immutable gcc_jit_field* field = recordField(ctx, a.targetRecordType, a.fieldIndex);
 	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
 
 ref UnionFields getUnionFields(ref ExprCtx ctx, in LowType unionType) =>
-	ctx.types.unionFields[unionType.as!(LowType.Union)];
+	ctx.types.unionFields[ctx.program.indexOfUnion(unionType.as!(LowUnion*))];
 
 ExprResult unionKindToGcc(
 	ref ExprCtx ctx,
@@ -1313,16 +1321,17 @@ ExprResult recordFieldSetToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExprKind.RecordFieldSet a,
+	ref LowExprKind.RecordFieldSet a,
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.targetRecordType][a.fieldIndex];
 	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
-	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
+	gcc_jit_block_add_assignment(
+		ctx.curBlock, null,
+		gcc_jit_rvalue_dereference_field(target, null, recordField(ctx, a.targetRecordType, a.fieldIndex)), value);
 	return emitVoid(ctx, emit);
 }
 
-ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Constant a) =>
+ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, in Constant a) =>
 	a.matchIn!ExprResult(
 		(in Constant.ArrConstant it) {
 			size_t arrSize = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
@@ -1330,7 +1339,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 			gcc_jit_rvalue* arrPtr = gcc_jit_lvalue_get_address(
 				gcc_jit_context_new_array_access(ctx.gcc, null, storage, gcc_jit_context_zero(ctx.gcc, ctx.nat64Type)),
 				null);
-			immutable gcc_jit_field*[] fields = ctx.types.recordFields[type.as!(LowType.Record)];
+			immutable gcc_jit_field*[] fields = recordFields(ctx, type.as!(LowRecord*));
 			assert(fields.length == 2);
 			immutable gcc_jit_field* sizeField = fields[0];
 			immutable gcc_jit_field* ptrField = fields[1];
@@ -1367,29 +1376,25 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 			gcc_jit_lvalue* storage = ctx.globalsForConstants.pointers[it.typeIndex][it.index];
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(storage, null));
 		},
-		(in Constant.Record it) {
-			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
-			return emitRecordCbWithArgs!Constant(
-				ctx, emit, type, it.args,
-				(size_t argIndex, ExprEmit emitArg, in Constant arg) =>
-					constantToGcc(ctx, emitArg, fields[argIndex].type, arg));
-		},
-		(in Constant.Union it) {
-			LowType argType = ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
-			return emitUnion(ctx, emit, type, it.memberIndex, (ExprEmit emitArg) =>
-				constantToGcc(ctx, emitArg, argType, it.arg));
-		},
+		(in Constant.Record x) =>
+			emitRecordCbWithArgs!Constant(
+				ctx, emit, type, x.args,
+				(size_t argIndex, ExprEmit emitArg, ref Constant arg) =>
+					constantToGcc(ctx, emitArg, type.as!(LowRecord*).fields[argIndex].type, arg)),
+		(in Constant.Union x) =>
+			emitUnion(ctx, emit, type, x.memberIndex, (ExprEmit emitArg) =>
+				constantToGcc(ctx, emitArg, type.as!(LowUnion*).members[x.memberIndex], x.arg)),
 		(in Constant.Zero) =>
 			zeroedToGcc(ctx, emit, type));
 
-ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowFunIndex fun) {
+ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunIndex fun) {
 	gcc_jit_rvalue* value = gcc_jit_function_get_address(ctx.gccFuns[fun], null);
 	gcc_jit_rvalue* castValue = () {
 		if (type.isA!(LowType.PointerConst))
 			// We need to cast function pointer to any-ptr for 'all-funs'
 			return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
 		else {
-			assert(type.isA!(LowType.FunPointer));
+			assert(type.isA!(LowFunPointerType*));
 			return value;
 		}
 	}();
@@ -1400,7 +1405,7 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, LowF
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in LowExprKind.SpecialUnary a,
 ) {
 	ExprResult builtin(BuiltinFunction x) =>
@@ -1481,7 +1486,7 @@ ExprResult callBuiltinUnary(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr arg,
+	ref LowExpr arg,
 	BuiltinFunction function_,
 ) {
 	immutable gcc_jit_rvalue* argGcc = emitToRValue(ctx, locals, arg);
@@ -1493,7 +1498,7 @@ ExprResult callBuiltinUnaryAndCast(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr arg,
+	ref LowExpr arg,
 	BuiltinFunction function_,
 	immutable gcc_jit_type* castToType,
 ) {
@@ -1506,7 +1511,7 @@ ExprResult callBuiltinBinary(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowExpr[2] args,
+	ref LowExpr[2] args,
 	BuiltinFunction function_,
 ) {
 	immutable gcc_jit_rvalue*[2] argsGcc = [emitToRValue(ctx, locals, args[0]), emitToRValue(ctx, locals, args[1])];
@@ -1518,7 +1523,7 @@ ExprResult ternaryToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	in LowExprKind.SpecialTernary a,
 ) {
 	final switch (a.kind) {
@@ -1531,8 +1536,8 @@ ExprResult fouraryToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
-	in LowExprKind.Special4ary a,
+	LowType type,
+	ref LowExprKind.Special4ary a,
 ) {
 	final switch (a.kind) {
 		case Builtin4ary.switchFiberInitial:
@@ -1540,7 +1545,7 @@ ExprResult fouraryToGcc(
 			return emitSimpleYesSideEffects(
 				ctx, emit, type,
 				castImmutable(gcc_jit_context_new_call(
-					ctx.gcc, null, ctx.switchFiberInitialFunction, args.length, castNonScope_ref(args).ptr)));
+					ctx.gcc, null, ctx.switchFiberInitialFunction, args.length, args.ptr)));
 	}
 }
 
@@ -1548,21 +1553,20 @@ ExprResult binaryToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
-	in LowExprKind.SpecialBinary a,
+	LowType type,
+	ref LowExprKind.SpecialBinary a,
 ) {
 	LowExpr left = a.args[0], right = a.args[1];
 	ExprResult operator(gcc_jit_binary_op op) {
 		return binaryOperator(ctx, locals, emit, type, op, left, right);
 	}
-	ExprResult comparison(gcc_jit_comparison cmp) {
-		return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_comparison(
+	ExprResult comparison(gcc_jit_comparison cmp) =>
+		emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_comparison(
 			ctx.gcc,
 			null,
 			cmp,
 			emitToRValue(ctx, locals, left),
 			emitToRValue(ctx, locals, right)));
-	}
 	ExprResult callFn(const gcc_jit_function* func) =>
 		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right)]);
 
@@ -1695,17 +1699,17 @@ ExprResult binaryOperator(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	gcc_jit_binary_op op,
-	in LowExpr left,
-	in LowExpr right,
+	ref LowExpr left,
+	ref LowExpr right,
 ) =>
 	operatorForLhsRhs(ctx, emit, type, op, emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right));
 
 ExprResult operatorForLhsRhs(
 	ref ExprCtx ctx,
 	ExprEmit emit,
-	in LowType type,
+	LowType type,
 	gcc_jit_binary_op op,
 	gcc_jit_rvalue* lhs,
 	gcc_jit_rvalue* rhs,
@@ -1725,8 +1729,8 @@ ExprResult ptrArithmeticToGcc(
 	ref Locals locals,
 	ExprEmit emit,
 	PtrArith op,
-	in LowExpr left,
-	in LowExpr right,
+	ref LowExpr left,
+	ref LowExpr right,
 ) {
 	// `ptr + nat` is `&ptr[nat]`
 	// `ptr - nat` is `&ptr[-(int) nat]`
@@ -1762,10 +1766,10 @@ ExprResult ifToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
-	in LowExpr cond,
-	in LowExpr then,
-	in LowExpr else_,
+	LowType type,
+	ref LowExpr cond,
+	ref LowExpr then,
+	ref LowExpr else_,
 ) {
 	gcc_jit_rvalue* condValue = emitToRValue(ctx, locals, cond);
 	return emitWithBranching(
@@ -1779,7 +1783,7 @@ ExprResult ifToGcc(
 			gcc_jit_block* thenBlock = gcc_jit_function_new_block(ctx.curFun, "then");
 			gcc_jit_block* elseBlock = gcc_jit_function_new_block(ctx.curFun, "else");
 			gcc_jit_block_end_with_conditional(originalBlock, null, condValue, thenBlock, elseBlock);
-			void branch(gcc_jit_block* block, in LowExpr blockExpr) {
+			void branch(gcc_jit_block* block, ref LowExpr blockExpr) {
 				ctx.curBlock = block;
 				ExprResult result = {
 					if (has(local)) {
@@ -1806,7 +1810,7 @@ void emitSwitchCaseOrDefault(
 	MutOpt!(gcc_jit_block*) endBlock,
 	MutOpt!(gcc_jit_lvalue*) local,
 	ExprResult expectedResult,
-	in LowExpr case_,
+	ref LowExpr case_,
 ) {
 	ExprResult result = () {
 		if (has(local)) {
@@ -1827,8 +1831,8 @@ ExprResult switchToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
-	in LowType type,
-	in LowExprKind.Switch a,
+	LowType type,
+	ref LowExprKind.Switch a,
 ) {
 	gcc_jit_rvalue* switchedValue = emitToRValue(ctx, locals, a.value);
 	return emitWithBranching(
@@ -1866,37 +1870,33 @@ ExprResult switchToGcc(
 		});
 }
 
-ExprResult zeroedToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type) {
+ExprResult zeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type) {
 	immutable gcc_jit_type* gccType = getGccType(ctx.types, type);
-	return type.combinePointer.matchIn!ExprResult(
-		(in LowType.Extern x) =>
+	return type.combinePointer.matchWithPointers!ExprResult(
+		(LowExternType* x) =>
 			externZeroedToGcc(ctx, emit, x),
-		(in LowType.FunPointer) =>
+		(LowFunPointerType*) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
-		(in PrimitiveType x) =>
+		(PrimitiveType x) =>
 			x == PrimitiveType.void_
 				? emitVoid(ctx, emit)
 				: emitSimpleNoSideEffects(ctx, emit, zeroForPrimitiveType(ctx, x)),
-		(in LowPointerCombine _) =>
+		(LowPointerCombine _) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
-		(in LowType.Record record) {
-			LowField[] fields = ctx.program.allRecords[record].fields;
-			return emitRecordCb(ctx, emit, type, (size_t argIndex, ExprEmit emitArg) =>
-				zeroedToGcc(ctx, emitArg, fields[argIndex].type));
-		},
-		(in LowType.Union union_) {
-			LowType[] members = ctx.program.allUnions[union_].members;
-			return isEmpty(members)
+		(LowRecord* record) =>
+			emitRecordCb(ctx, emit, type, (size_t argIndex, ExprEmit emitArg) =>
+				zeroedToGcc(ctx, emitArg, record.fields[argIndex].type)),
+		(LowUnion* union_) =>
+			isEmpty(union_.members)
 				// No legal value of this type, so leave uninitialized.
 				? emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {})
 				: emitUnion(ctx, emit, type, 0, (ExprEmit emitArg) =>
-					zeroedToGcc(ctx, emitArg, members[0]));
-		});
+					zeroedToGcc(ctx, emitArg, union_.members[0])));
 }
 
-ExprResult externZeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowType.Extern type) =>
+ExprResult externZeroedToGcc(ref ExprCtx ctx, ExprEmit emit, LowExternType* type) =>
 	emitWriteToLValue(ctx, emit, LowType(type), (gcc_jit_lvalue* lvalue) {
-		ExternTypeInfo info = ctx.types.extern_[type];
+		ExternTypeInfo info = ctx.types.extern_[ctx.program.indexOfExternType(type)];
 		if (has(info.array)) {
 			ExternTypeArrayInfo array = force(info.array);
 			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, PrimitiveType.nat8);
@@ -1939,22 +1939,21 @@ gcc_jit_rvalue* zeroForPrimitiveType(ref ExprCtx ctx, PrimitiveType a) {
 }
 
 gcc_jit_rvalue* arbitraryValue(ref ExprCtx ctx, LowType type) {
-	gcc_jit_rvalue* nullValue() {
-		return gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
-	}
+	gcc_jit_rvalue* nullValue() =>
+		gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
 	return type.combinePointer.matchIn!(gcc_jit_rvalue*)(
-		(in LowType.Extern) =>
+		(in LowExternType _) =>
 			todo!(gcc_jit_rvalue*)("!"),
-		(in LowType.FunPointer) =>
+		(in LowFunPointerType _) =>
 			nullValue(),
 		(in PrimitiveType _) =>
 			emitToRValueCb((ExprEmit emit) =>
 				zeroedToGcc(ctx, emit, type)),
 		(in LowPointerCombine) =>
 			nullValue(),
-		(in LowType.Record) =>
+		(in LowRecord _) =>
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}),
-		(in LowType.Union) =>
+		(in LowUnion _) =>
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}));
 }
 

@@ -11,19 +11,23 @@ import model.lowModel :
 	LowExpr,
 	LowExprKind,
 	LowExternType,
+	LowExternTypeIndex,
 	LowField,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPointerType,
+	LowFunPointerTypeIndex,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
 	LowProgram,
 	LowRecord,
+	LowRecordIndex,
 	LowType,
 	LowUnion,
+	LowUnionIndex,
 	PrimitiveType,
 	UpdateParam;
 import model.model : Local;
@@ -37,14 +41,14 @@ Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGett
 	Ctx ctx = Ctx(lineAndColumnGetters);
 	return jsonObject(alloc, [
 		field!"extern"(
-			jsonList!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (in LowExternType x) =>
+			jsonList!(LowExternTypeIndex, LowExternType)(alloc, a.allExternTypes, (in LowExternType x) =>
 				jsonOfExternType(alloc, x))),
-		field!"fun-pointers"(jsonList!(LowType.FunPointer, LowFunPointerType)(
+		field!"fun-pointers"(jsonList!(LowFunPointerTypeIndex, LowFunPointerType)(
 			alloc, a.allFunPointerTypes, (in LowFunPointerType x) =>
 				jsonOfLowFunPointerType(alloc, x))),
-		field!"records"(jsonList!(LowType.Record, LowRecord)(alloc, a.allRecords, (in LowRecord x) =>
+		field!"records"(jsonList!(LowRecordIndex, LowRecord)(alloc, a.allRecords, (in LowRecord x) =>
 			jsonOfLowRecord(alloc, x))),
-		field!"unions"(jsonList!(LowType.Union, LowUnion)(alloc, a.allUnions, (in LowUnion x) =>
+		field!"unions"(jsonList!(LowUnionIndex, LowUnion)(alloc, a.allUnions, (in LowUnion x) =>
 			jsonOfLowUnion(alloc, x))),
 		field!"funs"(jsonList!(LowFunIndex, LowFun)(alloc, a.allFuns, (in LowFun x) =>
 			jsonOfLowFun(alloc, ctx, x))),
@@ -59,10 +63,10 @@ const struct Ctx {
 
 Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 	a.matchIn!Json(
-		(in LowType.Extern x) =>
-			jsonObject(alloc, [kindField!"extern", field!"index"(x.index)]),
-		(in LowType.FunPointer x) =>
-			jsonObject(alloc, [kindField!"fun-pointer", field!"index"(x.index)]),
+		(in LowExternType x) =>
+			jsonObject(alloc, [kindField!"extern", field!"source"(jsonOfConcreteStructRef(alloc, *x.source))]),
+		(in LowFunPointerType x) =>
+			jsonObject(alloc, [kindField!"fun-pointer", field!"source"(jsonOfConcreteStructRef(alloc, *x.source))]),
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),
 		(in LowType.PointerGc x) =>
@@ -71,10 +75,10 @@ Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 			jsonObject(alloc, [kindField!"pointer-const", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
 		(in LowType.PointerMut x) =>
 			jsonObject(alloc, [kindField!"pointer-mut", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
-		(in LowType.Record x) =>
-			jsonObject(alloc, [kindField!"record", field!"index"(x.index)]),
-		(in LowType.Union x) =>
-			jsonObject(alloc, [kindField!"union", field!"index"(x.index)]));
+		(in LowRecord x) =>
+			jsonObject(alloc, [kindField!"record", field!"source"(jsonOfConcreteStructRef(alloc, *x.source))]),
+		(in LowUnion x) =>
+			jsonObject(alloc, [kindField!"union", field!"source"(jsonOfConcreteStructRef(alloc, *x.source))]));
 
 Json jsonOfExternType(ref Alloc alloc, in LowExternType a) =>
 	jsonObject(alloc, [field!"source"(jsonOfConcreteStructRef(alloc, *a.source))]);

@@ -26,9 +26,10 @@ import model.model :
 	StructBody;
 import util.col.array : SmallArray;
 import util.col.map : Map;
-import util.col.fullIndexMap : FullIndexMap;
-import util.hash : hash2, HashCode, hashEnum, hashUint;
+import util.col.fullIndexMap : FullIndexMap, indexOfPointer;
+import util.hash : HashCode, hashTaggedPointer;
 import util.integralValues : IntegralValues;
+import util.late : Late, lateGet, lateSet;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
@@ -37,6 +38,7 @@ import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
 
+immutable struct LowExternTypeIndex { mixin IndexType; }
 immutable struct LowExternType {
 	ConcreteStruct* source;
 }
@@ -44,11 +46,17 @@ immutable struct LowExternType {
 TypeSize typeSize(in LowExternType a) =>
 	a.source.typeSize;
 
+immutable struct LowRecordIndex { mixin IndexType; }
 immutable struct LowRecord {
 	@safe @nogc pure nothrow:
 
 	ConcreteStruct* source;
-	SmallArray!LowField fields;
+	private Late!(SmallArray!LowField) fields_;
+
+	SmallArray!LowField fields() return scope =>
+		lateGet(fields_);
+	void fields(SmallArray!LowField x) =>
+		lateSet(fields_, x);
 
 	//TODO:MOVE
 	bool packed() scope =>
@@ -71,24 +79,44 @@ bool isFiber(in LowRecord a) =>
 bool isTuple(in LowRecord a) =>
 	isTuple(*a.source);
 
+immutable struct LowUnionIndex { mixin IndexType; }
 immutable struct LowUnion {
 	@safe @nogc pure nothrow:
 
 	ConcreteStruct* source;
-	SmallArray!LowType members;
+	Late!(SmallArray!LowType) members_;
+
+	SmallArray!LowType members() return scope =>
+		lateGet(members_);
+	void members(SmallArray!LowType x) =>
+		lateSet(members_, x);
 
 	// This might change if we use tagged pointers
-	size_t membersOffset() =>
+	size_t membersOffset() scope =>
 		ulong.sizeof;
 }
 
 TypeSize typeSize(in LowUnion a) =>
 	a.source.typeSize;
 
+immutable struct LowFunPointerTypeIndex { mixin IndexType; }
 immutable struct LowFunPointerType {
+	@safe @nogc pure nothrow:
+
 	ConcreteStruct* source;
-	LowType returnType;
-	LowType[] paramTypes;
+	private Late!LowType returnType_;
+	private Late!(SmallArray!LowType) paramTypes_;
+
+	LowType returnType() return scope =>
+		lateGet(returnType_);
+	void returnType(LowType value) =>
+		lateSet(returnType_, value);
+
+	SmallArray!LowType paramTypes() return scope =>
+		lateGet(paramTypes_);
+	void paramTypes(SmallArray!LowType value) {
+		lateSet(paramTypes_, value);
+	}
 }
 
 enum PrimitiveType : ubyte {
@@ -111,12 +139,6 @@ enum PrimitiveType : ubyte {
 immutable struct LowType {
 	@safe @nogc pure nothrow:
 
-	immutable struct Extern {
-		mixin IndexType;
-	}
-	immutable struct FunPointer {
-		mixin IndexType;
-	}
 	// Warn: Do not construct directly, use 'getPointerGc' from 'lower.d'
 	immutable struct PointerGc {
 		@safe @nogc pure nothrow:
@@ -147,84 +169,40 @@ immutable struct LowType {
 		@system static PointerMut fromPointerForTaggedUnion(void* a) =>
 			PointerMut(cast(LowType*) a);
 	}
-	immutable struct Record {
-		@safe @nogc pure nothrow:
-		mixin IndexType;
-		HashCode hash() =>
-			hashUint(index);
-	}
-	immutable struct Union {
-		@safe @nogc pure nothrow:
-		mixin IndexType;
-		HashCode hash() =>
-			hashUint(index);
-	}
 
 	mixin TaggedUnion!(
-		Extern,
-		FunPointer,
+		LowExternType*,
+		LowFunPointerType*,
 		PrimitiveType,
 		PointerGc,
 		PointerConst,
 		PointerMut,
-		Record,
-		Union);
+		LowRecord*,
+		LowUnion*);
 
 	bool opEquals(scope LowType b) scope =>
-		matchIn!bool(
-			(in Extern x) =>
-				b.isA!Extern && b.as!Extern.index == x.index,
-			(in FunPointer x) =>
-				b.isA!FunPointer && b.as!FunPointer.index == x.index,
-			(in PrimitiveType x) =>
-				b.isA!PrimitiveType && b.as!PrimitiveType == x,
-			(in PointerGc x) =>
-				b.isA!PointerGc && b.as!PointerGc.pointee == x.pointee,
-			(in PointerConst x) =>
-				b.isA!PointerConst && b.as!PointerConst.pointee == x.pointee,
-			(in PointerMut x) =>
-				b.isA!PointerMut && b.as!PointerMut.pointee == x.pointee,
-			(in Record x) =>
-				b.isA!Record && b.as!Record.index == x.index,
-			(in Union x) =>
-				b.isA!Union && b.as!Union.index == x.index);
+		taggedPointerEquals(b);
 
 	HashCode hash() scope =>
-		hash2(kind, matchIn!HashCode(
-			(in Extern x) =>
-				hashUint(x.index),
-			(in FunPointer x) =>
-				hashUint(x.index),
-			(in PrimitiveType x) =>
-				hashEnum(x),
-			(in PointerGc x) =>
-				x.pointee.hash(),
-			(in PointerConst x) =>
-				x.pointee.hash(),
-			(in PointerMut x) =>
-				x.pointee.hash(),
-			(in Record x) =>
-				hashUint(x.index),
-			(in Union x) =>
-				hashUint(x.index)));
+		hashTaggedPointer!LowType(this);
 
 	LowTypeCombinePointer combinePointer() return scope =>
-		match!LowTypeCombinePointer(
-			(LowType.Extern x) =>
+		matchWithPointers!LowTypeCombinePointer(
+			(LowExternType* x) =>
 				LowTypeCombinePointer(x),
-			(LowType.FunPointer x) =>
+			(LowFunPointerType* x) =>
 				LowTypeCombinePointer(x),
 			(PrimitiveType x) =>
 				LowTypeCombinePointer(x),
-			(LowType.PointerGc x) =>
+			(PointerGc x) =>
 				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
-			(LowType.PointerConst x) =>
+			(PointerConst x) =>
 				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
-			(LowType.PointerMut x) =>
+			(PointerMut x) =>
 				LowTypeCombinePointer(LowPointerCombine(*x.pointee)),
-			(LowType.Record x) =>
+			(LowRecord* x) =>
 				LowTypeCombinePointer(x),
-			(LowType.Union x) =>
+			(LowUnion* x) =>
 				LowTypeCombinePointer(x));
 }
 static assert(LowType.sizeof <= 16);
@@ -240,7 +218,7 @@ bool isVoid(LowType a) =>
 bool isPointerNonGc(LowType a) =>
 	a.isA!(LowType.PointerConst) || a.isA!(LowType.PointerMut);
 
-bool isPointerGcOrRaw(LowType a) =>
+private bool isPointerGcOrRaw(LowType a) =>
 	a.isA!(LowType.PointerGc) || isPointerNonGc(a);
 
 @trusted LowType asPointee(return scope LowType a) =>
@@ -259,7 +237,7 @@ immutable struct LowPointerCombine {
 }
 
 private immutable struct LowTypeCombinePointer {
-	mixin Union!(LowType.Extern, LowType.FunPointer, PrimitiveType, LowPointerCombine, LowType.Record, LowType.Union);
+	mixin Union!(LowExternType*, LowFunPointerType*, PrimitiveType, LowPointerCombine, LowRecord*, LowUnion*);
 }
 
 bool isPrimitiveType(LowType a, PrimitiveType p) =>
@@ -346,8 +324,7 @@ immutable struct LowFun {
 
 	LowFunSource source;
 	LowType returnType;
-	// Includes closure param
-	LowLocal[] params;
+	SmallArray!LowLocal params;
 	LowFunBody body_;
 
 	Opt!Symbol name() scope =>
@@ -418,9 +395,8 @@ immutable struct LowExprKind {
 		LowExpr* funPtr;
 		SmallArray!LowExpr args;
 
-
-		LowType.FunPointer funPointerType() scope =>
-			funPtr.type.as!(LowType.FunPointer);
+		LowFunPointerType* funPointerType() scope =>
+			funPtr.type.as!(LowFunPointerType*);
 	}
 
 	immutable struct CreateRecord {
@@ -486,8 +462,8 @@ immutable struct LowExprKind {
 		LowExpr* target; // Call 'targetIsPointer' to see if this is x.y or x->y
 		size_t fieldIndex;
 
-		LowType.Record targetRecordType() scope =>
-			(targetIsPointer ? asPointee(target.type) : target.type).as!(LowType.Record);
+		LowRecord* targetRecordType() scope =>
+			(targetIsPointer ? asPointee(target.type) : target.type).as!(LowRecord*);
 
 		bool targetIsPointer() scope =>
 			isPointerGcOrRaw(target.type);
@@ -499,8 +475,8 @@ immutable struct LowExprKind {
 		LowExpr* target; // Always a pointer
 		size_t fieldIndex;
 
-		LowType.Record targetRecordType() scope =>
-			asPointee(target.type).as!(LowType.Record);
+		LowRecord* targetRecordType() scope =>
+			asPointee(target.type).as!(LowRecord*);
 	}
 
 	immutable struct RecordFieldSet {
@@ -511,8 +487,8 @@ immutable struct LowExprKind {
 		LowExpr value;
 
 		// Use a template to avoid forward reference errors
-		LowType.Record targetRecordType()() scope =>
-			asPointee(target.type).as!(LowType.Record);
+		LowRecord* targetRecordType()() scope =>
+			asPointee(target.type).as!(LowRecord*);
 	}
 
 	immutable struct SpecialUnary {
@@ -626,11 +602,11 @@ immutable struct ArrTypeAndConstantsLow {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const ArrTypeAndConstantsLow);
-	this(LowType.Record a, LowType e, immutable Constant[][] c) {
+	this(LowRecord* a, LowType e, immutable Constant[][] c) {
 		arrType = a; elementType = e; constants = c;
 	}
 
-	LowType.Record arrType;
+	LowRecord* arrType;
 	LowType elementType;
 	Constant[][] constants;
 }
@@ -696,17 +672,25 @@ immutable struct LowProgram {
 	LowFunIndex main;
 	ExternLibraries externLibraries;
 
-	ref immutable(FullIndexMap!(LowType.Extern, LowExternType)) allExternTypes() scope return =>
+	ref immutable(FullIndexMap!(LowExternTypeIndex, LowExternType)) allExternTypes() scope return =>
 		allTypes.allExternTypes;
+	LowExternTypeIndex indexOfExternType(in LowExternType* x) =>
+		allTypes.indexOfExternType(x);
 
-	ref immutable(FullIndexMap!(LowType.FunPointer, LowFunPointerType)) allFunPointerTypes() scope return =>
+	ref immutable(FullIndexMap!(LowFunPointerTypeIndex, LowFunPointerType)) allFunPointerTypes() scope return =>
 		allTypes.allFunPointerTypes;
+	LowFunPointerTypeIndex indexOfFunPointerType(in LowFunPointerType* x) scope =>
+		allTypes.indexOfFunPointerType(x);
 
-	ref immutable(FullIndexMap!(LowType.Record, LowRecord)) allRecords() scope return =>
+	ref immutable(FullIndexMap!(LowRecordIndex, LowRecord)) allRecords() scope return =>
 		allTypes.allRecords;
+	LowRecordIndex indexOfRecord(in LowRecord* x) scope =>
+		allTypes.indexOfRecord(x);
 
-	ref immutable(FullIndexMap!(LowType.Union, LowUnion)) allUnions() scope return =>
+	ref immutable(FullIndexMap!(LowUnionIndex, LowUnion)) allUnions() scope return =>
 		allTypes.allUnions;
+	LowUnionIndex indexOfUnion(in LowUnion* x) scope =>
+		allTypes.indexOfUnion(x);
 }
 
 immutable struct LowCommonTypes {
@@ -733,8 +717,19 @@ immutable struct ExternLibrary {
 }
 
 immutable struct AllLowTypes {
-	FullIndexMap!(LowType.Extern, LowExternType) allExternTypes;
-	FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointerTypes;
-	FullIndexMap!(LowType.Record, LowRecord) allRecords;
-	FullIndexMap!(LowType.Union, LowUnion) allUnions;
+	@safe @nogc pure nothrow:
+
+	FullIndexMap!(LowExternTypeIndex, LowExternType) allExternTypes;
+	FullIndexMap!(LowFunPointerTypeIndex, LowFunPointerType) allFunPointerTypes;
+	FullIndexMap!(LowRecordIndex, LowRecord) allRecords;
+	FullIndexMap!(LowUnionIndex, LowUnion) allUnions;
+
+	LowExternTypeIndex indexOfExternType(in LowExternType* x) scope =>
+		indexOfPointer!(LowExternTypeIndex, LowExternType)(allExternTypes, x);
+	LowFunPointerTypeIndex indexOfFunPointerType(in LowFunPointerType* x) scope =>
+		indexOfPointer!(LowFunPointerTypeIndex, LowFunPointerType)(allFunPointerTypes, x);
+	LowRecordIndex indexOfRecord(in LowRecord* record) scope =>
+		indexOfPointer!(LowRecordIndex, LowRecord)(allRecords, record);
+	LowUnionIndex indexOfUnion(in LowUnion* union_) scope =>
+		indexOfPointer!(LowUnionIndex, LowUnion)(allUnions, union_);
 }

@@ -10,8 +10,10 @@ import model.lowModel :
 	asGcPointee,
 	LowField,
 	LowFunIndex,
+	LowFunPointerType,
 	LowProgram,
 	LowRecord,
+	LowUnion,
 	LowVar,
 	LowVarIndex,
 	LowType,
@@ -51,7 +53,7 @@ immutable struct VarsInfo {
 VarsInfo generateVarsInfo(ref Alloc alloc, in LowProgram program) {
 	EnumMap!(VarKind, size_t) curWords;
 	immutable FullIndexMap!(LowVarIndex, size_t) offsetsInWords =
-		mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, program.vars, (LowVarIndex _, in LowVar x) {
+		mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, program.vars, (LowVarIndex _, ref LowVar x) {
 			size_t handle(VarKind kind) {
 				size_t res = curWords[kind];
 				curWords[kind] += nStackEntriesForType(program, x.type);
@@ -195,7 +197,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 	c.matchIn!void(
 		(in Constant.ArrConstant it) {
 			ArrTypeAndConstantsLow* arrs = &ctx.program.allConstants.arrs[it.typeIndex];
-			assert(arrs.arrType == t.as!(LowType.Record));
+			assert(arrs.arrType == t.as!(LowRecord*));
 			recurWriteArr(
 				alloc,
 				tempAlloc,
@@ -219,24 +221,15 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 				it.typeIndex, ptrs.pointeeType, it.index, ptrs.constants[it.index]);
 		},
 		(in Constant.Record x) {
-			LowRecord record = ctx.program.allRecords[t.as!(LowType.Record)];
-			zip!(LowField, Constant)(record.fields, x.args, (ref LowField field, ref Constant arg) {
+			zip!(LowField, Constant)(t.as!(LowRecord*).fields, x.args, (ref LowField field, ref Constant arg) {
 				ensureConstant(alloc, tempAlloc, ctx, field.type, arg);
 			});
 		},
 		(in Constant.Union x) {
-			ensureConstant(
-				alloc,
-				tempAlloc,
-				ctx,
-				unionMemberType(ctx.program, t.as!(LowType.Union), x.memberIndex),
-				x.arg);
+			ensureConstant(alloc, tempAlloc, ctx, t.as!(LowUnion*).members[x.memberIndex], x.arg);
 		},
 		(in Constant.Zero) {});
 }
-
-ref LowType unionMemberType(ref LowProgram program, LowType.Union t, size_t memberIndex) =>
-	program.allUnions[t].members[memberIndex];
 
 void recurWriteArr(
 	ref Alloc alloc,
@@ -320,7 +313,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 			registerTextReference(
 				tempAlloc,
 				ctx.funToReferences,
-				type.as!(LowType.FunPointer),
+				ctx.program.indexOfFunPointerType(type.as!(LowFunPointerType*)),
 				fun,
 				TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
 			add64(ctx.text, 0);
@@ -357,17 +350,16 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(in Constant.Record x) {
-			LowRecord record = ctx.program.allRecords[type.as!(LowType.Record)];
 			size_t start = exactSizeArrBuilderCurSize(ctx.text);
-			zip!(LowField, Constant)(record.fields, x.args, (ref LowField field, ref Constant fieldValue) {
+			zip!(LowField, Constant)(type.as!(LowRecord*).fields, x.args, (ref LowField field, ref Constant value) {
 				padTo(ctx.text, start + field.offset);
-				writeConstant(alloc, tempAlloc, ctx, field.type, fieldValue);
+				writeConstant(alloc, tempAlloc, ctx, field.type, value);
 			});
 			padTo(ctx.text, start + typeSize);
 		},
 		(in Constant.Union x) {
 			add64(ctx.text, x.memberIndex);
-			LowType memberType = unionMemberType(ctx.program, type.as!(LowType.Union), x.memberIndex);
+			LowType memberType = type.as!(LowUnion*).members[x.memberIndex];
 			writeConstant(alloc, tempAlloc, ctx, memberType, x.arg);
 			size_t unionSize = typeSizeBytes(ctx.program, type);
 			size_t memberSize = typeSizeBytes(ctx.program, memberType);

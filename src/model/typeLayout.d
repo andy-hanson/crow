@@ -5,7 +5,17 @@ module model.typeLayout;
 import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
 import model.lowModel :
-	AllLowTypes, LowField, LowProgram, LowPointerCombine, LowRecord, LowType, PrimitiveType, typeSize;
+	AllLowTypes,
+	LowExternType,
+	LowFunPointerType,
+	LowField,
+	LowProgram,
+	LowPointerCombine,
+	LowRecord,
+	LowType,
+	LowUnion,
+	PrimitiveType,
+	typeSize;
 import util.col.array : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp, isMultipleOf;
@@ -22,21 +32,27 @@ TypeSize sizeOfType(in LowProgram program, in LowType a) =>
 	sizeOfType(program.allTypes, a);
 TypeSize sizeOfType(in AllLowTypes types, in LowType a) =>
 	a.combinePointer.match!TypeSize(
-		(LowType.Extern x) =>
-			typeSize(types.allExternTypes[x]),
-		(LowType.FunPointer) =>
+		(ref LowExternType x) =>
+			typeSize(x),
+		(ref LowFunPointerType _) =>
 			funPtrSize,
-		(PrimitiveType it) =>
-			primitiveSize(it),
+		(PrimitiveType x) =>
+			primitiveSize(x),
 		(LowPointerCombine) =>
 			ptrSize,
-		(LowType.Record index) =>
-			typeSize(types.allRecords[index]),
-		(LowType.Union index) =>
-			typeSize(types.allUnions[index]));
+		(ref LowRecord x) =>
+			typeSize(x),
+		(ref LowUnion x) =>
+			typeSize(x));
 
 size_t nStackEntriesForType(in LowProgram program, in LowType a) =>
 	nStackEntriesForBytes(typeSizeBytes(program, a));
+
+size_t nStackEntriesForRecord(in LowProgram program, in LowRecord a) =>
+	nStackEntriesForBytes(typeSize(a).sizeBytes);
+
+size_t nStackEntriesForUnion(in LowProgram program, in LowUnion a) =>
+	nStackEntriesForBytes(typeSize(a).sizeBytes);
 
 private size_t nStackEntriesForBytes(size_t bytes) =>
 	divRoundUp(bytes, stackEntrySize);
@@ -53,8 +69,7 @@ immutable struct PackField {
 	size_t size;
 }
 
-Opt!Pack optPack(TempAlloc)(ref TempAlloc tempAlloc, in LowProgram program, LowType.Record type) {
-	LowRecord record = program.allRecords[type];
+Opt!Pack optPack(TempAlloc)(ref TempAlloc tempAlloc, in LowProgram program, in LowRecord record) {
 	if (every!LowField(record.fields, (in LowField field) => isMultipleOf(field.offset, 8)))
 		return none!Pack;
 	else {
@@ -65,7 +80,7 @@ Opt!Pack optPack(TempAlloc)(ref TempAlloc tempAlloc, in LowProgram program, LowT
 			inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);
 			return PackField(fieldInOffsetBytes, field.offset, fieldSizeBytes);
 		});
-		size_t outEntries = nStackEntriesForType(program, LowType(type));
+		size_t outEntries = nStackEntriesForRecord(program, record);
 		return some(Pack(inOffsetEntries, outEntries, fields));
 	}
 }

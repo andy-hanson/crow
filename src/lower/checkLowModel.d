@@ -29,6 +29,7 @@ import model.lowModel :
 	LowCommonTypes,
 	LowExpr,
 	LowExprKind,
+	LowExternType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -36,7 +37,9 @@ import model.lowModel :
 	LowFunPointerType,
 	LowLocal,
 	LowProgram,
+	LowRecord,
 	LowType,
+	LowUnion,
 	PrimitiveType,
 	UpdateParam;
 import model.model :
@@ -119,23 +122,20 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 				checkLowExpr(ctx, param.type, arg, ExprPos.nonTail);
 			});
 		},
-		(in LowExprKind.CallFunPointer it) {
-			LowFunPointerType funPtrType = ctx.program.allFunPointerTypes[it.funPtr.type.as!(LowType.FunPointer)];
-			checkTypeEqual(ctx, type, funPtrType.returnType);
-			assert(sizeEq(funPtrType.paramTypes, it.args));
-			zip!(LowType, LowExpr)(funPtrType.paramTypes, it.args, (ref LowType paramType, ref LowExpr arg) {
+		(in LowExprKind.CallFunPointer x) {
+			checkTypeEqual(ctx, type, x.funPointerType.returnType);
+			assert(sizeEq(x.funPointerType.paramTypes, x.args));
+			zip!(LowType, LowExpr)(x.funPointerType.paramTypes, x.args, (ref LowType paramType, ref LowExpr arg) {
 				checkLowExpr(ctx, paramType, arg, ExprPos.nonTail);
 			});
 		},
-		(in LowExprKind.CreateRecord it) {
-			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
-			zip!(LowField, LowExpr)(fields, it.args, (ref LowField field, ref LowExpr arg) {
+		(in LowExprKind.CreateRecord x) {
+			zip!(LowField, LowExpr)(type.as!(LowRecord*).fields, x.args, (ref LowField field, ref LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg, ExprPos.nonTail);
 			});
 		},
-		(in LowExprKind.CreateUnion it) {
-			LowType member = ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
-			checkLowExpr(ctx, member, it.arg, ExprPos.nonTail);
+		(in LowExprKind.CreateUnion x) {
+			checkLowExpr(ctx, type.as!(LowUnion*).members[x.memberIndex], x.arg, ExprPos.nonTail);
 		},
 		(in LowExprKind.FunPointer x) {
 			// TODO
@@ -176,20 +176,18 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
 		},
 		(in LowExprKind.RecordFieldGet x) {
-			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
+			LowType fieldType = x.targetRecordType.fields[x.fieldIndex].type;
 			checkTypeEqual(ctx, type, fieldType);
 		},
 		(in LowExprKind.RecordFieldPointer x) {
 			checkLowExpr(ctx, x.target.type, *x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.program.allRecords[x.targetRecordType].fields[x.fieldIndex].type;
+			LowType fieldType = x.targetRecordType.fields[x.fieldIndex].type;
 			checkTypeEqual(ctx, asNonGcPointee(type), fieldType);
 		},
 		(in LowExprKind.RecordFieldSet x) {
-			LowType.Record recordType = x.targetRecordType;
 			checkLowExpr(ctx, x.target.type, x.target, ExprPos.nonTail);
-			LowType fieldType = ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
+			LowType fieldType = x.targetRecordType.fields[x.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, x.value, ExprPos.nonTail);
 			checkTypeEqual(ctx, type, voidType);
 		},
@@ -242,9 +240,7 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 				checkLowExpr(ctx, update.param.type, update.newValue, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionAs x) {
-			checkTypeEqual(
-				ctx, type,
-				ctx.program.allUnions[x.union_.type.as!(LowType.Union)].members[x.memberIndex]);
+			checkTypeEqual(ctx, type, x.union_.type.as!(LowUnion*).members[x.memberIndex]);
 			checkLowExpr(ctx, x.union_.type, *x.union_, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionKind x) {
@@ -584,9 +580,9 @@ void checkTypeEqual(in FunCtx ctx, in LowType expected, in LowType actual) {
 
 Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
 	a.matchIn!Json(
-		(in LowType.Extern) =>
+		(in LowExternType _) =>
 			jsonString!"some-extern", //TODO: more detail
-		(in LowType.FunPointer) =>
+		(in LowFunPointerType _) =>
 			jsonString!"some-fun-ptr", //TODO: more detail
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),
@@ -602,7 +598,7 @@ Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
 			jsonObject(alloc, [
 				kindField!"pointer-mut",
 				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
-		(in LowType.Record x) =>
-			jsonOfConcreteStructRef(alloc, *program.allRecords[x].source),
-		(in LowType.Union x) =>
-			jsonOfConcreteStructRef(alloc, *program.allUnions[x].source));
+		(in LowRecord x) =>
+			jsonOfConcreteStructRef(alloc, *x.source),
+		(in LowUnion x) =>
+			jsonOfConcreteStructRef(alloc, *x.source));

@@ -7,6 +7,7 @@ import util.col.array : small, SmallArray;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : Comparer;
+import util.conv : safeToUint;
 
 struct ArrayBuilder(T) {
 	private MutArr!(immutable T) data;
@@ -49,6 +50,12 @@ void add(T)(scope ref Alloc alloc, ref ArrayBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }
 
+uint addAndGetIndex(T)(ref Alloc alloc, scope ref ArrayBuilder!T a, T value) {
+	uint res = safeToUint(mutArrSize(a.data));
+	add(alloc, a, value);
+	return res;
+}
+
 void backUp(T)(ref ArrayBuilder!T a) {
 	mustPop(a.data);
 }
@@ -74,9 +81,6 @@ immutable(SmallArray!T) smallFinish(T)(ref Alloc alloc, scope ref ArrayBuilder!T
 
 immutable(T[]) finish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>
 	moveToArray(alloc, a.data);
-
-size_t arrBuilderSize(T)(in ArrayBuilder!T a) =>
-	mutArrSize(a.data);
 
 bool arrayBuilderIsEmpty(T)(in ArrayBuilder!T a) =>
 	mutArrIsEmpty(a.data);

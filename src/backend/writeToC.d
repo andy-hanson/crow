@@ -11,7 +11,6 @@ import backend.mangle :
 	writeLowLocalName,
 	writeLowVarMangledName,
 	writeMangledName,
-	writeRecordName,
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : TypeWriters, writeTypes;
@@ -33,20 +32,24 @@ import model.lowModel :
 	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
+	LowExternType,
 	LowField,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPointerType,
+	LowFunPointerTypeIndex,
 	LowLocal,
 	LowPointerCombine,
 	LowProgram,
 	LowRecord,
+	LowRecordIndex,
 	LowVar,
 	LowVarIndex,
 	LowType,
 	LowUnion,
+	LowUnionIndex,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
@@ -57,7 +60,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : contains, every, exists, isEmpty, map, only, sizeEq, zip;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : mustGet;
-import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.opt : force, has, none, Opt, some;
@@ -408,7 +411,7 @@ void writeVarTypeAndName(scope ref Writer writer, in Ctx ctx, LowVarIndex varInd
 void declareConstantArrStorage(
 	scope ref Writer writer,
 	scope ref Ctx ctx,
-	LowType.Record arrType,
+	in LowRecord* arrType,
 	in LowType elementType,
 	size_t index,
 	size_t nElements,
@@ -428,7 +431,7 @@ void declareConstantPointerStorage(
 	size_t index,
 ) {
 	//TODO: some day we may support non-record pointee?
-	writeRecordType(writer, ctx, pointeeType.as!(LowType.Record));
+	writeStructType(writer, ctx, pointeeType.as!(LowRecord*).source);
 	writer ~= ' ';
 	writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, pointeeType, index);
 }
@@ -486,33 +489,31 @@ Temp getNextTemp(ref FunBodyCtx ctx) {
 }
 
 void writeType(scope ref Writer writer, scope ref Ctx ctx, in LowType t) {
-	t.combinePointer.matchIn!void(
-		(in LowType.Extern it) {
-			writer ~= "struct ";
-			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allExternTypes[it].source);
+	t.combinePointer.matchWithPointers!void(
+		(LowExternType* x) {
+			writeStructType(writer, ctx, x.source);
 		},
-		(in LowType.FunPointer it) {
-			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allFunPointerTypes[it].source);
+		(LowFunPointerType* x) {
+			writeStructMangledName(writer, ctx.mangledNames, x.source);
 		},
-		(in PrimitiveType it) {
+		(PrimitiveType it) {
 			writePrimitiveType(writer, it);
 		},
-		(in LowPointerCombine it) {
+		(LowPointerCombine it) {
 			writeType(writer, ctx, it.pointee);
 			writer ~= '*';
 		},
-		(in LowType.Record it) {
-			writeRecordType(writer, ctx, it);
+		(LowRecord* x) {
+			writeStructType(writer, ctx, x.source);
 		},
-		(in LowType.Union it) {
-			writer ~= "struct ";
-			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allUnions[it].source);
+		(LowUnion* x) {
+			writeStructType(writer, ctx, x.source);
 		});
 }
 
-void writeRecordType(scope ref Writer writer, scope ref Ctx ctx, LowType.Record a) {
+void writeStructType(scope ref Writer writer, in Ctx ctx, in ConcreteStruct* source) {
 	writer ~= "struct ";
-	writeRecordName(writer, ctx.mangledNames, ctx.program, a);
+	writeStructMangledName(writer, ctx.mangledNames, source);
 }
 
 void writeCastToType(scope ref Writer writer, scope ref Ctx ctx, in LowType type) {
@@ -658,7 +659,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			}
 			writer ~= ";\n";
 		},
-		(LowType.FunPointer, in LowFunPointerType funPtr) {
+		(LowFunPointerTypeIndex _, in LowFunPointerType funPtr) {
 			writer ~= "typedef ";
 			if (isEmptyType(ctx, funPtr.returnType))
 				writer ~= "void";
@@ -680,12 +681,12 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 					});
 			writer ~= ");\n";
 		},
-		(LowType.Record x, in LowRecord record) {
-			if (!isEmptyType(ctx, LowType(x)))
-				writeRecord(writer, ctx, record);
+		(LowRecordIndex _, in LowRecord* record) {
+			if (!isEmptyType(ctx, LowType(record)))
+				writeRecord(writer, ctx, *record);
 		},
-		(LowType.Union, in LowUnion union_) {
-			writeUnion(writer, ctx, union_);
+		(LowUnionIndex _, in LowUnion* union_) {
+			writeUnion(writer, ctx, *union_);
 		});
 	writeTypes(alloc, ctx.program, writers);
 
@@ -695,14 +696,11 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 		staticAssertStructSize(writer, ctx, t, sizeOfType(ctx.program, t));
 	}
 
-	//TODO: use a temp alloc
-	fullIndexMapEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (LowType.Record x) {
-		if (!isEmptyType(ctx, LowType(x)))
-			assertSize(LowType(x));
-	});
-	fullIndexMapEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (LowType.Union x) {
-		assertSize(LowType(x));
-	});
+	foreach (ref LowRecord x; ctx.program.allRecords)
+		if (!isEmptyType(ctx, LowType(&x)))
+			assertSize(LowType(&x));
+	foreach (ref LowUnion x; ctx.program.allUnions)
+		assertSize(LowType(&x));
 }
 
 void writeFunReturnTypeNameAndParams(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
@@ -1011,7 +1009,7 @@ WriteExprResult writeExpr(
 			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
 				writeTempOrInline(writer, ctx, x.target, recordValue);
-				writeRecordFieldRef(writer, ctx, true, x.targetRecordType, x.fieldIndex);
+				writeRecordFieldRef(writer, ctx, true, *x.targetRecordType, x.fieldIndex);
 				writer ~= " = ";
 				writeTempOrInline(writer, ctx, x.value, fieldValue);
 			});
@@ -1323,8 +1321,7 @@ void writeCreateUnion(
 	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
 	writer ~= '{';
 	writer ~= memberIndex;
-	LowType memberType = ctx.program.allUnions[type.as!(LowType.Union)].members[memberIndex];
-	if (!isEmptyType(ctx, memberType)) {
+	if (!isEmptyType(ctx, type.as!(LowUnion*).members[memberIndex])) {
 		writer ~= canUseAnonymousUnions(ctx) ? ", " : ", .u = { ";
 		writer ~= ".as";
 		writer ~= memberIndex;
@@ -1407,14 +1404,11 @@ void writeRecordFieldRef(
 	scope ref Writer writer,
 	in FunBodyCtx ctx,
 	bool targetIsPointer,
-	LowType.Record record,
+	in LowRecord record,
 	size_t fieldIndex,
 ) {
 	writer ~= targetIsPointer ? "->" : ".";
-	writeMangledName(
-		writer,
-		ctx.mangledNames,
-		debugName(ctx.program.allRecords[record].fields[fieldIndex]));
+	writeMangledName(writer, ctx.mangledNames, debugName(record.fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.
@@ -1442,7 +1436,7 @@ void writeConstantRef(
 			if (size == 0)
 				writer ~= "NULL";
 			else
-				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowType.Record), x.index);
+				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowRecord*), x.index);
 			writer ~= '}';
 		},
 		(in Constant.CString x) {
@@ -1475,14 +1469,12 @@ void writeConstantRef(
 			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asGcPointee(type), it.index);
 		},
 		(in Constant.Record it) {
-			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
-			assert(sizeEq(fields, it.args));
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);
 			writer ~= '{';
 			writeWithCommasZip!(LowField, Constant)(
 				writer,
-				fields,
+				type.as!(LowRecord*).fields,
 				it.args,
 				(in LowField field, in Constant arg) =>
 					!isEmptyType(ctx, field.type),
@@ -1491,10 +1483,9 @@ void writeConstantRef(
 				});
 			writer ~= '}';
 		},
-		(in Constant.Union it) {
-			LowType memberType = ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
-			writeCreateUnion(writer, ctx, pos, type, it.memberIndex, () {
-				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
+		(in Constant.Union x) {
+			writeCreateUnion(writer, ctx, pos, type, x.memberIndex, () {
+				writeConstantRef(writer, ctx, ConstantRefPos.inner, type.as!(LowUnion*).members[x.memberIndex], x.arg);
 			});
 		},
 		(in Constant.Zero) {
@@ -1571,7 +1562,7 @@ WriteExprResult writeRecordFieldPointer(
 	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		writer ~= "(&";
 		writeTempOrInline(writer, ctx, *a.target, recordValue);
-		writeRecordFieldRef(writer, ctx, true, a.targetRecordType, a.fieldIndex);
+		writeRecordFieldRef(writer, ctx, true, *a.targetRecordType, a.fieldIndex);
 		writer ~= ')';
 	});
 
@@ -1586,7 +1577,7 @@ WriteExprResult writeRecordFieldGet(
 	writeInlineableSingleArg(writer, indent, ctx, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		if (!isEmptyType(ctx, type)) {
 			writeTempOrInline(writer, ctx, *a.target, recordValue);
-			writeRecordFieldRef(writer, ctx, a.targetIsPointer, a.targetRecordType, a.fieldIndex);
+			writeRecordFieldRef(writer, ctx, a.targetIsPointer, *a.targetRecordType, a.fieldIndex);
 		}
 	});
 
@@ -1756,10 +1747,11 @@ WriteExprResult specialCallNary(
 
 void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType type) {
 	type.combinePointer.matchIn!void(
-		(in LowType.Extern x) {
-			writeExternZeroed(writer, ctx, x);
+		(in LowExternType _) {
+			writeCastToType(writer, ctx, type);
+			writer ~= "{{0}}";
 		},
-		(in LowType.FunPointer) {
+		(in LowFunPointerType _) {
 			writer ~= "NULL";
 		},
 		(in PrimitiveType x) {
@@ -1769,13 +1761,12 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 		(in LowPointerCombine _) {
 			writer ~= "NULL";
 		},
-		(in LowType.Record it) {
+		(in LowRecord x) {
 			writeCastToType(writer, ctx, type);
 			writer ~= '{';
-			LowField[] fields = ctx.program.allRecords[it].fields;
 			writeWithCommas!LowField(
 				writer,
-				fields,
+				x.fields,
 				(in LowField field) =>
 					!isEmptyType(ctx, field.type),
 				(in LowField field) {
@@ -1783,15 +1774,10 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 				});
 			writer ~= '}';
 		},
-		(in LowType.Union) {
+		(in LowUnion _) {
 			writeCastToType(writer, ctx, type);
 			writer ~= "{0}";
 		});
-}
-
-void writeExternZeroed(scope ref Writer writer, scope ref Ctx ctx, LowType.Extern type) {
-	writeCastToType(writer, ctx, LowType(type));
-	writer ~= "{{0}}";
 }
 
 WriteExprResult writeSpecialBinary(

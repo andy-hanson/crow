@@ -99,6 +99,7 @@ import model.lowModel :
 	LowExpr,
 	LowExprKind,
 	LowExternType,
+	LowExternTypeIndex,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -106,15 +107,18 @@ import model.lowModel :
 	LowFunFlags,
 	LowFunIndex,
 	LowFunPointerType,
+	LowFunPointerTypeIndex,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
 	LowProgram,
 	LowRecord,
+	LowRecordIndex,
 	LowVar,
 	LowVarIndex,
 	LowType,
 	LowUnion,
+	LowUnionIndex,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
@@ -137,7 +141,7 @@ import model.model :
 	VarKind;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, buildArray, Builder, finish;
+import util.col.arrayBuilder : add, addAndGetIndex, ArrayBuilder, buildArray, Builder, finish;
 import util.col.array :
 	applyNTimes,
 	emptySmallArray,
@@ -150,15 +154,13 @@ import util.col.array :
 	mapPointersWithIndex,
 	mapWithIndex,
 	mapZipPtrFirst,
-	newArray,
 	newSmallArray,
 	only,
 	only2,
 	small,
 	SmallArray,
 	zipPtrFirst;
-import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
-import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
+import util.col.map : KeyValuePair, makeMapFromKeysOptional, makeMapWithIndex, mustGet, Map;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr;
 import util.col.mutArr : moveToArray, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, moveToMap, mustAdd, mustGet, MutMap, MutMap;
@@ -195,29 +197,27 @@ private LowProgram lowerInner(
 	ref Program program,
 	ref ConcreteProgram a,
 ) {
-	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
-	LowType catchPointConstPointerType = lowTypeFromConcreteType(
-		allTypes.getLowTypeCtx, a.commonFuns.curCatchPoint.returnType);
-	LowType nat64MutPointer = getPointerMut(allTypes.getLowTypeCtx, nat64Type);
+	GetLowTypeCtx getLowTypeCtx = getAllLowTypes(alloc, a);
+	LowType catchPointConstPointerType = lowTypeFromConcreteType(getLowTypeCtx, a.commonFuns.curCatchPoint.returnType);
+	LowType nat64MutPointer = getPointerMut(getLowTypeCtx, nat64Type);
 	LowCommonTypes commonTypes = LowCommonTypes(
 		catchPointConstPointer: catchPointConstPointerType,
 		catchPointMutPointer: LowType(LowType.PointerMut(catchPointConstPointerType.as!(LowType.PointerConst).pointee)),
-		fiberReference: lowTypeFromConcreteType(allTypes.getLowTypeCtx, a.commonFuns.fiberReferenceType),
-		nat8ConstPointer: getPointerConst(allTypes.getLowTypeCtx, nat8Type),
-		nat8MutPointer: getPointerMut(allTypes.getLowTypeCtx, nat8Type),
+		fiberReference: lowTypeFromConcreteType(getLowTypeCtx, a.commonFuns.fiberReferenceType),
+		nat8ConstPointer: getPointerConst(getLowTypeCtx, nat8Type),
+		nat8MutPointer: getPointerMut(getLowTypeCtx, nat8Type),
 		nat64MutPointer: nat64MutPointer,
-		nat64MutPointerMutPointer: getPointerMut(allTypes.getLowTypeCtx, nat64MutPointer));
-	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
-	AllLowFuns allFuns = getAllLowFuns(
-		alloc, showCtx, allTypes.allTypes, allTypes.getLowTypeCtx, commonTypes, configExtern, a, vars);
-	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
+		nat64MutPointerMutPointer: getPointerMut(getLowTypeCtx, nat64MutPointer));
+	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, getLowTypeCtx, a.allVars);
+	AllLowFuns allFuns = getAllLowFuns(alloc, showCtx, getLowTypeCtx, commonTypes, configExtern, a, vars);
+	AllConstantsLow allConstants = convertAllConstants(getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
 		a.version_,
 		allFuns.concreteFunToLowFunIndex,
 		allConstants,
 		commonTypes,
 		vars,
-		allTypes.allTypes,
+		getLowTypeCtx.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternLibraries);
@@ -251,16 +251,11 @@ AllConstantsLow convertAllConstants(ref GetLowTypeCtx ctx, ref AllConstantsConcr
 	ArrTypeAndConstantsLow[] arrs = map(ctx.alloc, a.arrs, (ref ArrTypeAndConstantsConcrete it) {
 		LowType arrType = lowTypeFromConcreteStruct(ctx, it.arrType);
 		LowType elementType = lowTypeFromConcreteType(ctx, it.elementType);
-		return ArrTypeAndConstantsLow(arrType.as!(LowType.Record), elementType, it.constants);
+		return ArrTypeAndConstantsLow(arrType.as!(LowRecord*), elementType, it.constants);
 	});
 	PointerTypeAndConstantsLow[] records = map(ctx.alloc, a.pointers, (ref PointerTypeAndConstantsConcrete it) =>
 		PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(ctx, it.pointeeType), it.constants));
 	return AllConstantsLow(a.cStrings, arrs, records);
-}
-
-struct AllLowTypesWithCtx {
-	immutable AllLowTypes allTypes;
-	GetLowTypeCtx getLowTypeCtx;
 }
 
 immutable struct AllLowFuns {
@@ -274,7 +269,10 @@ struct GetLowTypeCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	immutable Map!(ConcreteStruct*, LowType) concreteStructToType;
+	AllLowTypes allTypes;
+	private:
+	// Meaning of the value depends on the kind of ConcreteStruct; it might be a LowRecordIndex for example.
+	Map!(immutable ConcreteStruct*, immutable uint) lowIndices;
 	MutMap!(LowType, LowType*) typeToAllocated;
 
 	ref Alloc alloc() return scope =>
@@ -294,170 +292,145 @@ LowType getPointerConst(ref GetLowTypeCtx ctx, LowType pointee) =>
 LowType getPointerMut(ref GetLowTypeCtx ctx, LowType pointee) =>
 	LowType(LowType.PointerMut(allocateLowType(ctx, pointee)));
 
-AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
-	MapBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
-	ArrayBuilder!(ConcreteStruct*) allFunPointerSources;
-	ArrayBuilder!LowExternType allExternTypes;
-	ArrayBuilder!(ConcreteStruct*) allRecordSources;
-	ArrayBuilder!(ConcreteStruct*) allUnionSources;
-
-	LowType addExtern(ConcreteStruct* s) {
-		uint i = safeToUint(arrBuilderSize(allExternTypes));
-		add(alloc, allExternTypes, LowExternType(s));
-		return LowType(LowType.Extern(i));
-	}
-
-	foreach (ConcreteStruct* concrete; program.allStructs) {
-		Opt!LowType lowType = concrete.body_.matchIn!(Opt!LowType)(
-			(in ConcreteStructBody.Builtin it) {
-				final switch (it.kind) {
-					case BuiltinType.bool_:
-						return some(LowType(PrimitiveType.bool_));
-					case BuiltinType.catchPoint:
-						return some(addExtern(concrete));
-					case BuiltinType.char8:
-						return some(LowType(PrimitiveType.char8));
-					case BuiltinType.char32:
-						return some(LowType(PrimitiveType.char32));
-					case BuiltinType.float32:
-						return some(LowType(PrimitiveType.float32));
-					case BuiltinType.float64:
-						return some(LowType(PrimitiveType.float64));
-					case BuiltinType.funPointer: {
-						uint i = safeToUint(arrBuilderSize(allFunPointerSources));
-						add(alloc, allFunPointerSources, concrete);
-						return some(LowType(LowType.FunPointer(i)));
+GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
+	ArrayBuilder!LowExternType externTypesBuilder;
+	ArrayBuilder!LowFunPointerType funPointerTypesBuilder;
+	ArrayBuilder!LowRecord recordsBuilder;
+	ArrayBuilder!LowUnion unionsBuilder;
+	Map!(immutable ConcreteStruct*, immutable uint) indices =
+		makeMapFromKeysOptional!(ConcreteStruct*, uint)(alloc, program.allStructs, (immutable ConcreteStruct* source) =>
+			source.body_.matchIn!(Opt!uint)(
+				(in ConcreteStructBody.Builtin x) {
+					switch (x.kind) {
+						case BuiltinType.catchPoint:
+							return some(addAndGetIndex(alloc, externTypesBuilder, LowExternType(source)));
+						case BuiltinType.funPointer:
+							return some(addAndGetIndex(alloc, funPointerTypesBuilder, LowFunPointerType(source)));
+						default:
+							return none!uint;
 					}
-					case BuiltinType.int8:
-						return some(LowType(PrimitiveType.int8));
-					case BuiltinType.int16:
-						return some(LowType(PrimitiveType.int16));
-					case BuiltinType.int32:
-						return some(LowType(PrimitiveType.int32));
-					case BuiltinType.int64:
-						return some(LowType(PrimitiveType.int64));
-					case BuiltinType.lambda:
-						assert(false); // Compiled away by concretize
-					case BuiltinType.nat8:
-						return some(LowType(PrimitiveType.nat8));
-					case BuiltinType.nat16:
-						return some(LowType(PrimitiveType.nat16));
-					case BuiltinType.nat32:
-						return some(LowType(PrimitiveType.nat32));
-					case BuiltinType.nat64:
-						return some(LowType(PrimitiveType.nat64));
-					case BuiltinType.pointerConst:
-					case BuiltinType.pointerMut:
-						return none!LowType;
-					case BuiltinType.void_:
-						return some(LowType(PrimitiveType.void_));
-				}
-			},
-			(in ConcreteStructBody.Enum x) =>
-				some(LowType(typeOfIntegralType(x.storage))),
-			(in ConcreteStructBody.Extern x) =>
-				some(addExtern(concrete)),
-			(in ConcreteStructBody.Flags x) =>
-				some(LowType(typeOfIntegralType(x.storage))),
-			(in ConcreteStructBody.Record) {
-				uint i = safeToUint(arrBuilderSize(allRecordSources));
-				add(alloc, allRecordSources, concrete);
-				return some(LowType(LowType.Record(i)));
-			},
-			(in ConcreteStructBody.Union) {
-				uint i = safeToUint(arrBuilderSize(allUnionSources));
-				add(alloc, allUnionSources, concrete);
-				return some(LowType(LowType.Union(i)));
-			});
-		if (has(lowType))
-			mustAddToMap(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
+				},
+				(in ConcreteStructBody.Enum x) =>
+					none!uint,
+				(in ConcreteStructBody.Extern x) =>
+					some(addAndGetIndex(alloc, externTypesBuilder, LowExternType(source))),
+				(in ConcreteStructBody.Flags x) =>
+					none!uint,
+				(in ConcreteStructBody.Record) =>
+					some(addAndGetIndex(alloc, recordsBuilder, LowRecord(source))),
+				(in ConcreteStructBody.Union) =>
+					some(addAndGetIndex(alloc, unionsBuilder, LowUnion(source)))));
+
+	immutable FullIndexMap!(LowExternTypeIndex, LowExternType) allExternTypes =
+		fullIndexMapOfArr!(LowExternTypeIndex, LowExternType)(finish(alloc, externTypesBuilder));
+	immutable FullIndexMap!(LowFunPointerTypeIndex, LowFunPointerType) allFunPointerTypes =
+		fullIndexMapOfArr!(LowFunPointerTypeIndex, LowFunPointerType)(finish(alloc, funPointerTypesBuilder));
+	immutable FullIndexMap!(LowRecordIndex, LowRecord) allRecords =
+		fullIndexMapOfArr!(LowRecordIndex, LowRecord)(finish(alloc, recordsBuilder));
+	immutable FullIndexMap!(LowUnionIndex, LowUnion) allUnions =
+		fullIndexMapOfArr!(LowUnionIndex, LowUnion)(finish(alloc, unionsBuilder));
+
+	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(
+		ptrTrustMe(alloc),
+		AllLowTypes(allExternTypes, allFunPointerTypes, allRecords, allUnions),
+		indices);
+
+	foreach (ref LowRecord record; allRecords)
+		record.fields = mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
+			alloc,
+			record.source.body_.as!(ConcreteStructBody.Record).fields,
+			record.source.fieldOffsets,
+			(ConcreteField* field, immutable uint fieldOffset) =>
+				LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type)));
+	foreach (ref LowFunPointerType funPointer; allFunPointerTypes) {
+		ConcreteType[2] typeArgs = only2(funPointer.source.body_.as!(ConcreteStructBody.Builtin*).typeArgs);
+		funPointer.returnType = lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
+		funPointer.paramTypes = maybeUnpackTuple(alloc, lowTypeFromConcreteType(getLowTypeCtx, typeArgs[1]));
 	}
+	foreach (ref LowUnion union_; allUnions)
+		union_.members = map!(LowType, ConcreteType)(
+			alloc,
+			union_.source.body_.as!(ConcreteStructBody.Union).members,
+			(ref ConcreteType member) => lowTypeFromConcreteType(getLowTypeCtx, member));
 
-	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(ptrTrustMe(alloc), finishMap(alloc, concreteStructToTypeBuilder));
-
-	immutable FullIndexMap!(LowType.Record, LowRecord) allRecords =
-		fullIndexMapOfArr!(LowType.Record, LowRecord)(
-			map(alloc, finish(alloc, allRecordSources), (ref immutable ConcreteStruct* struct_) =>
-				LowRecord(
-					struct_,
-					mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
-						alloc,
-						struct_.body_.as!(ConcreteStructBody.Record).fields,
-						struct_.fieldOffsets,
-						(ConcreteField* field, immutable uint fieldOffset) =>
-							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
-	immutable FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointers =
-		fullIndexMapOfArr!(LowType.FunPointer, LowFunPointerType)(
-			map(alloc, finish(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
-				ConcreteType[2] typeArgs = only2(x.body_.as!(ConcreteStructBody.Builtin*).typeArgs);
-				return LowFunPointerType(
-					x,
-					lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
-					maybeUnpackTuple(alloc, allRecords, lowTypeFromConcreteType(getLowTypeCtx, typeArgs[1])));
-			}));
-	immutable FullIndexMap!(LowType.Union, LowUnion) allUnions =
-		fullIndexMapOfArr!(LowType.Union, LowUnion)(
-			map(alloc, finish(alloc, allUnionSources), (ref immutable ConcreteStruct* it) =>
-				getLowUnion(alloc, program, getLowTypeCtx, it)));
-
-	return AllLowTypesWithCtx(
-		AllLowTypes(
-			fullIndexMapOfArr!(LowType.Extern, LowExternType)(finish(alloc, allExternTypes)),
-			allFunPointers,
-			allRecords,
-			allUnions),
-		getLowTypeCtx);
+	return getLowTypeCtx;
 }
 
-LowType[] maybeUnpackTuple(
-	ref Alloc alloc,
-	FullIndexMap!(LowType.Record, LowRecord) allRecords,
-	LowType a,
-) {
-	Opt!(LowType[]) res = tryUnpackTuple(alloc, allRecords, a);
-	return has(res) ? force(res) : newArray!LowType(alloc, [a]);
+SmallArray!LowType maybeUnpackTuple(ref Alloc alloc, LowType a) {
+	Opt!(SmallArray!LowType) res = tryUnpackTuple(alloc, a);
+	return has(res) ? force(res) : newSmallArray!LowType(alloc, [a]);
 }
 
-Opt!(LowType[]) tryUnpackTuple(
-	ref Alloc alloc,
-	FullIndexMap!(LowType.Record, LowRecord) allRecords,
-	LowType a,
-) {
+Opt!(SmallArray!LowType) tryUnpackTuple(ref Alloc alloc, LowType a) {
 	if (isPrimitiveType(a, PrimitiveType.void_))
-		return some!(LowType[])([]);
-	else if (a.isA!(LowType.Record)) {
-		LowRecord record = allRecords[a.as!(LowType.Record)];
-		return isTuple(record)
-			? some(map(alloc, record.fields, (ref LowField x) => x.type))
-			: none!(LowType[]);
+		return some(emptySmallArray!LowType);
+	else if (a.isA!(LowRecord*)) {
+		LowRecord* record = a.as!(LowRecord*);
+		return isTuple(*record)
+			? some(map!(LowType, LowField)(alloc, record.fields, (ref LowField x) => x.type))
+			: none!(SmallArray!LowType);
 	} else
-		return none!(LowType[]);
+		return none!(SmallArray!LowType);
 }
 
 PrimitiveType typeOfIntegralType(IntegralType a) =>
 	enumConvert!PrimitiveType(a);
 
-LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
-	LowUnion(s, map!(LowType, ConcreteType)(
-		getLowTypeCtx.alloc, s.body_.as!(ConcreteStructBody.Union).members, (ref ConcreteType member) =>
-			lowTypeFromConcreteType(getLowTypeCtx, member)));
-
 LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* struct_) {
-	Opt!LowType res = ctx.concreteStructToType[struct_];
-	if (has(res))
-		return force(res);
-	else {
-		ConcreteStructBody.Builtin* builtin = struct_.body_.as!(ConcreteStructBody.Builtin*);
-		LowType inner = lowTypeFromConcreteType(ctx, only(builtin.typeArgs));
-		switch (builtin.kind) {
-			case BuiltinType.pointerConst:
-				return getPointerConst(ctx, inner);
-			case BuiltinType.pointerMut:
-				return getPointerMut(ctx, inner);
-			default:
-				assert(false);
-		}
-	}
+	uint lowIndex() => mustGet(ctx.lowIndices, struct_);
+	return struct_.body_.matchIn!LowType(
+		(in ConcreteStructBody.Builtin x) {
+			final switch (x.kind) {
+				case BuiltinType.bool_:
+					return LowType(PrimitiveType.bool_);
+				case BuiltinType.catchPoint:
+					return LowType(&ctx.allTypes.allExternTypes[LowExternTypeIndex(lowIndex)]);
+				case BuiltinType.char8:
+					return LowType(PrimitiveType.char8);
+				case BuiltinType.char32:
+					return LowType(PrimitiveType.char32);
+				case BuiltinType.float32:
+					return LowType(PrimitiveType.float32);
+				case BuiltinType.float64:
+					return LowType(PrimitiveType.float64);
+				case BuiltinType.funPointer:
+					return LowType(&ctx.allTypes.allFunPointerTypes[LowFunPointerTypeIndex(lowIndex)]);
+				case BuiltinType.int8:
+					return LowType(PrimitiveType.int8);
+				case BuiltinType.int16:
+					return LowType(PrimitiveType.int16);
+				case BuiltinType.int32:
+					return LowType(PrimitiveType.int32);
+				case BuiltinType.int64:
+					return LowType(PrimitiveType.int64);
+				case BuiltinType.lambda:
+					assert(false); // Compiled away by concretize
+				case BuiltinType.nat8:
+					return LowType(PrimitiveType.nat8);
+				case BuiltinType.nat16:
+					return LowType(PrimitiveType.nat16);
+				case BuiltinType.nat32:
+					return LowType(PrimitiveType.nat32);
+				case BuiltinType.nat64:
+					return LowType(PrimitiveType.nat64);
+				case BuiltinType.pointerConst:
+					return getPointerConst(ctx, lowTypeFromConcreteType(ctx, only(x.typeArgs)));
+				case BuiltinType.pointerMut:
+					return getPointerMut(ctx, lowTypeFromConcreteType(ctx, only(x.typeArgs)));
+				case BuiltinType.void_:
+					return LowType(PrimitiveType.void_);
+			}
+		},
+		(in ConcreteStructBody.Enum x) =>
+			LowType(typeOfIntegralType(x.storage)),
+		(in ConcreteStructBody.Extern x) =>
+			LowType(&ctx.allTypes.allExternTypes[LowExternTypeIndex(lowIndex)]),
+		(in ConcreteStructBody.Flags x) =>
+			LowType(typeOfIntegralType(x.storage)),
+		(in ConcreteStructBody.Record) =>
+			LowType(&ctx.allTypes.allRecords[LowRecordIndex(lowIndex)]),
+		(in ConcreteStructBody.Union) =>
+			LowType(&ctx.allTypes.allUnions[LowUnionIndex(lowIndex)]));
 }
 
 LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType type) {
@@ -486,7 +459,6 @@ alias MutConcreteFunToLowFunIndex = MutMap!(ConcreteFun*, LowFunIndex);
 AllLowFuns getAllLowFuns(
 	ref Alloc alloc,
 	in ShowCtx showCtx,
-	ref AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
 	ref LowCommonTypes commonTypes,
 	in ConfigExternUris configExtern,
@@ -495,7 +467,7 @@ AllLowFuns getAllLowFuns(
 ) {
 	MutConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	MutArr!LowFunCause lowFunCauses;
-	MarkVisitFuns markVisitFuns = initMarkVisitFuns(alloc, ptrTrustMe(allTypes), ptrTrustMe(commonTypes));
+	MarkVisitFuns markVisitFuns = initMarkVisitFuns(alloc, ptrTrustMe(getLowTypeCtx.allTypes), ptrTrustMe(commonTypes));
 	Late!LowType markCtxTypeLate = late!LowType;
 
 	MutMultiMap!(Symbol, Symbol) externLibraryToNames; // Fun and Var combined
@@ -580,7 +552,7 @@ AllLowFuns getAllLowFuns(
 		gcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.gcRoot),
 		gcRootType: gcRootType,
 		gcRootMutPointerType: gcRootMutPointerType,
-		markRootFunPointerType: allTypes.allRecords[gcRootType.as!(LowType.Record)].fields[1].type,
+		markRootFunPointerType: gcRootType.as!(LowRecord*).fields[1].type,
 		setGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.setGcRoot),
 		popGcRoot: mustGet(concreteFunToLowFunIndex, program.commonFuns.popGcRoot));
 
@@ -590,7 +562,6 @@ AllLowFuns getAllLowFuns(
 		push(alloc, allLowFuns, lowFunFromCause(
 			showCtx,
 			program,
-			allTypes,
 			program.allConstants.staticSymbols,
 			getLowTypeCtx,
 			commonFuns,
@@ -663,7 +634,6 @@ struct LowCommonFuns {
 LowFun lowFunFromCause(
 	in ShowCtx showCtx,
 	ref ConcreteProgram concreteProgram,
-	ref AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in LowCommonFuns commonFuns,
@@ -678,13 +648,12 @@ LowFun lowFunFromCause(
 	cause.matchWithPointers!LowFun(
 		(ConcreteFun* cf) {
 			LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
-			LowLocal[] params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(
+			SmallArray!LowLocal params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(
 				getLowTypeCtx.alloc, cf.params, (size_t i, ConcreteLocal* x) =>
 					getLowLocalForParameter(getLowTypeCtx, i, x));
 			LowFunBody body_ = getLowFunBody(
 				showCtx,
 				concreteProgram,
-				allTypes,
 				staticSymbols,
 				getLowTypeCtx,
 				lowFunCauses,
@@ -705,7 +674,7 @@ LowFun lowFunFromCause(
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
 	LowType char8PointerPointer = getPointerConst(ctx, getPointerConst(ctx, char8Type));
-	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
+	SmallArray!LowLocal params = newSmallArray!LowLocal(ctx.alloc, [
 		genLocalByValue(ctx.alloc, symbol!"argc", isMutable: false, 0, int32Type),
 		genLocalByValue(ctx.alloc, symbol!"argv", isMutable: false, 1, char8PointerPointer)]);
 	LowExpr userMainFunPointer =
@@ -769,7 +738,6 @@ T withLowLocal(T)(
 LowFunBody getLowFunBody(
 	in ShowCtx showCtx,
 	ref ConcreteProgram concreteProgram,
-	in AllLowTypes allTypes,
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	ref MutArr!LowFunCause lowFunCauses,
@@ -789,7 +757,6 @@ LowFunBody getLowFunBody(
 			ptrTrustMe(showCtx),
 			thisFunIndex,
 			ptrTrustMe(concreteProgram),
-			ptrTrustMe(allTypes),
 			castNonScope_ref(staticSymbols),
 			ptrTrustMe(getLowTypeCtx),
 			ptrTrustMe(lowFunCauses),
@@ -947,7 +914,6 @@ struct GetLowExprCtx {
 	const ShowCtx* showCtx;
 	immutable LowFunIndex currentFun;
 	immutable ConcreteProgram* concreteProgram;
-	immutable AllLowTypes* allTypes;
 	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
 	MutArr!LowFunCause* lowFunCauses;
@@ -965,8 +931,10 @@ struct GetLowExprCtx {
 	ref Alloc alloc() return scope =>
 		typeCtx.alloc;
 
-	ref typeCtx() return scope =>
+	ref GetLowTypeCtx typeCtx() return scope =>
 		*getLowTypeCtxPtr;
+	ref AllLowTypes allTypes() return scope =>
+		typeCtx.allTypes;
 
 	ref const(MutConcreteFunToLowFunIndex) concreteFunToLowFunIndex() return scope const =>
 		*concreteFunToLowFunIndexPtr;
@@ -1139,12 +1107,12 @@ LowExpr getAllocateExpr(
 		genCallNoGcRoots(ctx.alloc, ctx.commonTypes.nat8MutPointer, range, ctx.commonFuns.alloc, [size]));
 
 LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAndRange range, LowExpr arg) {
-	if (isEmptyType(*ctx.allTypes, arg.type))
+	if (isEmptyType(ctx.allTypes, arg.type))
 		return handleExprPos(ctx, exprPos, mayHaveSideEffects(arg)
 			? genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg), genZeroed(type, range))
 			: genZeroed(type, range));
 	else {
-		LowExpr ptr = getAllocateExpr(ctx, range, type, genSizeOf(*ctx.allTypes, range, arg.type));
+		LowExpr ptr = getAllocateExpr(ctx, range, type, genSizeOf(ctx.allTypes, range, arg.type));
 		// `x = arg; ptr = (T*) alloc(sizeof(T)); *ptr = x; return ptr;``
 		return genLetTempConstNoGcRoot(ctx, range, arg, (LowExpr getArg) =>
 			genLetTempConstNoGcRoot(ctx, range, ptr, (LowExpr getPtr) =>
@@ -1329,9 +1297,9 @@ LowExpr callFunPointerInner(
 ) {
 	LowExpr doCall(LowExpr getFunPtr, SmallArray!LowExpr args) =>
 		handleExprPos(ctx, exprPos, genCallFunPointerNoGcRoots(type, range, allocate(ctx.alloc, getFunPtr), args));
-	Opt!(LowType[]) optArgTypes = tryUnpackTuple(ctx.alloc, ctx.allTypes.allRecords, arg.type);
+	Opt!(SmallArray!LowType) optArgTypes = tryUnpackTuple(ctx.alloc, arg.type);
 	if (has(optArgTypes)) {
-		LowType[] argTypes = force(optArgTypes);
+		SmallArray!LowType argTypes = force(optArgTypes);
 		return arg.kind.isA!(LowExprKind.CreateRecord)
 			? doCall(funPtr, small!LowExpr(arg.kind.as!(LowExprKind.CreateRecord).args))
 			: argTypes.length == 0
@@ -1341,7 +1309,7 @@ LowExpr callFunPointerInner(
 			: genLetTempConstNoGcRoot(ctx, range, funPtr, (LowExpr getFunPointer) =>
 				genLetTempConstNoGcRoot(ctx, range, arg, (LowExpr getArg) =>
 					doCall(getFunPointer, mapWithIndex!(LowExpr, LowType)(
-						ctx.alloc, small!LowType(argTypes), (size_t argIndex, ref LowType argType) =>
+						ctx.alloc, argTypes, (size_t argIndex, ref LowType argType) =>
 							genRecordFieldGet(ctx.alloc, argType, range, getArg, argIndex)))));
 	} else
 		return doCall(funPtr, newSmallArray!LowExpr(ctx.alloc, [arg]));
@@ -1419,7 +1387,7 @@ LowExpr getCallBuiltinExpr(
 		(BuiltinFun.SizeOf) {
 			LowType typeArg =
 				lowTypeFromConcreteType(ctx.typeCtx, only(called.body_.as!(ConcreteFunBody.Builtin).typeArgs));
-			return genSizeOf(*ctx.allTypes, range, typeArg);
+			return genSizeOf(ctx.allTypes, range, typeArg);
 		},
 		(BuiltinFun.StaticSymbols) =>
 			LowExpr(type, range, LowExprKind(ctx.staticSymbols)),
@@ -1441,7 +1409,7 @@ LowExpr maybeOptimizeSpecialBinary(
 
 	switch (kind) {
 		case BuiltinBinary.addPointerAndNat64:
-			return isEmptyType(*ctx.allTypes, asNonGcPointee(arg0.type))
+			return isEmptyType(ctx.allTypes, asNonGcPointee(arg0.type))
 				? genLetTempConstNoGcRoot(ctx, range, arg0, (LowExpr getA) =>
 					genSeq(ctx.alloc, range, genDrop(ctx.alloc, range, arg1), getA))
 				: unopt();
@@ -1485,7 +1453,7 @@ LowExpr getCreateArrayExpr(
 			ctx.typeCtx,
 			only(mustBeByVal(concreteArrType).source.as!(ConcreteStructSource.Inst).typeArgs));
 		LowType elementPtrType = getPointerConst(ctx.typeCtx, elementType);
-		LowExpr elementSize = genSizeOf(*ctx.allTypes, range, elementType);
+		LowExpr elementSize = genSizeOf(ctx.allTypes, range, elementType);
 		LowExpr nElements = genConstantNat64(range, a.args.length);
 		LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
 		LowExpr allocatePtr = getAllocateExpr(ctx, range, elementPtrType, sizeBytes);

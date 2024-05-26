@@ -444,7 +444,7 @@ void filterUnorderedButDontRemoveAll(T)(
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length);
 	size_t outI = 0;
-	foreach (ref In x; a) {
+	foreach (ref const In x; a) {
 		Opt!Out o = cb(x);
 		if (has(o)) {
 			initMemory(&res[outI], force(o));

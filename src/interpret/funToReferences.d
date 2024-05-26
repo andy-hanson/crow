@@ -5,7 +5,7 @@ module interpret.funToReferences;
 import interpret.bytecode : ByteCodeIndex;
 import interpret.extern_ : DynCallSig;
 import interpret.generateText : TextIndex;
-import model.lowModel : LowFunIndex, LowType;
+import model.lowModel : LowFunIndex, LowFunPointerTypeIndex;
 import util.alloc.alloc : TempAlloc;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach_const, makeFullIndexMap_mut;
@@ -19,7 +19,7 @@ struct FunToReferences {
 	FullIndexMap!(LowFunIndex, FunReferencesBuilder) inner;
 }
 
-alias FunPointerTypeToDynCallSig = immutable FullIndexMap!(LowType.FunPointer, DynCallSig);
+alias FunPointerTypeToDynCallSig = immutable FullIndexMap!(LowFunPointerTypeIndex, DynCallSig);
 
 void eachFunPointer(
 	in FunToReferences a,
@@ -75,29 +75,29 @@ void registerCall(ref TempAlloc tempAlloc, ref FunToReferences a, LowFunIndex ca
 void registerTextReference(
 	ref TempAlloc tempAlloc,
 	ref FunToReferences a,
-	LowType.FunPointer type,
+	LowFunPointerTypeIndex type,
 	LowFunIndex fun,
 	TextIndex reference,
 ) {
-	add(tempAlloc, ptrRefs(tempAlloc, a, type, fun).textReferences, reference);
+	add(tempAlloc, funPointerReferences(tempAlloc, a, type, fun).textReferences, reference);
 }
 
 void registerFunPointerReference(
 	ref TempAlloc tempAlloc,
 	scope ref FunToReferences a,
-	in LowType.FunPointer type,
+	in LowFunPointerTypeIndex type,
 	LowFunIndex fun,
 	ByteCodeIndex reference,
 ) {
-	add(tempAlloc, ptrRefs(tempAlloc, a, type, fun).funPtrRefs, reference);
+	add(tempAlloc, funPointerReferences(tempAlloc, a, type, fun).funPtrRefs, reference);
 }
 
 private:
 
-ref FunPointerReferencesBuilder ptrRefs(
+ref FunPointerReferencesBuilder funPointerReferences(
 	ref TempAlloc tempAlloc,
 	return scope ref FunToReferences a,
-	in LowType.FunPointer type,
+	in LowFunPointerTypeIndex type,
 	LowFunIndex fun,
 ) {
 	if (!has(a.inner[fun].ptrRefs))

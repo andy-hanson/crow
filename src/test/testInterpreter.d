@@ -57,23 +57,27 @@ import model.lowModel :
 	ConcreteFunToLowFunIndex,
 	LowCommonTypes,
 	LowExternType,
+	LowExternTypeIndex,
 	LowFun,
 	LowFunBody,
 	LowFunIndex,
 	LowFunPointerType,
+	LowFunPointerTypeIndex,
 	LowFunSource,
+	LowLocal,
 	LowProgram,
 	LowRecord,
+	LowRecordIndex,
 	LowVar,
 	LowVarIndex,
-	LowType,
 	LowUnion,
+	LowUnionIndex,
 	PrimitiveType;
 import model.model : VarKind;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test, withShowDiagCtxForTestImpure;
 import util.alloc.alloc : Alloc;
-import util.col.array : small;
+import util.col.array : emptySmallArray, small;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.integralValues : integralValuesRange;
@@ -126,7 +130,7 @@ void doInterpret(
 	LowFun[1] lowFun = [LowFun(
 		LowFunSource(allocate(test.alloc, LowFunSource.Generated(symbol!"test", []))),
 		nat64Type,
-		[],
+		emptySmallArray!LowLocal,
 		LowFunBody(LowFunBody.Extern(symbol!"bogus")))];
 	LowProgram lowProgram = LowProgram(
 		versionInfoForInterpret(OS.linux, VersionOptions()),
@@ -135,10 +139,10 @@ void doInterpret(
 		LowCommonTypes(voidType, voidType, voidType, voidType, voidType, voidType, voidType),
 		emptyFullIndexMap!(LowVarIndex, LowVar),
 		AllLowTypes(
-			emptyFullIndexMap!(LowType.Extern, LowExternType),
-			emptyFullIndexMap!(LowType.FunPointer, LowFunPointerType),
-			emptyFullIndexMap!(LowType.Record, LowRecord),
-			emptyFullIndexMap!(LowType.Union, LowUnion)),
+			emptyFullIndexMap!(LowExternTypeIndex, LowExternType),
+			emptyFullIndexMap!(LowFunPointerTypeIndex, LowFunPointerType),
+			emptyFullIndexMap!(LowRecordIndex, LowRecord),
+			emptyFullIndexMap!(LowUnionIndex, LowUnion)),
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
 		[]);
@@ -233,9 +237,9 @@ void testCallFunPointer(ref Test test) {
 	DynCallSig sig = DynCallSig(small!DynCallType(sigTypes));
 	DynCallSig[1] sigsStorage = [castNonScope(sig)];
 	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig =
-		castNonScope(fullIndexMapOfArr!(LowType.FunPointer, DynCallSig)(castNonScope(sigsStorage)));
+		castNonScope(fullIndexMapOfArr!(LowFunPointerTypeIndex, DynCallSig)(castNonScope(sigsStorage)));
 	LowFunIndex funIndex = LowFunIndex(0);
-	LowType.FunPointer funType = LowType.FunPointer(0);
+	LowFunPointerTypeIndex funTypeIndex = LowFunPointerTypeIndex(0);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
@@ -244,7 +248,7 @@ void testCallFunPointer(ref Test test) {
 	StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 
 	ByteCodeIndex delayed = writePushFunPointerDelayed(writer, source);
-	registerFunPointerReference(test.alloc, funToReferences, funType, funIndex, delayed);
+	registerFunPointerReference(test.alloc, funToReferences, funTypeIndex, funIndex, delayed);
 
 	writePushConstants(writer, source, [1, 2]);
 	writeBreak(writer, source);

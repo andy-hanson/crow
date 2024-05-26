@@ -14,7 +14,17 @@ import model.concreteModel :
 	ReferenceKind;
 import frontend.showModel : ShowCtx, writeLineAndColumn, writeTypeArgsGeneric;
 import model.lowModel :
-	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType;
+	AllLowTypes,
+	LowExternType,
+	LowFun,
+	LowFunIndex,
+	LowFunPointerType,
+	LowFunSource,
+	LowProgram,
+	LowRecord,
+	LowType,
+	LowUnion,
+	PrimitiveType;
 import model.model : Local;
 import util.col.array : only;
 import util.sourceRange : UriLineAndColumnRange;
@@ -105,10 +115,10 @@ private:
 
 void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTypes, in LowType a) {
 	a.matchIn!void(
-		(in LowType.Extern) {
+		(in LowExternType _) {
 			writer ~= "some extern type"; // TODO: more detail
 		},
-		(in LowType.FunPointer) {
+		(in LowFunPointerType _) {
 			writer ~= "some fun ptr type"; // TODO: more detail
 		},
 		(in PrimitiveType x) {
@@ -129,11 +139,11 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 			writeLowType(writer, ctx, lowTypes, *x.pointee);
 			writer ~= ')';
 		},
-		(in LowType.Record x) {
-			writeConcreteStruct(writer, ctx, *lowTypes.allRecords[x].source);
+		(in LowRecord x) {
+			writeConcreteStruct(writer, ctx, *x.source);
 		},
-		(in LowType.Union x) {
-			writeConcreteStruct(writer, ctx, *lowTypes.allUnions[x].source);
+		(in LowUnion x) {
+			writeConcreteStruct(writer, ctx, *x.source);
 		});
 }
 

@@ -96,7 +96,7 @@ private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 	in immutable FullIndexMap!(LowVarIndex, LowVar) vars,
 ) {
 	MutMap!(Symbol, size_t) counts;
-	return mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {
+	return mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, ref LowVar x) {
 		//TODO:PERF use temp alloc
 		size_t* index = &getOrAdd!(Symbol, size_t)(alloc, counts, x.name, () => 0);
 		size_t res = *index;
@@ -208,11 +208,11 @@ void writeConstantArrStorageName(
 	scope ref Writer writer,
 	in MangledNames mangledNames,
 	in LowProgram program,
-	LowType.Record arrType,
+	in LowRecord* arrType,
 	size_t index,
 ) {
 	writer ~= "constant";
-	writeRecordName(writer, mangledNames, program, arrType);
+	writeStructMangledName(writer, mangledNames, arrType.source);
 	writer ~= '_';
 	writer ~= index;
 }
@@ -225,13 +225,9 @@ void writeConstantPointerStorageName(
 	size_t index,
 ) {
 	writer ~= "constant";
-	writeRecordName(writer, mangledNames, program, pointeeType.as!(LowType.Record));
+	writeStructMangledName(writer, mangledNames, pointeeType.as!(LowRecord*).source);
 	writer ~= '_';
 	writer ~= index;
-}
-
-void writeRecordName(scope ref Writer writer, in MangledNames mangledNames, in LowProgram program, LowType.Record a) {
-	writeStructMangledName(writer, mangledNames, program.allRecords[a].source);
 }
 
 private:

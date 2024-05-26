@@ -7,11 +7,11 @@ import util.string : SmallString;
 
 HashCode getHash(T)(in T a) {
 	static if (is(T == P*, P))
-		return hashPtr(a);
+		return hashPointer(a);
 	else static if (is(T == immutable string) || is(T == SmallString))
 		return hashString(a);
 	else static if (is(T == uint))
-		return hashUint(a);
+		return hashUlong(a);
 	else static if (__traits(hasMember, T, "taggedPointerValueForHash"))
 		return hashUlong(a.taggedPointerValueForHash);
 	else
@@ -84,22 +84,13 @@ HashCode hashPointerAndTaggedPointersX2(T, U, V)(in T* pointer, in U[] taggedPoi
 	return hasher.finish();
 }
 
-HashCode hash2(ulong a, HashCode b) =>
-	murmurFinish([a, b.hashCode]);
-
-HashCode hashEnum(E)(E a) =>
-	hashUlong(a);
-
-HashCode hashUint(uint a) =>
-	hashUlong(a);
-
 HashCode hashUlong(ulong a) =>
 	HashCode(fmix64(a));
 
 HashCode hashUlongs(ulong[2] a) =>
 	murmurFinish(a);
 
-HashCode hashPtr(T)(T* a) =>
+HashCode hashPointer(T)(T* a) =>
 	hashUlong(cast(size_t) a);
 
 @trusted HashCode hashString(in string data) {

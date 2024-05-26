@@ -20,7 +20,7 @@ import model.model :
 	VarDecl;
 import util.col.array : arraysEqual, exists, isEmpty, only, SmallArray;
 import util.col.set : Set;
-import util.hash : HashCode, Hasher, hashPtr;
+import util.hash : HashCode, Hasher, hashPointer;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
@@ -74,7 +74,7 @@ immutable struct ConcreteType {
 		struct_ == b.struct_ && reference == reference;
 
 	HashCode hash() scope =>
-		hashPtr(struct_);
+		hashPointer(struct_);
 }
 
 bool isBogus(in ConcreteType a) =>
