@@ -37,7 +37,7 @@ crow-unit-tests-aot: bin/crow
 	bin/crow run test/crow-unit-tests.crow --aot --optimize
 
 test-extern-library: bin/crow bin/libexample.so
-	test/test-extern-library/main.crow
+	bin/crow test/test-extern-library/main.crow
 	# TODO: bin/crow run test/test-extern-library/main.crow --jit
 	bin/crow run test/test-extern-library/main.crow --aot
 

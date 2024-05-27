@@ -372,8 +372,14 @@ void writeEscapedCharForC(scope ref Writer writer, dchar a) {
 		writeEscapedChar_inner(writer, a);
 }
 
+bool useStructThreadLocals(in Ctx ctx) =>
+	// Putting thread-locals a pointer seems to be necessary
+	// to avoid accessing cached values after a fiber switch in optimized builds
+	// TODO: It seems that we don't need this with newer GCC versions. Or maybe just got lucky?
+	true;
+
 void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
-	if (ctx.isMSVC) {
+	if (useStructThreadLocals(ctx)) {
 		writer ~= "struct ThreadLocals {\n";
 		fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
 			if (var.kind == LowVar.Kind.threadLocal) {
@@ -386,7 +392,7 @@ void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullInde
 	}
 
 	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
-		if (!(ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)) {
+		if (!(useStructThreadLocals(ctx) && var.kind == LowVar.Kind.threadLocal)) {
 			writer ~= () {
 				final switch (var.kind) {
 					case LowVar.Kind.externGlobal:
@@ -847,24 +853,29 @@ void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBody
 	// It seems that 'volatile' alone doesn't to the job with MSVC
 	// (it optimizes 'setup-catch' assuming only one branch happens),
 	// but allocating it with a volatile pointee works.
-	bool isAlloca = ctx.isMSVC && isVolatile;
+	bool isAlloca = isVolatile && localMustAllocaIfVolatile(ctx);
 	if (isAlloca)
 		writer ~= '*';
 	writer ~= ' ';
 	writeLowLocalName(writer, ctx.mangledNames, local);
 	if (isAlloca) {
-		writer ~= " = _alloca(sizeof(";
+		writer ~= " = ";
+		writer ~= ctx.isMSVC ? "_alloca" : "__builtin_alloca";
+		writer ~= "(sizeof(";
 		writeType(writer, ctx.ctx, local.type);
 		writer ~= "))";
 	}
 	writer ~= ';';
 }
 
+bool localMustAllocaIfVolatile(in FunBodyCtx ctx) =>
+	ctx.isMSVC;
+
 bool localMustBeVolatile(in FunBodyCtx ctx, in LowLocal local) =>
 	.localMustBeVolatile(ctx.ctx.program.allFuns[ctx.curFun], local);
 
 void writeAccessLocal(scope ref Writer writer, in FunBodyCtx ctx, in LowLocal local) {
-	if (ctx.isMSVC && localMustBeVolatile(ctx, local))
+	if (localMustAllocaIfVolatile(ctx) && localMustBeVolatile(ctx, local))
 		writer ~= '*';
 	writeLowLocalName(writer, ctx.mangledNames, local);
 }
@@ -1119,7 +1130,7 @@ WriteExprResult writeNonInlineable(
 
 void writeLowVarAccess(scope ref Writer writer, in Ctx ctx, in LowVarIndex varIndex) {
 	LowVar var() => ctx.program.vars[varIndex];
-	if (ctx.isMSVC && var.kind == LowVar.Kind.threadLocal)
+	if (useStructThreadLocals(ctx) && var.kind == LowVar.Kind.threadLocal)
 		writer ~= "threadLocals()->";
 	writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 }
@@ -1996,15 +2007,19 @@ WriteExprResult writeInit(
 	in WriteKind writeKind,
 	in LowExprKind.Init a,
 ) {
-	if (ctx.isMSVC) {
+	if (useStructThreadLocals(ctx.ctx)) {
 		writeNewline(writer, indent);
 		writer ~= () {
 			final switch (a.kind) {
 				case BuiltinFun.Init.Kind.global:
-					return "THREAD_LOCALS_INDEX = TlsAlloc();";
+					return ctx.isMSVC
+						? "THREAD_LOCALS_INDEX = TlsAlloc();"
+						: "";
 				case BuiltinFun.Init.Kind.perThread:
-					return "TlsSetValue(THREAD_LOCALS_INDEX, " ~
-						"(struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));";
+					return ctx.isMSVC
+						? "TlsSetValue(THREAD_LOCALS_INDEX, " ~
+							"(struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals)));"
+						: "__threadLocals = (struct ThreadLocals*) calloc(1, sizeof(struct ThreadLocals));";
 			}
 		}();
 	} // No init needed otherwise

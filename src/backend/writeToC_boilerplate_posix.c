@@ -95,3 +95,10 @@ static void __attribute__((naked, noinline, noreturn)) jump_to_catch(void* catch
 		"ret\n"
 	);
 }
+
+struct ThreadLocals;
+_Thread_local struct ThreadLocals* __threadLocals;
+static struct ThreadLocals* threadLocals() {
+	return __threadLocals;
+}
+extern void *alloca(size_t size);
