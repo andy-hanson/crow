@@ -1,8 +1,8 @@
 no-std
 import
 	../bits: &, >>
-	../bool: &&, bool, false, new, not, true
-	../compare: !=, <, <=, >=, equal, max
+	../bool: &&, ||, bool, false, new, not, true
+	../compare: <, <=, >=, equal, max
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash
@@ -11,7 +11,7 @@ import
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
 	../string: interpolate, join, string, to
-	../tuple: b, new
+	../tuple: a, b, new
 	../private/bootstrap: todo
 	./array:
 		~, ~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next,
@@ -68,7 +68,7 @@ Converts a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v[k](a (k, v)[]) k key
-	if a.size <= 4 && a.no-duplicate-keys
+	if a.size <= 4 && !a.has-duplicate-keys
 		a.to.leaf-node,
 	else
 		res mut v[k] = empty-leaf-node::((k, v) node),
@@ -82,13 +82,19 @@ Later pairs overwrite earlier pairs with the same key.
 +to[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
--no-duplicate-keys[k, v] bool(a (k, v)[]) k key
+-has-duplicate-keys[k, v] bool(a (k, v)[]) k key
 	# O(n^2) but it doesn't matter since n <= 4
-	if a.size <= 1
+	match a.size
+	as 0
 		true
-	else
-		key, _ = a[0]
-		a[1 .. end] every ((k, _) => k != key) && a[1 .. end].no-duplicate-keys
+	as 1
+		true
+	as 2
+		a[0].a == a[1].a
+	as 3
+		a[0].a == a[1].a || a[0].a == a[2].a || a[1].a == a[2].a
+	as 4
+		a[0].a == a[1].a || a[0].a == a[2].a || a[0].a == a[3].a || a[1 .. end].has-duplicate-keys
 
 # True iff the map has no entries.
 +is-empty[k, v] bool(a v[k]) k key
