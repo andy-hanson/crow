@@ -9,6 +9,7 @@ import
 		pthread_cond_wait, pthread_create, pthread_join, pthread_mutexattr_destroy,
 		pthread_mutexattr_init, pthread_mutexattr_t, pthread_mutex_destroy, pthread_mutex_init,
 		pthread_mutex_lock, pthread_mutex_t, pthread_mutex_unlock, pthread_t
+	system/stdlib: calloc
 	system/sys/sysinfo: get_nprocs
 	system/time: CLOCK_MONOTONIC, nanosleep
 	system/win32:
@@ -33,6 +34,14 @@ import
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
 export
 	./bootstrap: lock
+
+# TODO: Support pointer to global (then we don't need to allocate this)
+-global-lock-var global(lock mut*)
+~global-lock lock mut*() bare, unsafe
+	global-lock-var
+~init-global-lock void() bare, unsafe
+	global-lock-var := (1 calloc size-of@lock) pointer-cast
+	global-lock-var init
 
 +count-processors nat64() bare, summon, unsafe
 	if is-single-threaded
@@ -80,12 +89,10 @@ export
 	else
 		a.as-mutex.pthread_mutex_unlock hard-assert-posix-error
 
-with-lock[t] t(a lock mut*, f t mut())
-	trusted
-		a acquire
-		res = f[]
-		a release
-		res
+with-lock[t] t(a lock mut*, f t mut()) unsafe
+	a acquire
+	finally a release
+	f[]
 
 condition record by-val, mut
 	# TODO: use union to save space instead of storing posix/windows side-by-side

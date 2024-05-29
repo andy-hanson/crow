@@ -27,7 +27,8 @@ import
 		fiber-queue, init, pop-task, release-exclusion, slow-is-empty, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
-		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
+		get-sequence, increment-and-get, init, init-global-lock, lock, release, thread-safe-counter,
+		uninit, wait-on
 
 -global-ctx-var global(global-ctx mut*)
 ~get-global-ctx global-ctx mut*() bare, unsafe
@@ -39,7 +40,6 @@ cur-exclusion exclusion() unsafe
 	must-cur-fiber cur-exclusion
 
 global-ctx record by-val, mut
-	global-lock mut lock
 	may-be-work-to-do mut condition
 	# Set to true the first time the default exception handler is invoked.
 	# Can never be unset.
@@ -61,9 +61,6 @@ global-ctx record by-val, mut
 	-next-exclusion mut thread-safe-counter
 	-is-shut-down mut bool
 
-get-global-lock lock mut*() unsafe
-	get-global-ctx.global-lock
-
 -thread-id-var thread-local(nat64)
 
 # This is not 'bare' since a non-crow thread won't have an ID
@@ -71,7 +68,6 @@ get-global-lock lock mut*() unsafe
 	thread-id-var
 
 uninit global-ctx(n-threads nat64) bare, summon, unsafe
-	global-lock: uninit
 	may-be-work-to-do: uninit
 	any-unhandled-exceptions: false
 	gc: uninit
@@ -85,7 +81,7 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	is-shut-down: false
 
 init void(a global-ctx mut*) bare, unsafe
-	a.global-lock init
+	init-global-lock
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
 	a.fiber-queue init

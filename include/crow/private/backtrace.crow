@@ -12,7 +12,6 @@ import
 	../compare: !=, >
 	../misc: new, void
 	../option: new, option
-	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	../pointer:
 		==, <=>, +, *, as-const, mem-copy, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-stack-trace-enabled, is-windows
@@ -22,7 +21,9 @@ import
 	./libunwind:
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
 		unw_step, unw_word_t
+	./number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	./range-low-level: ..
+	./thread-utils: acquire, global-lock, release
 export
 	./bootstrap:
 		backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number,
@@ -72,6 +73,8 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 ) bare, unsafe
+	global-lock acquire
+	finally global-lock release
 	guard vars ?= gc try-alloc-windows-backtrace-vars
 	gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
 

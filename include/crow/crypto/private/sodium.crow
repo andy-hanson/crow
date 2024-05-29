@@ -1,9 +1,8 @@
 import
 	system/sodium: sodium_init
-	../../private/runtime: get-global-lock
-	../../private/thread-utils: with-lock
+	../../private/thread-utils: global-lock, with-lock
 
-ensure-sodium-initialized void()
-	trusted get-global-lock with-lock () =>
+ensure-sodium-initialized void() trusted
+	global-lock with-lock () =>
 		err = sodium_init
 		assert err == 0 || err == 1
