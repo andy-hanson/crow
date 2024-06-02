@@ -10,7 +10,7 @@ import concretize.concretizeCtx :
 	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
-	ConcreteVariantMember,
+	ConcreteVariantMemberAndMethodImpls,
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
 	exceptionType,
@@ -23,24 +23,25 @@ import concretize.concretizeCtx :
 	symbolArrayType,
 	voidType;
 import concretize.gatherInfo : getYieldingFuns;
-import concretize.generate : generateCallLambda;
+import concretize.generate : generateCallLambda, generateCallVariantMethod;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructInfo,
 	ConcreteStructBody,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
+import model.model : BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
-import util.col.mutArr : asTemporaryArray, moveAndMapToArray, MutArr, push;
+import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -96,13 +97,9 @@ ConcreteProgram concretizeInner(
 		popGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.popGcRoot));
 
 	finishLambdas(ctx);
+	finishVariants(ctx);
 
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
-
-	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMember x; ctx.variantStructToMembers)
-		lateSet(
-			variant.body_.as!(ConcreteStructBody.Union).members_,
-			moveAndMapToArray(alloc, x, (ref ConcreteVariantMember member) => member.type));
 
 	deferredFillRecordAndUnionBodies(ctx);
 
@@ -153,5 +150,19 @@ void finishLambdas(ref ConcretizeCtx ctx) {
 					asTemporaryArray(mustGet(ctx.lambdaStructToImpls, lambda))));
 			}
 		}
+	}
+}
+
+void finishVariants(ref ConcretizeCtx ctx) {
+	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMemberAndMethodImpls x; ctx.variantStructToMembers)
+		variant.body_.as!(ConcreteStructBody.Union).members =
+			small!ConcreteType(map(ctx.alloc, asTemporaryArray(x), (ref ConcreteVariantMemberAndMethodImpls x) =>
+				x.memberType));
+
+	foreach (ConcreteFun* fun; ctx.deferredVariantMethods) {
+		ConcreteStruct* variant = mustBeByVal(fun.params[0].type);
+		size_t methodIndex = fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).methodIndex;
+		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
+		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}
 }

@@ -84,7 +84,6 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
-	VariantMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray;
@@ -99,7 +98,6 @@ import util.col.array :
 	mapPointersWithIndex,
 	mapZip,
 	maxBy,
-	newArray,
 	newSmallArray,
 	only,
 	onlyPointer,
@@ -110,9 +108,9 @@ import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTab
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
-import util.late : Late, late, lateGet, lazilySet;
+import util.late : Late, late, lateGet, lateSet, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none, optOrDefault;
+import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvert, max, roundUp, typeAs;
@@ -177,11 +175,12 @@ struct ConcretizeCtx {
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
 	MutArr!(ConcreteStruct*) deferredTypeSize;
+	MutArr!(ConcreteFun*) deferredVariantMethods;
 	ArrayBuilder!(ConcreteFun*) allConcreteFuns;
 
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
 	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) lambdaStructToImpls;
-	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMember) variantStructToMembers;
+	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMemberAndMethodImpls) variantStructToMembers;
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _char8Type;
@@ -223,9 +222,16 @@ immutable struct ConcreteLambdaImpl {
 	ConcreteFun* impl;
 }
 
-immutable struct ConcreteVariantMember {
-	VariantMember* member;
-	ConcreteType type;
+immutable struct ConcreteVariantMemberAndMethodImpls {
+	@safe @nogc pure nothrow:
+
+	ConcreteType memberType;
+	Late!(SmallArray!(Opt!(ConcreteFun*))) methodImpls_;
+
+	SmallArray!(Opt!(ConcreteFun*)) methodImpls() =>
+		lateGet(methodImpls_);
+	void methodImpls(SmallArray!(Opt!(ConcreteFun*)) value) =>
+		lateSet(methodImpls_, value);
 }
 
 immutable(ConcreteVar*[]) finishConcreteVars(ref ConcretizeCtx ctx) =>
@@ -330,7 +336,7 @@ ConcreteFun* getConcreteFunForLambda(
 	size_t index,
 	ConcreteType returnType,
 	Destructure modelParam,
-	ConcreteLocal[] params,
+	SmallArray!ConcreteLocal params,
 	Expr* bodyExpr,
 ) {
 	assert(!isBogus(returnType));
@@ -453,20 +459,18 @@ private:
 ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	TypeArgsScope typeScope = key.typeArgs;
 	ConcreteType returnType = getConcreteType(ctx, key.decl.returnType, typeScope);
-	ConcreteLocal[] params = concretizeFunctionParams(ctx, paramsArray(key.decl.params), typeScope);
+	SmallArray!ConcreteLocal params = map(ctx.alloc, paramsArray(key.decl.params), (ref Destructure x) =>
+		concretizeParamDestructure(ctx, x, typeScope));
 	return allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key), returnType, params));
 }
 
-ConcreteLocal[] concretizeFunctionParams(ref ConcretizeCtx ctx, Destructure[] params, TypeArgsScope typeArgsScope) =>
-	map(ctx.alloc, params, (ref Destructure x) => concretizeParamDestructure(ctx, x, typeArgsScope));
-
-public ConcreteLocal[] concretizeLambdaParams(
+public SmallArray!ConcreteLocal concretizeLambdaParams(
 	ref ConcretizeCtx ctx,
 	ConcreteType closureType,
 	Destructure param,
 	TypeArgsScope typeArgsScope,
 ) =>
-	newArray!ConcreteLocal(ctx.alloc, [
+	newSmallArray!ConcreteLocal(ctx.alloc, [
 		ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Closure()), closureType),
 		concretizeParamDestructure(ctx, param, typeArgsScope),
 	]);
@@ -505,7 +509,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, Test* test, size_t testIn
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test, testIndex))),
 		voidType,
-		[]));
+		emptySmallArray!ConcreteLocal));
 	res.body_ = ConcreteFunBody(concretizeFunBody(ctx, res, [], test.body_));
 	addConcreteFun(ctx, res);
 	return res;
@@ -529,7 +533,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		nat64,
-		newArray(ctx.alloc, [
+		newSmallArray(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
@@ -636,7 +640,7 @@ void initializeConcreteStruct(
 			if (has(r.flags.forcedByValOrRef))
 				res.defaultReferenceKind = enumConvert!ReferenceKind(force(r.flags.forcedByValOrRef));
 
-			SmallArray!ConcreteField fields = mapZip(
+			SmallArray!ConcreteField fields = mapZip!(ConcreteField, RecordField, Type)(
 				ctx.alloc, r.fields, inst.instantiatedTypes, (ref RecordField f, ref Type type) =>
 					ConcreteField(
 						f.name,
@@ -648,7 +652,7 @@ void initializeConcreteStruct(
 		},
 		(ref StructBody.Union u) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
-			SmallArray!ConcreteType members = mapZip(
+			SmallArray!ConcreteType members = mapZip!(ConcreteType, UnionMember, Type)(
 				ctx.alloc, u.members, inst.instantiatedTypes, (ref UnionMember x, ref Type type) =>
 					getConcreteType(ctx, type, typeArgsScope));
 			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(late(members))), false);
@@ -662,7 +666,7 @@ void initializeConcreteStruct(
 			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union()), false);
 			// Always defer since we need to wait to know all variant members
 			push(ctx.alloc, ctx.deferredTypeSize, res);
-			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteVariantMember());
+			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteVariantMemberAndMethodImpls());
 		});
 }
 
@@ -734,15 +738,21 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			isEmpty(concreteParams)
 				? ConcreteFunBody(genConstant(
 					cf.returnType, cf.range, Constant(Constant.Record(emptySmallArray!Constant))))
-				: ConcreteFunBody(genCreateRecord(
-					cf.returnType, cf.range, mapPointers(ctx.alloc, concreteParams, (ConcreteLocal* param) =>
-						genLocalGet(cf.range, param)))),
+				: ConcreteFunBody(genCreateRecordFromParams(ctx.alloc, cf.returnType, cf.range, concreteParams)),
+		(FunBody.CreateRecordAndConvertToVariant x) {
+			ConcreteType memberType = getConcreteType(ctx, Type(x.member), cf.source.as!ConcreteFunKey.typeArgs);
+			size_t memberIndex = ensureVariantMember(ctx, cf.returnType, memberType);
+			return isEmpty(concreteParams)
+				? ConcreteFunBody(genConstantUnionEmptyMemberType(ctx.alloc, cf.returnType, cf.range, memberIndex))
+				: ConcreteFunBody(genCreateUnion(
+					ctx.alloc, cf.returnType, cf.range, memberIndex,
+					genCreateRecordFromParams(ctx.alloc, memberType, cf.range, concreteParams)));
+		},
 		(FunBody.CreateUnion x) =>
 			createUnionBody(ctx.alloc, cf, x.member.memberIndex),
 		(FunBody.CreateVariant x) =>
 			createUnionBody(ctx.alloc, cf, ensureVariantMember(
-				ctx, cf.returnType, x.member,
-				isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
+				ctx, cf.returnType, isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
 		(EnumFunction x) {
 			final switch (x) {
 				case EnumFunction.equal:
@@ -793,18 +803,38 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			genUnionMemberGet(
 				ctx, cf,
 				ensureVariantMember(
-					ctx, only(concreteParams).type, x.member, unwrapOptionType(ctx, cf.returnType))),
+					ctx, only(concreteParams).type, unwrapOptionType(ctx, cf.returnType))),
+		(FunBody.VariantMethod x) {
+			push(ctx.alloc, ctx.deferredVariantMethods, cf);
+			return ConcreteFunBody(ConcreteFunBody.Deferred());
+		},
 		(FunBody.VarSet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);
 }
 
+ConcreteExpr genCreateRecordFromParams(
+	ref Alloc alloc,
+	ConcreteType recordType,
+	UriAndRange range,
+	ConcreteLocal[] params,
+) =>
+	genCreateRecord(recordType, range, mapPointers(alloc, params, (ConcreteLocal* param) =>
+		genLocalGet(range, param)));
+
 ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
 	isEmpty(cf.params)
-		? ConcreteFunBody(genConstant(
-			cf.returnType, cf.range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero())))))
+		? ConcreteFunBody(genConstantUnionEmptyMemberType(alloc, cf.returnType, cf.range, memberIndex))
 		: ConcreteFunBody(genCreateUnion(
 			alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
+
+ConcreteExpr genConstantUnionEmptyMemberType(
+	ref Alloc alloc,
+	ConcreteType type,
+	UriAndRange range,
+	size_t memberIndex,
+) =>
+	genConstant(type, range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero()))));
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) =>
 	withConcretizeExprCtx(ctx, cf, (ref ConcretizeExprCtx exprCtx) {

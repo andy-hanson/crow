@@ -4,7 +4,7 @@ import
 	./compare: compare, comparison, equal
 	./misc: ==, <=>
 	./number: nat64, new
-	./private/bootstrap: exception, none, some
+	./private/bootstrap: exception, none, some, string
 export
 	./private/bootstrap: option
 
@@ -49,4 +49,7 @@ If `a` is non-empty, returns its value; else throws.
 ###
 +force[t] t(a t?) bare
 	a ?? throw force-option-error
-+force-option-error variant-member(exception)
++force-option-error record exception variant-member
++describe string(_ force-option-error)
+	"Tried to force empty option"
+

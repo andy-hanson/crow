@@ -2,12 +2,13 @@ import
 	SDL2/SDL_video: SDL_GL_GetProcAddress
 	./headers
 
-+gl-error record(action string, error GLenum, description string)
-+new gl-error(action string, error GLenum)
-	action, error, ""
-+new gl-error(action string, error string)
-	action, GL_NO_ERROR, error
-+gl-error variant-member(exception, gl-error)
++gl-error record(action string, error GLenum, description string) exception variant-member
++describe string(a gl-error)
+	"OpenGL error in {a action}: {a.error.to::nat32} {a description}"
++gl-error exception(action string, error GLenum)
+	action gl-error error, ""
++gl-error exception(action string, error string)
+	action gl-error GL_NO_ERROR, error
 
 +gl-ext record mut
 	glActiveTexture void function(texture GLenum)
@@ -105,5 +106,5 @@ import
 
 -load any-const-pointer(name c-string) summon, unsafe
 	proc = name SDL_GL_GetProcAddress
-	forbid proc == null : ("Loading GL library", name.to) gl-error
+	forbid proc == null : "Loading GL library" gl-error name.to
 	proc

@@ -910,7 +910,7 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 		(ParamsAst.Varargs* x) =>
 			arrayOfSingle(&x.param));
 
-immutable struct SpecSigAst {
+immutable struct SignatureAst {
 	@safe @nogc pure nothrow:
 
 	SmallString docComment;
@@ -1015,6 +1015,7 @@ enum ModifierKeyword : ubyte {
 	summon,
 	trusted,
 	unsafe,
+	variantMember,
 }
 
 immutable struct StructBodyAst {
@@ -1039,7 +1040,9 @@ immutable struct StructBodyAst {
 		Opt!ParamsAst params;
 		SmallArray!RecordOrUnionMemberAst members;
 	}
-	immutable struct Variant {}
+	immutable struct Variant {
+		SmallArray!SignatureAst methods;
+	}
 
 	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union, Variant);
 }
@@ -1122,7 +1125,7 @@ immutable struct SpecDeclAst {
 	SmallArray!NameAndRange typeParams;
 	Pos specKeywordPos;
 	SmallArray!ModifierAst modifiers;
-	SmallArray!SpecSigAst sigs;
+	SmallArray!SignatureAst sigs;
 
 	Range nameRange() scope =>
 		name.range;
@@ -1194,6 +1197,8 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 			return "trusted";
 		case ModifierKeyword.unsafe:
 			return "unsafe";
+		case ModifierKeyword.variantMember:
+			return "variant-member";
 	}
 }
 
@@ -1206,25 +1211,6 @@ immutable struct TestAst {
 
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(range.start, "test".length);
-}
-
-immutable struct VariantMemberAst {
-	@safe @nogc pure nothrow:
-
-	Range range;
-	SmallString docComment;
-	Opt!Visibility visibility_;
-	NameAndRange name;
-	SmallArray!NameAndRange typeParams;
-	Pos keywordPos;
-	TypeAst variant;
-	Opt!TypeAst type;
-	SmallArray!ModifierAst modifiers; // These will be compile errors
-
-	Opt!VisibilityAndRange visibility() scope =>
-		getVisibilityAndRange(range.start, visibility_);
-	Range keywordRange() scope =>
-		rangeOfStartAndLength(range.start, "variant-member".length);
 }
 
 // 'global' or 'thread-local'
@@ -1298,7 +1284,6 @@ immutable struct FileAst {
 	SmallArray!StructDeclAst structs;
 	SmallArray!FunDeclAst funs;
 	SmallArray!TestAst tests;
-	SmallArray!VariantMemberAst variantMembers;
 	SmallArray!VarDeclAst vars;
 }
 

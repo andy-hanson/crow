@@ -7,7 +7,7 @@ import concretize.concretizeCtx :
 	boolType,
 	ConcreteLambdaImpl,
 	concreteTypeFromClosure,
-	ConcreteVariantMember,
+	ConcreteVariantMemberAndMethodImpls,
 	ConcretizeCtx,
 	concretizeLambdaParams,
 	constantCString,
@@ -134,29 +134,30 @@ import model.model :
 	Type,
 	TypedExpr,
 	VariableRef,
-	VariantMember;
+	VariantAndMethodImpls;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
 	concatenate,
-	findIndex,
 	isEmpty,
 	map,
 	mapWithFirst,
 	mapZip,
 	mustFind,
+	mustFindOnly,
 	newArray,
 	newSmallArray,
 	only,
 	only2,
 	sizeEq,
+	small,
 	SmallArray;
-import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
+import util.col.mutArr : findIndexOrPush, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.integralValues : IntegralValue, IntegralValues, integralValuesRange, mapToIntegralValues;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
@@ -308,7 +309,7 @@ ConcreteExpr concretizeCallInner(
 	in UriAndRange range,
 	in Locals locals,
 	ConcreteFun* concreteCalled,
-	Expr[] args,
+	SmallArray!Expr args,
 ) {
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
@@ -324,7 +325,7 @@ ConcreteExpr concretizeCallInner(
 		} else
 			return asConstantsOrExprsIf(
 				ctx.alloc, argsMayBeConstants,
-				mapZip(
+				mapZip!(ConcreteExpr, ConcreteLocal, Expr)(
 					ctx.alloc, concreteCalled.params, args,
 					(ref ConcreteLocal param, ref Expr arg) =>
 						concretizeExpr(ctx, param.type, locals, arg)));
@@ -335,10 +336,10 @@ ConcreteExpr concretizeCallInner(
 				tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
 			return has(constant)
 				? ConcreteExprKind(force(constant))
-				: genCallKindNoAllocArgs(concreteCalled, mapZip(
+				: genCallKindNoAllocArgs(concreteCalled, mapZip!(ConcreteExpr, ConcreteLocal, Constant)(
 					ctx.alloc,
 					concreteCalled.params,
-					constants,
+					small!Constant(constants),
 					(ref ConcreteLocal p, ref Constant x) =>
 						ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))));
 		},
@@ -416,21 +417,32 @@ ConstantsOrExprs asConstantsOrExprsIf(ref Alloc alloc, bool mayBeConstants, Conc
 		? asConstantsOrExprs(alloc, exprs)
 		: ConstantsOrExprs(exprs);
 
-public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called called) =>
+public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, Called called) =>
+	getConcreteFunFromCalled(ctx.concretizeCtx, typeScope(ctx), specsScope(ctx), called);
+public Opt!(ConcreteFun*) getConcreteFunFromCalled(
+	ref ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	Called called,
+) =>
 	called.matchWithPointers!(Opt!(ConcreteFun*))(
 		(Called.Bogus*) =>
 			none!(ConcreteFun*),
 		(FunInst* funInst) =>
-			getConcreteFunFromFunInst(ctx, funInst),
+			getConcreteFunFromFunInst(ctx, typeScope, specsScope, funInst),
 		(CalledSpecSig specSig) =>
-			some(getSpecSigImplementation(ctx, specSig)));
+			some(getSpecSigImplementation(ctx, typeScope, specsScope, specSig)));
 
-ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig specSig) {
+ConcreteFun* getSpecSigImplementation(
+	in ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	CalledSpecSig specSig,
+) {
 	size_t index = 0;
-	SpecsScope scope_ = specsScope(ctx);
-	foreach (SpecInst* x; scope_.specs)
+	foreach (SpecInst* x; specsScope.specs)
 		if (searchSpecSigIndexRecur(index, x, specSig.specInst))
-			return scope_.specImpls[index + specSig.sigIndex];
+			return specsScope.specImpls[index + specSig.sigIndex];
 	assert(false);
 }
 bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* search) {
@@ -444,13 +456,18 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	return false;
 }
 
-Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) =>
+Opt!(ConcreteFun*) getConcreteFunFromFunInst(
+	ref ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	FunInst* funInst,
+) =>
 	withMapOrNoneToStackArray!(ConcreteFun*, immutable ConcreteFun*, Called)(
 		funInst.specImpls,
-		(ref Called x) => getConcreteFunFromCalled(ctx, x),
+		(ref Called x) => getConcreteFunFromCalled(ctx, typeScope, specsScope, x),
 		(scope immutable ConcreteFun*[] specImpls) =>
-			withConcreteTypes(ctx.concretizeCtx, funInst.typeArgs, typeScope(ctx), (scope ConcreteType[] typeArgs) =>
-				getConcreteFun(ctx.concretizeCtx, funInst.decl, typeArgs, specImpls)));
+			withConcreteTypes(ctx, funInst.typeArgs, typeScope, (scope ConcreteType[] typeArgs) =>
+				getConcreteFun(ctx, funInst.decl, typeArgs, specImpls)));
 
 ConcreteExpr concretizeClosureGet(
 	ref ConcretizeExprCtx ctx,
@@ -475,7 +492,7 @@ ConcreteExpr concretizeClosureGet(
 ConcreteExpr getClosureField(ref ConcretizeExprCtx ctx, in UriAndRange range, in ClosureRef a) {
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a);
 	return genRecordFieldGet(
-		info.fieldType, range, allocate(ctx.alloc, genParamGet(ctx.alloc, range, info.closureParam)), info.fieldIndex);
+		info.fieldType, range, allocate(ctx.alloc, genParamGet(range, info.closureParam)), info.fieldIndex);
 }
 
 ConcreteExpr concretizeClosureSet(
@@ -582,7 +599,7 @@ ConcreteExpr concretizeLambdaInner(
 		ctx.concretizeCtx,
 		closureFields,
 		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.curFun, lambdaIndex)));
-	ConcreteLocal[] params = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx));
+	SmallArray!ConcreteLocal params = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx));
 
 	ConcreteStruct* lambdaStruct = mustBeByVal(type);
 
@@ -619,17 +636,29 @@ size_t nextLambdaImplIdInner(ref Alloc alloc, ConcreteLambdaImpl impl, ref MutAr
 public size_t ensureVariantMember(
 	ref ConcretizeCtx ctx,
 	ConcreteType variantType,
-	VariantMember* member,
-	ConcreteType type,
+	ConcreteType memberType,
+) =>
+	findIndexOrPush!ConcreteVariantMemberAndMethodImpls(
+		ctx.alloc,
+		mustGet(ctx.variantStructToMembers, mustBeByVal(variantType)),
+		(in ConcreteVariantMemberAndMethodImpls member) => member.memberType == memberType,
+		() => ConcreteVariantMemberAndMethodImpls(memberType),
+		(ref ConcreteVariantMemberAndMethodImpls x) {
+			x.methodImpls = variantMethodImpls(ctx, variantType, memberType);
+		});
+
+SmallArray!(Opt!(ConcreteFun*)) variantMethodImpls(
+	ref ConcretizeCtx ctx,
+	ConcreteType variantType,
+	ConcreteType memberType,
 ) {
-	MutArr!ConcreteVariantMember* members = &mustGet(ctx.variantStructToMembers, mustBeByVal(variantType));
-	Opt!size_t found = findIndex!ConcreteVariantMember(asTemporaryArray(*members), (in ConcreteVariantMember x) =>
-		x.member == member && x.type == type);
-	return optOrDefault!size_t(found, () {
-		size_t res = mutArrSize(*members);
-		push(ctx.alloc, *members, ConcreteVariantMember(member, type));
-		return res;
-	});
+	ConcreteStructSource.Inst variantSource = mustBeByVal(variantType).source.as!(ConcreteStructSource.Inst);
+	ConcreteStructSource.Inst memberSource = memberType.struct_.source.as!(ConcreteStructSource.Inst);
+	VariantAndMethodImpls variantMember = mustFindOnly!VariantAndMethodImpls(
+		memberSource.decl.variants, (ref VariantAndMethodImpls x) =>
+			x.variant.decl == variantSource.decl);
+	return map!(Opt!(ConcreteFun*), Opt!Called)(ctx.alloc, variantMember.methodImpls, (ref Opt!Called x) =>
+		has(x) ? getConcreteFunFromCalled(ctx, memberSource.typeArgs, SpecsScope(), force(x)) : none!(ConcreteFun*));
 }
 
 alias Locals = StackMap!(Local*, LocalOrConstant);
@@ -1097,8 +1126,7 @@ IntegralValue memberIndexForMatchVariantCase(
 	ConcreteType variantType,
 	ref MatchVariantExpr.Case a,
 ) =>
-	IntegralValue(ensureVariantMember(
-		ctx.concretizeCtx, variantType, a.member, getConcreteType(ctx, a.destructure.type)));
+	IntegralValue(ensureVariantMember(ctx.concretizeCtx, variantType, getConcreteType(ctx, a.destructure.type)));
 
 ConcreteExpr concretizeVariableRefForClosure(
 	ref ConcretizeExprCtx ctx,
@@ -1296,7 +1324,8 @@ Opt!Constant tryEvalConstant(
 				: none!Constant,
 		(in ConcreteFunBody.FlagsFn) => none!Constant,
 		(in ConcreteFunBody.VarGet) => none!Constant,
-		(in ConcreteFunBody.VarSet) => none!Constant);
+		(in ConcreteFunBody.VarSet) => none!Constant,
+		(in ConcreteFunBody.Deferred) => none!Constant);
 
 ConcreteExpr concretizeFinally(
 	ref ConcretizeExprCtx ctx,

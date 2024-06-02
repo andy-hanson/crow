@@ -55,6 +55,9 @@ immutable struct ConcreteStructBody {
 
 		SmallArray!ConcreteType members() return scope =>
 			lateGet(members_);
+		void members(SmallArray!ConcreteType value) {
+			lateSet(members_, value);
+		}
 	}
 
 	mixin .Union!(Builtin*, Enum, Extern, Flags, Record, Union);
@@ -265,8 +268,9 @@ immutable struct ConcreteFunBody {
 	}
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
+	immutable struct Deferred {} // Should only be used temporarily
 
-	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet);
+	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet, Deferred);
 }
 
 immutable struct ConcreteFunSource {
@@ -296,7 +300,7 @@ immutable struct ConcreteFun {
 
 	ConcreteFunSource source;
 	ConcreteType returnType;
-	ConcreteLocal[] params;
+	SmallArray!ConcreteLocal params;
 	private Late!ConcreteFunBody lateBody;
 
 	ref ConcreteFunBody body_() return scope =>

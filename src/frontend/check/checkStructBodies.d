@@ -2,6 +2,8 @@ module frontend.check.checkStructBodies;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkCall.checkCall : findFunctionForReturnAndParamTypes;
+import frontend.check.checkCall.candidates : funsInNonExprScope;
 import frontend.check.checkCtx :
 	addDiag,
 	addDiagAssertSameUri,
@@ -9,8 +11,10 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	visibilityFromDefaultWithDiag,
 	visibilityFromExplicitTopLevel;
-import frontend.check.instantiate : DelayStructInsts;
-import frontend.check.maps : StructsAndAliasesMap;
+import frontend.check.checkFuns : checkReturnTypeAndParams, ReturnTypeAndParams;
+import frontend.check.exprCtx : LocalsInfo;
+import frontend.check.instantiate : DelayStructInsts, instantiateStructWithOwnTypeParams, MayDelayStructInsts;
+import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
 	DestructureAst,
@@ -22,23 +26,29 @@ import model.ast :
 	NameAndRange,
 	ParamsAst,
 	RecordOrUnionMemberAst,
+	SignatureAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, DeclKind;
+import model.diag : Diag, DeclKind, TypeContainer;
 import model.model :
 	BuiltinType,
 	ByValOrRef,
+	Called,
 	CommonTypes,
+	Destructure,
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	EnumMemberSource,
+	FunFlags,
+	FunInst,
 	IntegralType,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
+	isPurityAlwaysCompatible,
 	isPurityPossiblyCompatible,
 	isSigned,
 	leastVisibility,
@@ -48,21 +58,39 @@ import model.model :
 	minValue,
 	nameOfEnumOrFlagsMember,
 	nameOfUnionMember,
+	Params,
 	Purity,
 	purityRange,
 	RecordField,
 	RecordOrUnionMemberSource,
 	RecordFlags,
+	ReturnAndParamTypes,
+	Signature,
 	StructBody,
 	StructDecl,
 	StructDeclSource,
 	StructInst,
 	Type,
 	TypeParamIndex,
+	TypeParams,
 	UnionMember,
+	VariantAndMethodImpls,
 	Visibility;
+import util.alloc.stackAlloc : withStackArray;
 import util.col.array :
-	eachPair, emptySmallArray, fold, isEmpty, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
+	arrayOfSingle,
+	eachPair,
+	emptySmallArray,
+	exists,
+	fold,
+	isEmpty,
+	map,
+	mapOpPointers,
+	mapOpPointersWithSoFar,
+	mapPointers,
+	small,
+	SmallArray,
+	zipPtrFirst;
 import util.col.hashTable : HashTable, makeHashTable;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
@@ -86,14 +114,14 @@ void modifierTypeArgInvalid(ref CheckCtx ctx, in MutOpt!(ModifierAst.Keyword*)[]
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
 		checkTypeParams(ctx, ast.typeParams);
-		LinkageAndPurity p = getStructModifiers(ctx, getDeclKind(ast.body_), ast.modifiers);
+		LinkageAndPurity m = getStructModifiers(ctx, getDeclKind(ast.body_), ast.modifiers);
 		return StructDecl(
 			StructDeclSource(ast),
 			ctx.curUri,
 			visibilityFromExplicitTopLevel(ast.visibility),
-			p.linkage,
-			p.purityAndForced.purity,
-			p.purityAndForced.forced);
+			m.linkage,
+			m.purityAndForced.purity,
+			m.purityAndForced.forced);
 	});
 
 void checkStructBodies(
@@ -105,9 +133,11 @@ void checkStructBodies(
 	in StructDeclAst[] asts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
+		struct_.variants = checkVariantMembersInitial(
+			ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
 		struct_.body_ = ast.body_.match!StructBody(
 			(StructBodyAst.Builtin) {
-				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
+				checkOnlyCommonModifiers(ctx, DeclKind.builtin, ast.modifiers);
 				return StructBody(getBuiltinType(ctx, struct_));
 			},
 			(StructBodyAst.Enum x) {
@@ -130,22 +160,145 @@ void checkStructBodies(
 				StructBody(checkRecord(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
 			(StructBodyAst.Union x) {
-				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
+				checkOnlyCommonModifiers(ctx, DeclKind.union_, ast.modifiers);
 				return StructBody(allocate(ctx.alloc,
 					checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts)));
 			},
 			(StructBodyAst.Variant x) {
-				checkOnlyStructModifiers(ctx, DeclKind.variant, ast.modifiers);
-				return StructBody(StructBody.Variant());
+				checkOnlyCommonModifiers(ctx, DeclKind.variant, ast.modifiers);
+				return StructBody(StructBody.Variant(checkSignatures(
+					ctx, commonTypes, structsAndAliasesMap, TypeContainer(struct_), ast.typeParams, x.methods,
+					someMut(ptrTrustMe(delayStructInsts)))));
 			});
 	});
 }
 
+SmallArray!Signature checkSignatures(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	TypeContainer typeContainer,
+	TypeParams typeParams,
+	SmallArray!SignatureAst asts,
+	MayDelayStructInsts delayStructInsts,
+) =>
+	mapPointers!(Signature, SignatureAst)(ctx.alloc, asts, (SignatureAst* x) {
+		ReturnTypeAndParams rp = checkReturnTypeAndParams(
+			ctx, commonTypes, typeContainer, x.returnType, x.params,
+			typeParams, structsAndAliasesMap, delayStructInsts);
+		Destructure[] params = rp.params.matchWithPointers!(Destructure[])(
+			(Destructure[] x) =>
+				x,
+			(Params.Varargs* x) {
+				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
+				return arrayOfSingle(&x.param);
+			});
+		return Signature(ctx.curUri, x, rp.returnType, small!Destructure(params));
+	});
+
+private SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* struct_,
+	ref StructDeclAst ast,
+) =>
+	mapOpPointersWithSoFar!(VariantAndMethodImpls, ModifierAst)(
+		ctx.alloc, ast.modifiers, (ModifierAst* mod, in VariantAndMethodImpls[] soFar) {
+			Opt!VariantAndMethodImpls res = getVariantMemberTypeFromModifier(
+				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, mod);
+			if (has(res) && exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
+					x.variant.decl == force(res).variant.decl)) {
+				addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
+				return none!VariantAndMethodImpls;
+			} else
+				return res;
+		});
+
+private Opt!VariantAndMethodImpls getVariantMemberTypeFromModifier(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* struct_,
+	ModifierAst* mod,
+) {
+	if (mod.isA!(ModifierAst.Keyword)) {
+		ModifierAst.Keyword* kw = &mod.as!(ModifierAst.Keyword)();
+		if (kw.keyword == ModifierKeyword.variantMember) {
+			if (has(kw.typeArg)) {
+				Type type = typeFromAst(
+					ctx, commonTypes, structsAndAliasesMap,
+					force(kw.typeArg), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+				if (type.isA!(StructInst*) && type.as!(StructInst*).decl.body_.isA!(StructBody.Variant))
+					return some(VariantAndMethodImpls(kw, type.as!(StructInst*)));
+				else {
+					if (!type.isBogus)
+						addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, type)));
+					return none!VariantAndMethodImpls;
+				}
+			} else {
+				addDiag(ctx, kw.range, Diag(Diag.VariantMemberMissingVariant()));
+				return none!VariantAndMethodImpls;
+			}
+		} else
+			return none!VariantAndMethodImpls;
+	} else
+		return none!VariantAndMethodImpls;
+}
+
+void checkVariantMethodImpls(ref CheckCtx ctx, ref CommonTypes commonTypes, FunsMap funsMap, StructDecl[] structs) {
+	foreach (ref StructDecl struct_; structs) {
+		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
+			Type variantMemberType = Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_));
+			if (!isPurityAlwaysCompatible(referencer: variant.variant.purityRange, referenced: struct_.purity))
+				addDiag(ctx, variant.ast.range, Diag(Diag.PurityWorseThanVariant(&struct_, variant.variant)));
+			checkMethodImplsForVariant(ctx, commonTypes, funsMap, &struct_, variantMemberType, variant);
+		}
+	}
+}
+
 private:
+
+void checkMethodImplsForVariant(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	FunsMap funsMap,
+	StructDecl* struct_,
+	Type variantMemberType,
+	ref VariantAndMethodImpls variant,
+) {
+	size_t typeIndex;
+	Type nextType() => variant.variantInstantiatedMethodTypes[typeIndex++];
+	variant.methodImpls = map!(Opt!Called, Signature)(ctx.alloc, variant.variantDeclMethods, (ref Signature sig) =>
+		withStackArray(
+			sig.params.length + 2,
+			(size_t i) => i == 1 ? variantMemberType : nextType(),
+			(scope Type[] types) {
+				Opt!Called called = findFunctionForReturnAndParamTypes(
+					ctx, commonTypes, TypeContainer(struct_),
+					funsInNonExprScope(ctx, funsMap),
+					FunFlags.none,
+					LocalsInfo(),
+					sig.name,
+					variant.ast.range,
+					none!Type,
+					ReturnAndParamTypes(small!Type(types)),
+					() => false);
+				if (has(called) &&
+					force(called).isA!(FunInst*) &&
+					force(called).as!(FunInst*).decl.visibility < struct_.visibility)
+					addDiag(ctx, variant.ast.range, Diag(
+						Diag.VariantMethodImplVisibility(struct_, variant.variant, force(called).as!(FunInst*))));
+				return called;
+			}));
+	assert(typeIndex == variant.variantInstantiatedMethodTypes.length);
+}
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
-	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
+	checkOnlyCommonModifiers(ctx, DeclKind.extern_, declAst.modifiers);
 	return StructBody.Extern(getExternTypeSize(ctx, declAst, bodyAst));
 }
 
@@ -248,10 +401,11 @@ LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAs
 	MutOpt!(ModifierAst.Keyword*) linkage;
 	MutOpt!(ModifierAst.Keyword*) purityAndForced;
 	foreach (ref ModifierAst modifier; modifiers) {
-		if (isStructModifier(modifier)) {
+		if (isCommonModifier(modifier)) {
 			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
-			accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
-		} // else already warned in 'checkOnlyStructModifiers'
+			if (kw.keyword != ModifierKeyword.variantMember)
+				accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
+		} // else already warned in 'checkOnlyCommonModifiers'
 	}
 	modifierTypeArgInvalid(ctx, [linkage, purityAndForced]);
 	return LinkageAndPurityModifiers(
@@ -317,9 +471,9 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 	}
 }
 
-void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
+void checkOnlyCommonModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
-		if (!isStructModifier(modifier))
+		if (!isCommonModifier(modifier))
 			addDiag(ctx, modifier.range, modifier.matchIn!Diag(
 				(in ModifierAst.Keyword x) =>
 					x.keyword == ModifierKeyword.byVal
@@ -329,10 +483,12 @@ void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAs
 					Diag(Diag.SpecUseInvalid(declKind))));
 }
 
-bool isStructModifier(in ModifierAst a) =>
+bool isCommonModifier(in ModifierAst a) =>
 	a.matchIn!bool(
 		(in ModifierAst.Keyword x) =>
-			x.keyword == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.keyword)),
+			x.keyword == ModifierKeyword.extern_ ||
+			x.keyword == ModifierKeyword.variantMember ||
+			has(purityAndForcedFromModifier(x.keyword)),
 		(in SpecUseAst _) =>
 			false);
 
@@ -680,7 +836,7 @@ RecordField checkRecordField(
 	Symbol name = ast.name.name;
 	Type memberType = has(ast.type)
 		? typeFromAst(
-			ctx, commonTypes, force(ast.type), structsAndAliasesMap,
+			ctx, commonTypes, structsAndAliasesMap, force(ast.type),
 			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: () {
 			addDiag(ctx, ast.name.range, Diag(Diag.RecordFieldNeedsType(name)));
@@ -710,12 +866,8 @@ UnionMember checkUnionMember(
 ) {
 	Type type = has(ast.type)
 		? typeFromAst(
-			ctx,
-			commonTypes,
-			force(ast.type),
-			structsAndAliasesMap,
-			struct_.typeParams,
-			someMut(ptrTrustMe(delayStructInsts)))
+			ctx, commonTypes, structsAndAliasesMap,
+			force(ast.type), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.void_);
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range, type);
 	if (has(ast.mutability))
@@ -738,7 +890,7 @@ IntegralType checkEnumOrFlagsModifiers(
 ) {
 	MutOpt!(ModifierAst.Keyword*) storage;
 	foreach (ref ModifierAst modifier; modifiers) {
-		if (!isStructModifier(modifier)) {
+		if (!isCommonModifier(modifier)) {
 			if (modifier.isA!(ModifierAst.Keyword)) {
 				ModifierAst.Keyword* x = &modifier.as!(ModifierAst.Keyword)();
 				if (x.keyword == ModifierKeyword.storage) {
@@ -759,8 +911,8 @@ IntegralType checkEnumOrFlagsModifiers(
 		ModifierAst.Keyword* x = force(storage);
 		if (has(x.typeArg)) {
 			Type type = typeFromAst(
-				ctx, commonTypes, force(x.typeArg), structsAndAliasesMap, emptyTypeParams,
-				someMut(ptrTrustMe(delayStructInsts)));
+				ctx, commonTypes, structsAndAliasesMap,
+				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)));
 			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
@@ -812,16 +964,9 @@ RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifi
 				case ModifierKeyword.packed:
 					accumulateModifier(ctx, packed, x);
 					break;
-				case ModifierKeyword.data:
-				case ModifierKeyword.extern_:
-				case ModifierKeyword.forceShared:
-				case ModifierKeyword.mut:
-				case ModifierKeyword.shared_:
-					// already handled in getStructModifiers
-					assert(isStructModifier(modifier));
-					break;
 				default:
-					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.record)));
+					if (!isCommonModifier(modifier))
+						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.record)));
 					break;
 			}
 		} else
@@ -842,7 +987,7 @@ void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Ra
 }
 
 void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
-	if (!isPurityPossiblyCompatible(struct_.purity, purityRange(referencedType)) &&
+	if (!isPurityPossiblyCompatible(referencer: struct_.purity, referenced: purityRange(referencedType)) &&
 		!struct_.purityIsForced)
 		addDiag(ctx, range, Diag(Diag.PurityWorseThanParent(struct_, referencedType)));
 }

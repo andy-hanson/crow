@@ -14,6 +14,7 @@ import model.model :
 	FloatType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunInst,
 	IntegralType,
 	LambdaExpr,
 	Local,
@@ -21,7 +22,7 @@ import model.model :
 	Purity,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	StructAlias,
 	StructDecl,
 	StructInst,
@@ -32,7 +33,6 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariableRef,
-	VariantMember,
 	VarKind,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -278,12 +278,12 @@ immutable struct Diag {
 		enum Reason { builtin, extern_ }
 		Reason reason;
 	}
-	immutable struct FunPointerExprMustBeName {}
-	immutable struct FunPointerNoMatch {
+	immutable struct FunctionWithSignatureNotFound {
 		Symbol name;
 		TypeContainer typeContainer;
 		ReturnAndParamTypes returnAndParamTypes;
 	}
+	immutable struct FunPointerExprMustBeName {}
 	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
@@ -383,7 +383,7 @@ immutable struct Diag {
 	}
 	immutable struct MatchCaseShouldUseIgnore {
 		immutable struct Member {
-			mixin TaggedUnion!(UnionMember*, VariantMember*);
+			mixin TaggedUnion!(StructInst*, UnionMember*);
 		}
 		Member member;
 	}
@@ -400,14 +400,11 @@ immutable struct Diag {
 	}
 	immutable struct MatchUnnecessaryElse {}
 	immutable struct MatchVariantCantInferTypeArgs {
-		VariantMember* member;
-	}
-	immutable struct MatchVariantMultipleMembersWithName {
-		VariantMember*[2] members;
+		StructDecl* member;
 	}
 	immutable struct MatchVariantNoMember {
 		TypeWithContainer variant;
-		Symbol name;
+		StructDecl* nonMember;
 	}
 
 	immutable struct ModifierConflict {
@@ -469,7 +466,8 @@ immutable struct Diag {
 		Type child;
 	}
 	immutable struct PurityWorseThanVariant {
-		VariantMember* member;
+		StructDecl* member;
+		StructInst* variant;
 	}
 	immutable struct RecordFieldNeedsType {
 		Symbol fieldName;
@@ -519,7 +517,7 @@ immutable struct Diag {
 				FunDecl* fun;
 			}
 			immutable struct SpecImplNotFound {
-				SpecDeclSig* sigDecl;
+				Signature* sigDecl;
 				ReturnAndParamTypes sigType;
 			}
 			immutable struct TooDeep {}
@@ -607,9 +605,19 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VariantMemberMissingVariant {}
+	immutable struct VariantMemberMultiple {
+		StructDecl* member;
+		StructDecl* variant;
+	}
 	immutable struct VariantMemberOfNonVariant {
-		VariantMember* member;
+		StructDecl* member;
 		Type actual;
+	}
+	immutable struct VariantMethodImplVisibility {
+		StructDecl* member;
+		StructInst* variant;
+		FunInst* methodImpl;
 	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
 	immutable struct VisibilityWarning {
@@ -658,8 +666,8 @@ immutable struct Diag {
 		ExternTypeError,
 		ExternUnion,
 		FunCantHaveBody,
+		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
-		FunPointerNoMatch,
 		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,
@@ -690,7 +698,6 @@ immutable struct Diag {
 		MatchUnhandledCases,
 		MatchUnnecessaryElse,
 		MatchVariantCantInferTypeArgs,
-		MatchVariantMultipleMembersWithName,
 		MatchVariantNoMember,
 		ModifierConflict,
 		ModifierDuplicate,
@@ -733,7 +740,10 @@ immutable struct Diag {
 		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VariantMemberMissingVariant,
+		VariantMemberMultiple,
 		VariantMemberOfNonVariant,
+		VariantMethodImplVisibility,
 		VisibilityWarning,
 		WithHasElse,
 		WrongNumberTypeArgs);
@@ -758,7 +768,7 @@ immutable struct TypeWithContainer {
 immutable struct TypeContainer {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*, VariantMember*);
+	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -773,8 +783,6 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
-				x.moduleUri,
-			(in VariantMember x) =>
 				x.moduleUri);
 
 	TypeParams typeParams() scope =>
@@ -790,7 +798,5 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				emptyTypeParams,
 			(in VarDecl x) =>
-				x.typeParams,
-			(in VariantMember x) =>
 				x.typeParams);
 }

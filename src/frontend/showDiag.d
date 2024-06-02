@@ -11,6 +11,7 @@ import frontend.showModel :
 	writeCalleds,
 	writeFunDecl,
 	writeFunDeclAndTypeArgs,
+	writeFunInst,
 	writeKeyword,
 	writeLineAndColumnRange,
 	writeName,
@@ -50,15 +51,13 @@ import model.model :
 	Params,
 	Program,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	StructBody,
 	StructDecl,
 	StructInst,
 	Type,
 	TypeParamsAndSig,
-	UnionMember,
-	VariantMember,
-	worstCasePurity;
+	UnionMember;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, exists, isEmpty, only;
@@ -693,10 +692,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= stringOfEnum(x.reason);
 			writer ~= "' function can't have a body.";
 		},
-		(in Diag.FunPointerExprMustBeName) {
-			writer ~= "Function pointer expression must be a plain identifier ('&f').";
-		},
-		(in Diag.FunPointerNoMatch x) {
+		(in Diag.FunctionWithSignatureNotFound x) {
 			writer ~= "Could not find a function '";
 			writer ~= x.name;
 			writer ~= ' ';
@@ -707,6 +703,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeTypeUnquoted(writer, ctx, TypeWithContainer(t, x.typeContainer));
 			});
 			writer ~= ")'.";
+		},
+		(in Diag.FunPointerExprMustBeName) {
+			writer ~= "Function pointer expression must be a plain identifier ('&f').";
 		},
 		(in Diag.IfThrow) {
 			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
@@ -917,13 +916,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.MatchCaseShouldUseIgnore x) {
 			x.member.matchIn!void(
-				(in UnionMember m) {
-					writer ~= "Union member ";
-					writeName(writer, ctx, m.name);
-				},
-				(in VariantMember m) {
+				(in StructInst x) {
 					writer ~= "Variant member ";
-					writeName(writer, ctx, m.name);
+					writeName(writer, ctx, x.decl.name);
+				},
+				(in UnionMember x) {
+					writer ~= "Union member ";
+					writeName(writer, ctx, x.name);
 				});
 			writer ~= " declares a value, so it should be explicitly ignored using ";
 			writeName(writer, ctx, symbol!"_");
@@ -973,15 +972,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Can't infer type arguments of ";
 			writer ~= x.member.name;
 		},
-		(in Diag.MatchVariantMultipleMembersWithName x) {
-			writer ~= "There are multiple variant members in scope named ";
-			writeName(writer, ctx, x.members[0].name);
-			writer ~= '.';
-		},
 		(in Diag.MatchVariantNoMember x) {
-			writer ~= "There is no variant member named ";
-			writeName(writer, ctx, x.name);
-			writer ~= " in scope that matches variant ";
+			writer ~= "Type ";
+			writeName(writer, ctx, x.nonMember.name);
+			writer ~= " is not a member of variant ";
 			writeTypeQuoted(writer, ctx, x.variant);
 			writer ~= '.';
 		},
@@ -1083,13 +1077,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.PurityWorseThanVariant x) {
 			writer ~= "Variant ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x.member)));
 			writer ~= " has purity ";
-			writePurity(writer, ctx, x.member.variant.purityRange.bestCase);
-			writer ~= ", but member of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.member.type, TypeContainer(x.member)));
-			writer ~= " has (worst-case) purity ";
-			writePurity(writer, ctx, worstCasePurity(x.member.type));
+			writePurity(writer, ctx, x.variant.purityRange.bestCase);
+			writer ~= ", but member ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= " has purity ";
+			writePurity(writer, ctx, x.member.purity);
 			writer ~= '.';
 		},
 		(in Diag.RecordFieldNeedsType x) {
@@ -1153,7 +1147,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "No implementation was found for spec signature ";
-					SpecDeclSig* sig = y.sigDecl;
+					Signature* sig = y.sigDecl;
 					writeSig(
 						writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType,
 						Params(sig.params), some(y.sigType));
@@ -1312,9 +1306,28 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, symbol!"array");
 			writer ~= '.';
 		},
+		(in Diag.VariantMemberMissingVariant x) {
+			writer ~= "'variant-member' needs a variant.";
+		},
+		(in Diag.VariantMemberMultiple x) {
+			writer ~= "Type ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= " can't declare itself a member of the same variant ";
+			writeName(writer, ctx, x.variant.name);
+			writer ~= " multiple times.";
+		},
 		(in Diag.VariantMemberOfNonVariant x) {
 			writer ~= "Not a variant: ";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.member)));
+		},
+		(in Diag.VariantMethodImplVisibility x) {
+			writer ~= "A method of variant ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x.member)));
+			writer ~= " is implemented by ";
+			writeFunInst(writer, ctx, TypeContainer(x.member), *x.methodImpl);
+			writer ~= ", but it is less visible than ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= '.';
 		},
 		(in Diag.VisibilityWarning x) {
 			writeVisibilityWarning(writer, ctx, x);

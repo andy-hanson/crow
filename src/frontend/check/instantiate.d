@@ -21,7 +21,7 @@ import model.model :
 	RecordField,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecImpls,
 	SpecInst,
 	SpecInstBody,
@@ -33,10 +33,12 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.alloc.stackAlloc : withMapToStackArray;
-import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
+import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
+import util.col.array : emptySmallArray, fold, map, small, SmallArray, sum;
+import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
+import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 
@@ -64,7 +66,7 @@ alias MayDelayStructInsts = MutOpt!(DelayStructInsts*);
 MayDelayStructInsts noDelayStructInsts() =>
 	noneMut!(DelayStructInsts*);
 
-Type instantiateType(
+private Type instantiateType(
 	InstantiateCtx ctx,
 	Type type,
 	in TypeArgs typeArgs,
@@ -106,9 +108,23 @@ void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelay
 		(ref StructBody.Union u) =>
 			map!(Type, UnionMember)(ctx.alloc, u.members, (ref UnionMember member) =>
 				instantiateType(ctx, member.type, typeArgs, delayStructInsts)),
-		(StructBody.Variant) =>
-			emptySmallArray!Type);
+		(StructBody.Variant x) =>
+			buildSmallArrayExact!Type(
+				ctx.alloc,
+				sum!Signature(x.methods, (in Signature sig) => 1 + sig.params.length),
+				(scope ref ExactSizeArrayBuilder!Type out_) {
+					foreach (ref Signature sig; x.methods)
+						instantiateReturnAndParamTypes(out_, ctx, sig.returnType, sig.params, typeArgs);
+				}));
 }
+
+// Given a struct decl 'foo[t]', returns a 't foo'
+StructInst* instantiateStructWithOwnTypeParams(InstantiateCtx ctx, StructDecl* decl) =>
+	withStackArray(
+		decl.typeParams.length,
+		(size_t i) => Type(TypeParamIndex(safeToUint(i))),
+		(scope Type[] typeArgs) =>
+			instantiateStructNeverDelay(ctx, decl, typeArgs));
 
 StructInst* instantiateStruct(
 	InstantiateCtx ctx,
@@ -200,11 +216,11 @@ SpecInst* instantiateSpec(
 
 void instantiateSpecBody(InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
 	a.body_ = SpecInstBody(
-		small!(immutable SpecInst*)(map!(immutable SpecInst*, immutable SpecInst*)(
+		map!(immutable SpecInst*, immutable SpecInst*)(
 			ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
-				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts))),
-		small!ReturnAndParamTypes(map(ctx.alloc, a.decl.sigs, (ref SpecDeclSig sig) =>
-			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs))));
+				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts)),
+		map!(ReturnAndParamTypes, Signature)(ctx.alloc, a.decl.sigs, (ref Signature sig) =>
+			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs)));
 }
 
 SpecInst* instantiateSpecInst(
@@ -226,9 +242,20 @@ ReturnAndParamTypes instantiateReturnAndParamTypes(
 	Destructure[] declParams,
 	in TypeArgs typeArgs,
 ) =>
-	ReturnAndParamTypes(small!Type(mapWithFirst!(Type, Destructure)(
-		ctx.alloc,
-		instantiateTypeNoDelay(ctx, declReturnType, typeArgs),
-		declParams,
-		(size_t _, ref Destructure x) =>
-			instantiateTypeNoDelay(ctx, x.type, typeArgs))));
+	ReturnAndParamTypes(buildSmallArrayExact!Type(
+		ctx.alloc, 1 + declParams.length,
+		(scope ref ExactSizeArrayBuilder!Type out_) {
+			instantiateReturnAndParamTypes(out_, ctx, declReturnType, declParams, typeArgs);
+		}));
+
+void instantiateReturnAndParamTypes(
+	scope ref ExactSizeArrayBuilder!Type out_,
+	InstantiateCtx ctx,
+	Type declReturnType,
+	Destructure[] declParams,
+	in TypeArgs typeArgs,
+) {
+	out_ ~= instantiateTypeNoDelay(ctx, declReturnType, typeArgs);
+	foreach (ref Destructure param; declParams)
+		out_ ~= instantiateTypeNoDelay(ctx, param.type, typeArgs);
+}

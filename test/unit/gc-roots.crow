@@ -134,4 +134,4 @@ test trusted
 		unreachable
 	as error e
 		count-roots is start + 1
-		e.exception.divide-by-0!
+		forbid e.exception.divide-by-0.is-empty

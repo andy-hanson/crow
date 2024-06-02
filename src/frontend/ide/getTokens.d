@@ -54,7 +54,7 @@ import model.ast :
 	SeqAst,
 	SharedAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructBodyAst,
@@ -67,7 +67,6 @@ import model.ast :
 	TypeAst,
 	TypedAst,
 	VarDeclAst,
-	VariantMemberAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, only, zip;
@@ -106,9 +105,7 @@ SemanticTokens tokensOfAst(ref Alloc alloc, in CrowFileInfo file) {
 		sortedIter!(StructDeclAst, Pos, Ctx, (in StructDeclAst x) => x.range.start, addStructTokens)(ast.structs),
 		sortedIter!(FunDeclAst, Pos, Ctx, (in FunDeclAst x) => x.range.start, addFunTokens)(ast.funs),
 		sortedIter!(TestAst, Pos, Ctx, (in TestAst x) => x.range.start, addTestTokens)(ast.tests),
-		sortedIter!(VarDeclAst, Pos, Ctx, (in VarDeclAst x) => x.range.start, addVarDeclTokens)(ast.vars),
-		sortedIter!(VariantMemberAst, Pos, Ctx, (in VariantMemberAst x) => x.range.start, addVariantMemberTokens)(
-			ast.variantMembers));
+		sortedIter!(VarDeclAst, Pos, Ctx, (in VarDeclAst x) => x.range.start, addVarDeclTokens)(ast.vars));
 	addLastTokens(ctx.tokens);
 	return SemanticTokens(finish(alloc, ctx.tokens.encoded));
 }
@@ -309,7 +306,7 @@ void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
 	declare(ctx.tokens, TokenType.interface_, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addModifierTokens(ctx, a.modifiers);
-	foreach (ref SpecSigAst sig; a.sigs) {
+	foreach (ref SignatureAst sig; a.sigs) {
 		declare(ctx.tokens, TokenType.function_, sig.nameRange);
 		addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
 	}
@@ -449,15 +446,6 @@ void addVarDeclTokens(scope ref Ctx ctx, in VarDeclAst a) {
 	declare(ctx.tokens, TokenType.variable, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.type);
-	addModifierTokens(ctx, a.modifiers);
-}
-
-void addVariantMemberTokens(scope ref Ctx ctx, in VariantMemberAst a) {
-	declare(ctx.tokens, TokenType.enumMember, a.name.range);
-	addTypeParamsTokens(ctx, a.typeParams);
-	addTypeTokens(ctx, a.variant);
-	if (has(a.type))
-		addTypeTokens(ctx, force(a.type));
 	addModifierTokens(ctx, a.modifiers);
 }
 

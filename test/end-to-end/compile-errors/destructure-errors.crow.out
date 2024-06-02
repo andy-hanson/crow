@@ -5,5 +5,5 @@ test/end-to-end/compile-errors/destructure-errors.crow 6:26-6:27 Expected type '
 Actual: '(nat64, string)'.
 test/end-to-end/compile-errors/destructure-errors.crow 8:5-8:15 Expected a tuple with 3 elements, but got '(nat64, string)'.
 test/end-to-end/compile-errors/destructure-errors.crow 9:5-9:11 Expected a tuple with 2 elements, but got 'nat64'.
-Uncaught exception: Error: Reached compile error
+Uncaught exception: Reached compile error
 	at main

@@ -8,5 +8,5 @@ main void()
 	()
 
 v variant
-x variant-member(v)
-x variant-member(v)
+x record v variant-member
+x record v variant-member

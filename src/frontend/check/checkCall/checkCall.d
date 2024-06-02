@@ -5,7 +5,8 @@ module frontend.check.checkCall.checkCall;
 import frontend.check.checkCall.candidates :
 	Candidate,
 	candidatesForDiag,
-	funsInScope,
+	funsInExprScope,
+	FunsInScope,
 	getAllCandidatesAsCalledDecls,
 	getCandidateExpectedParameterType,
 	testCandidateForSpecSig,
@@ -13,6 +14,7 @@ import frontend.check.checkCall.candidates :
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
+import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, checkLambda, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
@@ -35,7 +37,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx, makeOptionIfNotAlready, makeOptionType;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionType, unpackTupleIfNeeded;
 import model.ast : CallAst, CallNamedAst, DestructureAst, ExprAst, LambdaAst, NameAndRange;
-import model.diag : Diag;
+import model.diag : Diag, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	Called,
@@ -43,26 +45,30 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	CommonTypes,
 	Destructure,
 	Expr,
 	ExprAndType,
 	ExprKind,
 	FunDecl,
+	FunFlags,
 	Local,
 	Params,
 	ReturnAndParamTypes,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Type;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.col.array :
 	arraysCorrespond,
+	copyArray,
 	every,
 	everyWithIndex,
 	exists,
 	filterUnordered,
 	filterUnorderedButDontRemoveAll,
 	isEmpty,
+	map,
 	newArray,
 	only,
 	zipEvery;
@@ -306,9 +312,9 @@ private Opt!Called checkCallCb(
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
 	Opt!Called res = withCandidates!(Opt!Called)(
-		funsInScope(ctx), funName, nArgs,
+		funsInExprScope(ctx), funName, nArgs,
 		(ref Candidate candidate) =>
-			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
+			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx.commonTypes, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
 				ctx.instantiateCtx, expected,
 				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))) &&
@@ -326,6 +332,44 @@ private Opt!Called checkCallCb(
 Expr checkCallIdentifier(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name, ref Expected expected) {
 	checkCallIdentifierShouldUseSyntax(ctx, source.range, name);
 	return checkCallSpecial(ctx, locals, source, source.range, name, [], expected);
+}
+
+Opt!Called findFunctionForReturnAndParamTypes(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	FunFlags outermostFunFlags,
+	in LocalsInfo locals,
+	Symbol name,
+	Range diagRange,
+	Opt!Type typeArg,
+	in ReturnAndParamTypes returnAndParamTypes,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
+) {
+	size_t arity = returnAndParamTypes.paramTypes.length;
+	return withCandidates!(Opt!Called)(
+		funsInScope,
+		name,
+		arity,
+		(scope ref Candidate x) =>
+			(!has(typeArg) || filterCandidateByExplicitTypeArg(commonTypes, x, force(typeArg))) &&
+			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
+		(scope Candidate[] candidates) {
+			if (candidates.length != 1) {
+				// TODO: If there is a function with the name, at least indicate that in the diag
+				addDiag(ctx, diagRange, candidates.length == 0
+					? Diag(Diag.FunctionWithSignatureNotFound(
+						name, typeContainer,
+						ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
+					: Diag(Diag.CallMultipleMatches(name, typeContainer,
+						map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
+				return none!Called;
+			} else
+				return some(checkCallAfterChoosingOverload(
+					ctx, typeContainer, funsInScope, outermostFunFlags, locals,
+					only(candidates), diagRange, arity, canDoUnsafe));
+		});
 }
 
 private:
@@ -439,7 +483,10 @@ Opt!Called checkCallInner(
 					Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 			return none!Called;
 		} else
-			return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), diagRange, nArgs));
+			return some(checkCallAfterChoosingOverload(
+				ctx.checkCtx, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals,
+				only(candidates), diagRange, nArgs,
+				() => checkCanDoUnsafe(ctx)));
 	});
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
@@ -485,9 +532,9 @@ Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(in CallAst ast) {
 bool secondArgIsLambda(in CallAst ast) =>
 	ast.args.length == 2 && ast.args[1].kind.isA!(LambdaAst*);
 
-public bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
+bool filterCandidateByExplicitTypeArg(ref CommonTypes commonTypes, scope ref Candidate candidate, Type typeArg) {
 	size_t nTypeParams = candidate.typeArgs.length;
-	Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
+	Type[] args = unpackTupleIfNeeded(commonTypes, nTypeParams, &typeArg);
 	bool ok = args.length == nTypeParams;
 	if (ok)
 		foreach (size_t i, ref SingleInferringType x; candidate.typeArgs)
@@ -516,7 +563,7 @@ Type withParamExpected(
 void inferCandidateTypeArgsFromCheckedSpecSig(
 	InstantiateCtx ctx,
 	ref const Candidate specCandidate,
-	in SpecDeclSig specSig,
+	in Signature specSig,
 	in ReturnAndParamTypes sigTypes,
 	scope TypeContext callInferringTypeArgs,
 ) {
@@ -607,8 +654,8 @@ bool preCheckCandidateSpec(
 	) &&
 	preCheckBuiltinSpec(ctx, callCandidate, called, spec) &&
 	// For a builtin spec, we'll leave it for the end.
-	(state != TypeArgsInferenceState.partial || zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
-		spec.decl.sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
+	(state != TypeArgsInferenceState.partial || zipEvery!(Signature, ReturnAndParamTypes)(
+		spec.decl.sigs, spec.sigTypes, (ref Signature sig, ref ReturnAndParamTypes returnAndParamTypes) =>
 			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
 
 bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in FunDecl called, in SpecInst spec) {
@@ -635,12 +682,12 @@ bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,
 	ref Candidate callCandidate,
 	in FunDecl called,
-	in SpecDeclSig specSig,
+	in Signature specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) {
 	TypeContext callContext = typeContextForCandidate(callCandidate);
 	return withCandidates!bool(
-		funsInScope(ctx),
+		funsInExprScope(ctx),
 		specSig.name,
 		specSig.params.length,
 		(ref Candidate x) =>
@@ -659,16 +706,20 @@ bool inferCandidateTypeArgsFromSpecSig(
 		});
 }
 
-public Called checkCallAfterChoosingOverload(
-	ref ExprCtx ctx,
+Called checkCallAfterChoosingOverload(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	in FunFlags outermostFunFlags,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
 	in Range diagRange,
 	size_t nArgs,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
 ) {
-	Called called = checkCallSpecs(ctx, diagRange, candidate);
+	Called called = checkCallSpecs(ctx, typeContainer, funsInScope, diagRange, candidate);
 	checkCalled(
-		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals, nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty,
-		() => checkCanDoUnsafe(ctx));
+		ctx, diagRange, called, outermostFunFlags, locals,
+		nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty, canDoUnsafe);
 	return called;
 }

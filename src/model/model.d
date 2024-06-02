@@ -11,15 +11,15 @@ import model.ast :
 	FunDeclAst,
 	IfAst,
 	ImportOrExportAst,
+	ModifierAst,
 	NameAndRange,
 	RecordOrUnionMemberAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	VarDeclAst,
-	VariantMemberAst;
+	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
@@ -36,6 +36,7 @@ import util.col.array :
 	newArray,
 	only,
 	PtrAndSmallNumber,
+	small,
 	SmallArray,
 	sum;
 import util.col.hashTable : existsInHashTable, HashTable;
@@ -74,6 +75,8 @@ PurityRange combinePurityRange(PurityRange a, PurityRange b) =>
 
 bool isPurityAlwaysCompatible(Purity referencer, PurityRange referenced) =>
 	referenced.worstCase <= referencer;
+bool isPurityAlwaysCompatible(PurityRange referencer, Purity referenced) =>
+	referenced <= referencer.bestCase;
 
 bool isPurityPossiblyCompatible(Purity referencer, PurityRange referenced) =>
 	referenced.bestCase <= referencer;
@@ -115,6 +118,11 @@ immutable struct Type {
 		taggedPointerEquals(b);
 }
 
+bool isEmptyType(in CommonTypes commonTypes, in Type a) =>
+	isVoid(commonTypes, a) || isEmptyRecord(*a.as!(StructInst*).decl);
+private bool isEmptyRecord(in StructDecl a) =>
+	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
+
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
 		(in Type.Bogus) =>
@@ -126,9 +134,6 @@ PurityRange purityRange(Type a) =>
 
 Purity bestCasePurity(Type a) =>
 	purityRange(a).bestCase;
-
-Purity worstCasePurity(Type a) =>
-	purityRange(a).worstCase;
 
 LinkageRange linkageRange(Type a) =>
 	a.matchIn!LinkageRange(
@@ -157,12 +162,12 @@ immutable struct Params {
 				Arity(Arity.Varargs()));
 }
 
-Destructure[] paramsArray(return scope Params a) =>
-	a.matchWithPointers!(Destructure[])(
+SmallArray!Destructure paramsArray(return scope Params a) =>
+	a.matchWithPointers!(SmallArray!Destructure)(
 		(Destructure[] x) =>
-			x,
+			small!Destructure(x),
 		(Params.Varargs* x) =>
-			arrayOfSingle(&x.param));
+			small!Destructure(arrayOfSingle(&x.param)));
 
 Destructure[] assertNonVariadic(Params a) =>
 	a.as!(Destructure[]);
@@ -185,11 +190,12 @@ bool arityMatches(Arity sigArity, size_t nArgs) =>
 		(Arity.Varargs) =>
 			true);
 
-immutable struct SpecDeclSig {
+// Function signature without a body. Used in a spec or variant.
+immutable struct Signature {
 	@safe @nogc pure nothrow:
 
 	Uri moduleUri;
-	SpecSigAst* ast;
+	SignatureAst* ast;
 	Type returnType;
 	SmallArray!Destructure params;
 
@@ -282,27 +288,6 @@ immutable struct UnionMember {
 		UriAndRange(moduleUri, source.nameRange);
 }
 
-immutable struct VariantMember {
-	@safe @nogc pure nothrow:
-
-	VariantMemberAst* ast;
-	Uri moduleUri;
-	Visibility visibility;
-	StructInst* variant;
-	Type type;
-
-	SmallString docComment() return scope =>
-		ast.docComment;
-	Symbol name() scope =>
-		ast.name.name;
-	TypeParams typeParams() return scope =>
-		ast.typeParams;
-	UriAndRange range() scope =>
-		UriAndRange(moduleUri, ast.range);
-	UriAndRange nameRange() scope =>
-		UriAndRange(moduleUri, ast.name.range);
-}
-
 alias ByValOrRef = immutable ByValOrRef_;
 private enum ByValOrRef_ : ubyte {
 	byVal,
@@ -378,7 +363,9 @@ immutable struct StructBody {
 		SmallArray!UnionMember members;
 		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
-	immutable struct Variant {}
+	immutable struct Variant {
+		SmallArray!Signature methods;
+	}
 
 	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*, Variant);
 }
@@ -499,11 +486,16 @@ immutable struct StructDecl {
 	// Note: purity on the decl does not take type args into account
 	Purity purity;
 	bool purityIsForced;
-
+	private Late!(SmallArray!VariantAndMethodImpls) variants_;
 	private Late!StructBody lateBody;
 
 	bool bodyIsSet() =>
 		lateIsSet(lateBody);
+
+	SmallArray!VariantAndMethodImpls variants() return scope =>
+		lateGet(variants_);
+	void variants(SmallArray!VariantAndMethodImpls value) =>
+		lateSet(variants_, value);
 
 	ref StructBody body_() return scope =>
 		lateGet(lateBody);
@@ -551,6 +543,24 @@ immutable struct StructDecl {
 bool isPointer(in StructDecl a) =>
 	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
+immutable struct VariantAndMethodImpls {
+	@safe @nogc pure nothrow:
+
+	ModifierAst.Keyword* ast;
+	StructInst* variant;
+	private Late!(SmallArray!(Opt!Called)) methodImpls_;
+
+	SmallArray!(Opt!Called) methodImpls() =>
+		lateGet(methodImpls_);
+	void methodImpls(SmallArray!(Opt!Called) value) =>
+		lateSet(methodImpls_, value);
+
+	SmallArray!Signature variantDeclMethods() =>
+		variant.decl.body_.as!(StructBody.Variant).methods;
+	SmallArray!Type variantInstantiatedMethodTypes() =>
+		variant.instantiatedTypes;
+}
+
 immutable struct StructDeclSource {
 	immutable struct Bogus {
 		Symbol name;
@@ -570,6 +580,7 @@ immutable struct StructInst {
 	PurityRange purityRange;
 	// For a Record, this is the field types.
 	// For a Union, this is the member types (Bogus for members with no type).
+	// For a Variant, these are the ReturnAndParamTypes for each method, concatenated.
 	// Otherwise this is empty.
 	private Late!(SmallArray!Type) lateInstantiatedTypes;
 
@@ -599,7 +610,7 @@ Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 immutable struct SpecDeclBody {
 	Opt!BuiltinSpec builtin;
 	Specs parents;
-	SmallArray!SpecDeclSig sigs;
+	SmallArray!Signature sigs;
 }
 
 enum BuiltinSpec { data, enum_, flags, shared_ }
@@ -636,7 +647,7 @@ immutable struct SpecDecl {
 	void overwriteParentsToEmpty() scope =>
 		lateSetOverwrite(lateBody, SpecDeclBody(builtin, emptySpecs, sigs));
 
-	SmallArray!SpecDeclSig sigs() return scope =>
+	SmallArray!Signature sigs() return scope =>
 		body_.sigs;
 
 	UriAndRange range() scope =>
@@ -723,12 +734,13 @@ immutable struct FunBody {
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
+	immutable struct CreateRecordAndConvertToVariant {
+		StructInst* member; // This is the record type and the variant member type
+	}
 	immutable struct CreateUnion {
 		UnionMember* member;
 	}
-	immutable struct CreateVariant {
-		VariantMember* member;
-	}
+	immutable struct CreateVariant {}
 	immutable struct Extern {
 		Symbol libraryName;
 	}
@@ -750,7 +762,8 @@ immutable struct FunBody {
 	}
 	immutable struct UnionMemberGet { size_t memberIndex; }
 	immutable struct VarGet { VarDecl* var; }
-	immutable struct VariantMemberGet { VariantMember* member; }
+	immutable struct VariantMemberGet {}
+	immutable struct VariantMethod { size_t methodIndex; }
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -760,6 +773,7 @@ immutable struct FunBody {
 		CreateEnumOrFlags,
 		CreateExtern,
 		CreateRecord,
+		CreateRecordAndConvertToVariant,
 		CreateUnion,
 		CreateVariant,
 		EnumFunction,
@@ -774,6 +788,7 @@ immutable struct FunBody {
 		UnionMemberGet,
 		VarGet,
 		VariantMemberGet,
+		VariantMethod,
 		VarSet);
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
@@ -1050,6 +1065,10 @@ immutable struct FunDeclSource {
 		Uri moduleUri; // This is the importing module, not imported
 		ImportOrExportAst* ast;
 	}
+	immutable struct VariantMethod {
+		StructDecl* variant;
+		Signature* method;
+	}
 
 	mixin Union!(
 		Bogus,
@@ -1060,7 +1079,7 @@ immutable struct FunDeclSource {
 		StructDecl*,
 		UnionMember*,
 		VarDecl*,
-		VariantMember*);
+		VariantMethod);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -1080,8 +1099,8 @@ immutable struct FunDeclSource {
 				x.moduleUri,
 			(in VarDecl x) =>
 				x.moduleUri,
-			(in VariantMember x) =>
-				x.moduleUri);
+			(in VariantMethod x) =>
+				x.variant.moduleUri);
 
 	UriAndRange range() scope =>
 		matchIn!UriAndRange(
@@ -1101,8 +1120,8 @@ immutable struct FunDeclSource {
 				UriAndRange(x.moduleUri, x.range),
 			(in VarDecl x) =>
 				x.range,
-			(in VariantMember x) =>
-			 	x.range);
+			(in VariantMethod x) =>
+				UriAndRange(x.variant.moduleUri, x.method.ast.range));
 	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
@@ -1121,8 +1140,8 @@ immutable struct FunDeclSource {
 				x.nameRange,
 			(in VarDecl x) =>
 				x.nameRange,
-			(in VariantMember x) =>
-				x.nameRange);
+			(in VariantMethod x) =>
+				UriAndRange(x.variant.moduleUri, x.method.ast.nameRange));
 }
 
 immutable struct FunDecl {
@@ -1162,8 +1181,8 @@ immutable struct FunDecl {
 				x.containingUnion.typeParams,
 			(ref VarDecl x) =>
 				x.typeParams,
-			(ref VariantMember x) =>
-				x.typeParams);
+			(FunDeclSource.VariantMethod x) =>
+				x.variant.typeParams);
 
 	Uri moduleUri() scope =>
 		source.moduleUri;
@@ -1281,7 +1300,7 @@ immutable struct CalledSpecSig {
 	Type[] paramTypes() return scope =>
 		instantiatedSig.paramTypes;
 
-	SpecDeclSig* nonInstantiatedSig() return scope =>
+	Signature* nonInstantiatedSig() return scope =>
 		&specInst.decl.sigs[sigIndex];
 
 	Symbol name() scope =>
@@ -1452,7 +1471,6 @@ immutable struct Module {
 	SmallArray!ImportOrExport reExports;
 	SmallArray!StructAlias aliases;
 	SmallArray!StructDecl structs;
-	SmallArray!VariantMember variantMembers;
 	SmallArray!VarDecl vars;
 	SmallArray!SpecDecl specs;
 	SmallArray!FunDecl funs;
@@ -1607,11 +1625,22 @@ Type arrayElementType(in CommonTypes commonTypes, Type type) {
 	return only(type.as!(StructInst*).typeArgs);
 }
 
-bool isLambdaType(in CommonTypes commonTypes, StructDecl* a) =>
+Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
+	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
+	return only(a.as!(StructInst*).typeArgs);
+}
+
+bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
+	a == commonTypes.option;
+
+bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) =>
 	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
 
-bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
+bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) =>
 	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
+
+bool isVoid(in CommonTypes commonTypes, Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
@@ -2221,9 +2250,13 @@ immutable struct MatchVariantExpr {
 	@safe @nogc pure nothrow:
 
 	immutable struct Case {
-		VariantMember* member;
+		@safe @nogc pure nothrow:
+
 		Destructure destructure;
 		Expr then;
+
+		StructInst* member() return scope =>
+			destructure.type.as!(StructInst*);
 	}
 
 	ExprAndType matched;

@@ -19,6 +19,7 @@ import util.alloc.doubleLink :
 	removeAllFromListAnd,
 	removeFromList,
 	replaceInList;
+import util.alloc.stackAlloc : withStackArrayUninitialized, withStackArrayUninitialized_impure;
 import util.col.array : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
 import util.memory : ensureMemoryClear, memset;
@@ -41,10 +42,9 @@ T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc noth
 T withTempAllocImpure(T)(MetaAlloc* a, AllocKind kind, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a, kind);
 
-T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe @nogc nothrow cb) {
-	ulong[sizeWords] memory = void;
-	return withStaticAlloc!(T, cb)(memory);
-}
+T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe @nogc nothrow cb) =>
+	withStackArrayUninitialized_impure!(T, ulong)(sizeWords, (scope ulong[] memory) =>
+		withStaticAlloc!(T, cb)(memory));
 
 @trusted private T withTempAllocAlias(T, alias cb)(MetaAlloc* a, AllocKind kind = AllocKind.temp) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
@@ -65,10 +65,9 @@ pure:
 T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a);
 
-@trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
-	ulong[sizeWords] memory = void;
-	return withStaticAlloc!(T, cb)(memory);
-}
+@trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
+	withStackArrayUninitialized!(T, ulong)(sizeWords, (scope ulong[] memory) =>
+		withStaticAlloc!(T, cb)(memory));
 
 /*
 Allocates the requested number of words.

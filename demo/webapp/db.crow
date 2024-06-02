@@ -31,7 +31,9 @@ main void() summon
 			out print "{post}"
 		()
 
-user-not-authorized variant-member(exception)
+user-not-authorized record exception variant-member
+describe string(_ user-not-authorized)
+	"The user is not authorized to perform that action."
 
 user alias
 	nat

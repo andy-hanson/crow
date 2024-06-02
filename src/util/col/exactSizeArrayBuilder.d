@@ -26,6 +26,12 @@ T[] buildArrayExact(T)(
 	cb(builder);
 	return finish(builder);
 }
+SmallArray!T buildSmallArrayExact(T)(
+	ref Alloc alloc,
+	size_t size,
+	in void delegate(scope ref ExactSizeArrayBuilder!T) @safe @nogc pure nothrow cb,
+) =>
+	small!T(buildArrayExact!T(alloc, size, cb));
 
 T* pushUninitialized(T)(ref ExactSizeArrayBuilder!T a) @trusted {
 	assert(a.cur < endPtr(a.inner));

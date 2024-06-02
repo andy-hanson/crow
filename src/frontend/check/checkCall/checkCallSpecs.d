@@ -3,9 +3,9 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
+	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, testCandidateForSpecSig;
 import frontend.check.checkCtx : addDiag, CheckCtx, markUsed;
-import frontend.check.exprCtx : addDiag2, allowsUnsafe, ExprCtx, isInDataLambda, isInLambda, LocalsInfo;
+import frontend.check.exprCtx : allowsUnsafe, isInDataLambda, isInLambda, LocalsInfo;
 import frontend.check.inferringType : SingleInferringType, tryGetInferred, TypeContext;
 import frontend.check.instantiate :
 	InstantiateCtx, instantiateFun, instantiateSpecInst, noDelaySpecInsts;
@@ -29,7 +29,7 @@ import model.model :
 	purityRange,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Specs,
 	StructBody,
@@ -53,7 +53,7 @@ bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
-	return isPurityAlwaysCompatible(expected, typePurity) ||
+	return isPurityAlwaysCompatible(referencer: expected, referenced: typePurity) ||
 		exists!(SpecInst*)(funSpecs, (in SpecInst* inst) =>
 			specProvidesPurity(*inst, type, expected)) ||
 		(type.isA!(StructInst*) &&
@@ -62,13 +62,21 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
-Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
+Called checkCallSpecs(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	Range diagRange,
+	ref const Candidate candidate,
+) {
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
 	return getCalledFromCandidateAfterTypeChecks!DummyTrace(checkSpecsCtx, candidate, DummyTrace()).match!Called(
 		(Called x) =>
-			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, diagRange, candidate) : x,
+			checkSpecsCtx.hasErrors
+				? checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate)
+				: x,
 		(DummyTrace.NoMatch _) =>
-			checkCallSpecsWithRealTrace(ctx, diagRange, candidate));
+			checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate));
 }
 
 Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) =>
@@ -106,7 +114,7 @@ Called checkSpecSingleSigIgnoreParents2(
 // Additional checks on a call after the overload and spec impls have been chosen.
 void checkCalled(
 	ref CheckCtx ctx,
-	in Range diagRange,
+	Range diagRange,
 	in Called called,
 	FunFlags funFlags,
 	in LocalsInfo locals,
@@ -131,7 +139,7 @@ private:
 
 void checkCallFlags(
 	ref CheckCtx ctx,
-	in Range diagRange,
+	Range diagRange,
 	FunDecl* called,
 	FunFlags caller,
 	in LocalsInfo locals,
@@ -152,13 +160,19 @@ void checkCallFlags(
 		diag(Diag.CantCall.Reason.variadicFromBare);
 }
 
-Called checkCallSpecsWithRealTrace(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
-	return withRealTrace(ctx.checkCtx, ctx.typeContainer, range, (scope RealTrace* trace) =>
+Called checkCallSpecsWithRealTrace(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	Range range,
+	ref const Candidate candidate,
+) {
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
+	return withRealTrace!Called(ctx, typeContainer, range, (scope RealTrace* trace) =>
 		getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, trace).match!Called(
 			(Called x) => x,
 			(Diag.SpecNoMatch x) {
-				addDiag2(ctx, range, Diag(x));
+				addDiag(ctx, range, Diag(x));
 				return candidateBogusCalled(ctx.alloc, ctx.instantiateCtx, candidate);
 			}));
 }
@@ -252,7 +266,7 @@ bool isFull(in RealTrace* trace) =>
 
 Trace.Result checkCandidate(Trace)(
 	ref CheckSpecsCtx ctx,
-	SpecDeclSig* sigDecl,
+	Signature* sigDecl,
 	ReturnAndParamTypes sigType,
 	ref Candidate candidate,
 	scope Trace trace,
@@ -319,7 +333,7 @@ Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref Arra
 
 Trace.Result findSpecSigImplementation(Trace)(
 	ref CheckSpecsCtx ctx,
-	SpecDeclSig* sigDecl,
+	Signature* sigDecl,
 	ReturnAndParamTypes sigType,
 	scope Trace trace,
 ) {
@@ -447,9 +461,9 @@ Opt!(Trace.NoMatch) checkSpecImplInner(Trace)(
 		() => first!(Trace.NoMatch, immutable SpecInst*)(
 			specInstInstantiated.parents, (SpecInst* parent) =>
 				checkSpecImplInner!Trace(res, ctx, trace, *parent)),
-		() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
+		() => firstZipPointerFirst!(Trace.NoMatch, Signature, ReturnAndParamTypes)(
 			decl.sigs, specInstInstantiated.sigTypes,
-			(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>
+			(Signature* sigDecl, ReturnAndParamTypes sigType) =>
 				findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
 					(Called x) {
 						res ~= x;

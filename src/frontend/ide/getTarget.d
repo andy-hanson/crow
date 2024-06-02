@@ -11,6 +11,7 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	CommonTypes,
 	Destructure,
 	EnumFunction,
 	EnumOrFlagsMember,
@@ -18,21 +19,22 @@ import model.model :
 	FlagsFunction,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	FunInst,
 	FunPointerExpr,
 	isPointer,
 	Module,
+	mustUnwrapOptionType,
 	RecordField,
-	StructBody,
 	SpecDecl,
 	StructAlias,
+	StructBody,
 	StructDecl,
 	StructInst,
 	Test,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl,
-	VariantMember;
+	VarDecl;
 import util.col.array : only;
 import util.opt : none, Opt, some;
 import util.union_ : Union;
@@ -57,16 +59,16 @@ immutable struct Target {
 		PositionKind.TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
-		VariantMember*,
+		PositionKind.VariantMethod,
 	);
 }
 
-Opt!Target targetForPosition(PositionKind pos) =>
+Opt!Target targetForPosition(in CommonTypes commonTypes, PositionKind pos) =>
 	pos.matchWithPointers!(Opt!Target)(
 		(EnumOrFlagsMember* x) =>
 			some(Target(x)),
 		(ExpressionPosition x) =>
-			exprTarget(x),
+			exprTarget(commonTypes, x),
 		(FunDecl* x) =>
 			some(Target(x)),
 		(PositionKind.ImportedModule x) =>
@@ -86,7 +88,7 @@ Opt!Target targetForPosition(PositionKind pos) =>
 		(PositionKind.MatchUnionCase x) =>
 			some(Target(x.member)),
 		(PositionKind.MatchVariantCase x) =>
-			some(Target(x.member)),
+			some(Target(x.member.decl)),
 		(PositionKind.Modifier) =>
 			none!Target,
 		(PositionKind.ModifierExtern) =>
@@ -121,23 +123,23 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			some(Target(x)),
 		(VarDecl* x) =>
 			some(Target(x)),
-		(VariantMember* x) =>
+		(PositionKind.VariantMethod x) =>
 			some(Target(x)),
 		(PositionKind.VisibilityMark) =>
 			none!Target);
 
 private:
 
-Opt!Target exprTarget(ExpressionPosition a) =>
+Opt!Target exprTarget(in CommonTypes commonTypes, ExpressionPosition a) =>
 	a.kind.match!(Opt!Target)(
 		(CallExpr x) =>
-			calledTarget(x.called),
+			calledTarget(commonTypes, x.called),
 		(CallOptionExpr x) =>
-			calledTarget(x.called),
+			calledTarget(commonTypes, x.called),
 		(ExprKeyword x) =>
 			none!Target,
 		(FunPointerExpr x) =>
-			calledTarget(x.called),
+			calledTarget(commonTypes, x.called),
 		(ExpressionPositionKind.Literal) =>
 			none!Target,
 		(ExpressionPositionKind.LocalRef x) =>
@@ -145,7 +147,7 @@ Opt!Target exprTarget(ExpressionPosition a) =>
 		(ExpressionPositionKind.LoopKeyword x) =>
 			some(Target(Target.Loop(x.loop))));
 
-Opt!Target calledTarget(ref Called a) =>
+Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 	a.match!(Opt!Target)(
 		(ref Called.Bogus) =>
 			none!Target,
@@ -166,11 +168,13 @@ Opt!Target calledTarget(ref Called a) =>
 					returnTypeTarget(decl),
 				(FunBody.CreateRecord) =>
 					returnTypeTarget(decl),
+				(FunBody.CreateRecordAndConvertToVariant x) =>
+					Target(x.member.decl),
 				(FunBody.CreateUnion) =>
 					// TODO: goto the particular union member
 					returnTypeTarget(decl),
 				(FunBody.CreateVariant x) =>
-					Target(x.member),
+					Target(only(a.paramTypes).as!(StructInst*).decl),
 				(EnumFunction x) =>
 					// goto the type
 					returnTypeTarget(decl),
@@ -195,8 +199,10 @@ Opt!Target calledTarget(ref Called a) =>
 					unionMemberTarget(decl, x.memberIndex),
 				(FunBody.VarGet x) =>
 					Target(x.var),
-				(FunBody.VariantMemberGet x) =>
-					Target(x.member),
+				(FunBody.VariantMemberGet) =>
+					Target(mustUnwrapOptionType(commonTypes, a.returnType).as!(StructInst*).decl),
+				(FunBody.VariantMethod x) =>
+					Target(decl.source.as!(FunDeclSource.VariantMethod)),
 				(FunBody.VarSet x) =>
 					Target(x.var)));
 		},

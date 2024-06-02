@@ -521,7 +521,9 @@ AllLowFuns getAllLowFuns(
 			(ConcreteFunBody.VarGet x) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.VarSet) =>
-				none!LowFunIndex);
+				none!LowFunIndex,
+			(ConcreteFunBody.Deferred) =>
+				assert(false));
 		if (has(opIndex))
 			mustAdd(getLowTypeCtx.alloc, concreteFunToLowFunIndex, fun, force(opIndex));
 	}
@@ -1223,7 +1225,9 @@ LowExpr getCallSpecial(
 			genVarSet(
 				ctx.alloc, range,
 				mustGet(ctx.varIndices, x.var),
-				getLowExpr(ctx, locals, only(args), ExprPos.nonTail)));
+				getLowExpr(ctx, locals, only(args), ExprPos.nonTail)),
+		(ConcreteFunBody.Deferred) =>
+			assert(false));
 
 LowExpr getRecordFieldSet(
 	ref GetLowExprCtx ctx,

@@ -167,7 +167,9 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 		(in ConcreteFunBody.VarGet) =>
 			jsonString!"var-get",
 		(in ConcreteFunBody.VarSet) =>
-			jsonString!"var-set");
+			jsonString!"var-set",
+		(in ConcreteFunBody.Deferred) =>
+			assert(false));
 
 Json jsonOfConcreteFunBodyBuiltin(ref Alloc alloc, in ConcreteFunBody.Builtin a) =>
 	jsonObject(alloc, [

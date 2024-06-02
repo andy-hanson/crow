@@ -21,15 +21,16 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	Type,
-	TypeParams,
+	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, makeArray, small;
+import util.col.array : emptySmallArray, isEmpty, makeArray, small;
 import util.col.arrayBuilder : add, ArrayBuilder;
 import util.col.enumMap : EnumMap, makeEnumMap;
+import util.late : late;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, someMut, some;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : Range;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.uri : Uri;
 import util.util : ptrTrustMe;
@@ -197,17 +198,16 @@ StructInst* instantiateNonTemplateStructDecl(
 ) =>
 	instantiateStruct(ctx, structDecl, emptyTypeArgs, someMut(ptrTrustMe(delayedStructInsts)));
 
-StructDecl* bogusStructDecl(ref Alloc alloc, Symbol name, size_t nTypeParameters) {
-	UriAndRange uriAndRange = UriAndRange.empty;
-	TypeParams typeParams = small!NameAndRange(makeArray!NameAndRange(alloc, nTypeParameters, (size_t i) =>
-		NameAndRange(0, symbol!"")));
-	StructDecl* res = allocate(alloc, StructDecl(
-		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(name, typeParams))),
-		uriAndRange.uri,
+public StructDecl* bogusStructDecl(ref Alloc alloc, Symbol name, size_t nTypeParameters) =>
+	allocate(alloc, StructDecl(
+		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
+			name,
+			small!NameAndRange(makeArray!NameAndRange(alloc, nTypeParameters, (size_t i) =>
+				NameAndRange(0, symbol!"")))))),
+		Uri.empty,
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,
-		false));
-	res.body_ = StructBody(StructBody.Bogus());
-	return res;
-}
+		false,
+		late(emptySmallArray!VariantAndMethodImpls),
+		late(StructBody(StructBody.Bogus()))));

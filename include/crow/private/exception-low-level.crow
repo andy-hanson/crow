@@ -12,7 +12,7 @@ import
 		abort, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
 		set-cur-catch-point, string
 export
-	./bootstrap: backtrace, exception, exception-and-backtrace
+	./bootstrap: backtrace, describe, exception, exception-and-backtrace
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
 # ('setjmp' and 'longjmp' don't work with fibers on Windows.)
@@ -21,9 +21,7 @@ export
 ~jump-to-catch void(env catch-point*) bare, builtin
 
 # Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error variant-member(exception, string)
-
-+test-failure variant-member(exception, string)
++error record(describe string) by-val, exception variant-member
 
 # Just use a thread-local for these, since they will be handled immediately
 # (not giving the fiber a chance to yield)

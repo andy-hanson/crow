@@ -6,7 +6,6 @@ import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	BuiltinType,
-	CommonTypes,
 	Destructure,
 	EnumOrFlagsMember,
 	FunBody,
@@ -19,7 +18,7 @@ import model.model :
 	Purity,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructBody,
@@ -31,7 +30,7 @@ import model.model :
 	TypeParams,
 	UnionMember,
 	VarDecl,
-	VariantMember,
+	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
@@ -78,9 +77,6 @@ Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 					if (fun.isGenerated) {
 						if (fun.body_.isA!(FunBody.VarGet))
 							res ~= documentVarDecl(alloc, *fun.body_.as!(FunBody.VarGet).var);
-						else if (fun.body_.isA!(FunBody.VariantMemberGet))
-							res ~= documentVariantMember(
-								alloc, *program.commonTypes, *fun.body_.as!(FunBody.VariantMemberGet).member);
 					} else
 						res ~= documentFun(alloc, *fun);
 				}
@@ -126,35 +122,40 @@ DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) =>
 		kindField!"alias",
 		field!"target"(documentStructInst(alloc, a.typeParams, *a.target))]));
 
-DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(
+DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) {
+	Json.ObjectField variantsField = optionalArrayField!("variants", VariantAndMethodImpls)(
+		alloc, a.variants, (in VariantAndMethodImpls x) =>
+			documentStructInst(alloc, a.typeParams, *x.variant));
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(
 		(in StructBody.Bogus) =>
 			assert(false),
 		(in BuiltinType _) =>
-			jsonObject(alloc, [kindField!"builtin"]),
+			jsonObject(alloc, [kindField!"builtin", variantsField]),
 		(in StructBody.Enum x) =>
-			jsonObject(alloc, [kindField!"enum", field!"members"(jsonOfEnumMembers(alloc, x.members))]),
+			jsonObject(alloc, [kindField!"enum", field!"members"(jsonOfEnumMembers(alloc, x.members)), variantsField]),
 		(in StructBody.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
 				optionalField!("size", TypeSize)(x.size, (in TypeSize size) =>
 					jsonObject(alloc, [
 						field!"size"(size.sizeBytes),
-						field!"alignment"(size.alignmentBytes)]))]),
+						field!"alignment"(size.alignmentBytes)])),
+				variantsField]),
 		(in StructBody.Flags x) =>
-			jsonObject(alloc, [kindField!"flags", field!"members"(jsonOfEnumMembers(alloc, x.members))]),
+			jsonObject(alloc, [kindField!"flags", field!"members"(jsonOfEnumMembers(alloc, x.members)), variantsField]),
 		(in StructBody.Record x) =>
-			documentRecord(alloc, a, x),
+			documentRecord(alloc, a, x, variantsField),
 		(in StructBody.Union x) =>
-			documentUnion(alloc, a, x),
+			documentUnion(alloc, a, x, variantsField),
 		(in StructBody.Variant x) =>
-			documentVariant(alloc, a, x)));
+			documentVariant(alloc, a, x, variantsField)));
+}
 
 Json jsonOfEnumMembers(ref Alloc alloc, in EnumOrFlagsMember[] members) =>
 	jsonList!EnumOrFlagsMember(alloc, members, (in EnumOrFlagsMember member) =>
 		jsonString(member.name));
 
-Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) =>
+Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a, Json.ObjectField variantsField) =>
 	jsonObject(alloc, [
 		kindField!"record",
 		maybePurity(alloc, decl),
@@ -162,7 +163,8 @@ Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a)
 		optionalFlagField!"nominal"(a.flags.nominal),
 		field!"fields"(jsonList(
 			mapOp!(Json, RecordField)(alloc, a.fields, (ref RecordField field) =>
-				documentRecordField(alloc, decl.typeParams, field))))]);
+				documentRecordField(alloc, decl.typeParams, field)))),
+		variantsField]);
 
 Json.ObjectField maybePurity(ref Alloc alloc, in StructDecl decl) =>
 	optionalField!"purity"(decl.purity != Purity.data, () => jsonString(stringOfEnum(decl.purity)));
@@ -178,15 +180,16 @@ bool hasNonPublicFields(in StructBody.Record a) =>
 		}
 	});
 
-Json documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) =>
+Json documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a, Json.ObjectField variantsField) =>
 	jsonObject(alloc, [
 		kindField!"union",
 		maybePurity(alloc, decl),
 		field!"members"(jsonList!UnionMember(alloc, a.members, (in UnionMember member) =>
-			documentUnionMember(alloc, decl.typeParams, member)))]);
+			documentUnionMember(alloc, decl.typeParams, member))),
+		variantsField]);
 
-Json documentVariant(ref Alloc alloc, in StructDecl decl, in StructBody.Variant a) =>
-	jsonObject(alloc, [kindField!"variant", maybePurity(alloc, decl)]);
+Json documentVariant(ref Alloc alloc, in StructDecl decl, in StructBody.Variant a, Json.ObjectField variantsField) =>
+	jsonObject(alloc, [kindField!"variant", maybePurity(alloc, decl), variantsField]);
 
 Opt!Json documentRecordField(ref Alloc alloc, in TypeParams typeParams, in RecordField a) {
 	final switch (a.visibility) {
@@ -212,10 +215,10 @@ DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 		optionalFlagField!"builtin"(has(a.builtin)),
 		field!"parents"(jsonList(map(alloc, a.parents, (ref immutable SpecInst* x) =>
 			documentSpecInst(alloc, a.typeParams, *x)))),
-		field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig sig) =>
+		field!"sigs"(jsonList!Signature(alloc, a.sigs, (in Signature sig) =>
 			documentSpecDeclSig(alloc, a.typeParams, sig)))]));
 
-Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclSig a) =>
+Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in Signature a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"name"(a.name),
@@ -226,13 +229,6 @@ DocExport documentVarDecl(ref Alloc alloc, in VarDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField(stringOfEnum(a.kind)),
 		field!"type"(documentTypeRef(alloc, a.typeParams, a.type))]));
-
-DocExport documentVariantMember(ref Alloc alloc, in CommonTypes commonTypes, in VariantMember a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
-		kindField!"variant-member",
-		field!"variant"(documentStructInst(alloc, a.typeParams, *a.variant)),
-		optionalField!"type"(a.type != Type(commonTypes.void_), () =>
-			documentTypeRef(alloc, a.typeParams, a.type))]));
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [

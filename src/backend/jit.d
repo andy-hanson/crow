@@ -1842,7 +1842,7 @@ ExprResult switchToGcc(
 			MutOpt!(gcc_jit_block*) endBlock,
 			MutOpt!(gcc_jit_lvalue*) local,
 			ExprResult expectedResult,
-		) {
+		) @trusted {
 			immutable gcc_jit_case*[] cases = mapWithIndex!(immutable gcc_jit_case*, LowExpr)(
 				ctx.alloc, a.caseExprs,
 				(size_t caseIndex, ref LowExpr case_) {
@@ -1866,7 +1866,7 @@ ExprResult switchToGcc(
 				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
 				defaultBlock,
 				safeToInt(cases.length),
-				&cases[0]);
+				cases.ptr);
 		});
 }
 

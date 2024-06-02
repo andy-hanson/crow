@@ -2,7 +2,7 @@ module frontend.check.checkCall.candidates;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
+import frontend.check.checkCtx : CheckCtx, eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
 	matchTypes,
@@ -26,7 +26,7 @@ import model.model :
 	Params,
 	paramTypeAt,
 	ReturnAndParamTypes,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
@@ -43,7 +43,7 @@ CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidate[] candidates) =>
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
 	buildArray!CalledDecl(ctx.alloc, (scope ref Builder!CalledDecl res) {
-		eachFunInScope(ctx, funName, (CalledDecl called) {
+		eachFunInExprScope(ctx, funName, (CalledDecl called) {
 			res ~= called;
 		});
 	});
@@ -104,15 +104,23 @@ immutable struct FunsInScope {
 	FunsMap funsMap;
 	ImportAndReExportModules importsAndReExports;
 }
-FunsInScope funsInScope(ref const ExprCtx ctx) {
-	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
-}
+FunsInScope funsInNonExprScope(ref const CheckCtx ctx, FunsMap funsMap) =>
+	FunsInScope([], funsMap, ctx.importsAndReExports);
+FunsInScope funsInExprScope(ref const ExprCtx ctx) =>
+	FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 
-void eachFunInScope(ref ExprCtx ctx, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
-	eachFunInScope(funsInScope(ctx), funName, cb);
+private void eachFunInExprScope(
+	ref ExprCtx ctx,
+	Symbol funName,
+	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
+) {
+	eachFunInScope(funsInExprScope(ctx), funName, cb);
 }
-
-void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+private void eachFunInScope(
+	in FunsInScope a,
+	Symbol funName,
+	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
+) {
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, funName, cb);
 
@@ -197,7 +205,7 @@ private void eachFunInScopeForSpec(
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, funName, cb);
-	foreach (size_t sigIndex, ref SpecDeclSig sig; specInst.decl.sigs) {
+	foreach (size_t sigIndex, ref Signature sig; specInst.decl.sigs) {
 		if (sig.name == funName)
 			cb(CalledDecl(CalledSpecSig(specInst, safeToUshort(sigIndex))));
 	}

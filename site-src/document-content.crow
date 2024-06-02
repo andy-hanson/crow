@@ -18,8 +18,6 @@ all-exports all-exports(modules module[])
 				specs add-or-warn x.name, module.path
 			as export-fun
 				()
-			as export-variant-member
-				()
 	types.move-to, specs.move-to
 
 -add-or-warn void(map module-path mut[symbol], key symbol, value module-path)
@@ -28,7 +26,7 @@ all-exports all-exports(modules module[])
 	else
 		map[key] := value
 
--export-kind enum(export-type, export-spec, export-fun, export-variant-member)
+-export-kind enum(export-type, export-spec, export-fun)
 
 -export-kind export-kind(a module-export-value)
 	match a
@@ -52,8 +50,6 @@ all-exports all-exports(modules module[])
 		export-type
 	as variant-decl _
 		export-type
-	as variant-member-decl _
-		export-variant-member
 
 module-content string(a module, all-exports all-exports)
 	exports = "" join for x : a exports
@@ -127,8 +123,6 @@ module-content string(a module, all-exports all-exports)
 		"union"
 	as variant-decl _
 		"variant"
-	as variant-member-decl _
-		"variant-member"
 
 -name-class string(a module-export-value)
 	match a
@@ -152,8 +146,6 @@ module-content string(a module, all-exports all-exports)
 		"type"
 	as variant-decl _
 		"type"
-	as variant-member-decl _
-		"enumMember"
 
 -type-params-content string(a type-param[])
 	guard !a.is-empty
@@ -187,6 +179,8 @@ module-content string(a module, all-exports all-exports)
 
 			if r.nominal_
 				out ~= "nominal"
+			for v : r variants
+				out ~= "{v type-ref-content ctx} variant-member"
 		modifiers-content string = unless modifiers is-empty
 			" {", " join for m : modifiers; m keyword}"
 		"{"record" keyword}{modifiers-content}"
@@ -196,10 +190,6 @@ module-content string(a module, all-exports all-exports)
 		"{"union" keyword}{u.purity purity-content}"
 	as variant-decl x
 		"{"variant" keyword}{x.purity purity-content}"
-	as variant-member-decl x
-		type string = if t ?= x type
-			", {t type-ref-content ctx}"
-		"{"variant-member" keyword}({x.variant-decl type-ref-content ctx}{type})"
 
 -purity-content string(a purity)
 	match a
@@ -239,8 +229,6 @@ module-content string(a module, all-exports all-exports)
 			x union-member-content ctx
 		"""<ul class="members">{members}</ul>"""
 	as variant-decl _
-		""
-	as variant-member-decl _
 		""
 
 -enum-flags-members-content string(a symbol[])

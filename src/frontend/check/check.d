@@ -3,7 +3,7 @@ module frontend.check.check;
 @safe @nogc pure nothrow:
 
 import frontend.allInsts : AllInsts;
-import frontend.check.checkFuns : checkFuns, checkReturnTypeAndParams, getExternLibraryName, ReturnTypeAndParams;
+import frontend.check.checkFuns : checkFuns, getExternLibraryName;
 import frontend.check.checkCtx :
 	addDiag,
 	addDiagAssertSameUri,
@@ -14,7 +14,8 @@ import frontend.check.checkCtx :
 	finishDiagnostics,
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
+import frontend.check.checkStructBodies :
+	checkSignatures, checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps :
 	FunsAndMap,
@@ -37,47 +38,38 @@ import model.ast :
 	ImportOrExportAst,
 	NameAndRange,
 	SpecDeclAst,
-	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
-	VariantMemberAst,
 	VarDeclAst;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	CommonTypes,
-	Destructure,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
 	ImportOrExport,
 	ImportOrExportKind,
-	isPurityAlwaysCompatible,
 	Module,
 	nameFromNameReferents,
 	NameReferents,
-	Params,
-	purityRange,
 	SpecDecl,
 	SpecDeclBody,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
-	StructBody,
 	StructDecl,
 	StructInst,
 	StructOrAlias,
 	Type,
 	TypeParams,
 	VarDecl,
-	VariantMember,
 	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
-	arrayOfSingle,
 	concatenate,
 	exists,
 	filter,
@@ -177,26 +169,15 @@ SpecDeclBody checkSpecDeclBody(
 	TypeContainer typeContainer,
 	TypeParams typeParams,
 	ref DelaySpecInsts delaySpecInsts,
-	in SpecDeclAst ast,
+	ref SpecDeclAst ast,
 ) {
 	SpecFlagsAndParents modifiers = checkSpecModifiers(
 		ctx, commonTypes, structsAndAliasesMap, specsMap, delaySpecInsts, ast.typeParams, ast.modifiers);
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
 		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
-	SmallArray!SpecDeclSig sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
-		ReturnTypeAndParams rp = checkReturnTypeAndParams(
-			ctx, commonTypes, typeContainer, x.returnType, x.params,
-			typeParams, structsAndAliasesMap, noDelayStructInsts);
-		Destructure[] params = rp.params.matchWithPointers!(Destructure[])(
-			(Destructure[] x) =>
-				x,
-			(Params.Varargs* x) {
-				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
-				return arrayOfSingle(&x.param);
-			});
-		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
-	});
+	SmallArray!Signature sigs = checkSignatures(
+		ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
 	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), sigs);
 }
 
@@ -270,12 +251,8 @@ void checkStructAliasTargets(
 ) {
 	zip!(StructAlias, StructAliasAst)(aliases, asts, (ref StructAlias structAlias, ref StructAliasAst ast) {
 		Type type = typeFromAst(
-			ctx,
-			commonTypes,
-			ast.target,
-			structsAndAliasesMap,
-			ast.typeParams,
-			someMut(ptrTrustMe(delayStructInsts)));
+			ctx, commonTypes, structsAndAliasesMap,
+			ast.target, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 		assert(type.isA!(StructInst*) || type.isBogus); // since type aliases can't have type parameters
 		structAlias.target = type.isA!(StructInst*)
 			? type.as!(StructInst*)
@@ -308,43 +285,8 @@ VarDecl checkVarDecl(
 		ast,
 		ctx.curUri,
 		visibilityFromExplicitTopLevel(ast.visibility),
-		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
+		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, ast.type),
 		checkVarModifiers(ctx, ast.kind, ast.modifiers));
-}
-
-VariantMember checkVariantMember(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	VariantMemberAst* ast,
-	VariantMember* result,
-) {
-	foreach (ModifierAst mod; ast.modifiers)
-		mod.matchIn!void(
-			(in ModifierAst.Keyword x) {
-				addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.variantMember)));
-			},
-			(in SpecUseAst x) {
-				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.variantMember)));
-			});
-
-	Type variantType = typeFromAst(
-		ctx, commonTypes, ast.variant, structsAndAliasesMap, ast.typeParams, noDelayStructInsts);
-	StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
-	StructInst* variant = variantInst.decl.body_.isA!(StructBody.Variant)
-		? variantInst
-		: () {
-			if (!variantType.isBogus)
-				addDiag(ctx, ast.variant.range, Diag(Diag.VariantMemberOfNonVariant(result, variantType)));
-			return commonTypes.exception;
-		}();
-	Type type = has(ast.type)
-		? typeFromAst(ctx, commonTypes, force(ast.type), structsAndAliasesMap, ast.typeParams, noDelayStructInsts)
-		: Type(commonTypes.void_);
-
-	if (!isPurityAlwaysCompatible(variant.purityRange.bestCase, purityRange(type)))
-		addDiag(ctx, ast.name.range, Diag(Diag.PurityWorseThanVariant(result)));
-	return VariantMember(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility), variant, type);
 }
 
 Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] modifiers) {
@@ -451,10 +393,6 @@ Module* checkWorkerAfterCommonTypes(
 	while (!mutArrIsEmpty(delayStructInsts))
 		instantiateStructTypes(ctx.instantiateCtx, mustPop(delayStructInsts), someMut(ptrTrustMe(delayStructInsts)));
 
-	SmallArray!VariantMember variantMembers = (() @trusted =>
-		mapWithResultPointer(ctx.alloc, ast.variantMembers, (VariantMemberAst* ast, VariantMember* result) =>
-			checkVariantMember(ctx, commonTypes, structsAndAliasesMap, ast, result))
-	)();
 	VarDecl[] vars = mapPointers(ctx.alloc, ast.vars, (VarDeclAst* ast) =>
 		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesMap, ast.specs);
@@ -466,7 +404,6 @@ Module* checkWorkerAfterCommonTypes(
 		specsMap,
 		structs,
 		structsAndAliasesMap,
-		variantMembers,
 		vars,
 		importsAndReExports.fileImports,
 		importsAndReExports.fileExports,
@@ -481,7 +418,6 @@ Module* checkWorkerAfterCommonTypes(
 		importsAndReExports.moduleReExports,
 		small!StructAlias(structAliases),
 		small!StructDecl(structs),
-		variantMembers,
 		small!VarDecl(vars),
 		small!SpecDecl(specs),
 		funsAndMap.funs,

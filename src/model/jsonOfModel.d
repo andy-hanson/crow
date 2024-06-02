@@ -58,7 +58,7 @@ import model.model :
 	Purity,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructDecl,
 	StructInst,
@@ -164,11 +164,11 @@ Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 			optionalField!("builtin", BuiltinSpec)(a.builtin, (in BuiltinSpec x) => jsonString(stringOfEnum(x))),
 				field!"parents"(jsonList!(SpecInst*)(alloc, a.parents, (in SpecInst* x) =>
 					jsonOfSpecInst(alloc, ctx, *x))),
-				field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig x) =>
+				field!"sigs"(jsonList!Signature(alloc, a.sigs, (in Signature x) =>
 					jsonOfSpecDeclSig(alloc, ctx, x)))
 		]);
 
-Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
+Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in Signature a) =>
 	jsonObject(alloc, [
 		field!"where"(jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[a.range.range])),
 		field!"name"(a.name),
@@ -275,11 +275,13 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.CreateExtern) =>
 			jsonString!"new-extern",
 		(in FunBody.CreateRecord) =>
-			jsonString!"new-record" ,
+			jsonString!"new-record",
+		(in FunBody.CreateRecordAndConvertToVariant x) =>
+			jsonObject(alloc, [kindField!"create-record-to-variant", field!"member"(x.member.decl.name)]),
 		(in FunBody.CreateUnion x) =>
 			jsonObject(alloc, [kindField!"create-union", field!"member"(x.member.name)]),
 		(in FunBody.CreateVariant x) =>
-			jsonObject(alloc, [kindField!"create-variant", field!"member"(x.member.name)]),
+			jsonObject(alloc, [kindField!"create-variant"]),
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
@@ -319,7 +321,9 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
 		(in FunBody.VariantMemberGet x) =>
-			jsonObject(alloc, [kindField!"variant-member-get", field!"member"(x.member.name)]),
+			jsonObject(alloc, [kindField!"variant-member-get"]),
+		(in FunBody.VariantMethod x) =>
+			jsonObject(alloc, [kindField!"variant-method", field!"method-index"(x.methodIndex)]),
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 
@@ -609,6 +613,6 @@ Json jsonOfMatchVariantCases(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Ca
 
 Json jsonOfMatchVariantCase(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Case a) =>
 	jsonObject(alloc, [
-		field!"member"(a.member.name),
+		field!"member"(a.member.decl.name),
 		field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
 		field!"then"(jsonOfExpr(alloc, ctx, a.then))]);

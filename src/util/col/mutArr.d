@@ -3,8 +3,9 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.array : arrayOfRange, endPtr, small, SmallArray;
+import util.col.array : findIndex;
 import util.memory : copyToFrom, initMemory;
+import util.opt : optOrDefault;
 
 struct MutArr(T) {
 	@safe @nogc nothrow:
@@ -67,6 +68,22 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
 	assert(a.size_ <= a.inner.length);
 }
 
+size_t findIndexOrPush(T)(
+	ref Alloc alloc,
+	scope ref MutArr!T a,
+	in bool delegate(in T) @safe @nogc pure nothrow cbSearch,
+	in T delegate() @safe @nogc pure nothrow cbValue,
+	in void delegate(ref T) @safe @nogc pure nothrow cbAfterPush,
+) =>
+	optOrDefault!size_t(findIndex!T(asTemporaryArray(a), cbSearch), () {
+		size_t res = mutArrSize(a);
+		T value = cbValue();
+		assert(mutArrSize(a) == res);
+		push(alloc, a, value);
+		cbAfterPush(a[res]);
+		return res;
+	});
+
 void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
 	foreach (ref immutable T value; values)
 		push(alloc, a, value);
@@ -79,29 +96,13 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 }
 
 @trusted immutable(T[]) moveToArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
-	cast(immutable) moveToArr_mut(alloc, a);
-@trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
+	cast(immutable) moveToMutArray(alloc, a);
+@trusted T[] moveToMutArray(T)(ref Alloc alloc, ref MutArr!T a) {
 	T[] res = a.inner[0 .. a.size_];
 	freeElements(alloc, a.inner[a.size_ .. $]);
 	a.inner = [];
 	a.size_ = 0;
 	return res;
-}
-
-@trusted SmallArray!Out moveAndMapToArray(Out, In)(
-	ref Alloc alloc,
-	scope ref MutArr!In a,
-	in Out delegate(ref In) @safe @nogc pure nothrow cb,
-) {
-	static assert(Out.sizeof <= In.sizeof);
-	In[] in_ = a.inner[0 .. a.size_];
-	Out[] out_ = (cast(Out*) in_.ptr)[0 .. in_.length];
-	foreach (size_t i; 0 .. in_.length)
-		initMemory(&out_[i], cb(in_[i]));
-	freeElements(alloc, arrayOfRange(cast(ubyte*) endPtr(out_), cast(ubyte*) endPtr(a.inner)));
-	a.inner = [];
-	a.size_ = 0;
-	return small!Out(out_);
 }
 
 @trusted const(T[]) asTemporaryArray(T)(ref const MutArr!T a) =>

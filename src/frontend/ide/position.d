@@ -10,6 +10,7 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	FunDecl,
+	FunDeclSource,
 	FunPointerExpr,
 	ImportOrExport,
 	Local,
@@ -18,16 +19,16 @@ import model.model :
 	NameReferents,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructDecl,
+	StructInst,
 	Test,
 	Type,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
-	VariantMember,
 	Visibility;
 import util.integralValues : IntegralValue;
 import util.opt : Opt;
@@ -61,7 +62,8 @@ immutable struct ExprContainer {
 
 immutable struct LocalContainer {
 	@safe @nogc pure nothrow:
-	mixin TaggedUnion!(FunDecl*, Test*, SpecDecl*);
+	// A SpecDecl* can contain parameters in its signatures, and a StructDecl* for a variant can too
+	mixin TaggedUnion!(FunDecl*, Test*, SpecDecl*, StructDecl*);
 
 	TypeContainer toTypeContainer() return scope =>
 		matchWithPointers!TypeContainer(
@@ -70,6 +72,8 @@ immutable struct LocalContainer {
 			(Test* x) =>
 				TypeContainer(x),
 			(SpecDecl* x) =>
+				TypeContainer(x),
+			(StructDecl* x) =>
 				TypeContainer(x));
 
 	Uri moduleUri() scope =>
@@ -82,7 +86,7 @@ immutable struct LocalContainer {
 immutable struct VisibilityContainer {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*, VariantMember*);
+	mixin TaggedUnion!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
@@ -91,8 +95,7 @@ immutable struct VisibilityContainer {
 			(in SpecDecl x) => x.name,
 			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name,
-			(in VarDecl x) => x.name,
-			(in VariantMember x) => x.name);
+			(in VarDecl x) => x.name);
 
 	Visibility visibility() scope =>
 		matchIn!Visibility(
@@ -101,8 +104,7 @@ immutable struct VisibilityContainer {
 			(in SpecDecl x) => x.visibility,
 			(in StructAlias x) => x.visibility,
 			(in StructDecl x) => x.visibility,
-			(in VarDecl x) => x.visibility,
-			(in VariantMember x) => x.visibility);
+			(in VarDecl x) => x.visibility);
 }
 
 immutable struct PositionKind {
@@ -159,7 +161,8 @@ immutable struct PositionKind {
 		UnionMember* member;
 	}
 	immutable struct MatchVariantCase {
-		VariantMember* member;
+		ExprContainer container;
+		StructInst* member;
 	}
 	immutable struct Modifier {
 		TypeContainer container;
@@ -173,7 +176,7 @@ immutable struct PositionKind {
 	}
 	immutable struct SpecSig {
 		SpecDecl* spec;
-		SpecDeclSig* sig;
+		Signature* sig;
 	}
 	immutable struct SpecUse {
 		TypeContainer container;
@@ -183,6 +186,7 @@ immutable struct PositionKind {
 		TypeParamIndex typeParam;
 		TypeContainer container;
 	}
+	alias VariantMethod = FunDeclSource.VariantMethod;
 	immutable struct VisibilityMark {
 		VisibilityContainer container;
 	}
@@ -214,7 +218,7 @@ immutable struct PositionKind {
 		TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
-		VariantMember*,
+		VariantMethod,
 		VisibilityMark);
 }
 

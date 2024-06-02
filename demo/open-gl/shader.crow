@@ -26,7 +26,7 @@ shader-prog-load GLuint(
 		err-log GLchar mut-array = log-length.to zeroed-mut-array
 		gl glGetProgramInfoLog shader-prog, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
-		throw ("Loading shaders", err-log.to::(char8 array).to) gl-error
+		throw "Loading shaders" gl-error err-log.to::(char8 array).to
 
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	gl glDeleteProgram shader-prog
@@ -44,7 +44,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 		err-log GLchar mut-array = log-length.to zeroed-mut-array
 		gl glGetShaderInfoLog shader, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteShader shader
-		throw ("Compiling GLSL {name}", err-log.to::(char8 array).to) gl-error
+		throw "Compiling GLSL {name}" gl-error err-log.to::(char8 array).to
 
 -create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
 	shader = gl glCreateShader shader-type

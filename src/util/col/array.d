@@ -94,9 +94,11 @@ alias SmallArray(T) = immutable MutSmallArray!T;
 
 template small(T) {
 	static if (is(T == immutable)) {
+		@disable void small(T)(in MutSmallArray!T);
 		SmallArray!T small(T)(return scope T[] values) =>
 			SmallArray!T(values);
 	} else {
+		@disable void small(T)(in MutSmallArray!T);
 		inout(MutSmallArray!T) small(T)(return scope inout T[] values) =>
 			inout MutSmallArray!T(values);
 	}
@@ -207,6 +209,16 @@ ref const(T) mustFind(T)(return in T[] a, in bool delegate(ref T) @safe @nogc pu
 	foreach (ref const T x; a)
 		if (cb(x))
 			return x;
+	assert(false);
+}
+
+ref const(T) mustFindOnly(T)(return in T[] a, in bool delegate(ref T) @safe @nogc pure nothrow cb) {
+	foreach (size_t i, ref const T x; a)
+		if (cb(x)) {
+			foreach (ref const T y; a[i + 1 .. $])
+				assert(!cb(y));
+			return x;
+		}
 	assert(false);
 }
 
@@ -490,11 +502,18 @@ SmallArray!Out mapPointers(Out, In)(
 	ref Alloc alloc,
 	SmallArray!In a,
 	in Opt!Out delegate(In*) @safe @nogc pure nothrow cb,
+) =>
+	mapOpPointersWithSoFar!(Out, In)(alloc, a, (In* x, in Out[]) => cb(x));
+
+@trusted SmallArray!Out mapOpPointersWithSoFar(Out, In)(
+	ref Alloc alloc,
+	SmallArray!In a,
+	in Opt!Out delegate(In*, in Out[]) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length);
 	size_t outI = 0;
 	foreach (size_t i; 0 .. a.length) {
-		Opt!Out o = cb(&a[i]);
+		Opt!Out o = cb(&a[i], res[0 .. outI]);
 		if (has(o)) {
 			initMemory(&res[outI], force(o));
 			outI++;
@@ -578,17 +597,10 @@ SmallArray!Out mapZip(Out, In0, In1)(
 	in SmallArray!In0 in0,
 	in SmallArray!In1 in1,
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
-) =>
-	small!Out(mapZip!(Out, In0, In1)(alloc, in0.toArray, in1.toArray, cb));
-@trusted Out[] mapZip(Out, In0, In1)(
-	ref Alloc alloc,
-	scope In0[] in0,
-	scope In1[] in1,
-	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return makeArray(alloc, in0.length, (size_t i) =>
-		cb(in0[i], in1[i]));
+	return small!Out(makeArray(alloc, in0.length, (size_t i) =>
+		cb(in0[i], in1[i])));
 }
 
 @trusted Out[] mapZipWithIndex(Out, In0, In1)(

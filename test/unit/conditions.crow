@@ -6,13 +6,13 @@ test
 		assert 1::nat < 0
 		should-throw
 	catch error x
-		x is "Asserted expression is false: 1::nat < 0"
+		x.describe is "Asserted expression is false: 1::nat < 0"
 test
 	try
 		forbid 1::nat > 0
 		should-throw
 	catch error x
-		x is "Forbidden expression is true: 1::nat > 0"
+		x.describe is "Forbidden expression is true: 1::nat > 0"
 
 test
 	xs nat mut[] = 1,
@@ -26,7 +26,7 @@ test
 		assert _ ?= xs pop
 		should-throw
 	catch error x
-		x is "Asserted option is empty: xs pop"
+		x.describe is "Asserted option is empty: xs pop"
 
 test
 	try
@@ -34,14 +34,14 @@ test
 		forbid x ?= xs pop
 		should-throw
 	catch error x
-		x is "Forbidden option is non-empty: xs pop"
+		x.describe is "Forbidden option is non-empty: xs pop"
 test
 	try
 		xs nat mut[] = 1,
 		forbid x ?= xs pop : "popped {x}".error
 		should-throw
 	catch error x
-		x is "popped 1"
+		x.describe is "popped 1"
 
 test
 	xs nat mut[] = 1,

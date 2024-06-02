@@ -530,7 +530,7 @@ private UriAndRange[] getDefinitionForProgram(
 	in DefinitionParams params,
 ) {
 	Opt!Position position = serverGetPosition(server, program, params.params);
-	return has(position) ? getDefinitionForPosition(alloc, force(position)) : [];
+	return has(position) ? getDefinitionForPosition(alloc, *program.commonTypes, force(position)) : [];
 }
 
 private UriAndRange[] getReferencesForProgram(

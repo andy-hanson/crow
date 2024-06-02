@@ -74,7 +74,8 @@ CalledBy buildCalledBy(ref Alloc alloc, in immutable ConcreteFun*[] allConcreteF
 			},
 			(ConcreteFunBody.FlagsFn) {},
 			(ConcreteFunBody.VarGet) {},
-			(ConcreteFunBody.VarSet) {});
+			(ConcreteFunBody.VarSet) {},
+			(ConcreteFunBody.Deferred) => assert(false));
 	return res;
 }
 

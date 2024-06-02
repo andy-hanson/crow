@@ -8,7 +8,7 @@ import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.util : roundUp;
 
-private ulong[0x1000] stackArrayStorage = void;
+private ulong[0x20000] stackArrayStorage = void;
 private bool isBuildingStackArray;
 private ulong* stackArrayNext;
 
@@ -24,9 +24,9 @@ void ensureStackAllocInitialized() {
 		size_t,
 		Out delegate(scope Elem[]) @safe @nogc pure nothrow,
 	) @safe @nogc pure nothrow) &withStackArrayUninitialized_impure!(Out, Elem))(size, cb);
-private @system Out withStackArrayUninitialized_impure(Out, Elem)(
+@trusted Out withStackArrayUninitialized_impure(Out, Elem)(
 	size_t size,
-	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
+	in Out delegate(scope Elem[]) @safe @nogc nothrow cb,
 ) {
 	scope Elem[] array = pushStackArrayUninitialized_impure!Elem(size);
 	scope(exit) stackArrayNext = cast(ulong*) array.ptr;

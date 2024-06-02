@@ -52,8 +52,7 @@ import model.model :
 	Type,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl,
-	VariantMember;
+	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint;
 import util.opt : force, has;
@@ -166,10 +165,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeName(writer, ctx, x.member.name);
 		},
 		(PositionKind.MatchVariantCase x) {
-			writer ~= "Handler for variant ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
-			writer ~= " member ";
-			writeName(writer, ctx, x.member.name);
+			writer ~= "Handler for type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member), x.container.toTypeContainer));
 		},
 		(PositionKind.Modifier x) {
 			writer ~= () {
@@ -217,6 +214,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "This function is not unsafe, but can do unsafe things internally.";
 					case ModifierKeyword.unsafe:
 						return "This function can only be called by 'trusted' or 'unsafe' functions.";
+					case ModifierKeyword.variantMember:
+						return "This type can be used as a member of the variant. " ~
+							"It must implement the variant's methods, if any.";
 				}
 			}();
 		},
@@ -245,7 +245,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeSpecDeclHover(writer, ctx, *x);
 		},
 		(PositionKind.SpecSig x) {
-			writer ~= "Spec signature ";
+			writer ~= "Spec ";
+			writeName(writer, ctx, x.spec.name);
+			writer ~= " signature ";
 			writeName(writer, ctx, x.sig.name);
 		},
 		(PositionKind.SpecUse x) {
@@ -293,17 +295,11 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= " :: ";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
 		},
-		(VariantMember* x) {
-			writer ~= "Variant member ";
-			writeTypeUnquoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x)));
-			writer ~= '.';
-			writer ~= x.name;
-			if (x.type == Type(ctx.commonTypes.void_))
-				writer ~= " (no associated value)";
-			else {
-				writer ~= " :: ";
-				writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
-			}
+		(PositionKind.VariantMethod x) {
+			writer ~= "Variant ";
+			writeName(writer, ctx, x.variant.name);
+			writer ~= " method ";
+			writeName(writer, ctx, x.method.name);
 		},
 		(PositionKind.VisibilityMark x) {
 			writer ~= "Marks ";

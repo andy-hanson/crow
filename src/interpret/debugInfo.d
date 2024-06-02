@@ -87,6 +87,28 @@ private struct Ptr64(T) {
 
 private static ulong[0x1000] backtraceStringsStorage = void;
 
+void logBacktrace(
+	scope ref InterpreterDebugInfo info,
+	in Stacks stacks,
+) {
+	debugLogWithWriter((scope ref Alloc alloc, scope ref Writer writer) @trusted {
+		writer ~= "Backtrace:";
+		scope const Operation*[] ops = returnTempAsArrReverse(stacks);
+		foreach (Operation* op; ops) {
+			BacktraceEntry entry = getBacktraceEntry(alloc, info, op);
+			writer ~= '\n';
+			writer ~= CString(cast(immutable char*) entry.fileUri.inner);
+			writer ~= ' ';
+			writer ~= CString(cast(immutable char*) entry.functionName.inner);
+			writer ~= ' ';
+			writer ~= entry.lineNumber;
+			writer ~= ':';
+			writer ~= entry.columnNumber;
+		}
+		writer ~= '\n';
+	});
+}
+
 pure:
 
 private BacktraceEntry getBacktraceEntry(ref Alloc alloc, scope ref InterpreterDebugInfo info, in Operation* cur) {

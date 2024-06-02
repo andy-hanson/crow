@@ -7,6 +7,7 @@ import frontend.check.getCommonFuns : makeParam, makeParams, param;
 import frontend.check.inferringType : FunType, getFunType;
 import frontend.check.instantiate :
 	InstantiateCtx,
+	instantiateStructWithOwnTypeParams,
 	instantiateStructNeverDelay,
 	makeConstPointerType,
 	makeMutPointerType,
@@ -16,7 +17,9 @@ import model.model :
 	BuiltinType,
 	ByValOrRef,
 	CommonTypes,
+	Destructure,
 	IntegralType,
+	isVoid,
 	EnumFunction,
 	EnumOrFlagsMember,
 	FunBody,
@@ -26,6 +29,7 @@ import model.model :
 	Params,
 	ParamShort,
 	RecordField,
+	Signature,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -34,13 +38,14 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
-	VariantMember,
+	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withStackArray;
-import util.col.array : count, isEmpty, map, mapWithFirst, small, sum;
+import util.col.array : count, isEmpty, map, mapWithFirst, prepend, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.conv : safeToUint;
+import util.memory : allocate;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
@@ -48,7 +53,7 @@ size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) 
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));
 
 private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =>
-	a.body_.matchIn!size_t(
+	countFunsForVariants(a) + a.body_.matchIn!size_t(
 		(in StructBody.Bogus) =>
 			0,
 		(in BuiltinType _) =>
@@ -72,11 +77,10 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in StructBody.Union x) =>
 			// A constructor and getter for each member
 			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
-		(in StructBody.Variant) =>
-			0);
-
-size_t countFunsForVariantMembers(in VariantMember[] a) =>
-	a.length * 2;
+		(in StructBody.Variant x) =>
+			x.methods.length);
+private size_t countFunsForVariants(in StructDecl a) =>
+	a.variants.length * (a.body_.isA!(StructBody.Record) ? 3 : 2);
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -106,7 +110,53 @@ void addFunsForStruct(
 		(ref StructBody.Union x) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, x);
 		},
-		(StructBody.Variant) {});
+		(StructBody.Variant x) {
+			addFunsForVariant(ctx, funsBuilder, commonTypes, struct_, x);
+		});
+	addFunsForVariants(ctx, funsBuilder, commonTypes, struct_);
+}
+
+private void addFunsForVariants(
+	ref CheckCtx ctx,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	StructDecl* struct_,
+) {
+	StructInst* memberType = instantiateStructWithOwnTypeParams(ctx.instantiateCtx, struct_);
+	foreach (VariantAndMethodImpls vm; struct_.variants) {
+		StructInst* variant = vm.variant;
+		// Convert from the type to a variant
+		funsBuilder ~= funDeclWithBody(
+			FunDeclSource(struct_),
+			struct_.visibility,
+			symbol!"to",
+			Type(variant),
+			makeParams(ctx.alloc, [param!"a"(Type(memberType))]),
+			FunFlags.generatedBare,
+			[],
+			FunBody(FunBody.CreateVariant()));
+		funsBuilder ~= funDeclWithBody(
+			FunDeclSource(struct_),
+			struct_.visibility,
+			struct_.name,
+			Type(makeOptionType(ctx.instantiateCtx, commonTypes, Type(memberType))),
+			makeParams(ctx.alloc, [param!"a"(Type(variant))]),
+			FunFlags.generatedBare,
+			[],
+			FunBody(FunBody.VariantMemberGet()));
+		if (struct_.body_.isA!(StructBody.Record)) {
+			ref StructBody.Record record() => struct_.body_.as!(StructBody.Record);
+			funsBuilder ~= funDeclWithBody(
+				FunDeclSource(struct_),
+				struct_.visibility,
+				struct_.name,
+				Type(variant),
+				recordConstructorParams(ctx.alloc, record),
+				recordIsAlwaysByVal(record) ? FunFlags.generatedBare : FunFlags.generated,
+				[],
+				FunBody(FunBody.CreateRecordAndConvertToVariant(memberType)));
+		}
+	}
 }
 
 void addFunsForVar(
@@ -263,12 +313,15 @@ void addFunsForRecordConstructor(
 		record.flags.newVisibility,
 		record.flags.nominal ? struct_.name : symbol!"new",
 		structType,
-		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
-			makeParam(ctx.alloc, ParamShort(x.name, x.type)))),
+		recordConstructorParams(ctx.alloc, record),
 		byVal ? FunFlags.generatedBare : FunFlags.generated,
 		[],
 		FunBody(FunBody.CreateRecord()));
 }
+
+Params recordConstructorParams(ref Alloc alloc, ref StructBody.Record record) =>
+	Params(map(alloc, record.fields, (ref RecordField x) =>
+		makeParam(alloc, ParamShort(x.name, x.type))));
 
 void addFunsForRecordField(
 	ref CheckCtx ctx,
@@ -430,32 +483,25 @@ void addFunsForUnion(
 	}
 }
 
-public void addFunsForVariantMember(
+void addFunsForVariant(
 	ref CheckCtx ctx,
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
-	VariantMember* member,
+	StructDecl* struct_,
+	ref StructBody.Variant variant,
 ) {
-	bool voidMember = isVoid(commonTypes, member.type);
-	funsBuilder ~= funDeclWithBody(
-		FunDeclSource(member),
-		member.visibility,
-		member.name,
-		Type(member.variant),
-		voidMember ? Params([]) : makeParams(ctx.alloc, [param!"a"(member.type)]),
-		FunFlags.generatedBare,
-		[],
-		FunBody(FunBody.CreateVariant(member)));
-	funsBuilder ~= funDeclWithBody(
-		FunDeclSource(member),
-		member.visibility,
-		member.name,
-		Type(makeOptionType(ctx.instantiateCtx, commonTypes, member.type)),
-		makeParams(ctx.alloc, [param!"a"(Type(member.variant))]),
-		FunFlags.generatedBare,
-		[],
-		FunBody(FunBody.VariantMemberGet(member)));
+	foreach (size_t methodIndex, ref Signature sig; variant.methods)
+		funsBuilder ~= funDeclWithBody(
+			FunDeclSource(FunDeclSource.VariantMethod(struct_, &sig)),
+			struct_.visibility,
+			sig.name,
+			sig.returnType,
+			Params(prepend(ctx.alloc,
+				Destructure(allocate(ctx.alloc, Destructure.Ignore(
+					sig.ast.range.start,
+					Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, struct_))))),
+				sig.params)),
+			FunFlags.generated,
+			[],
+			FunBody(FunBody.VariantMethod(methodIndex)));
 }
-
-bool isVoid(in CommonTypes commonTypes, Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;

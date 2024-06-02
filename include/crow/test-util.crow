@@ -5,11 +5,12 @@ Functions for use in tests.
 no-std
 import
 	./compare: equal
+	./exception: exception
 	./json: json, to
 	./misc: new, to, void
-	./string: interpolate
-export
-	./private/exception-low-level: test-failure
+	./string: interpolate, string
+
++test-failure record(describe string) exception variant-member
 
 ###
 Asserts the the values are equal.

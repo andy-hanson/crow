@@ -160,13 +160,15 @@
 			try
 				for i : 1::nat .. 12
 					info log "12 / {i} = {12 must-divide-by i}"
-			catch not-divisible x, y
-				error log "{x} was not divisible by {y}"
+			catch not-divisible x
+				error log x.describe
 
-		not-divisible variant-member(exception, (nat, nat))
+		not-divisible record(numerator nat, denominator nat) exception variant-member
+		describe string(a not-divisible)
+			"{a numerator} was not divisible by {a denominator}"
 
 		must-divide-by nat(a nat, b nat)
-			assert a is-multiple-of b : (a, b) not-divisible
+			assert a is-multiple-of b : a not-divisible b
 			a / b
 	</crow-runnable>
 </section>

@@ -2,4 +2,4 @@ main void()
 	info log "done"
 
 v variant
-m variant-member(v, nat mut[])
+m record mut, v variant-member

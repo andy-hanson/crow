@@ -15,5 +15,5 @@ Expected one of these types:
 	'<<any>>'
 	'(<<any>>, <<any>>)'
 	'(symbol, json)'
-Uncaught exception: Error: Reached compile error
+Uncaught exception: Reached compile error
 	at main

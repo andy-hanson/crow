@@ -11,17 +11,11 @@ import frontend.check.checkCtx :
 	CommonModule,
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody;
-import frontend.check.checkStructBodies : modifierTypeArgInvalid;
+import frontend.check.checkStructBodies : checkVariantMethodImpls, modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
 	funDeclsName, FunsAndMap, FunsMap, ImportOrExportFile, SpecsMap, StructsAndAliasesMap;
-import frontend.check.funsForStruct :
-	addFunsForStruct,
-	addFunsForVar,
-	addFunsForVariantMember,
-	countFunsForStructs,
-	countFunsForVariantMembers,
-	countFunsForVars;
+import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
 	checkDestructure,
@@ -63,7 +57,7 @@ import model.model :
 	paramsArray,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -73,7 +67,6 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
-	VariantMember,
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -108,7 +101,6 @@ FunsAndMap checkFuns(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -116,9 +108,9 @@ FunsAndMap checkFuns(
 	TestAst[] testAsts,
 ) {
 	FunDecl[] funs = checkFunsInitial(
-		ctx, commonTypes, specsMap, structs, structsAndAliasesMap,
-		variantMembers, vars, fileImports, fileExports, asts);
+		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
+	checkVariantMethodImpls(ctx, commonTypes, funsMap, structs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
 		setFileImportFunctionBody(ctx, &funs[asts.length + i], f);
@@ -143,7 +135,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	MayDelayStructInsts delayStructInsts
 ) =>
 	ReturnTypeAndParams(
-		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
+		typeFromAst(ctx, commonTypes, structsAndAliasesMap, returnTypeAst, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
@@ -164,7 +156,6 @@ FunDecl[] checkFunsInitial(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -176,7 +167,6 @@ FunDecl[] checkFunsInitial(
 			fileImports.length +
 			fileExports.length +
 			countFunsForStructs(commonTypes, structs) +
-			countFunsForVariantMembers(variantMembers) +
 			countFunsForVars(vars),
 		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
 			foreach (ref FunDeclAst funAst; asts) {
@@ -212,8 +202,6 @@ FunDecl[] checkFunsInitial(
 
 			foreach (ref StructDecl struct_; structs)
 				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
-			foreach (ref VariantMember member; variantMembers)
-				addFunsForVariantMember(ctx, funsBuilder, commonTypes, &member);
 			foreach (ref VarDecl var; vars)
 				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
 		});
@@ -314,11 +302,11 @@ Type typeForFileImport(
 			TypeAst nat8 = TypeAst(NameAndRange(range.start, symbol!"nat8"));
 			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, symbol!"array"));
 			scope TypeAst arrayNat8 = TypeAst(&suffixName);
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, arrayNat8);
 		case ImportFileType.string:
 			//TODO: this sort of duplicates 'getStrType'
 			TypeAst ast = TypeAst(NameAndRange(range.start, symbol!"string"));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, ast);
 	}
 }
 
@@ -627,7 +615,7 @@ FunBody checkAutoFunWithSpec(
 		addDiag(ctx, fun.nameRange.range, Diag(x));
 		return FunBody(FunBody.Bogus());
 	}
-	SpecDeclSig* sig = &only(spec.sigs);
+	Signature* sig = &only(spec.sigs);
 	Opt!Type paramType = getAutoFunParamType(fun, countParams);
 	return !has(paramType)
 		? diag(Diag.AutoFunError(Diag.AutoFunError.WrongParams(funKind)))

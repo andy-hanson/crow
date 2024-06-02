@@ -4,13 +4,13 @@ main void()
 	()
 
 v variant mut
-x[t] variant-member(v, t)
+x[t] record(value t) v variant-member
 
 foo string(a v)
 	match a
-	as x n nat
-		"{n}"
-	as x s string
-		"{s}"
+	as x x nat x
+		"{x value}"
+	as x x string x
+		"{x value}"
 	else
 		"other"

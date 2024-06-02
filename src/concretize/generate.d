@@ -8,6 +8,7 @@ import concretize.concretizeCtx :
 	char8ArrayType,
 	char32ArrayType,
 	ConcreteLambdaImpl,
+	ConcreteVariantMemberAndMethodImpls,
 	ConcretizeCtx,
 	constantOfBytes,
 	constantSymbol,
@@ -40,6 +41,7 @@ import util.col.array :
 	allSame,
 	map,
 	mapPointers,
+	mapPointersWithIndex,
 	mapWithIndex,
 	mapZipWithIndex,
 	newArray,
@@ -154,7 +156,7 @@ ConcreteExpr genLocalSet(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteLo
 
 ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunBody.RecordFieldCall body_) {
 	UriAndRange range = fun.range;
-	ConcreteExpr* recordArg = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &fun.params[0]));
+	ConcreteExpr* recordArg = allocate(ctx.alloc, genParamGet(range, &fun.params[0]));
 	ConcreteStruct* fieldType = mustBeByVal(
 		recordArg.type.struct_.body_.as!(ConcreteStructBody.Record).fields[body_.fieldIndex].type);
 	ConcreteExpr getFun = genRecordFieldGet(ConcreteType.byVal(fieldType), range, recordArg, body_.fieldIndex);
@@ -168,10 +170,10 @@ ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunB
 			case 1:
 				return genVoid(ctx, range);
 			case 2:
-				return genParamGet(ctx.alloc, range, &fun.params[1]);
+				return genParamGet(range, &fun.params[1]);
 			default:
 				ConcreteExpr[] args = mapPointers(ctx.alloc, fun.params[1 .. $], (ConcreteLocal* param) =>
-					genParamGet(ctx.alloc, range, param));
+					genParamGet(range, param));
 				return genCreateRecord(callFun.params[1].type, range, args);
 		}
 	}();
@@ -180,7 +182,7 @@ ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunB
 
 ConcreteFunBody genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {
 	UriAndRange range = cf.range;
-	ConcreteExpr* param = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &only(cf.params)));
+	ConcreteExpr* param = allocate(ctx.alloc, genParamGet(range, &only(cf.params)));
 	ConcreteType memberType = unwrapOptionType(ctx, cf.returnType);
 	return ConcreteFunBody(genIf(
 		ctx.alloc,
@@ -241,11 +243,33 @@ ConcreteFunBody generateCallLambda(
 ) {
 	UriAndRange range = UriAndRange.empty;
 	assert(fun.params.length == 2);
-	ConcreteExpr lambda = genParamGet(ctx.alloc, range, &fun.params[0]);
-	ConcreteExpr arg = genParamGet(ctx.alloc, range, &fun.params[1]);
+	ConcreteExpr lambda = genParamGet(range, &fun.params[0]);
+	ConcreteExpr arg = genParamGet(range, &fun.params[1]);
 	return ConcreteFunBody(
 		genMatchUnion(ctx, fun.returnType, range, memberTypes, lambda, (size_t i, ConcreteExpr closure) =>
 			genCall(ctx.alloc, range, impls[i].impl, [closure, arg])));
+}
+
+ConcreteFunBody generateCallVariantMethod(
+	ref ConcretizeCtx ctx,
+	ConcreteFun* fun,
+	ConcreteStruct* variant,
+	in ConcreteVariantMemberAndMethodImpls[] impls,
+	size_t methodIndex,
+) {
+	UriAndRange range = fun.range;
+	return ConcreteFunBody(genMatchUnion(
+		ctx, fun.returnType, range, variant.body_.as!(ConcreteStructBody.Union).members,
+		genParamGet(range, &fun.params[0]),
+		(size_t i, ConcreteExpr member) {
+			Opt!(ConcreteFun*) impl = impls[i].methodImpls[methodIndex];
+			return has(impl)
+				? genCallNoAllocArgs(
+					range, force(impl),
+					mapPointersWithIndex(ctx.alloc, fun.params, (size_t paramIndex, ConcreteLocal* param) =>
+						paramIndex == 0 ? member : genParamGet(range, param)))
+				: concretizeBogus(ctx, fun.returnType, range);
+ 		}));
 }
 
 ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, ConcreteExpr thrown) =>
@@ -307,7 +331,7 @@ ConcreteExpr genCreateRecord(ConcreteType type, UriAndRange range, ConcreteExpr[
 private ConcreteExpr genConstantSymbol(ref ConcretizeCtx ctx, UriAndRange range, Symbol value) =>
 	genConstant(symbolType(ctx), range, constantSymbol(ctx, value));
 
-ConcreteExpr genParamGet(ref Alloc alloc, UriAndRange range, ConcreteLocal* param) =>
+ConcreteExpr genParamGet(UriAndRange range, ConcreteLocal* param) =>
 	ConcreteExpr(param.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(param)));
 
 ConcreteExpr genRecordFieldGet(
@@ -425,8 +449,8 @@ ConcreteExpr concretizeCompareUnion(
 	else {
 		ConcreteLocal[] params = ctx.curFun.params;
 		assert(params.length == 2);
-		ConcreteExpr* p0 = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &params[0]));
-		ConcreteExpr* p1 = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &params[1]));
+		ConcreteExpr* p0 = allocate(ctx.alloc, genParamGet(range, &params[0]));
+		ConcreteExpr* p1 = allocate(ctx.alloc, genParamGet(range, &params[1]));
 		ConcreteExpr p0Kind = genUnionKind(ctx.concretizeCtx, range, p0);
 		ConcreteExpr p1Kind = genUnionKind(ctx.concretizeCtx, range, p1);
 		// p0.kind < p1.kind ? less : p1.kind < p0.kind ? greater : p0.kind match ...
@@ -461,8 +485,8 @@ ConcreteExpr concretizeEqualUnion(
 	else {
 		ConcreteLocal[] params = ctx.curFun.params;
 		assert(params.length == 2);
-		ConcreteExpr* p0 = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &params[0]));
-		ConcreteExpr* p1 = allocate(ctx.alloc, genParamGet(ctx.alloc, range, &params[1]));
+		ConcreteExpr* p0 = allocate(ctx.alloc, genParamGet(range, &params[0]));
+		ConcreteExpr* p1 = allocate(ctx.alloc, genParamGet(range, &params[1]));
 		return genAnd(
 			ctx.concretizeCtx, range,
 			genEqualNat64(
@@ -500,8 +524,7 @@ ConcreteExpr matchUnionsSameKind(
 ConcreteExpr concretizeRecordToJson(ref ConcretizeExprCtx ctx, in ConcreteField[] fields, in Called[] fieldToJson) {
 	assert(sizeEq(fields, fieldToJson));
 	UriAndRange range = ctx.curFun.range;
-	ConcreteExpr* getParam = allocate(ctx.alloc,
-		genParamGet(ctx.alloc, range, &only(ctx.curFun.params)));
+	ConcreteExpr* getParam = allocate(ctx.alloc, genParamGet(range, &only(ctx.curFun.params)));
 	return genNewJson(ctx.concretizeCtx, range, mapZipWithIndex!(ConcreteExpr, RecordField, Called)(
 		ctx.alloc, recordFieldsForNames(only(ctx.curFun.params).type), fieldToJson,
 		(size_t fieldIndex, ref RecordField field, ref Called called) =>
@@ -517,7 +540,7 @@ ConcreteExpr concretizeUnionToJson(
 	UriAndRange range = ctx.curFun.range;
 	UnionMember[] members = unionMembersForNames(only(ctx.curFun.params).type);
 	assert(sizeEq3(memberTypes, memberToJson, members));
-	ConcreteExpr getParam = genParamGet(ctx.alloc, range, &only(ctx.curFun.params));
+	ConcreteExpr getParam = genParamGet(range, &only(ctx.curFun.params));
 	return genNewJson(ctx.concretizeCtx, range, [
 		genMatchUnion(
 			ctx.concretizeCtx, symbolJsonTupleType(ctx.concretizeCtx), range, memberTypes, getParam,

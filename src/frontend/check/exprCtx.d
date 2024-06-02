@@ -167,9 +167,5 @@ void addDiag2(ref ExprCtx ctx, in ExprAst* source, Diag diag) {
 
 immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
 	typeFromAst(
-		ctx.checkCtx,
-		ctx.commonTypes,
-		ast,
-		ctx.structsAndAliasesMap,
-		ctx.outermostFunTypeParams,
-		noDelayStructInsts);
+		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap,
+		ast, ctx.outermostFunTypeParams, noDelayStructInsts);

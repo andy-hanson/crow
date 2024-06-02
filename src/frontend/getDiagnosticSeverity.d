@@ -61,9 +61,9 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunCantHaveBody) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.FunPointerExprMustBeName) =>
+		(in Diag.FunctionWithSignatureNotFound) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.FunPointerNoMatch) =>
+		(in Diag.FunPointerExprMustBeName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.IfThrow) =>
 			DiagnosticSeverity.warning,
@@ -124,8 +124,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.MatchUnnecessaryElse) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.MatchVariantCantInferTypeArgs) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.MatchVariantMultipleMembersWithName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchVariantNoMember) =>
 			DiagnosticSeverity.checkError,
@@ -211,8 +209,14 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VariantMemberMissingVariant) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.VariantMemberMultiple) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.VariantMemberOfNonVariant) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VariantMethodImplVisibility) =>
+			DiagnosticSeverity.warning,
 		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.WithHasElse) =>

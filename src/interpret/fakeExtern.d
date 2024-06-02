@@ -17,7 +17,7 @@ import interpret.extern_ :
 	FunPointer,
 	FunPointerInputs,
 	WriteError;
-import interpret.runBytecode : syntheticCallWithStacks;
+import interpret.runBytecode : debugLogInterpreterBacktrace, syntheticCallWithStacks;
 import interpret.stacks : dataPopN, dataPush, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes, allocateZeroedBytes;
@@ -91,13 +91,18 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 ) {
 	Stacks stacks = loadStacks();
 	scope const(ulong)[] args = dataPopN(stacks, countParameterEntries(sig));
-	if (ptr == &free) {
-		assert(args.length == 1);
+	if (ptr == &abort) {
+		debugLogInterpreterBacktrace(stacks);
+		abort();
 	} else if (ptr == &calloc) {
 		assert(args.length == 2);
 		size_t nElems = cast(size_t) args[0];
 		size_t sizeofElem = cast(size_t) args[1];
 		dataPush(stacks, cast(ulong) allocateZeroedBytes(alloc, safeMul(nElems, sizeofElem)).ptr);
+	} else if (ptr == &clockGetTime) {
+		todo!void("needed?");
+	} else if (ptr == &free) {
+		assert(args.length == 1);
 	} else if (ptr == &malloc) {
 		assert(args.length == 1);
 		dataPush(stacks, cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr);

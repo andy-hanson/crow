@@ -103,7 +103,7 @@ import model.model :
 	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructBody,
@@ -119,7 +119,6 @@ import model.model :
 	TypedExpr,
 	UnionMember,
 	VarDecl,
-	VariantMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
@@ -132,7 +131,7 @@ import util.symbol : Symbol;
 import util.uri : Uri;
 
 UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
-	Opt!Target target = targetForPosition(pos.kind);
+	Opt!Target target = targetForPosition(*program.commonTypes, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
 			eachReferenceForTarget(program, pos.module_.uri, force(target), (in UriAndRange x) {
@@ -193,8 +192,12 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 		(VarDecl* x) {
 			referencesForVarDecl(program, x, cb);
 		},
-		(VariantMember* x) {
-			referencesForVariantMember(program, x, cb);
+		(PositionKind.VariantMethod x) {
+			FunDecl* fun = mustFindFunNamed(moduleOf(program, x.variant.moduleUri), x.method.name, (in FunDecl fun) =>
+				fun.source.isA!(FunDeclSource.VariantMethod) &&
+				fun.source.as!(FunDeclSource.VariantMethod).method == x.method);
+			referencesForFunDecl(program, fun, cb);
+			// TODO: Also find all structs that implement the variant and their implementations for this sig.
 		});
 
 void referencesForStructAlias(in Program program, in StructAlias* a, in ReferenceCb cb) {
@@ -248,6 +251,8 @@ void referencesForLocal(in Program program, Uri curUri, in PositionKind.LocalPos
 		(Test* x) =>
 			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(*program.commonTypes, x))),
 		(SpecDecl*) =>
+			none!ContainerAndBody,
+		(StructDecl*) =>
 			none!ContainerAndBody);
 	if (has(body_))
 		eachDescendentExprIncluding(*program.commonTypes, force(body_).body_, (ExprRef x) {
@@ -301,9 +306,7 @@ void referencesForTypeParam(
 		(ref Test _) =>
 			assert(false),
 		(ref VarDecl _) =>
-			assert(false),
-		(ref VariantMember x) =>
-			eachTypeInVariantMember(x, typeCb));
+			assert(false));
 }
 
 void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
@@ -317,8 +320,6 @@ void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
 		eachTypeInFun(commonTypes, x, cb);
 	foreach (ref Test x; a.tests)
 		eachTypeInExpr(commonTypes, testBodyExprRef(commonTypes, &x), cb);
-	foreach (ref VariantMember x; a.variantMembers)
-		eachTypeInVariantMember(x, cb);
 }
 
 void eachTypeInFun(ref CommonTypes commonTypes, ref FunDecl a, in TypeCb cb) {
@@ -338,7 +339,7 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	eachSpecParent(a, (SpecInst* parent, in SpecUseAst ast) {
 		eachPackedTypeArg(parent.typeArgs, ast.typeArg, cb);
 	});
-	foreach (ref SpecDeclSig sig; a.sigs) {
+	foreach (ref Signature sig; a.sigs) {
 		cb(sig.returnType, sig.ast.returnType);
 		eachTypeInParams(Params(sig.params), sig.ast.params, cb);
 	}
@@ -405,12 +406,6 @@ void eachTypeInRecordOrUnion(Member)(
 			if (has(ast.type))
 				cb(member.type, force(ast.type));
 		});
-}
-
-void eachTypeInVariantMember(in VariantMember a, in TypeCb cb) {
-	cb(Type(a.variant), a.ast.variant);
-	if (has(a.ast.type))
-		cb(a.type, force(a.ast.type));
 }
 
 void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
@@ -665,34 +660,6 @@ void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) 
 		(x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a) ||
 		(x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a));
 	referencesForFunDecls(program, funs, cb);
-}
-
-void referencesForVariantMember(in Program program, in VariantMember* member, in ReferenceCb cb) {
-	StructDecl* variant = member.variant.decl;
-	Module* declaringModule = moduleOf(program, member.moduleUri);
-	FunDecl*[2] funs = mustFindFunsNamed(declaringModule, member.name, (in FunDecl x) =>
-		(x.body_.isA!(FunBody.VariantMemberGet) && x.body_.as!(FunBody.VariantMemberGet).member == member) ||
-		(x.body_.isA!(FunBody.CreateVariant) && x.body_.as!(FunBody.CreateVariant).member == member));
-
-	bool isException = member.variant == program.commonTypes.exception;
-
-	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
-		if (x.expr.kind.isA!(MatchVariantExpr*)) {
-			if (x.expr.kind.as!(MatchVariantExpr*).variant.decl == variant) {
-				foreach (size_t caseIndex, ref MatchVariantExpr.Case case_; x.expr.kind.as!(MatchVariantExpr*).cases)
-					if (case_.member == member)
-						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
-			}
-		} else if (isException && x.expr.kind.isA!(TryExpr*)) {
-			foreach (size_t catchIndex, MatchVariantExpr.Case catch_; x.expr.kind.as!(TryExpr*).catches)
-				if (catch_.member == member)
-					cb(UriAndRange(m.uri, x.expr.ast.kind.as!TryAst.catches[catchIndex].member.nameRange));
-		} else if (isException && x.expr.kind.isA!(TryLetExpr*)) {
-			if (x.expr.kind.as!(TryLetExpr*).catch_.member == member)
-				cb(UriAndRange(m.uri, x.expr.ast.kind.as!(TryLetAst*).catchMember.nameRange));
-		} else
-			eachFunReferenceAtExpr(m, x, funs, cb);
-	});
 }
 
 void withRecordFieldFunctions(

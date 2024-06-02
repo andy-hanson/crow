@@ -5,43 +5,27 @@ import
 	./col/collection: find-index, for-loop, starts-with, subscript
 	./col/list: ~=, build
 	./compare: >
-	./number: ==, <=>, -, binary-out-of-range, divide-by-0, integral-value, unary-out-of-range
-	./private/exception-low-level: test-failure
+	./number: ==, <=>, -
 	./range: ..
 	./result: result
 	./string: ==, begin, interpolate, is-empty, join, next, string, to
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level:
-		catch-all, error, exception, exception-and-backtrace, rethrow, unreachable
+		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
 
 region handling
 
-+todo variant-member(exception)
++todo record exception variant-member
++describe string(_ todo)
+	"TODO"
 
 # Outputs the exception's message and backtrace to a string.
 +to string(a exception-and-backtrace) unsafe
-	description string = match a exception
-	as error message
-		"Error: {message}"
-	as binary-out-of-range x, y
-		"Result would be out of range given arguments {x}, {y}."
-	as divide-by-0
-		"Division by 0."
-	as test-failure message
-		"Test failure: {message}"
-	as unary-out-of-range x
-		"Result would be out of range given argument {x}."
-	else
-		"Other exception"
-	"{description}{a backtrace}"
+	"{a exception}{a backtrace}"
 
--to string(a integral-value)
-	match a
-	as unsigned x
-		"{x}"
-	as signed x
-		"{x}"
++to string(a exception)
+	a describe
 
 +to string(a backtrace) unsafe
 	# Don't include entries from runtime, only at start of function
