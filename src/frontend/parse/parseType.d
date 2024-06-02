@@ -102,11 +102,7 @@ private ModifierAst parseModifier(ref Lexer lexer) {
 		return ModifierAst(ModifierAst.Keyword(none!TypeAst, start, force(keyword)));
 	else {
 		TypeAst left = parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary);
-		Pos keywordPos = curPos(lexer);
-		Opt!ModifierKeyword keyword2 = tryTakeModifierKeywordNonSpec(lexer);
-		return has(keyword2)
-			? ModifierAst(ModifierAst.Keyword(some(left), keywordPos, force(keyword2)))
-			: ModifierAst(parseSpecUseSuffixes(lexer, left));
+		return parseSpecUseSuffixes(lexer, left);
 	}
 }
 
@@ -279,35 +275,47 @@ TypeAst parseTypeSuffixes(ref Lexer lexer, TypeAst left) {
 	}
 }
 
-SpecUseAst parseSpecUseSuffixes(ref Lexer lexer, TypeAst left) {
-	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => left);
-	if (has(suffix))
-		return parseSpecUseSuffixes(lexer, force(suffix));
+ModifierAst parseSpecUseSuffixes(ref Lexer lexer, TypeAst left) { // TODO: RENAME, not just spec uses ---------------------
+	Pos keywordPos = curPos(lexer);
+	Opt!ModifierKeyword keyword = tryTakeModifierKeywordNonSpec(lexer);
+	if (has(keyword))
+		return ModifierAst(ModifierAst.Keyword(some(left), keywordPos, force(keyword)));
 	else {
-		Opt!NameAndRange name = tryTakeNameAndRangeAllowNameLikeKeywords(lexer);
-		if (has(name))
-			return parseSpecUseSuffixesAfterName(lexer, left, force(name));
-		else if (left.isA!NameAndRange)
-			return SpecUseAst(none!TypeAst, left.as!NameAndRange);
+		Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => left);
+		if (has(suffix))
+			return parseSpecUseSuffixes(lexer, force(suffix));
 		else {
-			addDiagExpected(lexer, ParseDiag.Expected.Kind.name);
-			return SpecUseAst(some(left), NameAndRange(curPos(lexer), symbol!""));
+			Opt!NameAndRange name = tryTakeNameAndRangeAllowNameLikeKeywords(lexer);
+			if (has(name))
+				return parseSpecUseSuffixesAfterName(lexer, left, force(name));
+			else if (left.isA!NameAndRange)
+				return ModifierAst(SpecUseAst(none!TypeAst, left.as!NameAndRange));
+			else {
+				addDiagExpected(lexer, ParseDiag.Expected.Kind.name);
+				return ModifierAst(SpecUseAst(some(left), NameAndRange(curPos(lexer), symbol!"")));
+			}
 		}
 	}
 }
 
-SpecUseAst parseSpecUseSuffixesAfterName(ref Lexer lexer, TypeAst left, NameAndRange name) {
+ModifierAst parseSpecUseSuffixesAfterName(ref Lexer lexer, TypeAst left, NameAndRange name) {
 	TypeAst nameIsType() =>
 		TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, name)));
 
-	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => nameIsType());
-	if (has(suffix))
-		return parseSpecUseSuffixes(lexer, force(suffix));
-	else {
-		Opt!NameAndRange name2 = tryTakeNameAndRange(lexer);
-		return has(name2)
-			? parseSpecUseSuffixesAfterName(lexer, nameIsType(), force(name2))
-			: SpecUseAst(some(left), name);
+	Pos keywordPos = curPos(lexer);
+	Opt!ModifierKeyword keyword = tryTakeModifierKeywordNonSpec(lexer); // TODO: this is similar to 'parseSpecUseSuffixes'....
+	if (has(keyword)) {
+		return ModifierAst(ModifierAst.Keyword(some(nameIsType()), keywordPos, force(keyword)));
+	} else {
+		Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => nameIsType());
+		if (has(suffix))
+			return parseSpecUseSuffixes(lexer, force(suffix));
+		else {
+			Opt!NameAndRange name2 = tryTakeNameAndRange(lexer);
+			return has(name2)
+				? parseSpecUseSuffixesAfterName(lexer, nameIsType(), force(name2))
+				: ModifierAst(SpecUseAst(some(left), name));
+		}
 	}
 }
 

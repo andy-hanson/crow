@@ -910,7 +910,7 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 		(ParamsAst.Varargs* x) =>
 			arrayOfSingle(&x.param));
 
-immutable struct SpecSigAst {
+immutable struct SpecSigAst { // TODO: RENAME, this is reused for variants ----------------------------------------------------------
 	@safe @nogc pure nothrow:
 
 	SmallString docComment;
@@ -1040,7 +1040,9 @@ immutable struct StructBodyAst {
 		Opt!ParamsAst params;
 		SmallArray!RecordOrUnionMemberAst members;
 	}
-	immutable struct Variant {}
+	immutable struct Variant {
+		SmallArray!SpecSigAst methods;
+	}
 
 	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union, Variant);
 }

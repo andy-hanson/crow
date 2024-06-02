@@ -189,7 +189,7 @@ bool arityMatches(Arity sigArity, size_t nArgs) =>
 		(Arity.Varargs) =>
 			true);
 
-immutable struct SpecDeclSig {
+immutable struct SpecDeclSig { // TODO: RENAME, this is reused for variants --------------------------------------------------------
 	@safe @nogc pure nothrow:
 
 	Uri moduleUri;
@@ -361,7 +361,9 @@ immutable struct StructBody {
 		SmallArray!UnionMember members;
 		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
-	immutable struct Variant {}
+	immutable struct Variant {
+		SpecDeclSig[] methods;
+	}
 
 	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*, Variant);
 }
@@ -482,15 +484,15 @@ immutable struct StructDecl {
 	// Note: purity on the decl does not take type args into account
 	Purity purity;
 	bool purityIsForced;
-	private Late!(SmallArray!(immutable StructInst*)) variants_;
+	private Late!(SmallArray!VariantAndMethodImpls) variants_;
 	private Late!StructBody lateBody;
 
 	bool bodyIsSet() =>
 		lateIsSet(lateBody);
 
-	SmallArray!(immutable StructInst*) variants() return scope =>
+	SmallArray!VariantAndMethodImpls variants() return scope =>
 		lateGet(variants_);
-	void variants(SmallArray!(immutable StructInst*) value) =>
+	void variants(SmallArray!VariantAndMethodImpls value) =>
 		lateSet(variants_, value);
 
 	ref StructBody body_() return scope =>

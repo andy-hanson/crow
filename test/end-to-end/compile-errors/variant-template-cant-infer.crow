@@ -8,7 +8,7 @@ x[t] record(value t) v variant-member
 
 f nat(a v)
 	match a
-	as x value
-		value
+	as x x
+		x value
 	else
 		0

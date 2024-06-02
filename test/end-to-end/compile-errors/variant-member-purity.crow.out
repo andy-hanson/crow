@@ -1,5 +1,1 @@
-exit code: 0
-stdout:
 info: done
-stderr:
-test/end-to-end/compile-errors/variant-member-purity.crow 5:1-5:2 Variant 'v' has purity 'data', but member of type 'nat64 mut[]' has (worst-case) purity 'mut'.

@@ -279,7 +279,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.variant:
 			mustTakeToken(lexer, Token.variant);
-			addStruct(() => StructBodyAst(StructBodyAst.Variant()));
+			addStruct(() => StructBodyAst(StructBodyAst.Variant(parseIndentedSigs(lexer))));
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));

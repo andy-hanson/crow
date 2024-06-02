@@ -1641,21 +1641,23 @@ Opt!(StructInst*) getVariantMemberFromName(
 			return todo!(Opt!(StructInst*))("HANDLE ALIAS"); // ----------------------------------------------------------------------
 		} else {
 			StructDecl* decl = sa.as!(StructDecl*);
-			MutOpt!(StructInst*) res;
+			Cell!(Opt!InstantiatedVariantMemberOrBogus) res = Cell!(Opt!InstantiatedVariantMemberOrBogus)();
 			foreach (StructInst* variant; decl.variants) {
 				if (variant.decl == matchedVariant.decl) {
-					Opt!(StructInst*) x = compareVariant(ctx, nameRange, decl, variant, matchedVariant, expectedMemberType); // TODO: NAME
+					Opt!InstantiatedVariantMemberOrBogus x = compareVariant(ctx, nameRange, decl, variant, matchedVariant, expectedMemberType); // TODO: NAME
 					if (has(x)) {
-						if (has(res))
+						if (has(cellGet(res)))
 							todo!void("Multiple variants match?"); // ----------------------------------------------------------
 						else
-							res = someMut(force(x));
+							cellSet(res, someMut(force(x)));
 					}
 				}
 			}
-			if (has(res)) {
-				return some(force(res));
-			} else {
+			if (has(cellGet(res)))
+				return force(cellGet(res)).matchWithPointers!(Opt!(StructInst*))(
+					(StructInst* x) => some(x),
+					(InstantiatedVariantMemberOrBogus.Bogus) => none!(StructInst*));
+			else {
 				addDiag2(ctx, nameRange, Diag(Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
 				return none!(StructInst*);
 			}
@@ -1664,8 +1666,13 @@ Opt!(StructInst*) getVariantMemberFromName(
 		return none!(StructInst*);
 }
 
+immutable struct InstantiatedVariantMemberOrBogus {
+	immutable struct Bogus {}
+	mixin Union!(StructInst*, Bogus);
+}
+
 // Returns instantiated member type if the declared variant matches the actual
-Opt!(StructInst*) compareVariant(
+Opt!InstantiatedVariantMemberOrBogus compareVariant(
 	ref ExprCtx ctx,
 	Range range,
 	StructDecl* member,
@@ -1673,7 +1680,7 @@ Opt!(StructInst*) compareVariant(
 	StructInst* actualVariant,
 	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
 ) =>
-	withInferringTypes!(Opt!(StructInst*))(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
+	withInferringTypes!(Opt!InstantiatedVariantMemberOrBogus)(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
 		TypeContext inferringContext = TypeContext(small!SingleInferringType(inferringTypes));
 		TypeAndContext inferringDeclaredVariant = TypeAndContext(Type(declaredVariant), inferringContext);
 		return optIf(matchTypes(ctx.instantiateCtx, inferringDeclaredVariant, nonInferring(Type(actualVariant))), () {
@@ -1689,7 +1696,7 @@ Opt!(StructInst*) compareVariant(
 			}
 
 			bool anyNotInferred;
-			return withMapToStackArray!(StructInst*, Type, SingleInferringType)(
+			return withMapToStackArray!(InstantiatedVariantMemberOrBogus, Type, SingleInferringType)(
 				inferringTypes,
 				(ref SingleInferringType x) =>
 					optOrDefault!Type(tryGetInferred(x), () {
@@ -1697,10 +1704,13 @@ Opt!(StructInst*) compareVariant(
 						return Type.bogus;
 					}),
 				(scope Type[] inferredTypes) {
-					if (anyNotInferred)
+					if (anyNotInferred) {
 						addDiag2(ctx, range, Diag(Diag.MatchVariantCantInferTypeArgs(member)));
-					// markUsed(ctx.checkCtx, fun); TODO! ----------------------------------------------------------------------------------------------------
-					return instantiateStructNeverDelay(ctx.instantiateCtx, member, small!Type(inferredTypes));
+						return InstantiatedVariantMemberOrBogus(InstantiatedVariantMemberOrBogus.Bogus());
+					} else {
+						// markUsed(ctx.checkCtx, fun); TODO! ----------------------------------------------------------------------------------------------------
+						return InstantiatedVariantMemberOrBogus(instantiateStructNeverDelay(ctx.instantiateCtx, member, small!Type(inferredTypes)));
+					}
 				});
 		});
 	});

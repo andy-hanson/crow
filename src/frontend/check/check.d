@@ -14,7 +14,7 @@ import frontend.check.checkCtx :
 	finishDiagnostics,
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
+import frontend.check.checkStructBodies : checkSignatures, checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps :
 	FunsAndMap,
@@ -175,26 +175,14 @@ SpecDeclBody checkSpecDeclBody(
 	TypeContainer typeContainer,
 	TypeParams typeParams,
 	ref DelaySpecInsts delaySpecInsts,
-	in SpecDeclAst ast,
+	ref SpecDeclAst ast,
 ) {
 	SpecFlagsAndParents modifiers = checkSpecModifiers(
 		ctx, commonTypes, structsAndAliasesMap, specsMap, delaySpecInsts, ast.typeParams, ast.modifiers);
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
 		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
-	SmallArray!SpecDeclSig sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
-		ReturnTypeAndParams rp = checkReturnTypeAndParams(
-			ctx, commonTypes, typeContainer, x.returnType, x.params,
-			typeParams, structsAndAliasesMap, noDelayStructInsts);
-		Destructure[] params = rp.params.matchWithPointers!(Destructure[])(
-			(Destructure[] x) =>
-				x,
-			(Params.Varargs* x) {
-				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
-				return arrayOfSingle(&x.param);
-			});
-		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
-	});
+	SmallArray!SpecDeclSig sigs = checkSignatures(ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
 	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), sigs);
 }
 

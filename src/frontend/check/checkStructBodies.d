@@ -9,7 +9,8 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	visibilityFromDefaultWithDiag,
 	visibilityFromExplicitTopLevel;
-import frontend.check.instantiate : DelayStructInsts;
+import frontend.check.checkFuns : checkReturnTypeAndParams, ReturnTypeAndParams;
+import frontend.check.instantiate : DelayStructInsts, MayDelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
@@ -22,17 +23,19 @@ import model.ast :
 	NameAndRange,
 	ParamsAst,
 	RecordOrUnionMemberAst,
+	SpecSigAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, DeclKind;
+import model.diag : Diag, DeclKind, TypeContainer;
 import model.model :
 	BuiltinType,
 	ByValOrRef,
 	CommonTypes,
+	Destructure,
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	EnumMemberSource,
@@ -48,21 +51,24 @@ import model.model :
 	minValue,
 	nameOfEnumOrFlagsMember,
 	nameOfUnionMember,
+	Params,
 	Purity,
 	purityRange,
 	RecordField,
 	RecordOrUnionMemberSource,
 	RecordFlags,
+	SpecDeclSig,
 	StructBody,
 	StructDecl,
 	StructDeclSource,
 	StructInst,
 	Type,
 	TypeParamIndex,
+	TypeParams,
 	UnionMember,
 	Visibility;
 import util.col.array :
-	eachPair, emptySmallArray, fold, isEmpty, mapOp, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
+	arrayOfSingle, eachPair, emptySmallArray, fold, isEmpty, mapOp, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
 import util.col.hashTable : HashTable, makeHashTable;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
@@ -137,10 +143,35 @@ void checkStructBodies(
 			},
 			(StructBodyAst.Variant x) {
 				checkOnlyStructModifiers(ctx, DeclKind.variant, ast.modifiers);
-				return StructBody(StructBody.Variant());
+				return StructBody(StructBody.Variant(checkSignatures(
+					ctx, commonTypes, structsAndAliasesMap, TypeContainer(struct_), ast.typeParams, x.methods,
+					someMut(ptrTrustMe(delayStructInsts)))));
 			});
 	});
 }
+
+SmallArray!SpecDeclSig checkSignatures(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	TypeContainer typeContainer,
+	TypeParams typeParams,
+	SmallArray!SpecSigAst asts,
+	MayDelayStructInsts delayStructInsts,
+) =>
+	mapPointers!(SpecDeclSig, SpecSigAst)(ctx.alloc, asts, (SpecSigAst* x) {
+		ReturnTypeAndParams rp = checkReturnTypeAndParams(
+			ctx, commonTypes, typeContainer, x.returnType, x.params,
+			typeParams, structsAndAliasesMap, delayStructInsts);
+		Destructure[] params = rp.params.matchWithPointers!(Destructure[])(
+			(Destructure[] x) =>
+				x,
+			(Params.Varargs* x) {
+				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
+				return arrayOfSingle(&x.param);
+			});
+		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
+	});
 
 private:
 

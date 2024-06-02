@@ -27,6 +27,7 @@ import model.model :
 	Params,
 	ParamShort,
 	RecordField,
+	SpecDeclSig,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -73,8 +74,8 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in StructBody.Union x) =>
 			// A constructor and getter for each member
 			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
-		(in StructBody.Variant) =>
-			0);
+		(in StructBody.Variant x) =>
+			x.methods.length);
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -104,7 +105,9 @@ void addFunsForStruct(
 		(ref StructBody.Union x) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, x);
 		},
-		(StructBody.Variant) {});
+		(StructBody.Variant x) {
+			addFunsForVariant(ctx, funsBuilder, commonTypes, struct_, x);
+		});
 	addFunsForVariants(ctx, funsBuilder, commonTypes, struct_);
 }
 
@@ -478,5 +481,17 @@ void addFunsForUnion(
 	}
 }
 
-bool isVoid(in CommonTypes commonTypes, Type a) =>
+bool isVoid(in CommonTypes commonTypes, Type a) => // TODO: MOVE? -----------------------------------------------------------------------
 	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
+
+void addFunsForVariant(
+	ref CheckCtx ctx,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	StructDecl* struct_,
+	ref StructBody.Variant variant,
+) {
+	foreach (SpecDeclSig sig; variant.methods) {
+		todo!void("Add fun for sig"); // This needs to add an initial parameter for the variant -------------------------------------	
+	}
+}
