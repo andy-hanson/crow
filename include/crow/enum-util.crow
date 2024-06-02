@@ -12,7 +12,7 @@ import
 	./symbol: ==, symbol, to
 
 # Attempted to convert a symbol/string to an enum, but it's not a valid enum member.
-+not-in-enum variant-member(exception, symbol)
++not-in-enum record(symbol symbol) exception variant-member
 
 ###
 Spec that is satisfied if 't' is an 'enum' type

@@ -33,12 +33,14 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.alloc.stackAlloc : withMapToStackArray;
+import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
 import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
+import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
+import util.util : todo;
 
 // This is a copyable type
 struct InstantiateCtx {
@@ -109,6 +111,14 @@ void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelay
 		(StructBody.Variant) =>
 			emptySmallArray!Type);
 }
+
+// Given a struct decl 'foo[t]', returns a 't foo'
+StructInst* instantiateStructWithOwnTypeParams(InstantiateCtx ctx, StructDecl* decl) =>
+	withStackArray(
+		decl.typeParams.length,
+		(size_t i) => Type(TypeParamIndex(safeToUint(i))),
+		(scope Type[] typeArgs) =>
+			instantiateStructNeverDelay(ctx, decl, typeArgs));
 
 StructInst* instantiateStruct(
 	InstantiateCtx ctx,

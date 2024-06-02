@@ -57,7 +57,6 @@ import model.model :
 	Type,
 	TypeParamsAndSig,
 	UnionMember,
-	VariantMember,
 	worstCasePurity;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
@@ -70,7 +69,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
 import util.uri : baseName, compareUriAlphabetically, Uri;
-import util.util : stringOfEnum, max;
+import util.util : stringOfEnum, max, todo;
 import util.writer :
 	makeStringWithWriter,
 	writeFloatLiteral,
@@ -917,13 +916,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.MatchCaseShouldUseIgnore x) {
 			x.member.matchIn!void(
-				(in UnionMember m) {
-					writer ~= "Union member ";
-					writeName(writer, ctx, m.name);
-				},
-				(in VariantMember m) {
+				(in StructInst x) {
 					writer ~= "Variant member ";
-					writeName(writer, ctx, m.name);
+					writeName(writer, ctx, x.decl.name);
+				},
+				(in UnionMember x) {
+					writer ~= "Union member ";
+					writeName(writer, ctx, x.name);
 				});
 			writer ~= " declares a value, so it should be explicitly ignored using ";
 			writeName(writer, ctx, symbol!"_");
@@ -973,15 +972,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Can't infer type arguments of ";
 			writer ~= x.member.name;
 		},
-		(in Diag.MatchVariantMultipleMembersWithName x) {
-			writer ~= "There are multiple variant members in scope named ";
-			writeName(writer, ctx, x.members[0].name);
-			writer ~= '.';
-		},
 		(in Diag.MatchVariantNoMember x) {
-			writer ~= "There is no variant member named ";
-			writeName(writer, ctx, x.name);
-			writer ~= " in scope that matches variant ";
+			writer ~= "Type ";
+			writeName(writer, ctx, x.nonMember.name);
+			writer ~= " is not a member of variant ";
 			writeTypeQuoted(writer, ctx, x.variant);
 			writer ~= '.';
 		},
@@ -1082,6 +1076,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= '.';
 		},
 		(in Diag.PurityWorseThanVariant x) {
+			todo!void("PurityWorseThanVariant"); // ---------------------------------------------------------------------------------
+			/*
 			writer ~= "Variant ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
 			writer ~= " has purity ";
@@ -1091,6 +1087,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " has (worst-case) purity ";
 			writePurity(writer, ctx, worstCasePurity(x.member.type));
 			writer ~= '.';
+			*/
 		},
 		(in Diag.RecordFieldNeedsType x) {
 			writer ~= "Record field ";

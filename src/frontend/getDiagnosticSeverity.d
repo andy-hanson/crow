@@ -125,8 +125,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.MatchVariantCantInferTypeArgs) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.MatchVariantMultipleMembersWithName) =>
-			DiagnosticSeverity.checkError,
 		(in Diag.MatchVariantNoMember) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierConflict) =>

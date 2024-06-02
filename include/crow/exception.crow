@@ -5,7 +5,7 @@ import
 	./col/collection: find-index, for-loop, starts-with, subscript
 	./col/list: ~=, build
 	./compare: >
-	./number: ==, <=>, -, binary-out-of-range, divide-by-0, integral-value, unary-out-of-range
+	./number: ==, <=>, -, a, b, binary-out-of-range, divide-by-0, input, integral-value, unary-out-of-range
 	./private/exception-low-level: test-failure
 	./range: ..
 	./result: result
@@ -13,25 +13,25 @@ import
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level:
-		catch-all, error, exception, exception-and-backtrace, rethrow, unreachable
+		catch-all, error, exception, exception-and-backtrace, message, rethrow, unreachable
 
 region handling
 
-+todo variant-member(exception)
++todo record exception variant-member
 
-# Outputs the exception's message and backtrace to a string.
+# Outputs the exception's message and backtrace to a string. TODO: MAKE THIS A METHOD -------------------------------------------
 +to string(a exception-and-backtrace) unsafe
 	description string = match a exception
-	as error message
-		"Error: {message}"
-	as binary-out-of-range x, y
-		"Result would be out of range given arguments {x}, {y}."
+	as error e
+		"Error: {e.message}" # TODO: how do I destructure one thing? ---------------------------------------------------------
+	as binary-out-of-range e # TODO: Support destructure for non-tuple (tuple-like record) ----------------------------------
+		"Result would be out of range given arguments {e.a}, {e.b}."
 	as divide-by-0
 		"Division by 0."
-	as test-failure message
-		"Test failure: {message}"
-	as unary-out-of-range x
-		"Result would be out of range given argument {x}."
+	as test-failure e
+		"Test failure: {e.message}"
+	as unary-out-of-range e
+		"Result would be out of range given argument {e input}."
 	else
 		"Other exception"
 	"{description}{a backtrace}"

@@ -4,6 +4,7 @@ module frontend.check.getCommonFuns;
 
 import frontend.check.checkCtx : CommonModule;
 import frontend.check.funsForStruct : funDeclWithBody;
+import frontend.check.getCommonTypes : bogusStructDecl;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
 import model.ast : ModifierAst, NameAndRange, VarDeclAst, TypeAst;
@@ -287,17 +288,7 @@ StructDecl* getStructDeclOrAddDiag(
 		add(alloc, diagsBuilder, UriAndDiagnostic(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonTypeMissing(name))));
-		return allocate(alloc, StructDecl(
-			StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
-				name,
-				TypeParams(makeArray!NameAndRange(alloc, nTypeParams, (size_t index) =>
-					NameAndRange(0, symbol!"a")))))),
-			module_.uri,
-			Visibility.public_,
-			Linkage.extern_,
-			Purity.data,
-			false,
-			late(StructBody(StructBody.Bogus()))));
+		return bogusStructDecl(alloc, name, nTypeParams);
 	}
 }
 

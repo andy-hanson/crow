@@ -4,4 +4,4 @@ main void()
 		"hello"
 
 v variant
-x variant-member(v)
+x record v variant-member

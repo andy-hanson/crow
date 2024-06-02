@@ -22,7 +22,7 @@ import
 	../private/c-string-util: find-c-string-end
 	../version: is-windows
 	./environ: get-environ-raw
-	./file: file-system-error, is-file, new
+	./file: file-system-error, is-file
 	./posix-util: check-errno, check-posix-error
 	./print: err, print
 	./win32-util: show-win32-error
@@ -46,7 +46,7 @@ not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
 +spawn-and-wait-result process-result(exe string, args string[]) summon
-	assert exe is-file : (exe, "{exe} is not a file") file-system-error
+	assert exe is-file : exe file-system-error "{exe} is not a file"
 	trusted
 		exe-c-string c-string = exe to
 		if is-windows
@@ -75,7 +75,7 @@ The child process shares stdout and stderr with the parent process.
 ###
 +spawn-and-wait process-exit(exe string, args string[]) summon
 	# TODO: kill, handle that error properly
-	assert exe is-file : (exe, "{exe} is not a file") file-system-error
+	assert exe is-file : exe file-system-error "{exe} is not a file"
 	# First argument should be the executable path
 	trusted
 		exe-c-string c-string = exe to

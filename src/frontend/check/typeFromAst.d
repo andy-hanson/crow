@@ -49,16 +49,13 @@ private Type instStructFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	Symbol name,
-	in Range suffixRange,
+	Range suffixRange,
 	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
-	Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
-		ctx, name, suffixRange, structsAndAliasesMap[name],
-		Diag.DuplicateImports.Kind.type, Diag.NameNotFound.Kind.type,
-		(in NameReferents x) => x.structOrAlias);
+	Opt!StructOrAlias opDecl = structOrAliasFromName(ctx, name, suffixRange, structsAndAliasesMap);
 	if (!has(opDecl))
 		return Type.bogus;
 	else {
@@ -78,6 +75,17 @@ private Type instStructFromAst(
 			: Type.bogus;
 	}
 }
+
+Opt!StructOrAlias structOrAliasFromName(
+	ref CheckCtx ctx,
+	Symbol name,
+	Range range,
+	in StructsAndAliasesMap structsAndAliasesMap,
+) =>
+	tryFindT!StructOrAlias(
+		ctx, name, range, structsAndAliasesMap[name],
+		Diag.DuplicateImports.Kind.type, Diag.NameNotFound.Kind.type,
+		(in NameReferents x) => x.structOrAlias);
 
 Type makeTupleType(
 	ref CheckCtx ctx,

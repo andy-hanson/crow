@@ -121,8 +121,7 @@ import model.model :
 	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl,
-	VariantMember;
+	VarDecl;
 import model.model : paramsArray, StructDeclSource;
 import util.col.array :
 	findIndex,
@@ -185,10 +184,6 @@ Opt!PositionKind getPositionKind(in Ctx ctx, ref Module module_, Pos pos) =>
 		() => firstPointer!(PositionKind, Test)(module_.tests, (Test* x) =>
 			hasPos(x.ast.range, pos)
 				? positionInTest(ctx, x, *x.ast, pos)
-				: none!PositionKind),
-		() => firstPointer!(PositionKind, VariantMember)(module_.variantMembers, (VariantMember* x) =>
-			hasPos(x.ast.range, pos)
-				? positionInVariantMember(x, pos)
 				: none!PositionKind));
 
 Opt!PositionKind positionInFun(in Ctx ctx, FunDecl* a, in FunDeclAst* ast, Pos pos) =>
@@ -328,17 +323,6 @@ Opt!PositionKind positionInVar(VarDecl* a, Pos pos) =>
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(enumConvert!(PositionKind.Keyword.Kind)(a.kind)))),
 		() => positionInType(TypeContainer(a), a.type, a.ast.type, pos));
-
-Opt!PositionKind positionInVariantMember(VariantMember* a, Pos pos) =>
-	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
-		() => optIf(hasPos(a.nameRange.range, pos), () => PositionKind(a)),
-		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
-			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.variantMember))),
-		() => positionInType(TypeContainer(a), Type(a.variant), a.ast.variant, pos),
-		() => has(a.ast.type)
-			? positionInType(TypeContainer(a), a.type, force(a.ast.type), pos)
-			: none!PositionKind);
 
 Opt!PositionKind positionInAlias(StructAlias* a, Pos pos) =>
 	optOr!PositionKind(

@@ -31,11 +31,11 @@ import model.model :
 	Test,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl,
-	VariantMember;
+	VarDecl;
 import util.col.array : only;
 import util.opt : none, Opt, some;
 import util.union_ : Union;
+import util.util : todo;
 
 immutable struct Target {
 	immutable struct Loop {
@@ -57,7 +57,6 @@ immutable struct Target {
 		PositionKind.TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
-		VariantMember*,
 	);
 }
 
@@ -86,7 +85,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 		(PositionKind.MatchUnionCase x) =>
 			some(Target(x.member)),
 		(PositionKind.MatchVariantCase x) =>
-			some(Target(x.member)),
+			todo!(Opt!Target)("match variant target should just be the struct, right?"), // --------------------------------------------------------------
+			//some(Target(x.member)),
 		(PositionKind.Modifier) =>
 			none!Target,
 		(PositionKind.ModifierExtern) =>
@@ -120,8 +120,6 @@ Opt!Target targetForPosition(PositionKind pos) =>
 		(UnionMember* x) =>
 			some(Target(x)),
 		(VarDecl* x) =>
-			some(Target(x)),
-		(VariantMember* x) =>
 			some(Target(x)),
 		(PositionKind.VisibilityMark) =>
 			none!Target);
@@ -166,11 +164,14 @@ Opt!Target calledTarget(ref Called a) =>
 					returnTypeTarget(decl),
 				(FunBody.CreateRecord) =>
 					returnTypeTarget(decl),
+				(FunBody.CreateRecordAndConvertToVariant) =>
+					todo!Target("Target should be the record type"), // ---------------------------------------------------
 				(FunBody.CreateUnion) =>
 					// TODO: goto the particular union member
 					returnTypeTarget(decl),
 				(FunBody.CreateVariant x) =>
-					Target(x.member),
+					todo!Target("Get from param type?"), // ------------------------------------------------------------------------
+					//Target(x.member),
 				(EnumFunction x) =>
 					// goto the type
 					returnTypeTarget(decl),
@@ -196,7 +197,8 @@ Opt!Target calledTarget(ref Called a) =>
 				(FunBody.VarGet x) =>
 					Target(x.var),
 				(FunBody.VariantMemberGet x) =>
-					Target(x.member),
+					todo!Target("for variantmemberget: use unwrapped option return type as target"), // ------------------------------------
+					//Target(x.member),
 				(FunBody.VarSet x) =>
 					Target(x.var)));
 		},

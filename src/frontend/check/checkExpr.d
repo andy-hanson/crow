@@ -57,10 +57,17 @@ import frontend.check.inferringType :
 	withExpectLoop,
 	withExpectOption,
 	withInfer;
-import frontend.check.instantiate : instantiateSpec, instantiateStructNeverDelay, instantiateType, noDelayStructInsts;
+import frontend.check.instantiate :
+	instantiateSpec, instantiateStructNeverDelay, instantiateStructWithOwnTypeParams, instantiateType, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
-	checkDestructure, DestructureKind, getSpecFromCommonModule, makeTupleType, typeFromDestructure, unpackTuple;
+	checkDestructure,
+	DestructureKind,
+	getSpecFromCommonModule,
+	makeTupleType,
+	structOrAliasFromName,
+	typeFromDestructure,
+	unpackTuple;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -141,6 +148,7 @@ import model.model :
 	IntegralType,
 	IntegralTypes,
 	isDefinitelyByRef,
+	isEmptyType,
 	isSigned,
 	LambdaExpr,
 	LetExpr,
@@ -169,9 +177,11 @@ import model.model :
 	SeqExpr,
 	SpecDecl,
 	Specs,
+	StructAlias,
 	StructBody,
 	StructDecl,
 	StructInst,
+	StructOrAlias,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -181,8 +191,7 @@ import model.model :
 	TypedExpr,
 	TypeParams,
 	UnionMember,
-	VariableRef,
-	VariantMember;
+	VariableRef;
 import util.alloc.stackAlloc : MaxStackArray, withMapToStackArray, withMaxStackArray, withStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
@@ -214,7 +223,7 @@ import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -1517,10 +1526,12 @@ Expr checkMatchUnion(
 ) =>
 	checkMatchEnumOrUnion!(MatchUnionExpr.Case)(
 		ctx, locals, source, ast, expected, matchedUnion.decl, body_.members, body_.membersByName,
-		(size_t memberIndex, UnionMember* member, CaseAst* caseAst, CaseMemberAst.Name*) =>
-			checkMatchUnionOrVariantCase!(MatchUnionExpr.Case, UnionMember)(
+		(size_t memberIndex, UnionMember* member, CaseAst* caseAst, CaseMemberAst.Name*) {
+			CaseResult result = checkMatchUnionOrVariantCase!UnionMember(
 				ctx, locals, member, matchedUnion.instantiatedTypes[memberIndex],
-				&caseAst.member, &caseAst.then, expected),
+				&caseAst.member, &caseAst.then, expected);
+			return MatchUnionExpr.Case(member, result.destructure, result.expr);
+		},
 		(SmallArray!(MatchUnionExpr.Case) cases, Opt!Expr else_) {
 			Opt!(Expr*) elsePtr = optIf(has(else_), () => allocate(ctx.alloc, force(else_)));
 			return Expr(source, ExprKind(allocate(ctx.alloc, MatchUnionExpr(matched, cases, elsePtr))));
@@ -1547,17 +1558,17 @@ SmallArray!(MatchVariantExpr.Case) checkMatchVariantCases(
 	SmallArray!CaseAst caseAsts,
 	ref Expected expected,
 ) =>
-	withTempSet!(SmallArray!(MatchVariantExpr.Case), MatchedVariantMember)(
-		caseAsts.length, (scope ref TempSet!MatchedVariantMember seen) =>
+	withTempSet!(SmallArray!(MatchVariantExpr.Case), StructInst*)(
+		caseAsts.length, (scope ref TempSet!(StructInst*) seen) =>
 			mapOpPointers!(MatchVariantExpr.Case, CaseAst)(ctx.alloc, caseAsts, (CaseAst* caseAst) {
 				Opt!(MatchVariantExpr.Case) res = checkMatchVariantCase(
 					ctx, locals, matchedVariant, &caseAst.member, &caseAst.then, expected);
 				if (has(res)) {
-					if (tryAdd(seen, MatchedVariantMember(force(res).member, force(res).destructure.type)))
+					if (tryAdd(seen, force(res).member))
 						return res;
 					else {
 						addDiag2(ctx, caseAst.member.nameRange, Diag(
-							Diag.MatchCaseDuplicate(Diag.MatchCaseDuplicate.Kind(force(res).member.name))));
+							Diag.MatchCaseDuplicate(Diag.MatchCaseDuplicate.Kind(force(res).member.decl.name))));
 						return none!(MatchVariantExpr.Case);
 					}
 				} else
@@ -1574,18 +1585,26 @@ Opt!(MatchVariantExpr.Case) checkMatchVariantCase(
 ) {
 	Opt!(CaseMemberAst.Name*) asName = nameFromCaseMemberAst(ctx, memberAst);
 	Opt!Symbol name = optIf(has(asName), () => force(asName).name.name);
-	Opt!MatchedVariantMember optMember = has(name)
+	Opt!(StructInst*) optMember = has(name)
 		? getVariantMemberFromName(ctx, matchedVariant, force(name), memberAst.nameRange, () =>
 			has(asName) && has(force(asName).destructure)
 				? typeFromDestructure(ctx, force(force(asName).destructure))
 				: none!Type)
-		: none!MatchedVariantMember;
-	return optIf(has(optMember), () =>
-		checkMatchUnionOrVariantCase!(MatchVariantExpr.Case, VariantMember)(
-			ctx, locals, force(optMember).member, force(optMember).type, memberAst, thenAst, expected));
+		: none!(StructInst*);
+	if (has(optMember)) {
+		CaseResult result = checkMatchUnionOrVariantCase!StructInst(
+			ctx, locals, force(optMember), Type(force(optMember)), memberAst, thenAst, expected);
+		return optIf(!result.destructure.type.isBogus, () =>
+			MatchVariantExpr.Case(result.destructure, result.expr));
+ 	} else
+		return none!(MatchVariantExpr.Case);
 }
 
-Case checkMatchUnionOrVariantCase(Case, Member)(
+immutable struct CaseResult {
+	Destructure destructure;
+	Expr expr;
+}
+CaseResult checkMatchUnionOrVariantCase(Member)(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	Member* member,
@@ -1599,78 +1618,95 @@ Case checkMatchUnionOrVariantCase(Case, Member)(
 		if (has(destructureAst))
 			return checkDestructure2(ctx, &force(destructureAst), memberType, DestructureKind.local);
 		else {
-			if (memberType != Type(ctx.commonTypes.void_))
+			if (!isEmptyType(memberType, ctx.commonTypes))
 				addDiag2(ctx, memberAst.nameRange, Diag(
 					Diag.MatchCaseShouldUseIgnore(Diag.MatchCaseShouldUseIgnore.Member(member))));
 			return Destructure(allocate(ctx.alloc, Destructure.Ignore(memberAst.nameRange.start, memberType)));
 		}
 	}();
-	return Case(member, destructure, checkExprWithDestructure(ctx, locals, destructure, thenAst, expected));
+	return CaseResult(destructure, checkExprWithDestructure(ctx, locals, destructure, thenAst, expected));
 }
 
-// This is basically a VariantMemberInst if that existed.
-immutable struct MatchedVariantMember {
-	VariantMember* member;
-	Type type; // Instantiated member type
-}
-Opt!MatchedVariantMember getVariantMemberFromName(
+Opt!(StructInst*) getVariantMemberFromName(
 	ref ExprCtx ctx,
 	StructInst* matchedVariant,
 	Symbol name,
 	Range nameRange,
 	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
 ) {
-	Cell!(Opt!MatchedVariantMember) res = Cell!(Opt!MatchedVariantMember)(none!MatchedVariantMember);
-	eachFunInScope(ctx, name, (CalledDecl called) {
-		if (!called.isA!(FunDecl*)) return;
-		FunDecl* fun = called.as!(FunDecl*);
-		// Check the source first since fun.body_ is set lazily for other kinds.
-		if (!fun.source.isA!(VariantMember*) || !fun.body_.isA!(FunBody.VariantMemberGet)) return;
-		VariantMember* member = fun.source.as!(VariantMember*);
-		withInferringTypes!void(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
-			TypeContext inferringContext = TypeContext(small!SingleInferringType(inferringTypes));
-			TypeAndContext inferringMemberType = TypeAndContext(Type(member.variant), inferringContext);
-			if (matchTypes(ctx.instantiateCtx, inferringMemberType, nonInferring(Type(matchedVariant)))) {
-				if (!every!SingleInferringType(inferringTypes, (in SingleInferringType x) => has(tryGetInferred(x)))) {
-					Opt!Type t = expectedMemberType();
-					if (has(t))
-						// Ignore result, just using this for inference
-						matchTypes(
-							ctx.instantiateCtx,
-							TypeAndContext(member.type, inferringContext),
-							nonInferring(force(t)));
+	Opt!StructOrAlias op = structOrAliasFromName(ctx.checkCtx, name, nameRange, ctx.structsAndAliasesMap);
+	if (has(op)) {
+		StructOrAlias sa = force(op);
+		if (sa.isA!(StructAlias*)) {
+			return todo!(Opt!(StructInst*))("HANDLE ALIAS"); // ----------------------------------------------------------------------
+		} else {
+			StructDecl* decl = sa.as!(StructDecl*);
+			MutOpt!(StructInst*) res;
+			foreach (StructInst* variant; decl.variants) {
+				if (variant.decl == matchedVariant.decl) {
+					Opt!(StructInst*) x = compareVariant(ctx, nameRange, decl, variant, matchedVariant, expectedMemberType); // TODO: NAME
+					if (has(x)) {
+						if (has(res))
+							todo!void("Multiple variants match?"); // ----------------------------------------------------------
+						else
+							res = someMut(force(x));
+					}
 				}
-				bool anyNotInferred;
-				withMapToStackArray!(void, Type, SingleInferringType)(
-					inferringTypes,
-					(ref SingleInferringType x) =>
-						optOrDefault!Type(tryGetInferred(x), () {
-							anyNotInferred = true;
-							return Type.bogus;
-						}),
-					(scope Type[] inferredTypes) {
-						if (anyNotInferred)
-							addDiag2(ctx, nameRange, Diag(Diag.MatchVariantCantInferTypeArgs(member)));
-						if (has(cellGet(res)))
-							addDiag2(ctx, nameRange, Diag(
-								Diag.MatchVariantMultipleMembersWithName([force(cellGet(res)).member, member])));
-						else {
-							markUsed(ctx.checkCtx, fun);
-							Type memberType = instantiateType(
-								ctx.instantiateCtx, member.type, small!Type(inferredTypes), noDelayStructInsts);
-							cellSet(res, some(MatchedVariantMember(member, memberType)));
-						}
-					});
 			}
-		});
-	});
-	if (!has(cellGet(res)))
-		addDiag2(ctx, nameRange, Diag(Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), name)));
-	return cellGet(res);
+			if (has(res)) {
+				return some(force(res));
+			} else {
+				addDiag2(ctx, nameRange, Diag(Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
+				return none!(StructInst*);
+			}
+		}
+	} else
+		return none!(StructInst*);
 }
 
+// Returns instantiated member type if the declared variant matches the actual
+Opt!(StructInst*) compareVariant(
+	ref ExprCtx ctx,
+	Range range,
+	StructDecl* member,
+	StructInst* declaredVariant,
+	StructInst* actualVariant,
+	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
+) =>
+	withInferringTypes!(Opt!(StructInst*))(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
+		TypeContext inferringContext = TypeContext(small!SingleInferringType(inferringTypes));
+		TypeAndContext inferringDeclaredVariant = TypeAndContext(Type(declaredVariant), inferringContext);
+		return optIf(matchTypes(ctx.instantiateCtx, inferringDeclaredVariant, nonInferring(Type(actualVariant))), () {
+			if (!every!SingleInferringType(inferringTypes, (in SingleInferringType x) => has(tryGetInferred(x)))) { // TODO: check if this is still actually needed
+				Opt!Type t = expectedMemberType();
+				if (has(t)) {
+					// Ignore result, just using this for inference
+					matchTypes(
+						ctx.instantiateCtx,
+						TypeAndContext(Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, member)), inferringContext),
+						nonInferring(force(t)));
+				}
+			}
+
+			bool anyNotInferred;
+			return withMapToStackArray!(StructInst*, Type, SingleInferringType)(
+				inferringTypes,
+				(ref SingleInferringType x) =>
+					optOrDefault!Type(tryGetInferred(x), () {
+						anyNotInferred = true;
+						return Type.bogus;
+					}),
+				(scope Type[] inferredTypes) {
+					if (anyNotInferred)
+						addDiag2(ctx, range, Diag(Diag.MatchVariantCantInferTypeArgs(member)));
+					// markUsed(ctx.checkCtx, fun); TODO! ----------------------------------------------------------------------------------------------------
+					return instantiateStructNeverDelay(ctx.instantiateCtx, member, small!Type(inferredTypes));
+				});
+		});
+	});
+
 Out withInferringTypes(Out)(size_t n, in Out delegate(scope SingleInferringType[]) @safe @nogc pure nothrow cb) =>
-	withStackArray!(void, SingleInferringType)(n, (size_t i) => SingleInferringType(), cb);
+	withStackArray!(Out, SingleInferringType)(n, (size_t i) => SingleInferringType(), cb);
 
 Opt!CharType optAsCharType(BuiltinType x) {
 	switch (x) {

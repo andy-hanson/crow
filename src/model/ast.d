@@ -1015,6 +1015,7 @@ enum ModifierKeyword : ubyte {
 	summon,
 	trusted,
 	unsafe,
+	variantMember,
 }
 
 immutable struct StructBodyAst {
@@ -1194,6 +1195,8 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 			return "trusted";
 		case ModifierKeyword.unsafe:
 			return "unsafe";
+		case ModifierKeyword.variantMember:
+			return "variant-member";
 	}
 }
 
@@ -1206,25 +1209,6 @@ immutable struct TestAst {
 
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(range.start, "test".length);
-}
-
-immutable struct VariantMemberAst {
-	@safe @nogc pure nothrow:
-
-	Range range;
-	SmallString docComment;
-	Opt!Visibility visibility_;
-	NameAndRange name;
-	SmallArray!NameAndRange typeParams;
-	Pos keywordPos;
-	TypeAst variant;
-	Opt!TypeAst type;
-	SmallArray!ModifierAst modifiers; // These will be compile errors
-
-	Opt!VisibilityAndRange visibility() scope =>
-		getVisibilityAndRange(range.start, visibility_);
-	Range keywordRange() scope =>
-		rangeOfStartAndLength(range.start, "variant-member".length);
 }
 
 // 'global' or 'thread-local'
@@ -1298,7 +1282,6 @@ immutable struct FileAst {
 	SmallArray!StructDeclAst structs;
 	SmallArray!FunDeclAst funs;
 	SmallArray!TestAst tests;
-	SmallArray!VariantMemberAst variantMembers;
 	SmallArray!VarDeclAst vars;
 }
 

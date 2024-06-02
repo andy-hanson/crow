@@ -4,7 +4,7 @@ main void()
 	()
 
 v variant mut
-x[t] variant-member(v, t)
+x[t] record(alue t) v variant-member
 
 foo string(a v)
 	match a

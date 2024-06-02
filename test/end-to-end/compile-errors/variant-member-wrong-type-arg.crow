@@ -9,5 +9,5 @@ main void()
 
 v[t] variant
 
-foo variant-member(string v)
-bar variant-member(nat v)
+foo record string v variant-member
+bar record nat v variant-member

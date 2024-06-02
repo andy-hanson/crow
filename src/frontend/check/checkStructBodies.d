@@ -62,14 +62,14 @@ import model.model :
 	UnionMember,
 	Visibility;
 import util.col.array :
-	eachPair, emptySmallArray, fold, isEmpty, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
+	eachPair, emptySmallArray, fold, isEmpty, mapOp, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
 import util.col.hashTable : HashTable, makeHashTable;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
+import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe, todo;
 
 void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 	if (has(modifier.typeArg)) {
@@ -86,14 +86,14 @@ void modifierTypeArgInvalid(ref CheckCtx ctx, in MutOpt!(ModifierAst.Keyword*)[]
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
 		checkTypeParams(ctx, ast.typeParams);
-		LinkageAndPurity p = getStructModifiers(ctx, getDeclKind(ast.body_), ast.modifiers);
+		LinkageAndPurity m = getStructModifiers(ctx, getDeclKind(ast.body_), ast.modifiers);
 		return StructDecl(
 			StructDeclSource(ast),
 			ctx.curUri,
 			visibilityFromExplicitTopLevel(ast.visibility),
-			p.linkage,
-			p.purityAndForced.purity,
-			p.purityAndForced.forced);
+			m.linkage,
+			m.purityAndForced.purity,
+			m.purityAndForced.forced);
 	});
 
 void checkStructBodies(
@@ -105,6 +105,7 @@ void checkStructBodies(
 	in StructDeclAst[] asts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
+		struct_.variants = checkVariantMembers(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
 		struct_.body_ = ast.body_.match!StructBody(
 			(StructBodyAst.Builtin) {
 				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
@@ -142,6 +143,38 @@ void checkStructBodies(
 }
 
 private:
+
+SmallArray!(immutable StructInst*) checkVariantMembers(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* struct_,
+	ref StructDeclAst ast,
+) =>
+	small!(immutable StructInst*)(mapOp!(immutable StructInst*, ModifierAst)(ctx.alloc, ast.modifiers, (ref ModifierAst mod) {
+		if (mod.isA!(ModifierAst.Keyword)) {
+			ModifierAst.Keyword kw = mod.as!(ModifierAst.Keyword);
+			if (kw.keyword == ModifierKeyword.variantMember) {
+				if (has(kw.typeArg)) {
+					Type variantType = typeFromAst(ctx, commonTypes, force(kw.typeArg), structsAndAliasesMap, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+					StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
+					if (variantInst.decl.body_.isA!(StructBody.Variant))
+						return some(variantInst);
+					else {
+						if (!variantType.isBogus)
+							addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, variantType)));
+						return none!(StructInst*);
+					}
+				} else {
+					todo!void("DIAG: variant-member without type"); // --------------------------------------------------------------------------------
+					return none!(StructInst*);
+				}
+			} else
+				return none!(StructInst*);
+		} else
+			return none!(StructInst*);
+	}));
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
@@ -248,9 +281,10 @@ LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAs
 	MutOpt!(ModifierAst.Keyword*) linkage;
 	MutOpt!(ModifierAst.Keyword*) purityAndForced;
 	foreach (ref ModifierAst modifier; modifiers) {
-		if (isStructModifier(modifier)) {
+		if (isCommonModifier(modifier)) {
 			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
-			accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
+			if (kw.keyword != ModifierKeyword.variantMember)
+				accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
 		} // else already warned in 'checkOnlyStructModifiers'
 	}
 	modifierTypeArgInvalid(ctx, [linkage, purityAndForced]);
@@ -317,9 +351,9 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 	}
 }
 
-void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
+void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) { // TODO: RENAME --------------------
 	foreach (ref ModifierAst modifier; modifiers)
-		if (!isStructModifier(modifier))
+		if (!isCommonModifier(modifier))
 			addDiag(ctx, modifier.range, modifier.matchIn!Diag(
 				(in ModifierAst.Keyword x) =>
 					x.keyword == ModifierKeyword.byVal
@@ -329,10 +363,12 @@ void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAs
 					Diag(Diag.SpecUseInvalid(declKind))));
 }
 
-bool isStructModifier(in ModifierAst a) =>
+bool isCommonModifier(in ModifierAst a) =>
 	a.matchIn!bool(
 		(in ModifierAst.Keyword x) =>
-			x.keyword == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.keyword)),
+			x.keyword == ModifierKeyword.extern_ ||
+			x.keyword == ModifierKeyword.variantMember ||
+			has(purityAndForcedFromModifier(x.keyword)),
 		(in SpecUseAst _) =>
 			false);
 
@@ -738,7 +774,7 @@ IntegralType checkEnumOrFlagsModifiers(
 ) {
 	MutOpt!(ModifierAst.Keyword*) storage;
 	foreach (ref ModifierAst modifier; modifiers) {
-		if (!isStructModifier(modifier)) {
+		if (!isCommonModifier(modifier)) {
 			if (modifier.isA!(ModifierAst.Keyword)) {
 				ModifierAst.Keyword* x = &modifier.as!(ModifierAst.Keyword)();
 				if (x.keyword == ModifierKeyword.storage) {
@@ -812,16 +848,9 @@ RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifi
 				case ModifierKeyword.packed:
 					accumulateModifier(ctx, packed, x);
 					break;
-				case ModifierKeyword.data:
-				case ModifierKeyword.extern_:
-				case ModifierKeyword.forceShared:
-				case ModifierKeyword.mut:
-				case ModifierKeyword.shared_:
-					// already handled in getStructModifiers
-					assert(isStructModifier(modifier));
-					break;
 				default:
-					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.record)));
+					if (!isCommonModifier(modifier))
+						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.record)));
 					break;
 			}
 		} else

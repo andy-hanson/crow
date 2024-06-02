@@ -17,7 +17,6 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	VarDecl,
-	VariantMember,
 	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : buildArray, Builder;
@@ -80,9 +79,6 @@ public void definitionForTarget(Uri curUri, in Target a, in ReferenceCb cb) =>
 			cb(x.nameRange);
 		},
 		(in VarDecl x) {
-			cb(x.nameRange);
-		},
-		(in VariantMember x) {
 			cb(x.nameRange);
 		});
 

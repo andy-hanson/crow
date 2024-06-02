@@ -4,7 +4,7 @@ main void()
 
 v variant mut
 
-x[t] variant-member(v, t)
+x[t] record(value t) v variant-member
 
 f nat(a v)
 	match a

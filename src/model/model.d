@@ -18,8 +18,7 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	VarDeclAst,
-	VariantMemberAst;
+	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
@@ -50,7 +49,7 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
-import util.util : enumConvertOrAssert, max, min, stringOfEnum;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum, todo;
 import versionInfo : VersionFun;
 
 alias Purity = immutable Purity_;
@@ -114,6 +113,11 @@ immutable struct Type {
 	bool opEquals(scope Type b) scope =>
 		taggedPointerEquals(b);
 }
+
+bool isEmptyType(in Type a, in CommonTypes commonTypes) =>
+	a.isA!(StructInst*) && (a.as!(StructInst*) == commonTypes.void_ || isEmptyRecord(*a.as!(StructInst*).decl)); // TODO: maybe all empty record types should compile to 'void' in the lowering step ... then don't need 'isEmptyType' elsewhere since they're all void
+bool isEmptyRecord(in StructDecl a) =>
+	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -280,27 +284,6 @@ immutable struct UnionMember {
 		source.range;
 	UriAndRange nameRange() scope =>
 		UriAndRange(moduleUri, source.nameRange);
-}
-
-immutable struct VariantMember {
-	@safe @nogc pure nothrow:
-
-	VariantMemberAst* ast;
-	Uri moduleUri;
-	Visibility visibility;
-	StructInst* variant;
-	Type type;
-
-	SmallString docComment() return scope =>
-		ast.docComment;
-	Symbol name() scope =>
-		ast.name.name;
-	TypeParams typeParams() return scope =>
-		ast.typeParams;
-	UriAndRange range() scope =>
-		UriAndRange(moduleUri, ast.range);
-	UriAndRange nameRange() scope =>
-		UriAndRange(moduleUri, ast.name.range);
 }
 
 alias ByValOrRef = immutable ByValOrRef_;
@@ -499,11 +482,16 @@ immutable struct StructDecl {
 	// Note: purity on the decl does not take type args into account
 	Purity purity;
 	bool purityIsForced;
-
+	private Late!(SmallArray!(immutable StructInst*)) variants_;
 	private Late!StructBody lateBody;
 
 	bool bodyIsSet() =>
 		lateIsSet(lateBody);
+
+	SmallArray!(immutable StructInst*) variants() return scope =>
+		lateGet(variants_);
+	void variants(SmallArray!(immutable StructInst*) value) =>
+		lateSet(variants_, value);
 
 	ref StructBody body_() return scope =>
 		lateGet(lateBody);
@@ -723,11 +711,15 @@ immutable struct FunBody {
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
+	immutable struct CreateRecordAndConvertToVariant {
+		StructInst* member;
+		StructInst* variant;
+	}
 	immutable struct CreateUnion {
 		UnionMember* member;
 	}
-	immutable struct CreateVariant {
-		VariantMember* member;
+	immutable struct CreateVariant { // TODO: Rename to 'ConvertToVariant' ------------------------------------------------
+		StructInst* variant;
 	}
 	immutable struct Extern {
 		Symbol libraryName;
@@ -750,7 +742,8 @@ immutable struct FunBody {
 	}
 	immutable struct UnionMemberGet { size_t memberIndex; }
 	immutable struct VarGet { VarDecl* var; }
-	immutable struct VariantMemberGet { VariantMember* member; }
+	immutable struct VariantMemberGet { // TODO: rename to 'ConvertFromVariant' -----------------------------------------------------
+	}
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -760,6 +753,7 @@ immutable struct FunBody {
 		CreateEnumOrFlags,
 		CreateExtern,
 		CreateRecord,
+		CreateRecordAndConvertToVariant,
 		CreateUnion,
 		CreateVariant,
 		EnumFunction,
@@ -1059,8 +1053,7 @@ immutable struct FunDeclSource {
 		RecordField*,
 		StructDecl*,
 		UnionMember*,
-		VarDecl*,
-		VariantMember*);
+		VarDecl*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -1079,8 +1072,6 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
-				x.moduleUri,
-			(in VariantMember x) =>
 				x.moduleUri);
 
 	UriAndRange range() scope =>
@@ -1100,9 +1091,7 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				UriAndRange(x.moduleUri, x.range),
 			(in VarDecl x) =>
-				x.range,
-			(in VariantMember x) =>
-			 	x.range);
+				x.range);
 	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
@@ -1120,8 +1109,6 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.nameRange,
 			(in VarDecl x) =>
-				x.nameRange,
-			(in VariantMember x) =>
 				x.nameRange);
 }
 
@@ -1161,8 +1148,6 @@ immutable struct FunDecl {
 			(ref UnionMember x) =>
 				x.containingUnion.typeParams,
 			(ref VarDecl x) =>
-				x.typeParams,
-			(ref VariantMember x) =>
 				x.typeParams);
 
 	Uri moduleUri() scope =>
@@ -1452,7 +1437,6 @@ immutable struct Module {
 	SmallArray!ImportOrExport reExports;
 	SmallArray!StructAlias aliases;
 	SmallArray!StructDecl structs;
-	SmallArray!VariantMember variantMembers;
 	SmallArray!VarDecl vars;
 	SmallArray!SpecDecl specs;
 	SmallArray!FunDecl funs;
@@ -2221,9 +2205,19 @@ immutable struct MatchVariantExpr {
 	@safe @nogc pure nothrow:
 
 	immutable struct Case {
-		VariantMember* member;
+		@safe @nogc pure nothrow:
+
 		Destructure destructure;
 		Expr then;
+
+		this(Destructure d, Expr e) { // -----------------------------------------------------------------------------------------
+			destructure = d;
+			then = e;
+			assert(d.type.isA!(StructInst*));
+		}
+
+		StructInst* member() return scope =>
+			destructure.type.as!(StructInst*);
 	}
 
 	ExprAndType matched;

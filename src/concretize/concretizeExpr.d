@@ -7,7 +7,6 @@ import concretize.concretizeCtx :
 	boolType,
 	ConcreteLambdaImpl,
 	concreteTypeFromClosure,
-	ConcreteVariantMember,
 	ConcretizeCtx,
 	concretizeLambdaParams,
 	constantCString,
@@ -133,13 +132,13 @@ import model.model :
 	TryLetExpr,
 	Type,
 	TypedExpr,
-	VariableRef,
-	VariantMember;
+	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
 	concatenate,
 	findIndex,
+	indexOf,
 	isEmpty,
 	map,
 	mapWithFirst,
@@ -619,15 +618,14 @@ size_t nextLambdaImplIdInner(ref Alloc alloc, ConcreteLambdaImpl impl, ref MutAr
 public size_t ensureVariantMember(
 	ref ConcretizeCtx ctx,
 	ConcreteType variantType,
-	VariantMember* member,
-	ConcreteType type,
+	ConcreteType memberType,
 ) {
-	MutArr!ConcreteVariantMember* members = &mustGet(ctx.variantStructToMembers, mustBeByVal(variantType));
-	Opt!size_t found = findIndex!ConcreteVariantMember(asTemporaryArray(*members), (in ConcreteVariantMember x) =>
-		x.member == member && x.type == type);
+	MutArr!ConcreteType* members = &mustGet(ctx.variantStructToMembers, mustBeByVal(variantType));
+	Opt!size_t found = indexOf!ConcreteType(asTemporaryArray(*members), memberType);
 	return optOrDefault!size_t(found, () {
+		// TODO: pushAndGetIndex helper? ---------------------------------------------------------------------------------------------------------
 		size_t res = mutArrSize(*members);
-		push(ctx.alloc, *members, ConcreteVariantMember(member, type));
+		push(ctx.alloc, *members, memberType);
 		return res;
 	});
 }
@@ -1097,8 +1095,7 @@ IntegralValue memberIndexForMatchVariantCase(
 	ConcreteType variantType,
 	ref MatchVariantExpr.Case a,
 ) =>
-	IntegralValue(ensureVariantMember(
-		ctx.concretizeCtx, variantType, a.member, getConcreteType(ctx, a.destructure.type)));
+	IntegralValue(ensureVariantMember(ctx.concretizeCtx, variantType, getConcreteType(ctx, a.destructure.type)));
 
 ConcreteExpr concretizeVariableRefForClosure(
 	ref ConcretizeExprCtx ctx,

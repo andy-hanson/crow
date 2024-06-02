@@ -15,13 +15,7 @@ import frontend.check.checkStructBodies : modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
 	funDeclsName, FunsAndMap, FunsMap, ImportOrExportFile, SpecsMap, StructsAndAliasesMap;
-import frontend.check.funsForStruct :
-	addFunsForStruct,
-	addFunsForVar,
-	addFunsForVariantMember,
-	countFunsForStructs,
-	countFunsForVariantMembers,
-	countFunsForVars;
+import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
 	checkDestructure,
@@ -73,7 +67,6 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
-	VariantMember,
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -108,7 +101,6 @@ FunsAndMap checkFuns(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -116,8 +108,7 @@ FunsAndMap checkFuns(
 	TestAst[] testAsts,
 ) {
 	FunDecl[] funs = checkFunsInitial(
-		ctx, commonTypes, specsMap, structs, structsAndAliasesMap,
-		variantMembers, vars, fileImports, fileExports, asts);
+		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
@@ -164,7 +155,6 @@ FunDecl[] checkFunsInitial(
 	in SpecsMap specsMap,
 	StructDecl[] structs,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	VariantMember[] variantMembers,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -176,7 +166,6 @@ FunDecl[] checkFunsInitial(
 			fileImports.length +
 			fileExports.length +
 			countFunsForStructs(commonTypes, structs) +
-			countFunsForVariantMembers(variantMembers) +
 			countFunsForVars(vars),
 		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
 			foreach (ref FunDeclAst funAst; asts) {
@@ -212,8 +201,6 @@ FunDecl[] checkFunsInitial(
 
 			foreach (ref StructDecl struct_; structs)
 				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
-			foreach (ref VariantMember member; variantMembers)
-				addFunsForVariantMember(ctx, funsBuilder, commonTypes, &member);
 			foreach (ref VarDecl var; vars)
 				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
 		});

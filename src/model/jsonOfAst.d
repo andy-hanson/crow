@@ -67,7 +67,6 @@ import model.ast :
 	TypeAst,
 	TypedAst,
 	VarDeclAst,
-	VariantMemberAst,
 	WithAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
@@ -106,8 +105,6 @@ Json jsonOfAst(ref Alloc alloc, in LineAndColumnGetter lineAndColumnGetter, in F
 			jsonOfStructDeclAst(alloc, ctx, a)),
 		optionalArrayField!("funs", FunDeclAst)(alloc, ast.funs, (in FunDeclAst a) =>
 			jsonOfFunDeclAst(alloc, ctx, a)),
-		optionalArrayField!("variant-members", VariantMemberAst)(alloc, ast.variantMembers, (in VariantMemberAst a) =>
-			jsonOfVariantMemberAst(alloc, ctx, a)),
 		optionalArrayField!("vars", VarDeclAst)(alloc, ast.vars, (in VarDeclAst a) =>
 			jsonOfVarDeclAst(alloc, ctx, a))]);
 }
@@ -624,16 +621,4 @@ Json jsonOfVarDeclAst(ref Alloc alloc, in Ctx ctx, in VarDeclAst a) =>
 		field!"keyword-pos"(a.keywordPos),
 		field!"kind"(stringOfEnum(a.kind)),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type)),
-		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers))]);
-
-Json jsonOfVariantMemberAst(ref Alloc alloc, in Ctx ctx, in VariantMemberAst a) =>
-	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		optionalStringField!"doc"(alloc, a.docComment),
-		visibilityField(a.visibility_),
-		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
-		maybeTypeParams(alloc, ctx, a.typeParams),
-		field!"keyword-pos"(a.keywordPos),
-		field!"variant"(jsonOfTypeAst(alloc, ctx, a.variant)),
-		optionalField!("type", TypeAst)(a.type, (in TypeAst x) => jsonOfTypeAst(alloc, ctx, x)),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers))]);

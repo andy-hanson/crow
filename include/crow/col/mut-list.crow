@@ -14,7 +14,7 @@ import
 	../tuple: a, b, new
 	./array: +, array, begin, slice
 	./collection:
-		.., -, build-options, end, for-loop, index-too-big, iterate, new, set-subscript, size-hint,
+		.., -, build-options, end, for-loop, index-too-big, iterate, set-subscript, size-hint,
 		subscript
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
@@ -124,7 +124,7 @@ Writes to the `mut-list` won't affect the `list`.
 	b.size := a-size
 
 -check-index[t] void(a t mut[], index nat64) bare
-	assert index < a.size : (index, a.size) index-too-big
+	assert index < a.size : index index-too-big a.size
 
 ###
 Converts to an `mut-array`.
@@ -150,7 +150,7 @@ This is O(a.size - n) because of the cost of copying, and all remaining elements
 Throws if `n > a.size`.
 ###
 +pop-n-from-start[t] t[](a t mut[], n nat64)
-	assert n <= a.size : (n, a.size) index-too-big
+	assert n <= a.size : n index-too-big a.size
 	res = a[0 .. n]
 	new-size = a.size - n
 	a.backing[0 .. new-size] := trusted a.temp-as-array[n .. a.size]
@@ -179,7 +179,7 @@ Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
 +pop-n[t] void(a t mut[], n nat64)
-	assert n <= a.size : (n, a.size) index-too-big
+	assert n <= a.size : n index-too-big a.size
 	new-size = a.size - n
 	trusted a.backing[new-size .. a.size] zero-memory
 	a.size := new-size
@@ -281,7 +281,7 @@ This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.
 ###
 +insert-at[t] void(a t mut[], index nat64, value t)
-	assert index <= a.size : (index, a.size) index-too-big
+	assert index <= a.size : index index-too-big a.size
 	trusted
 		a incr-capacity
 		a.backing[index + 1 .. a.size + 1] := a.temp-as-array[index .. a.size]

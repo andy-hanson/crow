@@ -47,9 +47,9 @@ If the string has leading or trailing spaces you must use a grammar that include
 	as ok v
 		v
 	as error e
-		throw e parse-error
+		throw e.to
 
-+parse-error record
++parse-error record exception variant-member
 	# The argument passed to 'parse'.
 	input string
 	###
@@ -60,7 +60,6 @@ If the string has leading or trailing spaces you must use a grammar that include
 	# Description of what was expected.
 	expected string
 +== bool(a parse-error, b parse-error)
-+parse-error variant-member(exception, parse-error)
 
 -inner-parse-result[t] union(ok t, error inner-parse-error)
 

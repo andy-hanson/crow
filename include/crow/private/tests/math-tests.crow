@@ -63,7 +63,7 @@ test
 		_ float64 = -1 square-root
 		should-throw
 	catch float-out-of-range x
-		x is -1
+		x.input is -1
 
 	(-one).acos is-about pi
 	zero.acos is-about pi_2

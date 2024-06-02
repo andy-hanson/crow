@@ -8,8 +8,8 @@ import
 	../private/range-low-level: ..
 	../pointer: +, *
 	./collection:
-		.., build, end, index-too-big, iterator-not-comparable, new, sequence-compare,
-		sequence-equal, subscript, with-block
+		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
+		subscript, with-block
 export
 	../private/bootstrap: array, size
 	./private/array-low-level:
@@ -74,7 +74,7 @@ This is O(n).
 `index` must be a valid index into `a`. This can't be used to add a value to the end.
 ###
 +update-at[t] t array(a t array, index nat64, new-value t)
-	assert index < a.size : (index, a.size) index-too-big
+	assert index < a.size : index index-too-big a.size
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ new-value ~~ a[index + 1 .. end]
 
@@ -83,13 +83,13 @@ Inserts an element at index `index`, all elements there and after to the right.
 Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
 ###
 +insert-at[t] t array(a t array, index nat64, value t)
-	assert index <= a.size : (index, a.size) index-too-big
+	assert index <= a.size : index index-too-big a.size
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ value ~~ a[index .. end]
 
 # Removes the element at index `index`, shifting all later elements to the left.
 +remove-at[t] t array(a t array, index nat64)
-	assert index < a.size : (index, a.size) index-too-big
+	assert index < a.size : index index-too-big a.size
 	a[0 .. index] ~~ a[index + 1 .. end]
 
 region spec impls (see collection.crow)
@@ -139,5 +139,5 @@ region spec impls (see collection.crow)
 +slice[t] t array(begin t array-iterator, end t array-iterator) bare
 	assert begin.next-index <= end.next-index
 	assert end.next-index <= begin.collection.size :
-		(end.next-index, begin.collection.size) index-too-big
+		end.next-index index-too-big begin.collection.size
 	trusted end.next-index - begin.next-index, begin.collection.begin-pointer + begin.next-index

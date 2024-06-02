@@ -24,7 +24,7 @@ test
 		finally throw "thrown second" error
 		throw "thrown first" error
 	catch error e
-		e is "thrown second"
+		e.message is "thrown second"
 
 # Test that yielding the fiber does not break exception handling
 test

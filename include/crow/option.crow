@@ -49,4 +49,4 @@ If `a` is non-empty, returns its value; else throws.
 ###
 +force[t] t(a t?) bare
 	a ?? throw force-option-error
-+force-option-error variant-member(exception)
++force-option-error record exception variant-member

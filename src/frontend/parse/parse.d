@@ -17,14 +17,7 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody, parseSingleStatementLine;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType :
-	parseModifiers,
-	parseParams,
-	parseType,
-	parseTypeArgForVarDecl,
-	parseVariantMemberArgs,
-	tryParseParams,
-	tryTakeVisibility,
-	VariantMemberArgs;
+	parseModifiers, parseParams, parseType, parseTypeArgForVarDecl, tryParseParams, tryTakeVisibility;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
@@ -60,7 +53,6 @@ import model.ast :
 	StructDeclAst,
 	TestAst,
 	TypeAst,
-	VariantMemberAst,
 	VarDeclAst;
 import model.model : TypeParams, VarKind, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -191,7 +183,6 @@ void parseSpecOrStructOrFunOrTest(
 	scope ref ArrayBuilder!FunDeclAst funs,
 	scope ref ArrayBuilder!TestAst tests,
 	scope ref ArrayBuilder!VarDeclAst vars,
-	scope ref ArrayBuilder!VariantMemberAst variantMembers,
 	SmallString docComment,
 ) {
 	Pos start = curPos(lexer);
@@ -200,7 +191,7 @@ void parseSpecOrStructOrFunOrTest(
 		ExprAst body_ = parseFunExprBody(lexer);
 		add(lexer.alloc, tests, TestAst(range(lexer, start), modifiers, body_));
 	} else
-		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, variantMembers, docComment);
+		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, docComment);
 }
 
 void parseSpecOrStructOrFun(
@@ -210,7 +201,6 @@ void parseSpecOrStructOrFun(
 	scope ref ArrayBuilder!StructDeclAst structs,
 	scope ref ArrayBuilder!FunDeclAst funs,
 	scope ref ArrayBuilder!VarDeclAst varDecls,
-	scope ref ArrayBuilder!VariantMemberAst variantMembers,
 	SmallString docComment,
 ) {
 	Pos start = curPos(lexer);
@@ -291,12 +281,6 @@ void parseSpecOrStructOrFun(
 			mustTakeToken(lexer, Token.variant);
 			addStruct(() => StructBodyAst(StructBodyAst.Variant()));
 			break;
-		case Token.variantMember:
-			Pos pos = curPos(lexer);
-			mustTakeToken(lexer, Token.variantMember);
-			add(lexer.alloc, variantMembers, parseVariantMember(
-				lexer, start, docComment, visibility, name, typeParams, pos));
-			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
 			break;
@@ -322,21 +306,6 @@ Opt!(LiteralIntegralAndRange*) parseIntegral(ref Lexer lexer) {
 	return has(res)
 		? some(allocate(lexer.alloc, LiteralIntegralAndRange(range(lexer, start), force(res))))
 		: none!(LiteralIntegralAndRange*);
-}
-
-VariantMemberAst parseVariantMember(
-	ref Lexer lexer,
-	Pos start,
-	SmallString docComment,
-	Opt!Visibility visibility,
-	NameAndRange name,
-	SmallArray!NameAndRange typeParams,
-	Pos keywordPos,
-) {
-	VariantMemberArgs args = parseVariantMemberArgs(lexer);
-	SmallArray!ModifierAst modifiers = parseModifiers(lexer);
-	return VariantMemberAst(
-		range(lexer, start), docComment, visibility, name, typeParams, keywordPos, args.variant, args.type, modifiers);
 }
 
 VarDeclAst parseVarDecl(
@@ -373,7 +342,6 @@ FileAst parseFileInner(ref Lexer lexer) {
 	ArrayBuilder!FunDeclAst funs;
 	ArrayBuilder!TestAst tests;
 	ArrayBuilder!VarDeclAst vars;
-	ArrayBuilder!VariantMemberAst variantMembers;
 
 	while (!tryTakeToken(lexer, Token.EOF)) {
 		SmallString docComment = () {
@@ -388,8 +356,7 @@ FileAst parseFileInner(ref Lexer lexer) {
 			continue;
 		if (tryTakeToken(lexer, Token.EOF))
 			break;
-		parseSpecOrStructOrFunOrTest(
-			lexer, specs, structAliases, structs, funs, tests, vars, variantMembers, docComment);
+		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
 	}
 
 	return FileAst(
@@ -403,6 +370,5 @@ FileAst parseFileInner(ref Lexer lexer) {
 		smallFinish(lexer.alloc, structs),
 		smallFinish(lexer.alloc, funs),
 		smallFinish(lexer.alloc, tests),
-		smallFinish(lexer.alloc, variantMembers),
 		smallFinish(lexer.alloc, vars));
 }

@@ -52,14 +52,13 @@ import model.model :
 	Type,
 	TypeParamIndex,
 	UnionMember,
-	VarDecl,
-	VariantMember;
+	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint;
 import util.opt : force, has;
 import util.sourceRange : PosKind;
 import util.uri : Uri;
-import util.util : stringOfEnum;
+import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedChar, writeQuotedString, Writer;
 
 Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) =>
@@ -166,10 +165,13 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeName(writer, ctx, x.member.name);
 		},
 		(PositionKind.MatchVariantCase x) {
+			todo!void("describe match variant case"); // ------------------------------------------------------------------------------
+			/*
 			writer ~= "Handler for variant ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
 			writer ~= " member ";
 			writeName(writer, ctx, x.member.name);
+			*/
 		},
 		(PositionKind.Modifier x) {
 			writer ~= () {
@@ -217,6 +219,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "This function is not unsafe, but can do unsafe things internally.";
 					case ModifierKeyword.unsafe:
 						return "This function can only be called by 'trusted' or 'unsafe' functions.";
+					case ModifierKeyword.variantMember:
+						return "???????????????????????????????????????????????????????????????????????????????????????????????????????????";
 				}
 			}();
 		},
@@ -292,18 +296,6 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeName(writer, ctx, x.name);
 			writer ~= " :: ";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
-		},
-		(VariantMember* x) {
-			writer ~= "Variant member ";
-			writeTypeUnquoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x)));
-			writer ~= '.';
-			writer ~= x.name;
-			if (x.type == Type(ctx.commonTypes.void_))
-				writer ~= " (no associated value)";
-			else {
-				writer ~= " :: ";
-				writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
-			}
 		},
 		(PositionKind.VisibilityMark x) {
 			writer ~= "Marks ";

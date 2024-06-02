@@ -10,7 +10,6 @@ import concretize.concretizeCtx :
 	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
-	ConcreteVariantMember,
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
 	exceptionType,
@@ -40,7 +39,7 @@ import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
-import util.col.mutArr : asTemporaryArray, moveAndMapToArray, MutArr, push;
+import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -99,10 +98,8 @@ ConcreteProgram concretizeInner(
 
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
 
-	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMember x; ctx.variantStructToMembers)
-		lateSet(
-			variant.body_.as!(ConcreteStructBody.Union).members_,
-			moveAndMapToArray(alloc, x, (ref ConcreteVariantMember member) => member.type));
+	foreach (ConcreteStruct* variant, MutArr!ConcreteType x; ctx.variantStructToMembers)
+		lateSet(variant.body_.as!(ConcreteStructBody.Union).members_, small!ConcreteType(moveToArray(alloc, x)));
 
 	deferredFillRecordAndUnionBodies(ctx);
 

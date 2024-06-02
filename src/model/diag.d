@@ -32,7 +32,6 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariableRef,
-	VariantMember,
 	VarKind,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -383,7 +382,7 @@ immutable struct Diag {
 	}
 	immutable struct MatchCaseShouldUseIgnore {
 		immutable struct Member {
-			mixin TaggedUnion!(UnionMember*, VariantMember*);
+			mixin TaggedUnion!(StructInst*, UnionMember*);
 		}
 		Member member;
 	}
@@ -400,14 +399,11 @@ immutable struct Diag {
 	}
 	immutable struct MatchUnnecessaryElse {}
 	immutable struct MatchVariantCantInferTypeArgs {
-		VariantMember* member;
-	}
-	immutable struct MatchVariantMultipleMembersWithName {
-		VariantMember*[2] members;
+		StructDecl* member;
 	}
 	immutable struct MatchVariantNoMember {
 		TypeWithContainer variant;
-		Symbol name;
+		StructDecl* nonMember;
 	}
 
 	immutable struct ModifierConflict {
@@ -469,7 +465,7 @@ immutable struct Diag {
 		Type child;
 	}
 	immutable struct PurityWorseThanVariant {
-		VariantMember* member;
+		StructDecl* member;
 	}
 	immutable struct RecordFieldNeedsType {
 		Symbol fieldName;
@@ -608,7 +604,7 @@ immutable struct Diag {
 	}
 	immutable struct VarargsParamMustBeArray {}
 	immutable struct VariantMemberOfNonVariant {
-		VariantMember* member;
+		StructDecl* member;
 		Type actual;
 	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
@@ -690,7 +686,6 @@ immutable struct Diag {
 		MatchUnhandledCases,
 		MatchUnnecessaryElse,
 		MatchVariantCantInferTypeArgs,
-		MatchVariantMultipleMembersWithName,
 		MatchVariantNoMember,
 		ModifierConflict,
 		ModifierDuplicate,
@@ -758,7 +753,7 @@ immutable struct TypeWithContainer {
 immutable struct TypeContainer {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*, VariantMember*);
+	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -773,8 +768,6 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
-				x.moduleUri,
-			(in VariantMember x) =>
 				x.moduleUri);
 
 	TypeParams typeParams() scope =>
@@ -790,7 +783,5 @@ immutable struct TypeContainer {
 			(in Test x) =>
 				emptyTypeParams,
 			(in VarDecl x) =>
-				x.typeParams,
-			(in VariantMember x) =>
 				x.typeParams);
 }

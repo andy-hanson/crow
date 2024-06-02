@@ -1,4 +1,4 @@
 main void()
 	_ bool = m
 
-m variant-member(bool)
+m record bool variant-member

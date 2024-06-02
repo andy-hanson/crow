@@ -12,15 +12,15 @@ import
 export
 	./private/build
 
-+index-too-big record(actual nat64, maximum nat64) by-val
-+index-too-big variant-member(exception, index-too-big)
++index-too-big record(actual nat64, maximum nat64) by-val, exception variant-member
 
 # Exception when attempting to skip too far forward or backward
-+iterator-out-of-bounds variant-member(exception)
++iterator-out-of-bounds record exception variant-member
 # For a 'slice', the first iterator should be to the right of the second iterator.
-+slice-right-to-left variant-member(exception)
++slice-right-to-left record exception variant-member
+
 # Some iterator operations like 'slice' require two iterators to be for the same collection.
-+iterator-not-comparable variant-member(exception)
++iterator-not-comparable record exception variant-member
 
 +is-empty[t] spec
 	is-empty bool(a t)
@@ -77,14 +77,14 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	a col,
 	index nat64,
 ) (iter, col) begin, iter skip-next, (elem, iter) next, col size, bare
-	assert x, _ ?= a.begin + index next : (a.size, index) index-too-big
+	assert x, _ ?= a.begin + index next : a.size index-too-big index
 	x
 
 +subscript[col, iter, elem] elem(
 	a col,
 	index index-relative-to-end,
 ) (iter, col) end, iter skip-prev, (elem, iter) next, col size, bare
-	assert x, _ ?= a.end - index.subtract next : (a.size, index.subtract) index-too-big
+	assert x, _ ?= a.end - index.subtract next : a.size index-too-big index.subtract
 	x
 
 +set-subscript[col, iter, elem] void(

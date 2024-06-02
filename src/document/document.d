@@ -31,7 +31,6 @@ import model.model :
 	TypeParams,
 	UnionMember,
 	VarDecl,
-	VariantMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
@@ -53,7 +52,7 @@ import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : SmallString;
 import util.symbol : Symbol, symbol;
 import util.uri : stringOfUri;
-import util.util : stringOfEnum;
+import util.util : stringOfEnum, todo;
 
 string documentJSON(ref Alloc alloc, in Program program) =>
 	jsonToString(alloc, documentRootModules(alloc, program));
@@ -79,8 +78,11 @@ Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 						if (fun.body_.isA!(FunBody.VarGet))
 							res ~= documentVarDecl(alloc, *fun.body_.as!(FunBody.VarGet).var);
 						else if (fun.body_.isA!(FunBody.VariantMemberGet))
+							todo!void("document variant member? Or do as part of type?"); // ---------------------------------------
+							/*
 							res ~= documentVariantMember(
 								alloc, *program.commonTypes, *fun.body_.as!(FunBody.VariantMemberGet).member);
+							*/
 					} else
 						res ~= documentFun(alloc, *fun);
 				}
@@ -226,13 +228,6 @@ DocExport documentVarDecl(ref Alloc alloc, in VarDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField(stringOfEnum(a.kind)),
 		field!"type"(documentTypeRef(alloc, a.typeParams, a.type))]));
-
-DocExport documentVariantMember(ref Alloc alloc, in CommonTypes commonTypes, in VariantMember a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
-		kindField!"variant-member",
-		field!"variant"(documentStructInst(alloc, a.typeParams, *a.variant)),
-		optionalField!"type"(a.type != Type(commonTypes.void_), () =>
-			documentTypeRef(alloc, a.typeParams, a.type))]));
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
