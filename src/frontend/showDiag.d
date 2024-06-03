@@ -50,7 +50,7 @@ import model.model :
 	Params,
 	Program,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -1150,7 +1150,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "No implementation was found for spec signature ";
-					SpecDeclSig* sig = y.sigDecl;
+					Signature* sig = y.sigDecl;
 					writeSig(
 						writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType,
 						Params(sig.params), some(y.sigType));

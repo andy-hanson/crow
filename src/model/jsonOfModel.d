@@ -58,7 +58,7 @@ import model.model :
 	Purity,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructDecl,
 	StructInst,
@@ -164,11 +164,11 @@ Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 			optionalField!("builtin", BuiltinSpec)(a.builtin, (in BuiltinSpec x) => jsonString(stringOfEnum(x))),
 				field!"parents"(jsonList!(SpecInst*)(alloc, a.parents, (in SpecInst* x) =>
 					jsonOfSpecInst(alloc, ctx, *x))),
-				field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig x) =>
+				field!"sigs"(jsonList!Signature(alloc, a.sigs, (in Signature x) =>
 					jsonOfSpecDeclSig(alloc, ctx, x)))
 		]);
 
-Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
+Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in Signature a) =>
 	jsonObject(alloc, [
 		field!"where"(jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[a.range.range])),
 		field!"name"(a.name),

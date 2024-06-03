@@ -26,7 +26,7 @@ import model.model :
 	Params,
 	paramTypeAt,
 	ReturnAndParamTypes,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
@@ -198,7 +198,7 @@ private void eachFunInScopeForSpec(
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, funName, cb);
-	foreach (size_t sigIndex, ref SpecDeclSig sig; specInst.decl.sigs) {
+	foreach (size_t sigIndex, ref Signature sig; specInst.decl.sigs) {
 		if (sig.name == funName)
 			cb(CalledDecl(CalledSpecSig(specInst, safeToUshort(sigIndex))));
 	}

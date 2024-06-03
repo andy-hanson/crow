@@ -28,7 +28,7 @@ import model.model :
 	Params,
 	ParamShort,
 	RecordField,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -495,7 +495,7 @@ void addFunsForVariant(
 	StructDecl* struct_,
 	ref StructBody.Variant variant,
 ) {
-	foreach (size_t methodIndex, SpecDeclSig sig; variant.methods)
+	foreach (size_t methodIndex, Signature sig; variant.methods)
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(struct_), // TODO: FunDeclSource(&sig)? ----------------------------------------------------------------------
 			struct_.visibility,

@@ -59,7 +59,7 @@ import model.model :
 	purityRange,
 	SpecDecl,
 	SpecDeclBody,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructBody,
@@ -182,7 +182,7 @@ SpecDeclBody checkSpecDeclBody(
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
 		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
-	SmallArray!SpecDeclSig sigs = checkSignatures(ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
+	SmallArray!Signature sigs = checkSignatures(ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
 	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), sigs);
 }
 

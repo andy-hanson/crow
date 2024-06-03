@@ -19,7 +19,7 @@ import model.model :
 	Purity,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructBody,
@@ -216,10 +216,10 @@ DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 		optionalFlagField!"builtin"(has(a.builtin)),
 		field!"parents"(jsonList(map(alloc, a.parents, (ref immutable SpecInst* x) =>
 			documentSpecInst(alloc, a.typeParams, *x)))),
-		field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig sig) =>
+		field!"sigs"(jsonList!Signature(alloc, a.sigs, (in Signature sig) =>
 			documentSpecDeclSig(alloc, a.typeParams, sig)))]));
 
-Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclSig a) =>
+Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in Signature a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"name"(a.name),

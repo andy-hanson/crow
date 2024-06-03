@@ -103,7 +103,7 @@ import model.model :
 	RecordFieldPointerExpr,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructBody,
@@ -330,7 +330,7 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	eachSpecParent(a, (SpecInst* parent, in SpecUseAst ast) {
 		eachPackedTypeArg(parent.typeArgs, ast.typeArg, cb);
 	});
-	foreach (ref SpecDeclSig sig; a.sigs) {
+	foreach (ref Signature sig; a.sigs) {
 		cb(sig.returnType, sig.ast.returnType);
 		eachTypeInParams(Params(sig.params), sig.ast.params, cb);
 	}

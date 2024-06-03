@@ -64,7 +64,7 @@ import model.model :
 	RecordOrUnionMemberSource,
 	RecordFlags,
 	ReturnAndParamTypes,
-	SpecDeclSig,
+	Signature,
 	StructBody,
 	StructDecl,
 	StructDeclSource,
@@ -171,7 +171,7 @@ void checkStructBodies(
 	});
 }
 
-SmallArray!SpecDeclSig checkSignatures(
+SmallArray!Signature checkSignatures(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
@@ -180,7 +180,7 @@ SmallArray!SpecDeclSig checkSignatures(
 	SmallArray!SpecSigAst asts,
 	MayDelayStructInsts delayStructInsts,
 ) =>
-	mapPointers!(SpecDeclSig, SpecSigAst)(ctx.alloc, asts, (SpecSigAst* x) {
+	mapPointers!(Signature, SpecSigAst)(ctx.alloc, asts, (SpecSigAst* x) {
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
 			ctx, commonTypes, typeContainer, x.returnType, x.params,
 			typeParams, structsAndAliasesMap, delayStructInsts);
@@ -191,7 +191,7 @@ SmallArray!SpecDeclSig checkSignatures(
 				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
 				return arrayOfSingle(&x.param);
 			});
-		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
+		return Signature(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
 
 SmallArray!VariantAndMethodImpls checkVariantMembersInitial( // TODO: Inline? -----------------------------------------------------
@@ -236,9 +236,9 @@ void checkVariantMethodImpls(
 	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
 	foreach (ref StructDecl struct_; structs) {
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
-			variant.methodImpls = mapZip!(Opt!Called, SpecDeclSig, ReturnAndParamTypes)(
+			variant.methodImpls = mapZip!(Opt!Called, Signature, ReturnAndParamTypes)(
 				ctx.alloc, variant.variantDeclMethods, variant.variantInstantiatedMethodTypes,
-				(ref SpecDeclSig x, ref ReturnAndParamTypes typesWithoutFirstParam) =>
+				(ref Signature x, ref ReturnAndParamTypes typesWithoutFirstParam) =>
 					withStackArray(
 						typesWithoutFirstParam.paramTypes.length + 2,
 						(size_t i) =>

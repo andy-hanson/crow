@@ -57,7 +57,7 @@ import model.model :
 	paramsArray,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -615,7 +615,7 @@ FunBody checkAutoFunWithSpec(
 		addDiag(ctx, fun.nameRange.range, Diag(x));
 		return FunBody(FunBody.Bogus());
 	}
-	SpecDeclSig* sig = &only(spec.sigs);
+	Signature* sig = &only(spec.sigs);
 	Opt!Type paramType = getAutoFunParamType(fun, countParams);
 	return !has(paramType)
 		? diag(Diag.AutoFunError(Diag.AutoFunError.WrongParams(funKind)))

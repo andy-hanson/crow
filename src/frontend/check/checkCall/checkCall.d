@@ -55,7 +55,7 @@ import model.model :
 	Local,
 	Params,
 	ReturnAndParamTypes,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Type;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
@@ -522,7 +522,7 @@ Type withParamExpected(
 void inferCandidateTypeArgsFromCheckedSpecSig(
 	InstantiateCtx ctx,
 	ref const Candidate specCandidate,
-	in SpecDeclSig specSig,
+	in Signature specSig,
 	in ReturnAndParamTypes sigTypes,
 	scope TypeContext callInferringTypeArgs,
 ) {
@@ -613,8 +613,8 @@ bool preCheckCandidateSpec(
 	) &&
 	preCheckBuiltinSpec(ctx, callCandidate, called, spec) &&
 	// For a builtin spec, we'll leave it for the end.
-	(state != TypeArgsInferenceState.partial || zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
-		spec.decl.sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
+	(state != TypeArgsInferenceState.partial || zipEvery!(Signature, ReturnAndParamTypes)(
+		spec.decl.sigs, spec.sigTypes, (ref Signature sig, ref ReturnAndParamTypes returnAndParamTypes) =>
 			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
 
 bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in FunDecl called, in SpecInst spec) {
@@ -641,7 +641,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,
 	ref Candidate callCandidate,
 	in FunDecl called,
-	in SpecDeclSig specSig,
+	in Signature specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) {
 	TypeContext callContext = typeContextForCandidate(callCandidate);

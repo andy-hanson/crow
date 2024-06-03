@@ -29,7 +29,7 @@ import model.model :
 	purityRange,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	Specs,
 	StructBody,
@@ -252,7 +252,7 @@ bool isFull(in RealTrace* trace) =>
 
 Trace.Result checkCandidate(Trace)(
 	ref CheckSpecsCtx ctx,
-	SpecDeclSig* sigDecl,
+	Signature* sigDecl,
 	ReturnAndParamTypes sigType,
 	ref Candidate candidate,
 	scope Trace trace,
@@ -319,7 +319,7 @@ Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref Arra
 
 Trace.Result findSpecSigImplementation(Trace)(
 	ref CheckSpecsCtx ctx,
-	SpecDeclSig* sigDecl,
+	Signature* sigDecl,
 	ReturnAndParamTypes sigType,
 	scope Trace trace,
 ) {
@@ -447,9 +447,9 @@ Opt!(Trace.NoMatch) checkSpecImplInner(Trace)(
 		() => first!(Trace.NoMatch, immutable SpecInst*)(
 			specInstInstantiated.parents, (SpecInst* parent) =>
 				checkSpecImplInner!Trace(res, ctx, trace, *parent)),
-		() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
+		() => firstZipPointerFirst!(Trace.NoMatch, Signature, ReturnAndParamTypes)(
 			decl.sigs, specInstInstantiated.sigTypes,
-			(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>
+			(Signature* sigDecl, ReturnAndParamTypes sigType) =>
 				findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
 					(Called x) {
 						res ~= x;

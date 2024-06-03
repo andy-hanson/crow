@@ -189,7 +189,8 @@ bool arityMatches(Arity sigArity, size_t nArgs) =>
 		(Arity.Varargs) =>
 			true);
 
-immutable struct SpecDeclSig { // TODO: RENAME, this is reused for variants --------------------------------------------------------
+// Function signature without a body. Used in a spec or variant.
+immutable struct Signature {
 	@safe @nogc pure nothrow:
 
 	Uri moduleUri;
@@ -362,7 +363,7 @@ immutable struct StructBody {
 		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
 	immutable struct Variant {
-		SmallArray!SpecDeclSig methods;
+		SmallArray!Signature methods;
 	}
 
 	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*, Variant);
@@ -551,7 +552,7 @@ immutable struct VariantAndMethodImpls {
 	void methodImpls(SmallArray!(Opt!Called) value) =>
 		lateSet(methodImpls_, value);
 
-	SmallArray!SpecDeclSig variantDeclMethods() =>
+	SmallArray!Signature variantDeclMethods() =>
 		variant.decl.body_.as!(StructBody.Variant).methods;
 	SmallArray!ReturnAndParamTypes variantInstantiatedMethodTypes() =>
 		variant.instantiatedVariantMethods;
@@ -613,7 +614,7 @@ Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 immutable struct SpecDeclBody {
 	Opt!BuiltinSpec builtin;
 	Specs parents;
-	SmallArray!SpecDeclSig sigs;
+	SmallArray!Signature sigs;
 }
 
 enum BuiltinSpec { data, enum_, flags, shared_ }
@@ -650,7 +651,7 @@ immutable struct SpecDecl {
 	void overwriteParentsToEmpty() scope =>
 		lateSetOverwrite(lateBody, SpecDeclBody(builtin, emptySpecs, sigs));
 
-	SmallArray!SpecDeclSig sigs() return scope =>
+	SmallArray!Signature sigs() return scope =>
 		body_.sigs;
 
 	UriAndRange range() scope =>
@@ -744,7 +745,7 @@ immutable struct FunBody {
 	immutable struct CreateUnion {
 		UnionMember* member;
 	}
-	immutable struct CreateVariant { // TODO: Rename to 'ConvertToVariant' ------------------------------------------------
+	immutable struct CreateVariant {
 		StructInst* variant;
 	}
 	immutable struct Extern {
@@ -768,8 +769,7 @@ immutable struct FunBody {
 	}
 	immutable struct UnionMemberGet { size_t memberIndex; }
 	immutable struct VarGet { VarDecl* var; }
-	immutable struct VariantMemberGet { // TODO: rename to 'ConvertFromVariant' -----------------------------------------------------
-	}
+	immutable struct VariantMemberGet {}
 	immutable struct VariantMethod { size_t methodIndex; }
 	immutable struct VarSet { VarDecl* var; }
 
@@ -1294,7 +1294,7 @@ immutable struct CalledSpecSig {
 	Type[] paramTypes() return scope =>
 		instantiatedSig.paramTypes;
 
-	SpecDeclSig* nonInstantiatedSig() return scope =>
+	Signature* nonInstantiatedSig() return scope =>
 		&specInst.decl.sigs[sigIndex];
 
 	Symbol name() scope =>

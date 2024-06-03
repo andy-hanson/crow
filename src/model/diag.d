@@ -21,7 +21,7 @@ import model.model :
 	Purity,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	StructAlias,
 	StructDecl,
 	StructInst,
@@ -515,7 +515,7 @@ immutable struct Diag {
 				FunDecl* fun;
 			}
 			immutable struct SpecImplNotFound {
-				SpecDeclSig* sigDecl;
+				Signature* sigDecl;
 				ReturnAndParamTypes sigType;
 			}
 			immutable struct TooDeep {}

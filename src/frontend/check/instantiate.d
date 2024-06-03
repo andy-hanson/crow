@@ -21,7 +21,7 @@ import model.model :
 	RecordField,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecImpls,
 	SpecInst,
 	SpecInstBody,
@@ -111,7 +111,7 @@ void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelay
 		(StructBody.Variant) =>
 			emptySmallArray!Type);
 	inst.instantiatedVariantMethods = inst.decl.body_.isA!(StructBody.Variant)
-		? map!(ReturnAndParamTypes, SpecDeclSig)(ctx.alloc, inst.decl.body_.as!(StructBody.Variant).methods, (ref SpecDeclSig sig) =>
+		? map!(ReturnAndParamTypes, Signature)(ctx.alloc, inst.decl.body_.as!(StructBody.Variant).methods, (ref Signature sig) =>
 			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, typeArgs))
 		: emptySmallArray!ReturnAndParamTypes;
 }
@@ -217,7 +217,7 @@ void instantiateSpecBody(InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInst
 		map!(immutable SpecInst*, immutable SpecInst*)(
 			ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
 				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts)),
-		map!(ReturnAndParamTypes, SpecDeclSig)(ctx.alloc, a.decl.sigs, (ref SpecDeclSig sig) =>
+		map!(ReturnAndParamTypes, Signature)(ctx.alloc, a.decl.sigs, (ref Signature sig) =>
 			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs)));
 }
 

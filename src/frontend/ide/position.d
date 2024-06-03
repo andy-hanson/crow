@@ -18,7 +18,7 @@ import model.model :
 	NameReferents,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
+	Signature,
 	SpecInst,
 	StructAlias,
 	StructDecl,
@@ -171,7 +171,7 @@ immutable struct PositionKind {
 	}
 	immutable struct SpecSig {
 		SpecDecl* spec;
-		SpecDeclSig* sig;
+		Signature* sig;
 	}
 	immutable struct SpecUse {
 		TypeContainer container;
