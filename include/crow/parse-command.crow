@@ -13,7 +13,7 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 +== bool(a parsed-command, b parsed-command)
 -to json(a parsed-command)
 
-+parse-command-error record(message string) exception variant-member
++parse-command-error record(describe string) exception variant-member
 
 ###
 See comment on `parsed-command` for syntax.

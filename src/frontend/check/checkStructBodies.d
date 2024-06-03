@@ -2,6 +2,7 @@ module frontend.check.checkStructBodies;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkCall.candidates : funsInNonExprScope;
 import frontend.check.checkCtx :
 	addDiag,
 	addDiagAssertSameUri,
@@ -9,9 +10,11 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	visibilityFromDefaultWithDiag,
 	visibilityFromExplicitTopLevel;
+import frontend.check.checkExpr : findFunctionForReturnAndParamTypes;
 import frontend.check.checkFuns : checkReturnTypeAndParams, ReturnTypeAndParams;
-import frontend.check.instantiate : DelayStructInsts, MayDelayStructInsts;
-import frontend.check.maps : StructsAndAliasesMap;
+import frontend.check.exprCtx : LocalsInfo;
+import frontend.check.instantiate : DelayStructInsts, instantiateStructWithOwnTypeParams, MayDelayStructInsts;
+import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
 	DestructureAst,
@@ -34,11 +37,14 @@ import model.diag : Diag, DeclKind, TypeContainer;
 import model.model :
 	BuiltinType,
 	ByValOrRef,
+	Called,
 	CommonTypes,
 	Destructure,
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	EnumMemberSource,
+	FunFlags,
+	FunInst,
 	IntegralType,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
@@ -57,6 +63,7 @@ import model.model :
 	RecordField,
 	RecordOrUnionMemberSource,
 	RecordFlags,
+	ReturnAndParamTypes,
 	SpecDeclSig,
 	StructBody,
 	StructDecl,
@@ -66,13 +73,27 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	UnionMember,
+	VariantAndMethodImpls,
 	Visibility;
+import util.alloc.stackAlloc : withStackArray;
 import util.col.array :
-	arrayOfSingle, eachPair, emptySmallArray, fold, isEmpty, mapOp, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
+	arrayOfSingle,
+	eachPair,
+	emptySmallArray,
+	fold,
+	isEmpty,
+	map,
+	mapOp,
+	mapOpPointers,
+	mapPointers,
+	mapZipSmall,
+	small,
+	SmallArray,
+	zipPtrFirst;
 import util.col.hashTable : HashTable, makeHashTable;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, optOrDefault, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe, todo;
@@ -111,7 +132,7 @@ void checkStructBodies(
 	in StructDeclAst[] asts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
-		struct_.variants = checkVariantMembers(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
+		struct_.variants = checkVariantMembersInitial(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
 		struct_.body_ = ast.body_.match!StructBody(
 			(StructBodyAst.Builtin) {
 				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
@@ -173,9 +194,7 @@ SmallArray!SpecDeclSig checkSignatures(
 		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
 
-private:
-
-SmallArray!(immutable StructInst*) checkVariantMembers(
+SmallArray!VariantAndMethodImpls checkVariantMembersInitial( // TODO: Inline? -----------------------------------------------------
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -183,7 +202,7 @@ SmallArray!(immutable StructInst*) checkVariantMembers(
 	StructDecl* struct_,
 	ref StructDeclAst ast,
 ) =>
-	small!(immutable StructInst*)(mapOp!(immutable StructInst*, ModifierAst)(ctx.alloc, ast.modifiers, (ref ModifierAst mod) {
+	small!VariantAndMethodImpls(mapOp!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ref ModifierAst mod) { // TODO: 'mapOp overload that returns SmallArray
 		if (mod.isA!(ModifierAst.Keyword)) {
 			ModifierAst.Keyword kw = mod.as!(ModifierAst.Keyword);
 			if (kw.keyword == ModifierKeyword.variantMember) {
@@ -191,21 +210,56 @@ SmallArray!(immutable StructInst*) checkVariantMembers(
 					Type variantType = typeFromAst(ctx, commonTypes, force(kw.typeArg), structsAndAliasesMap, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 					StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
 					if (variantInst.decl.body_.isA!(StructBody.Variant))
-						return some(variantInst);
+						return some(VariantAndMethodImpls(variantInst));
 					else {
 						if (!variantType.isBogus)
 							addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, variantType)));
-						return none!(StructInst*);
+						return none!VariantAndMethodImpls;
 					}
 				} else {
 					todo!void("DIAG: variant-member without type"); // --------------------------------------------------------------------------------
-					return none!(StructInst*);
+					return none!VariantAndMethodImpls;
 				}
 			} else
-				return none!(StructInst*);
+				return none!VariantAndMethodImpls;
 		} else
-			return none!(StructInst*);
+			return none!VariantAndMethodImpls;
 	}));
+
+void checkVariantMethodImpls(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	FunsMap funsMap,
+	StructDecl[] structs,
+) {
+	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
+	foreach (ref StructDecl struct_; structs) {
+		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
+			variant.methodImpls = mapZipSmall!(Opt!Called, SpecDeclSig, ReturnAndParamTypes)(
+				ctx.alloc, variant.variantDeclMethods, variant.variantInstantiatedMethodTypes,
+				(ref SpecDeclSig x, ref ReturnAndParamTypes typesWithoutFirstParam) =>
+					withStackArray(
+						typesWithoutFirstParam.paramTypes.length + 2,
+						(size_t i) =>
+							i == 0 ? typesWithoutFirstParam.returnType :
+							i == 1 ? Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_)) :
+							typesWithoutFirstParam.paramTypes[i - 2],
+						(scope Type[] types) =>
+							findFunctionForReturnAndParamTypes(
+								ctx, commonTypes, TypeContainer(&struct_),
+								funsInNonExprScope(ctx, funsMap),
+								FunFlags.none,
+								LocalsInfo(),
+								x.ast.nameAndRange,
+								none!Type,
+								ReturnAndParamTypes(small!Type(types)),
+								() => false)));
+		}
+	}
+}
+
+private:
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);

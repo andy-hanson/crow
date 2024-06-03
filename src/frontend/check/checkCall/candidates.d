@@ -2,7 +2,7 @@ module frontend.check.checkCall.candidates;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
+import frontend.check.checkCtx : CheckCtx, eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
 	matchTypes,
@@ -104,12 +104,13 @@ immutable struct FunsInScope {
 	FunsMap funsMap;
 	ImportAndReExportModules importsAndReExports;
 }
-FunsInScope funsInScope(ref const ExprCtx ctx) {
-	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
-}
+FunsInScope funsInNonExprScope(ref const CheckCtx ctx, FunsMap funsMap) =>
+	FunsInScope([], funsMap, ctx.importsAndReExports);
+FunsInScope funsInExprScope(ref const ExprCtx ctx) =>
+	FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 
 void eachFunInScope(ref ExprCtx ctx, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
-	eachFunInScope(funsInScope(ctx), funName, cb);
+	eachFunInScope(funsInExprScope(ctx), funName, cb);
 }
 
 void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {

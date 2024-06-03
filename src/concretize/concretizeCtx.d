@@ -111,7 +111,7 @@ import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
 import util.late : Late, late, lateGet, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none, optOrDefault;
+import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvert, max, roundUp, todo, typeAs;
@@ -176,11 +176,12 @@ struct ConcretizeCtx {
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
 	MutArr!(ConcreteStruct*) deferredTypeSize;
+	MutArr!(ConcreteFun*) deferredVariantMethods;
 	ArrayBuilder!(ConcreteFun*) allConcreteFuns;
 
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
 	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) lambdaStructToImpls;
-	MutMap!(ConcreteStruct*, MutArr!ConcreteType) variantStructToMembers;
+	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMemberAndMethodImpls) variantStructToMembers;
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _char8Type;
@@ -220,6 +221,11 @@ struct ConcretizeCtx {
 immutable struct ConcreteLambdaImpl {
 	ConcreteType closureType;
 	ConcreteFun* impl;
+}
+
+immutable struct ConcreteVariantMemberAndMethodImpls {
+	ConcreteType memberType;
+	Opt!(ConcreteFun*)[] methodImpls;
 }
 
 immutable(ConcreteVar*[]) finishConcreteVars(ref ConcretizeCtx ctx) =>
@@ -656,7 +662,7 @@ void initializeConcreteStruct(
 			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union()), false);
 			// Always defer since we need to wait to know all variant members
 			push(ctx.alloc, ctx.deferredTypeSize, res);
-			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteType());
+			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteVariantMemberAndMethodImpls());
 		});
 }
 
@@ -794,6 +800,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ctx, cf,
 				ensureVariantMember(
 					ctx, only(concreteParams).type, unwrapOptionType(ctx, cf.returnType))),
+		(FunBody.VariantMethod x) {
+			// This needs to be done last, after all variant members are known (TODO: where is it done?) -------------------------------
+			push(ctx.alloc, ctx.deferredVariantMethods, cf);
+			return ConcreteFunBody(ConcreteFunBody.Deferred());
+		},
 		(FunBody.VarSet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);

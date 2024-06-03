@@ -1,9 +1,3 @@
-no-std
-import
-	../compare: >=
-	../exception: exception
-	../number: ==, <=>, float32, float64, to
-
 +pi float64() bare
 	3.14159265358979323846
 +pi float32() bare
@@ -23,6 +17,8 @@ import
 
 # Used for a non-total function like 'square-root'
 +float-out-of-range record(input float64) by-val, exception variant-member
++describe string(a float-out-of-range)
+	"Input is not in the domain of the function: {a input}"
 
 +square-root float32(a float32) bare
 	assert a >= 0 : a.to float-out-of-range

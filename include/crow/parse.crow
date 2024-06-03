@@ -60,6 +60,8 @@ If the string has leading or trailing spaces you must use a grammar that include
 	# Description of what was expected.
 	expected string
 +== bool(a parse-error, b parse-error)
++describe string(a parse-error)
+	a to
 
 -inner-parse-result[t] union(ok t, error inner-parse-error)
 

@@ -3,7 +3,7 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, eachFunInScope, funsInScope, testCandidateForSpecSig, withCandidates;
+	Candidate, eachFunInScope, FunsInScope, funsInExprScope, testCandidateForSpecSig, withCandidates;
 import frontend.check.checkCall.checkCall :
 	checkCall,
 	checkCallAfterChoosingOverload,
@@ -17,7 +17,7 @@ import frontend.check.checkCall.checkCall :
 	filterCandidateByExplicitTypeArg;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
-import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
+import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule, markUsed;
 import frontend.check.checkStructBodies : checkLiteralIntegral;
 import frontend.check.exprCtx :
 	addDiag2,
@@ -191,7 +191,8 @@ import model.model :
 	TypedExpr,
 	TypeParams,
 	UnionMember,
-	VariableRef;
+	VariableRef,
+	VariantAndMethodImpls;
 import util.alloc.stackAlloc : MaxStackArray, withMapToStackArray, withMaxStackArray, withStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
@@ -1203,30 +1204,49 @@ Opt!Called findFunctionForPointer(
 	ExpectedPointee.FunPointer expected,
 ) {
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
-	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) {
-		size_t arity = returnAndParamTypes.paramTypes.length;
-		return withCandidates!(Opt!Called)(
-			funsInScope(ctx),
-			name.name,
-			arity,
-			(scope ref Candidate x) =>
-				(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, x, force(typeArg))) &&
-				testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
-			(scope Candidate[] candidates) {
-				if (candidates.length != 1) {
-					// TODO: If there is a function with the name, at least indicate that in the diag
-					addDiag2(ctx, name.range, candidates.length == 0
-						? Diag(Diag.FunPointerNoMatch(
-							name.name, ctx.typeContainer,
-							ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
-						: Diag(Diag.CallMultipleMatches(name.name, ctx.typeContainer,
-							map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
-					return none!Called;
-				} else
-					return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), name.range, arity));
-			});
- 	});
+	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) =>
+		findFunctionForReturnAndParamTypes(
+			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals, name, typeArg, returnAndParamTypes,
+			() => checkCanDoUnsafe(ctx)));
 }
+
+//TODO:MOVE-------------------------------------------------------------------------------------------------------------------------------
+Opt!Called findFunctionForReturnAndParamTypes(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	FunFlags outermostFunFlags,
+	in LocalsInfo locals,
+	in NameAndRange name,
+	Opt!Type typeArg,
+	in ReturnAndParamTypes returnAndParamTypes,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
+) {
+	size_t arity = returnAndParamTypes.paramTypes.length;
+	return withCandidates!(Opt!Called)(
+		funsInScope,
+		name.name,
+		arity,
+		(scope ref Candidate x) =>
+			(!has(typeArg) || filterCandidateByExplicitTypeArg(commonTypes, x, force(typeArg))) &&
+			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
+		(scope Candidate[] candidates) {
+			if (candidates.length != 1) {
+				// TODO: If there is a function with the name, at least indicate that in the diag
+				addDiag(ctx, name.range, candidates.length == 0
+					? Diag(Diag.FunPointerNoMatch( // TODO: This diag will now also appear for variant members ----------------------------------------
+						name.name, typeContainer,
+						ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
+					: Diag(Diag.CallMultipleMatches(name.name, typeContainer,
+						map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
+				return none!Called;
+			} else
+				return some(checkCallAfterChoosingOverload(
+					ctx, typeContainer, funsInScope, outermostFunFlags, locals, only(candidates), name.range, arity, canDoUnsafe));
+		});
+}
+
 
 Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SharedAst* ast, ref Expected expected) {
 	void diag(Diag diag) {
@@ -1642,9 +1662,9 @@ Opt!(StructInst*) getVariantMemberFromName(
 		} else {
 			StructDecl* decl = sa.as!(StructDecl*);
 			Cell!(Opt!InstantiatedVariantMemberOrBogus) res = Cell!(Opt!InstantiatedVariantMemberOrBogus)();
-			foreach (StructInst* variant; decl.variants) {
-				if (variant.decl == matchedVariant.decl) {
-					Opt!InstantiatedVariantMemberOrBogus x = compareVariant(ctx, nameRange, decl, variant, matchedVariant, expectedMemberType); // TODO: NAME
+			foreach (VariantAndMethodImpls variant; decl.variants) {
+				if (variant.variant.decl == matchedVariant.decl) {
+					Opt!InstantiatedVariantMemberOrBogus x = compareVariant(ctx, nameRange, decl, variant.variant, matchedVariant, expectedMemberType); // TODO: NAME
 					if (has(x)) {
 						if (has(cellGet(res)))
 							todo!void("Multiple variants match?"); // ----------------------------------------------------------

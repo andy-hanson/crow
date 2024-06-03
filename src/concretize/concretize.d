@@ -10,6 +10,7 @@ import concretize.concretizeCtx :
 	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
+	ConcreteVariantMemberAndMethodImpls,
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
 	exceptionType,
@@ -21,29 +22,35 @@ import concretize.concretizeCtx :
 	symbolType,
 	symbolArrayType,
 	voidType;
+import concretize.concretizeExpr : concretizeBogus;
 import concretize.gatherInfo : getYieldingFuns;
-import concretize.generate : generateCallLambda;
+import concretize.generate : genCallNoAllocArgs, generateCallLambda, genMatchUnion, genParamGet;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	ConcreteCommonFuns,
+	ConcreteExpr,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
+	ConcreteLocal,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructInfo,
 	ConcreteStructBody,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinFun, CommonFuns, MainFun, ProgramWithMain;
+import model.model : BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, small;
+import util.col.array : map, mapPointersWithIndex, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, push;
 import util.col.mutMap : mustGet;
-import util.late : late, lateSet;
+import util.late : late, lateSet, lateSetOverwrite;
+import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.util : castNonScope_ref, ptrTrustMe;
+import util.sourceRange : UriAndRange;
+import util.util : castNonScope_ref, ptrTrustMe, todo;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
@@ -95,11 +102,9 @@ ConcreteProgram concretizeInner(
 		popGcRoot: getNonTemplateConcreteFun(ctx, commonFuns.popGcRoot));
 
 	finishLambdas(ctx);
+	finishVariants(ctx);
 
 	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
-
-	foreach (ConcreteStruct* variant, MutArr!ConcreteType x; ctx.variantStructToMembers)
-		lateSet(variant.body_.as!(ConcreteStructBody.Union).members_, small!ConcreteType(moveToArray(alloc, x)));
 
 	deferredFillRecordAndUnionBodies(ctx);
 
@@ -151,4 +156,38 @@ void finishLambdas(ref ConcretizeCtx ctx) {
 			}
 		}
 	}
+}
+
+void finishVariants(ref ConcretizeCtx ctx) {
+	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMemberAndMethodImpls x; ctx.variantStructToMembers)
+		lateSet(variant.body_.as!(ConcreteStructBody.Union).members_, small!ConcreteType(map(ctx.alloc, asTemporaryArray(x), (ref ConcreteVariantMemberAndMethodImpls x) =>
+			x.memberType)));
+
+	foreach (ConcreteFun* fun; ctx.deferredVariantMethods) {
+		ConcreteStruct* variant = mustBeByVal(fun.params[0].type);
+		size_t methodIndex = fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).methodIndex;
+		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
+		fun.overwriteBody(funBodyForVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
+	}
+}
+
+// TODO: move near 'generateCallLambda', since these are very similar.
+ConcreteFunBody funBodyForVariantMethod(
+	ref ConcretizeCtx ctx,
+	ConcreteFun* fun,
+	ConcreteStruct* variant,
+	in ConcreteVariantMemberAndMethodImpls[] impls,
+	size_t methodIndex,
+) {
+	UriAndRange range = fun.range;
+	return ConcreteFunBody(genMatchUnion(
+		ctx, fun.returnType, range, variant.body_.as!(ConcreteStructBody.Union).members,
+		genParamGet(range, &fun.params[0]),
+		(size_t i, ConcreteExpr member) {
+			Opt!(ConcreteFun*) impl = impls[i].methodImpls[methodIndex];
+			return has(impl)
+				? genCallNoAllocArgs(range, force(impl), mapPointersWithIndex(ctx.alloc, fun.params, (size_t paramIndex, ConcreteLocal* param) =>
+					paramIndex == 0 ? member : genParamGet(range, param)))
+				: concretizeBogus(ctx, fun.returnType, range);
+ 		}));
 }

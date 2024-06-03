@@ -11,7 +11,7 @@ import frontend.check.checkCtx :
 	CommonModule,
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody;
-import frontend.check.checkStructBodies : modifierTypeArgInvalid;
+import frontend.check.checkStructBodies : checkVariantMethodImpls, modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
 	funDeclsName, FunsAndMap, FunsMap, ImportOrExportFile, SpecsMap, StructsAndAliasesMap;
@@ -95,7 +95,7 @@ import util.symbol : Symbol, symbol;
 import util.unicode : unicodeValidate;
 import util.util : optEnumConvert;
 
-FunsAndMap checkFuns(
+FunsAndMap checkFuns( // TODO: RENAME, now also checks variants ..............................................................................
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in SpecsMap specsMap,
@@ -110,6 +110,7 @@ FunsAndMap checkFuns(
 	FunDecl[] funs = checkFunsInitial(
 		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
+	checkVariantMethodImpls(ctx, commonTypes, structsAndAliasesMap, funsMap, structs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
 		setFileImportFunctionBody(ctx, &funs[asts.length + i], f);

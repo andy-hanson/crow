@@ -322,6 +322,8 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonString!"var-get",
 		(in FunBody.VariantMemberGet x) =>
 			jsonObject(alloc, [kindField!"variant-member-get"]), // TODO: FIELDS ----------------------------- //, field!"member"(x.member.name)]),
+		(in FunBody.VariantMethod x) =>
+			jsonObject(alloc, [kindField!"variant-method"]), // TODO: FIELDS -----------------------------------------------------------
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 

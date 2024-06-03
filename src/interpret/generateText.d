@@ -367,7 +367,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 			add0Bytes(ctx.text, padding);
 		},
 		(in Constant.Zero) {
-			todo!void("!");
+			add0Bytes(ctx.text, typeSize);
 		});
 
 	size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);

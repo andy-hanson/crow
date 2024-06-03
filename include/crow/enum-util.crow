@@ -8,11 +8,13 @@ import
 	./json: json, to
 	./misc: loop-break, new
 	./option: ??, option
-	./string: ==, string
+	./string: ==, interpolate, string
 	./symbol: ==, symbol, to
 
 # Attempted to convert a symbol/string to an enum, but it's not a valid enum member.
 +not-in-enum record(symbol symbol) exception variant-member
++describe string(a not-in-enum)
+	"The symbol '{a symbol}' is not in the enum"
 
 ###
 Spec that is satisfied if 't' is an 'enum' type

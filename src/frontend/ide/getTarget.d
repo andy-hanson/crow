@@ -199,6 +199,8 @@ Opt!Target calledTarget(ref Called a) =>
 				(FunBody.VariantMemberGet x) =>
 					todo!Target("for variantmemberget: use unwrapped option return type as target"), // ------------------------------------
 					//Target(x.member),
+				(FunBody.VariantMethod x) =>
+					todo!Target("for variantmethod: go to the sig"), // ---------------------------------------------------------------------
 				(FunBody.VarSet x) =>
 					Target(x.var)));
 		},

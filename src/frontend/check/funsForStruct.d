@@ -17,6 +17,7 @@ import model.model :
 	BuiltinType,
 	ByValOrRef,
 	CommonTypes,
+	Destructure,
 	IntegralType,
 	EnumFunction,
 	EnumOrFlagsMember,
@@ -36,12 +37,14 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
+	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withStackArray;
-import util.col.array : count, isEmpty, map, mapWithFirst, small, sum;
+import util.col.array : count, isEmpty, map, mapWithFirst, prepend, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.conv : safeToUint;
+import util.memory : allocate;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 import util.util : todo;
@@ -122,7 +125,8 @@ private void addFunsForVariants(
 	StructDecl* struct_,
 ) {
 	StructInst* memberType = instantiateStructWithOwnTypeParams(ctx.instantiateCtx, struct_);
-	foreach (StructInst* variant; struct_.variants) {
+	foreach (VariantAndMethodImpls vm; struct_.variants) {
+		StructInst* variant = vm.variant;
 		// Convert from the type to a variant
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(struct_),
@@ -491,7 +495,18 @@ void addFunsForVariant(
 	StructDecl* struct_,
 	ref StructBody.Variant variant,
 ) {
-	foreach (SpecDeclSig sig; variant.methods) {
-		todo!void("Add fun for sig"); // This needs to add an initial parameter for the variant -------------------------------------	
-	}
+	foreach (size_t methodIndex, SpecDeclSig sig; variant.methods)
+		funsBuilder ~= funDeclWithBody(
+			FunDeclSource(struct_), // TODO: FunDeclSource(&sig)? ----------------------------------------------------------------------
+			struct_.visibility,
+			sig.name,
+			sig.returnType,
+			Params(prepend(ctx.alloc,
+				Destructure(allocate(ctx.alloc, Destructure.Ignore(
+					sig.ast.range.start,
+					Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, struct_))))),
+				sig.params)),
+			FunFlags.generated,
+			[],
+			FunBody(FunBody.VariantMethod(methodIndex)));
 }

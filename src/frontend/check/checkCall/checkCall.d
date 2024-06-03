@@ -5,7 +5,8 @@ module frontend.check.checkCall.checkCall;
 import frontend.check.checkCall.candidates :
 	Candidate,
 	candidatesForDiag,
-	funsInScope,
+	funsInExprScope,
+	FunsInScope,
 	getAllCandidatesAsCalledDecls,
 	getCandidateExpectedParameterType,
 	testCandidateForSpecSig,
@@ -13,6 +14,7 @@ import frontend.check.checkCall.candidates :
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
+import frontend.check.checkCtx : CheckCtx;
 import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, checkLambda, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
@@ -35,7 +37,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx, makeOptionIfNotAlready, makeOptionType;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionType, unpackTupleIfNeeded;
 import model.ast : CallAst, CallNamedAst, DestructureAst, ExprAst, LambdaAst, NameAndRange;
-import model.diag : Diag;
+import model.diag : Diag, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	Called,
@@ -43,11 +45,13 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	CommonTypes,
 	Destructure,
 	Expr,
 	ExprAndType,
 	ExprKind,
 	FunDecl,
+	FunFlags,
 	Local,
 	Params,
 	ReturnAndParamTypes,
@@ -306,9 +310,9 @@ private Opt!Called checkCallCb(
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
 	Opt!Called res = withCandidates!(Opt!Called)(
-		funsInScope(ctx), funName, nArgs,
+		funsInExprScope(ctx), funName, nArgs,
 		(ref Candidate candidate) =>
-			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
+			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx.commonTypes, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
 				ctx.instantiateCtx, expected,
 				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))) &&
@@ -439,7 +443,9 @@ Opt!Called checkCallInner(
 					Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 			return none!Called;
 		} else
-			return some(checkCallAfterChoosingOverload(ctx, locals, only(candidates), diagRange, nArgs));
+			return some(checkCallAfterChoosingOverload(
+				ctx.checkCtx, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals, only(candidates), diagRange, nArgs,
+				() => checkCanDoUnsafe(ctx)));
 	});
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
@@ -485,9 +491,9 @@ Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(in CallAst ast) {
 bool secondArgIsLambda(in CallAst ast) =>
 	ast.args.length == 2 && ast.args[1].kind.isA!(LambdaAst*);
 
-public bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
+public bool filterCandidateByExplicitTypeArg(ref CommonTypes commonTypes, scope ref Candidate candidate, Type typeArg) {
 	size_t nTypeParams = candidate.typeArgs.length;
-	Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
+	Type[] args = unpackTupleIfNeeded(commonTypes, nTypeParams, &typeArg);
 	bool ok = args.length == nTypeParams;
 	if (ok)
 		foreach (size_t i, ref SingleInferringType x; candidate.typeArgs)
@@ -640,7 +646,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 ) {
 	TypeContext callContext = typeContextForCandidate(callCandidate);
 	return withCandidates!bool(
-		funsInScope(ctx),
+		funsInExprScope(ctx),
 		specSig.name,
 		specSig.params.length,
 		(ref Candidate x) =>
@@ -660,15 +666,18 @@ bool inferCandidateTypeArgsFromSpecSig(
 }
 
 public Called checkCallAfterChoosingOverload(
-	ref ExprCtx ctx,
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	in FunFlags outermostFunFlags,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
 	in Range diagRange,
 	size_t nArgs,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
 ) {
-	Called called = checkCallSpecs(ctx, diagRange, candidate);
+	Called called = checkCallSpecs(ctx, typeContainer, funsInScope, diagRange, candidate);
 	checkCalled(
-		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals, nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty,
-		() => checkCanDoUnsafe(ctx));
+		ctx, diagRange, called, outermostFunFlags, locals, nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty, canDoUnsafe);
 	return called;
 }

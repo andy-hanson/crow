@@ -3,7 +3,7 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
+	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, funsInExprScope, testCandidateForSpecSig;
 import frontend.check.checkCtx : addDiag, CheckCtx, markUsed;
 import frontend.check.exprCtx : addDiag2, allowsUnsafe, ExprCtx, isInDataLambda, isInLambda, LocalsInfo;
 import frontend.check.inferringType : SingleInferringType, tryGetInferred, TypeContext;
@@ -62,13 +62,13 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
-Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
+Called checkCallSpecs(ref CheckCtx ctx, TypeContainer typeContainer, FunsInScope funsInScope, in Range diagRange, ref const Candidate candidate) {
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
 	return getCalledFromCandidateAfterTypeChecks!DummyTrace(checkSpecsCtx, candidate, DummyTrace()).match!Called(
 		(Called x) =>
-			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, diagRange, candidate) : x,
+			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate) : x,
 		(DummyTrace.NoMatch _) =>
-			checkCallSpecsWithRealTrace(ctx, diagRange, candidate));
+			checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate));
 }
 
 Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) =>
@@ -152,13 +152,13 @@ void checkCallFlags(
 		diag(Diag.CantCall.Reason.variadicFromBare);
 }
 
-Called checkCallSpecsWithRealTrace(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
-	return withRealTrace(ctx.checkCtx, ctx.typeContainer, range, (scope RealTrace* trace) =>
+Called checkCallSpecsWithRealTrace(ref CheckCtx ctx, TypeContainer typeContainer, FunsInScope funsInScope, in Range range, ref const Candidate candidate) {
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
+	return withRealTrace!Called(ctx, typeContainer, range, (scope RealTrace* trace) =>
 		getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, trace).match!Called(
 			(Called x) => x,
 			(Diag.SpecNoMatch x) {
-				addDiag2(ctx, range, Diag(x));
+				addDiag(ctx, range, Diag(x));
 				return candidateBogusCalled(ctx.alloc, ctx.instantiateCtx, candidate);
 			}));
 }

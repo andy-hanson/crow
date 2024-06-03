@@ -6,21 +6,30 @@ import
 	../misc: break-or-continue, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: ??, force, is-empty, new, option
-	../private/bootstrap: exception
+	../private/bootstrap: exception, string
 	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
 	../tuple: a, b, new
 export
 	./private/build
 
 +index-too-big record(actual nat64, maximum nat64) by-val, exception variant-member
+# TODO: circularity issue here prevents a more helpful message ... ------------------------------------------------------------------------------------------------------
++describe string(_ index-too-big)
+	"Index too big"
 
 # Exception when attempting to skip too far forward or backward
 +iterator-out-of-bounds record exception variant-member
++describe string(_ iterator-out-of-bounds)
+	"Iterator out of bounds"
 # For a 'slice', the first iterator should be to the right of the second iterator.
 +slice-right-to-left record exception variant-member
++describe string(_ slice-right-to-left)
+	"Iterators for slice were in the wrong order"
 
 # Some iterator operations like 'slice' require two iterators to be for the same collection.
 +iterator-not-comparable record exception variant-member
++describe string(_ iterator-not-comparable)
+	"Iterators are for different collections and can't be compared."
 
 +is-empty[t] spec
 	is-empty bool(a t)

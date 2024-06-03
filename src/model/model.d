@@ -362,7 +362,7 @@ immutable struct StructBody {
 		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
 	immutable struct Variant {
-		SpecDeclSig[] methods;
+		SmallArray!SpecDeclSig methods;
 	}
 
 	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*, Variant);
@@ -541,6 +541,22 @@ immutable struct StructDecl {
 bool isPointer(in StructDecl a) =>
 	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
+immutable struct VariantAndMethodImpls {
+	@safe @nogc pure nothrow:
+	StructInst* variant;
+	private Late!(SmallArray!(Opt!Called)) methodImpls_;
+
+	SmallArray!(Opt!Called) methodImpls() =>
+		lateGet(methodImpls_);
+	void methodImpls(SmallArray!(Opt!Called) value) =>
+		lateSet(methodImpls_, value);
+
+	SmallArray!SpecDeclSig variantDeclMethods() =>
+		variant.decl.body_.as!(StructBody.Variant).methods;
+	SmallArray!ReturnAndParamTypes variantInstantiatedMethodTypes() =>
+		variant.instantiatedVariantMethods;
+}
+
 immutable struct StructDeclSource {
 	immutable struct Bogus {
 		Symbol name;
@@ -562,12 +578,20 @@ immutable struct StructInst {
 	// For a Union, this is the member types (Bogus for members with no type).
 	// Otherwise this is empty.
 	private Late!(SmallArray!Type) lateInstantiatedTypes;
+	private Late!(SmallArray!ReturnAndParamTypes) lateInstantiatedVariantMethods; // TODO: this could just be stored in lateInstantiatedTypes to save space
 
 	SmallArray!Type instantiatedTypes() return scope =>
 		lateGet(lateInstantiatedTypes);
 
 	void instantiatedTypes(SmallArray!Type value) {
 		lateSet(lateInstantiatedTypes, value);
+	}
+
+	// These do not include the first parameter (which is the variant)
+	SmallArray!ReturnAndParamTypes instantiatedVariantMethods() return scope =>
+		lateGet(lateInstantiatedVariantMethods);
+	void instantiatedVariantMethods(SmallArray!ReturnAndParamTypes value) {
+		lateSet(lateInstantiatedVariantMethods, value);
 	}
 }
 
@@ -746,6 +770,7 @@ immutable struct FunBody {
 	immutable struct VarGet { VarDecl* var; }
 	immutable struct VariantMemberGet { // TODO: rename to 'ConvertFromVariant' -----------------------------------------------------
 	}
+	immutable struct VariantMethod { size_t methodIndex; }
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -770,6 +795,7 @@ immutable struct FunBody {
 		UnionMemberGet,
 		VarGet,
 		VariantMemberGet,
+		VariantMethod,
 		VarSet);
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);

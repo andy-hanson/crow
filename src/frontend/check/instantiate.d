@@ -110,6 +110,10 @@ void instantiateStructTypes(InstantiateCtx ctx, StructInst* inst, scope MayDelay
 				instantiateType(ctx, member.type, typeArgs, delayStructInsts)),
 		(StructBody.Variant) =>
 			emptySmallArray!Type);
+	inst.instantiatedVariantMethods = inst.decl.body_.isA!(StructBody.Variant)
+		? map!(ReturnAndParamTypes, SpecDeclSig)(ctx.alloc, inst.decl.body_.as!(StructBody.Variant).methods, (ref SpecDeclSig sig) =>
+			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, typeArgs))
+		: emptySmallArray!ReturnAndParamTypes;
 }
 
 // Given a struct decl 'foo[t]', returns a 't foo'
@@ -210,11 +214,11 @@ SpecInst* instantiateSpec(
 
 void instantiateSpecBody(InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
 	a.body_ = SpecInstBody(
-		small!(immutable SpecInst*)(map!(immutable SpecInst*, immutable SpecInst*)(
+		map!(immutable SpecInst*, immutable SpecInst*)(
 			ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
-				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts))),
-		small!ReturnAndParamTypes(map(ctx.alloc, a.decl.sigs, (ref SpecDeclSig sig) =>
-			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs))));
+				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts)),
+		map!(ReturnAndParamTypes, SpecDeclSig)(ctx.alloc, a.decl.sigs, (ref SpecDeclSig sig) =>
+			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs)));
 }
 
 SpecInst* instantiateSpecInst(

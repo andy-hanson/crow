@@ -573,7 +573,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&a[i], b[i]);
 }
 
-SmallArray!Out mapZip(Out, In0, In1)(
+SmallArray!Out mapZipSmall(Out, In0, In1)( // TODO: rename to just mapZip ---------------------------------------------------------
 	ref Alloc alloc,
 	in SmallArray!In0 in0,
 	in SmallArray!In1 in1,

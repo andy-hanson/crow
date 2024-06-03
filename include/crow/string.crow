@@ -362,7 +362,11 @@ region spec impls (see collection.crow)
 region utilities
 
 +invalid-unicode-character record(character nat32) exception variant-member
++describe string(a invalid-unicode-character)
+	"0x{a.character to-hex} is not a valid Unicode character."
 +unicode-decode-error record exception variant-member
++describe string(_ unicode-decode-error)
+	"Error decoding bytes as UTF-8"
 
 +lines string[](a string)
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`

@@ -5,5 +5,5 @@ test/end-to-end/compile-errors/function-pointer-not-supported.crow 2:26-2:29 Can
 	'foo void()' (from test/end-to-end/compile-errors/function-pointer-not-supported.crow line 15)
 test/end-to-end/compile-errors/function-pointer-not-supported.crow 3:26-3:29 Can't infer type arguments to 'goo[t] void()' (from test/end-to-end/compile-errors/function-pointer-not-supported.crow line 18)
 test/end-to-end/compile-errors/function-pointer-not-supported.crow 4:25-4:33 Function pointer expression must be a plain identifier ('&f').
-Uncaught exception: Error: Reached compile error
+Uncaught exception: Reached compile error
 	at main

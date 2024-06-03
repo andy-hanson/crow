@@ -9,5 +9,5 @@ test/end-to-end/compile-errors/option-call-errors.crow 6:9-6:12 Expected one of 
 	'float32?'
 	'float64?'
 Actual: 'int64'.
-Uncaught exception: Error: Reached compile error
+Uncaught exception: Reached compile error
 	at main

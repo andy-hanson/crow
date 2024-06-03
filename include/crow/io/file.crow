@@ -17,10 +17,16 @@ import
 	./win32-util: show-win32-error
 
 +path-already-exists record(path string) exception variant-member
++describe string(a path-already-exists)
+	"Path already exists: {a path}"
 
 +path-not-found record(path string) exception variant-member
++describe string(a path-not-found)
+	"Path not found: {a path}"
 
 +file-system-error record(path string, description string) exception variant-member
++describe string(a file-system-error)
+	"Error at path {a path}: {a description}"
 
 # `true` iff anything (like a file or directory) exists at the path.
 +path-exists bool(path string) summon

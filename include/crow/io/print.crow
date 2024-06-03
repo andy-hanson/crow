@@ -16,7 +16,7 @@ import
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
 
-+print-error record(description string) exception variant-member
++print-error record(describe string) exception variant-member
 
 +pipe enum(out, err)
 
