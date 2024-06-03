@@ -2238,12 +2238,6 @@ immutable struct MatchVariantExpr {
 		Destructure destructure;
 		Expr then;
 
-		this(Destructure d, Expr e) { // -----------------------------------------------------------------------------------------
-			destructure = d;
-			then = e;
-			assert(d.type.isA!(StructInst*));
-		}
-
 		StructInst* member() return scope =>
 			destructure.type.as!(StructInst*);
 	}

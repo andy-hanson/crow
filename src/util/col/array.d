@@ -573,22 +573,15 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&a[i], b[i]);
 }
 
-SmallArray!Out mapZipSmall(Out, In0, In1)( // TODO: rename to just mapZip ---------------------------------------------------------
+SmallArray!Out mapZip(Out, In0, In1)(
 	ref Alloc alloc,
 	in SmallArray!In0 in0,
 	in SmallArray!In1 in1,
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
-) =>
-	small!Out(mapZip!(Out, In0, In1)(alloc, in0.toArray, in1.toArray, cb));
-@trusted Out[] mapZip(Out, In0, In1)(
-	ref Alloc alloc,
-	scope In0[] in0,
-	scope In1[] in1,
-	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return makeArray(alloc, in0.length, (size_t i) =>
-		cb(in0[i], in1[i]));
+	return small!Out(makeArray(alloc, in0.length, (size_t i) =>
+		cb(in0[i], in1[i])));
 }
 
 @trusted Out[] mapZipWithIndex(Out, In0, In1)(

@@ -79,8 +79,8 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 }
 
 @trusted immutable(T[]) moveToArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
-	cast(immutable) moveToArr_mut(alloc, a);
-@trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) { // TODO: RENAME -----------------------------------------=--
+	cast(immutable) moveToMutArray(alloc, a);
+@trusted T[] moveToMutArray(T)(ref Alloc alloc, ref MutArr!T a) { // TODO: RENAME -----------------------------------------=--
 	T[] res = a.inner[0 .. a.size_];
 	freeElements(alloc, a.inner[a.size_ .. $]);
 	a.inner = [];

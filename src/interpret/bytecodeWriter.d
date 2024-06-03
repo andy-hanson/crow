@@ -52,7 +52,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : endPtr;
 import util.col.arrayBuilder : add, ArrayBuilder, backUp, finish;
 import util.col.fullIndexMap : fullIndexMapOfArr;
-import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
+import util.col.mutArr : moveToMutArray, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.integralValues : IntegralValues;
 import util.memory : initMemory, overwriteMemory;
 import util.util : divRoundUp, isMultipleOf, todo;
@@ -83,7 +83,7 @@ StackEntry stackEntriesEnd(StackEntries a) =>
 
 Operations finishOperations(ref ByteCodeWriter writer) =>
 	Operations(
-		moveToArr_mut!Operation(*writer.alloc, writer.operations),
+		moveToMutArray!Operation(*writer.alloc, writer.operations),
 		fullIndexMapOfArr!(ByteCodeIndex, ByteCodeSource)(finish(*writer.alloc, writer.sources)));
 
 StackEntry getNextStackEntry(in ByteCodeWriter writer) =>

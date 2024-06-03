@@ -151,6 +151,7 @@ import util.col.array :
 	only,
 	only2,
 	sizeEq,
+	small,
 	SmallArray;
 import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
@@ -309,7 +310,7 @@ ConcreteExpr concretizeCallInner(
 	in UriAndRange range,
 	in Locals locals,
 	ConcreteFun* concreteCalled,
-	Expr[] args,
+	SmallArray!Expr args,
 ) {
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
@@ -325,7 +326,7 @@ ConcreteExpr concretizeCallInner(
 		} else
 			return asConstantsOrExprsIf(
 				ctx.alloc, argsMayBeConstants,
-				mapZip(
+				mapZip!(ConcreteExpr, ConcreteLocal, Expr)(
 					ctx.alloc, concreteCalled.params, args,
 					(ref ConcreteLocal param, ref Expr arg) =>
 						concretizeExpr(ctx, param.type, locals, arg)));
@@ -336,10 +337,10 @@ ConcreteExpr concretizeCallInner(
 				tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
 			return has(constant)
 				? ConcreteExprKind(force(constant))
-				: genCallKindNoAllocArgs(concreteCalled, mapZip(
+				: genCallKindNoAllocArgs(concreteCalled, mapZip!(ConcreteExpr, ConcreteLocal, Constant)(
 					ctx.alloc,
 					concreteCalled.params,
-					constants,
+					small!Constant(constants),
 					(ref ConcreteLocal p, ref Constant x) =>
 						ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))));
 		},
@@ -589,7 +590,7 @@ ConcreteExpr concretizeLambdaInner(
 		ctx.concretizeCtx,
 		closureFields,
 		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.curFun, lambdaIndex)));
-	ConcreteLocal[] params = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx));
+	SmallArray!ConcreteLocal params = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, typeScope(ctx));
 
 	ConcreteStruct* lambdaStruct = mustBeByVal(type);
 

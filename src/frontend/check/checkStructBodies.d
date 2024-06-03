@@ -86,7 +86,7 @@ import util.col.array :
 	mapOp,
 	mapOpPointers,
 	mapPointers,
-	mapZipSmall,
+	mapZip,
 	small,
 	SmallArray,
 	zipPtrFirst;
@@ -236,7 +236,7 @@ void checkVariantMethodImpls(
 	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
 	foreach (ref StructDecl struct_; structs) {
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
-			variant.methodImpls = mapZipSmall!(Opt!Called, SpecDeclSig, ReturnAndParamTypes)(
+			variant.methodImpls = mapZip!(Opt!Called, SpecDeclSig, ReturnAndParamTypes)(
 				ctx.alloc, variant.variantDeclMethods, variant.variantInstantiatedMethodTypes,
 				(ref SpecDeclSig x, ref ReturnAndParamTypes typesWithoutFirstParam) =>
 					withStackArray(

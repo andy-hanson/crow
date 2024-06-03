@@ -300,7 +300,7 @@ immutable struct ConcreteFun {
 
 	ConcreteFunSource source;
 	ConcreteType returnType;
-	ConcreteLocal[] params;
+	SmallArray!ConcreteLocal params;
 	private Late!ConcreteFunBody lateBody;
 
 	ref ConcreteFunBody body_() return scope =>
