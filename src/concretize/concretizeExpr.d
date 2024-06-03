@@ -419,7 +419,12 @@ ConstantsOrExprs asConstantsOrExprsIf(ref Alloc alloc, bool mayBeConstants, Conc
 
 public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, Called called) =>
 	getConcreteFunFromCalled(ctx.concretizeCtx, typeScope(ctx), specsScope(ctx), called);
-public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeCtx ctx, in TypeArgsScope typeScope, in SpecsScope specsScope, Called called) =>
+public Opt!(ConcreteFun*) getConcreteFunFromCalled(
+	ref ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	Called called,
+) =>
 	called.matchWithPointers!(Opt!(ConcreteFun*))(
 		(Called.Bogus*) =>
 			none!(ConcreteFun*),

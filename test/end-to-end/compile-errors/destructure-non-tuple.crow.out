@@ -7,7 +7,7 @@ Actual argument types:  (Other arguments not checked; gave up early.)
 Candidates (with 1 arguments):
 	'new[t] t array(...t array)' (from include/crow/col/array.crow line 20)
 	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 10)
-	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 77)
+	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 76)
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 149)
 	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 63)
 	'new[t] t mut-array(...t array)' (from include/crow/col/mut-array.crow line 36)
@@ -24,6 +24,7 @@ Candidates (with 1 arguments):
 	'new[t] t future(value t)' (from include/crow/parallel.crow line 45)
 	'new[col] col parallel-collection(collection col)' (from include/crow/parallel.crow line 102)
 	'new invalid-unicode-character(character nat32)' (from include/crow/string.crow line 364)
+	'new test-failure(describe string)' (from include/crow/test-util.crow line 13)
 	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 262)
 Uncaught exception: Reached compile error
 	at main

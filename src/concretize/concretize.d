@@ -24,7 +24,8 @@ import concretize.concretizeCtx :
 	voidType;
 import concretize.concretizeExpr : concretizeBogus;
 import concretize.gatherInfo : getYieldingFuns;
-import concretize.generate : genCallNoAllocArgs, generateCallLambda, genMatchUnion, genParamGet;
+import concretize.generate :
+	genCallNoAllocArgs, generateCallLambda, generateCallVariantMethod, genMatchUnion, genParamGet;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
@@ -160,34 +161,14 @@ void finishLambdas(ref ConcretizeCtx ctx) {
 
 void finishVariants(ref ConcretizeCtx ctx) {
 	foreach (ConcreteStruct* variant, MutArr!ConcreteVariantMemberAndMethodImpls x; ctx.variantStructToMembers)
-		lateSet(variant.body_.as!(ConcreteStructBody.Union).members_, small!ConcreteType(map(ctx.alloc, asTemporaryArray(x), (ref ConcreteVariantMemberAndMethodImpls x) =>
-			x.memberType)));
+		variant.body_.as!(ConcreteStructBody.Union).members =
+			small!ConcreteType(map(ctx.alloc, asTemporaryArray(x), (ref ConcreteVariantMemberAndMethodImpls x) =>
+				x.memberType));
 
 	foreach (ConcreteFun* fun; ctx.deferredVariantMethods) {
 		ConcreteStruct* variant = mustBeByVal(fun.params[0].type);
 		size_t methodIndex = fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).methodIndex;
 		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
-		fun.overwriteBody(funBodyForVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
+		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}
-}
-
-// TODO: move near 'generateCallLambda', since these are very similar.
-ConcreteFunBody funBodyForVariantMethod(
-	ref ConcretizeCtx ctx,
-	ConcreteFun* fun,
-	ConcreteStruct* variant,
-	in ConcreteVariantMemberAndMethodImpls[] impls,
-	size_t methodIndex,
-) {
-	UriAndRange range = fun.range;
-	return ConcreteFunBody(genMatchUnion(
-		ctx, fun.returnType, range, variant.body_.as!(ConcreteStructBody.Union).members,
-		genParamGet(range, &fun.params[0]),
-		(size_t i, ConcreteExpr member) {
-			Opt!(ConcreteFun*) impl = impls[i].methodImpls[methodIndex];
-			return has(impl)
-				? genCallNoAllocArgs(range, force(impl), mapPointersWithIndex(ctx.alloc, fun.params, (size_t paramIndex, ConcreteLocal* param) =>
-					paramIndex == 0 ? member : genParamGet(range, param)))
-				: concretizeBogus(ctx, fun.returnType, range);
- 		}));
 }

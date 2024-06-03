@@ -801,7 +801,6 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ensureVariantMember(
 					ctx, only(concreteParams).type, unwrapOptionType(ctx, cf.returnType))),
 		(FunBody.VariantMethod x) {
-			// This needs to be done last, after all variant members are known (TODO: where is it done?) -------------------------------
 			push(ctx.alloc, ctx.deferredVariantMethods, cf);
 			return ConcreteFunBody(ConcreteFunBody.Deferred());
 		},
@@ -810,7 +809,12 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	cf.overwriteBody(body_);
 }
 
-ConcreteExpr genCreateRecordFromParams(ref Alloc alloc, ConcreteType recordType, UriAndRange range, ConcreteLocal[] params) =>
+ConcreteExpr genCreateRecordFromParams(
+	ref Alloc alloc,
+	ConcreteType recordType,
+	UriAndRange range,
+	ConcreteLocal[] params,
+) =>
 	genCreateRecord(recordType, range, mapPointers(alloc, params, (ConcreteLocal* param) =>
 		genLocalGet(range, param)));
 
@@ -820,7 +824,12 @@ ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberI
 		: ConcreteFunBody(genCreateUnion(
 			alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
 
-ConcreteExpr genConstantUnionEmptyMemberType(ref Alloc alloc, ConcreteType type, UriAndRange range, size_t memberIndex) =>
+ConcreteExpr genConstantUnionEmptyMemberType(
+	ref Alloc alloc,
+	ConcreteType type,
+	UriAndRange range,
+	size_t memberIndex,
+) =>
 	genConstant(type, range, Constant(allocate(alloc, Constant.Union(memberIndex, constantZero()))));
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) =>

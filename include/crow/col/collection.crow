@@ -13,9 +13,8 @@ export
 	./private/build
 
 +index-too-big record(actual nat64, maximum nat64) by-val, exception variant-member
-# TODO: circularity issue here prevents a more helpful message ... ------------------------------------------------------------------------------------------------------
 +describe string(_ index-too-big)
-	"Index too big"
+	"The index is bigger than the collection's size"
 
 # Exception when attempting to skip too far forward or backward
 +iterator-out-of-bounds record exception variant-member

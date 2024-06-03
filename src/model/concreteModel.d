@@ -55,6 +55,9 @@ immutable struct ConcreteStructBody {
 
 		SmallArray!ConcreteType members() return scope =>
 			lateGet(members_);
+		void members(SmallArray!ConcreteType value) {
+			lateSet(members_, value);
+		}
 	}
 
 	mixin .Union!(Builtin*, Enum, Extern, Flags, Record, Union);

@@ -46,7 +46,6 @@ region arithmetic
 	a signed
 
 +unary-out-of-range record(input integral-value) by-val, exception variant-member
-# TODO: circularity issues .....................................................................................................
 +describe string(_ unary-out-of-range)
 	"Output of unary function does not fit in the result type"
 +binary-out-of-range record(a integral-value, b integral-value) by-val, exception variant-member

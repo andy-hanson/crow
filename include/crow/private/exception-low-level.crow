@@ -20,10 +20,8 @@ export
 ~setup-catch bool(env catch-point mut*) bare, builtin
 ~jump-to-catch void(env catch-point*) bare, builtin
 
-# Thrown when an exception is not specified in an 'assert' or 'forbid'. (TODO: I could just make string implement exception!)
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
 +error record(describe string) by-val, exception variant-member
-
-+test-failure record(describe string) exception variant-member # TODO: I think I can move this back to test-util now ..................
 
 # Just use a thread-local for these, since they will be handled immediately
 # (not giving the fiber a chance to yield)

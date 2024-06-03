@@ -784,6 +784,7 @@ immutable string[] specialSymbols = [
 	"re-exports",
 	"variadic",
 	"variant-member-get",
+	"variants",
 	"var-kind",
 	"visibility",
 	"with-block",

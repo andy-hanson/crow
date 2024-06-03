@@ -8,6 +8,7 @@ import concretize.concretizeCtx :
 	char8ArrayType,
 	char32ArrayType,
 	ConcreteLambdaImpl,
+	ConcreteVariantMemberAndMethodImpls,
 	ConcretizeCtx,
 	constantOfBytes,
 	constantSymbol,
@@ -40,6 +41,7 @@ import util.col.array :
 	allSame,
 	map,
 	mapPointers,
+	mapPointersWithIndex,
 	mapWithIndex,
 	mapZipWithIndex,
 	newArray,
@@ -246,6 +248,28 @@ ConcreteFunBody generateCallLambda(
 	return ConcreteFunBody(
 		genMatchUnion(ctx, fun.returnType, range, memberTypes, lambda, (size_t i, ConcreteExpr closure) =>
 			genCall(ctx.alloc, range, impls[i].impl, [closure, arg])));
+}
+
+ConcreteFunBody generateCallVariantMethod(
+	ref ConcretizeCtx ctx,
+	ConcreteFun* fun,
+	ConcreteStruct* variant,
+	in ConcreteVariantMemberAndMethodImpls[] impls,
+	size_t methodIndex,
+) {
+	UriAndRange range = fun.range;
+	return ConcreteFunBody(genMatchUnion(
+		ctx, fun.returnType, range, variant.body_.as!(ConcreteStructBody.Union).members,
+		genParamGet(range, &fun.params[0]),
+		(size_t i, ConcreteExpr member) {
+			Opt!(ConcreteFun*) impl = impls[i].methodImpls[methodIndex];
+			return has(impl)
+				? genCallNoAllocArgs(
+					range, force(impl),
+					mapPointersWithIndex(ctx.alloc, fun.params, (size_t paramIndex, ConcreteLocal* param) =>
+						paramIndex == 0 ? member : genParamGet(range, param)))
+				: concretizeBogus(ctx, fun.returnType, range);
+ 		}));
 }
 
 ConcreteExpr genThrow(ref Alloc alloc, ConcreteType type, UriAndRange range, ConcreteExpr thrown) =>
