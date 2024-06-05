@@ -35,6 +35,7 @@ import model.ast :
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind, TypeContainer;
 import model.model :
+	bestCasePurity,
 	BuiltinType,
 	ByValOrRef,
 	Called,
@@ -48,6 +49,7 @@ import model.model :
 	IntegralType,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
+	isPurityAlwaysCompatible,
 	isPurityPossiblyCompatible,
 	isSigned,
 	leastVisibility,
@@ -74,7 +76,8 @@ import model.model :
 	TypeParams,
 	UnionMember,
 	VariantAndMethodImpls,
-	Visibility;
+	Visibility,
+	worstCasePurity;
 import util.alloc.stackAlloc : withStackArray;
 import util.col.array :
 	arrayOfSingle,
@@ -202,15 +205,15 @@ SmallArray!VariantAndMethodImpls checkVariantMembersInitial( // TODO: Inline? --
 	StructDecl* struct_,
 	ref StructDeclAst ast,
 ) =>
-	small!VariantAndMethodImpls(mapOp!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ref ModifierAst mod) { // TODO: 'mapOp overload that returns SmallArray
+	small!VariantAndMethodImpls(mapOpPointers!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ModifierAst* mod) { // TODO: 'mapOp overload that returns SmallArray
 		if (mod.isA!(ModifierAst.Keyword)) {
-			ModifierAst.Keyword kw = mod.as!(ModifierAst.Keyword);
+			ModifierAst.Keyword* kw = &mod.as!(ModifierAst.Keyword)();
 			if (kw.keyword == ModifierKeyword.variantMember) {
 				if (has(kw.typeArg)) {
 					Type variantType = typeFromAst(ctx, commonTypes, force(kw.typeArg), structsAndAliasesMap, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 					StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
 					if (variantInst.decl.body_.isA!(StructBody.Variant))
-						return some(VariantAndMethodImpls(variantInst));
+						return some(VariantAndMethodImpls(kw, variantInst));
 					else {
 						if (!variantType.isBogus)
 							addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, variantType)));
@@ -235,15 +238,16 @@ void checkVariantMethodImpls(
 ) {
 	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
 	foreach (ref StructDecl struct_; structs) {
+		Type variantMemberType = Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_));
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
+			if (!isPurityAlwaysCompatible(referencer: variant.variant.purityRange, referenced: struct_.purity))
+				addDiag(ctx, variant.ast.range, Diag(Diag.PurityWorseThanVariant(&struct_, variant.variant)));
 			size_t typeIndex;
 			Type nextType() => variant.variantInstantiatedMethodTypes[typeIndex++];
 			variant.methodImpls = map!(Opt!Called, Signature)(ctx.alloc, variant.variantDeclMethods, (ref Signature sig) =>
 				withStackArray(
 					sig.params.length + 2,
-					(size_t i) =>
-						// Add the variant member as the first parameter
-						i == 1 ? Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_)) : nextType(),
+					(size_t i) => i == 1 ? variantMemberType : nextType(),
 					(scope Type[] types) =>
 						findFunctionForReturnAndParamTypes(
 							ctx, commonTypes, TypeContainer(&struct_),
@@ -956,7 +960,7 @@ void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Ra
 }
 
 void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
-	if (!isPurityPossiblyCompatible(struct_.purity, purityRange(referencedType)) &&
+	if (!isPurityPossiblyCompatible(referencer: struct_.purity, referenced: purityRange(referencedType)) &&
 		!struct_.purityIsForced)
 		addDiag(ctx, range, Diag(Diag.PurityWorseThanParent(struct_, referencedType)));
 }

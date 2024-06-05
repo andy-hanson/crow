@@ -1076,18 +1076,15 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= '.';
 		},
 		(in Diag.PurityWorseThanVariant x) {
-			todo!void("PurityWorseThanVariant"); // ---------------------------------------------------------------------------------
-			/*
 			writer ~= "Variant ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.member.variant), TypeContainer(x.member)));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x.member)));
 			writer ~= " has purity ";
-			writePurity(writer, ctx, x.member.variant.purityRange.bestCase);
-			writer ~= ", but member of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.member.type, TypeContainer(x.member)));
-			writer ~= " has (worst-case) purity ";
-			writePurity(writer, ctx, worstCasePurity(x.member.type));
+			writePurity(writer, ctx, x.variant.purityRange.bestCase);
+			writer ~= ", but member ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= " has purity ";
+			writePurity(writer, ctx, x.member.purity);
 			writer ~= '.';
-			*/
 		},
 		(in Diag.RecordFieldNeedsType x) {
 			writer ~= "Record field ";

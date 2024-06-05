@@ -1,14 +1,11 @@
 main void()
-	info log "{7::nat.x f}"
-	()
-
-v variant mut
-
-x[t] record(value t) v variant-member
-
-f nat(a v)
-	match a
-	as x x
-		x value
+	v v = () x
+	match v
+	as x _
+		info log "It's an x"
 	else
-		0
+		()
+
+v variant
+
+x record(value nat mut[]) mut, v variant-member

@@ -11,6 +11,7 @@ import model.ast :
 	FunDeclAst,
 	IfAst,
 	ImportOrExportAst,
+	ModifierAst,
 	NameAndRange,
 	RecordOrUnionMemberAst,
 	SpecDeclAst,
@@ -73,6 +74,8 @@ PurityRange combinePurityRange(PurityRange a, PurityRange b) =>
 
 bool isPurityAlwaysCompatible(Purity referencer, PurityRange referenced) =>
 	referenced.worstCase <= referencer;
+bool isPurityAlwaysCompatible(PurityRange referencer, Purity referenced) =>
+	referenced <= referencer.bestCase;
 
 bool isPurityPossiblyCompatible(Purity referencer, PurityRange referenced) =>
 	referenced.bestCase <= referencer;
@@ -544,6 +547,8 @@ bool isPointer(in StructDecl a) =>
 
 immutable struct VariantAndMethodImpls {
 	@safe @nogc pure nothrow:
+
+	ModifierAst.Keyword* ast;
 	StructInst* variant;
 	private Late!(SmallArray!(Opt!Called)) methodImpls_;
 

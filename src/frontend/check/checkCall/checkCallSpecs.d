@@ -53,7 +53,7 @@ bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
-	return isPurityAlwaysCompatible(expected, typePurity) ||
+	return isPurityAlwaysCompatible(referencer: expected, referenced: typePurity) ||
 		exists!(SpecInst*)(funSpecs, (in SpecInst* inst) =>
 			specProvidesPurity(*inst, type, expected)) ||
 		(type.isA!(StructInst*) &&

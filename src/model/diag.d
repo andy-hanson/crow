@@ -466,6 +466,7 @@ immutable struct Diag {
 	}
 	immutable struct PurityWorseThanVariant {
 		StructDecl* member;
+		StructInst* variant;
 	}
 	immutable struct RecordFieldNeedsType {
 		Symbol fieldName;
