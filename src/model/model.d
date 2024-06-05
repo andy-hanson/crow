@@ -14,7 +14,7 @@ import model.ast :
 	NameAndRange,
 	RecordOrUnionMemberAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
@@ -115,7 +115,7 @@ immutable struct Type {
 }
 
 bool isEmptyType(in Type a, in CommonTypes commonTypes) =>
-	a.isA!(StructInst*) && (a.as!(StructInst*) == commonTypes.void_ || isEmptyRecord(*a.as!(StructInst*).decl)); // TODO: maybe all empty record types should compile to 'void' in the lowering step ... then don't need 'isEmptyType' elsewhere since they're all void
+	a.isA!(StructInst*) && (a.as!(StructInst*) == commonTypes.void_ || isEmptyRecord(*a.as!(StructInst*).decl));
 bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
 
@@ -194,7 +194,7 @@ immutable struct Signature {
 	@safe @nogc pure nothrow:
 
 	Uri moduleUri;
-	SpecSigAst* ast;
+	SignatureAst* ast;
 	Type returnType;
 	SmallArray!Destructure params;
 
@@ -554,8 +554,8 @@ immutable struct VariantAndMethodImpls {
 
 	SmallArray!Signature variantDeclMethods() =>
 		variant.decl.body_.as!(StructBody.Variant).methods;
-	SmallArray!ReturnAndParamTypes variantInstantiatedMethodTypes() =>
-		variant.instantiatedVariantMethods;
+	SmallArray!Type variantInstantiatedMethodTypes() =>
+		variant.instantiatedTypes;
 }
 
 immutable struct StructDeclSource {
@@ -577,22 +577,15 @@ immutable struct StructInst {
 	PurityRange purityRange;
 	// For a Record, this is the field types.
 	// For a Union, this is the member types (Bogus for members with no type).
+	// For a Variant, these are the ReturnAndParamTypes for each method, concatenated.
 	// Otherwise this is empty.
 	private Late!(SmallArray!Type) lateInstantiatedTypes;
-	private Late!(SmallArray!ReturnAndParamTypes) lateInstantiatedVariantMethods; // TODO: this could just be stored in lateInstantiatedTypes to save space
 
 	SmallArray!Type instantiatedTypes() return scope =>
 		lateGet(lateInstantiatedTypes);
 
 	void instantiatedTypes(SmallArray!Type value) {
 		lateSet(lateInstantiatedTypes, value);
-	}
-
-	// These do not include the first parameter (which is the variant)
-	SmallArray!ReturnAndParamTypes instantiatedVariantMethods() return scope =>
-		lateGet(lateInstantiatedVariantMethods);
-	void instantiatedVariantMethods(SmallArray!ReturnAndParamTypes value) {
-		lateSet(lateInstantiatedVariantMethods, value);
 	}
 }
 
@@ -739,15 +732,12 @@ immutable struct FunBody {
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
 	immutable struct CreateRecordAndConvertToVariant {
-		StructInst* member;
-		StructInst* variant;
+		StructInst* member; // This is the record type and the variant member type
 	}
 	immutable struct CreateUnion {
 		UnionMember* member;
 	}
-	immutable struct CreateVariant {
-		StructInst* variant;
-	}
+	immutable struct CreateVariant {}
 	immutable struct Extern {
 		Symbol libraryName;
 	}

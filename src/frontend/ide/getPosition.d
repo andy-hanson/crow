@@ -45,7 +45,7 @@ import model.ast :
 	ParamsAst,
 	PtrAst,
 	RecordOrUnionMemberAst,
-	SpecSigAst,
+	SignatureAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -388,11 +388,11 @@ Opt!PositionKind positionInSpec(SpecDecl* a, Pos pos) =>
 		() => positionInSpecSigs(a, pos));
 
 Opt!PositionKind positionInSpecSigs(SpecDecl* a, Pos pos) =>
-	firstZipPointerFirst!(PositionKind, Signature, SpecSigAst)(
-		a.sigs, a.ast.sigs, (Signature* sig, SpecSigAst sigAst) =>
+	firstZipPointerFirst!(PositionKind, Signature, SignatureAst)(
+		a.sigs, a.ast.sigs, (Signature* sig, SignatureAst sigAst) =>
 			positionInSpecSig(a, sig, sigAst, pos));
 
-Opt!PositionKind positionInSpecSig(SpecDecl* spec, Signature* sig, in SpecSigAst ast, Pos pos) =>
+Opt!PositionKind positionInSpecSig(SpecDecl* spec, Signature* sig, in SignatureAst ast, Pos pos) =>
 	hasPos(ast.range, pos)
 		? optOr!PositionKind(
 			optIf(hasPos(ast.nameAndRange.range, pos), () =>

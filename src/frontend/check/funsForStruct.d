@@ -136,7 +136,7 @@ private void addFunsForVariants(
 			makeParams(ctx.alloc, [param!"a"(Type(memberType))]),
 			FunFlags.generatedBare,
 			[],
-			FunBody(FunBody.CreateVariant(variant)));
+			FunBody(FunBody.CreateVariant()));
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(struct_),
 			struct_.visibility,
@@ -156,7 +156,7 @@ private void addFunsForVariants(
 				recordConstructorParams(ctx.alloc, record),
 				recordIsAlwaysByVal(record) ? FunFlags.generatedBare : FunFlags.generated,
 				[],
-				FunBody(FunBody.CreateRecordAndConvertToVariant(memberType, variant)));
+				FunBody(FunBody.CreateRecordAndConvertToVariant(memberType)));
 		}
 	}
 }

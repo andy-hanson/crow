@@ -26,7 +26,7 @@ import model.ast :
 	NameAndRange,
 	ParamsAst,
 	RecordOrUnionMemberAst,
-	SpecSigAst,
+	SignatureAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -177,10 +177,10 @@ SmallArray!Signature checkSignatures(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeContainer typeContainer,
 	TypeParams typeParams,
-	SmallArray!SpecSigAst asts,
+	SmallArray!SignatureAst asts,
 	MayDelayStructInsts delayStructInsts,
 ) =>
-	mapPointers!(Signature, SpecSigAst)(ctx.alloc, asts, (SpecSigAst* x) {
+	mapPointers!(Signature, SignatureAst)(ctx.alloc, asts, (SignatureAst* x) {
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
 			ctx, commonTypes, typeContainer, x.returnType, x.params,
 			typeParams, structsAndAliasesMap, delayStructInsts);
@@ -236,25 +236,25 @@ void checkVariantMethodImpls(
 	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
 	foreach (ref StructDecl struct_; structs) {
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
-			variant.methodImpls = mapZip!(Opt!Called, Signature, ReturnAndParamTypes)(
-				ctx.alloc, variant.variantDeclMethods, variant.variantInstantiatedMethodTypes,
-				(ref Signature x, ref ReturnAndParamTypes typesWithoutFirstParam) =>
-					withStackArray(
-						typesWithoutFirstParam.paramTypes.length + 2,
-						(size_t i) =>
-							i == 0 ? typesWithoutFirstParam.returnType :
-							i == 1 ? Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_)) :
-							typesWithoutFirstParam.paramTypes[i - 2],
-						(scope Type[] types) =>
-							findFunctionForReturnAndParamTypes(
-								ctx, commonTypes, TypeContainer(&struct_),
-								funsInNonExprScope(ctx, funsMap),
-								FunFlags.none,
-								LocalsInfo(),
-								x.ast.nameAndRange,
-								none!Type,
-								ReturnAndParamTypes(small!Type(types)),
-								() => false)));
+			size_t typeIndex;
+			Type nextType() => variant.variantInstantiatedMethodTypes[typeIndex++];
+			variant.methodImpls = map!(Opt!Called, Signature)(ctx.alloc, variant.variantDeclMethods, (ref Signature sig) =>
+				withStackArray(
+					sig.params.length + 2,
+					(size_t i) =>
+						// Add the variant member as the first parameter
+						i == 1 ? Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_)) : nextType(),
+					(scope Type[] types) =>
+						findFunctionForReturnAndParamTypes(
+							ctx, commonTypes, TypeContainer(&struct_),
+							funsInNonExprScope(ctx, funsMap),
+							FunFlags.none,
+							LocalsInfo(),
+							sig.ast.nameAndRange,
+							none!Type,
+							ReturnAndParamTypes(small!Type(types)),
+							() => false)));
+			assert(typeIndex == variant.variantInstantiatedMethodTypes.length);
 		}
 	}
 }

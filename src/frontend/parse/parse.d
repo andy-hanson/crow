@@ -47,7 +47,7 @@ import model.ast :
 	ParamsAst,
 	RecordOrUnionMemberAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -108,8 +108,8 @@ SmallArray!T parseIndentedLines(T)(ref Lexer lexer, in T delegate() @safe @nogc 
 		})
 		: emptySmallArray!T;
 
-SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) =>
-	parseIndentedLines!SpecSigAst(lexer, () {
+SmallArray!SignatureAst parseIndentedSigs(ref Lexer lexer) =>
+	parseIndentedLines!SignatureAst(lexer, () {
 		// TODO: get doc comment
 		SmallString docComment = emptySmallString;
 		Pos start = curPos(lexer);
@@ -117,7 +117,7 @@ SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) =>
 		assert(name.start == start);
 		TypeAst returnType = parseType(lexer);
 		ParamsAst params = parseParams(lexer);
-		return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
+		return SignatureAst(docComment, range(lexer, start), name.name, returnType, params);
 	});
 
 SmallArray!EnumOrFlagsMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
@@ -262,7 +262,7 @@ void parseSpecOrStructOrFun(
 		case Token.spec:
 			mustTakeToken(lexer, Token.spec);
 			SmallArray!ModifierAst modifiers = parseModifiers(lexer);
-			SmallArray!SpecSigAst sigs = parseIndentedSigs(lexer);
+			SmallArray!SignatureAst sigs = parseIndentedSigs(lexer);
 			add(lexer.alloc, specs, SpecDeclAst(
 				range(lexer, start), docComment, visibility, name, typeParams, keywordPos, modifiers, sigs));
 			break;

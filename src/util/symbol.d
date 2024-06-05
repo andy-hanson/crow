@@ -687,6 +687,7 @@ immutable string[] specialSymbols = [
 	"memmove",
 	"message",
 	"messages",
+	"method-index",
 	"modifiers",
 	"modules",
 	"mutability",

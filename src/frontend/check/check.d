@@ -37,7 +37,6 @@ import model.ast :
 	ImportOrExportAst,
 	NameAndRange,
 	SpecDeclAst,
-	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
 	VarDeclAst;

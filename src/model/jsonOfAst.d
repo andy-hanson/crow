@@ -53,7 +53,7 @@ import model.ast :
 	SeqAst,
 	SharedAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructBodyAst,
@@ -156,13 +156,13 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
-		field!"sigs"(jsonList!SpecSigAst(alloc, a.sigs, (in SpecSigAst sig) =>
+		field!"sigs"(jsonList!SignatureAst(alloc, a.sigs, (in SignatureAst sig) =>
 			jsonOfSpecSig(alloc, ctx, sig)))]);
 
 Json.ObjectField visibilityField(Opt!Visibility a) =>
 	optionalField!("visibility", Visibility)(a, (in Visibility x) => jsonString(stringOfEnum(x)));
 
-Json jsonOfSpecSig(ref Alloc alloc, in Ctx ctx, in SpecSigAst a) =>
+Json jsonOfSpecSig(ref Alloc alloc, in Ctx ctx, in SignatureAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),

@@ -276,12 +276,12 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonString!"new-extern",
 		(in FunBody.CreateRecord) =>
 			jsonString!"new-record",
-		(in FunBody.CreateRecordAndConvertToVariant) =>
-			jsonObject(alloc, [kindField!"create-record-to-variant"]), // TODO:FIELDS ---------------------------------------------
+		(in FunBody.CreateRecordAndConvertToVariant x) =>
+			jsonObject(alloc, [kindField!"create-record-to-variant", field!"member"(x.member.decl.name)]),
 		(in FunBody.CreateUnion x) =>
 			jsonObject(alloc, [kindField!"create-union", field!"member"(x.member.name)]),
 		(in FunBody.CreateVariant x) =>
-			jsonObject(alloc, [kindField!"create-variant"]), // TODO: FIELDS --------------------------- , field!"member"(x.member.name)]),
+			jsonObject(alloc, [kindField!"create-variant"]),
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
@@ -321,9 +321,9 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
 		(in FunBody.VariantMemberGet x) =>
-			jsonObject(alloc, [kindField!"variant-member-get"]), // TODO: FIELDS ----------------------------- //, field!"member"(x.member.name)]),
+			jsonObject(alloc, [kindField!"variant-member-get"]),
 		(in FunBody.VariantMethod x) =>
-			jsonObject(alloc, [kindField!"variant-method"]), // TODO: FIELDS -----------------------------------------------------------
+			jsonObject(alloc, [kindField!"variant-method", field!"method-index"(x.methodIndex)]),
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 

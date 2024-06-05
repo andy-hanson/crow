@@ -54,7 +54,7 @@ import model.ast :
 	SeqAst,
 	SharedAst,
 	SpecDeclAst,
-	SpecSigAst,
+	SignatureAst,
 	SpecUseAst,
 	StructAliasAst,
 	StructBodyAst,
@@ -306,7 +306,7 @@ void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
 	declare(ctx.tokens, TokenType.interface_, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addModifierTokens(ctx, a.modifiers);
-	foreach (ref SpecSigAst sig; a.sigs) {
+	foreach (ref SignatureAst sig; a.sigs) {
 		declare(ctx.tokens, TokenType.function_, sig.nameRange);
 		addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
 	}
