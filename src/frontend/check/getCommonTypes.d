@@ -205,7 +205,7 @@ public StructDecl* bogusStructDecl(ref Alloc alloc, Symbol name, size_t nTypePar
 			name,
 			small!NameAndRange(makeArray!NameAndRange(alloc, nTypeParameters, (size_t i) =>
 				NameAndRange(0, symbol!"")))))),
-		UriAndRange.empty.uri, // simpler ---------------------------------------------------------------------------------------------------
+		Uri.empty,
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

@@ -910,7 +910,7 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 		(ParamsAst.Varargs* x) =>
 			arrayOfSingle(&x.param));
 
-immutable struct SignatureAst { // TODO: RENAME, this is reused for variants ----------------------------------------------------------
+immutable struct SignatureAst {
 	@safe @nogc pure nothrow:
 
 	SmallString docComment;

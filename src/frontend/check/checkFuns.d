@@ -95,7 +95,7 @@ import util.symbol : Symbol, symbol;
 import util.unicode : unicodeValidate;
 import util.util : optEnumConvert;
 
-FunsAndMap checkFuns( // TODO: RENAME, now also checks variants ..............................................................................
+FunsAndMap checkFuns(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in SpecsMap specsMap,
@@ -110,7 +110,7 @@ FunsAndMap checkFuns( // TODO: RENAME, now also checks variants ................
 	FunDecl[] funs = checkFunsInitial(
 		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
-	checkVariantMethodImpls(ctx, commonTypes, structsAndAliasesMap, funsMap, structs);
+	checkVariantMethodImpls(ctx, commonTypes, funsMap, structs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
 		setFileImportFunctionBody(ctx, &funs[asts.length + i], f);
@@ -135,7 +135,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	MayDelayStructInsts delayStructInsts
 ) =>
 	ReturnTypeAndParams(
-		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
+		typeFromAst(ctx, commonTypes, structsAndAliasesMap, returnTypeAst, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
@@ -302,11 +302,11 @@ Type typeForFileImport(
 			TypeAst nat8 = TypeAst(NameAndRange(range.start, symbol!"nat8"));
 			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, symbol!"array"));
 			scope TypeAst arrayNat8 = TypeAst(&suffixName);
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, arrayNat8);
 		case ImportFileType.string:
 			//TODO: this sort of duplicates 'getStrType'
 			TypeAst ast = TypeAst(NameAndRange(range.start, symbol!"string"));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, ast);
 	}
 }
 

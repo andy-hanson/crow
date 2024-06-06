@@ -14,7 +14,8 @@ import frontend.check.checkCtx :
 	finishDiagnostics,
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkStructBodies : checkSignatures, checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
+import frontend.check.checkStructBodies :
+	checkSignatures, checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps :
 	FunsAndMap,
@@ -181,7 +182,8 @@ SpecDeclBody checkSpecDeclBody(
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
 		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
-	SmallArray!Signature sigs = checkSignatures(ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
+	SmallArray!Signature sigs = checkSignatures(
+		ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParams, ast.sigs, noDelayStructInsts);
 	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), sigs);
 }
 
@@ -255,12 +257,8 @@ void checkStructAliasTargets(
 ) {
 	zip!(StructAlias, StructAliasAst)(aliases, asts, (ref StructAlias structAlias, ref StructAliasAst ast) {
 		Type type = typeFromAst(
-			ctx,
-			commonTypes,
-			ast.target,
-			structsAndAliasesMap,
-			ast.typeParams,
-			someMut(ptrTrustMe(delayStructInsts)));
+			ctx, commonTypes, structsAndAliasesMap,
+			ast.target, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 		assert(type.isA!(StructInst*) || type.isBogus); // since type aliases can't have type parameters
 		structAlias.target = type.isA!(StructInst*)
 			? type.as!(StructInst*)
@@ -293,7 +291,7 @@ VarDecl checkVarDecl(
 		ast,
 		ctx.curUri,
 		visibilityFromExplicitTopLevel(ast.visibility),
-		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
+		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, ast.type),
 		checkVarModifiers(ctx, ast.kind, ast.modifiers));
 }
 

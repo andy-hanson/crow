@@ -117,8 +117,8 @@ immutable struct Type {
 		taggedPointerEquals(b);
 }
 
-bool isEmptyType(in Type a, in CommonTypes commonTypes) =>
-	a.isA!(StructInst*) && (a.as!(StructInst*) == commonTypes.void_ || isEmptyRecord(*a.as!(StructInst*).decl));
+bool isEmptyType(in CommonTypes commonTypes, in Type a) =>
+	isVoid(commonTypes, a) || isEmptyRecord(*a.as!(StructInst*).decl);
 bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
 
@@ -1067,6 +1067,10 @@ immutable struct FunDeclSource {
 		Uri moduleUri; // This is the importing module, not imported
 		ImportOrExportAst* ast;
 	}
+	immutable struct VariantMethod {
+		StructDecl* variant;
+		Signature* method;
+	}
 
 	mixin Union!(
 		Bogus,
@@ -1076,7 +1080,8 @@ immutable struct FunDeclSource {
 		RecordField*,
 		StructDecl*,
 		UnionMember*,
-		VarDecl*);
+		VarDecl*,
+		VariantMethod);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -1095,7 +1100,9 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.moduleUri,
 			(in VarDecl x) =>
-				x.moduleUri);
+				x.moduleUri,
+			(in VariantMethod x) =>
+				x.variant.moduleUri);
 
 	UriAndRange range() scope =>
 		matchIn!UriAndRange(
@@ -1114,7 +1121,9 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				UriAndRange(x.moduleUri, x.range),
 			(in VarDecl x) =>
-				x.range);
+				x.range,
+			(in VariantMethod x) =>
+				UriAndRange(x.variant.moduleUri, x.method.ast.range));
 	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
@@ -1132,7 +1141,9 @@ immutable struct FunDeclSource {
 			(in UnionMember x) =>
 				x.nameRange,
 			(in VarDecl x) =>
-				x.nameRange);
+				x.nameRange,
+			(in VariantMethod x) =>
+				UriAndRange(x.variant.moduleUri, x.method.ast.nameRange));
 }
 
 immutable struct FunDecl {
@@ -1171,7 +1182,9 @@ immutable struct FunDecl {
 			(ref UnionMember x) =>
 				x.containingUnion.typeParams,
 			(ref VarDecl x) =>
-				x.typeParams);
+				x.typeParams,
+			(FunDeclSource.VariantMethod x) =>
+				x.variant.typeParams);
 
 	Uri moduleUri() scope =>
 		source.moduleUri;
@@ -1614,11 +1627,22 @@ Type arrayElementType(in CommonTypes commonTypes, Type type) {
 	return only(type.as!(StructInst*).typeArgs);
 }
 
-bool isLambdaType(in CommonTypes commonTypes, StructDecl* a) =>
+Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
+	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
+	return only(a.as!(StructInst*).typeArgs);
+}
+
+bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
+	a == commonTypes.option;
+
+bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) =>
 	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
 
-bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
+bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) =>
 	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
+
+bool isVoid(in CommonTypes commonTypes, Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:

@@ -153,7 +153,7 @@ import util.col.array :
 	sizeEq,
 	small,
 	SmallArray;
-import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
+import util.col.mutArr : asTemporaryArray, findIndexOrPush, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.integralValues : IntegralValue, IntegralValues, integralValuesRange, mapToIntegralValues;
@@ -628,17 +628,12 @@ public size_t ensureVariantMember(
 	ref ConcretizeCtx ctx,
 	ConcreteType variantType,
 	ConcreteType memberType,
-) {
-	MutArr!ConcreteVariantMemberAndMethodImpls* members = &mustGet(ctx.variantStructToMembers, mustBeByVal(variantType));
-	Opt!size_t found = findIndex!ConcreteVariantMemberAndMethodImpls(asTemporaryArray(*members), (in ConcreteVariantMemberAndMethodImpls member) =>
-		member.memberType == memberType);
-	return optOrDefault!size_t(found, () {
-		// TODO: pushAndGetIndex helper? ---------------------------------------------------------------------------------------------------------
-		size_t res = mutArrSize(*members);
-		push(ctx.alloc, *members, ConcreteVariantMemberAndMethodImpls(memberType, variantMethodImpls(ctx, variantType, memberType)));
-		return res;
-	});
-}
+) =>
+	findIndexOrPush!ConcreteVariantMemberAndMethodImpls(
+		ctx.alloc,
+		mustGet(ctx.variantStructToMembers, mustBeByVal(variantType)),
+		(in ConcreteVariantMemberAndMethodImpls member) => member.memberType == memberType,
+		() => ConcreteVariantMemberAndMethodImpls(memberType, variantMethodImpls(ctx, variantType, memberType)));
 
 Opt!(ConcreteFun*)[] variantMethodImpls(ref ConcretizeCtx ctx, ConcreteType variantType, ConcreteType memberType) {
 	ConcreteStructSource.Inst variantSource = mustBeByVal(variantType).source.as!(ConcreteStructSource.Inst);

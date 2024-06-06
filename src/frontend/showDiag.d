@@ -693,10 +693,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= stringOfEnum(x.reason);
 			writer ~= "' function can't have a body.";
 		},
-		(in Diag.FunPointerExprMustBeName) {
-			writer ~= "Function pointer expression must be a plain identifier ('&f').";
-		},
-		(in Diag.FunPointerNoMatch x) {
+		(in Diag.FunctionWithSignatureNotFound x) {
 			writer ~= "Could not find a function '";
 			writer ~= x.name;
 			writer ~= ' ';
@@ -707,6 +704,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeTypeUnquoted(writer, ctx, TypeWithContainer(t, x.typeContainer));
 			});
 			writer ~= ")'.";
+		},
+		(in Diag.FunPointerExprMustBeName) {
+			writer ~= "Function pointer expression must be a plain identifier ('&f').";
 		},
 		(in Diag.IfThrow) {
 			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
@@ -1306,6 +1306,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Variadic parameter must be an ";
 			writeName(writer, ctx, symbol!"array");
 			writer ~= '.';
+		},
+		(in Diag.VariantMemberMissingVariant x) {
+			writer ~= "'variant-member' needs a variant.";
 		},
 		(in Diag.VariantMemberOfNonVariant x) {
 			writer ~= "Not a variant: ";

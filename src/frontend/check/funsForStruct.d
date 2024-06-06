@@ -19,6 +19,7 @@ import model.model :
 	CommonTypes,
 	Destructure,
 	IntegralType,
+	isVoid,
 	EnumFunction,
 	EnumOrFlagsMember,
 	FunBody,
@@ -79,6 +80,8 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
 		(in StructBody.Variant x) =>
 			x.methods.length);
+private size_t countFunsForVariants(in StructDecl a) =>
+	a.variants.length * (a.body_.isA!(StructBody.Record) ? 3 : 2);
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -114,12 +117,8 @@ void addFunsForStruct(
 	addFunsForVariants(ctx, funsBuilder, commonTypes, struct_);
 }
 
-//TODO:MOVE --------------------------------------------------------------------------------------------------------------------------
-private size_t countFunsForVariants(in StructDecl a) =>
-	a.variants.length * (a.body_.isA!(StructBody.Record) ? 3 : 2);
-
 private void addFunsForVariants(
-	ref CheckCtx ctx, 
+	ref CheckCtx ctx,
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
@@ -485,9 +484,6 @@ void addFunsForUnion(
 	}
 }
 
-bool isVoid(in CommonTypes commonTypes, Type a) => // TODO: MOVE? -----------------------------------------------------------------------
-	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
-
 void addFunsForVariant(
 	ref CheckCtx ctx,
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
@@ -495,9 +491,9 @@ void addFunsForVariant(
 	StructDecl* struct_,
 	ref StructBody.Variant variant,
 ) {
-	foreach (size_t methodIndex, Signature sig; variant.methods)
+	foreach (size_t methodIndex, ref Signature sig; variant.methods)
 		funsBuilder ~= funDeclWithBody(
-			FunDeclSource(struct_), // TODO: FunDeclSource(&sig)? ----------------------------------------------------------------------
+			FunDeclSource(FunDeclSource.VariantMethod(struct_, &sig)),
 			struct_.visibility,
 			sig.name,
 			sig.returnType,

@@ -135,7 +135,7 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.util : enumConvert;
 
 Opt!Position getPosition(ref Program program, Module* module_, Pos pos) {
@@ -385,20 +385,42 @@ Opt!PositionKind positionInSpec(SpecDecl* a, Pos pos) =>
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.spec))),
 		() => positionInModifiers(TypeContainer(a), some(a.parents), a.ast.modifiers, pos),
-		() => positionInSpecSigs(a, pos));
+		() => positionInSignatures(SpecOrVariant(a), a.sigs, a.ast.sigs, pos));
 
-Opt!PositionKind positionInSpecSigs(SpecDecl* a, Pos pos) =>
+immutable struct SpecOrVariant { mixin TaggedUnion!(SpecDecl*, StructDecl*); }
+TypeContainer toTypeContainer(SpecOrVariant a) =>
+	toLocalContainer(a).toTypeContainer;
+LocalContainer toLocalContainer(SpecOrVariant a) =>
+	a.matchWithPointers!LocalContainer(
+		(SpecDecl* x) => LocalContainer(x),
+		(StructDecl* x) => LocalContainer(x));
+PositionKind toPositionKind(SpecOrVariant a, Signature* sig) =>
+	a.matchWithPointers!PositionKind(
+		(SpecDecl* x) => PositionKind(PositionKind.SpecSig(x, sig)),
+		(StructDecl* x) => PositionKind(PositionKind.VariantMethod(x, sig)));
+
+Opt!PositionKind positionInSignatures(
+	SpecOrVariant container,
+	Signature[] signatures,
+	SignatureAst[] signatureAsts,
+	Pos pos,
+) =>
 	firstZipPointerFirst!(PositionKind, Signature, SignatureAst)(
-		a.sigs, a.ast.sigs, (Signature* sig, SignatureAst sigAst) =>
-			positionInSpecSig(a, sig, sigAst, pos));
+		signatures, signatureAsts, (Signature* sig, SignatureAst sigAst) =>
+			positionInSignature(container, sig, sigAst, pos));
 
-Opt!PositionKind positionInSpecSig(SpecDecl* spec, Signature* sig, in SignatureAst ast, Pos pos) =>
+Opt!PositionKind positionInSignature(
+	SpecOrVariant container,
+	Signature* sig,
+	in SignatureAst ast,
+	Pos pos,
+) =>
 	hasPos(ast.range, pos)
 		? optOr!PositionKind(
 			optIf(hasPos(ast.nameAndRange.range, pos), () =>
-				PositionKind(PositionKind.SpecSig(spec, sig))),
-			() => positionInType(TypeContainer(spec), sig.returnType, ast.returnType, pos),
-			() => positionInParams(LocalContainer(spec), Params(sig.params), ast.params, pos))
+				toPositionKind(container, sig)),
+			() => positionInType(toTypeContainer(container), sig.returnType, ast.returnType, pos),
+			() => positionInParams(toLocalContainer(container), Params(sig.params), ast.params, pos))
 		: none!PositionKind;
 
 Opt!PositionKind positionInStructBody(
@@ -449,8 +471,8 @@ Opt!PositionKind positionInStructBody(
 					none!VisibilityContainer,
 				cbMutabilityPosition: (UnionMember*) =>
 					none!PositionKind),
-		(StructBody.Variant) =>
-			none!PositionKind);
+		(StructBody.Variant x) =>
+			positionInSignatures(SpecOrVariant(decl), x.methods, ast.as!(StructBodyAst.Variant).methods, pos));
 
 Opt!PositionKind positionInRecordOrUnionBody(Member)(
 	in Ctx ctx,
@@ -862,7 +884,7 @@ Opt!PositionKind positionAtMatchVariantCases(
 Opt!PositionKind positionAtMatchVariantCase(ref ExprCtx ctx, MatchVariantExpr.Case case_, CaseAst ast, Pos pos) =>
 	optOr!PositionKind(
 		optIf(hasPos(ast.keywordAndMemberNameRange, pos), () =>
-			PositionKind(PositionKind.MatchVariantCase(case_.member))),
+			PositionKind(PositionKind.MatchVariantCase(ctx.container, case_.member))),
 		() => positionInMatchCaseDestructure(ctx, case_.destructure, ast.member, pos));
 
 Opt!PositionKind positionInMatchCaseDestructure(
@@ -894,7 +916,7 @@ Opt!PositionKind positionAtTryLet(in ExprCtx ctx, ExprRef expr, ref TryLetExpr a
 			PositionKind(ExpressionPosition(ctx.container, expr, ExpressionPositionKind(ExprKeyword.try_)))),
 		() => positionInDestructure(ctx, a.destructure, ast.destructure, pos),
 		() => optIf(hasPos(combineRanges(ast.catchKeywordRange, ast.catchMember.nameRange), pos), () =>
-			PositionKind(PositionKind.MatchVariantCase(a.catch_.member))),
+			PositionKind(PositionKind.MatchVariantCase(ctx.container, a.catch_.member))),
 		() => positionInMatchCaseDestructure(ctx, a.catch_.destructure, ast.catchMember, pos));
 
 Opt!PositionKind positionInType(TypeContainer container, Type type, in TypeAst ast, Pos pos) =>

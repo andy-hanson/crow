@@ -3,8 +3,9 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.array : arrayOfRange, endPtr, small, SmallArray;
+import util.col.array : arrayOfRange, endPtr, findIndex, small, SmallArray;
 import util.memory : copyToFrom, initMemory;
+import util.opt : optOrDefault;
 
 struct MutArr(T) {
 	@safe @nogc nothrow:
@@ -66,6 +67,18 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
 	a.size_++;
 	assert(a.size_ <= a.inner.length);
 }
+
+size_t findIndexOrPush(T)(
+	ref Alloc alloc,
+	scope ref MutArr!T a,
+	in bool delegate(in T) @safe @nogc pure nothrow cbSearch,
+	in T delegate() @safe @nogc pure nothrow cbValue,
+) =>
+	optOrDefault!size_t(findIndex!T(asTemporaryArray(a), cbSearch), () {
+		size_t res = mutArrSize(a);
+		push(alloc, a, cbValue());
+		return res;
+	});
 
 void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
 	foreach (ref immutable T value; values)

@@ -6,7 +6,6 @@ import frontend.check.checkCall.candidates :
 	Candidate, eachFunInScope, FunsInScope, funsInExprScope, testCandidateForSpecSig, withCandidates;
 import frontend.check.checkCall.checkCall :
 	checkCall,
-	checkCallAfterChoosingOverload,
 	checkCallArgAnd2Lambdas,
 	checkCallArgAndLambda,
 	checkCallIdentifier,
@@ -14,7 +13,8 @@ import frontend.check.checkCall.checkCall :
 	checkCallSpecial,
 	checkCallSpecialCb1,
 	checkCallSpecialCbN,
-	filterCandidateByExplicitTypeArg;
+	filterCandidateByExplicitTypeArg,
+	findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
 import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule, markUsed;
@@ -58,7 +58,11 @@ import frontend.check.inferringType :
 	withExpectOption,
 	withInfer;
 import frontend.check.instantiate :
-	instantiateSpec, instantiateStructNeverDelay, instantiateStructWithOwnTypeParams, instantiateType, noDelayStructInsts;
+	instantiateSpec,
+	instantiateStructNeverDelay,
+	instantiateStructWithOwnTypeParams,
+	instantiateType,
+	noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
 	checkDestructure,
@@ -1206,48 +1210,10 @@ Opt!Called findFunctionForPointer(
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
 	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) =>
 		findFunctionForReturnAndParamTypes(
-			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals, name.name, name.range, typeArg, returnAndParamTypes,
+			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags,
+			locals, name.name, name.range, typeArg, returnAndParamTypes,
 			() => checkCanDoUnsafe(ctx)));
 }
-
-//TODO:MOVE-------------------------------------------------------------------------------------------------------------------------------
-Opt!Called findFunctionForReturnAndParamTypes(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	TypeContainer typeContainer,
-	FunsInScope funsInScope,
-	FunFlags outermostFunFlags,
-	in LocalsInfo locals,
-	Symbol name,
-	Range diagRange,
-	Opt!Type typeArg,
-	in ReturnAndParamTypes returnAndParamTypes,
-	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
-) {
-	size_t arity = returnAndParamTypes.paramTypes.length;
-	return withCandidates!(Opt!Called)(
-		funsInScope,
-		name,
-		arity,
-		(scope ref Candidate x) =>
-			(!has(typeArg) || filterCandidateByExplicitTypeArg(commonTypes, x, force(typeArg))) &&
-			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, TypeContext.nonInferring),
-		(scope Candidate[] candidates) {
-			if (candidates.length != 1) {
-				// TODO: If there is a function with the name, at least indicate that in the diag
-				addDiag(ctx, diagRange, candidates.length == 0
-					? Diag(Diag.FunPointerNoMatch( // TODO: This diag will now also appear for variant members ----------------------------------------
-						name, typeContainer,
-						ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
-					: Diag(Diag.CallMultipleMatches(name, typeContainer,
-						map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
-				return none!Called;
-			} else
-				return some(checkCallAfterChoosingOverload(
-					ctx, typeContainer, funsInScope, outermostFunFlags, locals, only(candidates), diagRange, arity, canDoUnsafe));
-		});
-}
-
 
 Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SharedAst* ast, ref Expected expected) {
 	void diag(Diag diag) {
@@ -1639,7 +1605,7 @@ CaseResult checkMatchUnionOrVariantCase(Member)(
 		if (has(destructureAst))
 			return checkDestructure2(ctx, &force(destructureAst), memberType, DestructureKind.local);
 		else {
-			if (!isEmptyType(memberType, ctx.commonTypes))
+			if (!isEmptyType(ctx.commonTypes, memberType))
 				addDiag2(ctx, memberAst.nameRange, Diag(
 					Diag.MatchCaseShouldUseIgnore(Diag.MatchCaseShouldUseIgnore.Member(member))));
 			return Destructure(allocate(ctx.alloc, Destructure.Ignore(memberAst.nameRange.start, memberType)));
@@ -1679,7 +1645,8 @@ Opt!(StructInst*) getVariantMemberFromName(
 					(StructInst* x) => some(x),
 					(InstantiatedVariantMemberOrBogus.Bogus) => none!(StructInst*));
 			else {
-				addDiag2(ctx, nameRange, Diag(Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
+				addDiag2(ctx, nameRange, Diag(
+					Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
 				return none!(StructInst*);
 			}
 		}
@@ -1701,17 +1668,19 @@ Opt!InstantiatedVariantMemberOrBogus compareVariant(
 	StructInst* actualVariant,
 	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
 ) =>
-	withInferringTypes!(Opt!InstantiatedVariantMemberOrBogus)(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
+	withInferringTypes(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
 		TypeContext inferringContext = TypeContext(small!SingleInferringType(inferringTypes));
 		TypeAndContext inferringDeclaredVariant = TypeAndContext(Type(declaredVariant), inferringContext);
 		return optIf(matchTypes(ctx.instantiateCtx, inferringDeclaredVariant, nonInferring(Type(actualVariant))), () {
-			if (!every!SingleInferringType(inferringTypes, (in SingleInferringType x) => has(tryGetInferred(x)))) { // TODO: check if this is still actually needed
+			if (!every!SingleInferringType(inferringTypes, (in SingleInferringType x) => has(tryGetInferred(x)))) {
 				Opt!Type t = expectedMemberType();
 				if (has(t)) {
 					// Ignore result, just using this for inference
 					matchTypes(
 						ctx.instantiateCtx,
-						TypeAndContext(Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, member)), inferringContext),
+						TypeAndContext(
+							Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, member)),
+							inferringContext),
 						nonInferring(force(t)));
 				}
 			}
@@ -1728,10 +1697,9 @@ Opt!InstantiatedVariantMemberOrBogus compareVariant(
 					if (anyNotInferred) {
 						addDiag2(ctx, range, Diag(Diag.MatchVariantCantInferTypeArgs(member)));
 						return InstantiatedVariantMemberOrBogus(InstantiatedVariantMemberOrBogus.Bogus());
-					} else {
-						// markUsed(ctx.checkCtx, fun); TODO! ----------------------------------------------------------------------------------------------------
-						return InstantiatedVariantMemberOrBogus(instantiateStructNeverDelay(ctx.instantiateCtx, member, small!Type(inferredTypes)));
-					}
+					} else
+						return InstantiatedVariantMemberOrBogus(
+							instantiateStructNeverDelay(ctx.instantiateCtx, member, small!Type(inferredTypes)));
 				});
 		});
 	});

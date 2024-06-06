@@ -7,12 +7,14 @@ import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import model.ast : ExprAst, LoopAst;
 import model.model :
+	CommonTypes,
 	EnumOrFlagsMember,
 	FunDecl,
 	localMustHaveNameRange,
 	Module,
 	NameReferents,
 	RecordField,
+	Signature,
 	SpecDecl,
 	StructAlias,
 	StructDecl,
@@ -24,8 +26,8 @@ import util.opt : force, has, Opt;
 import util.sourceRange : UriAndRange;
 import util.uri : Uri;
 
-UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in Position pos) {
-	Opt!Target target = targetForPosition(pos.kind);
+UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in CommonTypes commonTypes, in Position pos) {
+	Opt!Target target = targetForPosition(commonTypes, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
 			definitionForTarget(pos.module_.uri, force(target), (in UriAndRange x) { res ~= x; });
@@ -80,6 +82,9 @@ public void definitionForTarget(Uri curUri, in Target a, in ReferenceCb cb) =>
 		},
 		(in VarDecl x) {
 			cb(x.nameRange);
+		},
+		(in PositionKind.VariantMethod x) {
+			cb(x.method.nameRange);
 		});
 
 void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {

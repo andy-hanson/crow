@@ -278,12 +278,12 @@ immutable struct Diag {
 		enum Reason { builtin, extern_ }
 		Reason reason;
 	}
-	immutable struct FunPointerExprMustBeName {}
-	immutable struct FunPointerNoMatch {
+	immutable struct FunctionWithSignatureNotFound {
 		Symbol name;
 		TypeContainer typeContainer;
 		ReturnAndParamTypes returnAndParamTypes;
 	}
+	immutable struct FunPointerExprMustBeName {}
 	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
@@ -605,6 +605,7 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VariantMemberMissingVariant {}
 	immutable struct VariantMemberOfNonVariant {
 		StructDecl* member;
 		Type actual;
@@ -661,8 +662,8 @@ immutable struct Diag {
 		ExternTypeError,
 		ExternUnion,
 		FunCantHaveBody,
+		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
-		FunPointerNoMatch,
 		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,
@@ -735,6 +736,7 @@ immutable struct Diag {
 		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VariantMemberMissingVariant,
 		VariantMemberOfNonVariant,
 		VariantMethodImplVisibility,
 		VisibilityWarning,

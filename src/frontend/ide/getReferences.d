@@ -131,7 +131,7 @@ import util.symbol : Symbol;
 import util.uri : Uri;
 
 UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
-	Opt!Target target = targetForPosition(pos.kind);
+	Opt!Target target = targetForPosition(*program.commonTypes, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
 			eachReferenceForTarget(program, pos.module_.uri, force(target), (in UriAndRange x) {
@@ -191,6 +191,13 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 		},
 		(VarDecl* x) {
 			referencesForVarDecl(program, x, cb);
+		},
+		(PositionKind.VariantMethod x) {
+			FunDecl* fun = mustFindFunNamed(moduleOf(program, x.variant.moduleUri), x.method.name, (in FunDecl fun) =>
+				fun.source.isA!(FunDeclSource.VariantMethod) &&
+				fun.source.as!(FunDeclSource.VariantMethod).method == x.method);
+			referencesForFunDecl(program, fun, cb);
+			// TODO: Also find all structs that implement the variant and their implementations for this sig.
 		});
 
 void referencesForStructAlias(in Program program, in StructAlias* a, in ReferenceCb cb) {
@@ -244,6 +251,8 @@ void referencesForLocal(in Program program, Uri curUri, in PositionKind.LocalPos
 		(Test* x) =>
 			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(*program.commonTypes, x))),
 		(SpecDecl*) =>
+			none!ContainerAndBody,
+		(StructDecl*) =>
 			none!ContainerAndBody);
 	if (has(body_))
 		eachDescendentExprIncluding(*program.commonTypes, force(body_).body_, (ExprRef x) {

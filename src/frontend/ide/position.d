@@ -10,6 +10,7 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	FunDecl,
+	FunDeclSource,
 	FunPointerExpr,
 	ImportOrExport,
 	Local,
@@ -61,7 +62,8 @@ immutable struct ExprContainer {
 
 immutable struct LocalContainer {
 	@safe @nogc pure nothrow:
-	mixin TaggedUnion!(FunDecl*, Test*, SpecDecl*);
+	// A SpecDecl* can contain parameters in its signatures, and a StructDecl* for a variant can too
+	mixin TaggedUnion!(FunDecl*, Test*, SpecDecl*, StructDecl*);
 
 	TypeContainer toTypeContainer() return scope =>
 		matchWithPointers!TypeContainer(
@@ -70,6 +72,8 @@ immutable struct LocalContainer {
 			(Test* x) =>
 				TypeContainer(x),
 			(SpecDecl* x) =>
+				TypeContainer(x),
+			(StructDecl* x) =>
 				TypeContainer(x));
 
 	Uri moduleUri() scope =>
@@ -157,6 +161,7 @@ immutable struct PositionKind {
 		UnionMember* member;
 	}
 	immutable struct MatchVariantCase {
+		ExprContainer container;
 		StructInst* member;
 	}
 	immutable struct Modifier {
@@ -181,6 +186,7 @@ immutable struct PositionKind {
 		TypeParamIndex typeParam;
 		TypeContainer container;
 	}
+	alias VariantMethod = FunDeclSource.VariantMethod;
 	immutable struct VisibilityMark {
 		VisibilityContainer container;
 	}
@@ -212,6 +218,7 @@ immutable struct PositionKind {
 		TypeParamWithContainer,
 		UnionMember*,
 		VarDecl*,
+		VariantMethod,
 		VisibilityMark);
 }
 

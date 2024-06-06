@@ -62,11 +62,19 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
-Called checkCallSpecs(ref CheckCtx ctx, TypeContainer typeContainer, FunsInScope funsInScope, in Range diagRange, ref const Candidate candidate) {
+Called checkCallSpecs(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	Range diagRange,
+	ref const Candidate candidate,
+) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
 	return getCalledFromCandidateAfterTypeChecks!DummyTrace(checkSpecsCtx, candidate, DummyTrace()).match!Called(
 		(Called x) =>
-			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate) : x,
+			checkSpecsCtx.hasErrors
+				? checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate)
+				: x,
 		(DummyTrace.NoMatch _) =>
 			checkCallSpecsWithRealTrace(ctx, typeContainer, funsInScope, diagRange, candidate));
 }
@@ -106,7 +114,7 @@ Called checkSpecSingleSigIgnoreParents2(
 // Additional checks on a call after the overload and spec impls have been chosen.
 void checkCalled(
 	ref CheckCtx ctx,
-	in Range diagRange,
+	Range diagRange,
 	in Called called,
 	FunFlags funFlags,
 	in LocalsInfo locals,
@@ -131,7 +139,7 @@ private:
 
 void checkCallFlags(
 	ref CheckCtx ctx,
-	in Range diagRange,
+	Range diagRange,
 	FunDecl* called,
 	FunFlags caller,
 	in LocalsInfo locals,
@@ -152,7 +160,13 @@ void checkCallFlags(
 		diag(Diag.CantCall.Reason.variadicFromBare);
 }
 
-Called checkCallSpecsWithRealTrace(ref CheckCtx ctx, TypeContainer typeContainer, FunsInScope funsInScope, in Range range, ref const Candidate candidate) {
+Called checkCallSpecsWithRealTrace(
+	ref CheckCtx ctx,
+	TypeContainer typeContainer,
+	FunsInScope funsInScope,
+	Range range,
+	ref const Candidate candidate,
+) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope);
 	return withRealTrace!Called(ctx, typeContainer, range, (scope RealTrace* trace) =>
 		getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, trace).match!Called(

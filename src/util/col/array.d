@@ -94,9 +94,11 @@ alias SmallArray(T) = immutable MutSmallArray!T;
 
 template small(T) {
 	static if (is(T == immutable)) {
+		@disable void small(T)(in MutSmallArray!T);
 		SmallArray!T small(T)(return scope T[] values) =>
 			SmallArray!T(values);
 	} else {
+		@disable void small(T)(in MutSmallArray!T);
 		inout(MutSmallArray!T) small(T)(return scope inout T[] values) =>
 			inout MutSmallArray!T(values);
 	}

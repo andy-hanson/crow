@@ -104,7 +104,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, in Pro
 			Opt!Hover hover = optIf(has(position), () => getHover(alloc, ctx, force(position)));
 			InfoAtPos here = InfoAtPos(
 				has(hover) ? force(hover).contents.value : "",
-				has(position) ? getDefinitionForPosition(alloc, force(position)) : []);
+				has(position) ? getDefinitionForPosition(alloc, *program.commonTypes, force(position)) : []);
 			if (here != curInfo) {
 				endRange(pos);
 				curRangeStart = pos;

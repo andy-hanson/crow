@@ -2,6 +2,7 @@ module frontend.check.checkStructBodies;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkCall.checkCall : findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.candidates : funsInNonExprScope;
 import frontend.check.checkCtx :
 	addDiag,
@@ -10,7 +11,6 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	visibilityFromDefaultWithDiag,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkExpr : findFunctionForReturnAndParamTypes;
 import frontend.check.checkFuns : checkReturnTypeAndParams, ReturnTypeAndParams;
 import frontend.check.exprCtx : LocalsInfo;
 import frontend.check.instantiate : DelayStructInsts, instantiateStructWithOwnTypeParams, MayDelayStructInsts;
@@ -135,10 +135,11 @@ void checkStructBodies(
 	in StructDeclAst[] asts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
-		struct_.variants = checkVariantMembersInitial(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
+		struct_.variants = checkVariantMembersInitial(
+			ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast);
 		struct_.body_ = ast.body_.match!StructBody(
 			(StructBodyAst.Builtin) {
-				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
+				checkOnlyCommonModifiers(ctx, DeclKind.builtin, ast.modifiers);
 				return StructBody(getBuiltinType(ctx, struct_));
 			},
 			(StructBodyAst.Enum x) {
@@ -161,12 +162,12 @@ void checkStructBodies(
 				StructBody(checkRecord(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
 			(StructBodyAst.Union x) {
-				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
+				checkOnlyCommonModifiers(ctx, DeclKind.union_, ast.modifiers);
 				return StructBody(allocate(ctx.alloc,
 					checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts)));
 			},
 			(StructBodyAst.Variant x) {
-				checkOnlyStructModifiers(ctx, DeclKind.variant, ast.modifiers);
+				checkOnlyCommonModifiers(ctx, DeclKind.variant, ast.modifiers);
 				return StructBody(StructBody.Variant(checkSignatures(
 					ctx, commonTypes, structsAndAliasesMap, TypeContainer(struct_), ast.typeParams, x.methods,
 					someMut(ptrTrustMe(delayStructInsts)))));
@@ -205,73 +206,83 @@ SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 	StructDecl* struct_,
 	ref StructDeclAst ast,
 ) =>
-	small!VariantAndMethodImpls(mapOpPointers!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ModifierAst* mod) { // TODO: 'mapOp overload that returns SmallArray
+	mapOpPointers!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ModifierAst* mod) {
 		if (mod.isA!(ModifierAst.Keyword)) {
 			ModifierAst.Keyword* kw = &mod.as!(ModifierAst.Keyword)();
 			if (kw.keyword == ModifierKeyword.variantMember) {
 				if (has(kw.typeArg)) {
-					Type variantType = typeFromAst(ctx, commonTypes, force(kw.typeArg), structsAndAliasesMap, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
-					StructInst* variantInst = variantType.isA!(StructInst*) ? variantType.as!(StructInst*) : commonTypes.void_;
-					if (variantInst.decl.body_.isA!(StructBody.Variant))
-						return some(VariantAndMethodImpls(kw, variantInst));
+					Type variantType = typeFromAst(
+						ctx, commonTypes, structsAndAliasesMap,
+						force(kw.typeArg), ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+					if (variantType.isA!(StructInst*) &&
+						variantType.as!(StructInst*).decl.body_.isA!(StructBody.Variant))
+						return some(VariantAndMethodImpls(kw, variantType.as!(StructInst*)));
 					else {
 						if (!variantType.isBogus)
 							addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, variantType)));
 						return none!VariantAndMethodImpls;
 					}
 				} else {
-					todo!void("DIAG: variant-member without type"); // --------------------------------------------------------------------------------
+					addDiag(ctx, kw.range, Diag(Diag.VariantMemberMissingVariant()));
 					return none!VariantAndMethodImpls;
 				}
 			} else
 				return none!VariantAndMethodImpls;
 		} else
 			return none!VariantAndMethodImpls;
-	}));
+	});
 
-void checkVariantMethodImpls(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	FunsMap funsMap,
-	StructDecl[] structs,
-) {
+void checkVariantMethodImpls(ref CheckCtx ctx, ref CommonTypes commonTypes, FunsMap funsMap, StructDecl[] structs) {
 	foreach (ref StructDecl struct_; structs) {
-		Type variantMemberType = Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_));
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
+			Type variantMemberType = Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_));
 			if (!isPurityAlwaysCompatible(referencer: variant.variant.purityRange, referenced: struct_.purity))
 				addDiag(ctx, variant.ast.range, Diag(Diag.PurityWorseThanVariant(&struct_, variant.variant)));
-			size_t typeIndex;
-			Type nextType() => variant.variantInstantiatedMethodTypes[typeIndex++];
-			variant.methodImpls = map!(Opt!Called, Signature)(ctx.alloc, variant.variantDeclMethods, (ref Signature sig) =>
-				withStackArray(
-					sig.params.length + 2,
-					(size_t i) => i == 1 ? variantMemberType : nextType(),
-					(scope Type[] types) {
-						Opt!Called called = findFunctionForReturnAndParamTypes(
-							ctx, commonTypes, TypeContainer(&struct_),
-							funsInNonExprScope(ctx, funsMap),
-							FunFlags.none,
-							LocalsInfo(),
-							sig.name,
-							variant.ast.range,
-							none!Type,
-							ReturnAndParamTypes(small!Type(types)),
-							() => false);
-						if (has(called) && force(called).isA!(FunInst*) && force(called).as!(FunInst*).decl.visibility < struct_.visibility)
-							addDiag(ctx, variant.ast.range, Diag(Diag.VariantMethodImplVisibility(&struct_, variant.variant, force(called).as!(FunInst*))));
-						return called;
-					}));
-			assert(typeIndex == variant.variantInstantiatedMethodTypes.length);
+			checkMethodImplsForVariant(ctx, commonTypes, funsMap, &struct_, variantMemberType, variant);
 		}
 	}
 }
 
 private:
 
+void checkMethodImplsForVariant(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	FunsMap funsMap,
+	StructDecl* struct_,
+	Type variantMemberType,
+	ref VariantAndMethodImpls variant,
+) {
+	size_t typeIndex;
+	Type nextType() => variant.variantInstantiatedMethodTypes[typeIndex++];
+	variant.methodImpls = map!(Opt!Called, Signature)(ctx.alloc, variant.variantDeclMethods, (ref Signature sig) =>
+		withStackArray(
+			sig.params.length + 2,
+			(size_t i) => i == 1 ? variantMemberType : nextType(),
+			(scope Type[] types) {
+				Opt!Called called = findFunctionForReturnAndParamTypes(
+					ctx, commonTypes, TypeContainer(struct_),
+					funsInNonExprScope(ctx, funsMap),
+					FunFlags.none,
+					LocalsInfo(),
+					sig.name,
+					variant.ast.range,
+					none!Type,
+					ReturnAndParamTypes(small!Type(types)),
+					() => false);
+				if (has(called) &&
+					force(called).isA!(FunInst*) &&
+					force(called).as!(FunInst*).decl.visibility < struct_.visibility)
+					addDiag(ctx, variant.ast.range, Diag(
+						Diag.VariantMethodImplVisibility(struct_, variant.variant, force(called).as!(FunInst*))));
+				return called;
+			}));
+	assert(typeIndex == variant.variantInstantiatedMethodTypes.length);
+}
+
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
-	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
+	checkOnlyCommonModifiers(ctx, DeclKind.extern_, declAst.modifiers);
 	return StructBody.Extern(getExternTypeSize(ctx, declAst, bodyAst));
 }
 
@@ -378,7 +389,7 @@ LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAs
 			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
 			if (kw.keyword != ModifierKeyword.variantMember)
 				accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
-		} // else already warned in 'checkOnlyStructModifiers'
+		} // else already warned in 'checkOnlyCommonModifiers'
 	}
 	modifierTypeArgInvalid(ctx, [linkage, purityAndForced]);
 	return LinkageAndPurityModifiers(
@@ -444,7 +455,7 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 	}
 }
 
-void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) { // TODO: RENAME --------------------
+void checkOnlyCommonModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
 		if (!isCommonModifier(modifier))
 			addDiag(ctx, modifier.range, modifier.matchIn!Diag(
@@ -809,7 +820,7 @@ RecordField checkRecordField(
 	Symbol name = ast.name.name;
 	Type memberType = has(ast.type)
 		? typeFromAst(
-			ctx, commonTypes, force(ast.type), structsAndAliasesMap,
+			ctx, commonTypes, structsAndAliasesMap, force(ast.type),
 			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: () {
 			addDiag(ctx, ast.name.range, Diag(Diag.RecordFieldNeedsType(name)));
@@ -839,12 +850,8 @@ UnionMember checkUnionMember(
 ) {
 	Type type = has(ast.type)
 		? typeFromAst(
-			ctx,
-			commonTypes,
-			force(ast.type),
-			structsAndAliasesMap,
-			struct_.typeParams,
-			someMut(ptrTrustMe(delayStructInsts)))
+			ctx, commonTypes, structsAndAliasesMap,
+			force(ast.type), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.void_);
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range, type);
 	if (has(ast.mutability))
@@ -888,8 +895,8 @@ IntegralType checkEnumOrFlagsModifiers(
 		ModifierAst.Keyword* x = force(storage);
 		if (has(x.typeArg)) {
 			Type type = typeFromAst(
-				ctx, commonTypes, force(x.typeArg), structsAndAliasesMap, emptyTypeParams,
-				someMut(ptrTrustMe(delayStructInsts)));
+				ctx, commonTypes, structsAndAliasesMap,
+				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)));
 			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
