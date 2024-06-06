@@ -197,7 +197,7 @@ SmallArray!Signature checkSignatures(
 		return Signature(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
 
-SmallArray!VariantAndMethodImpls checkVariantMembersInitial( // TODO: Inline? -----------------------------------------------------
+SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -236,7 +236,6 @@ void checkVariantMethodImpls(
 	FunsMap funsMap,
 	StructDecl[] structs,
 ) {
-	// TODO: this should also check that the method is at least as visible as the variant member (since no reason to prohibit a direct call) -----------------------------------
 	foreach (ref StructDecl struct_; structs) {
 		Type variantMemberType = Type(instantiateStructWithOwnTypeParams(ctx.instantiateCtx, &struct_));
 		foreach (ref VariantAndMethodImpls variant; struct_.variants) {
@@ -248,16 +247,21 @@ void checkVariantMethodImpls(
 				withStackArray(
 					sig.params.length + 2,
 					(size_t i) => i == 1 ? variantMemberType : nextType(),
-					(scope Type[] types) =>
-						findFunctionForReturnAndParamTypes(
+					(scope Type[] types) {
+						Opt!Called called = findFunctionForReturnAndParamTypes(
 							ctx, commonTypes, TypeContainer(&struct_),
 							funsInNonExprScope(ctx, funsMap),
 							FunFlags.none,
 							LocalsInfo(),
-							sig.ast.nameAndRange,
+							sig.name,
+							variant.ast.range,
 							none!Type,
 							ReturnAndParamTypes(small!Type(types)),
-							() => false)));
+							() => false);
+						if (has(called) && force(called).isA!(FunInst*) && force(called).as!(FunInst*).decl.visibility < struct_.visibility)
+							addDiag(ctx, variant.ast.range, Diag(Diag.VariantMethodImplVisibility(&struct_, variant.variant, force(called).as!(FunInst*))));
+						return called;
+					}));
 			assert(typeIndex == variant.variantInstantiatedMethodTypes.length);
 		}
 	}

@@ -1206,7 +1206,7 @@ Opt!Called findFunctionForPointer(
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
 	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) =>
 		findFunctionForReturnAndParamTypes(
-			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals, name, typeArg, returnAndParamTypes,
+			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals, name.name, name.range, typeArg, returnAndParamTypes,
 			() => checkCanDoUnsafe(ctx)));
 }
 
@@ -1218,7 +1218,8 @@ Opt!Called findFunctionForReturnAndParamTypes(
 	FunsInScope funsInScope,
 	FunFlags outermostFunFlags,
 	in LocalsInfo locals,
-	in NameAndRange name,
+	Symbol name,
+	Range diagRange,
 	Opt!Type typeArg,
 	in ReturnAndParamTypes returnAndParamTypes,
 	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
@@ -1226,7 +1227,7 @@ Opt!Called findFunctionForReturnAndParamTypes(
 	size_t arity = returnAndParamTypes.paramTypes.length;
 	return withCandidates!(Opt!Called)(
 		funsInScope,
-		name.name,
+		name,
 		arity,
 		(scope ref Candidate x) =>
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(commonTypes, x, force(typeArg))) &&
@@ -1234,16 +1235,16 @@ Opt!Called findFunctionForReturnAndParamTypes(
 		(scope Candidate[] candidates) {
 			if (candidates.length != 1) {
 				// TODO: If there is a function with the name, at least indicate that in the diag
-				addDiag(ctx, name.range, candidates.length == 0
+				addDiag(ctx, diagRange, candidates.length == 0
 					? Diag(Diag.FunPointerNoMatch( // TODO: This diag will now also appear for variant members ----------------------------------------
-						name.name, typeContainer,
+						name, typeContainer,
 						ReturnAndParamTypes(copyArray!Type(ctx.alloc, returnAndParamTypes.returnAndParamTypes))))
-					: Diag(Diag.CallMultipleMatches(name.name, typeContainer,
+					: Diag(Diag.CallMultipleMatches(name, typeContainer,
 						map(ctx.alloc, candidates, (ref Candidate x) => x.called))));
 				return none!Called;
 			} else
 				return some(checkCallAfterChoosingOverload(
-					ctx, typeContainer, funsInScope, outermostFunFlags, locals, only(candidates), name.range, arity, canDoUnsafe));
+					ctx, typeContainer, funsInScope, outermostFunFlags, locals, only(candidates), diagRange, arity, canDoUnsafe));
 		});
 }
 

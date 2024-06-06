@@ -177,7 +177,7 @@ void writeFunDeclAndTypeArgs(
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
 
-private void writeFunInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in FunInst a) {
+void writeFunInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in FunInst a) {
 	writeFunDecl(writer, ctx, a.decl);
 	writeTypeParamsAndArgs(writer, ctx, a.decl.typeParams, typeContainer, a.typeArgs);
 }

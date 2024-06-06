@@ -211,6 +211,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VariantMemberOfNonVariant) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VariantMethodImplVisibility) =>
+			DiagnosticSeverity.warning,
 		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.WithHasElse) =>

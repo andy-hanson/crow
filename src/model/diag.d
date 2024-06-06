@@ -14,6 +14,7 @@ import model.model :
 	FloatType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunInst,
 	IntegralType,
 	LambdaExpr,
 	Local,
@@ -608,6 +609,11 @@ immutable struct Diag {
 		StructDecl* member;
 		Type actual;
 	}
+	immutable struct VariantMethodImplVisibility {
+		StructDecl* member;
+		StructInst* variant;
+		FunInst* methodImpl;
+	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
 	immutable struct VisibilityWarning {
 		immutable struct Kind {
@@ -730,6 +736,7 @@ immutable struct Diag {
 		Unused,
 		VarargsParamMustBeArray,
 		VariantMemberOfNonVariant,
+		VariantMethodImplVisibility,
 		VisibilityWarning,
 		WithHasElse,
 		WrongNumberTypeArgs);

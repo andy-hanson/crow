@@ -11,6 +11,7 @@ import frontend.showModel :
 	writeCalleds,
 	writeFunDecl,
 	writeFunDeclAndTypeArgs,
+	writeFunInst,
 	writeKeyword,
 	writeLineAndColumnRange,
 	writeName,
@@ -1309,6 +1310,15 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.VariantMemberOfNonVariant x) {
 			writer ~= "Not a variant: ";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.member)));
+		},
+		(in Diag.VariantMethodImplVisibility x) {
+			writer ~= "A method of variant ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(Type(x.variant), TypeContainer(x.member)));
+			writer ~= " is implemented by ";
+			writeFunInst(writer, ctx, TypeContainer(x.member), *x.methodImpl);
+			writer ~= ", but it is less visible than ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= '.';
 		},
 		(in Diag.VisibilityWarning x) {
 			writeVisibilityWarning(writer, ctx, x);

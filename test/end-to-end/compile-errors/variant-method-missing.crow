@@ -1,0 +1,11 @@
+main void()
+	info log x.foo
+	info log y.foo
+	()
+
+v variant
+	foo string()
+x record v variant-member
+foo string(_ x)
+	"x"
+y record v variant-member
