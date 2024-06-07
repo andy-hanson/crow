@@ -212,6 +212,16 @@ ref const(T) mustFind(T)(return in T[] a, in bool delegate(ref T) @safe @nogc pu
 	assert(false);
 }
 
+ref const(T) mustFindOnly(T)(return in T[] a, in bool delegate(ref T) @safe @nogc pure nothrow cb) {
+	foreach (size_t i, ref const T x; a)
+		if (cb(x)) {
+			foreach (ref const T y; a[i + 1 .. $])
+				assert(!cb(y));
+			return x;
+		}
+	assert(false);
+}
+
 Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (ref const T x; a)
 		if (cb(x))
@@ -492,11 +502,18 @@ SmallArray!Out mapPointers(Out, In)(
 	ref Alloc alloc,
 	SmallArray!In a,
 	in Opt!Out delegate(In*) @safe @nogc pure nothrow cb,
+) =>
+	mapOpPointersWithSoFar!(Out, In)(alloc, a, (In* x, in Out[]) => cb(x));
+
+@trusted SmallArray!Out mapOpPointersWithSoFar(Out, In)(
+	ref Alloc alloc,
+	SmallArray!In a,
+	in Opt!Out delegate(In*, in Out[]) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length);
 	size_t outI = 0;
 	foreach (size_t i; 0 .. a.length) {
-		Opt!Out o = cb(&a[i]);
+		Opt!Out o = cb(&a[i], res[0 .. outI]);
 		if (has(o)) {
 			initMemory(&res[outI], force(o));
 			outI++;

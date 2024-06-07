@@ -2,8 +2,7 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.candidates :
-	Candidate, eachFunInScope, FunsInScope, funsInExprScope, testCandidateForSpecSig, withCandidates;
+import frontend.check.checkCall.candidates : funsInExprScope;
 import frontend.check.checkCall.checkCall :
 	checkCall,
 	checkCallArgAnd2Lambdas,
@@ -13,11 +12,10 @@ import frontend.check.checkCall.checkCall :
 	checkCallSpecial,
 	checkCallSpecialCb1,
 	checkCallSpecialCbN,
-	filterCandidateByExplicitTypeArg,
 	findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
-import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule, markUsed;
+import frontend.check.checkCtx : CheckCtx, CommonModule;
 import frontend.check.checkStructBodies : checkLiteralIntegral;
 import frontend.check.exprCtx :
 	addDiag2,
@@ -58,11 +56,7 @@ import frontend.check.inferringType :
 	withExpectOption,
 	withInfer;
 import frontend.check.instantiate :
-	instantiateSpec,
-	instantiateStructNeverDelay,
-	instantiateStructWithOwnTypeParams,
-	instantiateType,
-	noDelayStructInsts;
+	instantiateSpec, instantiateStructNeverDelay, instantiateStructWithOwnTypeParams, noDelayStructInsts;
 import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst :
 	checkDestructure,
@@ -125,7 +119,6 @@ import model.model :
 	BuiltinType,
 	BuiltinUnary,
 	Called,
-	CalledDecl,
 	CallExpr,
 	CharType,
 	ClosureGetExpr,
@@ -143,7 +136,6 @@ import model.model :
 	FinallyExpr,
 	FloatType,
 	FunBody,
-	FunDecl,
 	FunFlags,
 	FunInst,
 	FunKind,
@@ -198,13 +190,12 @@ import model.model :
 	VariableRef,
 	VariantAndMethodImpls;
 import util.alloc.stackAlloc : MaxStackArray, withMapToStackArray, withMaxStackArray, withStackArray;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	arrayOfSingle,
 	contains,
-	copyArray,
 	every,
 	exists,
+	first,
 	indexOf,
 	isEmpty,
 	map,
@@ -228,7 +219,7 @@ import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -1622,36 +1613,26 @@ Opt!(StructInst*) getVariantMemberFromName(
 	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
 ) {
 	Opt!StructOrAlias op = structOrAliasFromName(ctx.checkCtx, name, nameRange, ctx.structsAndAliasesMap);
-	if (has(op)) {
-		StructOrAlias sa = force(op);
-		if (sa.isA!(StructAlias*)) {
-			return todo!(Opt!(StructInst*))("HANDLE ALIAS"); // ----------------------------------------------------------------------
-		} else {
-			StructDecl* decl = sa.as!(StructDecl*);
-			Cell!(Opt!InstantiatedVariantMemberOrBogus) res = Cell!(Opt!InstantiatedVariantMemberOrBogus)();
-			foreach (VariantAndMethodImpls variant; decl.variants) {
-				if (variant.variant.decl == matchedVariant.decl) {
-					Opt!InstantiatedVariantMemberOrBogus x = compareVariant(ctx, nameRange, decl, variant.variant, matchedVariant, expectedMemberType); // TODO: NAME
-					if (has(x)) {
-						if (has(cellGet(res)))
-							todo!void("Multiple variants match?"); // ----------------------------------------------------------
-						else
-							cellSet(res, someMut(force(x)));
-					}
+	return has(op)
+		? force(op).matchWithPointers!(Opt!(StructInst*))(
+			(StructAlias* x) =>
+				some(x.target),
+			(StructDecl* decl) {
+				Opt!InstantiatedVariantMemberOrBogus res =
+					first!(InstantiatedVariantMemberOrBogus, VariantAndMethodImpls)(
+						decl.variants, (VariantAndMethodImpls variant) =>
+							compareVariant(ctx, nameRange, decl, variant.variant, matchedVariant, expectedMemberType));
+				if (has(res))
+					return force(res).matchWithPointers!(Opt!(StructInst*))(
+						(StructInst* x) => some(x),
+						(InstantiatedVariantMemberOrBogus.Bogus) => none!(StructInst*));
+				else {
+					addDiag2(ctx, nameRange, Diag(
+						Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
+					return none!(StructInst*);
 				}
-			}
-			if (has(cellGet(res)))
-				return force(cellGet(res)).matchWithPointers!(Opt!(StructInst*))(
-					(StructInst* x) => some(x),
-					(InstantiatedVariantMemberOrBogus.Bogus) => none!(StructInst*));
-			else {
-				addDiag2(ctx, nameRange, Diag(
-					Diag.MatchVariantNoMember(typeWithContainer(ctx, Type(matchedVariant)), decl)));
-				return none!(StructInst*);
-			}
-		}
-	} else
-		return none!(StructInst*);
+			})
+		: none!(StructInst*);
 }
 
 immutable struct InstantiatedVariantMemberOrBogus {
@@ -1668,6 +1649,7 @@ Opt!InstantiatedVariantMemberOrBogus compareVariant(
 	StructInst* actualVariant,
 	in Opt!Type delegate() @safe @nogc pure nothrow expectedMemberType,
 ) =>
+	declaredVariant.decl != actualVariant.decl ? none!InstantiatedVariantMemberOrBogus :
 	withInferringTypes(member.typeParams.length, (scope SingleInferringType[] inferringTypes) {
 		TypeContext inferringContext = TypeContext(small!SingleInferringType(inferringTypes));
 		TypeAndContext inferringDeclaredVariant = TypeAndContext(Type(declaredVariant), inferringContext);

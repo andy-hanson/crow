@@ -21,7 +21,6 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	Type,
-	TypeParams,
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
@@ -31,7 +30,7 @@ import util.col.enumMap : EnumMap, makeEnumMap;
 import util.late : late;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, someMut, some;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : Range;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.uri : Uri;
 import util.util : ptrTrustMe;

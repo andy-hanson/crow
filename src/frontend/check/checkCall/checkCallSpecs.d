@@ -3,9 +3,9 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, funsInExprScope, testCandidateForSpecSig;
+	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, testCandidateForSpecSig;
 import frontend.check.checkCtx : addDiag, CheckCtx, markUsed;
-import frontend.check.exprCtx : addDiag2, allowsUnsafe, ExprCtx, isInDataLambda, isInLambda, LocalsInfo;
+import frontend.check.exprCtx : allowsUnsafe, isInDataLambda, isInLambda, LocalsInfo;
 import frontend.check.inferringType : SingleInferringType, tryGetInferred, TypeContext;
 import frontend.check.instantiate :
 	InstantiateCtx, instantiateFun, instantiateSpecInst, noDelaySpecInsts;

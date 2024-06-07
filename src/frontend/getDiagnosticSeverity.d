@@ -211,6 +211,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VariantMemberMissingVariant) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VariantMemberMultiple) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.VariantMemberOfNonVariant) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VariantMethodImplVisibility) =>

@@ -1,0 +1,7 @@
+main void()
+	_ nat v = r
+	_ string v = r
+	()
+
+v[t] variant
+r record nat v variant-member, string v variant-member

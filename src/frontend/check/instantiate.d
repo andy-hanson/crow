@@ -34,14 +34,13 @@ import model.model :
 	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
-import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray, sum;
+import util.col.array : emptySmallArray, fold, map, small, SmallArray, sum;
 import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.util : todo;
 
 // This is a copyable type
 struct InstantiateCtx {
@@ -67,7 +66,7 @@ alias MayDelayStructInsts = MutOpt!(DelayStructInsts*);
 MayDelayStructInsts noDelayStructInsts() =>
 	noneMut!(DelayStructInsts*);
 
-Type instantiateType(
+private Type instantiateType(
 	InstantiateCtx ctx,
 	Type type,
 	in TypeArgs typeArgs,

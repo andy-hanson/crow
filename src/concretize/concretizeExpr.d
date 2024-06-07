@@ -139,13 +139,12 @@ import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
 	concatenate,
-	findIndex,
-	indexOf,
 	isEmpty,
 	map,
 	mapWithFirst,
 	mapZip,
 	mustFind,
+	mustFindOnly,
 	newArray,
 	newSmallArray,
 	only,
@@ -153,17 +152,17 @@ import util.col.array :
 	sizeEq,
 	small,
 	SmallArray;
-import util.col.mutArr : asTemporaryArray, findIndexOrPush, MutArr, mutArrSize, push;
+import util.col.mutArr : findIndexOrPush, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.integralValues : IntegralValue, IntegralValues, integralValuesRange, mapToIntegralValues;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope_ref, ptrTrustMe, todo;
+import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>
@@ -434,7 +433,12 @@ public Opt!(ConcreteFun*) getConcreteFunFromCalled(
 		(CalledSpecSig specSig) =>
 			some(getSpecSigImplementation(ctx, typeScope, specsScope, specSig)));
 
-ConcreteFun* getSpecSigImplementation(in ConcretizeCtx ctx, in TypeArgsScope typeScope, in SpecsScope specsScope, CalledSpecSig specSig) { // TODO: just inline?
+ConcreteFun* getSpecSigImplementation(
+	in ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	CalledSpecSig specSig,
+) {
 	size_t index = 0;
 	foreach (SpecInst* x; specsScope.specs)
 		if (searchSpecSigIndexRecur(index, x, specSig.specInst))
@@ -452,7 +456,12 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	return false;
 }
 
-Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeCtx ctx, in TypeArgsScope typeScope, in SpecsScope specsScope, FunInst* funInst) =>
+Opt!(ConcreteFun*) getConcreteFunFromFunInst(
+	ref ConcretizeCtx ctx,
+	in TypeArgsScope typeScope,
+	in SpecsScope specsScope,
+	FunInst* funInst,
+) =>
 	withMapOrNoneToStackArray!(ConcreteFun*, immutable ConcreteFun*, Called)(
 		funInst.specImpls,
 		(ref Called x) => getConcreteFunFromCalled(ctx, typeScope, specsScope, x),
@@ -638,11 +647,10 @@ public size_t ensureVariantMember(
 Opt!(ConcreteFun*)[] variantMethodImpls(ref ConcretizeCtx ctx, ConcreteType variantType, ConcreteType memberType) {
 	ConcreteStructSource.Inst variantSource = mustBeByVal(variantType).source.as!(ConcreteStructSource.Inst);
 	ConcreteStructSource.Inst memberSource = memberType.struct_.source.as!(ConcreteStructSource.Inst);
-	// The member must have the variant.
-	// TODO: this might have a bug .............. if it implements 'nat foo' and 'string foo' this would always match the first!
-	VariantAndMethodImpls var = mustFind!VariantAndMethodImpls(memberSource.decl.variants, (ref VariantAndMethodImpls x) =>
-		x.variant.decl == variantSource.decl);
-	return map(ctx.alloc, var.methodImpls, (ref Opt!Called x) =>
+	VariantAndMethodImpls variantMember = mustFindOnly!VariantAndMethodImpls(
+		memberSource.decl.variants, (ref VariantAndMethodImpls x) =>
+			x.variant.decl == variantSource.decl);
+	return map(ctx.alloc, variantMember.methodImpls, (ref Opt!Called x) =>
 		has(x) ? getConcreteFunFromCalled(ctx, memberSource.typeArgs, SpecsScope(), force(x)) : none!(ConcreteFun*));
 }
 

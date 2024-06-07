@@ -6,7 +6,6 @@ import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	BuiltinType,
-	CommonTypes,
 	Destructure,
 	EnumOrFlagsMember,
 	FunBody,
@@ -53,7 +52,7 @@ import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : SmallString;
 import util.symbol : Symbol, symbol;
 import util.uri : stringOfUri;
-import util.util : stringOfEnum, todo;
+import util.util : stringOfEnum;
 
 string documentJSON(ref Alloc alloc, in Program program) =>
 	jsonToString(alloc, documentRootModules(alloc, program));

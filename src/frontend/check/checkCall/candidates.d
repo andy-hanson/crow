@@ -43,7 +43,7 @@ CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidate[] candidates) =>
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
 	buildArray!CalledDecl(ctx.alloc, (scope ref Builder!CalledDecl res) {
-		eachFunInScope(ctx, funName, (CalledDecl called) {
+		eachFunInExprScope(ctx, funName, (CalledDecl called) {
 			res ~= called;
 		});
 	});
@@ -109,11 +109,18 @@ FunsInScope funsInNonExprScope(ref const CheckCtx ctx, FunsMap funsMap) =>
 FunsInScope funsInExprScope(ref const ExprCtx ctx) =>
 	FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 
-void eachFunInScope(ref ExprCtx ctx, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+private void eachFunInExprScope(
+	ref ExprCtx ctx,
+	Symbol funName,
+	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
+) {
 	eachFunInScope(funsInExprScope(ctx), funName, cb);
 }
-
-void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+private void eachFunInScope(
+	in FunsInScope a,
+	Symbol funName,
+	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
+) {
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, funName, cb);
 

@@ -38,7 +38,6 @@ import model.model :
 import util.col.array : only;
 import util.opt : none, Opt, some;
 import util.union_ : Union;
-import util.util : todo;
 
 immutable struct Target {
 	immutable struct Loop {

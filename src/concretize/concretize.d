@@ -22,19 +22,15 @@ import concretize.concretizeCtx :
 	symbolType,
 	symbolArrayType,
 	voidType;
-import concretize.concretizeExpr : concretizeBogus;
 import concretize.gatherInfo : getYieldingFuns;
-import concretize.generate :
-	genCallNoAllocArgs, generateCallLambda, generateCallVariantMethod, genMatchUnion, genParamGet;
+import concretize.generate : generateCallLambda, generateCallVariantMethod;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	ConcreteCommonFuns,
-	ConcreteExpr,
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunKey,
-	ConcreteLocal,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructInfo,
@@ -43,15 +39,13 @@ import model.concreteModel :
 	mustBeByVal;
 import model.model : BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, mapPointersWithIndex, small;
+import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
-import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, push;
+import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
-import util.late : late, lateSet, lateSetOverwrite;
-import util.opt : force, has, Opt;
+import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : UriAndRange;
-import util.util : castNonScope_ref, ptrTrustMe, todo;
+import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(

@@ -16,7 +16,6 @@ module-export-value union
 	spec-decl spec-decl
 	union-decl union-decl
 	variant-decl variant-decl
-	variant-member-decl variant-member-decl
 
 alias-decl record(target type-ref)
 enum-decl record(members symbol[])
@@ -24,14 +23,18 @@ flags-decl record(members symbol[])
 fun-decl record(return-type type-ref, variadic bool, params param[], specs spec-ref[])
 param record(name symbol, type type-ref)
 type-param record(name symbol)
-record-decl record(purity purity, fields record-field[], has-non-public-fields bool, nominal_ bool)
+record-decl record
+	purity purity
+	variants type-ref[]
+	fields record-field[]
+	has-non-public-fields bool
+	nominal_ bool
 record-field record(name symbol, type type-ref, is-mut bool)
 spec-decl record(is-builtin bool, parents spec-ref[], sigs spec-sig[])
 spec-sig record(doc string, name symbol, return-type type-ref, params param[])
 union-decl record(purity purity, members union-member[])
 union-member record(name symbol, type type-ref?)
 variant-decl record(purity purity)
-variant-member-decl record(variant-decl type-ref, type type-ref?)
 type-ref record(name symbol, type-args type-ref[])
 spec-ref record(name symbol, type-args type-ref[])
 purity enum(data_, shared_, mut_)

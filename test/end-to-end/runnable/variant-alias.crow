@@ -1,0 +1,20 @@
+main void()
+	info log 0::nat.foo.describe
+	info log "a"::string.foo.describe
+	info log true.foo.describe
+
+describe string(a v)
+	match a
+	as nat-foo _
+		"nat foo"
+	as string-foo _
+		"string foo"
+	else
+		"other"
+
+v variant
+foo[t] record(value t) v variant-member
+nat-foo alias
+	nat foo
+string-foo alias
+	string foo

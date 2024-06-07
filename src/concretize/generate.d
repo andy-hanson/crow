@@ -570,7 +570,7 @@ ConcreteExpr concretizeAndCall(
 		: concretizeBogus(ctx.concretizeCtx, getConcreteType(ctx, called.returnType), range);
 }
 
-public ConcreteExpr genMatchUnion(
+ConcreteExpr genMatchUnion(
 	ref ConcretizeCtx ctx,
 	ConcreteType returnType,
 	UriAndRange range,

@@ -35,7 +35,6 @@ import model.ast :
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind, TypeContainer;
 import model.model :
-	bestCasePurity,
 	BuiltinType,
 	ByValOrRef,
 	Called,
@@ -76,30 +75,29 @@ import model.model :
 	TypeParams,
 	UnionMember,
 	VariantAndMethodImpls,
-	Visibility,
-	worstCasePurity;
+	Visibility;
 import util.alloc.stackAlloc : withStackArray;
 import util.col.array :
 	arrayOfSingle,
 	eachPair,
 	emptySmallArray,
+	exists,
 	fold,
 	isEmpty,
 	map,
-	mapOp,
 	mapOpPointers,
+	mapOpPointersWithSoFar,
 	mapPointers,
-	mapZip,
 	small,
 	SmallArray,
 	zipPtrFirst;
 import util.col.hashTable : HashTable, makeHashTable;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe, todo;
+import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
 
 void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 	if (has(modifier.typeArg)) {
@@ -198,7 +196,7 @@ SmallArray!Signature checkSignatures(
 		return Signature(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
 
-SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
+private SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -206,31 +204,49 @@ SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 	StructDecl* struct_,
 	ref StructDeclAst ast,
 ) =>
-	mapOpPointers!(VariantAndMethodImpls, ModifierAst)(ctx.alloc, ast.modifiers, (ModifierAst* mod) {
-		if (mod.isA!(ModifierAst.Keyword)) {
-			ModifierAst.Keyword* kw = &mod.as!(ModifierAst.Keyword)();
-			if (kw.keyword == ModifierKeyword.variantMember) {
-				if (has(kw.typeArg)) {
-					Type variantType = typeFromAst(
-						ctx, commonTypes, structsAndAliasesMap,
-						force(kw.typeArg), ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
-					if (variantType.isA!(StructInst*) &&
-						variantType.as!(StructInst*).decl.body_.isA!(StructBody.Variant))
-						return some(VariantAndMethodImpls(kw, variantType.as!(StructInst*)));
-					else {
-						if (!variantType.isBogus)
-							addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, variantType)));
-						return none!VariantAndMethodImpls;
-					}
-				} else {
-					addDiag(ctx, kw.range, Diag(Diag.VariantMemberMissingVariant()));
+	mapOpPointersWithSoFar!(VariantAndMethodImpls, ModifierAst)(
+		ctx.alloc, ast.modifiers, (ModifierAst* mod, in VariantAndMethodImpls[] soFar) {
+			Opt!VariantAndMethodImpls res = getVariantMemberTypeFromModifier(
+				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, mod);
+			if (has(res) && exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
+					x.variant.decl == force(res).variant.decl)) {
+				addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
+				return none!VariantAndMethodImpls;
+			} else
+				return res;
+		});
+
+private Opt!VariantAndMethodImpls getVariantMemberTypeFromModifier(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* struct_,
+	ModifierAst* mod,
+) {
+	if (mod.isA!(ModifierAst.Keyword)) {
+		ModifierAst.Keyword* kw = &mod.as!(ModifierAst.Keyword)();
+		if (kw.keyword == ModifierKeyword.variantMember) {
+			if (has(kw.typeArg)) {
+				Type type = typeFromAst(
+					ctx, commonTypes, structsAndAliasesMap,
+					force(kw.typeArg), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+				if (type.isA!(StructInst*) && type.as!(StructInst*).decl.body_.isA!(StructBody.Variant))
+					return some(VariantAndMethodImpls(kw, type.as!(StructInst*)));
+				else {
+					if (!type.isBogus)
+						addDiag(ctx, kw.range, Diag(Diag.VariantMemberOfNonVariant(struct_, type)));
 					return none!VariantAndMethodImpls;
 				}
-			} else
+			} else {
+				addDiag(ctx, kw.range, Diag(Diag.VariantMemberMissingVariant()));
 				return none!VariantAndMethodImpls;
+			}
 		} else
 			return none!VariantAndMethodImpls;
-	});
+	} else
+		return none!VariantAndMethodImpls;
+}
 
 void checkVariantMethodImpls(ref CheckCtx ctx, ref CommonTypes commonTypes, FunsMap funsMap, StructDecl[] structs) {
 	foreach (ref StructDecl struct_; structs) {

@@ -113,7 +113,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
-import util.util : enumConvert, max, roundUp, todo, typeAs;
+import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : OS, VersionInfo;
 
 private alias TypeArgsScope = SmallArray!ConcreteType;
@@ -452,12 +452,10 @@ private:
 ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	TypeArgsScope typeScope = key.typeArgs;
 	ConcreteType returnType = getConcreteType(ctx, key.decl.returnType, typeScope);
-	SmallArray!ConcreteLocal params = concretizeFunctionParams(ctx, paramsArray(key.decl.params), typeScope);
+	SmallArray!ConcreteLocal params = map(ctx.alloc, paramsArray(key.decl.params), (ref Destructure x) =>
+		concretizeParamDestructure(ctx, x, typeScope));
 	return allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key), returnType, params));
 }
-
-SmallArray!ConcreteLocal concretizeFunctionParams(ref ConcretizeCtx ctx, Destructure[] params, TypeArgsScope typeArgsScope) =>
-	small!ConcreteLocal(map(ctx.alloc, params, (ref Destructure x) => concretizeParamDestructure(ctx, x, typeArgsScope)));
 
 public SmallArray!ConcreteLocal concretizeLambdaParams(
 	ref ConcretizeCtx ctx,

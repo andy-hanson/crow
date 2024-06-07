@@ -57,8 +57,7 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParamsAndSig,
-	UnionMember,
-	worstCasePurity;
+	UnionMember;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, exists, isEmpty, only;
@@ -70,7 +69,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
 import util.uri : baseName, compareUriAlphabetically, Uri;
-import util.util : stringOfEnum, max, todo;
+import util.util : stringOfEnum, max;
 import util.writer :
 	makeStringWithWriter,
 	writeFloatLiteral,
@@ -1309,6 +1308,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.VariantMemberMissingVariant x) {
 			writer ~= "'variant-member' needs a variant.";
+		},
+		(in Diag.VariantMemberMultiple x) {
+			writer ~= "Type ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= " can't declare itself a member of the same variant ";
+			writeName(writer, ctx, x.variant.name);
+			writer ~= " multiple times.";
 		},
 		(in Diag.VariantMemberOfNonVariant x) {
 			writer ~= "Not a variant: ";

@@ -14,7 +14,6 @@ import model.model :
 	Module,
 	NameReferents,
 	RecordField,
-	Signature,
 	SpecDecl,
 	StructAlias,
 	StructDecl,

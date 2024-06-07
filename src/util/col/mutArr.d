@@ -3,7 +3,7 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.array : arrayOfRange, endPtr, findIndex, small, SmallArray;
+import util.col.array : findIndex;
 import util.memory : copyToFrom, initMemory;
 import util.opt : optOrDefault;
 

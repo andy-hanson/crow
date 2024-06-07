@@ -3,7 +3,7 @@ module frontend.check.check;
 @safe @nogc pure nothrow:
 
 import frontend.allInsts : AllInsts;
-import frontend.check.checkFuns : checkFuns, checkReturnTypeAndParams, getExternLibraryName, ReturnTypeAndParams;
+import frontend.check.checkFuns : checkFuns, getExternLibraryName;
 import frontend.check.checkCtx :
 	addDiag,
 	addDiagAssertSameUri,
@@ -45,24 +45,19 @@ import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	CommonTypes,
-	Destructure,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
 	ImportOrExport,
 	ImportOrExportKind,
-	isPurityAlwaysCompatible,
 	Module,
 	nameFromNameReferents,
 	NameReferents,
-	Params,
-	purityRange,
 	SpecDecl,
 	SpecDeclBody,
 	Signature,
 	SpecInst,
 	StructAlias,
-	StructBody,
 	StructDecl,
 	StructInst,
 	StructOrAlias,
@@ -75,7 +70,6 @@ import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
-	arrayOfSingle,
 	concatenate,
 	exists,
 	filter,

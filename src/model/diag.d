@@ -606,6 +606,10 @@ immutable struct Diag {
 	}
 	immutable struct VarargsParamMustBeArray {}
 	immutable struct VariantMemberMissingVariant {}
+	immutable struct VariantMemberMultiple {
+		StructDecl* member;
+		StructDecl* variant;
+	}
 	immutable struct VariantMemberOfNonVariant {
 		StructDecl* member;
 		Type actual;
@@ -737,6 +741,7 @@ immutable struct Diag {
 		Unused,
 		VarargsParamMustBeArray,
 		VariantMemberMissingVariant,
+		VariantMemberMultiple,
 		VariantMemberOfNonVariant,
 		VariantMethodImplVisibility,
 		VisibilityWarning,

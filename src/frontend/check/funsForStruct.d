@@ -48,7 +48,6 @@ import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
-import util.util : todo;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));

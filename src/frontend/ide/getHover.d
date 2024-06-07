@@ -58,7 +58,7 @@ import util.conv : safeToUint;
 import util.opt : force, has;
 import util.sourceRange : PosKind;
 import util.uri : Uri;
-import util.util : stringOfEnum, todo;
+import util.util : stringOfEnum;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedChar, writeQuotedString, Writer;
 
 Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) =>

@@ -41,7 +41,7 @@ import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.integralValues : IntegralValue;
 import util.string : CString, cStringSize;
-import util.util : castImmutable, castNonScope, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope, ptrTrustMe;
 
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.

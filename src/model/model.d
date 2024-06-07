@@ -36,6 +36,7 @@ import util.col.array :
 	newArray,
 	only,
 	PtrAndSmallNumber,
+	small,
 	SmallArray,
 	sum;
 import util.col.hashTable : existsInHashTable, HashTable;
@@ -50,7 +51,7 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
-import util.util : enumConvertOrAssert, max, min, stringOfEnum, todo;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum;
 import versionInfo : VersionFun;
 
 alias Purity = immutable Purity_;
@@ -119,7 +120,7 @@ immutable struct Type {
 
 bool isEmptyType(in CommonTypes commonTypes, in Type a) =>
 	isVoid(commonTypes, a) || isEmptyRecord(*a.as!(StructInst*).decl);
-bool isEmptyRecord(in StructDecl a) =>
+private bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
 
 PurityRange purityRange(Type a) =>
@@ -133,9 +134,6 @@ PurityRange purityRange(Type a) =>
 
 Purity bestCasePurity(Type a) =>
 	purityRange(a).bestCase;
-
-Purity worstCasePurity(Type a) =>
-	purityRange(a).worstCase;
 
 LinkageRange linkageRange(Type a) =>
 	a.matchIn!LinkageRange(
@@ -164,12 +162,12 @@ immutable struct Params {
 				Arity(Arity.Varargs()));
 }
 
-Destructure[] paramsArray(return scope Params a) =>
-	a.matchWithPointers!(Destructure[])(
+SmallArray!Destructure paramsArray(return scope Params a) =>
+	a.matchWithPointers!(SmallArray!Destructure)(
 		(Destructure[] x) =>
-			x,
+			small!Destructure(x),
 		(Params.Varargs* x) =>
-			arrayOfSingle(&x.param));
+			small!Destructure(arrayOfSingle(&x.param)));
 
 Destructure[] assertNonVariadic(Params a) =>
 	a.as!(Destructure[]);

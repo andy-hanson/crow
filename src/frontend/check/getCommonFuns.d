@@ -23,7 +23,6 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
-	Linkage,
 	Local,
 	LocalMutability,
 	LocalSource,
@@ -33,12 +32,9 @@ import model.model :
 	Params,
 	ParamShort,
 	ParamsShort,
-	Purity,
-	StructBody,
 	StructInst,
 	StructOrAlias,
 	StructDecl,
-	StructDeclSource,
 	Type,
 	TypeParamIndex,
 	TypeParams,
@@ -48,7 +44,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
-	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small, SmallArray;
+	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, map, sizeEq, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;

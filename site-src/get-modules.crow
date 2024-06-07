@@ -61,8 +61,6 @@ get-modules module[](paths string[], remove-prefix string) summon
 		a.to-union-decl union-decl
 	as "variant"
 		a.to-variant-decl variant-decl
-	as "variant-member"
-		a.to-variant-member-decl variant-member-decl
 	else
 		throw "Unexpected export kind {kind}" error
 
@@ -82,6 +80,8 @@ get-modules module[](paths string[], remove-prefix string) summon
 
 -to-record-decl record-decl(a json)
 	purity: a get-purity
+	variants: for x : a["variants"].list-or-null!
+		x to-type-ref
 	fields: for x : a["fields"].list!
 		x to-record-field
 	has-non-public-fields: a["has-non-public-fields"].bool-or-null!
@@ -112,9 +112,6 @@ get-modules module[](paths string[], remove-prefix string) summon
 
 -to-variant-decl variant-decl(a json)
 	a.get-purity,
-
-to-variant-member-decl variant-member-decl(a json)
-	a["variant"].to-type-ref, (a["type"] != null ? a.get-type,)
 
 -get-name symbol(a json)
 	a["name"].symbol!
