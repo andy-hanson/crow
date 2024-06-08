@@ -1,0 +1,15 @@
+###
+Tests of successful edge cases in the crow parser.
+Error tests go in test/end-to-end/parse-errors .
+###
+
+dummy-crow-parser nat()
+	0
+
+test
+	x string =
+	###
+	comment
+	###
+	"hello"
+	x is "hello"

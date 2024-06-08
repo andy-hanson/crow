@@ -57,6 +57,7 @@ import
 	./unit/auto-funs: dummy-auto-funs
 	./unit/conditions: dummy-conditions
 	./unit/closures: dummy-closures
+	./unit/crow-parser: dummy-crow-parser
 	./unit/exceptions: dummy-exceptions
 	./unit/gc-roots: dummy-gc-roots
 	./unit/log: dummy-log
@@ -77,6 +78,7 @@ main void() summon
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
 	_ = dummy-conditions
+	_ = dummy-crow-parser
 	_ = dummy-closures
 	_ = dummy-exceptions
 	_ = dummy-gc-roots

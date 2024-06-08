@@ -104,7 +104,7 @@ void skipSpacesAndComments(ref MutCString ptr, in CbComment cbComment, in AddDia
 					cbComment(start, takeRestOfBlockComment(ptr, addDiag));
 				else
 					cbComment(start, takeRestOfLine(ptr));
-				return;
+				continue;
 			default:
 				return;
 		}
@@ -157,7 +157,7 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 bool mayContinueOntoNextLine(ref MutCString ptr) {
 	while (tryTakeChar(ptr, ' ')) {}
 	if (tryTakeNewline(ptr)) {
-		while (tryTakeNewline(ptr) || tryTakeChar(ptr, ' ')) {}
+		while (tryTakeNewline(ptr) || tryTakeChar(ptr, '\t') || tryTakeChar(ptr, ' ')) {}
 		return true;
 	} else
 		return false;
