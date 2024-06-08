@@ -5,7 +5,7 @@ module interpret.runBytecode;
 import frontend.showModel : ShowCtx;
 import interpret.bytecode :
 	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPointerToOperationPointer, initialOperationPointer, Operation;
-import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
+import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, logBacktrace, printDebugInfo;
 import interpret.extern_ : countParameterEntries, DoDynCall, doDynCall, DynCallSig, FunPointer, sizeWords;
 import interpret.stacks :
 	assertStacksAtOriginalState,
@@ -45,8 +45,9 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in CString[] allArgs,
-) =>
-	withDefaultStacks!ExitCode((ref Stacks stacks) =>
+) {
+	resetThreadLocals();
+	return withDefaultStacks!ExitCode((ref Stacks stacks) =>
 		withInterpreter!ExitCode(doDynCall, printCtx, lowProgram, byteCode, stacks, () {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(ulong) allArgs.ptr);
@@ -54,6 +55,7 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 				runBytecodeInner(stacks, initialOperationPointer(byteCode))
 			)(perf, PerfMeasure.run);
 		}));
+}
 
 private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
@@ -310,6 +312,10 @@ private void opThreadLocalPtrInner(ref Stacks stacks, ref Operation* cur) {
 @safe pure size_t maxThreadLocalsSizeWords() =>
 	256;
 private static ulong[maxThreadLocalsSizeWords] threadLocalsStorage;
+private @safe void resetThreadLocals() {
+	foreach (ref ulong x; threadLocalsStorage)
+		x = 0;
+}
 
 alias opReadWords(size_t pointerOffsetWords, size_t nWordsToRead) =
 	operation!(opReadWordsInner!(pointerOffsetWords, nWordsToRead));
@@ -444,6 +450,10 @@ private void opInterpreterBacktraceInner(ref Stacks stacks, ref Operation* cur) 
 	ensureStackAllocInitialized();
 	BacktraceEntry* res = fillBacktrace(debugInfo, out_, max, skip, stacks);
 	dataPush(stacks, cast(size_t) res);
+}
+
+public void debugLogInterpreterBacktrace(in Stacks stacks) {
+	logBacktrace(debugInfo, stacks);
 }
 
 private struct CatchPoint {

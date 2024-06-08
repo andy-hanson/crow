@@ -108,7 +108,7 @@ import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTab
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
-import util.late : Late, late, lateGet, lazilySet;
+import util.late : Late, late, lateGet, lateSet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
@@ -223,8 +223,15 @@ immutable struct ConcreteLambdaImpl {
 }
 
 immutable struct ConcreteVariantMemberAndMethodImpls {
+	@safe @nogc pure nothrow:
+
 	ConcreteType memberType;
-	Opt!(ConcreteFun*)[] methodImpls;
+	Late!(SmallArray!(Opt!(ConcreteFun*))) methodImpls_;
+
+	SmallArray!(Opt!(ConcreteFun*)) methodImpls() =>
+		lateGet(methodImpls_);
+	void methodImpls(SmallArray!(Opt!(ConcreteFun*)) value) =>
+		lateSet(methodImpls_, value);
 }
 
 immutable(ConcreteVar*[]) finishConcreteVars(ref ConcretizeCtx ctx) =>

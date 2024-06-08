@@ -71,8 +71,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 				checkExprAnyType(ctx, arg);
 		},
 		(in ConcreteExprKind.CreateUnion x) {
-			// TODO: validate 'type' is a union and this creates it
-			checkExprAnyType(ctx, x.arg);
+			checkExpr(ctx, mustBeByVal(type).body_.as!(ConcreteStructBody.Union).members[x.memberIndex], x.arg);
 		},
 		(in ConcreteExprKind.Drop x) {
 			assert(isVoid(type));

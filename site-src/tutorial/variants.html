@@ -1,56 +1,160 @@
 <section>
 	<h2>Variants</h2>
 	<p>
-		A <code class="keyword">variant</code> is like a <code class="keyword">union</code>,
-		except its members can be declared anywhere.
+		A <code class="keyword">variant</code> is a type that acts like a <code class="keyword">union</code>
+		of each type that declares itself a <code class="keyword">variant-member</code>.
 		<br />
-		So, unlike for a <code class="keyword">union</code>,
-		you don't know all the members of a <code class="keyword">variant</code>,
-		since other unrelated modules could add new members.
+		A variant is open-ended, somewhat like an <code class="keyword">abstract class</code> in other languages.
+		Or you could think of it as a union that's been scattered into separate declarations.
 	</p>
-
-	<crow-runnable>
-		main void()
-			info log "{15.verified-id is-adult}"
-			info log "{60.verified-id is-adult}"
-			info log "{no-id is-adult}"
-
-		age variant
-		# These could even go in a different module.
-		verified-id variant-member(age, nat)
-		no-id variant-member(age)
-
-		is-adult bool(a age)
-			match a
-			as verified-id x
-				x >= 18
-			as no-id
-				false
-			# Required for variants (since we don't know if other members might exist)
-			else
-				false
-	</crow-runnable>
 
 	<p>
-		As with a <code class="keyword">union</code>, there is a getter function for each member
-		that returns an <code class="type">option</code>.
+		<code class="keyword">variant-member</code> is not a subtype;
+		the variant type and member type variant need explicit conversion.
+		<br />
+		It's also not inheritance. Making a type a <code class="keyword">variant-member</code> doesn't alter the type;
+		it alters the <em>variant</em> to have a new member.
+		<br />
+	</p>
+
+	<p>
+		<code class="keyword">variant-member</code> parses like any other modifier and can be mixed with them.
+		A type can have any number of <code class="keyword">variant-member</code> declarations.
+		So you could write: <code>r record(xs nat mut[]) mut, foo variant-member, bar variant-member</code>.
 	</p>
 
 	<crow-runnable>
 		main void()
-			a v = 7 m
-			if x ?= a m
-				info log "{x}"
+			info log 10.crow.describe
+			info log duck.describe
+
+			c crow = 11,
+			info log c.to.describe
+
+		bird variant
+		# These could even go in a different module.
+		crow record(height nat) bird variant-member
+		duck record bird variant-member
+
+		describe string(a bird)
+			match a
+			as crow x
+				"A {x.height}cm crow"
+			as duck
+				"A duck"
+			# 'else' is required for variants
+			else
+				"Something else"
+	</crow-runnable>
+
+
+	<p>
+		Each <code class="keyword">variant-member</code> generates these functions:
+	</p>
+	<ul class="bullets">
+		<li>A <code class="function">to</code> function for converting to the variant.</li>
+		<li>A function with the type's name that converts back from the variant to an option of the type.</li>
+		<li>
+			For records, a function with the type's name that constructs it as a variant directly.
+			(So you can write <code>10.crow</code> instead of <code>(10,)::crow.to</code>.)
+		</li>
+	</ul>
+
+	<crow-runnable>
+		main void()
+			m m = 7,
+			v v = m to
+			back m? = v m
+			if x ?= back
+				info log "{x value}"
 			()
 
 		v variant
-		m variant-member(v, nat)
+		m record(value nat) v variant-member
 	</crow-runnable>
 
+	<h2>Methods</h2>
+
 	<p>
-		You should generally prefer to use a <code class="keyword">union</code>
-		instead of a <code class="keyword">variant</code>.
+		Since variants are open-ended, it's not possible to handle all members in a <code class="keyword">match</code>.
 		<br />
-		They were added to support letting users define custom <code class="type">exception</code>s.
+		If you do want to make sure every member implements something, the variant can declare <em>method</em>s.
+		Then each <code class="keyword">variant-member</code> must appear in a scope
+		where the method is implemented for the member type.
+	</p>
+	<p>
+		Methods share the same syntax as <code class="keyword">spec</code> signatures.
+		Each method declared generates a function for calling it, where the variant is the first parameter.
+		<br />
+		Each method implementation should have the <code class="keyword">variant-memmber</code>
+		type as the first parameter.
+	</p>
+
+	<crow-runnable>
+		main void()
+			info log 10.crow.describe
+			info log duck.describe
+
+		bird variant
+			describe string()
+		crow record(height nat) bird variant-member
+		duck record bird variant-member
+
+		describe string(a crow)
+			"A {a height}cm crow"
+		describe string(_ duck)
+			"A duck"
+	</crow-runnable>
+
+	<aside class="small">
+		The method implementations are just regular functions.
+		<br />
+		They don't need anything to mark them as method implementations, they are in the searched for in the
+		<code class="keyword">variant-member</code>'s scope based on the method's signature.
+	</aside>
+
+	<p>
+		Methods can take any number of parameters. The variant is always inserted at the front.
+	</p>
+	<crow-runnable>
+		import
+			crow/math/vec
+
+		main void()
+			shapes shape[] = ((5, 5) circle 5), (0 rect 10, 0, 10)
+			for shape : shapes
+				info log "{shape has-point (1, 1)}"
+
+		shape variant
+			has-point bool(point vec2)
+		circle record(center vec2, radius float) shape variant-member
+		rect record(left float, right float, bottom float, top float) shape variant-member
+
+		has-point bool(a circle, point vec2)
+			(point - a.center).length &lt;= a.radius
+		has-point bool(a rect, point vec2)
+			a.left &lt;= point.x && point.x &lt;= a.right &&
+			a.bottom &lt;= point.y && point.y &lt;= a.top
+	</crow-runnable>
+
+	<h2>Variants vs unions</h2>
+
+	<p>
+		When in doubt, you should use a union.
+		Since all members of the union are known, you can <code class="keyword">match</code> on it
+		without needing an <code class="keyword">else</code> branch.
+	</p>
+	<p>
+		Since you can convert from a variant to its member types,
+		it's not the best option for an interface that is supposed to be only accessed through its methods.
+		For that, instead use {{tutorial/lambdas}}.
+	</p>
+	<p>
+		The advantage of a variant is extensibility. For example, the code defining <code class="type">exception</code>
+		doesn't need to know every exception that might exist, so it's a <code class="keyword">variant</code>
+		to allow other code to define exceptions.
+		<br />
+		In the case of exceptions, we do want to be able to convert to the particular exception type,
+		and not just rely on an interface common to all exceptions.
 	</p>
 </section>

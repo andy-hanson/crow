@@ -642,15 +642,22 @@ public size_t ensureVariantMember(
 		ctx.alloc,
 		mustGet(ctx.variantStructToMembers, mustBeByVal(variantType)),
 		(in ConcreteVariantMemberAndMethodImpls member) => member.memberType == memberType,
-		() => ConcreteVariantMemberAndMethodImpls(memberType, variantMethodImpls(ctx, variantType, memberType)));
+		() => ConcreteVariantMemberAndMethodImpls(memberType),
+		(ref ConcreteVariantMemberAndMethodImpls x) {
+			x.methodImpls = variantMethodImpls(ctx, variantType, memberType);
+		});
 
-Opt!(ConcreteFun*)[] variantMethodImpls(ref ConcretizeCtx ctx, ConcreteType variantType, ConcreteType memberType) {
+SmallArray!(Opt!(ConcreteFun*)) variantMethodImpls(
+	ref ConcretizeCtx ctx,
+	ConcreteType variantType,
+	ConcreteType memberType,
+) {
 	ConcreteStructSource.Inst variantSource = mustBeByVal(variantType).source.as!(ConcreteStructSource.Inst);
 	ConcreteStructSource.Inst memberSource = memberType.struct_.source.as!(ConcreteStructSource.Inst);
 	VariantAndMethodImpls variantMember = mustFindOnly!VariantAndMethodImpls(
 		memberSource.decl.variants, (ref VariantAndMethodImpls x) =>
 			x.variant.decl == variantSource.decl);
-	return map(ctx.alloc, variantMember.methodImpls, (ref Opt!Called x) =>
+	return map!(Opt!(ConcreteFun*), Opt!Called)(ctx.alloc, variantMember.methodImpls, (ref Opt!Called x) =>
 		has(x) ? getConcreteFunFromCalled(ctx, memberSource.typeArgs, SpecsScope(), force(x)) : none!(ConcreteFun*));
 }
 

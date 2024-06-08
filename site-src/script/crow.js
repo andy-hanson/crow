@@ -197,6 +197,7 @@ const crowServer = (async () => {
 			assert(uri.endsWith("/crow-config.json"))
 			lsp.handleMessage({method: "custom/readFileResult", params:{uri, type:"notFound"}})
 		}
+		assert(lsp.request("custom/unloadedUris", {}).unloadedUris.length === 0)
 	}
 
 	for (const [path, text] of Object.entries(includeAll))

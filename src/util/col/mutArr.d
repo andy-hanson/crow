@@ -73,10 +73,14 @@ size_t findIndexOrPush(T)(
 	scope ref MutArr!T a,
 	in bool delegate(in T) @safe @nogc pure nothrow cbSearch,
 	in T delegate() @safe @nogc pure nothrow cbValue,
+	in void delegate(ref T) @safe @nogc pure nothrow cbAfterPush,
 ) =>
 	optOrDefault!size_t(findIndex!T(asTemporaryArray(a), cbSearch), () {
 		size_t res = mutArrSize(a);
-		push(alloc, a, cbValue());
+		T value = cbValue();
+		assert(mutArrSize(a) == res);
+		push(alloc, a, value);
+		cbAfterPush(a[res]);
 		return res;
 	});
 

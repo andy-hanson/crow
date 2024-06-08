@@ -189,9 +189,16 @@ Otherwise, this will be the path where `crow` is installed.
 +current-executable-path string() summon
 	"/proc/self/exe" read-link
 
++not-a-text-file record(path string) exception variant-member
++describe string(a not-a-text-file)
+	"File is not valid UTF-8: {a path}"
+
 # Reads the full contents of the file.
 +read-file string(path string) summon
-	path.read-file::nat8[] as-string
+	try
+		path.read-file::nat8[] as-string
+	catch unicode-decode-error
+		throw path not-a-text-file
 
 # Like 'read-file', but returns an empty string instead of throwing 'path-not-found'.
 +read-file-or-empty string(path string) summon
