@@ -75,6 +75,7 @@ CommonTypes* getCommonTypes(
 		array: array,
 		char8Array: instantiate1(ctx, array, char8),
 		char32Array: instantiate1(ctx, array, char32),
+		nat8Array: instantiate1(ctx, array, integrals.nat8),
 		list: list,
 		char8List: instantiate1(ctx, list, char8),
 		char32List: instantiate1(ctx, list, char32),

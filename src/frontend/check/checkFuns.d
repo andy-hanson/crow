@@ -18,13 +18,7 @@ import frontend.check.maps :
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
-	checkDestructure,
-	checkTypeParams,
-	DestructureKind,
-	getSpecFromCommonModule,
-	specFromAst,
-	typeFromAst,
-	typeFromAstNoTypeParamsNeverDelay;
+	checkDestructure, checkTypeParams, DestructureKind, getSpecFromCommonModule, specFromAst, typeFromAst;
 import model.ast :
 	DestructureAst,
 	EmptyAst,
@@ -194,11 +188,9 @@ FunDecl[] checkFunsInitial(
 					small!(immutable SpecInst*)(flagsAndSpecs.specs)));
 			}
 			foreach (ref ImportOrExportFile f; fileImports)
-				funsBuilder ~= funDeclForFileImportOrExport(
-					ctx, commonTypes, structsAndAliasesMap, f, Visibility.private_);
+				funsBuilder ~= funDeclForFileImportOrExport(ctx, commonTypes, f, Visibility.private_);
 			foreach (ref ImportOrExportFile f; fileExports)
-				funsBuilder ~= funDeclForFileImportOrExport(
-					ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_);
+				funsBuilder ~= funDeclForFileImportOrExport(ctx, commonTypes, f, Visibility.public_);
 
 			foreach (ref StructDecl struct_; structs)
 				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
@@ -275,7 +267,6 @@ FunBody getFileImportFunctionBody(ref CheckCtx ctx, Range range, in ImportOrExpo
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
 	ref ImportOrExportFile a,
 	Visibility visibility,
 ) {
@@ -284,29 +275,18 @@ FunDecl funDeclForFileImportOrExport(
 		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
 		ast.name.name,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.source.pathRange, ast.type),
+		typeForFileImport(commonTypes, ast.type),
 		Params([]),
 		FunFlags.generatedBare,
 		emptySpecs);
 }
 
-Type typeForFileImport(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in Range range,
-	ImportFileType type,
-) {
+Type typeForFileImport(ref CommonTypes commonTypes, ImportFileType type) {
 	final switch (type) {
 		case ImportFileType.nat8Array:
-			TypeAst nat8 = TypeAst(NameAndRange(range.start, symbol!"nat8"));
-			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, symbol!"array"));
-			scope TypeAst arrayNat8 = TypeAst(&suffixName);
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, arrayNat8);
+			return Type(commonTypes.nat8Array);
 		case ImportFileType.string:
-			//TODO: this sort of duplicates 'getStrType'
-			TypeAst ast = TypeAst(NameAndRange(range.start, symbol!"string"));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, structsAndAliasesMap, ast);
+			return Type(commonTypes.string_);
 	}
 }
 

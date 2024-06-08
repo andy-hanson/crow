@@ -1598,6 +1598,7 @@ immutable struct CommonTypes {
 	StructDecl* array;
 	StructInst* char8Array;
 	StructInst* char32Array;
+	StructInst* nat8Array;
 	StructDecl* list;
 	StructInst* char8List;
 	StructInst* char32List;
