@@ -430,6 +430,9 @@ void writeCallNoMatch(scope ref Writer writer, in ShowDiagCtx ctx, in Diag.CallN
 
 void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 	diag.matchIn!void(
+		(in Diag.AliasNotAllowed) {
+			writer ~= "An alias is not allowed to reference another alias in the same module.";
+		},
 		(in Diag.AssertOrForbidMessageIsThrow) {
 			writer ~= "The expression after the ':' for an assert or forbid is always thrown; it doesn't need 'throw'.";
 		},

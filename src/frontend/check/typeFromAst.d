@@ -45,6 +45,8 @@ import util.sourceRange : combineRanges, Range;
 import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, ptrTrustMe;
 
+enum AliasAllowed { differentModule, yes }
+
 private Type instStructFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
@@ -54,21 +56,29 @@ private Type instStructFromAst(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
+	AliasAllowed aliasAllowed,
 ) {
 	Opt!StructOrAlias opDecl = structOrAliasFromName(ctx, name, suffixRange, structsAndAliasesMap);
 	if (!has(opDecl))
 		return Type.bogus;
 	else {
 		StructOrAlias sOrA = force(opDecl);
-		Opt!Type typeArg = optTypeFromOptAst(
-			ctx, commonTypes, typeArgsAst, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+		Opt!Type typeArg = has(typeArgsAst)
+			? some(typeFromAst(
+				ctx, commonTypes, structsAndAliasesMap,
+				*force(typeArgsAst), typeParamsScope, delayStructInsts, aliasAllowed))
+			: none!Type;
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes, suffixRange, name, sOrA.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? sOrA.matchWithPointers!Type(
 				(StructAlias* a) {
 					assert(isEmpty(force(typeArgs)));
-					return Type(a.target);
+					if (aliasAllowed == AliasAllowed.differentModule && a.moduleUri == ctx.curUri) {
+						addDiag(ctx, suffixRange, Diag(Diag.AliasNotAllowed()));
+						return Type.bogus;
+					} else
+						return Type(a.target);
 				},
 				(StructDecl* decl) =>
 					Type(instantiateStruct(ctx.instantiateCtx, decl, force(typeArgs), delayStructInsts)))
@@ -170,7 +180,7 @@ Type typeFromAstNoTypeParamsNeverDelay(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in TypeAst ast,
 ) =>
-	typeFromAst(ctx, commonTypes, structsAndAliasesMap, ast, emptyTypeParams, noDelayStructInsts);
+	typeFromAst(ctx, commonTypes, structsAndAliasesMap, ast, emptyTypeParams, noDelayStructInsts, AliasAllowed.yes);
 
 Type typeFromAst(
 	ref CheckCtx ctx,
@@ -179,14 +189,15 @@ Type typeFromAst(
 	in TypeAst ast,
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
+	AliasAllowed aliasAllowed,
 ) =>
 	ast.match!Type(
 		(TypeAst.Bogus) =>
 			Type.bogus,
 		(ref TypeAst.Fun x) =>
-			typeFromFunAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts),
+			typeFromFunAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts, aliasAllowed),
 		(ref TypeAst.Map x) =>
-			typeFromMapAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts),
+			typeFromMapAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts, aliasAllowed),
 		(NameAndRange name) {
 			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, name.name);
 			return has(typeParam)
@@ -199,7 +210,8 @@ Type typeFromAst(
 					none!(TypeAst*),
 					structsAndAliasesMap,
 					typeParamsScope,
-					delayStructInsts);
+					delayStructInsts,
+					aliasAllowed);
 		},
 		(ref TypeAst.SuffixName x) {
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
@@ -218,7 +230,8 @@ Type typeFromAst(
 					some(&castNonScope_ref(x).left),
 					structsAndAliasesMap,
 					typeParamsScope,
-					delayStructInsts);
+					delayStructInsts,
+					aliasAllowed);
 		},
 		(ref TypeAst.SuffixSpecial x) =>
 			instStructFromAst(
@@ -229,21 +242,18 @@ Type typeFromAst(
 				some(&x.left),
 				structsAndAliasesMap,
 				typeParamsScope,
-				delayStructInsts),
+				delayStructInsts,
+				aliasAllowed),
 		(ref TypeAst.Tuple x) =>
-			typeFromTupleAst(ctx, commonTypes, x.members, structsAndAliasesMap, typeParamsScope, delayStructInsts));
-
-private Opt!Type optTypeFromOptAst(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in Opt!(TypeAst*) ast,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in TypeParams typeParamsScope,
-	MayDelayStructInsts delayStructInsts,
-) =>
-	has(ast)
-		? some(typeFromAst(ctx, commonTypes, structsAndAliasesMap, *force(ast), typeParamsScope, delayStructInsts))
-		: none!Type;
+			withMapToStackArray!(Type, Type, TypeAst)(
+				x.members,
+				(ref TypeAst member) =>
+					typeFromAst(
+						ctx, commonTypes, structsAndAliasesMap,
+						member, typeParamsScope, delayStructInsts, aliasAllowed),
+				(scope Type[] types) =>
+					makeTupleType(ctx, commonTypes, types, () =>
+						combineRanges(x.members[0].range, x.members[$ - 1].range))));
 
 Opt!(SpecInst*) specFromAst(
 	ref CheckCtx ctx,
@@ -259,7 +269,8 @@ Opt!(SpecInst*) specFromAst(
 		SpecDecl* spec = force(opSpec);
 		Opt!Type typeArg = has(ast.typeArg)
 			? some(typeFromAst(
-				ctx, commonTypes, structsAndAliasesMap, force(ast.typeArg), typeParamsScope, noDelayStructInsts))
+				ctx, commonTypes, structsAndAliasesMap,
+				force(ast.typeArg), typeParamsScope, noDelayStructInsts, AliasAllowed.yes))
 			: none!Type;
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes, ast.name.range, spec.name, spec.typeParams.length, &typeArg);
@@ -269,20 +280,6 @@ Opt!(SpecInst*) specFromAst(
 	} else
 		return none!(SpecInst*);
 }
-
-private Type typeFromTupleAst(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in TypeAst[] members,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in TypeParams typeParamsScope,
-	MayDelayStructInsts delayStructInsts,
-) =>
-	withMapToStackArray!(Type, Type, TypeAst)(
-		members,
-		(ref TypeAst x) => typeFromAst(ctx, commonTypes, structsAndAliasesMap, x, typeParamsScope, delayStructInsts),
-		(scope Type[] types) =>
-			makeTupleType(ctx, commonTypes, types, () => combineRanges(members[0].range, members[$ - 1].range)));
 
 private Opt!TypeParamIndex findTypeParam(in TypeParams typeParamsScope, Symbol name) {
 	Opt!size_t res = findIndex!NameAndRange(typeParamsScope, (in NameAndRange x) =>
@@ -339,9 +336,10 @@ private Type typeFromFunAst(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
+	AliasAllowed aliasAllowed,
 ) {
 	Type returnType = typeFromAst(
-		ctx, commonTypes, structsAndAliasesMap, ast.returnType, typeParamsScope, delayStructInsts);
+		ctx, commonTypes, structsAndAliasesMap, ast.returnType, typeParamsScope, delayStructInsts, aliasAllowed);
 	Type paramType = ast.params.matchIn!Type(
 		(in DestructureAst[] params) {
 			Opt!Type res = typeFromDestructures(
@@ -366,6 +364,7 @@ private Type typeFromMapAst(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
+	AliasAllowed aliasAllowed,
 ) {
 	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));
 	TypeAst typeArg = TypeAst(&tuple);
@@ -377,7 +376,8 @@ private Type typeFromMapAst(
 		some(ptrTrustMe(typeArg)),
 		structsAndAliasesMap,
 		typeParamsScope,
-		delayStructInsts);
+		delayStructInsts,
+		aliasAllowed);
 }
 
 Opt!(SpecDecl*) getSpecFromCommonModule(
@@ -420,7 +420,8 @@ Opt!Type typeFromDestructure(
 		(in DestructureAst.Single x) =>
 			has(x.type)
 				? some(typeFromAst(
-					ctx, commonTypes, structsAndAliasesMap, *force(x.type), typeParamsScope, delayStructInsts))
+					ctx, commonTypes, structsAndAliasesMap,
+					*force(x.type), typeParamsScope, delayStructInsts, AliasAllowed.yes))
 				: none!Type,
 		(in DestructureAst.Void) =>
 			some(Type(commonTypes.void_)),
@@ -477,7 +478,8 @@ Destructure checkDestructure(
 		(DestructureAst.Single x) {
 			Opt!Type declaredType = has(x.type)
 				? some(typeFromAst(
-					ctx, commonTypes, structsAndAliasesMap, *force(x.type), typeParamsScope, delayStructInsts))
+					ctx, commonTypes, structsAndAliasesMap,
+					*force(x.type), typeParamsScope, delayStructInsts, AliasAllowed.yes))
 				: none!Type;
 			Type type = getType(declaredType);
 			if (x.name.name == symbol!"_") {

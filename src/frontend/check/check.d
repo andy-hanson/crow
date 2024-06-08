@@ -27,7 +27,8 @@ import frontend.check.maps :
 	StructsAndAliasesMap;
 import frontend.check.instantiate :
 	DelaySpecInsts, DelayStructInsts, InstantiateCtx, instantiateSpecBody, instantiateStructTypes, noDelayStructInsts;
-import frontend.check.typeFromAst : checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+import frontend.check.typeFromAst :
+	AliasAllowed, checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.lang : maxSpecDepth;
 import model.ast :
 	FileAst,
@@ -252,7 +253,8 @@ void checkStructAliasTargets(
 	zip!(StructAlias, StructAliasAst)(aliases, asts, (ref StructAlias structAlias, ref StructAliasAst ast) {
 		Type type = typeFromAst(
 			ctx, commonTypes, structsAndAliasesMap,
-			ast.target, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+			ast.target, ast.typeParams, someMut(ptrTrustMe(delayStructInsts)),
+			AliasAllowed.differentModule);
 		assert(type.isA!(StructInst*) || type.isBogus); // since type aliases can't have type parameters
 		structAlias.target = type.isA!(StructInst*)
 			? type.as!(StructInst*)

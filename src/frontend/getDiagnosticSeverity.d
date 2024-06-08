@@ -7,6 +7,8 @@ import model.parseDiag : ParseDiag;
 
 DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 	a.matchIn!DiagnosticSeverity(
+		(in Diag.AliasNotAllowed) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.AssertOrForbidMessageIsThrow) =>
 			DiagnosticSeverity.warning,
 		(in Diag.AssignmentNotAllowed) =>

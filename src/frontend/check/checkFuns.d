@@ -18,7 +18,7 @@ import frontend.check.maps :
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
-	checkDestructure, checkTypeParams, DestructureKind, getSpecFromCommonModule, specFromAst, typeFromAst;
+	AliasAllowed, checkDestructure, checkTypeParams, DestructureKind, getSpecFromCommonModule, specFromAst, typeFromAst;
 import model.ast :
 	DestructureAst,
 	EmptyAst,
@@ -129,7 +129,8 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	MayDelayStructInsts delayStructInsts
 ) =>
 	ReturnTypeAndParams(
-		typeFromAst(ctx, commonTypes, structsAndAliasesMap, returnTypeAst, typeParams, delayStructInsts),
+		typeFromAst(
+			ctx, commonTypes, structsAndAliasesMap, returnTypeAst, typeParams, delayStructInsts, AliasAllowed.yes),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {

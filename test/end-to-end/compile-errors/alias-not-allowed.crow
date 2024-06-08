@@ -1,0 +1,8 @@
+main void()
+	_ bar = 1,
+
+foo alias
+	foo
+
+bar alias
+	foo[]

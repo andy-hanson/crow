@@ -114,6 +114,7 @@ alias ReadFileDiag = immutable ReadFileDiag_;
 immutable struct Diag {
 	@safe @nogc pure nothrow:
 
+	immutable struct AliasNotAllowed {}
 	immutable struct AssertOrForbidMessageIsThrow {}
 	immutable struct AssignmentNotAllowed {}
 
@@ -639,6 +640,7 @@ immutable struct Diag {
 	}
 
 	mixin Union!(
+		AliasNotAllowed,
 		AssertOrForbidMessageIsThrow,
 		AssignmentNotAllowed,
 		AutoFunError,

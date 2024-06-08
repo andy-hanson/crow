@@ -15,7 +15,7 @@ import frontend.check.checkFuns : checkReturnTypeAndParams, ReturnTypeAndParams;
 import frontend.check.exprCtx : LocalsInfo;
 import frontend.check.instantiate : DelayStructInsts, instantiateStructWithOwnTypeParams, MayDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
-import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
+import frontend.check.typeFromAst : AliasAllowed, checkTypeParams, typeFromAst;
 import model.ast :
 	DestructureAst,
 	EnumOrFlagsMemberAst,
@@ -230,7 +230,7 @@ private Opt!VariantAndMethodImpls getVariantMemberTypeFromModifier(
 			if (has(kw.typeArg)) {
 				Type type = typeFromAst(
 					ctx, commonTypes, structsAndAliasesMap,
-					force(kw.typeArg), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+					force(kw.typeArg), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes);
 				if (type.isA!(StructInst*) && type.as!(StructInst*).decl.body_.isA!(StructBody.Variant))
 					return some(VariantAndMethodImpls(kw, type.as!(StructInst*)));
 				else {
@@ -837,7 +837,7 @@ RecordField checkRecordField(
 	Type memberType = has(ast.type)
 		? typeFromAst(
 			ctx, commonTypes, structsAndAliasesMap, force(ast.type),
-			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
+			record.typeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes)
 		: () {
 			addDiag(ctx, ast.name.range, Diag(Diag.RecordFieldNeedsType(name)));
 			return Type.bogus;
@@ -867,7 +867,7 @@ UnionMember checkUnionMember(
 	Type type = has(ast.type)
 		? typeFromAst(
 			ctx, commonTypes, structsAndAliasesMap,
-			force(ast.type), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)))
+			force(ast.type), struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes)
 		: Type(commonTypes.void_);
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range, type);
 	if (has(ast.mutability))
@@ -912,7 +912,7 @@ IntegralType checkEnumOrFlagsModifiers(
 		if (has(x.typeArg)) {
 			Type type = typeFromAst(
 				ctx, commonTypes, structsAndAliasesMap,
-				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)));
+				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes);
 			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));

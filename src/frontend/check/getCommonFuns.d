@@ -348,7 +348,7 @@ VarDecl* getVarDecl(
 			kind,
 			TypeAst(TypeAst.Bogus(Range.empty)),
 			emptySmallArray!ModifierAst));
-		return allocate(alloc, VarDecl(ast, module_.uri, Visibility.public_, Type(Type.Bogus()), none!Symbol));
+		return allocate(alloc, VarDecl(ast, module_.uri, Visibility.public_, Type.bogus, none!Symbol));
 	}
 }
 
