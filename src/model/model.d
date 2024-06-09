@@ -838,6 +838,8 @@ enum BuiltinUnary {
 	deref,
 	drop,
 	enumToIntegral,
+	isNanFloat32,
+	isNanFloat64,
 	jumpToCatch,
 	referenceFromPointer,
 	setupCatch,
@@ -900,6 +902,8 @@ private enum BuiltinUnaryMath_ {
 	tanFloat64,
 	tanhFloat32,
 	tanhFloat64,
+	unsafeLogFloat32,
+	unsafeLogFloat64,
 }
 
 enum BuiltinBinary {

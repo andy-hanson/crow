@@ -49,7 +49,7 @@ export const getCrowServer = () => crowServer
 /** @type {ReadonlyArray<string & keyof Math>} */
 const mathKeys = [
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
-	"cos", "cosh", "sin", "sinh", "sqrt", "tan", "tanh",
+	"cos", "cosh", "log", "sin", "sinh", "sqrt", "tan", "tanh",
 ]
 
 /** @type {function(number): number)} */

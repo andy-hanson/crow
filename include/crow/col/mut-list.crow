@@ -4,7 +4,7 @@ import
 	../compare: <, <=, >
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, -, nat64
+	../number: ==, <=>, +, -, /, nat64
 	../option: new, option
 	../pointer:
 		+, -, as-const, mem-copy, mem-move, mut-pointer, reference-equal, set-deref, set-subscript,
@@ -303,6 +303,15 @@ Throws if `index >= a.size`.
 		a.backing[index .. a.size - 1] := a.temp-as-array[index + 1 .. a.size]
 		a.size -:= 1
 	res
+
++swap[t] void(a t mut[], i nat64, j nat64)
+	temp = a[i]
+	a[i] := a[j]
+	a[j] := temp
+
++reverse-in-place[t] void(a t mut[])
+	for i : 0::nat64 .. a.size / 2
+		a swap i, a.size - 1 - i
 
 region mutating iteration
 

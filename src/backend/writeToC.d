@@ -282,8 +282,10 @@ CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 			cString!"-Wno-unused-variable",
 			cString!"-Wno-unused-value",
 			cString!"-Ofast",
+			// Without this, 'is-nan' can return 'false' even for 'nan' values.
+			cString!"-fno-fast-math",
 		];
-		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [cString!"-g"];
+		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 2] ~ [cString!"-g"];
 		final switch (options.optimizationLevel) {
 			case OptimizationLevel.none:
 				return regularArgs;
@@ -1657,6 +1659,9 @@ WriteExprResult writeSpecialUnary(
 				}
 			});
 
+	WriteExprResult specialCall(in string name) =>
+		specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
+
 	final switch (a.kind) {
 		case BuiltinUnary.asAnyPointer:
 			return prefix("(uint8_t*) ");
@@ -1664,6 +1669,9 @@ WriteExprResult writeSpecialUnary(
 			return prefix("*");
 		case BuiltinUnary.drop:
 			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
+		case BuiltinUnary.isNanFloat32:
+		case BuiltinUnary.isNanFloat64:
+			return specialCall("__builtin_isnan");
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
@@ -1700,12 +1708,11 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.bitwiseNotNat64:
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
-			string name = ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
-			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
+			return specialCall(ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl");
 		case BuiltinUnary.jumpToCatch:
-			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "jump_to_catch");
+			return specialCall("jump_to_catch");
 		case BuiltinUnary.setupCatch:
-			return specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, "setup_catch");
+			return specialCall("setup_catch");
 	}
 }
 

@@ -296,13 +296,21 @@ string stripWhitespace(string a) {
 	return a;
 }
 
-bool tryTakeTripleHashThenNewline(ref MutCString ptr) =>
-	tryTakeChars(ptr, "###\r") || tryTakeChars(ptr, "###\n");
+bool tryTakeTripleHashThenNewline(ref MutCString ptr) {
+	MutCString ptr2 = ptr;
+	if (tryTakeChars(ptr2, "###")) {
+		if (tryTakeChar(ptr2, '\r') || tryTakeChar(ptr2, '\n') || cStringIsEmpty(ptr2)) {
+			ptr = ptr2;
+			return true;
+		} else
+			return false;
+	} else
+		return false;
+}
 
 // Returns the end of the comment text (ptr will be advanced further, past the '###')
 CString skipRestOfBlockComment(ref MutCString ptr, in AddDiag addDiag) {
 	while (true) {
-		skipRestOfLineAndNewline(ptr);
 		while (tryTakeChar(ptr, '\t') || tryTakeChar(ptr, ' ')) {}
 		CString end = ptr;
 		if (tryTakeTripleHashThenNewline(ptr))
@@ -311,5 +319,6 @@ CString skipRestOfBlockComment(ref MutCString ptr, in AddDiag addDiag) {
 			addDiag(ptr, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.blockCommentEnd)));
 			return end;
 		}
+		skipRestOfLineAndNewline(ptr);
 	}
 }

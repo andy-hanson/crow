@@ -1,3 +1,12 @@
+no-std
+import
+	../compare: >, >=
+	../exception: exception
+	../number: ==, <=>, /, float32, float64, to
+	../string: interpolate, string, to
+export
+	../private/number-low-level: unsafe-log
+
 +pi float64() bare
 	3.14159265358979323846
 +pi float32() bare
@@ -56,3 +65,21 @@
 +sinh float64(a float64) bare, builtin
 +tanh float32(a float32) bare, builtin
 +tanh float64(a float64) bare, builtin
+
++e float32() bare
+	2.718281828459045
++e float64() bare
+	2.718281828459045
+
+# Logarithm base E
++log float32(a float32) bare
+	assert a > 0 : a.to float-out-of-range
+	trusted a unsafe-log
++log float64(a float64) bare
+	assert a > 0 : a float-out-of-range
+	trusted a unsafe-log
+
++log float32(a float32, base float32) bare
+	a.log / base.log
++log float64(a float64, base float64) bare
+	a.log / base.log

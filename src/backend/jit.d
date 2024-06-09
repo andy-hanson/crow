@@ -1410,6 +1410,8 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 ) {
 	ExprResult builtin(BuiltinFunction x) =>
 		callBuiltinUnary(ctx, locals, emit, a.arg, x);
+	ExprResult builtinAndCast(BuiltinFunction x) =>
+		callBuiltinUnaryAndCast(ctx, locals, emit, a.arg, x, getGccType(ctx.types, type));
 	ExprResult callFn(const gcc_jit_function* func, bool noSideEffects = false) =>
 		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
 
@@ -1425,8 +1427,7 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 				getGccType(ctx.types, type),
 				emitToRValue(ctx, locals, a.arg)));
 		case BuiltinUnary.countOnesNat64:
-			return callBuiltinUnaryAndCast(
-				ctx, locals, emit, a.arg, BuiltinFunction.__builtin_popcountl, ctx.nat64Type);
+			return builtinAndCast(BuiltinFunction.__builtin_popcountl);
 		case BuiltinUnary.deref:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
@@ -1466,6 +1467,9 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 				null,
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, type)));
+		case BuiltinUnary.isNanFloat32:
+		case BuiltinUnary.isNanFloat64:
+			return builtinAndCast(BuiltinFunction.__builtin_isnan);
 		case BuiltinUnary.jumpToCatch:
 			return callFn(ctx.jumpToCatchFunction);
 		case BuiltinUnary.setupCatch:

@@ -20,11 +20,14 @@ enum BuiltinFunction {
 	atan2f,
 	atanh,
 	atanhf,
+	__builtin_isnan,
 	__builtin_popcountl,
 	cos,
 	cosf,
 	cosh,
 	coshf,
+	log,
+	logf,
 	round,
 	roundf,
 	sin,
@@ -97,6 +100,10 @@ BuiltinFunction builtinForUnaryMath(BuiltinUnaryMath a) {
 			return BuiltinFunction.sqrtf;
 		case BuiltinUnaryMath.sqrtFloat64:
 			return BuiltinFunction.sqrt;
+		case BuiltinUnaryMath.unsafeLogFloat32:
+			return BuiltinFunction.logf;
+		case BuiltinUnaryMath.unsafeLogFloat64:
+			return BuiltinFunction.log;
 	}
 }
 

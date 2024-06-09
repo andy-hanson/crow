@@ -1,7 +1,7 @@
 stats: {"gc-count":0,"cur-word":131166,"words-used":131166,"words-free":130978}
 a: a=1, b=2, c=3
-stats (after print): {"gc-count":0,"cur-word":131971,"words-used":131971,"words-free":130173}
+stats (after print): {"gc-count":0,"cur-word":132157,"words-used":132157,"words-free":129987}
 -- after gc --
 stats: {"gc-count":1,"cur-word":131175,"words-used":131175,"words-free":130969}
 a: a=1, b=2, c=3
-stats (after print): {"gc-count":1,"cur-word":131980,"words-used":131980,"words-free":130164}
+stats (after print): {"gc-count":1,"cur-word":132166,"words-used":132166,"words-free":129978}

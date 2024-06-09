@@ -5,7 +5,7 @@ module frontend.check.getBuiltinFun;
 import frontend.check.checkCall.checkCallSpecs : isEnumOrFlags, isFlags;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : isOptionType;
-import model.constant : constantBool, constantZero;
+import model.constant : Constant, constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
 	Builtin4ary,
@@ -62,6 +62,8 @@ FunBody inner(
 		addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.function_, name)));
 		return FunBody(FunBody.Bogus());
 	}
+	FunBody constant(bool returnTypeOk, Constant value) =>
+		returnTypeOk ? FunBody(BuiltinFun(value)) : fail();
 	FunBody unary(BuiltinUnary kind) =>
 		arity == 1 && kind != failUnary ? FunBody(BuiltinFun(kind)) : fail();
 	FunBody binary(BuiltinBinary kind) =>
@@ -256,6 +258,8 @@ FunBody inner(
 			return FunBody(EnumFunction.members);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
+		case symbol!"infinity".value:
+			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.infinity)));
 		case symbol!"interpreter-backtrace".value:
 			return ternary(BuiltinTernary.interpreterBacktrace);
 		case symbol!"is-less".value:
@@ -272,21 +276,26 @@ FunBody inner(
 				isFloat64(p0) ? BuiltinBinary.lessFloat64 :
 				isPointerConstOrMut(p0) ? BuiltinBinary.lessPointer :
 				failBinary);
+		case symbol!"is-nan".value:
+			return unary(
+				isBool(rt) && isFloat32(p0) ? BuiltinUnary.isNanFloat32 :
+				isBool(rt) && isFloat64(p0) ? BuiltinUnary.isNanFloat64 :
+				failUnary());
 		case symbol!"mark-root".value:
 			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
+		case symbol!"nan".value:
+			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"jump-to-catch".value:
 			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:
-			return isVoid(rt)
-				? FunBody(BuiltinFun(constantZero))
-				: fail();
+			return constant(isVoid(rt), constantZero);
 		case symbol!"null".value:
-			return FunBody(BuiltinFun(constantZero));
+			return constant(isPointerConstOrMut(rt), constantZero);
 		case symbol!"reference-equal".value:
 			return binary(BuiltinBinary.eqPointer);
 		case symbol!"round".value:
@@ -363,7 +372,7 @@ FunBody inner(
 				? BuiltinUnary.toPtrFromNat64
 				: failUnary);
 		case symbol!"true".value:
-			return FunBody(BuiltinFun(constantBool(true)));
+			return constant(isBool(rt), constantBool(true));
 		case symbol!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? BuiltinBinary.unsafeAddInt8
@@ -396,6 +405,8 @@ FunBody inner(
 				: isNat64(rt)
 				? BuiltinBinary.unsafeDivNat64
 				: failBinary);
+		case symbol!"unsafe-log".value:
+			return unaryMath(BuiltinUnaryMath.unsafeLogFloat32, BuiltinUnaryMath.unsafeLogFloat64);
 		case symbol!"unsafe-mod".value:
 			return isNat64(rt) ? binary(BuiltinBinary.unsafeModNat64) : fail();
 		case symbol!"unsafe-mul".value:
@@ -449,7 +460,7 @@ FunBody inner(
 				? BuiltinBinary.wrapSubNat64
 				: failBinary);
 		case symbol!"zeroed".value:
-			return FunBody(BuiltinFun(constantZero));
+			return constant(true, constantZero);
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"global-init".value:
@@ -563,6 +574,9 @@ bool isNat32(in Type a) =>
 
 bool isNat64(in Type a) =>
 	isBuiltin(a, BuiltinType.nat64);
+
+bool isFloat32Or64(in Type a) =>
+	isFloat32(a) || isFloat64(a);
 
 bool isFloat32(in Type a) =>
 	isBuiltin(a, BuiltinType.float32);

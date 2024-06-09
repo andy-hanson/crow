@@ -6,6 +6,7 @@ import interpret.bytecode : Operation;
 import interpret.runBytecode : opFnBinary, opFnUnary;
 import model.model : BuiltinBinaryMath, BuiltinUnaryMath;
 import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfLong, float32OfBits, float64OfBits;
+import util.util : isNan;
 
 private alias binaryFloat32s(alias cb) = opFnBinary!((ulong a, ulong b) =>
 	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b))));
@@ -77,6 +78,10 @@ Operation.Fn fnForUnaryMath(BuiltinUnaryMath a) {
 			return &unaryFloat32!((float a) => tanh(a));
 		case BuiltinUnaryMath.tanhFloat64:
 			return &unaryFloat64!((double a) => tanh(a));
+		case BuiltinUnaryMath.unsafeLogFloat32:
+			return &unaryFloat32!((float a) => log(a));
+		case BuiltinUnaryMath.unsafeLogFloat64:
+			return &unaryFloat64!((double a) => log(a));
 	}
 }
 
@@ -118,6 +123,10 @@ alias fnInt64FromInt16 = opFnUnary!((ulong a) =>
 	cast(ulong) (cast(long) (cast(short) a)));
 alias fnInt64FromInt32 = opFnUnary!((ulong a) =>
 	bitsOfLong(cast(long) (cast(int) a)));
+alias fnIsNanFloat32 = opFnUnary!((ulong a) =>
+	isNan(float32OfBits(a)));
+alias fnIsNanFloat64 = opFnUnary!((ulong a) =>
+	isNan(float64OfBits(a)));
 alias fnLessFloat32 = opFnBinary!((ulong a, ulong b) =>
 	float32OfBits(a) < float32OfBits(b));
 alias fnLessFloat64 = opFnBinary!((ulong a, ulong b) =>
@@ -193,6 +202,7 @@ extern(C) {
 	double cos(double x);
 	float cosf(float x);
 	double cosh(double x);
+	double log(double x);
 	double round(double x);
 	double sin(double x);
 	float sinf(float x);

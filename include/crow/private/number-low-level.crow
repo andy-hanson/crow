@@ -81,6 +81,9 @@ is-less bool(a nat64, b nat64) builtin, bare
 +== bool(a float32, b float32) builtin, bare
 +== bool(a float64, b float64) builtin, bare
 
++unsafe-log float32(a float32) bare, builtin, unsafe
++unsafe-log float64(a float64) bare, builtin, unsafe
+
 ~unsafe-mod nat64(a nat64, b nat64) builtin, bare, unsafe
 
 ~unsafe-to nat8(a nat64) builtin, bare, unsafe

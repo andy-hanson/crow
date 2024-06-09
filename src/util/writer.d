@@ -8,7 +8,7 @@ import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
 import util.unicode : isValidUnicodeCharacter, mustUnicodeEncode;
-import util.util : abs, debugLog, max;
+import util.util : abs, debugLog, isNan, max;
 
 T withStackWriterImpure(T)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
@@ -95,6 +95,13 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 	}
 }
 T withStackWriter(size_t nBytes, T)(
+	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
+	in T delegate(in string) @safe @nogc pure nothrow cbRes,
+) =>
+	withStackWriter!(nBytes, T)(
+		(scope ref Alloc _, scope ref Writer writer) { cb(writer); },
+		cbRes);
+T withStackWriter(size_t nBytes, T)(
 	in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb,
 	in T delegate(in string) @safe @nogc pure nothrow cbRes,
 ) =>
@@ -139,10 +146,14 @@ void writeHex(scope ref Writer writer, long a) {
 }
 
 void writeFloatLiteral(scope ref Writer writer, double a) {
-	// TODO: assert(!isNaN(a)); (needs an isnan function)
-
+	if (isNan(a))
+		writer ~= "NAN";
+	else if (a == double.infinity)
+		writer ~= "INFINITY";
+	else if (a == -double.infinity)
+		writer ~= "-INFINITY";
 	// Print simple floats as decimal
-	if ((cast(double) (cast(long) a)) == a) {
+	else if ((cast(double) (cast(long) a)) == a) {
 		// Being careful to handle -0
 		if (1.0 / a < 0)
 			writer ~= '-';
@@ -160,7 +171,7 @@ void writeFloatLiteral(scope ref Writer writer, double a) {
 		if (isNegative)
 			writer ~= '-';
 		writer ~= "0x1.";
-		writeHex(writer, fraction);
+		writeHex(writer, fraction, minDigits: 52 / 4);
 		writer ~= 'p';
 		writer ~= exponent;
 	}

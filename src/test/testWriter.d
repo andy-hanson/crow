@@ -2,18 +2,23 @@ module test.testWriter;
 
 @safe @nogc pure nothrow:
 
-import test.testUtil : Test;
-import util.string : stringsEqual;
-import util.writer : makeStringWithWriter, writeFloatLiteral, Writer;
+import test.testUtil : assertEqual, Test;
+import util.writer : withStackWriter, writeFloatLiteral, Writer;
 
-@trusted void testWriter(ref Test test) {
+void testWriter(ref Test test) {
 	void writes(double value, string expected) {
-		string actual = makeStringWithWriter(test.alloc, (scope ref Writer writer) {
-			writeFloatLiteral(writer, value);
-		});
-		assert(stringsEqual(actual, expected));
+		withStackWriter!0x1000(
+			(scope ref Writer writer) {
+				writeFloatLiteral(writer, value);
+			},
+			(in string actual) {
+				assertEqual(actual, expected);
+			});
 	}
 
+	writes(double.nan, "NAN");
+	writes(double.infinity, "INFINITY");
+	writes(-double.infinity, "-INFINITY");
 	writes(-0.0, "-0");
 	writes(0.0, "0");
 	writes(123, "123");
@@ -23,5 +28,5 @@ import util.writer : makeStringWithWriter, writeFloatLiteral, Writer;
 	writes(1.23, "0x1.3ae147ae147aep0");
 	writes(-1.23, "-0x1.3ae147ae147aep0");
 	writes(0.75, "0x1.8000000000000p-1");
-	writes(0.001, "0x1.624dd2f1a9fcp-10");
+	writes(0.001, "0x1.0624dd2f1a9fcp-10");
 }

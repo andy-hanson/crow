@@ -539,6 +539,7 @@ immutable string[] specialSymbols = [
 	"storageFileInfo",
 
 	// from names in compiled code
+	"__builtin_isnan",
 	"__builtin_popcountl",
 
 	// from compile
@@ -653,6 +654,7 @@ immutable string[] specialSymbols = [
 	"imports",
 	"include",
 	"includeDir",
+	"infinity",
 	"int16",
 	"int32",
 	"int64",
@@ -775,6 +777,7 @@ immutable string[] specialSymbols = [
 	"unknownUris",
 	"unsafe-add",
 	"unsafe-div",
+	"unsafe-log",
 	"unsafe-mod",
 	"unsafe-mul",
 	"unsafe-sub",

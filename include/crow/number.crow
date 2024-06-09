@@ -4,8 +4,8 @@ Other functions are in 'math.crow'
 
 no-std
 import
-	./bool: &&, bool, false, new, true
-	./compare: !=, <, <=, >, >=
+	./bool: &&, ||, bool, false, new, true
+	./compare: !=, <, <=, >, >=, min
 	./private/bootstrap: exception, string
 	./private/number-low-level:
 		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul,
@@ -279,23 +279,42 @@ unsafe-div float64(a float64, b float64) builtin, bare, unsafe
 	trusted a unsafe-div b
 
 # `a` to the power of `b`. Never throws.
-+** float32(a float32, b nat64) bare
-	if b == 0
++** float32(a float32, b int64) bare
+	if b < 0
+		1 / (a ** -b)
+	elif b == 0
 		1.0
 	else
-		a * a ** (b wrap-sub 1)
-+** float64(a float64, b nat64) bare
+		a * a ** (b - 1)
++** float64(a float64, b int64) bare
 	# TODO:PERF
-	if b == 0
+	if b < 0
+		1 / (a ** -b)
+	elif b == 0
 		1.0
 	else
-		a * a ** (b wrap-sub 1)
+		a * a ** (b - 1)
+
+###
+Not-a-Number value.
+'unsafe' because Crow generally throws exceptions instead of returning NaN.
+###
++nan float32() builtin, unsafe
++nan float64() builtin, unsafe
++infinity float32() builtin
++infinity float64() builtin
 
 # `true` iff `a` is "Not A Number".
-+is-nan bool(a float32) bare
-	a != a
-+is-nan bool(a float64) bare
-	a != a
++is-nan bool(a float32) builtin
++is-nan bool(a float64) builtin
+
++is-near-int bool(a float64)
+	a.round is-near a
++is-near bool(a float64, b float64)
+	diff = a - b abs
+	a == b || diff <= epsilon || diff <= epsilon * (a.abs min b.abs)
++epsilon float64()
+	2.22 * 10 ** (-16)
 
 region conversion
 

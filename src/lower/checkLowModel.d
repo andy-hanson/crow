@@ -289,6 +289,10 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asPointee(argType)), none!LowType);
 		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
+		case BuiltinUnary.isNanFloat32:
+			return expect(boolType, float32Type);
+		case BuiltinUnary.isNanFloat64:
+			return expect(boolType, float64Type);
 		case BuiltinUnary.jumpToCatch:
 			return expect(voidType, commonTypes.catchPointConstPointer);
 		case BuiltinUnary.setupCatch:
@@ -368,6 +372,7 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.sqrtFloat32:
 		case BuiltinUnaryMath.tanFloat32:
 		case BuiltinUnaryMath.tanhFloat32:
+		case BuiltinUnaryMath.unsafeLogFloat32:
 			return float32Type;
 		case BuiltinUnaryMath.acosFloat64:
 		case BuiltinUnaryMath.acoshFloat64:
@@ -383,6 +388,7 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.tanhFloat64:
 		case BuiltinUnaryMath.roundFloat64:
 		case BuiltinUnaryMath.sqrtFloat64:
+		case BuiltinUnaryMath.unsafeLogFloat64:
 			return float64Type;
 	}
 }

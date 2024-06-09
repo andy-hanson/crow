@@ -36,6 +36,9 @@ ulong abs(long a) =>
 double abs(double a) =>
 	a < 0 ? -a : a;
 
+bool isNan(double a) =>
+	a != a;
+
 T roundUp(T)(T a, T b) {
 	T res = roundUpRecur(a, b);
 	assert(res >= a);

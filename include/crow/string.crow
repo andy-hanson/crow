@@ -2,22 +2,23 @@ no-std
 import
 	./bits: ~, &, |, <<, >>, bits-intersect, has-all-bits
 	./bool: ||, bool, false, not, true
-	./compare: <, compare, comparison, equal
+	./compare: !=, <, <=, >, compare, comparison, equal
 	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
 	./col/collection:
-		build, build-options, drop-right-while, drop-while, for-break, for-loop, strip-right,
-		subscript, try-remove-end, try-split-once, with-block
+		build, build-options, drop-right-while, drop-while, for-break, for-loop, subscript,
+		try-remove-end, try-split-once, with-block
 	./col/list:
 		==, <=>, ~=, ~, ~~, ~~=, +, begin, build, collection, end, is-empty, iterate,
 		list, list-builder, list-cast, list-iterator, next, prev, size, slice, to
-	./col/mut-list: copy, move-to, mut-list, to
+	./col/mut-list:
+		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
 	./misc: loop-break, loop-continue, new, void
 	./number:
-		==, <=>, +, -, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
-		nat8, nat16, nat32, nat64, to, truncate-to
+		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
+		is-nan, is-near-int, min-value, nat8, nat16, nat32, nat64, to, round, truncate-to
 	./option: ??, force, new, option
 	./pointer: ==, <=>, const-pointer
 	./private/bootstrap: inner
@@ -195,6 +196,8 @@ Result is only digits, no punctuation.
 	a to-base 10
 
 -digit-to-string string(a nat64)
+	a.digit-to-char to
+-digit-to-char char32(a nat64)
 	match a
 	as 0
 		"0"
@@ -229,7 +232,7 @@ Result is only digits, no punctuation.
 	as 15
 		"f"
 	else
-		"?"
+		throw unreachable
 
 +to-binary string(a nat8)
 	a.to::nat64 to-binary
@@ -286,25 +289,58 @@ Result is only digits, no punctuation.
 +to string(a float32)
 	a.to::float64 to
 
-+to string(a float64)
++to string(a float64) trusted
 	guard !a.is-nan : "NaN"
-	pos = a.abs to-string-positive
-	a < 0 ? "-{pos}" : pos
+	guard a != infinity : "Infinity"
+	guard a != -infinity : "-Infinity"
+	guard a != a.truncate-to::int64.to : a.truncate-to to
+	guard a > 0 : a == 0 ? "0" : "-{-a}"
 
--to-string-positive string(a float64)
-	# TODO: Use a real float to string algorithm
-	times-1000 int64 = a * 1000.0 truncate-to
-	thousandths = times-1000 % 1000
-	whole-part string = "{times-1000 / 1000}"
-	hundredths = thousandths / 10
-	tenths = hundredths / 10
-	d0 = tenths digit-to-string
-	d1 = hundredths % 10 digit-to-string
-	d2 = thousandths % 10 digit-to-string
-	if thousandths == 0
-		whole-part
+	dec mut, exp mut = a to-decimal-and-exponent
+	# Ouptut in reverse
+	out char32 mut[] = ()
+	while dec != 0
+		digit = dec % 10
+		out ~= digit digit-to-char
+		dec /:= 10
+		exp +:= 1
+
+	out reverse-in-place
+	if exp <= 0
+		for _ : 0::nat64 .. exp.abs
+			out prepend= "0"
+		out prepend= "."
+		out prepend= "0"
+	elif exp.to::nat64 < out.size
+		out insert-at exp.to, "."
 	else
-		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
+		for _ : out.size .. exp.to
+			out ~= "0"
+	out.move-to::(char32 array) to
+
+-to-decimal-and-exponent (nat64, int64)(a float64)
+	assert a > 0
+	x mut = a
+	exp mut int64 = 0
+	while x < 1
+		x *:= 10
+		exp -:= 1
+
+	digits mut nat64 = 0
+	loop
+		if x.is-near-int || digits == 15
+			break
+		else
+			x *:= 10
+			exp -:= 1
+			digits +:= 1
+			continue
+
+	dec mut nat64 = x.round.to
+	while dec % 10 == 0
+		dec /:= 10
+		exp +:= 1
+	dec, exp
 
 +move-to string(a char8 mut[]) unsafe
 	a.move-to::(char8 array) to

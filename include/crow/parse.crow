@@ -468,7 +468,7 @@ This allows e.g. "+1.23".
 		if after-dot ?= iter try-take "."
 			if nd ?= after-dot take-nat-and-count-digits
 				# TODO: more accurate methods exist
-				nd.end, sign * (whole-part + nd.value.to * 0.1 ** nd.count-digits) ok
+				nd.end, sign * (whole-part + nd.value.to * 0.1 ** nd.count-digits.to) ok
 			else
 				iter, sign * whole-part ok
 		else
