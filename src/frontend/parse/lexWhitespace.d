@@ -240,8 +240,13 @@ void skipRestOfLineAndNewline(ref MutCString ptr) {
 	cast(void) tryTakeNewline(ptr);
 }
 
-bool tryTakeNewline(ref MutCString ptr) =>
-	tryTakeChar(ptr, '\r') || tryTakeChar(ptr, '\n');
+bool tryTakeNewline(ref MutCString ptr) {
+	if (tryTakeChar(ptr, '\r')) {
+		tryTakeChar(ptr, '\n');
+		return true;
+	} else
+		return tryTakeChar(ptr, '\n');
+}
 
 uint takeIndentAmountAfterNewline(ref MutCString ptr, IndentKind indentKind, in AddDiag addDiag) {
 	final switch (indentKind) {
@@ -299,7 +304,9 @@ string stripWhitespace(string a) {
 bool tryTakeTripleHashThenNewline(ref MutCString ptr) {
 	MutCString ptr2 = ptr;
 	if (tryTakeChars(ptr2, "###")) {
-		if (tryTakeChar(ptr2, '\r') || tryTakeChar(ptr2, '\n') || cStringIsEmpty(ptr2)) {
+		while (*ptr2 == ' ')
+			ptr2++;
+		if (tryTakeNewline(ptr2) || cStringIsEmpty(ptr2)) {
 			ptr = ptr2;
 			return true;
 		} else

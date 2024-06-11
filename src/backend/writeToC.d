@@ -1671,7 +1671,7 @@ WriteExprResult writeSpecialUnary(
 			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
-			return specialCall("__builtin_isnan");
+			return specialCall(ctx.isMSVC ? "isnan" : "__builtin_isnan");
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
