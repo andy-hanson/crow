@@ -50,7 +50,7 @@ binary-search-key[k, v] v?(a (k, v) array, key k) k compare
 				left := mid + 1
 				continue
 
-binary-search-exact[t] t mut-list-iterator?(a t mut[], compare comparison mut(elem t))
+binary-search-exact[t] t mut-list-iterator?(a t mut[], compare comparison data(elem t))
 	if iter ?= trusted a.temp-as-array binary-search-exact compare
 		a.begin + iter.next-index,
 
@@ -93,7 +93,7 @@ binary-search-exact[t] t array-iterator?(a t array, value t) t compare
 		else
 			break
 
-binary-search-exact[t] t array-iterator?(a t array, compare comparison mut(elem t))
+binary-search-exact[t] t array-iterator?(a t array, compare comparison data(elem t))
 	iter = a binary-search-insert compare
 	if pair ?= iter next
 		if compare[pair.a] == equal
@@ -103,10 +103,10 @@ binary-search-exact[t] t array-iterator?(a t array, compare comparison mut(elem 
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison mut(elem t))
+binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
-binary-search-insert[t] t mut-array-iterator(a t mut-array, compare comparison mut(elem t))
+binary-search-insert[t] t mut-array-iterator(a t mut-array, compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
 binary-search-insert[t] t array-iterator(a t array, value t) t compare
@@ -138,7 +138,7 @@ test
 	(a binary-search-insert x => 8::nat64 <=> x).next-index is 4
 
 # Returns an iterator that the element should be inserted to the right of.
--binary-search-insert[t] t array-iterator(a t array, compare comparison mut(elem t))
+-binary-search-insert[t] t array-iterator(a t array, compare comparison data(elem t))
 	left mut = a begin
 	right mut = a end
 	loop
@@ -168,7 +168,7 @@ assert-comparison-not-equal unique-comparison(a comparison)
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison mut(x t, y t))
+merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data(x t, y t))
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
