@@ -32,13 +32,12 @@ Comparison compareArrays(T)(in T[] a, in T[] b, in Comparer!T cb) {
 		if (comp != Comparison.equal)
 			return comp;
 	}
-	return compareSizeT(a.length, b.length);
+	return compareT(a.length, b.length);
 }
 
 alias compareChar = compareT!char;
 alias compareUint = compareT!uint;
 alias compareUlong = compareT!ulong;
-alias compareSizeT = compareT!size_t;
 
 private Comparison compareT(T)(T a, T b) =>
 	a < b

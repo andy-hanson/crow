@@ -370,11 +370,6 @@ private bool canWriteHyperlink() {
 	}
 }
 
-void writeSpaces(scope ref Writer writer, size_t nSpaces) {
-	foreach (size_t i; 0 .. nSpaces)
-		writer ~= ' ';
-}
-
 void writeNewline(scope ref Writer writer, size_t indent) {
 	writer ~= '\n';
 	foreach (size_t _; 0 .. indent)

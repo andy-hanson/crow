@@ -2,7 +2,6 @@ module util.col.array;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.alloc.stackAlloc : withStackArray;
-import util.comparison : Comparer, Comparison;
 import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
@@ -671,28 +670,6 @@ N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb
 size_t sum(T)(in T[] a, in size_t delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(size_t, T)(0, a, (size_t l, in T t) =>
 		size_t(l + cb(t)));
-
-size_t indexOfMax(T, U)(in U[] a, in T delegate(size_t, in U) @safe @nogc pure nothrow cb, Comparer!T compare) =>
-	indexOfMaxRecur!(T, U)(0, cb(0, a[0]), a, 1, cb, compare);
-
-private size_t indexOfMaxRecur(T, U)(
-	size_t indexOfMax,
-	in T maxValue,
-	in U[] a,
-	size_t index,
-	in immutable(T) delegate(size_t, in U) @safe @nogc pure nothrow cb,
-	in Comparer!T compare,
-) {
-	if (index == a.length)
-		return indexOfMax;
-	else {
-		T valueHere = cb(index, a[index]);
-		return compare(valueHere, maxValue) == Comparison.greater
-			// Using `index + 0` to avoid dscanner warning about 'index' not being the 0th parameter
-			? indexOfMaxRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
-			: indexOfMaxRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
-	}
-}
 
 void eachPair(T)(in T[] a, in void delegate(in T, in T) @safe @nogc pure nothrow cb) {
 	foreach (size_t i; 0 .. a.length)

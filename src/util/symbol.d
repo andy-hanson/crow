@@ -34,7 +34,8 @@ immutable struct Symbol {
 		hashUlong(value);
 
 	void writeTo(scope ref Writer writer) {
-		writeSymbolAndGetSize(writer, this);
+		foreach (char x; this)
+			writer ~= x;
 	}
 
 	int opApply(in int delegate(dchar) @safe @nogc pure nothrow cb) {
@@ -249,15 +250,6 @@ CString cStringOfSymbol(ref Alloc alloc, Symbol a) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writer ~= a;
 	});
-
-size_t writeSymbolAndGetSize(scope ref Writer writer, Symbol a) {
-	size_t size = 0;
-	foreach (char c; a) {
-		writer ~= c;
-		size++;
-	}
-	return size;
-}
 
 void writeQuotedSymbol(scope ref Writer writer, Symbol a) {
 	writer ~= '"';

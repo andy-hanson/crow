@@ -50,8 +50,7 @@ main nat(_ string[]) summon
 	"_assert", "__assert"
 -allow-exports symbol set()
 	# Allow members of TokenData; dscanner doesn't realize these aren't directly exports
-	"debugLogExpected", "diffSymbols", "main", "ignore",
-	"indentDelta", "literalFloat", "literalInt", "literalNat"
+	"debugLogExpected", "main", "ignore", "indentDelta", "literalFloat", "literalInt", "literalNat"
 -allow-paths string set()
 	# Ignore debugging.d because unused functions may be useful for debugging.
 	# Ignore union_.d because dscanner gets confused by the mixin.
