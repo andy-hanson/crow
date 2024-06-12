@@ -43,6 +43,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateImports) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.EmptyEnumOrUnion) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.EnumBackingTypeInvalid) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.EnumDuplicateValue) =>

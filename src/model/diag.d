@@ -253,6 +253,7 @@ immutable struct Diag {
 		Kind kind;
 		Symbol name;
 	}
+	immutable struct EmptyEnumOrUnion {}
 	immutable struct EnumBackingTypeInvalid {
 		StructDecl* enum_;
 		Type actual;
@@ -658,6 +659,7 @@ immutable struct Diag {
 		DuplicateDeclaration,
 		DuplicateExports,
 		DuplicateImports,
+		EmptyEnumOrUnion,
 		EnumBackingTypeInvalid,
 		EnumDuplicateValue,
 		ExpectedTypeIsNotALambda,

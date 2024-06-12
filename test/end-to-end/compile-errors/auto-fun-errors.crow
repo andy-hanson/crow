@@ -15,7 +15,7 @@ to json(a r, b r)
 ex extern
 
 == bool(a en, b en)
-en enum
+en enum(x)
 
 == comparison(a r, b r)
 <=> bool(a r, b r)

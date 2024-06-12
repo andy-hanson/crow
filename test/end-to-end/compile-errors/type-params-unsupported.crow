@@ -5,5 +5,5 @@ f[t] void() c extern
 ex[t] extern
 seq[t] alias
 	t[]
-e[t] enum
+e[t] enum(x)
 f[t] flags

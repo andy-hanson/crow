@@ -9,17 +9,15 @@ e extern mut
 
 ee extern extern
 
-en enum data
+en enum(x) data
 
 f flags data
 
 r record data
 
-u union data
-	r
+u union(x) data
 
-uv union by-val
-	r
+uv union(x) by-val
 
 dd extern data, data
 

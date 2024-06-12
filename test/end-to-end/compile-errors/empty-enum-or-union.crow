@@ -1,5 +1,5 @@
-main void()
-	()
+main void() unsafe
+	zeroed::e f
 
 f void(a u)
 	match a

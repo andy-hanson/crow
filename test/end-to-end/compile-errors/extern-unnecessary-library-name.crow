@@ -3,4 +3,4 @@ main void()
 
 f flags c extern
 r record c extern
-u union c extern
+u union(x) c extern

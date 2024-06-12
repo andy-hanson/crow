@@ -640,6 +640,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= " appears in multiple modules.";
 		},
+		(in Diag.EmptyEnumOrUnion x) {
+			writer ~= "An enum or union type must have at least one member.";
+		},
 		(in Diag.EnumBackingTypeInvalid x) {
 			writer ~= "Type ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.enum_)));

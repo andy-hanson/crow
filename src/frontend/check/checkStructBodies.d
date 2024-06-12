@@ -144,8 +144,8 @@ void checkStructBodies(
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
 				IntegralType storage = checkEnumOrFlagsModifiers(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers);
-				return StructBody(allocate(ctx.alloc, checkEnum(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage)));
+				return checkEnum(
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage);
 			},
 			(StructBodyAst.Extern x) =>
 				StructBody(checkExtern(ctx, ast, x)),
@@ -161,8 +161,7 @@ void checkStructBodies(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
 			(StructBodyAst.Union x) {
 				checkOnlyCommonModifiers(ctx, DeclKind.union_, ast.modifiers);
-				return StructBody(allocate(ctx.alloc,
-					checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts)));
+				return checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts);
 			},
 			(StructBodyAst.Variant x) {
 				checkOnlyCommonModifiers(ctx, DeclKind.variant, ast.modifiers);
@@ -492,7 +491,7 @@ bool isCommonModifier(in ModifierAst a) =>
 		(in SpecUseAst _) =>
 			false);
 
-StructBody.Enum checkEnum(
+StructBody checkEnum(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -511,7 +510,11 @@ StructBody.Enum checkEnum(
 					IntegralValue(force(lastValue).value + 1),
 					force(lastValue).asUnsigned() == maxValue(storage))
 				: ValueAndOverflow(IntegralValue(0), false));
-	return StructBody.Enum(storage, members.members, members.membersByName);
+	if (isEmpty(members.members)) {
+		addDiag(ctx, range, Diag(Diag.EmptyEnumOrUnion()));
+		return StructBody(StructBody.Bogus());
+	} else
+		return StructBody(allocate(ctx.alloc, StructBody.Enum(storage, members.members, members.membersByName)));
 }
 
 StructBody.Flags checkFlags(
@@ -703,11 +706,12 @@ StructBody.Record checkRecord(
 	return StructBody.Record(flags, fields);
 }
 
-StructBody.Union checkUnion(
+StructBody checkUnion(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
+	Range range,
 	ref StructBodyAst.Union ast,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
@@ -715,7 +719,7 @@ StructBody.Union checkUnion(
 		case Linkage.internal:
 			break;
 		case Linkage.extern_:
-			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternUnion()));
+			addDiag(ctx, range, Diag(Diag.ExternUnion()));
 	}
 	SmallArray!UnionMember members = checkRecordOrUnionMembers!UnionMember(
 		ctx, struct_, ast.params, ast.members, Diag.DuplicateDeclaration.Kind.unionMember,
@@ -725,7 +729,11 @@ StructBody.Union checkUnion(
 		makeHashTable!(UnionMember, Symbol, nameOfUnionMember)(ctx.alloc, members, (UnionMember* duplicateMember) {
 			// Diag already added in checkRecordOrUnionMembers
 		});
-	return StructBody.Union(members, membersByName);
+	if (isEmpty(members)) {
+		addDiag(ctx, range, Diag(Diag.EmptyEnumOrUnion()));
+		return StructBody(StructBody.Bogus());
+	} else
+		return StructBody(allocate(ctx.alloc, StructBody.Union(members, membersByName)));
 }
 
 // Shared in common between DestructureAst.Single and RecordOrUnionMemberAst

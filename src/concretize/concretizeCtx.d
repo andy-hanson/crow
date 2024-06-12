@@ -605,20 +605,12 @@ void initializeConcreteStruct(
 	ConcreteStruct* res,
 	in TypeArgsScope typeArgsScope,
 ) {
-	SmallArray!ConcreteType typeArgs() =>
-		res.source.as!(ConcreteStructSource.Inst).typeArgs;
 	inst.decl.body_.match!void(
-		(StructBody.Bogus) => assert(false),
+		(StructBody.Bogus) {
+			initializeConcreteStructForBuiltin(ctx, res, BuiltinType.void_);
+		},
 		(BuiltinType x) {
-			res.defaultReferenceKind = ReferenceKind.byVal;
-			if (x == BuiltinType.lambda) {
-				// Lambda types handled in 'finishLambdas'
-			} else {
-				res.info = ConcreteStructInfo(
-					ConcreteStructBody(allocate(ctx.alloc, ConcreteStructBody.Builtin(x, typeArgs))),
-					false);
-				res.typeSize = getBuiltinStructSize(x, ctx.versionInfo);
-			}
+			initializeConcreteStructForBuiltin(ctx, res, x);
 		},
 		(ref StructBody.Enum x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
@@ -668,6 +660,17 @@ void initializeConcreteStruct(
 			push(ctx.alloc, ctx.deferredTypeSize, res);
 			mustAdd(ctx.alloc, ctx.variantStructToMembers, res, MutArr!ConcreteVariantMemberAndMethodImpls());
 		});
+}
+
+void initializeConcreteStructForBuiltin(ref ConcretizeCtx ctx, ConcreteStruct* struct_, BuiltinType type) {
+	struct_.defaultReferenceKind = ReferenceKind.byVal;
+	if (type != BuiltinType.lambda) { // Lambda types handled in 'finishLambdas'
+		struct_.info = ConcreteStructInfo(
+			ConcreteStructBody(allocate(ctx.alloc, ConcreteStructBody.Builtin(
+				type, struct_.source.as!(ConcreteStructSource.Inst).typeArgs))),
+			false);
+		struct_.typeSize = getBuiltinStructSize(type, ctx.versionInfo);
+	}
 }
 
 TypeSize typeSizeForEnumOrFlags(IntegralType a) {

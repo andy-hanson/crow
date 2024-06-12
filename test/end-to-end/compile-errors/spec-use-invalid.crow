@@ -3,7 +3,7 @@ main void()
 
 nat64[t] builtin t equal
 
-e[t] enum t equal
+e[t] enum(x) t equal
 
 ex[t] extern t equal
 
@@ -11,4 +11,4 @@ f[t] flags t equal
 
 r[t] record t equal
 
-u[t] union t equal
+u[t] union(x) t equal
