@@ -1,0 +1,54 @@
+dummy-variant-template nat()
+	0
+
+test
+	1.x.f is 1
+	2::nat.x2.g is 2
+
+-v[t] variant mut
+-x[t] record(value t) t v variant-member
+-f nat(a nat v)
+	match a
+	as x x
+		x value
+	else
+		0
+
+-v2 variant mut
+-x2[t] record(value t) v2 variant-member
+-g nat(a v2)
+	match a
+	as x2 x nat x2
+		x value
+	else
+		0
+
+test
+	0::nat.foo.describe is "nat 0"
+	0::nat.foo.describe2 is "nat 0"
+	"a"::string.foo.describe is "string a"
+	"a"::string.foo.describe2 is "string a"
+	true.foo.describe is "other"
+	true.foo.describe2 is "other"
+
+-describe string(a v2)
+	match a
+	as nat-foo x
+		"nat {x.value}"
+	as string-foo x
+		"string {x.value}"
+	else
+		"other"
+-describe2 string(a v2)
+	match a
+	as foo x nat foo
+		"nat {x value}"
+	as foo x string foo
+		"string {x value}"
+	else
+		"other"
+-foo[t] record(value t) v2 variant-member
+-nat-foo alias
+	nat foo
+-string-foo alias
+	string foo

@@ -1,0 +1,16 @@
+dummy-comments nat()
+	0
+
+test
+	x string =
+	###
+	comment
+	### 
+	"hello"
+	###
+	###
+	x is "hello"
+
+###
+comment at end of file (no newline after)
+###

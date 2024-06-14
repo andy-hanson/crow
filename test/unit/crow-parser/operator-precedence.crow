@@ -1,0 +1,15 @@
+dummy-operator-precedence nat()
+	0
+
+test
+	xs nat mut[] = ()
+	a nat mut[]? = xs,
+	a ?? () foo= 3
+	xs.move-to::nat[] is (3,)
+
+foo= void(a nat mut[], b nat)
+	a ~= b
+
+test
+	(1::nat64) * 2 + 3 is 5
+	1::nat64 + 2 * 3 is 7

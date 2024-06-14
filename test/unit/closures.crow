@@ -33,3 +33,15 @@ test
 		x +:= 2
 	f[]
 	x is 5
+
+test
+	x mut foo = 0,
+	get foo mut() = () =>
+		x
+	set void mut() = () =>
+		x := 1,
+	get[].x is 0
+	set[]
+	get[].x is 1
+# Make this by-ref so that the mutable local must use a pointer to pointer
+-foo record(x nat) by-ref

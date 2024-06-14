@@ -1,0 +1,21 @@
+dummy-loops nat()
+	0
+
+test
+	x mut nat = 0
+	y nat = loop
+		if x == 5
+			break x * 2
+		else
+			x +:= 1
+			continue
+	x is 5
+	y is 10
+
+	until x == 15
+		x +:= 1
+	x is 15
+
+	while x > 10
+		x -:= 1
+	x is 10

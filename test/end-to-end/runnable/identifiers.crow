@@ -79,5 +79,3 @@ main void()
 	# Hangul
 	까마귀 string = "까마귀"
 	info log 까마귀
-
-	()

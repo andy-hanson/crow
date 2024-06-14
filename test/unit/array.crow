@@ -1,0 +1,22 @@
+dummy-array nat()
+	0
+
+test
+	res nat[] = for _ : ((), ())::(void array)
+		1
+	res is (1, 1)
+
+test
+	res nat[] = for i, _ : ((), ())::(void array) with-index
+		i
+	res is (0, 1)
+
+test
+	res nat[] = for _ : ((), ())::void[]
+		1
+	res is (1, 1)
+
+test
+	res nat[] = for i, _ : ((), ())::void[] with-index
+		i
+	res is (0, 1)

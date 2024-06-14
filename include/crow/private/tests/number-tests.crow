@@ -44,3 +44,6 @@ test
 	4.1.to::nat64 is 4
 	4.5.to::nat64 is 5
 	5.5.to::nat64 is 6
+
+test
+	"{0x0d15ea5e0d15ea5e::nat64 & ~7 to-hex}"::string is "d15ea5e0d15ea58"

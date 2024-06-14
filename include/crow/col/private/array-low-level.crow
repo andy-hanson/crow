@@ -10,7 +10,7 @@ import
 		pointer-cast, set-subscript, size-of
 	../../range: .., low, range, size
 	../../private/alloc: allocate
-	../../private/bootstrap: inner, mut-array, new, pointer, size
+	../../private/bootstrap: inner, mut-array, new, pointer, size, zeroed
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
@@ -58,7 +58,7 @@ Calls `f` for each element in `a`.
 		loop
 			if i == a.size
 				break false
-			elif f[*a.begin-pointer]
+			elif f[zeroed]
 				break true
 			else
 				i +:= 1

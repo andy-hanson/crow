@@ -24,7 +24,6 @@ Candidates (with 1 arguments):
 	'new[t] t future(value t)' (from include/crow/parallel.crow line 45)
 	'new[col] col parallel-collection(collection col)' (from include/crow/parallel.crow line 102)
 	'new invalid-unicode-character(character nat32)' (from include/crow/string.crow line 400)
-	'new test-failure(describe string)' (from include/crow/test-util.crow line 13)
 	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 262)
 Uncaught exception: Reached compile error
 	at main

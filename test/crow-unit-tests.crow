@@ -54,14 +54,7 @@ import
 	../include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
 	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
-	./unit/auto-funs: dummy-auto-funs
-	./unit/conditions: dummy-conditions
-	./unit/closures: dummy-closures
-	./unit/crow-parser: dummy-crow-parser
-	./unit/exceptions: dummy-exceptions
-	./unit/gc-roots: dummy-gc-roots
-	./unit/log: dummy-log
-	./unit/parallel: dummy-parallel
+	./unit/all: dummy-unit-tests
 
 main void() summon
 	license is "public domain"
@@ -73,29 +66,22 @@ main void() summon
 	_ = current-directory
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
-	_ = dummy-auto-funs
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
-	_ = dummy-conditions
-	_ = dummy-crow-parser
-	_ = dummy-closures
-	_ = dummy-exceptions
-	_ = dummy-gc-roots
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-map-tests
 	_ = dummy-index-set-tests
 	_ = dummy-json-tests
 	_ = dummy-list-tests
-	_ = dummy-log
 	_ = dummy-math-tests
 	_ = dummy-number-tests
-	_ = dummy-parallel
 	_ = dummy-set-tests
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests
 	_ = dummy-string-tests
+	_ = dummy-unit-tests
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)

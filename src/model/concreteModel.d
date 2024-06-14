@@ -87,6 +87,11 @@ bool isVoid(in ConcreteType a) =>
 	a.reference == ReferenceKind.byVal &&
 	a.struct_.body_.isA!(ConcreteStructBody.Builtin*) &&
 	a.struct_.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.void_;
+bool isEmptyType(in ConcreteType a) =>
+	isVoid(a) || (
+		a.reference == ReferenceKind.byVal &&
+		a.struct_.body_.isA!(ConcreteStructBody.Record) &&
+		isEmpty(a.struct_.body_.as!(ConcreteStructBody.Record).fields));
 
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef }

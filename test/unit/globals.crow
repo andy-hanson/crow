@@ -1,0 +1,28 @@
+import
+	crow/io/file: null-path, write-file
+
+dummy-globals nat()
+	0
+
+test trusted
+	glob := 33
+	results nat[] = for _ : 0::nat .. 100 parallel
+		# If 'foo' were thread-local, this would be uninitialized for some threads.
+		glob
+	results is for _ : 1::nat64 .. 101; 33
+	results[99] is 33
+	()
+-glob global(nat64)
+
+test summon, trusted
+	results nat[] = for x : 0::nat64 .. 100 parallel
+		tl := x
+		tl +:= 1
+		# This gives 'foo' time to change before returning,
+		# which would reliably cause the test to fail if 'foo' were global
+		null-path write-file "{x}"
+		tl
+	results is for x : 1::nat64 .. 101; x
+	results[99] is 100
+	()
+-tl thread-local(nat64)

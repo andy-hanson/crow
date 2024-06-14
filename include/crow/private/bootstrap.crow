@@ -384,6 +384,7 @@ For example, this might write it to the console.
 
 stack-pointer alias
 	nat64 mut*
+# The compiler creates these directly, so be careful about changing it.
 ~gc-root record by-val, mut
 	pointer void*
 	trace void function(ctx mark-ctx, pointer void*)

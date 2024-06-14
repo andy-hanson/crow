@@ -1,0 +1,19 @@
+dummy-extern-alignment void()
+	()
+
+test trusted
+	r r = (), (), ()
+	rp r* = &r
+	ap nat8* = &rp->a
+	bp nat8* = (&rp->b)::e* pointer-cast
+	cp nat8* = (&rp->c)::e* pointer-cast
+	bp - ap is 1
+	cp - ap is 5
+	size-of@r is 9
+
+-r record mut
+	a nat8
+	b e
+	c e
+
+-e extern(4, 1)

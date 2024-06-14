@@ -67,6 +67,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteMutability,
@@ -75,6 +76,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	isBogus,
+	isEmptyType,
 	isSummon,
 	isVariadic,
 	isVoid,
@@ -82,9 +84,10 @@ import model.concreteModel :
 	name,
 	purity,
 	returnType;
-import model.constant : asBool, Constant, constantBool, constantZero;
+import model.constant : asBool, asNat64, Constant, constantBool, constantZero;
 import model.model :
 	AssertOrForbidExpr,
+	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinFun,
 	Called,
@@ -333,8 +336,7 @@ ConcreteExpr concretizeCallInner(
 	}();
 	ConcreteExprKind kind = concreteArgs.match!ConcreteExprKind(
 		(Constant[] constants) {
-			Opt!Constant constant =
-				tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
+			Opt!Constant constant = tryEvalConstant(*concreteCalled, constants, ctx.concretizeCtx.versionInfo);
 			return has(constant)
 				? ConcreteExprKind(force(constant))
 				: genCallKindNoAllocArgs(concreteCalled, mapZip!(ConcreteExpr, ConcreteLocal, Constant)(
@@ -1308,14 +1310,23 @@ ConstantsOrExprs constantsOrExprsArr(
 
 Opt!Constant tryEvalConstant(
 	in ConcreteFun fn,
-	in Constant[] /*parameters*/,
+	in Constant[] args,
 	in VersionInfo versionInfo,
 ) =>
 	fn.body_.matchIn!(Opt!Constant)(
 		(in ConcreteFunBody.Builtin x) {
-			return x.kind.isA!VersionFun
-				? some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)))
-				: none!Constant;
+			if (x.kind.isA!VersionFun) {
+				assert(isEmpty(args));
+				return some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)));
+			} else if (x.kind.isA!BuiltinBinary) {
+				assert(args.length == 2);
+				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[0]);
+			} else if (x.kind.isA!(BuiltinFun.SizeOf)) {
+				return isEmptyType(only(fn.source.as!ConcreteFunKey.typeArgs))
+					? some(constantZero())
+					: none!Constant;
+			} else
+				return none!Constant;
 		},
 		(in EnumFunction _) => none!Constant,
 		(in ConcreteFunBody.Extern) => none!Constant,
@@ -1327,6 +1338,15 @@ Opt!Constant tryEvalConstant(
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant,
 		(in ConcreteFunBody.Deferred) => none!Constant);
+
+Opt!Constant tryEvalConstantBinary(BuiltinBinary fn, Constant arg0, Constant arg1) {
+	switch (fn) {
+		case BuiltinBinary.eqNat64:
+			return some(constantBool(asNat64(arg0) == asNat64(arg1)));
+		default:
+			return none!Constant;
+	}
+}
 
 ConcreteExpr concretizeFinally(
 	ref ConcretizeExprCtx ctx,

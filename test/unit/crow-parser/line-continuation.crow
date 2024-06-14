@@ -1,0 +1,13 @@
+\
+# comment
+dummy-line-continuation nat()
+	0
+
+main void()
+	x =
+		"a" ~~
+		"b"
+	y = x repeat \
+		2
+	y is \
+		"abab"

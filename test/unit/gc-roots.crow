@@ -141,7 +141,7 @@ test trusted
 	start = count-roots
 	x mut nat[] = (),
 	f void mut() = () =>
-		count-roots is start + 4
+		count-roots is start + 6
 		x := start blah
 	# It redundantly adds roots for 'x' and the reference to it used by the closure
 	count-roots is start + 3
@@ -149,5 +149,6 @@ test trusted
 	count-roots is start + 3
 	x is (1,)
 -blah nat[](start nat) trusted
-	count-roots is start + 4
+	count-roots is start + 7
+	yield-fiber
 	1,

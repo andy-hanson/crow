@@ -1,6 +1,0 @@
-main void()
-	a nat? = 1,
-	a ?? 2 foo= 3
-
-foo= void(a nat, b nat)
-	info log "{a} foo= {b}"

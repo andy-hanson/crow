@@ -1,0 +1,7 @@
+dummy-strings nat()
+	0
+
+test
+	"\xe1"::string is "á"
+	"\u30c3"::string is "ッ"
+	"\U0001f63c"::string is "😼"

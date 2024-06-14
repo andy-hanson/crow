@@ -5,18 +5,20 @@ Functions for use in tests.
 no-std
 import
 	./compare: equal
-	./exception: exception
+	./exception: error, exception
 	./json: json, to
 	./misc: new, to, void
 	./string: interpolate, string
 
-+test-failure record(describe string) exception variant-member
++expected-equal record(a json, b json) exception variant-member
++describe string(a expected-equal)
+	"Expected {a a} is {a b}"
 
 ###
 Asserts the the values are equal.
 ###
 +is[t] void(a t, b t) t equal, (json, t) to
-	assert a == b : "Expected {a to} is {b to}" test-failure
+	assert a == b : a.to expected-equal b.to
 
 ###
 Use this like so:
@@ -27,4 +29,4 @@ catch expected-exception x
 	<< assertions, or just '()' >>
 ###
 +should-throw void()
-	throw "Should have thrown a different exception before getting here" test-failure
+	throw "Should have thrown a different exception before getting here" error

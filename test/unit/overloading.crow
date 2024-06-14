@@ -1,0 +1,64 @@
+dummy-overloading nat()
+	0
+
+test
+	(zero range 3 foo) is "Called foo with 0 .. 3"
+	(zero range "" foo) is "Called foo with other range"
+	zero::int64 is 0
+
+-zero nat64()
+	0
+-zero int64()
+	0
+
+-foo string(a nat64 my-range)
+	"Called foo with {a.low} .. {a.high}"
+-foo string(_ my-other-range)
+	"Called foo with other range"
+
+-range[t] t my-range(a t, b t) t compare
+	a, b
+-range my-other-range(a nat64, b string)
+	a, b
+
+-my-range[t] record(low t, high t)
+-my-other-range record(low nat64, high string)
+
+test
+	1.f is "1 int"
+	"1".f is "1 string"
+
+-f string(a int)
+	"{a} int"
+-f string(a string)
+	"{a} string"
+
+test
+	x::e.bar is "enum x"
+	x::f.bar is "flags x"
+	x::e.call-bar is "enum x"
+	x::f.call-bar is "flags x"
+-e enum(x)
+-f flags(x)
+-bar[t] string(a t) t enum
+	"enum {a}"
+-bar[t] string(a t) t flags
+	"flags {a}"
+-bar[t] spec
+	bar string(a t)
+-call-bar[t] string(a t) t bar
+	a bar
+
+
+# Choose oerload based on lambda destructure
+test
+	(() => 1).foo is 1
+	((x nat) => x * 2).foo is 2
+	((s string) => s.size).foo is 3
+
+-foo nat(cb nat mut())
+	cb[]
+-foo nat(cb nat mut(x nat))
+	cb[1]
+-foo nat(cb nat mut(x string))
+	cb["one"]
