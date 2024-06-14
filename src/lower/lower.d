@@ -145,6 +145,7 @@ import util.col.arrayBuilder : add, addAndGetIndex, ArrayBuilder, buildArray, Bu
 import util.col.array :
 	applyNTimes,
 	emptySmallArray,
+	every,
 	exists,
 	foldReverse,
 	foldReverseWithIndex,
@@ -162,7 +163,7 @@ import util.col.array :
 	zipPtrFirst;
 import util.col.map : KeyValuePair, makeMapFromKeysOptional, makeMapWithIndex, mustGet, Map;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr;
-import util.col.mutArr : moveToArray, MutArr, mutArrSize, push;
+import util.col.mutArr : moveToArray, mustPop, MutArr, mutArrIsEmpty, mutArrSize, push;
 import util.col.mutMap : getOrAdd, moveToMap, mustAdd, mustGet, MutMap, MutMap;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -1127,9 +1128,15 @@ LowExpr getAllocExpr(ref GetLowExprCtx ctx, ExprPos exprPos, LowType type, UriAn
 
 // TODO: this should probably part of the expression 'type'
 bool mayHaveSideEffects(in LowExpr a) =>
-	!a.kind.isA!Constant && !a.kind.isA!(LowExprKind.LocalGet) && (
-		!a.kind.isA!(LowExprKind.CreateRecord) ||
-		exists!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => mayHaveSideEffects(x)));
+	!neverHasSideEffects(a);
+bool neverHasSideEffects(in LowExpr a) =>
+	a.kind.isA!Constant ||
+	a.kind.isA!(LowExprKind.LocalGet) ||
+	(a.kind.isA!(LowExprKind.CreateRecord) &&
+		every!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => neverHasSideEffects(x))) ||
+	(a.kind.isA!(LowExprKind.SpecialUnary*) &&
+		a.kind.as!(LowExprKind.SpecialUnary*).kind == BuiltinUnary.deref &&
+		neverHasSideEffects(a.kind.as!(LowExprKind.SpecialUnary*).arg));
 
 LowExpr getCallExpr(
 	ref GetLowExprCtx ctx,
@@ -1172,14 +1179,21 @@ LowExpr getCallRegular(
 ) {
 	if (called == ctx.currentFun && exprPos.kind == ExprPos.Kind.tail) {
 		ctx.hasTailRecur = true;
-		ArrayBuilder!UpdateParam updateParams;
+		MutArr!UpdateParam updateParams;
 		zipPtrFirst(ctx.lowParams, args, (LowLocal* param, ref ConcreteExpr concreteArg) {
 			LowExpr arg = getLowExpr(ctx, locals, concreteArg, ExprPos.nonTail);
 			if (!(arg.kind.isA!(LowExprKind.LocalGet) && arg.kind.as!(LowExprKind.LocalGet).local == param))
-				add(ctx.alloc, updateParams, UpdateParam(param, arg));
+				push(ctx.alloc, updateParams, UpdateParam(param, arg));
 		});
-		return handleExprPos(ctx, exprPos, LowExpr(
-			type, range, LowExprKind(LowExprKind.TailRecur(finish(ctx.alloc, updateParams)))));
+		if (mutArrIsEmpty(updateParams))
+			return popGcRootsThenDo(
+				ctx, exprPos.nGcRootsToPop,
+				LowExpr(type, range, LowExprKind(LowExprKind.TailRecur([]))));
+		else {
+			UpdateParam last = mustPop(updateParams);
+			push(ctx.alloc, updateParams, UpdateParam(last.param, handleExprPos(ctx, exprPos, last.newValue)));
+			return LowExpr(type, range, LowExprKind(LowExprKind.TailRecur(moveToArray(ctx.alloc, updateParams))));
+		}
 	} else
 		return withPushAllGcRoots(
 			ctx, locals, range, exprPos, ctx.curFunIsYielding && ctx.concreteProgram.yieldingFuns.has(concreteCalled),
@@ -1241,9 +1255,10 @@ LowExpr getRecordFieldSet(
 	genLetTempPossiblyGcRoot(
 		ctx, exprPos, range,
 		getLowExpr(ctx, locals, record, ExprPos.nonTail),
-		expressionMayYield(ctx, value), (ExprPos inner, LowExpr getRecord) =>
-		genRecordFieldSetNoGcRoot(
-			ctx.alloc, range, getRecord, fieldIndex, getLowExpr(ctx, locals, value, ExprPos.nonTail)));
+		expressionMayYield(ctx, value),
+		(ExprPos inner, LowExpr getRecord) =>
+			handleExprPos(ctx, inner, genRecordFieldSetNoGcRoot(
+				ctx.alloc, range, getRecord, fieldIndex, getLowExpr(ctx, locals, value, ExprPos.nonTail))));
 
 LowExpr genFlagsNegate(ref Alloc alloc, UriAndRange range, ulong allValue, LowExpr a) =>
 	genEnumIntersect(alloc, range, genBitwiseNegate(alloc, range, a), genConstantIntegral(a.type, range, allValue));

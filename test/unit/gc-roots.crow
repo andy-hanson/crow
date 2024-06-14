@@ -135,3 +135,19 @@ test trusted
 	as error e
 		count-roots is start + 1
 		forbid e.exception.divide-by-0.is-empty
+
+# Closure field set handles roots
+test trusted
+	start = count-roots
+	x mut nat[] = (),
+	f void mut() = () =>
+		count-roots is start + 4
+		x := start blah
+	# It redundantly adds roots for 'x' and the reference to it used by the closure
+	count-roots is start + 3
+	f[]
+	count-roots is start + 3
+	x is (1,)
+-blah nat[](start nat) trusted
+	count-roots is start + 4
+	1,

@@ -234,9 +234,9 @@ void checkLowExpr(ref FunCtx ctx, in LowType type, in LowExpr expr, in ExprPos e
 			foreach (ref LowExpr case_; x.caseExprs)
 				checkLowExpr(ctx, type, case_, exprPos);
 		},
-		(in LowExprKind.TailRecur it) {
+		(in LowExprKind.TailRecur x) {
 			assert(exprPos == ExprPos.tail);
-			foreach (ref UpdateParam update; it.updateParams)
+			foreach (ref UpdateParam update; x.updateParams)
 				checkLowExpr(ctx, update.param.type, update.newValue, ExprPos.nonTail);
 		},
 		(in LowExprKind.UnionAs x) {
