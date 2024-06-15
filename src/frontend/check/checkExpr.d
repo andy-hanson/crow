@@ -2136,7 +2136,7 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	// If inferred != type, we'll fail in 'check'
 	if (has(inferred) && force(inferred) == type)
-		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
+		addDiag2(ctx, ast.keywordAndTypeRange, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
 	return check(ctx, expected, type, source, ExprKind(allocate(ctx.alloc, TypedExpr(expr))));
 }

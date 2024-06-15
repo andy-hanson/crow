@@ -830,6 +830,8 @@ immutable struct TypedAst {
 
 	Range keywordRange() =>
 		rangeOfStartAndLength(colonPos, "::".length);
+	Range keywordAndTypeRange() =>
+		combineRanges(keywordRange, type.range);
 }
 
 immutable struct WithAst {
