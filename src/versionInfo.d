@@ -22,8 +22,12 @@ OS getOS() {
 pure:
 
 immutable struct VersionOptions {
+	@safe @nogc pure nothrow:
 	bool isSingleThreaded;
 	bool stackTraceEnabled;
+
+	static VersionOptions default_() =>
+		VersionOptions(isSingleThreaded: false, stackTraceEnabled: true);
 }
 
 immutable struct VersionInfo {

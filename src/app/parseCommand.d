@@ -35,7 +35,8 @@ Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
 	string arg0 = isEmpty(args) ? "" : stringOfCString(args[0]);
 	if (endsWith(arg0, ".crow"))
 		return Command(
-			CommandKind(CommandKind.Run(parseUriWithCwd(cwd, arg0), RunOptions(RunOptions.Interpret()), args[1 .. $])),
+			CommandKind(CommandKind.Run(
+				parseUriWithCwd(cwd, arg0), RunOptions(RunOptions.Interpret(VersionOptions.default_)), args[1 .. $])),
 			CommandOptions()) ;
 	else {
 		Opt!CommandName optName = optEnumOfString!CommandName(arg0);
