@@ -24,7 +24,7 @@ import model.model :
 	BuiltinTernary,
 	Local,
 	StructBody;
-import util.col.array : SmallArray;
+import util.col.array : isEmpty, SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap, indexOfPointer;
 import util.hash : HashCode, hashTaggedPointer;
@@ -531,6 +531,7 @@ immutable struct LowExprKind {
 		this(LowExpr value, IntegralValues caseValues, SmallArray!LowExpr caseExprs, LowExpr default_) {
 			this.value = value; this.caseValues = caseValues; this.caseExprs = caseExprs; this.default_ = default_;
 			assert(caseValues.length == caseExprs.length);
+			assert(!isEmpty(caseExprs));
 		}
 	}
 

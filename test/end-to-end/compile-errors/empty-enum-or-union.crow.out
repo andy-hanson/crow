@@ -1,7 +1,5 @@
 exit code: 1
 stderr:
-test/end-to-end/compile-errors/empty-enum-or-union.crow 5:11-5:12 Can only match on enum, union, variant, integral, symbol, string, or character type, not 'u'.
-test/end-to-end/compile-errors/empty-enum-or-union.crow 8:11-8:12 Can only match on enum, union, variant, integral, symbol, string, or character type, not 'e'.
 test/end-to-end/compile-errors/empty-enum-or-union.crow 10:1-10:7 An enum or union type must have at least one member.
 test/end-to-end/compile-errors/empty-enum-or-union.crow 12:1-12:8 An enum or union type must have at least one member.
 Uncaught exception: Reached compile error

@@ -39,14 +39,13 @@ import concretize.generate :
 	genCreateRecord,
 	genCreateUnion,
 	genDoAndContinue,
-	genDrop,
+	genDropAnd,
 	genError,
 	genLet,
 	genLocalPointer,
 	genLoop,
 	genNone,
 	genOr,
-	genSeq,
 	genStringLiteral,
 	genLocalSet,
 	genParamGet,
@@ -713,7 +712,7 @@ ConcreteExpr concretizeWithDestructureAndLet(
 		? genLet(ctx.alloc, type, range, force(then.rootLocal), value, then.expr)
 		: value.kind.isA!Constant
 		? then.expr
-		: genSeq(ctx.alloc, range, genDrop(ctx.concretizeCtx, range, value), then.expr);
+		: genDropAnd(ctx.concretizeCtx, range, value, then.expr);
 }
 
 RootLocalAndExpr concretizeWithDestructure(
@@ -1010,6 +1009,7 @@ ConcreteExpr concretizeMatchEnum(
 	in Locals locals,
 	ref MatchEnumExpr a,
 ) {
+	if (isEmpty(a.cases)) return concretizeBogus(ctx, type, range);
 	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
 	IntegralValues values = mapToIntegralValues!(MatchEnumExpr.Case)(a.cases, (ref MatchEnumExpr.Case x) =>
 		x.member.value);
@@ -1071,6 +1071,7 @@ ConcreteExpr concretizeMatchUnion(
 	in Locals locals,
 	ref MatchUnionExpr a,
 ) {
+	if (isEmpty(a.cases)) return concretizeBogus(ctx, type, range);
 	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
 	IntegralValues values = mapToIntegralValues!(MatchUnionExpr.Case)(a.cases, (ref MatchUnionExpr.Case x) =>
 		IntegralValue(x.member.memberIndex));
@@ -1092,6 +1093,7 @@ ConcreteExpr concretizeMatchVariant(
 	in Locals locals,
 	ref MatchVariantExpr a,
 ) {
+	if (isEmpty(a.cases)) return concretizeBogus(ctx, type, range);
 	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
 	ValuesAndCases vc = concretizeMatchVariantCases(ctx, type, range, locals, matched.type, a.cases);
 	ConcreteExpr* else_ = allocate(ctx.alloc, concretizeExpr(ctx, type, locals, a.else_));

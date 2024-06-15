@@ -469,6 +469,7 @@ immutable struct ConcreteExprKind {
 		this(ConcreteExpr m, IntegralValues cv, ConcreteExpr[] ce, Opt!(ConcreteExpr*) e) {
 			matched = m; caseValues = cv; caseExprs = ce; else_ = e;
 			assert(caseExprs.length == caseValues.length);
+			assert(!isEmpty(caseExprs));
 		}
 	}
 
@@ -485,6 +486,8 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct MatchUnion {
+		@safe @nogc pure nothrow:
+
 		immutable struct Case {
 			Opt!(ConcreteLocal*) local;
 			ConcreteExpr then;
@@ -494,6 +497,14 @@ immutable struct ConcreteExprKind {
 		IntegralValues memberIndices;
 		SmallArray!Case cases;
 		Opt!(ConcreteExpr*) else_;
+
+		this(ConcreteExpr m, IntegralValues mi, SmallArray!Case c, Opt!(ConcreteExpr*) e) {
+			matched = m;
+			memberIndices = mi;
+			cases = c;
+			else_ = e;
+			assert(!isEmpty(cases));
+		}
 	}
 
 	immutable struct RecordFieldGet {

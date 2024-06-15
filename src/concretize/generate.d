@@ -99,6 +99,9 @@ ConcreteExpr genSeq(ref Alloc alloc, in UriAndRange range, ConcreteExpr a, Concr
 	return ConcreteExpr(b.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Seq(a, b))));
 }
 
+ConcreteExpr genDropAnd(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
+	genSeq(ctx.alloc, range, genDrop(ctx, range, a), b);
+
 ConcreteExpr genContinue(ConcreteType type, in UriAndRange range) =>
 	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LoopContinue()));
 

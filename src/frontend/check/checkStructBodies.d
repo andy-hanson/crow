@@ -510,11 +510,9 @@ StructBody checkEnum(
 					IntegralValue(force(lastValue).value + 1),
 					force(lastValue).asUnsigned() == maxValue(storage))
 				: ValueAndOverflow(IntegralValue(0), false));
-	if (isEmpty(members.members)) {
+	if (isEmpty(members.members))
 		addDiag(ctx, range, Diag(Diag.EmptyEnumOrUnion()));
-		return StructBody(StructBody.Bogus());
-	} else
-		return StructBody(allocate(ctx.alloc, StructBody.Enum(storage, members.members, members.membersByName)));
+	return StructBody(allocate(ctx.alloc, StructBody.Enum(storage, members.members, members.membersByName)));
 }
 
 StructBody.Flags checkFlags(
@@ -729,11 +727,9 @@ StructBody checkUnion(
 		makeHashTable!(UnionMember, Symbol, nameOfUnionMember)(ctx.alloc, members, (UnionMember* duplicateMember) {
 			// Diag already added in checkRecordOrUnionMembers
 		});
-	if (isEmpty(members)) {
+	if (isEmpty(members))
 		addDiag(ctx, range, Diag(Diag.EmptyEnumOrUnion()));
-		return StructBody(StructBody.Bogus());
-	} else
-		return StructBody(allocate(ctx.alloc, StructBody.Union(members, membersByName)));
+	return StructBody(allocate(ctx.alloc, StructBody.Union(members, membersByName)));
 }
 
 // Shared in common between DestructureAst.Single and RecordOrUnionMemberAst

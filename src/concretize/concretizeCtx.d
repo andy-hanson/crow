@@ -607,7 +607,7 @@ void initializeConcreteStruct(
 ) {
 	inst.decl.body_.match!void(
 		(StructBody.Bogus) {
-			initializeConcreteStructForBuiltin(ctx, res, BuiltinType.void_);
+			assert(false);
 		},
 		(BuiltinType x) {
 			initializeConcreteStructForBuiltin(ctx, res, x);
