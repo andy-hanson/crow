@@ -697,7 +697,7 @@ FunDecl*[2] mustFindFunsNamed(
 }
 
 FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
-	mustFindPointer!FunDecl(module_.funs, (in FunDecl fun) => fun.name == name && cb(fun));
+	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));
 void eachFunNamed(in Module* module_, Symbol name, in void delegate(FunDecl*) @safe @nogc pure nothrow cb) {
 	foreach (ref FunDecl fun; module_.funs)
 		if (fun.name == name)

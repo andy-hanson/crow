@@ -23,6 +23,13 @@ void testIntegralValues(ref Test test) {
 		bigRangeReverse[i] = big - 1 - i;
 	assertRange(mapToIntegralValues!uint(bigRangeReverse, (ref const uint x) => IntegralValue(x)), big);
 
+	assert(arraysEqual(
+		mapToIntegralValues!uint([0, 1], (ref const uint x) => IntegralValue(x)),
+		integralValuesRange(2)));
+	assert(arraysEqual(
+		mapToIntegralValues!uint([1, 2], (ref const uint x) => IntegralValue(x)),
+		[IntegralValue(1), IntegralValue(2)]));
+
 	IntegralValues withHoles = mapToIntegralValues!uint([7, 1, 3], (ref const uint x) => IntegralValue(x));
 	assert(arraysEqual(withHoles.values, [IntegralValue(1), IntegralValue(3), IntegralValue(7)]));
 	IntegralValues withHoles2 = mapToIntegralValues!uint([3, 1, 7], (ref const uint x) => IntegralValue(x));

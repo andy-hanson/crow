@@ -145,6 +145,7 @@ import util.col.array :
 	mapZip,
 	mustFind,
 	mustFindOnly,
+	mustFindPointer,
 	newArray,
 	newSmallArray,
 	only,
@@ -1111,7 +1112,7 @@ ValuesAndCases concretizeMatchVariantCases(
 	IntegralValues values = mapToIntegralValues!(MatchVariantExpr.Case)(cases, (ref MatchVariantExpr.Case x) =>
 		memberIndexForMatchVariantCase(ctx, variantType, x));
 	SmallArray!(ConcreteExprKind.MatchUnion.Case) concreteCases = map(ctx.alloc, values, (ref IntegralValue value) {
-		MatchVariantExpr.Case case_ = mustFind!(MatchVariantExpr.Case)(cases, (ref MatchVariantExpr.Case x) =>
+		MatchVariantExpr.Case* case_ = mustFindPointer!(MatchVariantExpr.Case)(cases, (ref MatchVariantExpr.Case x) =>
 			memberIndexForMatchVariantCase(ctx, variantType, x) == value);
 		return toMatchUnionCase(concretizeExprWithDestructure(ctx, type, range, locals, case_.destructure, case_.then));
 	});

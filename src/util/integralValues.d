@@ -96,7 +96,7 @@ pure IntegralValues singleIntegralValue(in IntegralValue a) {
 				sortInPlace!IntegralValue(values, (in IntegralValue x, in IntegralValue y) =>
 					compareUlong(x.asUnsigned, y.asUnsigned));
 				assertSortedAndUnique!(IntegralValue, ulong)(values, (in IntegralValue x) => x.asUnsigned);
-				return (values[$ - 1].asUnsigned == values.length)
+				return values[$ - 1].asUnsigned == values.length - 1
 					? integralValuesRange(xs.length)
 					: getOrAddIntegralValues(values);
 			});
