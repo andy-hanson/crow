@@ -5,14 +5,14 @@ dummy-globals nat()
 	0
 
 test trusted
-	glob := 33
+	g := 33
 	results nat[] = for _ : 0::nat .. 100 parallel
 		# If 'foo' were thread-local, this would be uninitialized for some threads.
-		glob
+		g
 	results is for _ : 1::nat64 .. 101; 33
 	results[99] is 33
 	()
--glob global(nat64)
+-g global(nat64)
 
 test summon, trusted
 	results nat[] = for x : 0::nat64 .. 100 parallel

@@ -32,7 +32,7 @@ import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
-import util.util : todo;
+import util.util : stringOfEnum, todo;
 import util.writer : Writer;
 
 const struct MangledNames {
@@ -129,6 +129,10 @@ void writeLowVarMangledName(
 	LowVarIndex varIndex,
 	in LowVar var,
 ) {
+	if (var.kind != LowVar.Kind.externGlobal) {
+		writer ~= stringOfEnum(var.kind);
+		writer ~= '_';
+	}
 	writeMangledName(writer, mangledNames, var.name);
 	size_t index = mangledNames.varToNameIndex[varIndex];
 	if (index != 0) {
