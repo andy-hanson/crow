@@ -2,7 +2,7 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.candidates : funsInExprScope;
+import frontend.check.checkCall.candidates : Candidate, funsInExprScope;
 import frontend.check.checkCall.checkCall :
 	checkCall,
 	checkCallArgAnd2Lambdas,
@@ -11,6 +11,7 @@ import frontend.check.checkCall.checkCall :
 	checkCallNamed,
 	checkCallSpecial,
 	checkCallSpecialCb1,
+	checkCallSpecialCb2,
 	checkCallSpecialCbN,
 	findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.checkCallSpecs :
@@ -81,7 +82,6 @@ import model.ast :
 	DoAst,
 	EmptyAst,
 	ExprAst,
-	ExprAstKind,
 	FinallyAst,
 	ForAst,
 	IdentifierAst,
@@ -283,7 +283,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(AssertOrForbidAst a) =>
 			checkAssertOrForbid(ctx, locals, ast, a, expected),
 		(AssignmentAst* a) =>
-			checkAssignment(ctx, locals, ast, a.left, a.keywordRange, &a.right, expected),
+			checkAssignment(ctx, locals, ast, a.left, a.keywordRange, expected, (ref Expected rightExpected) =>
+				checkExpr(ctx, locals, &a.right, rightExpected)),
 		(AssignmentCallAst a) =>
 			checkAssignmentCall(ctx, locals, ast, a, expected),
 		(BogusAst _) =>
@@ -494,12 +495,12 @@ Expr checkAssignment(
 	ExprAst* source,
 	ref ExprAst left,
 	Range keywordRange,
-	ExprAst* right,
 	ref Expected expected,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbRight,
 ) {
 	if (left.kind.isA!IdentifierAst)
 		return checkAssignIdentifier(
-			ctx, locals, source, keywordRange, left.kind.as!IdentifierAst.name, right, expected);
+			ctx, locals, source, keywordRange, left.kind.as!IdentifierAst.name, expected, cbRight);
 	else if (left.kind.isA!CallAst) {
 		CallAst leftCall = left.kind.as!CallAst;
 		Opt!Symbol name = () {
@@ -518,18 +519,22 @@ Expr checkAssignment(
 			return checkCallSpecialCbN(
 				ctx, locals, source, keywordRange, force(name), expected, leftCall.args.length + 1,
 				(size_t i, ref Expected argExpected) =>
-					checkExpr(ctx, locals, i == leftCall.args.length ? right : &leftCall.args[i], argExpected));
+					i == leftCall.args.length
+						? cbRight(argExpected)
+						: checkExpr(ctx, locals, &leftCall.args[i], argExpected));
 		else {
 			addDiag2(ctx, source, Diag(Diag.AssignmentNotAllowed()));
 			return bogus(expected, source);
 		}
 	} else if (left.kind.isA!ArrowAccessAst) {
 		ArrowAccessAst leftArrow = left.kind.as!ArrowAccessAst;
-		return checkCallSpecial(
+		return checkCallSpecialCb2(
 			ctx, locals, source, keywordRange,
 			prependSetDeref(leftArrow.name.name),
-			[*leftArrow.left, *right],
-			expected);
+			expected,
+			(ref Expected argExpected) => checkExpr(ctx, locals, leftArrow.left, argExpected),
+			cbRight,
+			(scope ref Candidate[]) => true);
 	} else {
 		addDiag2(ctx, source, Diag(Diag.AssignmentNotAllowed()));
 		return bogus(expected, source);
@@ -542,13 +547,9 @@ Expr checkAssignmentCall(
 	ExprAst* source,
 	ref AssignmentCallAst ast,
 	ref Expected expected,
-) {
-	//TODO:NO ALLOC
-	ExprAst* call = allocate(ctx.alloc, ExprAst(
-		source.range,
-		ExprAstKind(CallAst(CallAst.style.infix, ast.funName, small!ExprAst(*ast.leftAndRight)))));
-	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange, call, expected);
-}
+) =>
+	checkAssignment(ctx, locals, source, ast.left, ast.keywordRange, expected, (ref Expected argExpected) =>
+		checkCallSpecial(ctx, locals, source, ast.funName.range, ast.funName.name, *ast.leftAndRight, argExpected));
 
 Expr checkEmptyNew(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in Range range, ref Expected expected) =>
 	checkCallSpecial(ctx, locals, source, range, symbol!"new", [], expected);
@@ -723,20 +724,20 @@ Expr checkAssignIdentifier(
 	ExprAst* source,
 	in Range keywordRange,
 	in Symbol left,
-	ExprAst* right,
 	ref Expected expected,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbRight,
 ) {
 	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, source, left);
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
-		Expr value = checkAndExpect(ctx, locals, right, var.type);
+		Expr value = withExpect(var.type, cbRight);
 		return var.variableRef.matchWithPointers!Expr(
 			(Local* local) =>
 				check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
 			(ClosureRef x) =>
 				check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
 	} else
-		return checkCallSpecial(ctx, locals, source, keywordRange, prependSet(left), [*right], expected);
+		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);
 }
 
 MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {

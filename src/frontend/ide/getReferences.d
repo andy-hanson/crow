@@ -257,7 +257,7 @@ void referencesForLocal(in Program program, Uri curUri, in PositionKind.LocalPos
 	if (has(body_))
 		eachDescendentExprIncluding(*program.commonTypes, force(body_).body_, (ExprRef x) {
 			Opt!(Local*) itsLocal = exprLocalReference(x.expr.kind);
-			if (has(itsLocal) && force(itsLocal) == a.local)
+			if (has(itsLocal) && force(itsLocal) == a.local && !x.expr.ast.kind.isA!AssignmentCallAst)
 				cb(UriAndRange(force(body_).container.moduleUri, x.expr.range));
 		});
 }

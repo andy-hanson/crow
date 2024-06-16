@@ -238,7 +238,7 @@ Expr checkCallSpecialCb1(
 		},
 		(scope ref Candidate[] candidates) => true);
 
-private Expr checkCallSpecialCb2(
+Expr checkCallSpecialCb2(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
