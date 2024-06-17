@@ -95,11 +95,11 @@ immutable struct TokenAndData {
 		assert(isNewlineToken(token));
 		return docComment;
 	}
-	LiteralFloatAst asLiteralFloat() {
+	@trusted LiteralFloatAst asLiteralFloat() {
 		assert(token == Token.literalFloat);
 		return literalFloat;
 	}
-	LiteralIntegral asLiteralIntegral() {
+	@trusted LiteralIntegral asLiteralIntegral() {
 		assert(token == Token.literalIntegral);
 		return literalIntegral;
 	}

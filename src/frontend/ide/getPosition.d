@@ -577,19 +577,22 @@ const struct ExprCtx {
 
 alias Loops = const StackMap!(LoopExpr*, ExprRef);
 
-Opt!PositionKind positionInExprRecur(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos pos) =>
+Opt!PositionKind positionInExprRecur(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos pos) =>
 	hasPos(a.expr.range, pos)
-		? optOr!PositionKind(positionAtExpr(ctx, loops, a, pos), () =>
-			a.expr.kind.isA!(LoopExpr*)
-				? positionInExprChild(ctx, stackMapAdd(loops, a.expr.kind.as!(LoopExpr*), a), a, pos)
-				: positionInExprChild(ctx, loops, a, pos))
+		? optOr!PositionKind(positionAtExpr(ctx, loops, a, pos), () {
+			if (a.expr.kind.isA!(LoopExpr*)) {
+				Loops inner = stackMapAdd(loops, a.expr.kind.as!(LoopExpr*), a);
+				return positionInExprChild(ctx, inner, a, pos);
+			} else
+				return positionInExprChild(ctx, loops, a, pos);
+		})
 		: none!PositionKind;
 
-Opt!PositionKind positionInExprChild(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos pos) =>
+Opt!PositionKind positionInExprChild(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos pos) =>
 	findDirectChildExpr!PositionKind(ctx.commonTypes, a, (ExprRef child) =>
 		positionInExprRecur(ctx, loops, child, pos));
 
-Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos pos) {
+Opt!PositionKind positionAtExpr(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos pos) {
 	ExprAst* ast = a.expr.ast;
 	PositionKind expressionPosition(ExpressionPositionKind x) =>
 		PositionKind(ExpressionPosition(ctx.container, a, x));
