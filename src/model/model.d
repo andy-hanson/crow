@@ -1503,17 +1503,24 @@ immutable struct ImportOrExport {
 	Module* modulePtr;
 	// If this is internal, imports internal and public exports; if this is public, import only public exports
 	ExportVisibility importVisibility;
-	ImportOrExportKind kind;
+	// If the ast was NameAndRange[], this will have an entry for each name (except when there was nothing to import).
+	// For an import of a ModuleWhole (except 'std'), this tracks what was actually used in this module.
+	// For a re-export of a ModuleWhole, this is not used.
+	Late!ImportedReferents imported_;
 
 	ref Module module_() return scope =>
 		*modulePtr;
+	ref ImportedReferents imported() return scope =>
+		lateGet(imported_);
+	void imported(ImportedReferents value) {
+		lateSet(imported_, value);
+	}
+	bool hasImported() scope =>
+		lateIsSet(imported_);
+	bool isStd() scope =>
+		!has(source);
 }
-
-// No File option since those become FunDecls
-immutable struct ImportOrExportKind {
-	immutable struct ModuleWhole {}
-	mixin TaggedUnion!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
-}
+alias ImportedReferents = HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer);
 
 immutable struct ImportFileContent {
 	immutable struct Bogus {}
@@ -1542,6 +1549,8 @@ immutable struct NameReferents {
 			: funs[0].name;
 }
 Symbol nameFromNameReferents(in NameReferents a) =>
+	a.name;
+Symbol nameFromNameReferentsPointer(in NameReferents* a) =>
 	a.name;
 
 enum FunKind {

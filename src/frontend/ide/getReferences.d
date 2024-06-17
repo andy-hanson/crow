@@ -233,7 +233,7 @@ void eachImportForName(in Program program, in Module* exportingModule, Symbol na
 	});
 }
 void eachImportForName(in Module importingModule, in ImportOrExport a, Symbol name, in ReferenceCb cb) {
-	if (has(a.source)) {
+	if (!a.isStd) {
 		ImportOrExportAst* source = force(a.source);
 		if (source.kind.isA!(NameAndRange[]))
 			foreach (NameAndRange x; source.kind.as!(NameAndRange[]))
@@ -755,7 +755,7 @@ Module* moduleOf(in Program program, Uri uri) =>
 
 void referencesForModule(in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
-		if (has(ie.source))
+		if (!ie.isStd)
 			cb(UriAndRange(importer.uri, force(ie.source).pathRange));
 	});
 }

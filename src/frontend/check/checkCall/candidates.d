@@ -99,14 +99,14 @@ void eachCandidate(
 	});
 }
 
-immutable struct FunsInScope {
-	SpecInst*[] outermostFunSpecs;
-	FunsMap funsMap;
+struct FunsInScope {
+	immutable SpecInst*[] outermostFunSpecs;
+	immutable FunsMap funsMap;
 	ImportAndReExportModules importsAndReExports;
 }
-FunsInScope funsInNonExprScope(ref const CheckCtx ctx, FunsMap funsMap) =>
+FunsInScope funsInNonExprScope(ref CheckCtx ctx, FunsMap funsMap) =>
 	FunsInScope([], funsMap, ctx.importsAndReExports);
-FunsInScope funsInExprScope(ref const ExprCtx ctx) =>
+FunsInScope funsInExprScope(ref ExprCtx ctx) =>
 	FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 
 private void eachFunInExprScope(

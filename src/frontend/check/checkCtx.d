@@ -3,16 +3,15 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import model.ast : NameAndRange, typeParamsRange, VisibilityAndRange;
+import model.ast : ImportOrExportAstKind, NameAndRange, typeParamsRange, VisibilityAndRange;
 import model.diag : DeclKind, Diag, Diagnostic;
 import model.model :
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
 	ImportOrExport,
-	ImportOrExportKind,
-	Module,
 	nameFromNameReferents,
+	nameFromNameReferentsPointer,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -21,10 +20,10 @@ import model.model :
 	TypeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists, isEmpty, SmallArray;
+import util.col.array : exists, isEmpty, mustFind, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
-import util.col.hashTable : existsInHashTable;
+import util.col.hashTable : getPointer, isEmpty, moveToImmutable, mustAdd, MutHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
@@ -39,7 +38,7 @@ struct CheckCtx {
 	InstantiateCtx instantiateCtx;
 	immutable CommonUris* commonUrisPtr;
 	immutable Uri curUri;
-	immutable ImportAndReExportModules importsAndReExports;
+	ImportAndReExportModules importsAndReExports;
 	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
 	UsedSet used;
 
@@ -94,7 +93,6 @@ void markUsed(ref CheckCtx ctx, StructOrAlias a) {
 }
 
 void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] structs, SpecDecl[] specs, FunDecl[] funs) {
-	checkUnusedImports(ctx);
 	void checkUnusedDecl(T)(T* decl) {
 		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
 			addDiagAssertSameUri(ctx, decl.nameRange, Diag(
@@ -111,30 +109,37 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 			checkUnusedDecl(&fun);
 }
 
-private void checkUnusedImports(ref CheckCtx ctx) {
+SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
+		if (import_.isStd) continue;
 		void addDiagUnused(Range range, Opt!Symbol name) {
 			addDiag(ctx, range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(import_.modulePtr, name)))));
 		}
-		import_.kind.match!void(
-			(ImportOrExportKind.ModuleWhole) {
-				if (!isUsedModuleWhole(ctx, import_.module_, import_.importVisibility) && has(import_.source))
+		force(import_.source).kind.match!void(
+			(ImportOrExportAstKind.ModuleWhole x) {
+				MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) imported;
+				foreach (ref NameReferents nr; import_.module_.exports) {
+					if (containsUsed(nr, import_.importVisibility, ctx.used))
+						mustAdd(ctx.alloc, imported, &nr);
+				}
+				import_.imported = moveToImmutable(imported);
+				assert(import_.hasImported);
+				if (isEmpty(import_.imported))
 					addDiagUnused(force(import_.source).pathRange, none!Symbol);
 			},
-			(Opt!(NameReferents*)[] referents) {
-				foreach (size_t index, Opt!(NameReferents*) x; referents)
-					if (has(x) && !containsUsed(*force(x), import_.importVisibility, ctx.used)) {
-						NameAndRange nr = force(import_.source).kind.as!(NameAndRange[])[index];
-						assert(nr.name == force(x).name);
-						addDiagUnused(nr.range, some(force(x).name));
-					}
+			(NameAndRange[] names) {
+				foreach (const NameReferents* x; import_.imported)
+					if (!containsUsed(*x, import_.importVisibility, ctx.used))
+						addDiagUnused(
+							mustFind!NameAndRange(names, (ref NameAndRange nr) => nr.name == x.name).range,
+							some(x.name));
+			},
+			(ref ImportOrExportAstKind.File) {
+				assert(false);
 			});
 	}
+	return ctx.importsAndReExports.imports;
 }
-
-private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_, ExportVisibility importVisibility) =>
-	existsInHashTable!(NameReferents, Symbol, nameFromNameReferents)(module_.exports, (in NameReferents x) =>
-		containsUsed(x, importVisibility, ctx.used));
 
 private bool containsUsed(in NameReferents a, ExportVisibility importVisibility, in UsedSet used) =>
 	(has(a.structOrAlias) &&
@@ -145,32 +150,37 @@ private bool containsUsed(in NameReferents a, ExportVisibility importVisibility,
 		importCanSee(importVisibility, x.visibility) && isUsed(used, x));
 
 immutable struct ImportAndReExportModules {
-	immutable ImportOrExport[] imports;
-	immutable ImportOrExport[] reExports;
+	SmallArray!ImportOrExport imports;
+	SmallArray!ImportOrExport reExports;
 }
 
 void eachImportAndReExport(
-	in ImportAndReExportModules a,
+	ref ImportAndReExportModules a,
 	Symbol name,
 	// Caller is responsible for filtering by visibility
 	in void delegate(ExportVisibility, in NameReferents) @safe @nogc pure nothrow cb,
 ) {
 	void inner(ref ImportOrExport import_) {
-		import_.kind.match!void(
-			(ImportOrExportKind.ModuleWhole) {
-				Opt!NameReferents x = import_.module_.exports[name];
-				if (has(x)) cb(import_.importVisibility, force(x));
-			},
-			(Opt!(NameReferents*)[] referents) {
-				foreach (Opt!(NameReferents*) x; referents)
-					if (has(x) && force(x).name == name)
-						cb(import_.importVisibility, *force(x));
-			});
+		if (import_.isStd) {
+			Opt!NameReferents x = import_.modulePtr.exports[name];
+			if (has(x)) cb(import_.importVisibility, force(x));
+		} else {
+			Opt!(NameReferents*) res = force(import_.source).kind.match!(Opt!(NameReferents*))(
+				(ImportOrExportAstKind.ModuleWhole) =>
+					getPointer!(NameReferents, Symbol, nameFromNameReferents)(import_.modulePtr.exports, name),
+				(NameAndRange[]) =>
+					import_.imported[name],
+				(ref ImportOrExportAstKind.File) =>
+					assert(false));
+			if (has(res))
+				cb(import_.importVisibility, *force(res));
+		}
 	}
-	foreach (ref ImportOrExport m; a.imports)
-		inner(m);
-	foreach (ref ImportOrExport m; a.reExports)
-		inner(m);
+
+	foreach (ref ImportOrExport x; a.imports)
+		inner(x);
+	foreach (ref ImportOrExport x; a.reExports)
+		inner(x);
 }
 
 void addDiagAssertSameUri(ref CheckCtx ctx, in UriAndRange range, Diag diag) {

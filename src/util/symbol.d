@@ -5,15 +5,17 @@ module util.symbol;
 import std.meta : staticMap;
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.col.array : lastIndexOf, only, small;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
+import util.comparison : Comparison;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
-import util.string : copyString, CString, SmallString, smallString, stringsEqual;
+import util.string : compareStringsAlphabetically, copyString, CString, SmallString, smallString, stringsEqual;
 import util.unicode : mustUnicodeDecode;
-import util.util : assertNormalEnum, optEnumOfString, stringOfEnum, stripUnderscore;
+import util.util : assertNormalEnum, castImmutable, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
@@ -101,6 +103,11 @@ private @system string asLongSymbol_impure(Symbol a) {
 }
 
 pure:
+
+Comparison compareSymbolsAlphabetically(in Symbol a, in Symbol b) =>
+	withStringOfSymbol(a, (in string sa) =>
+		withStringOfSymbol(b, (in string sb) =>
+			compareStringsAlphabetically(sa, sb)));
 
 Symbol addExtension(Symbol a, Extension extension) {
 	assert(extension != Extension.other);
@@ -245,6 +252,24 @@ string stringOfSymbol(ref Alloc alloc, Symbol a) =>
 		: makeStringWithWriter(alloc, (scope ref Writer writer) {
 			writer ~= a;
 		});
+
+private Out withStringOfSymbol(Out)(Symbol a, in Out delegate(in string) @safe @nogc pure nothrow cb) =>
+	isLongSymbol(a)
+		? cb(asLongSymbol(a))
+		: withBuildStackArray!(Out, char)(
+			(scope ref StackArrayBuilder!char out_) {
+				foreach (char x; a)
+					out_ ~= x;
+			},
+			(scope char[] x) => cb(castImmutable(x)));
+Out withCStringOfSymbol(Out)(Symbol a, in Out delegate(in CString) @safe @nogc pure nothrow cb) =>
+	withBuildStackArray!(Out, char)(
+		(scope ref StackArrayBuilder!char out_) {
+			foreach (char x; a)
+				out_ ~= x;
+			out_ ~= '\0';
+		},
+		(scope char[] x) @trusted => cb(CString(castImmutable(x.ptr))));
 
 CString cStringOfSymbol(ref Alloc alloc, Symbol a) =>
 	withWriter(alloc, (scope ref Writer writer) {

@@ -182,7 +182,7 @@ struct CheckSpecsCtx {
 
 	Alloc* allocPtr;
 	InstantiateCtx instantiateCtx;
-	immutable FunsInScope funsInScope;
+	FunsInScope funsInScope;
 	bool hasErrors;
 
 	ref Alloc alloc() =>

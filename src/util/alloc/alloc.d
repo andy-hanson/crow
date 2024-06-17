@@ -42,7 +42,7 @@ T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc noth
 T withTempAllocImpure(T)(MetaAlloc* a, AllocKind kind, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a, kind);
 
-T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe @nogc nothrow cb) =>
+@trusted T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe @nogc nothrow cb) =>
 	withStackArrayUninitialized_impure!(T, ulong)(sizeWords, (scope ulong[] memory) =>
 		withStaticAlloc!(T, cb)(memory));
 

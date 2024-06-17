@@ -16,7 +16,7 @@ void ensureStackAllocInitialized() {
 	if (stackArrayNext == null) stackArrayNext = stackArrayStorage.ptr;
 }
 
-@trusted pure Out withStackArrayUninitialized(Out, Elem)(
+@system pure Out withStackArrayUninitialized(Out, Elem)(
 	size_t size,
 	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
 ) =>
@@ -24,7 +24,7 @@ void ensureStackAllocInitialized() {
 		size_t,
 		Out delegate(scope Elem[]) @safe @nogc pure nothrow,
 	) @safe @nogc pure nothrow) &withStackArrayUninitialized_impure!(Out, Elem))(size, cb);
-@trusted Out withStackArrayUninitialized_impure(Out, Elem)(
+@system Out withStackArrayUninitialized_impure(Out, Elem)(
 	size_t size,
 	in Out delegate(scope Elem[]) @safe @nogc nothrow cb,
 ) {
@@ -83,7 +83,7 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 		in Out delegate(scope Elem[]) @safe @nogc pure nothrow,
 	) @safe @nogc pure nothrow) &withBuildStackArray_impure!(Out, Elem))(cbBuild, cb);
 
-Out withExactStackArray(Out, Elem)(
+@trusted Out withExactStackArray(Out, Elem)(
 	size_t size,
 	in Out delegate(scope ref ExactSizeArrayBuilder!Elem) @safe @nogc pure nothrow cb,
 ) =>

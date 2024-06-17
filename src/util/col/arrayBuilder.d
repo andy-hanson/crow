@@ -56,6 +56,9 @@ uint addAndGetIndex(T)(ref Alloc alloc, scope ref ArrayBuilder!T a, T value) {
 	return res;
 }
 
+ref T mustPeek(T)(ref ArrayBuilder!T a) =>
+	a.data[$ - 1];
+
 void backUp(T)(ref ArrayBuilder!T a) {
 	mustPop(a.data);
 }

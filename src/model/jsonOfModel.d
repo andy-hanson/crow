@@ -32,7 +32,6 @@ import model.model :
 	FunPointerExpr,
 	IfExpr,
 	ImportOrExport,
-	ImportOrExportKind,
 	LambdaExpr,
 	LetExpr,
 	LiteralExpr,
@@ -52,6 +51,7 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Module,
+	nameFromNameReferentsPointer,
 	NameReferents,
 	Params,
 	RecordFieldPointerExpr,
@@ -81,7 +81,7 @@ import util.json :
 	field,
 	Json,
 	jsonList,
-	jsonNull,
+	jsonListOfKeys,
 	jsonObject,
 	jsonString,
 	optionalArrayField,
@@ -90,7 +90,7 @@ import util.json :
 	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter, Range;
-import util.symbol : Symbol, symbol;
+import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
 import util.uri : stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
 
@@ -124,15 +124,11 @@ Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
 			jsonOfRange(alloc, ctx, x.pathRange)),
 		field!"module"(stringOfUri(alloc, a.module_.uri)),
-		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
-
-Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
-	a.matchIn!Json(
-		(in ImportOrExportKind.ModuleWhole) =>
-			jsonString("whole"),
-		(in Opt!(NameReferents*)[] referents) =>
-			jsonList!(Opt!(NameReferents*))(alloc, referents, (in Opt!(NameReferents*) x) =>
-				has(x) ? jsonString(force(x).name) : jsonNull));
+		optionalField!"names"(a.hasImported, () =>
+			jsonListOfKeys!(NameReferents*, Symbol, nameFromNameReferentsPointer)(
+				alloc, a.imported,
+				(in Symbol x, in Symbol y) => compareSymbolsAlphabetically(x, y),
+				(in Symbol x) => jsonString(x)))]);
 
 const struct Ctx {
 	Module* curModule;

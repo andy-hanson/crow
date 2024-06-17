@@ -25,6 +25,7 @@ import model.ast :
 	ConditionAst,
 	DestructureAst,
 	IdentifierAst,
+	ImportOrExportAstKind,
 	EnumOrFlagsMemberAst,
 	ExprAst,
 	FinallyAst,
@@ -78,8 +79,8 @@ import model.model :
 	FunDeclSource,
 	FunPointerExpr,
 	IfExpr,
+	ImportedReferents,
 	ImportOrExport,
-	ImportOrExportKind,
 	IntegralType,
 	LambdaExpr,
 	LetExpr,
@@ -99,7 +100,6 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Module,
-	NameReferents,
 	Params,
 	Program,
 	RecordFieldPointerExpr,
@@ -125,6 +125,7 @@ import model.model :
 import model.model : paramsArray, StructDeclSource;
 import util.col.array :
 	findIndex,
+	first,
 	firstPointer,
 	firstZip,
 	firstZipIfSizeEq,
@@ -291,15 +292,17 @@ Opt!PositionKind positionInDestructure(
 
 Opt!PositionKind positionInImportsOrExports(ImportOrExport[] importsOrExports, Pos pos) {
 	foreach (ref ImportOrExport im; importsOrExports)
-		if (has(im.source) && hasPos(force(im.source).range, pos)) {
+		if (!im.isStd && hasPos(force(im.source).range, pos)) {
 			ImportOrExportAst* source = force(im.source);
-			return im.kind.matchIn!(Opt!PositionKind)(
-				(in ImportOrExportKind.ModuleWhole) =>
+			return source.kind.matchIn!(Opt!PositionKind)(
+				(in ImportOrExportAstKind.ModuleWhole) =>
 					some(PositionKind(PositionKind.ImportedModule(&im))),
-				(in Opt!(NameReferents*)[] referents) =>
+				(in NameAndRange[] names) =>
 					hasPos(force(im.source).pathRange, pos)
 						? some(PositionKind(PositionKind.ImportedModule(&im)))
-						: positionInImportedNames(im.modulePtr, source.kind.as!(NameAndRange[]), referents, pos));
+						: positionInImportedNames(im.modulePtr, names, im.imported, pos),
+				(in ImportOrExportAstKind.File) =>
+					assert(false));
 		}
 	return none!PositionKind;
 }
@@ -307,14 +310,12 @@ Opt!PositionKind positionInImportsOrExports(ImportOrExport[] importsOrExports, P
 Opt!PositionKind positionInImportedNames(
 	Module* module_,
 	in NameAndRange[] names,
-	in Opt!(NameReferents*)[] referents,
+	in ImportedReferents imported,
 	Pos pos,
-) {
-	foreach (size_t index, NameAndRange x; names)
-		if (hasPos(x.range, pos))
-			return some(PositionKind(PositionKind.ImportedName(module_, x.name, referents[index])));
-	return none!PositionKind;
-}
+) =>
+	first!(PositionKind, NameAndRange)(names, (NameAndRange x) =>
+		optIf(hasPos(x.range, pos), () =>
+			PositionKind(PositionKind.ImportedName(module_, x.name, imported[x.name]))));
 
 Opt!PositionKind positionInVar(VarDecl* a, Pos pos) =>
 	optOr!PositionKind(

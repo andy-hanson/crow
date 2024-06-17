@@ -71,7 +71,7 @@ import util.col.fullIndexMap :
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString;
-import util.symbol : cStringOfSymbol;
+import util.symbol : withCStringOfSymbol;
 import util.util : castImmutable, castNonScope_ref, ptrTrustMe, typeAs;
 import util.writer : withWriter, Writer;
 
@@ -363,11 +363,9 @@ struct GccTypesWip {
 	in LowRecord record,
 ) {
 	gcc_jit_struct* struct_ = typesWip.records[recordIndex];
-	immutable gcc_jit_field*[] fields = map(alloc, record.fields, (ref LowField field) {
-		//TODO:NO ALLOC
-		CString name = cStringOfSymbol(alloc, debugName(field));
-		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name.ptr);
-	});
+	immutable gcc_jit_field*[] fields = map(alloc, record.fields, (ref LowField field) =>
+		withCStringOfSymbol(debugName(field), (in CString name) =>
+			gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name.ptr)));
 	assert(isEmpty(typesWip.recordFields[recordIndex]));
 	typesWip.recordFields[recordIndex] = fields;
 	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);

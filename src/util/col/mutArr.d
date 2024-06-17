@@ -25,6 +25,11 @@ struct MutArr(T) {
 		initMemory!T(&inner[index], value);
 	}
 
+	size_t opDollar(size_t pos)() scope const {
+		static assert(pos == 0);
+		return size_;
+	}
+
 	int opApply(Cb)(in Cb cb) scope {
 		foreach (ref T value; inner[0 .. size_]) {
 			int res = cb(value);

@@ -2,7 +2,8 @@ module util.col.mutMaxSet;
 
 @safe @nogc pure nothrow:
 
-import util.col.hashTable : deleteFromHashTableAtIndex, getIndexInHashTable, mayDeleteFromHashTable, mustAddToHashTable;
+import util.col.hashTable :
+	deleteFromHashTableAtIndex, getIndexInHashTable, mayDeleteFromHashTable, mustAddToHashTableNoAlloc;
 import util.opt : force, has, MutOpt, noneMut, Opt, someMut;
 import util.util : castNonScope;
 
@@ -49,7 +50,7 @@ bool mayAdd(size_t capacity, T)(ref MutMaxSet!(capacity, T) a, T value) {
 void mustAdd(size_t capacity, T)(ref MutMaxSet!(capacity, T) a, T value) {
 	assert(a.size_ < capacity);
 	a.size_++;
-	mustAddToHashTable!(T, T, id)(a.values, value);
+	mustAddToHashTableNoAlloc!(T, T, id)(a.values, value);
 }
 
 bool mayDelete(size_t capacity, T)(ref MutMaxSet!(capacity, T) a, T value) {

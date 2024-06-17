@@ -5,7 +5,9 @@ module util.json;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map, small, SmallArray;
 import util.col.fullIndexMap : FullIndexMap;
+import util.col.hashTable : HashTable, withSortedKeys;
 import util.col.map : KeyValuePair;
+import util.comparison : Comparison;
 import util.opt : force, has, Opt;
 import util.string : copyString, CString, SmallString, stringsEqual, stringOfCString;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
@@ -124,6 +126,15 @@ Json jsonList(K, V)(
 	in Json delegate(in V) @safe @nogc pure nothrow cb,
 ) =>
 	.jsonList!V(alloc, a.values, cb);
+
+Json jsonListOfKeys(T, K, alias getKey)(
+	ref Alloc alloc,
+	in HashTable!(T, K, getKey) a,
+	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
+	in Json delegate(in K) @safe @nogc pure nothrow cb,
+) =>
+	withSortedKeys!(Json, T, K, getKey)(a, cbCompare, (in K[] keys) =>
+		jsonList!K(alloc, keys, cb));
 
 Json jsonInt(long a) =>
 	Json(a);

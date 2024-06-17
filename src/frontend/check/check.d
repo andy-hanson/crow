@@ -12,6 +12,7 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	CommonUris,
 	finishDiagnostics,
+	finishImports,
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkStructBodies :
@@ -49,10 +50,11 @@ import model.model :
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
+	ImportedReferents,
 	ImportOrExport,
-	ImportOrExportKind,
 	Module,
 	nameFromNameReferents,
+	nameFromNameReferentsPointer,
 	NameReferents,
 	SpecDecl,
 	SpecDeclBody,
@@ -76,7 +78,6 @@ import util.col.array :
 	filter,
 	first,
 	isEmpty,
-	map,
 	mapOp,
 	mapPointers,
 	mapWithResultPointer,
@@ -86,8 +87,9 @@ import util.col.array :
 	SmallArray,
 	zip,
 	zipPointers;
-import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
-import util.col.hashTable : getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, MutHashTable;
+import util.col.arrayBuilder : add, ArrayBuilder, mustPeek, smallFinish;
+import util.col.hashTable :
+	buildHashTable, getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, mustAdd, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
@@ -412,11 +414,12 @@ Module* checkWorkerAfterCommonTypes(
 		ast.funs,
 		ast.tests);
 	checkForUnused(ctx, structAliases, structs, specs, funsAndMap.funs);
+	SmallArray!ImportOrExport imports = finishImports(ctx);
 	return allocate(ctx.alloc, Module(
 		uri,
 		ast,
 		finishDiagnostics(ctx),
-		importsAndReExports.moduleImports,
+		imports,
 		importsAndReExports.moduleReExports,
 		small!StructAlias(structAliases),
 		small!StructDecl(structs),
@@ -424,8 +427,7 @@ Module* checkWorkerAfterCommonTypes(
 		small!SpecDecl(specs),
 		funsAndMap.funs,
 		funsAndMap.tests,
-		getAllExports(
-			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
+		getAllExports(ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
 
 HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExports(
@@ -459,16 +461,18 @@ HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExports(
 	}
 
 	foreach (ref ImportOrExport e; reExports)
-		e.kind.matchIn!void(
-			(in ImportOrExportKind.ModuleWhole m) {
+		force(e.source).kind.matchIn!void(
+			(in ImportOrExportAstKind.ModuleWhole m) {
 				// TODO: if this is a re-export of another library, only re-export the public members
 				foreach (NameReferents referents; e.module_.exports)
 					addExport(referents, () => force(e.source).pathRange);
 			},
-			(in Opt!(NameReferents*)[] referents) {
-				foreach (Opt!(NameReferents*) x; referents)
-					if (has(x))
-						addExport(*force(x), () => force(e.source).pathRange);
+			(in NameAndRange[]) {
+				foreach (ref immutable NameReferents* x; e.imported)
+					addExport(*x, () => force(e.source).pathRange);
+			},
+			(in ImportOrExportAstKind.File) {
+				assert(false);
 			});
 	foreach (StructOrAlias x; structsAndAliasesMap)
 		final switch (x.visibility) {
@@ -586,7 +590,7 @@ ImportsAndReExports checkImportsAndReExports(
 	return ImportsAndReExports(imports.modules, reExports.modules, imports.files, reExports.files);
 }
 
-struct ImportsOrReExports {
+immutable struct ImportsOrReExports {
 	SmallArray!ImportOrExport modules;
 	SmallArray!ImportOrExportFile files;
 }
@@ -609,11 +613,12 @@ ImportsOrReExports checkImportsOrReExports(
 	void handleModuleImport(
 		Opt!(ImportOrExportAst*) source,
 		ExportVisibility minVisibility,
-		ImportOrExportKind delegate(Module*) @safe @nogc pure nothrow cb,
+		in void delegate(ref ImportOrExport) @safe @nogc pure nothrow cbInitImported,
 	) {
 		nextResolvedImport().matchWithPointers!void(
 			(Module* x) {
-				add(alloc, imports, ImportOrExport(source, x, minVisibility, cb(x)));
+				add(alloc, imports, ImportOrExport(source, x, minVisibility));
+				cbInitImported(mustPeek!ImportOrExport(imports));
 			},
 			(FileContent) {
 				assert(false);
@@ -624,21 +629,19 @@ ImportsOrReExports checkImportsOrReExports(
 	}
 
 	if (includeStd)
-		handleModuleImport(none!(ImportOrExportAst*), ExportVisibility.public_, (Module*) =>
-			ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
+		handleModuleImport(none!(ImportOrExportAst*), ExportVisibility.public_, (ref ImportOrExport _) {});
 
 	if (has(ast))
 		foreach (ref ImportOrExportAst importAst; force(ast).paths) {
 			ExportVisibility importVisibility = importMinVisibility(importAst);
 			importAst.kind.match!void(
 				(ImportOrExportAstKind.ModuleWhole) {
-					handleModuleImport(some(&importAst), importVisibility, (Module*) =>
-						ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
+					handleModuleImport(some(&importAst), importVisibility, (ref ImportOrExport) {});
 				},
 				(NameAndRange[] names) {
-					handleModuleImport(some(&importAst), importVisibility, (Module* module_) =>
-						ImportOrExportKind(
-							checkNamedImports(alloc, diagsBuilder, importVisibility, module_, names)));
+					handleModuleImport(some(&importAst), importVisibility, (ref ImportOrExport x) {
+						x.imported = checkNamedImports(alloc, diagsBuilder, importVisibility, x.modulePtr, names);
+					});
 				},
 				(ref ImportOrExportAstKind.File x) {
 					nextResolvedImport().matchWithPointers!void(
@@ -661,19 +664,22 @@ ExportVisibility importMinVisibility(in ImportOrExportAst a) =>
 		(in Path _) => ExportVisibility.public_,
 		(in RelPath _) => ExportVisibility.internal);
 
-Opt!(NameReferents*)[] checkNamedImports(
+ImportedReferents checkNamedImports(
 	ref Alloc alloc,
 	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	ExportVisibility importVisibility,
 	Module* module_,
 	in NameAndRange[] names,
 ) =>
-	map(alloc, names, (ref NameAndRange name) {
-		Opt!(NameReferents*) referents = getPointer!(NameReferents, Symbol, nameFromNameReferents)(
-			module_.exports, name.name);
-		if (!has(referents) || !hasVisibility(*force(referents), importVisibility))
-			add(alloc, diagsBuilder, Diagnostic(name.range, Diag(Diag.ImportRefersToNothing(name.name))));
-		return referents;
+	buildHashTable((scope ref MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) res) {
+		foreach (ref NameAndRange name; names) {
+			Opt!(NameReferents*) referents = getPointer!(NameReferents, Symbol, nameFromNameReferents)(
+				module_.exports, name.name);
+			if (!has(referents) || !hasVisibility(*force(referents), importVisibility))
+				add(alloc, diagsBuilder, Diagnostic(name.range, Diag(Diag.ImportRefersToNothing(name.name))));
+			else
+				mustAdd(alloc, res, force(referents));
+		}
 	});
 
 bool hasVisibility(in NameReferents a, ExportVisibility visibility) =>

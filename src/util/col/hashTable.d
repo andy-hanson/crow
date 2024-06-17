@@ -3,7 +3,11 @@ module util.col.hashTable;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
+import util.alloc.stackAlloc : withExactStackArray;
 import util.col.array : arrayOfRange, endPtr, fillArray, isEmpty, map;
+import util.comparison : Comparison;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
+import util.col.sortUtil : sortInPlace;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
@@ -116,11 +120,11 @@ ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref MutHashTable
 		doExpand(alloc, a);
 	assert(a.size_ < a.values.length);
 	a.size_++;
-	return mustAddToHashTable!(T, K, getKey)(a.values, value);
+	return mustAddToHashTableNoAlloc!(T, K, getKey)(a.values, value);
 }
 
 // Exported for use by 'MutMaxSet'
-ref T mustAddToHashTable(T, K, alias getKey)(MutOpt!T[] values, T value) {
+ref T mustAddToHashTableNoAlloc(T, K, alias getKey)(MutOpt!T[] values, T value) {
 	K key = getKey(value);
 	size_t i = getHash!K(key).hashCode % values.length;
 	while (true) {
@@ -204,6 +208,14 @@ T mustDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) {
 private T mustDeleteFromHashTable(T, K, alias getKey)(scope MutOpt!T[] values, in K key) {
 	Opt!size_t index = getIndexInHashTable!(T, K, getKey)(values, key);
 	return deleteFromHashTableAtIndex!(T, K, getKey)(values, force(index));
+}
+
+HashTable!(T, K, getKey) buildHashTable(T, K, alias getKey)(
+	in void delegate(scope ref MutHashTable!(T, K, getKey)) @safe @nogc pure nothrow cb,
+) {
+	MutHashTable!(T, K, getKey) res;
+	cb(res);
+	return moveToImmutable(res);
 }
 
 @trusted HashTable!(T, K, getKey) moveToImmutable(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
@@ -323,6 +335,19 @@ bool existsInHashTable(T, K, alias getKey)(
 			return true;
 	return false;
 }
+
+Out withSortedKeys(Out, T, K, alias getKey)(
+	in HashTable!(T, K, getKey) a,
+	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
+	in Out delegate(in K[]) @safe @nogc pure nothrow cb,
+) =>
+	withExactStackArray(size(a), (scope ref ExactSizeArrayBuilder!K builder) {
+		foreach (ref immutable T value; a)
+			builder ~= getKey(value);
+		K[] keys = finish(builder);
+		sortInPlace!K(keys, cbCompare);
+		return cb(keys);
+	});
 
 private:
 
