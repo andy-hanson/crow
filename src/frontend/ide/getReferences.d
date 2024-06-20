@@ -558,7 +558,7 @@ void eachFunReferenceAtExpr(in Module module_, in ExprRef x, in FunDecl*[] decls
 	if (has(called) && force(called).isA!(FunInst*) && contains(decls, force(called).as!(FunInst*).decl))
 		cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 }
-Opt!Called getCalledAtExpr(in ExprKind x) =>
+public Opt!Called getCalledAtExpr(in ExprKind x) => // TODO: MOVE ---------------------------------------------------------------------------
 	x.isA!CallExpr
 		? some(x.as!CallExpr.called)
 		: x.isA!(CallOptionExpr*)

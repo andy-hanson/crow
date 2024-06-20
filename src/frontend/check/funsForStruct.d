@@ -76,7 +76,7 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		},
 		(in StructBody.Union x) =>
 			// A constructor and getter for each member
-			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
+			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(x.type)),
 		(in StructBody.Variant x) =>
 			x.methods.length);
 private size_t countFunsForVariants(in StructDecl a) =>
@@ -460,7 +460,7 @@ void addFunsForUnion(
 ) {
 	Type unionType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
-		bool voidMember = isVoid(commonTypes, member.type);
+		bool voidMember = isVoid(member.type);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(&member),
 			struct_.visibility,

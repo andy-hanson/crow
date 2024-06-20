@@ -70,6 +70,7 @@ all_src_files = src/*.d \
 	src/app/*.d \
 	src/backend/*.c \
 	src/backend/*.d \
+	src/backend/*/*.d \
 	src/concretize/*.d \
 	src/document/*.d \
 	src/frontend/*.d \

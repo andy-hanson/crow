@@ -161,6 +161,7 @@ enum Extension {
 	dll,
 	exe,
 	ilk,
+	js,
 	json,
 	lib,
 	none, // ""
@@ -600,6 +601,7 @@ immutable string[] specialSymbols = [
 	"case-exprs",
 	"case-values",
 	"catch-cases",
+	"catching",
 	"catch-member",
 	"catches",
 	"changes",

@@ -193,6 +193,7 @@ private Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in T
 		(in DestructureAst[] parts) =>
 			eachTypeInDestructureParts!T(type, parts, cb));
 
+// TODO: move (used for JS, not just IDE) ------------------------------------------------------------------------------------------
 void eachDescendentExprIncluding(
 	ref CommonTypes commonTypes,
 	ExprRef a,

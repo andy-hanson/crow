@@ -60,6 +60,8 @@ import lib.server :
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
+	buildToJs,
+	BuildToJsResult,
 	buildToLowProgram,
 	check,
 	DiagsAndResultJson,
@@ -104,7 +106,7 @@ import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
 import util.uri : baseName, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
-import util.util : debugLog;
+import util.util : debugLog, todo;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
 
@@ -313,6 +315,11 @@ ExitCode go(
 			loadAllFiles(perf, server, [x.mainUri]);
 			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FilePath _, in ExternLibraries _2) =>
 				ExitCode.ok);
+		},
+		(in CommandKind.BuildJs x) {
+			loadAllFiles(perf, server, [x.mainUri]);
+			BuildToJsResult result = buildToJs(perf, alloc, server, x.mainUri);
+			return todo!ExitCode("write the result to file system"); // ----------------------------------------------------------------------------
 		},
 		(in CommandKind.Check x) {
 			loadAllFiles(perf, server, x.rootUris);

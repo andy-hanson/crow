@@ -118,8 +118,8 @@ immutable struct Type {
 		taggedPointerEquals(b);
 }
 
-bool isEmptyType(in CommonTypes commonTypes, in Type a) =>
-	isVoid(commonTypes, a) || isEmptyRecord(*a.as!(StructInst*).decl);
+bool isEmptyType(in CommonTypes commonTypes, in Type a) => // TODO: rm commonTypes --------------------------------------------
+	isVoid(a) || isEmptyRecord(*a.as!(StructInst*).decl);
 private bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
 
@@ -1644,17 +1644,19 @@ Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
 	return only(a.as!(StructInst*).typeArgs);
 }
 
-bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
+bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) => 
 	a == commonTypes.option;
 
-bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) =>
+bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) => // TODO: doesn't need commonTypes, use the StructBody ------
 	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
 
-bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) =>
+bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) => // TODO: doesn't need commonTypes, use the StructBody
 	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
 
-bool isVoid(in CommonTypes commonTypes, Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
+bool isVoid(in Type a) =>
+	a.isA!(StructInst*) && isVoid(*a.as!(StructInst*).decl);
+private bool isVoid(in StructDecl a) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.void_;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
@@ -1743,6 +1745,8 @@ immutable struct ProgramWithMain {
 }
 
 immutable struct MainFun {
+	@safe @nogc pure nothrow:
+
 	immutable struct Nat64OfArgs {
 		FunInst* fun;
 	}
@@ -1754,6 +1758,11 @@ immutable struct MainFun {
 	}
 
 	mixin Union!(Nat64OfArgs, Void);
+
+	FunInst* fun() =>
+		match!(FunInst*)(
+			(Nat64OfArgs x) => x.fun,
+			(Void x) => x.fun);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
@@ -1866,7 +1875,7 @@ immutable struct LocalMutability {
 	static LocalMutability mutableOnStack() =>
 		LocalMutability(LocalMutability.MutableOnStack());
 
-	bool isImmutable() =>
+	bool isImmutable() scope =>
 		isA!Immutable;
 }
 

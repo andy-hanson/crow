@@ -2,6 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
+import backend.js.js : translateToJs, TranslateToJsResult;
 import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
@@ -766,6 +767,18 @@ BuildToCResult buildToC(
 		showDiagnostics(alloc, server, programs.program),
 		hasFatalDiagnostics(programs.programWithMain),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
+}
+
+immutable struct BuildToJsResult {
+	TranslateToJsResult result;
+	string diagnostics;
+	bool hasFatalDiagnostics;
+}
+BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
+	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
+	string diagnostics = showDiagnostics(alloc, server, program.program);
+	bool fatal = hasFatalDiagnostics(program);
+	return BuildToJsResult(fatal ? TranslateToJsResult() : translateToJs(alloc, program), diagnostics, fatal);
 }
 
 ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>

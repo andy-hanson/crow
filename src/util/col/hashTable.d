@@ -336,6 +336,14 @@ bool existsInHashTable(T, K, alias getKey)(
 	return false;
 }
 
+K[] sortedKeys(T, K, alias getKey)(
+	ref Alloc alloc,
+	in HashTable!(T, K, getKey) a,
+	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
+) =>
+	withSortedKeys!(K[], T, K, getKey)(a, cbCompare, (in K[] x) =>
+		copyArray(alloc, x));
+
 Out withSortedKeys(Out, T, K, alias getKey)(
 	in HashTable!(T, K, getKey) a,
 	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,

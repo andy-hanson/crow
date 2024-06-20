@@ -126,20 +126,19 @@ ref V getOrAdd(K, V)(
 ) =>
 	.getOrAdd(alloc, a.inner, key, () => KeyValuePair!(K, V)(key, getValue())).value;
 
-void addOrChange(K, V)(
+V addOrChange(K, V)(
 	ref Alloc alloc,
 	ref MutMap!(K, V) a,
 	K key,
 	in V delegate() @safe @nogc pure nothrow cbAdd,
 	in void delegate(ref V) @safe @nogc pure nothrow cbChange,
-) {
+) =>
 	.addOrChange!(KeyValuePair!(K, V), K, getKey)(
 		alloc, a.inner, key,
 		() => KeyValuePair!(K, V)(key, cbAdd()),
 		(ref KeyValuePair!(K, V) x) {
 			cbChange(x.value);
-		});
-}
+		}).value;
 
 @trusted ref KeyValuePair!(K, V) insertOrUpdate(K, V)(
 	ref Alloc alloc,
