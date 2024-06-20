@@ -5,10 +5,10 @@ module util.col.mutMap;
 import util.alloc.alloc : Alloc;
 import util.col.hashTable :
 	addOrChange,
+	deleteWhere,
 	getOrAdd,
 	getOrAddAndDidAdd,
 	hashTableMapToArray,
-	hasKey,
 	HashTable,
 	insertOrUpdate,
 	isEmpty,
@@ -42,6 +42,9 @@ struct MutMap(K, V) {
 		MutOpt!(KeyValuePair!(K, V)) res = inner[key];
 		return has(res) ? someMut!V(force(res).value) : noneMut!V;
 	}
+
+	bool opBinaryRight(string op)(in K key) scope const if (op == "in") =>
+		key in inner;
 
 	int opApply(in int delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb) scope immutable =>
 		inner.opApply((ref immutable KeyValuePair!(K, V) pair) =>
@@ -94,9 +97,6 @@ bool isEmpty(K, V)(in MutMap!(K, V) a) =>
 size_t size(K, V)(in MutMap!(K, V) a) =>
 	.size(a.inner);
 
-bool hasKey(K, V)(in MutMap!(K, V) a, in K key) =>
-	.hasKey(a.inner, key);
-
 ref inout(V) mustGet(K, V)(ref inout MutMap!(K, V) a, in K key) =>
 	.mustGet(a.inner, key).value;
 
@@ -126,20 +126,19 @@ ref V getOrAdd(K, V)(
 ) =>
 	.getOrAdd(alloc, a.inner, key, () => KeyValuePair!(K, V)(key, getValue())).value;
 
-void addOrChange(K, V)(
+V addOrChange(K, V)(
 	ref Alloc alloc,
 	ref MutMap!(K, V) a,
 	K key,
 	in V delegate() @safe @nogc pure nothrow cbAdd,
 	in void delegate(ref V) @safe @nogc pure nothrow cbChange,
-) {
+) =>
 	.addOrChange!(KeyValuePair!(K, V), K, getKey)(
 		alloc, a.inner, key,
 		() => KeyValuePair!(K, V)(key, cbAdd()),
 		(ref KeyValuePair!(K, V) x) {
 			cbChange(x.value);
-		});
-}
+		}).value;
 
 @trusted ref KeyValuePair!(K, V) insertOrUpdate(K, V)(
 	ref Alloc alloc,
@@ -202,5 +201,8 @@ private @trusted Out[] mapToArray(Out, K, V)(
 	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
 }
 
-V[] valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
-	mapToArray!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);
+// WARN: To keep the implementation simple, it's possible that this will call 'cb' twice on the same value.
+void deleteWhere(K, V)(scope ref MutMap!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
+	.deleteWhere!(KeyValuePair!(K, V), K, getKey)(a.inner, (in KeyValuePair!(K, V) x) =>
+		cb(x.key, x.value));
+}

@@ -1,0 +1,59 @@
+import
+	crow/private/number-low-level: wrap-add
+
+dummy-number-tests nat64()
+	0
+
+test
+	a nat32 = 0xffffffff
+	a wrap-add 2 is 1
+
+test
+	1::int64 + 1 is 2
+	(() => max-value + 1) throws-out-of-range
+	(() => min-value + -1) throws-out-of-range
+	(() => min-value + min-value) throws-out-of-range
+
+-throws-out-of-range void(f int64 mut())
+	try
+		_ = f[]
+		should-throw
+	catch binary-out-of-range _
+		()
+test
+	1::int64 - 2 is -1
+	(() => max-value - -1) throws-out-of-range
+	(() => min-value - 1) throws-out-of-range
+	min-value::int64 - min-value is 0
+
+test
+	# TODO: should not need parens
+	(max-value::int64) * 0 is 0
+	(-1::int64) * -1 is 1
+	(() => max-value / 3 * 4) throws-out-of-range
+	(() => 4 * (max-value / 3)) throws-out-of-range
+	(() => min-value * -1) throws-out-of-range
+	(() => -1 * min-value) throws-out-of-range
+
+test
+	-1.5.to::int64 is -2
+	-1.49.to::int64 is -1
+	1.49.to::int64 is 1
+	1.5.to::int64 is 2
+
+	4.1.to::nat64 is 4
+	4.5.to::nat64 is 5
+	5.5.to::nat64 is 6
+
+test
+	"{0x0d15ea5e0d15ea5e::nat64 & ~7 to-hex}"::string is "d15ea5e0d15ea58"
+
+test
+	1.499999::float64.round is 1
+	1.5::float64.round is 2
+test
+	1.999::float64.round-down is 1
+	2::float64.round-down is 2
+test
+	1::float64.round-up is 1
+	1.001::float64.round-up is 2

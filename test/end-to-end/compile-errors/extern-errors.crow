@@ -3,7 +3,8 @@ main void()
 
 r record extern
 	a string
-	b nat64 list
+	b nat array
+	c string array
 
 r2 record by-val, extern
 	a nat64
@@ -16,31 +17,31 @@ u union extern
 
 f void() extern
 
-f void() c extern
+f void() libc extern
 
-f string() c extern
+f string() libc extern
 
-f void(a string) c extern
+f void(a string) libc extern
 
-f[t] void(a t) c extern
+f[t] void(a t) libc extern
 
-f void(...a nat64 array) c extern
+f void(...a nat64 array) libc extern
 
 some-spec spec
 	foo void()
 
-f void() c extern, some-spec
+f void() libc extern, some-spec
 
-f void() bare, c extern
+f void() bare, libc extern
 
-f void() unsafe, c extern
+f void() unsafe, libc extern
 
-g global(nat) c extern
+g global(nat) libc extern
 
 g global(nat)
 
-g2 global(nat) builtin, c extern
+g2 global(nat) builtin, libc extern
 
 g3 global(nat) extern, bare, nat equal
 
-tl thread-local(nat) c extern, nat equal
+tl thread-local(nat) libc extern, nat equal

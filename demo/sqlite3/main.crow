@@ -5,7 +5,7 @@ import
 	crow/parse
 	sqlite3/main: iterate, open-sqlite3, query, run, size, with-block
 
-main void() summon
+main void() summon, (native, sqlite3) extern
 	file-name string = "test.db"
 	with db : file-name open-sqlite3
 		db run "drop table if exists foo"
@@ -14,7 +14,7 @@ main void() summon
 
 		rows (string, nat64)[] = for row : db query "select * from foo"
 			name = row["name"]!
-			quantity = (nat parse row["quantity"]!)!
+			quantity = nat parse! row["quantity"]!
 			name, quantity
 
 		out print ("\n" join for row : rows; "{row a}: {row b}")

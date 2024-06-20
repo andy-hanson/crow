@@ -12,11 +12,13 @@ import model.model :
 	CommonTypes, FunFlags, LambdaExpr, Local, Mutability, Specs, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.enumMap : EnumMap;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, rangeOfStartAndLength;
 import util.symbol : Symbol;
+import util.symbolSet : SymbolSet;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
@@ -85,8 +87,14 @@ struct ExprCtx {
 	immutable Specs outermostFunSpecs;
 	immutable TypeParams outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
+	Cell!SymbolSet externs_;
 	private bool isInTrusted;
 	private bool usedTrusted;
+
+	SymbolSet externs() =>
+		cellGet(externs_);
+	void externs(SymbolSet value) =>
+		cellSet(externs_, value);
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();

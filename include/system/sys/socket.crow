@@ -1,9 +1,5 @@
-no-std
 import
 	crow/c-types: c-int, err-t, fd-t, size_t
-	crow/number: int32, max-value, nat16, nat32, nat64, to, wrap-to
-	crow/pointer: any-mut-pointer, mut-pointer
-	crow/version: is-windows
 	../unistd: ssize_t
 	./types: socklen_t
 
@@ -19,37 +15,37 @@ import
 +SOCKET alias
 	nat64
 # To call on POSIX
-+as-fd fd-t(a SOCKET) unsafe
-	forbid is-windows
++as-fd fd-t(a SOCKET) unsafe, posix extern
 	a to
-+as-socket SOCKET(a fd-t) unsafe
-	forbid is-windows
++as-socket SOCKET(a fd-t) unsafe, posix extern
 	a.wrap-to::nat32 to
 
 +INVALID_SOCKET SOCKET() unsafe
-	if is-windows
+	if extern windows
 		max-value
-	else
+	elif extern posix
 		-1 as-socket
+	else
+		throw not-implemented
 
 +sockaddr extern
 
-+accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) c extern
++accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) posix extern
 
-+bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) c extern
++bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) posix extern
 
-+recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) c extern
++recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) posix extern
 
-+socket SOCKET(domain c-int, type c-int, protocol c-int) c extern
++socket SOCKET(domain c-int, type c-int, protocol c-int) posix extern
 
-+connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) c extern
++connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) posix extern
 
-+listen err-t(a SOCKET, n int32) c extern
++listen err-t(a SOCKET, n int32) posix extern
 
-+shutdown err-t(a SOCKET, how int32) c extern
++shutdown err-t(a SOCKET, how int32) posix extern
 
 # Win32 only; on POSIX just use 'close'
-+closesocket c-int(s SOCKET) c extern
++closesocket c-int(s SOCKET) windows extern
 
 +SHUT_RD int32() bare
 	0

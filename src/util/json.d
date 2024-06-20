@@ -3,13 +3,13 @@ module util.json;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map, small, SmallArray;
+import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map, SmallArray;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.hashTable : HashTable, withSortedKeys;
 import util.col.map : KeyValuePair;
 import util.comparison : Comparison;
 import util.opt : force, has, Opt;
-import util.string : copyString, CString, SmallString, stringsEqual, stringOfCString;
+import util.string : copyString, CString, stringsEqual, stringOfCString;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.writer :
@@ -33,7 +33,7 @@ immutable struct Json {
 		Null,
 		bool,
 		double,
-		SmallString,
+		string,
 		Symbol,
 		SmallArray!Json,
 		SmallArray!ObjectField);
@@ -60,7 +60,6 @@ immutable struct Json {
 		writeJson(writer, this);
 	}
 }
-static assert(Json.sizeof == ulong.sizeof * 2);
 
 Json get(string key)(in Json a) {
 	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
@@ -90,6 +89,8 @@ Json jsonNull() =>
 Json.ObjectField optionalField(string name)(bool isPresent, in Json delegate() @safe @nogc pure nothrow cb) =>
 	field!name(isPresent ? cb() : jsonNull);
 
+Json.ObjectField optionalField(string name)(in Opt!string a) =>
+	optionalField!(name, string)(a, (in string x) => jsonString(x));
 Json.ObjectField optionalField(string name, T)(in Opt!T a, in Json delegate(in T) @safe @nogc pure nothrow cb) =>
 	field!name(has(a) ? cb(force(a)) : jsonNull);
 
@@ -140,7 +141,7 @@ Json jsonInt(long a) =>
 	Json(a);
 
 Json jsonString(string a) =>
-	Json(small!(immutable char)(a));
+	Json(a);
 
 Json jsonString(ref Alloc alloc, in string a) =>
 	jsonString(copyString(alloc, a));
@@ -186,7 +187,7 @@ private void writeJson(ref Writer writer, in Json a) =>
 			writer ~= x ? "true" : "false";
 		},
 		(in double x) {
-			writeFloatLiteral(writer, x);
+			writeFloatLiteral(writer, x, infinity: "null", nan: "null");
 		},
 		(in string x) {
 			writeQuotedString(writer, x);
@@ -196,9 +197,7 @@ private void writeJson(ref Writer writer, in Json a) =>
 		},
 		(in Json[] x) {
 			writer ~= '[';
-			writeWithCommasCompact!Json(writer, x, (in Json y) {
-				writer ~= y;
-			});
+			writeWithCommasCompact!Json(writer, x);
 			writer ~= ']';
 		},
 		(in Json.Object x) {

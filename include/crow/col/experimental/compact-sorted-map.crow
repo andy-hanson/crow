@@ -5,13 +5,13 @@ import
 +compact-sorted-map[k, v] record by-val
 	-impl (k, v) impl
 
--impl[k, v] union(overlay (k, v) overlay, end-node (k, v) array)
+-impl[k, v] union(overlay (k, v) overlay, end-node (k, v)[])
 
 # TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 # We should merge more frequently if removing keys, less frequently if adding keys.
 -overlay[k, v] record by-ref
 	# never empty
-	pairs (k, v?) array
+	pairs (k, v?)[]
 	prev (k, v) impl
 
 +==[k, v] bool(a (k, v) compact-sorted-map, b (k, v) compact-sorted-map) k key, v equal
@@ -22,11 +22,11 @@ import
 +to[k, v] json(a (k, v) compact-sorted-map) k key, (json, k) to, (json, v) to
 	a.to-sorted-pairs to
 
-+new[k, v] (k, v) compact-sorted-map(...a (k, v) array) k key
-	a.to to
++new[k, v] (k, v) compact-sorted-map(...a (k, v)[]) k key
+	a to
 
 +to[k, v] (k, v) compact-sorted-map(a (k, v)[]) k key
-	(a.to sort (k, _) => k).end-node,
+	(a sort (k, _) => k).end-node,
 
 +is-empty[k, v] bool(a (k, v) compact-sorted-map) k key
 	match a impl
@@ -50,7 +50,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 	as overlay _
 		unreachable
 	as end-node e
-		e to
+		e
 
 ~ ~[k, v] (k, v) compact-sorted-map(a (k, v) compact-sorted-map, (key k, value v)) k key
 	(a.impl add-or-remove key, (value,)),
@@ -61,7 +61,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 	elif a is-empty
 		b to
 	else
-		pairs (k, v?) array = (for k, v : b; k, (v,)) sort (k, _) => k
+		pairs (k, v?)[] = (for k, v : b; k, (v,)) sort (k, _) => k
 		(pairs, a.impl).merge-as-needed,
 
 ~ -[k, v] (k, v) compact-sorted-map(a (k, v) compact-sorted-map, key k) k key
@@ -103,7 +103,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 		else
 			a overlay
 
--merge-unconditionally[k, v] (k, v) array(a (k, v) overlay) k key
+-merge-unconditionally[k, v] (k, v)[](a (k, v) overlay) k key
 	match a prev
 	as overlay o
 		((o.pairs merge-overlays a.pairs), o.prev) merge-unconditionally
@@ -113,7 +113,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 -should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
--merge-overlays[k, v] (k, v?) array(left (k, v?) array, right (k, v?) array) k key
+-merge-overlays[k, v] (k, v?)[](left (k, v?)[], right (k, v?)[]) k key
 	with out : left.size + right.size build
 		l mut = left begin
 		r mut = right begin
@@ -139,7 +139,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 				out ~~= r slice-right
 				break
 
--merge-to-end[k, v] (k, v) array(left (k, v) array, right (k, v?) array) k key
+-merge-to-end[k, v] (k, v)[](left (k, v)[], right (k, v?)[]) k key
 	with out : left.size + right.size build
 		l mut = left begin
 		r mut = right begin
@@ -181,9 +181,9 @@ compact[k, v] (k, v) compact-sorted-map(a (k, v) compact-sorted-map) k key
 region spec impls (see collection.crow)
 
 +iterate[k, v] bool(a (k, v) compact-sorted-map, f bool mut(key k, value v)) k key
-	end-node mut (k, v) array = ()
+	end-node mut (k, v)[] = ()
 	# Key has an index because overlays with a lower index (rightmost) should come first
-	overlays ((k, nat64), (k, v?) array) mut-priority-queue = with out : build
+	overlays ((k, nat64), (k, v?)[]) mut-priority-queue = with out : build
 		cur mut = a impl
 		overlay-index mut nat64 = 0
 		end-node := loop
@@ -221,7 +221,7 @@ region spec impls (see collection.crow)
 	res || end-node iterate f
 
 -iterate-overlays[k, v] bool(
-	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
+	overlays ((k, nat64), (k, v?)[]) mut-priority-queue,
 	f bool mut(key k, value v?),
 ) k key
 	loop
@@ -229,29 +229,29 @@ region spec impls (see collection.crow)
 		(key, _), rest = popped
 		overlays drop-overlays-with-key key
 		overlays maybe-add-back popped
-		guard !rest.is-empty : continue
+		guard rest !is-empty : continue
 		if f[key, rest[0] b]
 			break true
 		else
 			continue
 
 -maybe-add-back[k, v] void(
-	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
-	last-popped ((k, nat64), (k, v?) array),
+	overlays ((k, nat64), (k, v?)[]) mut-priority-queue,
+	last-popped ((k, nat64), (k, v?)[]),
 ) k key
 	(_, order), rest = last-popped
 	if rest.size > 1
 		overlays ~= ((rest[1].a, order), rest[1 .. end])
 
 -drop-overlays-with-key[k, v] void(
-	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
+	overlays ((k, nat64), (k, v?)[]) mut-priority-queue,
 	key k,
 ) k key
 	# TODO: use 'drop-while'
 	while popped2 ?= overlays pop-if pair => pair.a.a == key
 		overlays maybe-add-back popped2
 
--get-end[k, v] (k, v) array(a (k, v) impl)
+-get-end[k, v] (k, v)[](a (k, v) impl)
 	match a
 	as overlay o
 		o.prev get-end
@@ -261,7 +261,7 @@ region spec impls (see collection.crow)
 region build
 
 +compact-sorted-map-builder[k, v] record mut
-	-inner (k, v) list-builder
+	-inner (k, v) array-builder
 +build[k, v] (k, v) compact-sorted-map(
 	a build-options,
 	f void mut(out (k, v) compact-sorted-map-builder),
@@ -272,13 +272,13 @@ region build
 
 region test
 
--dbg[k, v] string(a (k, v) compact-sorted-map) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) compact-sorted-map) k show, v show
 	a.impl dbg
--dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) impl) k show, v show
 	match a
 	as overlay o
 		pairs = ", " join for k, v : o pairs
-			"{k} -> {v?.to ?? "_"}"
+			"{k} -> {v?.show ?? "_"}"
 		"{o.prev dbg}, [{pairs}]"
 	as end-node e
 		pairs = ", " join for k, v : e

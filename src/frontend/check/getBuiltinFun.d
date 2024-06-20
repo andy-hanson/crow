@@ -2,31 +2,57 @@ module frontend.check.getBuiltinFun;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.checkCallSpecs : isEnumOrFlags, isFlags;
 import frontend.check.checkCtx : addDiag, CheckCtx;
-import frontend.check.instantiate : isOptionType;
 import model.constant : Constant, constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
+	arrayElementType,
 	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
 	BuiltinFun,
-	BuiltinType,
 	BuiltinUnary,
 	BuiltinUnaryMath,
 	BuiltinTernary,
 	CommonTypes,
 	Destructure,
-	EnumFunction,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
+	isArray,
+	isBool,
+	isChar8,
+	isChar32,
+	isFloat32,
+	isFloat64,
+	isFunPointer,
+	isFuture,
+	isInt8,
+	isInt16,
+	isInt32,
+	isInt64,
+	isJsAny,
+	isLambdaType,
+	isMutArray,
+	isMutSlice,
+	isNat8,
+	isNat16,
+	isNat32,
+	isNat64,
+	isOptionType,
+	isPointerConst,
+	isPointerConstOrMut,
+	isPointerMut,
+	isString,
+	isSymbol,
+	isVoid,
+	JsFun,
 	paramsArray,
+	pointeeType,
 	SpecInst,
 	StructInst,
-	Type;
+	Type,
+	TypeParamIndex;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
@@ -38,6 +64,7 @@ FunBody getBuiltinFun(ref CheckCtx ctx, in CommonTypes commonTypes, FunDecl* fun
 		ctx, commonTypes, fun.nameRange.range, fun.name, fun.returnType, params.length,
 		params.length >= 1 ? params[0].type : Type.bogus,
 		params.length >= 2 ? params[1].type : Type.bogus,
+		params.length >= 3 ? params[2].type : Type.bogus,
 		fun.specs);
 }
 
@@ -52,6 +79,7 @@ FunBody inner(
 	size_t arity,
 	Type p0,
 	Type p1,
+	Type p2,
 	in SpecInst*[] specs,
 ) {
 	BuiltinUnary failUnary() => cast(BuiltinUnary) 0xffffffff;
@@ -107,13 +135,15 @@ FunBody inner(
 
 	switch (name.value) {
 		case symbol!"+".value:
-			return binary(isFloat32(rt)
-				? BuiltinBinary.addFloat32
-				: isBinaryFloat64()
-				? BuiltinBinary.addFloat64
-				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.addPointerAndNat64
-				: failBinary);
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.plus))
+				: binary(isFloat32(rt)
+					? BuiltinBinary.addFloat32
+					: isBinaryFloat64()
+					? BuiltinBinary.addFloat64
+					: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
+					? BuiltinBinary.addPointerAndNat64
+					: failBinary);
 		case symbol!"-".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.subFloat32
@@ -131,22 +161,28 @@ FunBody inner(
 					? BuiltinBinary.mulFloat64
 					: failBinary);
 		case symbol!"==".value:
-			return isEnumOrFlags(specs, p0) ? FunBody(EnumFunction.equal) : binary(
-				p0 != p1 ? failBinary :
-				isChar8(p0) ? BuiltinBinary.eqChar8 :
-				isChar32(p0) ? BuiltinBinary.eqChar32 :
-				isNat8(p0) ? BuiltinBinary.eqNat8 :
-				isNat16(p0) ? BuiltinBinary.eqNat16 :
-				isNat32(p0) ? BuiltinBinary.eqNat32 :
-				isNat64(p0) ? BuiltinBinary.eqNat64 :
-				isInt8(p0) ? BuiltinBinary.eqInt8 :
-				isInt16(p0) ? BuiltinBinary.eqInt16 :
-				isInt32(p0) ? BuiltinBinary.eqInt32 :
-				isInt64(p0) ? BuiltinBinary.eqInt64 :
-				isFloat32(p0) ? BuiltinBinary.eqFloat32 :
-				isFloat64(p0) ? BuiltinBinary.eqFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
-				failBinary);
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.eqEqEq))
+				: binary(
+					p0 != p1 ? failBinary :
+					isChar8(p0) ? BuiltinBinary.eqChar8 :
+					isChar32(p0) ? BuiltinBinary.eqChar32 :
+					isNat8(p0) ? BuiltinBinary.eqNat8 :
+					isNat16(p0) ? BuiltinBinary.eqNat16 :
+					isNat32(p0) ? BuiltinBinary.eqNat32 :
+					isNat64(p0) ? BuiltinBinary.eqNat64 :
+					isInt8(p0) ? BuiltinBinary.eqInt8 :
+					isInt16(p0) ? BuiltinBinary.eqInt16 :
+					isInt32(p0) ? BuiltinBinary.eqInt32 :
+					isInt64(p0) ? BuiltinBinary.eqInt64 :
+					isFloat32(p0) ? BuiltinBinary.eqFloat32 :
+					isFloat64(p0) ? BuiltinBinary.eqFloat64 :
+					isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
+					failBinary);
+		case symbol!"<".value:
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.less))
+				: fail();
 		case symbol!"&&".value:
 			return binaryLazy(isBool(rt) && isBool(p0) && isBool(p1) ? BuiltinBinaryLazy.boolAnd : failBinaryLazy);
 		case symbol!"||".value:
@@ -159,7 +195,7 @@ FunBody inner(
 		case symbol!"??".value:
 			return binaryLazy(isOptionType(commonTypes, p0) ? BuiltinBinaryLazy.optionQuestion2 : failBinaryLazy);
 		case symbol!"&".value:
-			return isFlags(specs, rt) ? FunBody(EnumFunction.intersect) : binary(isInt8(rt)
+			return binary(isInt8(rt)
 				? BuiltinBinary.bitwiseAndInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseAndInt16
@@ -177,7 +213,7 @@ FunBody inner(
 				? BuiltinBinary.bitwiseAndNat64
 				: failBinary);
 		case symbol!"~".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.negate) : unary(isNat8(rt)
+			return unary(isNat8(rt)
 				? BuiltinUnary.bitwiseNotNat8
 				: isNat16(rt)
 				? BuiltinUnary.bitwiseNotNat16
@@ -187,7 +223,7 @@ FunBody inner(
 				? BuiltinUnary.bitwiseNotNat64
 				: failUnary);
 		case symbol!"|".value:
-			return isFlags(specs, rt) ? FunBody(EnumFunction.union_) : binary(isInt8(rt)
+			return binary(isInt8(rt)
 				? BuiltinBinary.bitwiseOrInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseOrInt16
@@ -226,14 +262,30 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.acosFloat32, BuiltinUnaryMath.acosFloat64);
 		case symbol!"acosh".value:
 			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
-		case symbol!"all".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.all) : fail();
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
+		case symbol!"array-pointer".value:
+			return arity == 1 && isPointerConst(rt) && isArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"array-size".value:
+			return arity == 1 && isNat64(rt) && isArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
+		case symbol!"as-any-mut-pointer".value:
+			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"asin".value:
 			return unaryMath(BuiltinUnaryMath.asinFloat32, BuiltinUnaryMath.asinFloat64);
 		case symbol!"asinh".value:
 			return unaryMath(BuiltinUnaryMath.asinhFloat32, BuiltinUnaryMath.asinhFloat64);
+		case symbol!"as-future".value:
+			return unary(isFuture(rt) && isProbablyFutureImpl(p0) ? BuiltinUnary.asFuture : failUnary);
+		case symbol!"as-future-impl".value:
+			return unary(isProbablyFutureImpl(rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
+		case symbol!"as-mut-array".value:
+			return unary(isMutArray(rt) && isProbablyMutArrayImpl(p0) ? BuiltinUnary.asMutArray : failUnary);
+		case symbol!"as-mut-array-impl".value:
+			return unary(isProbablyMutArrayImpl(rt) && isMutArray(p0) ? BuiltinUnary.asMutArrayImpl : failUnary);
+		case symbol!"as-js".value:
+			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
+				? FunBody(BuiltinFun(JsFun.asJsAny))
+				: fail();
 		case symbol!"atan".value:
 			return unaryMath(BuiltinUnaryMath.atanFloat32, BuiltinUnaryMath.atanFloat64);
 		case symbol!"atan2".value:
@@ -245,6 +297,26 @@ FunBody inner(
 		case symbol!"as-mut".value:
 		case symbol!"pointer-cast".value:
 			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
+		case symbol!"call".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.call))
+				: fail();
+		case symbol!"call-new".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.callNew))
+				: fail();
+		case symbol!"call-property".value:
+			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) // other args are type params
+				? FunBody(BuiltinFun(JsFun.callProperty))
+				: fail();
+		case symbol!"call-property-spread".value:
+			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0Array(p2)
+				? FunBody(BuiltinFun(JsFun.callPropertySpread))
+				: fail();
+		case symbol!"cast".value:
+			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.cast_))
+				: fail();
 		case symbol!"count-ones".value:
 			return unary(isNat64(p0)
 				? BuiltinUnary.countOnesNat64
@@ -253,13 +325,22 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.cosFloat32, BuiltinUnaryMath.cosFloat64);
 		case symbol!"cosh".value:
 			return unaryMath(BuiltinUnaryMath.coshFloat32, BuiltinUnaryMath.coshFloat64);
-		case symbol!"enum-members".value:
-		case symbol!"flags-members".value:
-			return FunBody(EnumFunction.members);
+		case symbol!"c-string-of-symbol".value:
+			return unary(isCString(rt) && isSymbol(p0)
+				? BuiltinUnary.cStringOfSymbol
+				: failUnary);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
+		case symbol!"gc-safe-value".value:
+			return FunBody(BuiltinFun(BuiltinFun.GcSafeValue()));
+		case symbol!"global-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();
 		case symbol!"infinity".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.infinity)));
+		case symbol!"instanceof".value:
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.instanceof))
+				: fail();
 		case symbol!"interpreter-backtrace".value:
 			return ternary(BuiltinTernary.interpreterBacktrace);
 		case symbol!"is-less".value:
@@ -281,27 +362,60 @@ FunBody inner(
 				isBool(rt) && isFloat32(p0) ? BuiltinUnary.isNanFloat32 :
 				isBool(rt) && isFloat64(p0) ? BuiltinUnary.isNanFloat64 :
 				failUnary());
+		case symbol!"jump-to-catch".value:
+			return unary(BuiltinUnary.jumpToCatch);
+		case symbol!"await".value:
+			return isJsAny(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.await))
+				: fail();
+		case symbol!"js-global".value:
+			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
 		case symbol!"mark-root".value:
 			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
+		case symbol!"mut-slice-pointer".value:
+			return arity == 1 && isPointerMut(rt) && isMutSlice(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"mut-slice-size".value:
+			return arity == 1 && isNat64(rt) && isMutSlice(p0) ? unary(BuiltinUnary.arraySize) : fail();
 		case symbol!"nan".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
-		case symbol!"new".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
-		case symbol!"jump-to-catch".value:
-			return unary(BuiltinUnary.jumpToCatch);
+		case symbol!"new-array".value:
+			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
+				? binary(BuiltinBinary.newArray)
+				: fail();
+		case symbol!"new-mut-slice".value:
+			return isMutSlice(rt) && isNat64(p0) && isPointerMut(p1)
+				? binary(BuiltinBinary.newArray)
+				: fail();
+		case symbol!"not".value:
+			return isBool(rt) && isBool(p0) ? unary(BuiltinUnary.not) : fail();
 		case symbol!"new-void".value:
 			return constant(isVoid(rt), constantZero);
 		case symbol!"null".value:
 			return constant(isPointerConstOrMut(rt), constantZero);
+		case symbol!"per-thread-init".value:
+			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.perThread))) : fail();
+		case symbol!"pointer-cast-from-extern".value:
+		case symbol!"pointer-cast-to-extern".value:
+			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
 		case symbol!"reference-equal".value:
-			return binary(BuiltinBinary.eqPointer);
+			return binary(BuiltinBinary.referenceEqual);
+		case symbol!"reference-from-pointer".value:
+			return unary(BuiltinUnary.referenceFromPointer);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
+		case symbol!"round-down".value:
+			return unaryMath(BuiltinUnaryMath.roundDownFloat32, BuiltinUnaryMath.roundDownFloat64);
+		case symbol!"round-up".value:
+			return unaryMath(BuiltinUnaryMath.roundUpFloat32, BuiltinUnaryMath.roundUpFloat64);
+		case symbol!"set-subscript".value:
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0(p2)
+				? FunBody(BuiltinFun(JsFun.set))
+				: fail();
 		case symbol!"set-deref".value:
-			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
+			return binary(isPointerMut(p0) ? BuiltinBinary.writeToPointer : failBinary);
 		case symbol!"setup-catch".value:
 			return unary(BuiltinUnary.setupCatch);
 		case symbol!"sin".value:
@@ -310,15 +424,26 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.sinhFloat32, BuiltinUnaryMath.sinhFloat64);
 		case symbol!"size-of".value:
 			return FunBody(BuiltinFun(BuiltinFun.SizeOf()));
+		case symbol!"static-symbols".value:
+			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
+		case symbol!"switch-fiber".value:
+			return binary(BuiltinBinary.switchFiber);
+		case symbol!"switch-fiber-initial".value:
+			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"subscript".value:
-			// TODO: check signature
-			return isBuiltin(p0, BuiltinType.funPointer)
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1)
+				? FunBody(BuiltinFun(JsFun.get))
+				: isFunPointer(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallFunPointer()))
-				: isBuiltin(p0, BuiltinType.lambda)
+				: isLambdaType(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallLambda()))
 				: fail();
 		case symbol!"sqrt".value:
 			return unaryMath(BuiltinUnaryMath.sqrtFloat32, BuiltinUnaryMath.sqrtFloat64);
+		case symbol!"symbol-of-c-string".value:
+			return unary(isSymbol(rt) && isCString(p0)
+				? BuiltinUnary.symbolOfCString
+				: failUnary);
 		case symbol!"tan".value:
 			return unaryMath(BuiltinUnaryMath.tanFloat32, BuiltinUnaryMath.tanFloat64);
 		case symbol!"tanh".value:
@@ -327,6 +452,10 @@ FunBody inner(
 			return unary(isChar8(rt)
 				? isNat8(p0)
 					? BuiltinUnary.toChar8FromNat8
+					: failUnary
+			: isChar8Array(rt)
+				? isString(p0)
+					? BuiltinUnary.toChar8ArrayFromString
 					: failUnary
 			: isFloat32(rt)
 				? isFloat64(p0)
@@ -373,6 +502,18 @@ FunBody inner(
 				: failUnary);
 		case symbol!"true".value:
 			return constant(isBool(rt), constantBool(true));
+		case symbol!"truncate-to".value:
+			return unary(isFloat64(p0)
+				? BuiltinUnary.truncateToInt64FromFloat64
+				: failUnary);
+		case symbol!"trust-as-string".value:
+			return unary(isString(rt) && isChar8Array(p0)
+				? BuiltinUnary.trustAsString
+				: failUnary);
+		case symbol!"typeof".value:
+			return isString(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.typeof_))
+				: fail();
 		case symbol!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? BuiltinBinary.unsafeAddInt8
@@ -382,7 +523,21 @@ FunBody inner(
 				? BuiltinBinary.unsafeAddInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeAddInt64
+				: isNat8(rt)
+				? BuiltinBinary.unsafeAddNat8
+				: isNat16(rt)
+				? BuiltinBinary.unsafeAddNat16
+				: isNat32(rt)
+				? BuiltinBinary.unsafeAddNat32
+				: isNat64(rt)
+				? BuiltinBinary.unsafeAddNat64
 				: failBinary);
+		case symbol!"unsafe-bit-shift-left".value:
+			return isNat64(rt) ? binary(BuiltinBinary.unsafeBitShiftLeftNat64) : fail();
+		case symbol!"unsafe-bit-shift-right".value:
+			return isNat64(rt)
+				? binary(BuiltinBinary.unsafeBitShiftRightNat64)
+				: fail();
 		case symbol!"unsafe-div".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.unsafeDivFloat32
@@ -418,6 +573,14 @@ FunBody inner(
 				? BuiltinBinary.unsafeMulInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeMulInt64
+				: isNat8(rt)
+				? BuiltinBinary.unsafeMulNat8
+				: isNat16(rt)
+				? BuiltinBinary.unsafeMulNat16
+				: isNat32(rt)
+				? BuiltinBinary.unsafeMulNat32
+				: isNat64(rt)
+				? BuiltinBinary.unsafeMulNat64
 				: failBinary);
 		case symbol!"unsafe-sub".value:
 			return binary(isInt8(rt)
@@ -428,66 +591,15 @@ FunBody inner(
 				? BuiltinBinary.unsafeSubInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeSubInt64
-				: failBinary);
-		case symbol!"wrap-add".value:
-			return binary(isNat8(rt)
-				? BuiltinBinary.wrapAddNat8
+				: isNat8(rt)
+				? BuiltinBinary.unsafeSubNat8
 				: isNat16(rt)
-				? BuiltinBinary.wrapAddNat16
+				? BuiltinBinary.unsafeSubNat16
 				: isNat32(rt)
-				? BuiltinBinary.wrapAddNat32
+				? BuiltinBinary.unsafeSubNat32
 				: isNat64(rt)
-				? BuiltinBinary.wrapAddNat64
+				? BuiltinBinary.unsafeSubNat64
 				: failBinary);
-		case symbol!"wrap-mul".value:
-			return binary(isNat8(rt)
-				? BuiltinBinary.wrapMulNat8
-				: isNat16(rt)
-				? BuiltinBinary.wrapMulNat16
-				: isNat32(rt)
-				? BuiltinBinary.wrapMulNat32
-				: isNat64(rt)
-				? BuiltinBinary.wrapMulNat64
-				: failBinary);
-		case symbol!"wrap-sub".value:
-			return binary(isNat8(rt)
-				? BuiltinBinary.wrapSubNat8
-				: isNat16(rt)
-				? BuiltinBinary.wrapSubNat16
-				: isNat32(rt)
-				? BuiltinBinary.wrapSubNat32
-				: isNat64(rt)
-				? BuiltinBinary.wrapSubNat64
-				: failBinary);
-		case symbol!"zeroed".value:
-			return constant(true, constantZero);
-		case symbol!"as-any-mut-pointer".value:
-			return unary(BuiltinUnary.asAnyPointer);
-		case symbol!"global-init".value:
-			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();
-		case symbol!"per-thread-init".value:
-			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.perThread))) : fail();
-		case symbol!"reference-from-pointer".value:
-			return unary(BuiltinUnary.referenceFromPointer);
-		case symbol!"pointer-cast-from-extern".value:
-		case symbol!"pointer-cast-to-extern".value:
-			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
-		case symbol!"static-symbols".value:
-			return FunBody(BuiltinFun(BuiltinFun.StaticSymbols()));
-		case symbol!"switch-fiber".value:
-			return binary(BuiltinBinary.switchFiber);
-		case symbol!"switch-fiber-initial".value:
-			return fourary(Builtin4ary.switchFiberInitial);
-		case symbol!"truncate-to".value:
-			return unary(isFloat64(p0)
-				? BuiltinUnary.truncateToInt64FromFloat64
-				: failUnary);
-		case symbol!"unsafe-bit-shift-left".value:
-			return isNat64(rt) ? binary(BuiltinBinary.unsafeBitShiftLeftNat64) : fail();
-		case symbol!"unsafe-bit-shift-right".value:
-			return isNat64(rt)
-				? binary(BuiltinBinary.unsafeBitShiftRightNat64)
-				: fail();
 		case symbol!"unsafe-to".value:
 			return unary(
 				isChar32(rt)
@@ -531,64 +643,59 @@ FunBody inner(
 						? BuiltinUnary.unsafeToNat64FromInt64
 						: failUnary
 				: failUnary);
+		case symbol!"wrap-add".value:
+			return binary(isNat8(rt)
+				? BuiltinBinary.wrapAddNat8
+				: isNat16(rt)
+				? BuiltinBinary.wrapAddNat16
+				: isNat32(rt)
+				? BuiltinBinary.wrapAddNat32
+				: isNat64(rt)
+				? BuiltinBinary.wrapAddNat64
+				: failBinary);
+		case symbol!"wrap-mul".value:
+			return binary(isNat8(rt)
+				? BuiltinBinary.wrapMulNat8
+				: isNat16(rt)
+				? BuiltinBinary.wrapMulNat16
+				: isNat32(rt)
+				? BuiltinBinary.wrapMulNat32
+				: isNat64(rt)
+				? BuiltinBinary.wrapMulNat64
+				: failBinary);
+		case symbol!"wrap-sub".value:
+			return binary(isNat8(rt)
+				? BuiltinBinary.wrapSubNat8
+				: isNat16(rt)
+				? BuiltinBinary.wrapSubNat16
+				: isNat32(rt)
+				? BuiltinBinary.wrapSubNat32
+				: isNat64(rt)
+				? BuiltinBinary.wrapSubNat64
+				: failBinary);
 		default:
 			Opt!VersionFun version_ = versionFunFromSymbol(name);
 			return has(version_) && arity == 0 ? FunBody(BuiltinFun(force(version_))) : fail();
 	}
 }
-
-bool isBuiltin(in Type a, BuiltinType b) =>
-	a.isA!(StructInst*) &&
-	a.as!(StructInst*).decl.body_.isA!BuiltinType &&
-	a.as!(StructInst*).decl.body_.as!BuiltinType == b;
-
-bool isBool(in Type a) =>
-	isBuiltin(a, BuiltinType.bool_);
-
-bool isChar8(in Type a) =>
-	isBuiltin(a, BuiltinType.char8);
-
-bool isChar32(in Type a) =>
-	isBuiltin(a, BuiltinType.char32);
-
-bool isInt8(in Type a) =>
-	isBuiltin(a, BuiltinType.int8);
-
-bool isInt16(in Type a) =>
-	isBuiltin(a, BuiltinType.int16);
-
-bool isInt32(in Type a) =>
-	isBuiltin(a, BuiltinType.int32);
-
-bool isInt64(in Type a) =>
-	isBuiltin(a, BuiltinType.int64);
-
-bool isNat8(in Type a) =>
-	isBuiltin(a, BuiltinType.nat8);
-
-bool isNat16(in Type a) =>
-	isBuiltin(a, BuiltinType.nat16);
-
-bool isNat32(in Type a) =>
-	isBuiltin(a, BuiltinType.nat32);
-
-bool isNat64(in Type a) =>
-	isBuiltin(a, BuiltinType.nat64);
+bool isProbablyFutureImpl(in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"future-impl";
+bool isProbablyMutArrayImpl(in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"mut-array-impl";
 
 bool isFloat32Or64(in Type a) =>
 	isFloat32(a) || isFloat64(a);
 
-bool isFloat32(in Type a) =>
-	isBuiltin(a, BuiltinType.float32);
+bool isChar8Array(in Type a) =>
+	isArray(a) && isChar8(arrayElementType(a));
+bool isTypeParam0Array(in Type a) =>
+	isArray(a) && isTypeParam0(arrayElementType(a));
 
-bool isFloat64(in Type a) =>
-	isBuiltin(a, BuiltinType.float64);
+bool isCString(in Type a) =>
+	isPointerConst(a) && isChar8(pointeeType(a));
 
-bool isPointerConstOrMut(in Type a) =>
-	isBuiltin(a, BuiltinType.pointerConst) || isBuiltin(a, BuiltinType.pointerMut);
-
-bool isVoid(in Type a) =>
-	isBuiltin(a, BuiltinType.void_);
+bool isTypeParam0(in Type a) =>
+	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
 	switch (name.value) {
@@ -604,8 +711,6 @@ Opt!VersionFun versionFunFromSymbol(Symbol name) {
 			return some(VersionFun.isStackTraceEnabled);
 		case symbol!"is-wasm".value:
 			return some(VersionFun.isWasm);
-		case symbol!"is-windows".value:
-			return some(VersionFun.isWindows);
 		default:
 			return none!VersionFun;
 	}

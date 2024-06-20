@@ -42,7 +42,7 @@ import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
-import util.sourceRange : Pos;
+import util.sourceRange : Pos, Range;
 import util.symbol : Symbol, symbol;
 import util.util : optEnumConvert;
 
@@ -252,8 +252,9 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) 
 	SmallArray!TypeAst args = parseTypesWithCommasThenClosingParen(lexer);
 	switch (args.length) {
 		case 0:
-			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeEmptyParens()));
-			return TypeAst(TypeAst.Bogus());
+			Range range = range(lexer, start);
+			addDiag(lexer, range, ParseDiag(ParseDiag.TypeEmptyParens()));
+			return TypeAst(TypeAst.Bogus(range));
 		case 1:
 			if (parens != ParenthesesNecessary.necessary)
 				addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeUnnecessaryParens()));
@@ -346,14 +347,14 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 		case Token.bracketLeft:
 			mustTakeToken(lexer, Token.bracketLeft);
 			return tryTakeToken(lexer, Token.bracketRight)
-				? suffix(TypeAst.SuffixSpecial.Kind.list)
+				? suffix(TypeAst.SuffixSpecial.Kind.array)
 				: mapLike(TypeAst.Map.Kind.data);
 		case Token.questionBracket:
 			mustTakeToken(lexer, Token.questionBracket);
 			TypeAst left = force(suffix(TypeAst.SuffixSpecial.Kind.option));
 			return tryTakeToken(lexer, Token.bracketRight)
 				? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
-					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.list))))
+					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.array))))
 				: mapLike(TypeAst.Map.Kind.data, suffixPos + 1, left);
 		case Token.operator:
 			return tryTakeOperator(lexer, symbol!"*")
@@ -367,7 +368,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				mustTakeToken(lexer, Token.mut);
 				return tryTakeToken(lexer, Token.bracketLeft)
 					? tryTakeToken(lexer, Token.bracketRight)
-						? suffix(TypeAst.SuffixSpecial.Kind.mutList)
+						? suffix(TypeAst.SuffixSpecial.Kind.mutArray)
 						: mapLike(TypeAst.Map.Kind.mut)
 					: tryTakeOperator(lexer, symbol!"*")
 					? suffix(TypeAst.SuffixSpecial.Kind.mutPtr)
@@ -388,7 +389,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 					mustTakeToken(lexer, Token.shared_);
 					mustTakeToken(lexer, Token.bracketLeft);
 					return tryTakeToken(lexer, Token.bracketRight)
-						? suffix(TypeAst.SuffixSpecial.Kind.sharedList)
+						? suffix(TypeAst.SuffixSpecial.Kind.sharedArray)
 						: mapLike(TypeAst.Map.Kind.shared_);
 				} else
 					return none!TypeAst;

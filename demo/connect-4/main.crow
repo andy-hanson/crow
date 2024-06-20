@@ -4,18 +4,18 @@ import
 	crow/io/stdin: read-stdin-until-parse
 	crow/version: is-interpreted
 	./board:
-		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
-		place, red, set-subscript, show, subscript, width
+		board, board-cache, can-place, color, empty-board, has-empty, just-won, new,
+		opposite, place, red, set-subscript, show, subscript, width
 
-main void() summon
+main void() summon, native extern
 	settings = ask-settings
-	if settings.has-slow-ai && trusted is-interpreted
+	if settings has-slow-ai && trusted is-interpreted
 		warn log "AI may be slow in interpreter, try running with '--aot'"
 	empty-board print-board red, ()
 	winner = empty-board play-recur red, settings
 	out print winner.show-winner
 
--ask-settings ai-settings() summon
+-ask-settings ai-settings() summon, native extern
 	out print """
 Choose an option:
 
@@ -49,7 +49,7 @@ CPU: CPU vs CPU
 -ai-settings record(ai-depth-red nat?, ai-depth-blue nat?)
 
 -has-slow-ai bool(a ai-settings)
-	a.ai-depth-red.is-slow-ai || a.ai-depth-blue.is-slow-ai
+	a.ai-depth-red is-slow-ai || a.ai-depth-blue is-slow-ai
 -is-slow-ai bool(a nat?)
 	if x ?= a
 		x > 6
@@ -61,7 +61,7 @@ CPU: CPU vs CPU
 	as blue
 		ai-settings ai-depth-blue
 
--play-recur color?(board board, cur-player color, ai-settings ai-settings) summon
+-play-recur color?(board board, cur-player color, ai-settings ai-settings) summon, native extern
 	x = if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
@@ -78,7 +78,7 @@ CPU: CPU vs CPU
 -print-board void(a board, cur-player color, last-x nat?) summon
 	out print (a show cur-player, last-x)
 
--human-player-move nat(board board, color color) summon
+-human-player-move nat(board board, color color) summon, native extern
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	loop
 		column = "Not a valid column." read-stdin-until-parse x => x column-of-string

@@ -47,6 +47,7 @@ import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	CommonTypes,
+	Config,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
@@ -89,13 +90,14 @@ import util.col.array :
 	zipPointers;
 import util.col.arrayBuilder : add, ArrayBuilder, mustPeek, smallFinish;
 import util.col.hashTable :
-	buildHashTable, getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, mustAdd, MutHashTable;
+	buildHashTable, getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri : Path, RelPath, Uri;
@@ -103,6 +105,7 @@ import util.util : enumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
 	Uri uri;
+	Config* config;
 	FileAst* ast;
 }
 
@@ -152,10 +155,6 @@ Opt!BuiltinSpec getBuiltinSpec(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
 		case symbol!"data".value:
 			return some(BuiltinSpec.data);
-		case symbol!"enum".value:
-			return some(BuiltinSpec.enum_);
-		case symbol!"flags".value:
-			return some(BuiltinSpec.flags);
 		case symbol!"shared".value:
 			return some(BuiltinSpec.shared_);
 		default:
@@ -299,17 +298,23 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
 				if (x.keyword == ModifierKeyword.extern_) {
-					Symbol name = getExternLibraryName(ctx, x);
+					SymbolSet names = getExternLibraryName(ctx, x);
 					if (has(cellGet(externLibraryName)))
 						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
-					final switch (kind) {
-						case VarKind.global:
-							cellSet(externLibraryName, some(name));
-							break;
-						case VarKind.threadLocal:
-							addDiag(ctx, x.keywordRange, Diag(
-								Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
-							break;
+					else {
+						Opt!Symbol name = names.asSingle;
+						if (has(name)) {
+							final switch (kind) {
+								case VarKind.global:
+									cellSet(externLibraryName, name);
+									break;
+								case VarKind.threadLocal:
+									addDiag(ctx, x.keywordRange, Diag(
+										Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
+									break;
+							}
+						} else
+							addDiag(ctx, x.range, Diag(Diag.ExternBodyMultiple()));
 					}
 				} else
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, declKind(kind))));
@@ -389,6 +394,7 @@ Module* checkWorkerAfterCommonTypes(
 	StructDecl[] structs,
 	scope ref DelayStructInsts delayStructInsts,
 	Uri uri,
+	Config* config,
 	ref ImportsAndReExports importsAndReExports,
 	FileAst* ast,
 ) {
@@ -417,6 +423,7 @@ Module* checkWorkerAfterCommonTypes(
 	SmallArray!ImportOrExport imports = finishImports(ctx);
 	return allocate(ctx.alloc, Module(
 		uri,
+		config,
 		ast,
 		finishDiagnostics(ctx),
 		imports,
@@ -526,6 +533,7 @@ BootstrapCheck checkWorker(
 			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(commonUris),
 			uriAndAst.uri,
+			uriAndAst.config,
 			importsAndReExports.modules,
 			ptrTrustMe(diagsBuilder));
 
@@ -558,6 +566,7 @@ BootstrapCheck checkWorker(
 			structs,
 			delayStructInsts,
 			uriAndAst.uri,
+			uriAndAst.config,
 			importsAndReExports,
 			ast);
 		return BootstrapCheck(res, commonTypes);
@@ -677,8 +686,8 @@ ImportedReferents checkNamedImports(
 				module_.exports, name.name);
 			if (!has(referents) || !hasVisibility(*force(referents), importVisibility))
 				add(alloc, diagsBuilder, Diagnostic(name.range, Diag(Diag.ImportRefersToNothing(name.name))));
-			else
-				mustAdd(alloc, res, force(referents));
+			else if (!mayAdd(alloc, res, force(referents)))
+				add(alloc, diagsBuilder, Diagnostic(name.range, Diag(Diag.DuplicateImportName(name.name))));
 		}
 	});
 

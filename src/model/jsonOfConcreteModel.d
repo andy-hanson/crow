@@ -22,7 +22,7 @@ import model.concreteModel :
 	returnType;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
-import model.model : EnumFunction, Local;
+import model.model : EnumOrFlagsFunction, Local;
 import util.alloc.alloc : Alloc;
 import util.integralValues : IntegralValue, IntegralValues;
 import util.json :
@@ -151,9 +151,9 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 	a.matchIn!Json(
 		(in ConcreteFunBody.Builtin x) =>
 			jsonOfConcreteFunBodyBuiltin(alloc, x),
-		(in EnumFunction x) =>
+		(in EnumOrFlagsFunction x) =>
 			jsonObject(alloc, [
-				kindField!"enum-fn",
+				kindField!"enum-or-flags-fun",
 				field!"fn"(stringOfEnum(x))]),
 		(in ConcreteFunBody.Extern) =>
 			jsonString!"extern",

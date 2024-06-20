@@ -2,7 +2,7 @@ no-std
 import
 	../compare: >=
 	../number: ==, <=>, *, /, float64
-	../string: interpolate, string, to
+	../string: interpolate, show, string
 
 # Represents an amount of time.
 +duration record by-val
@@ -47,7 +47,7 @@ import
 	a nanos
 
 # Tries to pick an appropriate format for the value, like `1.5s` or `2.3us`.
-+to string(a duration)
++show string(a duration)
 	if a.nanos >= 1_000_000_000
 		"{a seconds}s"
 	elif a.nanos >= 1_000_000

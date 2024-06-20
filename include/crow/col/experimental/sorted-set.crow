@@ -5,21 +5,20 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: to
-	../../misc: key, new, to, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, hash-mix, interpolate, join, new, string, to
+	../../string: ==, <=>, hash-mix, interpolate, join, new, show, string
 	../../test-util: is
 	../array:
-		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
-		new, next, next-index, size, slice
-	../collection: .., -, build, build-options, end, for-loop, set-subscript, subscript, with-block
-	../mut-array:
-		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
-		mut-array-builder, next, set-next, size, slice, zeroed-mut-array
-	../list: ~=, build, list, list-builder, to
+		~=, array, array-builder, as-array, begin-pointer, build, end-pointer, is-empty, iterate,
+		new, next-index, size, subscript
+	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
+	../mut-slice:
+		~=, begin-pointer, build, end-pointer, gc-safe-mut-slice, is-empty, mut-slice,
+		mut-slice-builder, set-subscript, size, subscript
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
@@ -38,17 +37,16 @@ Largest node is on the left.
 Nodes are added to the right.
 ###
 
--add-node[t] record(values t array, left t add-node?)
+-add-node[t] record(values t[], left t add-node?)
 
-+new[t] t sorted-set(...a t array) t key
-	a.to to
++new[t] t sorted-set(...a t[]) t key
+	a to
 
 +to[t] t sorted-set(a t[]) t key
-	(a.to.sort, ()) :: (t add-node), ()
+	(a.sort, ()) :: (t add-node), ()
 
 +to[t] t[](a t sorted-set) t key
-	for x : a
-		x
+	for x : a; x
 
 # Same as `a.size == 0`.
 +is-empty[t] bool(a t sorted-set)
@@ -71,7 +69,7 @@ Nodes are added to the right.
 # True if `value` is an element of the set.
 +in[t] bool(value t, a t sorted-set) t key
 	if index ?= a.add find-in-add value
-		!(index in a.remove)
+		index !in a.remove
 
 -find-in-add[t] nat64?(a t add-node, value t) t key
 	if iter ?= a.values binary-search-exact value
@@ -103,14 +101,14 @@ Adds an element to the set.
 
 If `value` is already in the set, returns `a` unmodified.
 ###
-+ ~[t] t sorted-set(a t sorted-set, value t) t key
++ ~[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	a try-add value ?? a
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-+try-add[t] t sorted-set?(a t sorted-set, value t) t key
++try-add[t] t sorted-set?(a t sorted-set, value t) t key, native extern
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -123,14 +121,14 @@ Removes a value from the set.
 
 If `value` is not in the set, returns `a` unmodified.
 ###
-+ -[t] t sorted-set(a t sorted-set, value t) t key
++ -[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	a try-remove value ?? a
 
 ###
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-+try-remove[t] t sorted-set?(a t sorted-set, value t) t key
++try-remove[t] t sorted-set?(a t sorted-set, value t) t key, native extern
 	guard r ?= a.add find-in-add-for-remove value, 0
 	removals-here-and-right = (a.remove count-greater-or-equal r.size-left) + 1
 	if r.size-here should-compact r.size-right, removals-here-and-right
@@ -139,7 +137,7 @@ Else, returns an empty option.
 	else
 		(a.add, a.remove ~ r.value-index),
 
--add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t key
+-add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -189,24 +187,33 @@ Or a combination of the two.
 -should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
--add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key
+-add-and-compact[t] t sorted-set(
+	a t sorted-set,
+	add-size nat64,
+	plan compact-plan,
+	value t,
+) t key, native extern
 	assert plan.compacted-size > 1
 	trusted
-		compacted t mut-array = plan.compacted-size zeroed-mut-array
+		compacted t mut-slice = plan.compacted-size gc-safe-mut-slice
 		begin = compacted begin-pointer
 		*begin := value
 		compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
 		new-add = compactor do-compact a.add, add-size, a.remove
 		new-add, (a.remove filter-less plan.add-size-left)
 
--remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t key
+-remove-and-compact[t] t sorted-set(
+	a t sorted-set,
+	plan compact-plan,
+	extra-removal nat64,
+) t key, native extern
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
 			left, new-remove
 	else
 		trusted
-			compacted t mut-array = plan.compacted-size zeroed-mut-array
+			compacted t mut-slice = plan.compacted-size gc-safe-mut-slice
 			begin = compacted begin-pointer
 			compactor t compactor = begin.as-const, begin, compacted.end-pointer
 			old-size = plan.add-size-left + plan.compacted-size + 1
@@ -220,7 +227,7 @@ Or a combination of the two.
 	add t add-node,
 	add-size nat64,
 	remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	cur mut = add
 	add-size-here-and-left mut = add-size
 	loop
@@ -230,15 +237,15 @@ Or a combination of the two.
 			break compactor.finish, cur.left
 		else
 			add-size-here-and-left -:= cur.values size
-			cur := cur.left!
+			cur := cur left!
 			continue
 
 -merge[t] void(
 	a t compactor,
-	values t array,
+	values t[],
 	add-size-here-and-left nat64,
 	remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	guard n-added != 0
@@ -255,10 +262,10 @@ Or a combination of the two.
 	a-begin t*,
 	init-a-read t*,
 	init-a-write t mut*,
-	b t array,
+	b t[],
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	a-read mut = init-a-read
 	a-write mut = init-a-write
 	b-begin = b begin-pointer
@@ -298,10 +305,10 @@ Or a combination of the two.
 
 -copy-from-b[t] void(
 	init-a-write t mut*,
-	b t array,
+	b t[],
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe
+) unsafe, native extern
 	a-write mut = init-a-write
 	b-read mut = b.end-pointer - 1
 	b-remove-index mut = init-b-remove-index
@@ -316,14 +323,14 @@ Or a combination of the two.
 			b-remove-index -:= 1
 			continue
 
--finish[t] t array(a t compactor) unsafe
+-finish[t] t[](a t compactor) unsafe, native extern
 	assert a.cur == a.end
 	a.begin .. a.end.as-const as-array
 
 region spec impls (see collection.crow)
 
 +iterate[t] bool(a t sorted-set, f bool mut(elem t)) t key
-	iters mut = a init-iters
+	iters mut t iter-part mut-slice = a init-iters
 	loop
 		if iters is-empty
 			break false
@@ -333,7 +340,7 @@ region spec impls (see collection.crow)
 			iters[least-iter-index] := iters[least-iter-index] tail a.remove
 			if iters[least-iter-index] is-empty
 				iters[least-iter-index] := iters[end - 1]
-				iters := iters[0 .. iters.size - 1]
+				iters := iters[0 .. end - 1]
 			if f[least-value]
 				break true
 			else
@@ -343,7 +350,7 @@ region spec impls (see collection.crow)
 	current-least t,
 	current-least-index nat64,
 	iter-index nat64,
-	iters t iter-part mut-array,
+	iters t iter-part mut-slice,
 ) t key
 	if iter-index == iters.size
 		current-least-index
@@ -355,7 +362,7 @@ region spec impls (see collection.crow)
 			current-least find-least-iter current-least-index, iter-index + 1, iters
 
 -iter-part[t] record by-val
-	values t array
+	values t[]
 	remove-index nat64
 
 -is-empty[t] bool(a t iter-part)
@@ -364,7 +371,7 @@ region spec impls (see collection.crow)
 -tail[t] t iter-part(a t iter-part, remove index-set)
 	(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 
--init-iters[t] t iter-part mut-array(a t sorted-set)
+-init-iters[t] t iter-part mut-slice(a t sorted-set)
 	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
 
@@ -377,7 +384,7 @@ region spec impls (see collection.crow)
 	acc
 
 # Returns next remove index
--init-iters-recur[t] nat64(out t iter-part mut-array-builder, a t add-node, remove index-set)
+-init-iters-recur[t] nat64(out t iter-part mut-slice-builder, a t add-node, remove index-set)
 	prev = if left ?= a left
 		out init-iters-recur left, remove
 	else
@@ -388,13 +395,13 @@ region spec impls (see collection.crow)
 	prev + a.values.size
 
 -remove-from-front[t] t iter-part(a t iter-part, remove index-set)
-	if !a.values.is-empty && a.remove-index in remove
+	if a.values !is-empty && a.remove-index in remove
 		(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 	else
 		a
 
 +sorted-set-builder[t] record mut
-	-inner t list-builder
+	-inner t array-builder
 
 +build[t] t sorted-set(a build-options, f void mut(out t sorted-set-builder)) t key
 	a build (out => f[out,]) to
@@ -404,7 +411,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[t] string(a t sorted-set) (string, t) to
+-dbg[t] string(a t sorted-set) t show
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -412,7 +419,7 @@ region test
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 
--dbg[t] string(a t add-node) (string, t) to
+-dbg[t] string(a t add-node) t show
 	left string = if l ?= a left
 		"{l dbg}, "
 	values = " " join for x : a values; "{x}"
@@ -421,7 +428,7 @@ region test
 -verify void(a string sorted-set, expected string)
 	a.dbg is expected
 
-test
+test native extern
 	# TODO: be sure to test removing and then adding back
 	a string sorted-set = ()
 	a.is-empty is true

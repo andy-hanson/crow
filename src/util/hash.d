@@ -18,6 +18,20 @@ HashCode getHash(T)(in T a) {
 		return a.hash();
 }
 
+HashCode getHashOfPair(T, U)(in T a, in U b) =>
+	hashUlongs([getHashableUlong!T(a), getHashableUlong!U(b)]);
+
+private ulong getHashableUlong(T)(in T a) {
+	static if (is(T == P*, P))
+		return cast(ulong) a;
+	else static if (is(T == uint))
+		return a;
+	else static if (__traits(hasMember, T, "taggedPointerValueForHash"))
+		return a.taggedPointerValueForHash;
+	else
+		return a.hash().hashCode;
+}
+
 struct HashCode {
 	ulong hashCode;
 }
@@ -61,11 +75,6 @@ HashCode hashTaggedPointer(T)(in T taggedPointer) =>
 HashCode hashPointers(T, U)(in T* a, in U* b) =>
 	hashUlongs([cast(ulong) a, cast(ulong) b]);
 
-HashCode hashPointerAndTaggedPointer(T, U)(in T a, in U b) {
-	static assert(is(T == P*, P));
-	return hashUlongs([cast(ulong) a, b.taggedPointerValueForHash]);
-}
-
 HashCode hashPointerAndTaggedPointers(T, U)(in T* pointer, in U[] taggedPointers) {
 	Hasher hasher;
 	hasher ~= pointer;
@@ -87,7 +96,7 @@ HashCode hashPointerAndTaggedPointersX2(T, U, V)(in T* pointer, in U[] taggedPoi
 HashCode hashUlong(ulong a) =>
 	HashCode(fmix64(a));
 
-HashCode hashUlongs(ulong[2] a) =>
+private HashCode hashUlongs(ulong[2] a) =>
 	murmurFinish(a);
 
 HashCode hashPointer(T)(T* a) =>

@@ -1,5 +1,5 @@
 main void() unsafe
-	zeroed::e f
+	gc-safe-value::e f
 
 f void(a u)
 	match a

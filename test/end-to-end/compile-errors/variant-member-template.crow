@@ -1,0 +1,5 @@
+main void()
+	info log "done"
+
+-v variant
+-x[t] record(value t) v variant-member

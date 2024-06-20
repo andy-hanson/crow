@@ -13,7 +13,7 @@ import frontend.check.checkCall.candidates :
 	testCandidateParamType,
 	typeContextForCandidate,
 	withCandidates;
-import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
+import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, checkLambda, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
@@ -30,7 +30,6 @@ import frontend.check.inferringType :
 	nonInferring,
 	SingleInferringType,
 	tryGetInferred,
-	tryGetNonInferringType,
 	TypeAndContext,
 	TypeContext,
 	withExpectCandidates;
@@ -39,7 +38,6 @@ import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionTy
 import model.ast : CallAst, CallNamedAst, DestructureAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag, TypeContainer;
 import model.model :
-	BuiltinSpec,
 	Called,
 	CalledDecl,
 	CalledSpecSig,
@@ -80,6 +78,7 @@ import util.opt : force, has, none, Opt, optIf, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.util : typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
@@ -340,6 +339,7 @@ Opt!Called findFunctionForReturnAndParamTypes(
 	TypeContainer typeContainer,
 	FunsInScope funsInScope,
 	FunFlags outermostFunFlags,
+	SymbolSet externs,
 	in LocalsInfo locals,
 	Symbol name,
 	Range diagRange,
@@ -367,7 +367,7 @@ Opt!Called findFunctionForReturnAndParamTypes(
 				return none!Called;
 			} else
 				return some(checkCallAfterChoosingOverload(
-					ctx, typeContainer, funsInScope, outermostFunFlags, locals,
+					ctx, typeContainer, funsInScope, outermostFunFlags, externs, locals,
 					only(candidates), diagRange, arity, canDoUnsafe));
 		});
 }
@@ -484,7 +484,7 @@ Opt!Called checkCallInner(
 			return none!Called;
 		} else
 			return some(checkCallAfterChoosingOverload(
-				ctx.checkCtx, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, locals,
+				ctx.checkCtx, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, ctx.externs, locals,
 				only(candidates), diagRange, nArgs,
 				() => checkCanDoUnsafe(ctx)));
 	});
@@ -652,31 +652,10 @@ bool preCheckCandidateSpec(
 	every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
 		preCheckCandidateSpec(ctx, callCandidate, called, *parent, state)
 	) &&
-	preCheckBuiltinSpec(ctx, callCandidate, called, spec) &&
 	// For a builtin spec, we'll leave it for the end.
 	(state != TypeArgsInferenceState.partial || zipEvery!(Signature, ReturnAndParamTypes)(
 		spec.decl.sigs, spec.sigTypes, (ref Signature sig, ref ReturnAndParamTypes returnAndParamTypes) =>
 			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
-
-bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in FunDecl called, in SpecInst spec) {
-	if (has(spec.decl.builtin)) {
-		bool checkTypeIfInferred(in bool delegate(in Type) @safe @nogc pure nothrow cb) {
-			Opt!Type type = tryGetNonInferringType(
-				ctx.instantiateCtx, const TypeAndContext(only(spec.typeArgs), typeContextForCandidate(callCandidate)));
-			return !has(type) || cb(force(type));
-		}
-
-		switch (force(spec.decl.builtin)) {
-			case BuiltinSpec.enum_:
-				return checkTypeIfInferred((in Type x) => isEnum(ctx.outermostFunSpecs, x));
-			case BuiltinSpec.flags:
-				return checkTypeIfInferred((in Type x) => isFlags(ctx.outermostFunSpecs, x));
-			default:
-				return true;
-		}
-	} else
-		return true;
-}
 
 bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,
@@ -711,6 +690,7 @@ Called checkCallAfterChoosingOverload(
 	TypeContainer typeContainer,
 	FunsInScope funsInScope,
 	in FunFlags outermostFunFlags,
+	SymbolSet externs,
 	in LocalsInfo locals,
 	ref const Candidate candidate,
 	in Range diagRange,
@@ -719,7 +699,7 @@ Called checkCallAfterChoosingOverload(
 ) {
 	Called called = checkCallSpecs(ctx, typeContainer, funsInScope, diagRange, candidate);
 	checkCalled(
-		ctx, diagRange, called, outermostFunFlags, locals,
+		ctx, diagRange, called, outermostFunFlags, externs, locals,
 		nArgs == 0 ? ArgsKind.empty : ArgsKind.nonEmpty, canDoUnsafe);
 	return called;
 }

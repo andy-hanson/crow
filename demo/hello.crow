@@ -7,4 +7,4 @@ main nat(args string[]) summon
 		"Hello, world!"
 	else
 		"Hello, {" " join args}!"
-	()
+	0

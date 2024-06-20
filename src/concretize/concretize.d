@@ -6,8 +6,6 @@ import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes;
 import concretize.concretizeCtx :
 	boolType,
-	char8Type,
-	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
 	ConcreteVariantMemberAndMethodImpls,
@@ -15,7 +13,6 @@ import concretize.concretizeCtx :
 	deferredFillRecordAndUnionBodies,
 	exceptionType,
 	finishConcreteVars,
-	getConcreteFun,
 	getNonTemplateConcreteFun,
 	getVar,
 	nat64Type,
@@ -33,13 +30,14 @@ import model.concreteModel :
 	ConcreteFunKey,
 	ConcreteProgram,
 	ConcreteStruct,
-	ConcreteStructInfo,
 	ConcreteStructBody,
+	ConcreteStructInfo,
+	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain;
+import model.model : allExterns, BuildTarget, BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain, StructBody;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, small;
+import util.col.array : map, mustHaveIndexOfPointer, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
@@ -72,14 +70,15 @@ ConcreteProgram concretizeInner(
 	ref Alloc alloc() =>
 		*allocPtr;
 	ConcretizeCtx ctx = ConcretizeCtx(
-		allocPtr, versionInfo, ptrTrustMe(program.program), castNonScope_ref(fileContentGetters));
+		allocPtr,
+		versionInfo,
+		ptrTrustMe(program.program),
+		castNonScope_ref(fileContentGetters),
+		allExterns(program, BuildTarget.native));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
-	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));
 	lateSet(ctx.equalNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.equalNat64));
 	lateSet(ctx.lessNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.lessNat64));
-	lateSet(ctx.newChar8ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char8Type(ctx)], []));
-	lateSet(ctx.newChar32ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char32Type(ctx)], []));
 	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
 	ConcreteCommonFuns concreteCommonFuns = ConcreteCommonFuns(
 		alloc: getNonTemplateConcreteFun(ctx, commonFuns.allocate),
@@ -123,12 +122,12 @@ ConcreteProgram concretizeInner(
 	return res;
 }
 
-ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
+ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, MainFun main) =>
 	main.match!(ConcreteFun*)(
 		(MainFun.Nat64OfArgs x) =>
 			getNonTemplateConcreteFun(ctx, x.fun),
 		(MainFun.Void x) =>
-			concreteFunForWrapMain(ctx, x.stringList, x.fun));
+			concreteFunForWrapMain(ctx, x.stringArray, x.fun));
 
 void finishLambdas(ref ConcretizeCtx ctx) {
 	foreach (ConcreteStruct* struct_, MutArr!ConcreteLambdaImpl impls; ctx.lambdaStructToImpls) {
@@ -161,7 +160,9 @@ void finishVariants(ref ConcretizeCtx ctx) {
 
 	foreach (ConcreteFun* fun; ctx.deferredVariantMethods) {
 		ConcreteStruct* variant = mustBeByVal(fun.params[0].type);
-		size_t methodIndex = fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).methodIndex;
+		size_t methodIndex = mustHaveIndexOfPointer(
+			variant.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Variant).methods,
+			fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).method);
 		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
 		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}

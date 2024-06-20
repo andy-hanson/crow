@@ -2,21 +2,22 @@
 import
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
-	crow/io/print: out, print
-	./failure: failure, new, print-failures
+	crow/io/print: err, out, print
+	./failure: failure, new, show-failures
 
-main nat(_ string[]) summon
+main nat(_ string[]) summon, native extern
 	files = list-lintable-files
 	failures = for file : files parallel-concat; file lint-file
 	if failures is-empty
 		out print "linted {files size} files"
 		0
 	else
-		failures print-failures
+		err print failures.show-failures
+		failures size
 
--list-lintable-files string[]() summon
+-list-lintable-files string[]() summon, native extern
 	res string mut[] = ()
-	"." each-child-recursive (child => !child.excluded-from-lint), child =>
+	"." each-child-recursive (child => child !excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to
@@ -32,13 +33,13 @@ main nat(_ string[]) summon
 		"ttf", "vsix", "wasm", "wav", "woff2"
 -exclude-names string set()
 	"bin", "comments.crow", "COPYING.txt", "crow-parser.crow", "crow.sublime-syntax", "dyncall",
-	"invalid-utf8.crow", "node_modules", "not-utf8.txt", "package-lock.json", "site",
+	"index.js", "invalid-utf8.crow", "node_modules", "not-utf8.txt", "package-lock.json", "site",
 	"trailing-indent.crow"
 
--lint-file failure[](path string) summon
+-lint-file failure[](path string) summon, native extern
 	text string = path read-file
 	res failure mut[] = ()
-	ext = path.get-extension ?? ""
+	ext = path get-extension ?? ""
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	max-line-length = path max-line-length
 	for line-num, line : text.lines with-index
@@ -55,7 +56,7 @@ main nat(_ string[]) summon
 	res move-to
 
 -ignored-extensions string set()
-	"c", "data", "json", "o", "out", "repr", "tmLanguage"
+	"data", "json", "o", "out", "repr", "tmLanguage"
 
 -should-ignore-extension bool(ext string)
 	ext in ignored-extensions
@@ -63,7 +64,7 @@ main nat(_ string[]) summon
 -should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
 		# Ignore 'lint-basic.xyz' where xyz is random hex (happens when running with '--aot')
-		ext.should-ignore-extension || name starts-with "lint-basic."
+		ext should-ignore-extension
 	else
 		# Ignore extensionless files since those are executables
 		name != "GNUmakefile" && name != "NMakefile"

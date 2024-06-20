@@ -24,7 +24,6 @@ import model.model :
 	importCanSee,
 	NameReferents,
 	Params,
-	paramTypeAt,
 	ReturnAndParamTypes,
 	Signature,
 	SpecInst,

@@ -3,18 +3,17 @@ import
 	../bool: bool, false, new, not, true
 	../compare: <=, >, >=
 	../fun-util: subscript
-	../misc: key, new, to, void
+	../misc: key, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: interpolate, join, new, string, to
-	./array: array
+	../string: interpolate, join, new, show, string
+	./array: ~=, array, build
 	./collection: build, build-options, filter, for-loop, iterate, with-block, with-index
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
 		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to,
 		try-get-unordered-index
-	./list: ~=, build, list, to
 
 ###
 Immutable unsorted set.
@@ -26,8 +25,8 @@ Immutable unsorted set.
 -add-node[t] record(here t frozen-set, left t add-node?)
 
 # Set containing the given elements (with duplicates removed).
-+new[t] t set(...a t array) t key
-	a.to::t[] to
++new[t] t set(...a t[]) t key
+	a to
 
 # Set containing the given elements (with duplicates removed).
 +to[t] t set(a t[]) t key
@@ -63,7 +62,7 @@ to[t] t set(a t frozen-set) t key
 # `true` iff `value` is an element of `a`.
 +in[t] bool(value t, a t set) t key
 	if index ?= a.add find-in-add value
-		!(index in a.remove)
+		index !in a.remove
 
 # Alternative way of writing 'value in a'
 +subscript[t] bool(a t set, value t) t key
@@ -118,7 +117,7 @@ Set difference.
 This is a set containing all elements in `a` but not in `b`.
 ###
 +-[t] t set(a t set, b t set) t key
-	a filter x => !(x in b)
+	a filter x => x !in b
 
 ###
 If `value` is already in the set, returns an empty option.
@@ -202,7 +201,7 @@ Else, adds it and returns the new set.
 		if out.size == compacted-size
 			break cur left
 		else
-			cur := cur.left!
+			cur := cur left!
 			add-size-here-and-left -:= cur.here size
 			continue
 
@@ -249,14 +248,14 @@ region spec impls (see collection.crow)
 
 region test
 
-dbg[t] string(a t set) (string, t) to
+dbg[t] string(a t set) t show
 	add = a.add dbg
 	if a.remove is-empty
 		add
 	else
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
--dbg[t] string(a t add-node) (string, t) to
+-dbg[t] string(a t add-node) t show
 	left string = if l ?= a left
 		"{l dbg}, "
 	here = " " join for x : a here; "{x}"

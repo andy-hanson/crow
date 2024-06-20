@@ -24,7 +24,7 @@ import
 	callback SDL_AudioCallback
 	userdata any-mut-pointer
 
-+new SDL_AudioSpec() bare, unsafe
++new SDL_AudioSpec() bare, unsafe, native extern
 	0, 0, 0, 0, 0, 0, 0, null, null
 
 +SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) SDL2 extern

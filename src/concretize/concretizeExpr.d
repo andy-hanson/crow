@@ -31,9 +31,7 @@ import concretize.generate :
 	genCallNoAllocArgs,
 	genCallKindNoAllocArgs,
 	genChar8Array,
-	genChar8List,
 	genChar32Array,
-	genChar32List,
 	genConstant,
 	genContinue,
 	genCreateRecord,
@@ -41,6 +39,7 @@ import concretize.generate :
 	genDoAndContinue,
 	genDropAnd,
 	genError,
+	genIdentifier,
 	genLet,
 	genLocalPointer,
 	genLoop,
@@ -53,12 +52,10 @@ import concretize.generate :
 	genRecordFieldPointer,
 	genReferenceCreate, genReferenceRead, genReferenceWrite,
 	genSome,
-	genLocalGet,
 	genThrow,
 	genThrowStringKind,
 	genVoid,
 	unwrapOptionType;
-import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
 import model.concreteModel :
 	arrayElementType,
 	ConcreteExpr,
@@ -89,6 +86,7 @@ import model.model :
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinFun,
+	BuiltinUnary,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -98,10 +96,12 @@ import model.model :
 	ClosureReferenceKind,
 	ClosureSetExpr,
 	Condition,
+	defaultAssertOrForbidMessage,
 	Destructure,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
 	ExprAndType,
+	ExternExpr,
 	FinallyExpr,
 	FunBody,
 	FunInst,
@@ -140,7 +140,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
-	concatenate,
 	isEmpty,
 	map,
 	mapWithFirst,
@@ -377,7 +376,7 @@ ConcreteExpr concretizeBuiltinBinaryLazy(
 			ConcreteType optionType = getConcreteType(ctx, called.paramTypes[0]);
 			assert(unwrapOptionType(ctx.concretizeCtx, optionType) == type);
 			return genIfOption(
-				ctx.alloc, range, arg0(optionType), RootLocalAndExpr(some(local), genLocalGet(range, local)), arg1);
+				ctx.alloc, range, arg0(optionType), RootLocalAndExpr(some(local), genIdentifier(range, local)), arg1);
 	}
 }
 
@@ -402,7 +401,7 @@ ConcreteExpr concretizeCallOption(
 	assert(a.restArgs.length + 1 == called.params.length);
 	SmallArray!ConcreteExpr allArgs = mapWithFirst!(ConcreteExpr, Expr)(
 		ctx.alloc,
-		genLocalGet(range, local),
+		genIdentifier(range, local),
 		a.restArgs,
 		(size_t i, ref Expr x) => concretizeExpr(ctx, called.params[i + 1].type, locals, x));
 	ConcreteExpr call = genCallNoAllocArgs(range, called, allArgs);
@@ -676,10 +675,10 @@ ConcreteExpr concretizeLet(
 ) {
 	ConcreteType localType = getConcreteType(ctx, e.destructure.type);
 	return concretizeWithDestructureAndLet(
-			ctx, type, range, locals, e.destructure,
-			concretizeExpr(ctx, localType, locals, e.value),
-			(in Locals innerLocals) =>
-				concretizeExpr(ctx, type, innerLocals, e.then));
+		ctx, type, range, locals, e.destructure,
+		concretizeExpr(ctx, localType, locals, e.value),
+		(in Locals innerLocals) =>
+			concretizeExpr(ctx, type, innerLocals, e.then));
 }
 
 RootLocalAndExpr concretizeExprWithDestructure(
@@ -740,7 +739,7 @@ RootLocalAndExpr concretizeWithDestructure(
 					ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(referenceLocal)));
 					return genLet(
 						ctx.alloc, type, range, referenceLocal,
-						genReferenceCreate(ctx.concretizeCtx, referenceType, range, genLocalGet(range, rootLocal)),
+						genReferenceCreate(ctx.concretizeCtx, referenceType, range, genIdentifier(range, rootLocal)),
 						then);
 				} else
 					return cb(addLocal(locals, local, LocalOrConstant(rootLocal)));
@@ -748,16 +747,15 @@ RootLocalAndExpr concretizeWithDestructure(
 			return RootLocalAndExpr(some(rootLocal), expr);
 		},
 		(Destructure.Split* x) {
-			if (x.destructuredType.isBogus)
-				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx, type, range));
-			else {
+			if (x.isValidDestructure(ctx.concretizeCtx.commonTypes)) {
 				ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
 					ConcreteLocalSource(ConcreteLocalSource.Generated.destruct),
 					getConcreteType(ctx, destructure.type)));
 				return RootLocalAndExpr(
 					some(temp),
 					concretizeWithDestructureSplit(ctx, type, range, locals, *x, temp, cb));
-			}
+			} else
+				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx, type, range));
 		});
 
 ConcreteExpr concretizeWithDestructureSplit(
@@ -770,7 +768,7 @@ ConcreteExpr concretizeWithDestructureSplit(
 	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
 ) =>
 	concretizeWithDestructurePartsRecur(
-		ctx, type, locals, allocate(ctx.alloc, genLocalGet(range, destructured)), split.parts, 0, cb);
+		ctx, type, locals, allocate(ctx.alloc, genIdentifier(range, destructured)), split.parts, 0, cb);
 ConcreteExpr concretizeWithDestructurePartsRecur(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
@@ -848,14 +846,12 @@ ConcreteExpr concretizeLiteralStringLike(
 	final switch (kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
 			return genChar8Array(ctx.concretizeCtx, range, value);
-		case LiteralStringLikeExpr.Kind.char8List:
-			return genChar8List(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.char32Array:
 			return genChar32Array(ctx.concretizeCtx, range, value);
-		case LiteralStringLikeExpr.Kind.char32List:
-			return genChar32List(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.cString:
 			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, value)));
+		case LiteralStringLikeExpr.Kind.jsAny:
+			assert(false);
 		case LiteralStringLikeExpr.Kind.string_:
 			return genStringLiteral(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.symbol:
@@ -874,7 +870,7 @@ ConcreteExpr concretizeLocalGet(
 	LocalOrConstant concrete = castNonScope_ref(getLocal(locals, local));
 	return concrete.matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* x) {
-			ConcreteExpr get = genLocalGet(range, x);
+			ConcreteExpr get = genIdentifier(range, x);
 			return isBogus(x.type)
 				? concretizeBogus(ctx, type, range)
 				: local.isAllocated
@@ -895,7 +891,7 @@ ConcreteExpr concretizePtrToLocal(
 	castNonScope_ref(getLocal(locals, a.local)).matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
 			a.local.isAllocated
-				? genRecordFieldPointer(type, range, allocate(ctx.alloc, genLocalGet(range, local)), 0)
+				? genRecordFieldPointer(type, range, allocate(ctx.alloc, genIdentifier(range, local)), 0)
 				: genLocalPointer(type, range, local),
 		(TypedConstant x) =>
 			//TODO: what if pointee is a reference?
@@ -912,7 +908,7 @@ ConcreteExpr concretizeLocalSet(
 	ConcreteType valueType = a.local.isAllocated ? getReferencedType(ctx.concretizeCtx, local.type) : local.type;
 	ConcreteExpr value = concretizeExpr(ctx, valueType, locals, *a.value);
 	return a.local.isAllocated
-		? genReferenceWrite(ctx.concretizeCtx, range, genLocalGet(range, local), value)
+		? genReferenceWrite(ctx.concretizeCtx, range, genIdentifier(range, local), value)
 		: genLocalSet(ctx.concretizeCtx, range, local, value);
 }
 
@@ -1144,7 +1140,7 @@ ConcreteExpr concretizeVariableRefForClosure(
 			getLocal(locals, x).matchWithPointers!ConcreteExpr(
 				(ConcreteLocal* local) =>
 					// If it's a Cell, leave it that way
-					genLocalGet(range, local),
+					genIdentifier(range, local),
 				(TypedConstant constant) =>
 					genConstant(constant.type, range, constant.value)),
 		(ClosureRef x) =>
@@ -1159,7 +1155,10 @@ ConcreteExpr concretizeAssertOrForbid(
 	ref AssertOrForbidExpr a,
 ) {
 	ConcreteExpr defaultThrown() =>
-		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, expr, a));
+		genError(
+			ctx.concretizeCtx,
+			range,
+			defaultAssertOrForbidMessage(ctx.alloc, ctx.curUri, expr, a, ctx.concretizeCtx.fileContentGetters));
 	ConcreteExpr throwNoDestructure() =>
 		genThrow(ctx.alloc, type, range, has(a.thrown)
 			? concretizeExpr(ctx, exceptionType(ctx.concretizeCtx), locals, *force(a.thrown))
@@ -1195,24 +1194,6 @@ ConcreteExpr concretizeAssertOrForbid(
 		});
 }
 
-immutable struct PrefixAndRange {
-	string prefix;
-	Range range;
-}
-string defaultAssertOrForbidMessage(ref ConcretizeExprCtx ctx, in Expr expr, in AssertOrForbidExpr a) {
-	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
-		(ref ExprAst condition) =>
-			PrefixAndRange(
-				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
-				expr.ast.kind.as!AssertOrForbidAst.condition.range),
-		(ref ConditionAst.UnpackOption unpack) =>
-			PrefixAndRange(
-				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",
-				unpack.option.range));
-	string exprText = ctx.concretizeCtx.fileContentGetters.getSourceText(ctx.curUri, x.range);
-	return concatenate(ctx.alloc, x.prefix, exprText);
-}
-
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref ExprAndType a) =>
 	concretizeExpr(ctx, getConcreteType(ctx, a.type), locals, a.expr);
 
@@ -1233,6 +1214,9 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeClosureGet(ctx, type, range, x),
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
+		(ExternExpr x) =>
+			ConcreteExpr(type, range, ConcreteExprKind(
+				constantBool(ctx.concretizeCtx.allExterns.containsAll(x.names)))),
 		(FinallyExpr* x) =>
 			concretizeFinally(ctx, type, range, locals, *x),
 		(FunPointerExpr x) =>
@@ -1322,15 +1306,21 @@ Opt!Constant tryEvalConstant(
 				return some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)));
 			} else if (x.kind.isA!BuiltinBinary) {
 				assert(args.length == 2);
-				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[0]);
+				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[1]);
+			} else if (x.kind.isA!BuiltinUnary) {
+				return tryEvalConstantUnary(x.kind.as!BuiltinUnary, only(args));
 			} else if (x.kind.isA!(BuiltinFun.SizeOf)) {
+				assert(isEmpty(args));
 				return isEmptyType(only(fn.source.as!ConcreteFunKey.typeArgs))
 					? some(constantZero())
 					: none!Constant;
+			} else if (x.kind.isA!(BuiltinFun.GcSafeValue)) {
+				assert(isEmpty(args));
+				return some(constantZero());
 			} else
 				return none!Constant;
 		},
-		(in EnumFunction _) => none!Constant,
+		(in EnumOrFlagsFunction _) => none!Constant,
 		(in ConcreteFunBody.Extern) => none!Constant,
 		(in ConcreteExpr x) =>
 			x.kind.isA!Constant
@@ -1345,6 +1335,14 @@ Opt!Constant tryEvalConstantBinary(BuiltinBinary fn, Constant arg0, Constant arg
 	switch (fn) {
 		case BuiltinBinary.eqNat64:
 			return some(constantBool(asNat64(arg0) == asNat64(arg1)));
+		default:
+			return none!Constant;
+	}
+}
+Opt!Constant tryEvalConstantUnary(BuiltinUnary fn, Constant arg) {
+	switch (fn) {
+		case BuiltinUnary.not:
+			return some(constantBool(!asBool(arg)));
 		default:
 			return none!Constant;
 	}

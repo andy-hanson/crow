@@ -2,31 +2,48 @@ no-std
 import
 	system/time: time, time_t
 	../compare: max
-	../exception: todo
 	../fun-util: subscript
+	../js: await, call, call-new, call-property, cast, js-global
 	../misc: break-or-continue, new, shared, void
-	../number: ==, <=>, +, /, nat64, to
+	../number: ==, <=>, +, /, float, nat64, to
 	../pointer: null
+	../private/bootstrap: todo
 	../private/runtime: delay-cur-fiber-until-time
-	../version: is-windows
-	./duration: duration, nanoseconds
+	./duration: duration, milliseconds, nanoseconds
 export
 	./private/time-low-level: get-monotime-nsec
 
-+get-monotime-msec nat64() summon
++get-monotime-msec nat64() summon, native extern
 	get-monotime-nsec / 1000000
 
 +unix-time record
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-+get-unix-time unix-time() summon
-	forbid trusted is-windows : todo
-	trusted null.time,
++get-unix-time unix-time() summon, trusted
+	if extern native
+		if extern posix
+			null.time,
+		else
+			todo
+	elif extern js
+		# (new Date()).valueOf()
+		msec float = "Date".js-global.call-new call-property "valueOf" cast
+		(msec / 1000).to,
+	else
+		todo
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void(duration duration) summon
-	get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
+	if trusted extern native
+		get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
+	elif trusted extern js
+		trusted
+			resolver void mut(resolve void mut()) = resolve =>
+				_ = "setTimeout".js-global call resolve, duration.milliseconds
+			_ = "Promise".js-global call-new resolver await
+	else
+		throw todo
 
 +interval record
 	-time duration
@@ -36,7 +53,7 @@ export
 +for-break[out] out(
 	interval interval,
 	f-loop out break-or-continue mut(),
-) summon, out shared
+) summon, out shared, native extern
 	start-nsec mut = get-monotime-nsec
 	interval-nsec nat64 = interval.time.nanoseconds.to
 	loop

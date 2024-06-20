@@ -7,6 +7,8 @@
 	<p>
 		A <code class="keyword">test</code> can also be marked <code class="keyword">summon</code> or
 		<code class="keyword">trusted</code> if necessary.
+		<br />
+		A test with <code class="keyword">extern</code> modifiers will only run if those externs are available.
 	</p>
 	<p>
 		All <code class="keyword">test</code> blocks in all imported files are included.
@@ -25,7 +27,7 @@
 			1::nat + 1 is 2
 			2::nat + 2 is 4
 
-		test summon, trusted
+		test summon, trusted, native extern
 			x nat = 3
 			out print "The pointer value is {(&x)::nat*.to::nat}"
 	</crow-runnable>

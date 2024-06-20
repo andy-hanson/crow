@@ -54,10 +54,18 @@ Operation.Fn fnForUnaryMath(BuiltinUnaryMath a) {
 			return &unaryFloat32!((float a) => cosh(a));
 		case BuiltinUnaryMath.coshFloat64:
 			return &unaryFloat64!((double a) => cosh(a));
+		case BuiltinUnaryMath.roundDownFloat32:
+			return &unaryFloat32!((float a) => floorf(a));
+		case BuiltinUnaryMath.roundDownFloat64:
+			return &unaryFloat64!((double a) => floor(a));
 		case BuiltinUnaryMath.roundFloat32:
 			return &unaryFloat32!((float a) => round(a));
 		case BuiltinUnaryMath.roundFloat64:
 			return &unaryFloat64!((double a) => round(a));
+		case BuiltinUnaryMath.roundUpFloat32:
+			return &unaryFloat64!((float a) => ceilf(a));
+		case BuiltinUnaryMath.roundUpFloat64:
+			return &unaryFloat64!((double a) => ceil(a));
 		case BuiltinUnaryMath.sinFloat32:
 			return &unaryFloat32!((float a) => sinf(a));
 		case BuiltinUnaryMath.sinFloat64:
@@ -97,6 +105,7 @@ Operation.Fn fnForBinaryMath(BuiltinBinaryMath a) {
 alias fnAddFloat32 = binaryFloat32s!((float a, float b) => a + b);
 alias fnAddFloat64 = binaryFloat64s!((double a, double b) => a + b);
 alias fnBitwiseNot = opFnUnary!((ulong a) => ~a);
+alias fnNot = opFnUnary!((ulong a) => !a);
 alias fnBitwiseAnd = opFnBinary!((ulong a, ulong b) => a & b);
 alias fnBitwiseOr = opFnBinary!((ulong a, ulong b) => a | b);
 alias fnBitwiseXor = opFnBinary!((ulong a, ulong b) => a ^ b);
@@ -199,9 +208,13 @@ extern(C) {
 	double atan(double x);
 	double atanh(double x);
 	double atan2(double x, double y);
+	double ceil(double x);
+	float ceilf(float x);
 	double cos(double x);
 	float cosf(float x);
 	double cosh(double x);
+	double floor(float x);
+	float floorf(float x);
 	double log(double x);
 	double round(double x);
 	double sin(double x);

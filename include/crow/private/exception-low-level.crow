@@ -2,17 +2,31 @@ no-std
 import
 	../bool: bool
 	../fun-util: subscript
+	../js:
+		+, as-js, await, call, call-property, cast, eval, instanceof, js-any, js-global, subscript
 	../misc: new, void
-	../number: nat64
-	../pointer: const-pointer, mut-pointer, pointer-cast, zeroed
+	../pointer: const-pointer, gc-safe-value, mut-pointer, pointer-cast
 	../result: error, ok, result
 	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
-	./backtrace: get-backtrace
+	./backtrace: native-backtrace
 	./bootstrap:
-		abort, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
+		abandon, array, catch-point, cur-fiber, cur-catch-point, hard-unreachable, must-cur-fiber,
 		set-cur-catch-point, string
 export
-	./bootstrap: backtrace, describe, exception, exception-and-backtrace
+	./bootstrap: exception, show
+
+###
+Type of a thrown exception.
+
+There is no exception subtyping in crow, so all exceptions have this type.
+###
++exception-and-backtrace record by-val
+	exception exception
+	# This will be empty for JS
+	~backtrace native-backtrace
+
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
++error record(show string) by-val, exception variant-member
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
 # ('setjmp' and 'longjmp' don't work with fibers on Windows.)
@@ -20,18 +34,15 @@ export
 ~setup-catch bool(env catch-point mut*) bare, builtin
 ~jump-to-catch void(env catch-point*) bare, builtin
 
-# Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error record(describe string) by-val, exception variant-member
-
 # Just use a thread-local for these, since they will be handled immediately
 # (not giving the fiber a chance to yield)
 -cur-thrown thread-local(exception)
--cur-backtrace thread-local(backtrace)
+-cur-backtrace thread-local(native-backtrace)
 
 # Visible for use by compiler
-~cur-catch-point catch-point*() unsafe
+~cur-catch-point catch-point*() unsafe, native extern
 	must-cur-fiber cur-catch-point
-~set-cur-catch-point void(value catch-point*) unsafe
+~set-cur-catch-point void(value catch-point*) unsafe, native extern
 	must-cur-fiber.cur-catch-point := value.pointer-cast
 
 # Used by the compiler when implementing 'try-catch' and 'finally'
@@ -40,21 +51,21 @@ rethrow-current-exception void() bare, unsafe
 		fiber.cur-catch-point jump-to-catch
 	else
 		# Throwing outside of a fiber aborts
-		abort
+		abandon
 
-+catch-all[t] (t, exception-and-backtrace) result(tried t mut())
-	trusted
++catch-all[t] (t, exception-and-backtrace) result(tried t mut()) trusted
+	if extern native
 		old-gc-root = gc-root
 		old-catch-point = cur-catch-point
-		store mut catch-point = zeroed
+		store mut catch-point = gc-safe-value
 		if &store setup-catch
 			# Get here if something is thrown
 			cur-catch-point := old-catch-point
 			gc-root := old-gc-root
 			thrown = cur-thrown
-			cur-thrown := zeroed
+			cur-thrown := gc-safe-value
 			backtrace = cur-backtrace
-			cur-backtrace := zeroed
+			cur-backtrace := gc-safe-value
 			(thrown, backtrace) error
 		else
 			# Get here after initial call to 'setup-catch'
@@ -63,6 +74,38 @@ rethrow-current-exception void() bare, unsafe
 			res = tried[]
 			cur-catch-point := old-catch-point
 			res ok
+	elif extern js
+		f (t, exception-and-backtrace) result mut() = () =>
+			tried[] ok
+		error (t, exception-and-backtrace) result mut(e js-any) = e =>
+			sample-error error = "e",
+			exception-class = sample-error.as-js.prototype.prototype["constructor"]
+			if e instanceof exception-class
+				(e.cast, ()) error
+			else
+				(e.threw-non-exception, ()) error
+		("""
+			async (f, error) => \{
+				try \{
+					return await f()
+				} catch (e) \{
+					return error(e)
+				}
+			}
+		""".eval call f, error).await cast
+	else
+		hard-unreachable
+
+# This can only happen in JS
++threw-non-exception record(thrown js-any) exception variant-member
++show string(a threw-non-exception) trusted
+	if extern js
+		"Threw a non-exception value " + a.thrown cast
+	else
+		"This message should not appear"
+
+-prototype js-any(a js-any) unsafe, js extern
+	"Object".js-global call-property "getPrototypeOf", a
 
 ###
 Fail unconditionally.
@@ -72,17 +115,12 @@ This function is used to mark part of an `if` or `match` that should not be poss
 	throw "Should be unreachable" error
 
 # This is called by the compiler on 'throw'
-throw-impl void(a exception) bare
-	a throw-with-skip 2
-
-throw-with-skip void(a exception, skip nat64) bare
+throw-impl void(a exception) bare, native extern
 	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
-		ctx get-backtrace skip
-	else
-		(),
+		ctx native-backtrace 1
 	(a, backtrace) rethrow
 
--new[t] t array(...a t array) bare
+-new[t] t[](...a t[]) bare
 	a
 
 ###
@@ -91,10 +129,12 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-+rethrow[t] t(e exception-and-backtrace) bare
-	trusted
++rethrow[t] t(e exception-and-backtrace) bare, trusted
+	if extern native
 		cur-thrown := e exception
 		cur-backtrace := e backtrace
 		rethrow-current-exception
-		# unreachable
-		zeroed
+		hard-unreachable
+	else
+		forbid extern js : e.exception
+		hard-unreachable

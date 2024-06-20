@@ -1,34 +1,29 @@
 no-std
 import
 	../../bool: bool, not
-	../../compare: <, >=, compare, comparison, equal
+	../../compare: ==, <, >=, compare, comparison, equal
 	../../exception: unreachable
-	../../enum-util: ==
 	../../fun-util: subscript
 	../../json: to
 	../../misc: loop-break, new, void
-	../../number: ==, <=>, +, /
+	../../number: ==, <=>, +, -, /
 	../../option: force, is-empty, new, option
-	../../pointer: ==, <=>, +, -, *, as-const, set-deref
-	../../range: ..
+	../../range: .., iterate
 	../../test-util: is
 	../../tuple: a, b, new
 	../../private/bootstrap: nat64
 	../array:
-		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice
-	../collection: .., end, for-break
+		==, <=>, +, -, array, array-iterator, begin, end, iterate, new, next, next-index, slice
+	../collection: for-break, for-loop
+	../mut-slice: +, begin, mut-slice, mut-slice-iterator, new, next-index, temp-as-array
 	../mut-array:
-		+, as-mut-array, begin, mut-array, mut-array-iterator, new, next-index, set-subscript,
-		temp-as-array
-	../list: ==, list, new
-	../mut-list:
-		+, begin, begin-pointer, clear, end-pointer, is-empty, move-to, mut-list, mut-list-iterator,
-		size, swap, temp-as-array, to, unsafe-set-size
+		+, begin, clear, is-empty, move-to, mut-array, mut-array-iterator, push-gc-safe-values,
+		set-subscript, size, subscript, swap, temp-as-array, to
 
-binary-search-has[t] bool(a t array, value t) t compare
-	!(a binary-search-exact value is-empty)
+binary-search-has[t] bool(a t[], value t) t compare
+	a binary-search-exact value !is-empty
 
-binary-search-key[k, v] v?(a (k, v) array, key k) k compare
+binary-search-key[k, v] v?(a (k, v)[], key k) k compare
 	left mut = a begin
 	right mut = a end
 	loop
@@ -50,7 +45,7 @@ binary-search-key[k, v] v?(a (k, v) array, key k) k compare
 				left := mid + 1
 				continue
 
-binary-search-exact[t] t mut-list-iterator?(a t mut[], compare comparison data(elem t))
+binary-search-exact[t] t mut-array-iterator?(a t mut[], compare comparison data(elem t))
 	if iter ?= trusted a.temp-as-array binary-search-exact compare
 		a.begin + iter.next-index,
 
@@ -58,7 +53,7 @@ binary-search-exact[t] t mut-list-iterator?(a t mut[], compare comparison data(e
 Assumes the array is sorted.
 Returns an iterator whose 'next' is the value, or nothing if the array does not contain the value.
 ###
-binary-search-exact[t] t array-iterator?(a t array, value t) t compare
+binary-search-exact[t] t array-iterator?(a t[], value t) t compare
 	left mut = a begin
 	right mut = a end
 	loop
@@ -84,7 +79,7 @@ binary-search-exact[t] t array-iterator?(a t array, value t) t compare
 	cur mut = left
 	loop
 		if cur < right
-			pair = cur.next!
+			pair = cur next!
 			if pair.a == value
 				break cur,
 			else
@@ -93,7 +88,7 @@ binary-search-exact[t] t array-iterator?(a t array, value t) t compare
 		else
 			break
 
-binary-search-exact[t] t array-iterator?(a t array, compare comparison data(elem t))
+binary-search-exact[t] t array-iterator?(a t[], compare comparison data(elem t))
 	iter = a binary-search-insert compare
 	if pair ?= iter next
 		if compare[pair.a] == equal
@@ -103,13 +98,13 @@ binary-search-exact[t] t array-iterator?(a t array, compare comparison data(elem
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t))
+binary-search-insert[t] t mut-array-iterator(a t mut[], compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
-binary-search-insert[t] t mut-array-iterator(a t mut-array, compare comparison data(elem t))
+binary-search-insert[t] t mut-slice-iterator(a t mut-slice, compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
-binary-search-insert[t] t array-iterator(a t array, value t) t compare
+binary-search-insert[t] t array-iterator(a t[], value t) t compare
 	left mut = a begin
 	right mut = a end
 	loop
@@ -128,7 +123,7 @@ binary-search-insert[t] t array-iterator(a t array, value t) t compare
 				continue
 
 test
-	a nat64 mut-array = 1, 3, 5, 7
+	a nat64 mut-slice = 1, 3, 5, 7
 	(a binary-search-insert x => 0::nat64 <=> x).next-index is 0
 	(a binary-search-insert x => 3::nat64 <=> x).next-index is 1
 	(a binary-search-insert x => 4::nat64 <=> x).next-index is 2
@@ -138,7 +133,7 @@ test
 	(a binary-search-insert x => 8::nat64 <=> x).next-index is 4
 
 # Returns an iterator that the element should be inserted to the right of.
--binary-search-insert[t] t array-iterator(a t array, compare comparison data(elem t))
+-binary-search-insert[t] t array-iterator(a t[], compare comparison data(elem t))
 	left mut = a begin
 	right mut = a end
 	loop
@@ -172,31 +167,31 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
-	guard !b.is-empty
+	guard b !is-empty
 	trusted
 		a-old-size = a size
-		a unsafe-set-size a-old-size + b.size
-		a-read mut = a.begin-pointer.as-const + a-old-size - 1
-		a-write mut = a.end-pointer - 1
-		b-begin = b.begin-pointer as-const
-		b-read mut = b.end-pointer.as-const - 1
+		a push-gc-safe-values b.size
+		a-read mut = a-old-size - 1
+		a-write mut = a.size - 1
+		b-read mut = b.size - 1
 		# Merge right-to-left so we never overwrite anything we still have to read.
-		# Invariant: a-read, a-write, b-read are all valid pointers.
+		# Invariant: a-read, a-write, b-read are all valid indices.
 		loop
-			match compare[*a-read, *b-read]
+			match compare[a[a-read], b[b-read]]
 			as less
-				*a-write := *b-read
-				if b-read == b-begin
+				a[a-write] := b[b-read]
+				if b-read == 0
 					break
 				else
 					a-write -:= 1
 					b-read -:= 1
 					continue
 			as greater
-				*a-write := *a-read
-				if a-read == a.begin-pointer.as-const
-					(a.begin-pointer .. a-write).as-mut-array[0 .. end] :=
-						(b-begin .. b-read + 1).as-array
+				a[a-write] := a[a-read]
+				if a-read == 0
+					assert b-read + 1 == a-write
+					for i : 0::nat64 .. a-write
+						a[i] := b[i]
 					break
 				else
 					a-read -:= 1

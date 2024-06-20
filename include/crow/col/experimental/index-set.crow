@@ -12,10 +12,9 @@ import
 	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: ..
-	../../string: interpolate, join, string, to-hex, to
-	../array: +, array, begin, iterate, next, size, slice, subscript
-	../collection: build-options, for-loop, subscript
-	../list: ~=, build, iterate, list, list-builder, to
+	../../string: interpolate, join, show, string, to-hex
+	../array: ~=, array, array-builder, build, iterate, new, subscript
+	../collection: build-options, for-loop
 
 +index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -31,15 +30,17 @@ import
 -subscript nat64(a leaf-node, n nat64)
 	a.values[n]
 
--values nat64 array(a leaf-node)
-	trusted ((&a.a)::nat64*)[0 .. 4]
+-values nat64[](a leaf-node)
+	trusted if extern native
+		((&a.a)::nat64*)[0 .. 4]
+	else
+		a.a, a.b, a.c, a.d
 -bits-in-leaf-node nat64()
 	# 64 * 4
 	256
 
-+new index-set(...a nat64 array)
-	a.to to
-
++new index-set(...a nat64[])
+	a to
 +to index-set(a nat64[])
 	res mut index-set = (0, empty)
 	for x : a
@@ -217,7 +218,7 @@ import
 -simplify-after-remove-or-filter index-set(node node, capacity nat64)
 	match node
 	as inner i
-		if i.b.is-empty && i.c.is-empty && i.d.is-empty
+		if i.b is-empty && i.c is-empty && i.d is-empty
 			forbid i.a is-empty
 			i.a simplify-after-remove-or-filter capacity / 4
 		else
@@ -230,7 +231,7 @@ import
 		0, empty
 
 -is-all-empty bool(a inner-node)
-	a.a.is-empty && a.b.is-empty && a.c.is-empty && a.d.is-empty
+	a.a is-empty && a.b is-empty && a.c is-empty && a.d is-empty
 
 # TODO:MOVE
 -with-a inner-node(a inner-node, new-a node)
@@ -328,7 +329,7 @@ intersect index-set(a index-set, b index-set)
 -count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
 
--count-ones-in-array nat64(a nat64 array)
+-count-ones-in-array nat64(a nat64[])
 	res mut nat64 = 0
 	for x : a
 		res +:= x count-ones
@@ -351,7 +352,7 @@ intersect index-set(a index-set, b index-set)
 		new-b = i.b filter-less-recur quarter, limit, 0x40
 		new-c = i.c filter-less-recur quarter, limit, 0x80
 		new-d = i.c filter-less-recur quarter, limit, 0xc0
-		new-node = new-a, new-b, new-c, new-d
+		new-node inner-node = new-a, new-b, new-c, new-d
 		if new-node is-all-empty
 			empty
 		else
@@ -385,7 +386,7 @@ intersect index-set(a index-set, b index-set)
 -bit-index nat64(a nat64)
 	a % 64
 
-+to string(a index-set)
++show string(a index-set)
 	", " join for x : a; "{x}"
 
 region spec impls (see collection.crow)
@@ -418,7 +419,7 @@ region spec impls (see collection.crow)
 		false
 
 +index-set-builder record mut
-	-inner nat64 list-builder
+	-inner nat64 array-builder
 
 +build index-set(a build-options, f void mut(out index-set-builder))
 	a build (out => f[out,]) to

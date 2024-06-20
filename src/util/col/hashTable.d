@@ -24,6 +24,8 @@ struct MutHashTable(T, K, alias getKey) {
 	size_t size_;
 	MutOpt!T[] values;
 
+	// TODO: @disable this(ref const MutHashTable);
+
 	public:
 	Opt!T opIndex(in K key) immutable {
 		Opt!size_t i = getIndex(this, key);
@@ -37,6 +39,9 @@ struct MutHashTable(T, K, alias getKey) {
 		Opt!size_t i = getIndex(this, key);
 		return has(i) ? someMut!T(force(values[force(i)])) : noneMut!T;
 	}
+
+	bool opBinaryRight(string op)(in K key) scope const if (op == "in") =>
+		has(getIndex(this, key));
 
 	int opApply(in int delegate(ref immutable T) @safe @nogc pure nothrow cb) scope immutable {
 		foreach (ref immutable MutOpt!T value; values)
@@ -89,9 +94,6 @@ bool isEmpty(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 
 size_t size(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	a.size_;
-
-bool hasKey(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) =>
-	has(getIndex(a, key));
 
 ref inout(T) mustGet(T, K, alias getKey)(ref inout MutHashTable!(T, K, getKey) a, in K key) =>
 	force(a.values[mustGetIndex(a, key)]);
@@ -337,15 +339,15 @@ bool existsInHashTable(T, K, alias getKey)(
 }
 
 Out withSortedKeys(Out, T, K, alias getKey)(
-	in HashTable!(T, K, getKey) a,
+	in MutHashTable!(T, K, getKey) a,
 	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
 	in Out delegate(in K[]) @safe @nogc pure nothrow cb,
 ) =>
 	withExactStackArray(size(a), (scope ref ExactSizeArrayBuilder!K builder) {
-		foreach (ref immutable T value; a)
+		foreach (ref const T value; a)
 			builder ~= getKey(value);
 		K[] keys = finish(builder);
-		sortInPlace!K(keys, cbCompare);
+		sortInPlace!(K, cbCompare)(keys);
 		return cb(keys);
 	});
 
@@ -408,6 +410,24 @@ bool shouldExpandBeforeAdd(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a)
 		mustAdd(alloc, bigger, x);
 	freeElements(alloc, a.values);
 	a.values = bigger.values;
+}
+
+// WARN: To keep the implementation simple, it's possible that this will call 'cb' twice on the same value.
+public void deleteWhere(T, K, alias getKey)(
+	scope ref MutHashTable!(T, K, getKey) a,
+	in bool delegate(in T) @safe @nogc pure nothrow cb,
+) {
+	size_t i = 0;
+	while (i != a.values.length) {
+		MutOpt!T* value = &a.values[i];
+		if (has(*value) && cb(force(*value))) {
+			deleteFromHashTableAtIndex!(T, K, getKey)(a.values, i);
+			a.size_--;
+			// This may move values from later to here. So repeat again with the same 'i'.
+		} else {
+			i++;
+		}
+	}
 }
 
 public T deleteFromHashTableAtIndex(T, K, alias getKey)(scope MutOpt!T[] values, size_t i) {

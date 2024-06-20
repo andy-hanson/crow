@@ -24,6 +24,7 @@ import model.ast :
 	EmptyAst,
 	EnumOrFlagsMemberAst,
 	ExprAst,
+	ExternAst,
 	FileAst,
 	FinallyAst,
 	ForAst,
@@ -515,6 +516,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					addName();
 					addExprsTokens(ctx, x.args);
 					break;
+				case CallAst.Style.augment:
 				case CallAst.Style.comma:
 				case CallAst.Style.subscript:
 				case CallAst.Style.questionSubscript:
@@ -532,6 +534,10 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, *x.body_);
 		},
 		(in EmptyAst x) {},
+		(in ExternAst x) {
+			foreach (NameAndRange name; x.names)
+				reference(ctx.tokens, TokenType.namespace, name.range);
+		},
 		(in FinallyAst x) {
 			addExprTokens(ctx, x.right);
 			addExprTokens(ctx, x.below);

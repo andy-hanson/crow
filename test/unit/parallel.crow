@@ -1,8 +1,17 @@
 import
-	../../include/crow/private/future-low-level: is-completed, resolve, unresolved
+	../../include/crow/private/future-low-level:
+		as-future, as-future-impl, future-impl, is-completed, resolve, unresolved
 
 dummy-parallel nat()
 	0
+
+test
+	out nat mut[] = ()
+	f void future = with : later
+		out ~= 2
+	out ~= 1
+	f await
+	out.to::nat[] is (1, 2)
 
 # Test future awaited by multiple fibers at once
 test
@@ -26,13 +35,13 @@ test
 	out.move-to.sort::nat[] is for x : 0::nat .. 10; x
 	()
 
-test trusted
-	a nat future = unresolved
-	b nat future = unresolved
+test trusted, native extern
+	a nat future-impl = unresolved
+	b nat future-impl = unresolved
 	both (nat, nat) future = with : parallel
-		a.await, b.await
+		a.as-future.await, b.as-future.await
 	a resolve 1
-	forbid both is-completed
+	forbid both.as-future-impl is-completed
 	b resolve 2
 	both.await is (1, 2)
 	()

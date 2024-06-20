@@ -32,8 +32,8 @@ import
 +new stat()
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
--__xstat c-int(ver c-int, path c-string, buf stat mut*) c extern
-+stat c-int(path c-string, buf stat mut*) summon, unsafe
+-__xstat c-int(ver c-int, path c-string, buf stat mut*) posix extern
++stat c-int(path c-string, buf stat mut*) summon, unsafe, posix extern
 	0 __xstat path, buf
 
 +S_IFMT nat32() bare
@@ -48,4 +48,4 @@ import
 	# TODO: "octal100000"
 	32768
 
-+mkdir err-t(path c-string, mode mode_t) c extern
++mkdir err-t(path c-string, mode mode_t) posix extern

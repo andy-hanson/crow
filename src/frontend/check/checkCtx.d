@@ -6,6 +6,7 @@ import frontend.check.instantiate : InstantiateCtx;
 import model.ast : ImportOrExportAstKind, NameAndRange, typeParamsRange, VisibilityAndRange;
 import model.diag : DeclKind, Diag, Diagnostic;
 import model.model :
+	Config,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
@@ -18,13 +19,15 @@ import model.model :
 	StructDecl,
 	StructOrAlias,
 	TypeParams,
+	VariantAndMethodImpls,
+	variantMemberGetter,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, isEmpty, mustFind, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
-import util.col.hashTable : getPointer, isEmpty, moveToImmutable, mustAdd, MutHashTable;
-import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
+import util.col.hashTable : getPointer, HashTable, isEmpty, moveToImmutable, mustAdd, MutHashTable;
+import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
@@ -38,6 +41,7 @@ struct CheckCtx {
 	InstantiateCtx instantiateCtx;
 	immutable CommonUris* commonUrisPtr;
 	immutable Uri curUri;
+	immutable Config* config;
 	ImportAndReExportModules importsAndReExports;
 	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
 	UsedSet used;
@@ -62,9 +66,11 @@ enum CommonModule {
 	compare,
 	exceptionLowLevel,
 	funUtil,
+	futureLowLevel,
+	js,
 	json,
-	list,
 	misc,
+	mutArray,
 	numberLowLevel,
 	std,
 	string_,
@@ -79,7 +85,7 @@ private struct UsedSet {
 }
 
 private bool isUsed(in UsedSet a, in immutable void* value) =>
-	mutSetHas(a.used, value);
+	value in a.used;
 
 private void markUsed(ref Alloc alloc, scope ref UsedSet a, immutable void* value) {
 	mayAddToMutSet(alloc, a.used, value);
@@ -93,37 +99,38 @@ void markUsed(ref CheckCtx ctx, StructOrAlias a) {
 }
 
 void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] structs, SpecDecl[] specs, FunDecl[] funs) {
-	void checkUnusedDecl(T)(T* decl) {
-		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
+	void checkUnusedDecl(T)(T* decl, in bool delegate() @safe @nogc pure nothrow cbAltIsUsed) {
+		if (decl.visibility == Visibility.private_ && !(isUsed(ctx.used, decl) || cbAltIsUsed()))
 			addDiagAssertSameUri(ctx, decl.nameRange, Diag(
 				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (ref StructAlias alias_; aliases)
-		checkUnusedDecl(&alias_);
+		checkUnusedDecl(&alias_, () => false);
 	foreach (ref StructDecl struct_; structs)
-		checkUnusedDecl(&struct_);
+		checkUnusedDecl(&struct_, () =>
+			// Even if the struct is not used as a type, it's used if it's accessed as a variant member
+			exists!VariantAndMethodImpls(struct_.variants, (in VariantAndMethodImpls x) =>
+				isUsed(ctx.used, variantMemberGetter(funs, &struct_, x))));
 	foreach (ref SpecDecl spec; specs)
-		checkUnusedDecl(&spec);
+		checkUnusedDecl(&spec, () => false);
 	foreach (ref FunDecl fun; funs)
 		if (!fun.okIfUnused)
-			checkUnusedDecl(&fun);
+			checkUnusedDecl(&fun, () => false);
 }
 
 SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
-		if (import_.isStd) continue;
+		if (import_.isStd) {
+			import_.imported = collectImported(ctx, import_);
+			continue;
+		}
+
 		void addDiagUnused(Range range, Opt!Symbol name) {
 			addDiag(ctx, range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(import_.modulePtr, name)))));
 		}
 		force(import_.source).kind.match!void(
 			(ImportOrExportAstKind.ModuleWhole x) {
-				MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) imported;
-				foreach (ref NameReferents nr; import_.module_.exports) {
-					if (containsUsed(nr, import_.importVisibility, ctx.used))
-						mustAdd(ctx.alloc, imported, &nr);
-				}
-				import_.imported = moveToImmutable(imported);
-				assert(import_.hasImported);
+				import_.imported = collectImported(ctx, import_);
 				if (isEmpty(import_.imported))
 					addDiagUnused(force(import_.source).pathRange, none!Symbol);
 			},
@@ -139,6 +146,17 @@ SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 			});
 	}
 	return ctx.importsAndReExports.imports;
+}
+private HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(
+	ref CheckCtx ctx,
+	ref ImportOrExport import_,
+) {
+	MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) res;
+	foreach (ref NameReferents nr; import_.module_.exports) {
+		if (containsUsed(nr, import_.importVisibility, ctx.used))
+			mustAdd(ctx.alloc, res, &nr);
+	}
+	return moveToImmutable(res);
 }
 
 private bool containsUsed(in NameReferents a, ExportVisibility importVisibility, in UsedSet used) =>

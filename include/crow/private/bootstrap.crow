@@ -11,16 +11,12 @@ Empty type, for use by functions with nothing in particular to return.
 
 new-void void() builtin, bare
 
-region option.crow
-
 ###
 Optional type. Read the tutorial to learn more.
 
 You never need to `match` on this union; use the `if x ?= y` syntax instead.
 ###
 +option[t] union(none, some t)
-
-region pointer.crow
 
 ###
 A raw pointer. Equivalent to `const a*` in C.
@@ -39,12 +35,10 @@ This is like `const-pointer` but supports writing to the contents.
 ###
 +mut-pointer[t] builtin extern, mut
 
-region array
-
 ###
 Array of values.
 
-For a mutable version, see the `mut-list` module.
+For a mutable version, see the `mut-array` module.
 
 This is implemented as a pointer and a length, also known as a "fat pointer".
 This means this is also the type for a slice of an array, and slicing is O(1).
@@ -52,29 +46,27 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-+array[t] record by-val
-	size nat64
-	~pointer t*
++array[t] builtin extern
+~new-array[t] t[](size nat64, pointer t*) builtin, bare, native extern
+~array-size[t] nat64(a t[]) builtin, bare
+~array-pointer[t] t*(a t[]) builtin, bare, native extern
 
 ###
-`mut-array` is a low-level type mostly useful for implementing other collections.
+This is a low-level type mostly useful for implementing other collections.
 For normal code, a `mut[]` is preferable.
 
-A `mut-array` is like a `mut[]`,
-but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
-This has a small performance benefit, since (like an immutable array)
-a `mut-array` is just a pointer and size which can be stored by value.
+A `mut-slice` is like a `mut[]`,
+but while a `mut[]` has capacity for pushing elements, `mut-slice` is fixed-size.
+This has a small performance benefit for native code, since (like an immutable array)
+a `mut-slice` is just a pointer and size which can be stored by value.
 
-You can't change what range of addresses a `mut-array` points to,
+You can't change what range of addresses a `mut-slice` points to,
 though you can write to its elements.
 
-Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
+Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-slice`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-+mut-array[t] record by-val, mut
-	~inner t array
-
-region string
++mut-slice[t] builtin extern
 
 # This could be any byte in a UTF-8 string.
 +char8 builtin extern
@@ -89,8 +81,6 @@ Thus, all operations on `c-string` are unsafe.
 +c-string alias
 	char8*
 
-region bool.crow
-
 ###
 Boolean type: either `false` or `true`.
 
@@ -98,10 +88,7 @@ Unlike in other programming languages, this isn't a numeric type.
 ###
 +bool builtin extern
 
-region symbol.crow
-
-+symbol record by-val
-	~symbol-to-c-string c-string
++symbol builtin
 
 region bootstrap arithmetic
 
@@ -155,37 +142,45 @@ In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807
 
 region hard assertions
 
-abort void() c extern, pure
+-abort void() libc extern, pure
+
+~abandon void() bare, unsafe
+	forbid extern js : abandoned
+	if extern libc
+		abort
+	else
+		new-void
 
 ###
-Zeroed data isn't safe as it would contain null pointers.
-It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+Returns a value which the GC will ignore.
+This is 'null' for pointers, or an arbitrary value for non-pointer types.
+In JS, this always the JS 'null' value.
 ###
-+zeroed[t] t() builtin, bare, unsafe
++gc-safe-value[t] t() builtin, bare, unsafe
 
 # TODO: remove this function
 ~todo[t] t() bare
 	# this shouldn't really be trusted
 	trusted
-		abort
-		zeroed
+		abandon
+		gc-safe-value
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-unreachable[t] t() bare, unsafe
-	abort
-	zeroed
+	abandon
+	gc-safe-value
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-assert void(condition bool) bare, unsafe
 	if condition
 		new-void
 	else
-		abort
+		abandon
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-forbid void(condition bool) bare, unsafe
 	if condition
-		abort
+		abandon
 	else
 		new-void
 
@@ -259,18 +254,6 @@ An `act` can have anything in its closure, including mutable data, so it's consi
 
 region future
 
-+backtrace record(entries backtrace-entry array) by-val
-
-# 'extern' because interpreter also declares this type
-+backtrace-entry record extern
-	# These point into either GC or permanent memory. May be empty strings, never null.
-	function-name c-string
-	file-path c-string
-	# 1-indexed. 0 if unknown.
-	line-number nat32
-	# 1-indexed. 0 if unknown.
-	column-number nat32
-
 ###
 Describes the reason there is a 'throw'.
 For common exceptions, see `exception.crow`.
@@ -280,22 +263,11 @@ This does not include a backtrace; see 'exception-and-backtrace' for that.
 This is a variant type, meaning anything can declare a `variant-member` that is an exception.
 ###
 +exception variant
-	describe string()
+	show string()
 
-###
-Type of a thrown exception.
-
-There is no exception subtyping in crow, so all exceptions have this type.
-###
-+exception-and-backtrace record by-val
-	# Message passed to `throw`.
-	exception exception
-	# TODO: accessing backtrace should be unsafe
-	###
-	Backtrace when the exception was created.
-	Catching and rethrowing the exception doesn't affect this.
-	###
-	backtrace backtrace
+-abandoned record exception variant-member
+-show string(_ abandoned)
+	"Reached a fatal error"
 
 ###
 Log severity.
@@ -337,7 +309,7 @@ For example, this might write it to the console.
 	state mut fiber-state
 	log-handler mut log-handler
 	# This must be 16-byte aligned
-	stack nat64 mut-array
+	stack nat64 mut-slice
 	# Null if no roots yet
 	gc-root mut gc-root mut*
 
@@ -376,7 +348,7 @@ For example, this might write it to the console.
 	delay-until-time nat64
 	done
 
-~must-cur-fiber fiber() bare, unsafe
+~must-cur-fiber fiber() bare, unsafe, native extern
 	if x ?= cur-fiber
 		x
 	else
@@ -395,54 +367,11 @@ stack-pointer alias
 	marks bool mut*
 	memory-start nat64 mut*
 
-+future[t] record by-ref, force-shared
-	lk mut lock
-	state mut t future-state
+# In a native build, this is 'future-impl' (see 'future-low-level.crow').
+# In a JS build, this is a 'Promise'.
++future[t] builtin
 
-future-state[t] union mut
-	# The future is not resolved and nothing is awaiting it yet.
-	empty
-	# The future is not resolved, and fibers are waiting on it.
-	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
-	awaited-by fiber
-	# The future completed successfully.
-	resolved t
-	# The future completed with an exception.
-	rejected exception-and-backtrace
-
-region lock
-
-+lock record by-val, shared
-	n0 nat64
-	n1 nat64
-	n2 nat64
-	n3 nat64
-	n4 nat64
-
-region list
-
-###
-Immutable list type.
-
-This type is designed so concatenation (`~` and `~~`) will be efficient.
-It also is efficient to split from an iterator.
-
-It does not support efficient access by an index, so iterators should be used instead.
-###
-+list[t] record by-val
-	~root t l1
-
-~l1[t] record(node (t array, t l2) node) by-val
-~l2[t] record(node (t array2d, t l3) node) by-val
-~l3[t] record(nodes t array3d) by-val
-~node[leaf, lower] union(leaf leaf, branch (leaf, lower) branch)
-###
-'left', 'down', and 'right' should all be non-empty.
-(Else, this layer should be a leaf. See `branch-or-leaf`.)
-###
-~branch[leaf, lower] record(left leaf, down lower, right leaf) by-ref
-~array2d[t] record(total-size nat64, arrays t array array) by-val
-~array3d[t] record(total-size nat64, arrays t array2d array) by-val
++js-any builtin
 
 ###
 A sequence of `char32`s.
@@ -450,8 +379,7 @@ A sequence of `char32`s.
 (It's stored as a `char8[]` and is decoded as it's iterated.)
 It can be efficiently concatenated or split, but doesn't support indexed access.
 ###
-+string record by-val
-	~inner char8[]
++string builtin
 
 # Used by the compiler for mutable "local" variables used in a closure.
 ~reference[t] record(value mut t) mut

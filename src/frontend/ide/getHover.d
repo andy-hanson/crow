@@ -2,13 +2,12 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, Position, PositionKind;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, Position, PositionKind;
 import frontend.showModel :
 	ShowModelCtx,
 	writeCalled,
 	writeFile,
 	writeFunDecl,
-	writeLineAndColumn,
 	writeName,
 	writeSpecInst,
 	writeTypeQuoted,
@@ -19,7 +18,9 @@ import model.ast :
 	AssertOrForbidAst, ConditionAst, ExprAst, ExprAstKind, IfAst, ImportOrExportAstKind, MatchAst, ModifierKeyword;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
+	asBuiltinExtern,
 	AssertOrForbidExpr,
+	BuiltinExtern,
 	BuiltinType,
 	CallExpr,
 	CallOptionExpr,
@@ -28,6 +29,8 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
+	ExprRef,
+	ExternExpr,
 	FunDecl,
 	FunPointerExpr,
 	IntegralType,
@@ -58,7 +61,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.hashTable : withSortedKeys;
 import util.conv : safeToUint;
-import util.opt : force, has;
+import util.opt : force, has, Opt;
 import util.sourceRange : PosKind;
 import util.symbol : compareSymbolsAlphabetically, Symbol;
 import util.uri : Uri;
@@ -620,6 +623,42 @@ void getExprHover(
 		(in ExprKeyword x) {
 			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);
 		},
+		(in ExternExpr x) {
+			bool first = true;
+			writer ~= "The expression will be true if ";
+			foreach (Symbol name; x.names) {
+				if (first) writer ~= " and ";
+				first = false;
+				Opt!BuiltinExtern builtin = asBuiltinExtern(name);
+				if (has(builtin)) {
+					writer ~= () {
+						final switch (force(builtin)) {
+							case BuiltinExtern.DbgHelp:
+							case BuiltinExtern.windows:
+							case BuiltinExtern.ucrtbase:
+								return "run on Windows";
+							case BuiltinExtern.js:
+								return "run in a JavaScript build";
+							case BuiltinExtern.linux:
+								return "run on Linux";
+							case BuiltinExtern.native:
+							case BuiltinExtern.libc:
+								return "not run on a JavaScript build";
+							case BuiltinExtern.posix:
+							case BuiltinExtern.pthread:
+							case BuiltinExtern.sodium:
+							case BuiltinExtern.unwind:
+								return "run on a Posix-compliant operating system";
+						}
+					}();
+				} else {
+					writer ~= "the '";
+					writer ~= name;
+					writer ~= "' library is present";
+				}
+			}
+			writer ~= '.';
+		},
 		(in FunPointerExpr x) {
 			writer ~= "Pointer to function ";
 			writeCalled(writer, ctx, typeContainer, x.called);
@@ -680,5 +719,5 @@ void getExprHover(
 
 void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in ExprRef a) {
 	writer ~= "the loop at ";
-	writeLineAndColumn(writer, ctx.lineAndColumnGetters[curUri][a.expr.range.start, PosKind.startOfRange]);
+	writer ~= ctx.lineAndColumnGetters[curUri][a.expr.range.start, PosKind.startOfRange];
 }

@@ -1,14 +1,12 @@
 import
 	crow/c-types: c-int
-	./headers:
-		sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK, SQLITE_OPEN_CREATE,
-		SQLITE_OPEN_READWRITE, sqlite3_open_v2
+	./headers
 
 +db record force-shared
 	raw sqlite3 mut*
 
 +open-sqlite3 record(db-path string) nominal
-+with-block[t] t(a open-sqlite3, cb t mut(db db)) summon, t shared
++with-block[t] t(a open-sqlite3, cb t mut(db db)) summon, t shared, (native, sqlite3) extern
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist
@@ -17,11 +15,11 @@ import
 		finally db close
 		cb[db,]
 
--close void(db sqlite3 mut*) summon, unsafe
+-close void(db sqlite3 mut*) summon, unsafe, (native, sqlite3) extern
 	err2 = db sqlite3_close
 	assert err2 == SQLITE_OK
 
-+run void(db db, command string) summon
++run void(db db, command string) summon, (native, sqlite3) extern
 	for _ : db query command
 		()
 
@@ -31,7 +29,7 @@ import
 +size nat64(_ query)
 	0
 
-+iterate bool(a query, f bool mut(row string[symbol])) summon
++iterate bool(a query, f bool mut(row string[symbol])) summon, (native, sqlite3) extern
 	trusted
 		error-message mut c-string = null
 		ctx mut callback-ctx = f,
@@ -51,7 +49,7 @@ import
 	argc c-int,
 	argv c-string*,
 	col-name c-string*,
-) summon, unsafe
+) summon, unsafe, native extern
 	row string[symbol] = for i : 0::nat64 .. argc.to
 		col-name[i].to::string.to, argv[i].to
 	(ctx-pointer.as-const.pointer-cast::callback-ctx*)->cb-row[row] ? 1 : 0

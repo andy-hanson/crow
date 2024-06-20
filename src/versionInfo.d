@@ -4,9 +4,11 @@ module versionInfo;
 
 enum OS {
 	linux,
+	nodeJs,
 	web,
 	windows,
 }
+enum JsTarget { browser, node }
 
 OS getOS() {
 	version (linux) {
@@ -47,6 +49,20 @@ VersionInfo versionInfoForJIT(OS os, VersionOptions options) =>
 VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
 	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
 
+VersionInfo versionInfoForBuildToJS(JsTarget target) {
+	OS jsOs = () {
+		final switch (target) {
+			case JsTarget.browser:
+				return OS.web;
+			case JsTarget.node:
+				return OS.nodeJs;
+		}
+	}();
+	return VersionInfo(jsOs, versionOptionsForJs(), isInterpreted: false, isJit: false);
+}
+private VersionOptions versionOptionsForJs() =>
+	VersionOptions(isSingleThreaded: true, stackTraceEnabled: true);
+
 enum VersionFun {
 	isBigEndian,
 	isInterpreted,
@@ -54,7 +70,6 @@ enum VersionFun {
 	isSingleThreaded,
 	isStackTraceEnabled,
 	isWasm,
-	isWindows,
 }
 
 bool isVersion(in VersionInfo a, VersionFun fun) {
@@ -73,20 +88,8 @@ bool isVersion(in VersionInfo a, VersionFun fun) {
 			return isWasm || a.options.isSingleThreaded;
 		case VersionFun.isWasm:
 			return isWasm;
-		case VersionFun.isWindows:
-			return isWindows(a);
 		case VersionFun.isStackTraceEnabled:
 			return a.options.stackTraceEnabled;
-	}
-}
-
-bool isWindows(in VersionInfo a) {
-	final switch (a.os) {
-		case OS.linux:
-		case OS.web:
-			return false;
-		case OS.windows:
-			return true;
 	}
 }
 

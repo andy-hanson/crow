@@ -32,7 +32,6 @@ import model.model :
 	Signature,
 	SpecInst,
 	Specs,
-	StructBody,
 	StructInst,
 	Type,
 	TypeArgs;
@@ -45,6 +44,8 @@ import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish, smallFini
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
+import util.symbol : Symbol;
+import util.symbolSet : SymbolSet;
 import util.union_ : Union;
 import util.util : castNonScope_ref;
 
@@ -81,7 +82,7 @@ Called checkCallSpecs(
 
 Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) =>
 	checkSpecSingleSigIgnoreParents2(
-		ctx, funsMap, decl.nameRange.range, TypeContainer(decl), decl.specs, decl.flags, spec);
+		ctx, funsMap, decl.nameRange.range, TypeContainer(decl), decl.specs, decl.flags, decl.externs, spec);
 Called checkSpecSingleSigIgnoreParents2(
 	ref CheckCtx ctx,
 	in FunsMap funsMap,
@@ -89,6 +90,7 @@ Called checkSpecSingleSigIgnoreParents2(
 	TypeContainer caller,
 	Specs callerSpecs,
 	FunFlags callerFlags,
+	SymbolSet callerExterns,
 	SpecInst* spec,
 ) {
 	FunsInScope funsInScope = FunsInScope(callerSpecs, funsMap, ctx.importsAndReExports);
@@ -104,38 +106,60 @@ Called checkSpecSingleSigIgnoreParents2(
 			} else {
 				Called res = finish(specImpls)[$ - 1];
 				LocalsInfo locals;
-				checkCalled(ctx, diagRange, res, callerFlags, locals, ArgsKind.nonEmpty, () =>
+				bool ok = checkCalled(ctx, diagRange, res, callerFlags, callerExterns, locals, ArgsKind.nonEmpty, () =>
 					allowsUnsafe(callerFlags.safety));
-				return res;
+				return ok
+					? res
+					: Called(allocate(ctx.alloc, Called.Bogus(toCalledDecl(res), res.returnType, res.paramTypes)));
 			}
 		}));
 }
+private CalledDecl toCalledDecl(Called a) =>
+	a.match!CalledDecl(
+		(ref Called.Bogus x) =>
+			x.decl,
+		(ref FunInst x) =>
+			CalledDecl(x.decl),
+		(CalledSpecSig x) =>
+			CalledDecl(x));
 
 // Additional checks on a call after the overload and spec impls have been chosen.
-void checkCalled(
+bool checkCalled(
 	ref CheckCtx ctx,
 	Range diagRange,
 	in Called called,
 	FunFlags funFlags,
+	SymbolSet externs,
 	in LocalsInfo locals,
 	ArgsKind argsKind,
 	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
-) {
-	called.match!void(
-		(ref Called.Bogus) {},
+) =>
+	called.match!bool(
+		(ref Called.Bogus) =>
+			true,
 		(ref FunInst x) {
 			markUsed(ctx, x.decl);
 			checkCallFlags(ctx, diagRange, x.decl, funFlags, locals, argsKind, canDoUnsafe);
-			foreach (ref Called impl; x.specImpls)
-				checkCalled(ctx, diagRange, impl, funFlags, locals, argsKind, canDoUnsafe);
+			return checkCallExterns(ctx, diagRange, x.decl, externs) && every!Called(x.specImpls, (in Called impl) =>
+				checkCalled(ctx, diagRange, impl, funFlags, externs, locals, argsKind, canDoUnsafe));
 		},
-		// For a spec, we do checks when providing the spec impl
-		(CalledSpecSig _) {});
-}
+		(CalledSpecSig _) =>
+			// For a spec, we do checks when providing the spec impl
+			true);
 
 enum ArgsKind { empty, nonEmpty }
 
 private:
+
+bool checkCallExterns(ref CheckCtx ctx, Range diagRange, FunDecl* called, SymbolSet externs) {
+	bool ok = externs.containsAll(called.externs);
+	if (!ok) {
+		foreach (Symbol x; called.externs)
+			if (x !in externs)
+				addDiag(ctx, diagRange, Diag(Diag.CallMissingExtern(called, x)));
+	}
+	return ok;
+}
 
 void checkCallFlags(
 	ref CheckCtx ctx,
@@ -370,43 +394,22 @@ bool checkBuiltinSpec(ref CheckSpecsCtx ctx, BuiltinSpec kind, Type typeArg) {
 	final switch (kind) {
 		case BuiltinSpec.data:
 			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.data);
-		case BuiltinSpec.enum_:
-			return isEnum(ctx.funsInScope.outermostFunSpecs, typeArg);
-		case BuiltinSpec.flags:
-			return isFlags(ctx.funsInScope.outermostFunSpecs, typeArg);
 		case BuiltinSpec.shared_:
 			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.shared_);
 	}
 }
-
-public bool isEnumOrFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	isEnum(outermostFunSpecs, x) || isFlags(outermostFunSpecs, x);
-public bool isEnum(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Enum*)) ||
-	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.enum_, x);
-public bool isFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Flags)) ||
-	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.flags, x);
-
-bool isBuiltinSpecInScope(in SpecInst*[] outermostFunSpecs, in BuiltinSpec kind, in Type type) =>
-	exists(outermostFunSpecs, (in SpecInst* inst) =>
-		someSpecIncludingParents(*inst, (in SpecInst x) =>
-			has(inst.decl.builtin) && force(inst.decl.builtin) == kind && only(inst.typeArgs) == type));
 
 bool someSpecIncludingParents(in SpecInst inst, in bool delegate(in SpecInst) @safe @nogc pure nothrow cb) =>
 	cb(inst) ||
 	exists(inst.parents, (in SpecInst* parent) =>
 		someSpecIncludingParents(*parent, cb));
 
-Opt!Purity purityOfBuiltinSpec(BuiltinSpec kind) {
+Purity purityOfBuiltinSpec(BuiltinSpec kind) {
 	final switch (kind) {
 		case BuiltinSpec.data:
-			return some(Purity.data);
+			return Purity.data;
 		case BuiltinSpec.shared_:
-			return some(Purity.shared_);
-		case BuiltinSpec.enum_:
-		case BuiltinSpec.flags:
-			return none!Purity;
+			return Purity.shared_;
 	}
 }
 
@@ -417,10 +420,8 @@ bool specProvidesPurity(in SpecInst inst, in Type type, Purity expected) =>
 		only(x.typeArgs) == type &&
 		builtinSpecProvidesPurity(force(x.decl.builtin), expected));
 
-bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) {
-	Opt!Purity purity = purityOfBuiltinSpec(kind);
-	return has(purity) && isPurityCompatible(expected, force(purity));
-}
+bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) =>
+	isPurityCompatible(expected, purityOfBuiltinSpec(kind));
 
 Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	scope ref SpecImpls res,

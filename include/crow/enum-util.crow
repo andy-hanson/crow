@@ -1,46 +1,38 @@
 no-std
 import
-	./bool: bool
-	./col/array: array, iterate, size
+	./col/array: ~=, array, build, iterate, size
 	./col/collection: for-break, for-loop
-	./col/list: ~=, build, list
+	./compare: equal
 	./exception: exception, error
 	./json: json, to
 	./misc: loop-break, new
 	./option: ??, option
 	./string: ==, interpolate, string
-	./symbol: ==, symbol, to
+	./symbol: ==, show, symbol, to
 
 # Attempted to convert a symbol/string to an enum, but it's not a valid enum member.
 +not-in-enum record(symbol symbol) exception variant-member
-+describe string(a not-in-enum)
++show string(a not-in-enum)
 	"The symbol '{a symbol}' is not in the enum"
 
-###
-Spec that is satisfied if 't' is an 'enum' type
-###
-+enum[t] spec builtin
++enum-like[t] spec t equal
+	enum-members (symbol, t)[]()
 
-+==[t] bool(a t, b t) builtin, bare, t enum
-
-# Returns every name and value in the enum.
-+enum-members[t] (symbol, t) array() builtin, bare, t enum
-
-+values[t] t[]() t enum
-	for _, value : enum-members@t
++values[t] t[]() t enum-like
+	for _, value : enum-members
 		value
 
-+to[t] symbol(a t) t enum
-	for name, value : enum-members@t
++to[t] symbol(a t) t enum-like
+	for name, value : enum-members
 		if value == a
 			break name
 	else
 		throw "Invalid enum value" error
 
-+to[t] string(a t) t enum
++to[t] string(a t) t enum-like
 	a.to::symbol to
 
-+to[t] json(a t) t enum
++to[t] json(a t) t enum-like
 	a.to::symbol to
 
 ###
@@ -48,18 +40,18 @@ Converts a symbol to the enum value that was declared with that name.
 
 Returns an empty option if `a` is not the name of an enum member.
 ###
-+to[t] t?(a symbol) t enum
-	for name, value : enum-members@t
++to[t] t?(a symbol) t enum-like
+	for name, value : enum-members
 		if name == a
 			break value
 
-+to[t] t(a symbol) t enum
-	a.to ?? throw a.not-in-enum
++to[t] t(a symbol) t enum-like
+	a to ?? throw a.not-in-enum
 
-+to[t] t?(a string) t enum
-	for name, value : enum-members@t
++to[t] t?(a string) t enum-like
+	for name, value : enum-members
 		if name.to::string == a
 			break value
 
-+to[t] t(a string) t enum
-	a.to ?? throw a.to.not-in-enum
++to[t] t(a string) t enum-like
+	a to ?? throw a.to.not-in-enum

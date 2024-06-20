@@ -2,20 +2,22 @@ no-std
 import
 	./bool: ==, bool, false
 	./compare: equal
-	./col/array: array, iterate, size
+	./col/array: ==, ~=, array, build, iterate, new, size
 	./col/collection: for-loop
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
-	./col/mut-list: iterate, mut-list, size
-	./col/list: ==, ~=, build, iterate, list, new, size
+	./col/mut-array: iterate, mut-array, size
+	./js:
+		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null,
+		set-subscript, subscript, typeof
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
 	./misc: ==, key, to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
-	./option: ??, new, option
+	./option: ??, force, new, option
 	./result: result
-	./string: ==, char8, char32, interpolate, join, quote, string, to
+	./string: ==, char8, char32, interpolate, join, quote, show, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: a, b, new
 
@@ -31,7 +33,7 @@ JSON data.
 	object json[symbol]
 +== bool(a json, b json)
 
-+new json(...pairs (symbol, json) array)
++new json(...pairs (symbol, json)[])
 	pairs.to object
 
 +to json(a json)
@@ -66,8 +68,6 @@ JSON data.
 	a string
 +to json(a symbol)
 	a.to::string to
-+to[t] json(a t array) (json, t) to
-	(for x : a; x to) list
 +to[t] json(a t[]) (json, t) to
 	(for x : a; x to) list
 +to[t] json(a t mut[]) (json, t) to
@@ -108,7 +108,7 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 +bool-or-null bool?(a json)
 	a == null ? false, : a.bool
 
-# `x.list-or-null` is like `x.list`, but treats `null` as `false`.
+# `x.list-or-null` is like `x.list`, but treats `null` as an empty list.
 +list-or-null json[]?(a json)
 	a == null ? (), : a.list
 
@@ -129,8 +129,15 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 	literal json grammar = (bool map x => x to) / ("null" exact null)
 	(quoted-string map x => x.to) / (float map x => x.to) / literal
 
++to[t] t[](a json) (t, json) to
+	for x : a list!
+		x to
+
++to nat64(a json) bare
+	a.number! to
+
 # Renders a json value to JSON.
-+to string(a json)
++show string(a json)
 	match a
 	as null
 		"null"
@@ -147,3 +154,45 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 		parts = "," join for k, v : o
 			"{k.to quote}:{v}"
 		"\{{parts}}"
+
+# Converts from a json value to the corresponding JS object
++to js-any(a json) trusted, js extern
+	match a
+	as null
+		null
+	as bool x
+		x as-js
+	as number x
+		x as-js
+	as string x
+		x as-js
+	as list xs
+		(for x : xs; x to)::js-any[] as-js
+	as object x
+		res = "Object".js-global call-new
+		for key, value : x
+			res[key to] := value
+		res
+
+# Converts a JS object to the corresponding JSON value.
+# This does not fail on bad JS values, it just returns 'null'.
++to json(a js-any) unsafe, js extern
+	match a typeof
+	as boolean
+		a.cast::bool to
+	as number
+		a.cast::float64 to
+	as string
+		a.cast::string to
+	as object
+		if a == null
+			null
+		elif a instanceof "Array".js-global
+			a.cast::js-any[] to
+		else
+			entries js-any[] = "Object".js-global call-property "entries", a cast
+			map json[symbol] = for entry : entries
+				entry[0::nat64].cast::string.to, entry[1::nat64].to
+			map to
+	else
+		null

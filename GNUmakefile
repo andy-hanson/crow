@@ -7,7 +7,7 @@
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
 clean:
-	rm -rf bin site
+	rm -rf bin site demo/webapp/db demo/webapp/index.js demo/webapp/index.js.map
 
 all: clean test lint serve
 
@@ -24,7 +24,7 @@ test: unit-test crow-unit-tests test-extern-library end-to-end-test
 unit-test: bin/crow-debug
 	./bin/crow-debug test
 
-crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
+crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot crow-unit-tests-node-js
 crow-unit-tests-interpreter: bin/crow
 	bin/crow test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
@@ -35,6 +35,8 @@ endif
 crow-unit-tests-aot: bin/crow
 	bin/crow run test/crow-unit-tests.crow --aot
 	bin/crow run test/crow-unit-tests.crow --aot --optimize
+crow-unit-tests-node-js: bin/crow
+	bin/crow run test/crow-unit-tests.crow --node-js
 
 test-extern-library: bin/crow bin/libexample.so
 	bin/crow test/test-extern-library/main.crow
@@ -70,6 +72,7 @@ all_src_files = src/*.d \
 	src/app/*.d \
 	src/backend/*.c \
 	src/backend/*.d \
+	src/backend/*/*.d \
 	src/concretize/*.d \
 	src/document/*.d \
 	src/frontend/*.d \
@@ -171,8 +174,13 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 
 ### site ###
 
-prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix
+prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix \
+		site/index.js
 	bin/crow run site-src/site.crow --aot
+
+site/index.js: bin/crow site-src/script/*.crow site-src/script/*/*.crow
+	mkdir -p site
+	bin/crow build site-src/script/index.crow --out site/index.js
 
 serve: prepare-site
 	bin/crow run site-src/serve.crow --aot

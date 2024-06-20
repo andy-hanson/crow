@@ -4,38 +4,48 @@ import
 	../compare: !=, <, <=, compare, comparison, equal
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
-	../private/bootstrap: new
-	../private/range-low-level: ..
-	../pointer: +, *
+	../private/bootstrap: array-size
+	../private/range-low-level: .., iterate, range, size, rangeable
+	../tuple: new
 	./collection:
-		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
-		subscript, with-block
+		.., build, end, for-loop, index-too-big, iterator-not-comparable, sequence-compare,
+		sequence-equal, subscript, with-block
 export
-	../private/bootstrap: array, size
+	../private/bootstrap: array
 	./private/array-low-level:
 		~=, ~~=, array-builder, array-cast, array-reference-equal, as-array, begin-pointer, build,
 		end-pointer, iterate, pointers, size, subscript
 
 # Create an array with the given elements.
-+new[t] t array(...a t array) bare
++new[t] t[](...a t[]) bare
 	a
 
++size[t] nat64(a t[]) bare
+	a array-size
+
++to[t] t[](a t range) t rangeable
+	for x : a; x
+
++to[t] t[](a t?)
+	if x ?= a
+		x,
+
 # `true` iff `a.size == 0`.
-+is-empty[t] bool(a t array) bare
++is-empty[t] bool(a t[]) bare
 	a.size == 0
 
 ###
 Prepend an element to an array.
 This is O(n).
 ###
-+~[t] t array(a t, b t array)
++~[t] t[](a t, b t[])
 	(a,) ~~ b
 
 ###
 Append an element to an array.
 This is O(n).
 ###
-+~[t] t array(a t array, b t)
++~[t] t[](a t[], b t)
 	a ~~ (b,)
 
 ###
@@ -45,7 +55,7 @@ This is O(n).
 If you need concatenate many arrays, use a `mut[]` to accumulate elements,
 then call `move-to-array`.
 ###
-+~~[t] t array(a t array, b t array)
++~~[t] t[](a t[], b t[])
 	if a is-empty
 		b
 	elif b is-empty
@@ -55,10 +65,10 @@ then call `move-to-array`.
 			out ~~= a
 			out ~~= b
 
-+==[t] bool(a t array, b t array) bare, t equal
++==[t] bool(a t[], b t[]) bare, t equal
 	(trusted a array-reference-equal b) || a sequence-equal b
 
-+<=>[t] comparison(a t array, b t array) bare, t compare
++<=>[t] comparison(a t[], b t[]) bare, t compare
 	if trusted a array-reference-equal b
 		equal
 	else
@@ -73,7 +83,7 @@ This is O(n).
 
 `index` must be a valid index into `a`. This can't be used to add a value to the end.
 ###
-+update-at[t] t array(a t array, index nat64, new-value t)
++update-at[t] t[](a t[], index nat64, new-value t)
 	assert index < a.size : index index-too-big a.size
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ new-value ~~ a[index + 1 .. end]
@@ -82,19 +92,19 @@ This is O(n).
 Inserts an element at index `index`, all elements there and after to the right.
 Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
 ###
-+insert-at[t] t array(a t array, index nat64, value t)
++insert-at[t] t[](a t[], index nat64, value t)
 	assert index <= a.size : index index-too-big a.size
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ value ~~ a[index .. end]
 
 # Removes the element at index `index`, shifting all later elements to the left.
-+remove-at[t] t array(a t array, index nat64)
++remove-at[t] t[](a t[], index nat64)
 	assert index < a.size : index index-too-big a.size
 	a[0 .. index] ~~ a[index + 1 .. end]
 
 region spec impls (see collection.crow)
 
-+array-iterator[t] record(collection t array, next-index nat64) by-val
++array-iterator[t] record(collection t[], next-index nat64) by-val
 
 +==[t] bool(a t array-iterator, b t array-iterator) t equal
 	assert a.collection == b.collection : iterator-not-comparable
@@ -115,29 +125,26 @@ region spec impls (see collection.crow)
 	assert new-index <= a.collection.size
 	a.collection, new-index
 
-+begin[t] t array-iterator(a t array) bare
++begin[t] t array-iterator(a t[]) bare
 	a, 0
 
-+end[t] t array-iterator(a t array) bare
++end[t] t array-iterator(a t[]) bare
 	a, a.size
 
 +prev[t] (t array-iterator, t)?(a t array-iterator) bare
 	guard a.next-index != 0
 	new-index = a.next-index - 1
 	assert new-index < a.collection.size
-	value = trusted *(a.collection.begin-pointer + new-index)
+	value = a.collection[new-index]
 	rest t array-iterator = a.collection, new-index
 	(rest, value),
 
 +next[t] (t, t array-iterator)?(a t array-iterator) bare
 	guard a.next-index != a.collection.size
 	assert a.next-index < a.collection.size
-	value = trusted *(a.collection.begin-pointer + a.next-index)
+	value = a.collection[a next-index]
 	rest t array-iterator = a.collection, a.next-index + 1
 	(value, rest),
 
-+slice[t] t array(begin t array-iterator, end t array-iterator) bare
-	assert begin.next-index <= end.next-index
-	assert end.next-index <= begin.collection.size :
-		end.next-index index-too-big begin.collection.size
-	trusted end.next-index - begin.next-index, begin.collection.begin-pointer + begin.next-index
++slice[t] t[](begin t array-iterator, end t array-iterator) bare
+	begin.collection[begin.next-index .. end.next-index]

@@ -19,12 +19,12 @@ import model.model :
 	Condition,
 	Destructure,
 	emptyTypeParams,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternExpr,
 	FinallyExpr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -77,6 +77,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, mapOp;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.json :
 	field,
 	Json,
@@ -91,6 +92,7 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter, Range;
 import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.uri : stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
 
@@ -202,7 +204,7 @@ Json.ObjectField[3] commonDeclFields(
 	];
 
 Json funFlags(ref Alloc alloc, in FunFlags a) {
-	Opt!Symbol[5] symbols = [
+	Opt!Symbol[4] symbols = [
 		flag!"bare"(a.bare),
 		flag!"summon"(a.summon),
 		() {
@@ -216,18 +218,6 @@ Json funFlags(ref Alloc alloc, in FunFlags a) {
 			}
 		}(),
 		flag!"ok-if-unused"(a.okIfUnused),
-		() {
-			final switch (a.specialBody) {
-				case FunFlags.SpecialBody.none:
-					return none!Symbol;
-				case FunFlags.SpecialBody.builtin:
-					return some(symbol!"builtin");
-				case FunFlags.SpecialBody.extern_:
-					return some(symbol!"extern");
-				case FunFlags.SpecialBody.generated:
-					return some(symbol!"generated");
-			}
-		}(),
 	];
 	return jsonList(mapOp!(Json, Opt!Symbol)(alloc, symbols, (ref Opt!Symbol x) =>
 		has(x) ? some(jsonString(force(x))) : none!Json));
@@ -278,9 +268,9 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonObject(alloc, [kindField!"create-union", field!"member"(x.member.name)]),
 		(in FunBody.CreateVariant x) =>
 			jsonObject(alloc, [kindField!"create-variant"]),
-		(in EnumFunction x) =>
+		(in EnumOrFlagsFunction x) =>
 			jsonObject(alloc, [
-				kindField!"enum-fn",
+				kindField!"enum-or-flags-fun",
 				field!"fn"(stringOfEnum(x))]),
 		(in Expr x) =>
 			jsonOfExpr(alloc, ctx, x),
@@ -290,36 +280,32 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 				field!"library-name"(x.libraryName)]),
 		(in FunBody.FileImport x) =>
 			jsonObject(alloc, [kindField!"file-import"]),
-		(in FlagsFunction x) =>
-			jsonObject(alloc, [
-				kindField!"flags-fn",
-				field!"name"(stringOfEnum(x))]),
 		(in FunBody.RecordFieldCall x) =>
 			jsonObject(alloc, [
 				kindField!"field-call",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"field-get",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldPointer x) =>
 			jsonObject(alloc, [
 				kindField!"field-pointer",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"field-set",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.UnionMemberGet x) =>
 			jsonObject(alloc, [
 				kindField!"member-get",
-				field!"member-index"(x.memberIndex)]),
+				field!"member"(x.member.name)]),
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
 		(in FunBody.VariantMemberGet x) =>
 			jsonObject(alloc, [kindField!"variant-member-get"]),
 		(in FunBody.VariantMethod x) =>
-			jsonObject(alloc, [kindField!"variant-method", field!"method-index"(x.methodIndex)]),
+			jsonObject(alloc, [kindField!"variant-method", field!"method"(x.method.name)]),
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 
@@ -384,6 +370,10 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
+		(in ExternExpr x) =>
+			jsonObject(alloc, [
+				kindField!"extern",
+				field!"name"(jsonOfSymbolSet(alloc, x.names))]),
 		(in FinallyExpr x) =>
 			jsonObject(alloc, [
 				kindField!"finally",
@@ -498,7 +488,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"field-pointer",
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in SeqExpr a) =>
 			jsonObject(alloc, [
 				kindField!"seq",
@@ -612,3 +602,9 @@ Json jsonOfMatchVariantCase(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Cas
 		field!"member"(a.member.decl.name),
 		field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
 		field!"then"(jsonOfExpr(alloc, ctx, a.then))]);
+
+Json jsonOfSymbolSet(ref Alloc alloc, in SymbolSet a) =>
+	Json(buildArray!Json(alloc, (scope ref Builder!Json out_) {
+		foreach (Symbol x; a)
+			out_ ~= Json(x);
+	}));

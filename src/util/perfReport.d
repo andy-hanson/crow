@@ -34,33 +34,33 @@ private:
 Json showTimeSummary(ref Alloc alloc, in PerfResult a) =>
 	jsonObject(alloc, [
 		field!"total"(showTimeAmount(alloc, a.totalNanoseconds)),
-		field!"byMeasure"(jsonOfEnumMap!(PerfMeasure, PerfMeasureResult)(
+		field!"byMeasure"(jsonOfEnumMap!(PerfMeasure, PerfMeasureResult, perfMeasureNanoseconds)(
 			alloc,
 			a.byMeasure,
-			(in PerfMeasureResult x) => x.nanoseconds,
 			(in PerfMeasureResult x) =>
 				jsonObject(alloc, [
 					field!"time"(showTimeAmount(alloc, x.nanoseconds)),
 					field!"bytes"(showMemoryAmount(alloc, x.bytesAllocated)),
 					field!"times"(x.count)])))]);
+ulong perfMeasureNanoseconds(in PerfMeasureResult a) =>
+	a.nanoseconds;
 
 Json showMemorySummary(ref Alloc alloc, in MetaMemorySummary a) =>
 	jsonObject(alloc, [
 		field!"total"(showMemory(alloc, a.total)),
 		field!"mallocs"(a.timesFetchedMemory),
 		field!"freeBlocks"(a.countFreeBlocks),
-		field!"byAlloc"(jsonOfEnumMap!(AllocKind, AllocKindMemorySummary)(
+		field!"byAlloc"(jsonOfEnumMap!(AllocKind, AllocKindMemorySummary, allocKindTotalBytes)(
 			alloc,
 			a.byAllocKind,
 			(in AllocKindMemorySummary x) =>
-				totalBytes(x.summary),
-			(in AllocKindMemorySummary x) =>
 				showMemory(alloc, x)))]);
+ulong allocKindTotalBytes(in AllocKindMemorySummary a) =>
+	totalBytes(a.summary);
 
-Json jsonOfEnumMap(E, V)(
+Json jsonOfEnumMap(E, V, alias getQuantity)(
 	ref Alloc alloc,
 	in immutable EnumMap!(E, V) a,
-	in ulong delegate(in V) @safe @nogc pure nothrow getQuantity,
 	in Json delegate(in V) @safe @nogc pure nothrow cb,
 ) {
 	alias Pair = immutable KeyValuePair!(E, V);
@@ -68,8 +68,9 @@ Json jsonOfEnumMap(E, V)(
 		foreach (E key, ref immutable V value; a)
 			if (getQuantity(value) != 0)
 				res ~= Pair(key, value);
-		arrayBuilderSort!(Pair)(res, (in Pair x, in Pair y) =>
-			oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
+		arrayBuilderSort!(Pair, (in Pair x, in Pair y) =>
+			oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value)))
+		)(res);
 	});
 	return Json(map(alloc, pairs, (ref Pair pair) =>
 		Json.ObjectField(symbolOfEnum(pair.key), cb(pair.value))));

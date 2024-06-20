@@ -2,7 +2,8 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
-import util.util : min;
+import util.opt : force, has, Opt;
+import util.util : assertNormalEnum, min;
 
 alias Comparer(T) = immutable Comparison delegate(in T, in T) @safe @nogc pure nothrow;
 
@@ -25,6 +26,21 @@ Comparison oppositeComparison(Comparison a) {
 
 Comparison compareOr(Comparison a, in Comparison delegate() @safe @nogc pure nothrow b) =>
 	a != Comparison.equal ? a : b();
+Comparison compareOr(
+	Comparison a,
+	in Comparison delegate() @safe @nogc pure nothrow b,
+	in Comparison delegate() @safe @nogc pure nothrow c,
+) =>
+	compareOr(a, () => compareOr(b(), c));
+
+Comparison compareOptions(T)(in Opt!T a, in Opt!T b, in Comparer!T cb) =>
+	has(a)
+		? has(b)
+			? cb(force(a), force(b))
+			: Comparison.greater
+		: has(b)
+			? Comparison.less
+			: Comparison.equal;
 
 Comparison compareArrays(T)(in T[] a, in T[] b, in Comparer!T cb) {
 	foreach (size_t i; 0 .. min(a.length, b.length)) {
@@ -38,6 +54,11 @@ Comparison compareArrays(T)(in T[] a, in T[] b, in Comparer!T cb) {
 alias compareChar = compareT!char;
 alias compareUint = compareT!uint;
 alias compareUlong = compareT!ulong;
+
+Comparison compareEnum(E)(E a, E b) {
+	assertNormalEnum!E();
+	return compareT!E(a, b);
+}
 
 private Comparison compareT(T)(T a, T b) =>
 	a < b

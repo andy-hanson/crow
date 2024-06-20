@@ -161,10 +161,10 @@
 				for i : 1::nat .. 12
 					info log "12 / {i} = {12 must-divide-by i}"
 			catch not-divisible x
-				error log x.describe
+				error log "{x}"
 
 		not-divisible record(numerator nat, denominator nat) exception variant-member
-		describe string(a not-divisible)
+		show string(a not-divisible)
 			"{a numerator} was not divisible by {a denominator}"
 
 		must-divide-by nat(a nat, b nat)
@@ -198,7 +198,7 @@
 		import
 			system/stdlib: free, malloc
 
-		main void() unsafe
+		main void() unsafe, (libc, native) extern
 			x nat8 mut* = 1 malloc
 			finally x free
 			*x := 1
@@ -210,6 +210,12 @@
 
 			info log "{*x + *y}"
 	</crow-runnable>
+
+	<aside class="small">
+		Pointers will be explained in {{tutorial/low-level}}.
+		<br />
+		<code class="keyword">extern</code> will be explained in {{tutorial/extern}}.
+	</aside>
 </section>
 <section>
 	<h2>Catching all exceptions</h2>
@@ -228,7 +234,7 @@
 			as ok x
 				info log "{x}"
 			as error e
-				error log "{e}"
+				error log "Caught: {e}"
 
 		foo nat()
 			bar
@@ -239,6 +245,7 @@
 
 	<aside>
 		Showing the backtrace is <code class="keyword">unsafe</code> because it is implementation-specific.
+		<br />
 		It depends on the OS, and on whether the code was optimized or interpreted.
 	</aside>
 </section>

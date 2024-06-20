@@ -11,11 +11,11 @@ import
 	OpenGL/gl
 	OpenGL/headers
 	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
-	SDL2/SDL_events: new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	SDL2/SDL_events: ==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_video:
-		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
 		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_LoadLibrary,
 		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
@@ -26,7 +26,7 @@ import
 	./fragment.frag.essl as fragment-shader string
 	./vertex.vert.essl as vertex-shader string
 
-main void() summon, trusted
+main void() summon, trusted, (native, SDL2) extern
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -72,9 +72,9 @@ main void() summon, trusted
 	gl glUniformMatrix3fv rotation-loc, 1, false, I.to.begin-pointer
 	gl gl-check-error "after set rotation-loc"
 
-	texture = gl load-texture-from-bmp crow-bmp.to
+	texture = gl load-texture-from-bmp crow-bmp
 
-	vertices vertex array = make-cube
+	vertices vertex[] = make-cube
 	triangle-vbo = gl vbo-create vertices
 	forbid triangle-vbo == 0
 
@@ -99,7 +99,7 @@ main void() summon, trusted
 		SDL_Quit
 		()
 
--make-cube vertex array()
+-make-cube vertex[]()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
 	back vertex[] = with out : build
 		for xs : front groups-of 3
@@ -136,12 +136,12 @@ main void() summon, trusted
 	render-thread-id nat
 	window SDL_Window mut*
 	shader-prog GLuint
-	vertices vertex array
+	vertices vertex[]
 	triangle-vbo GLuint
 	texture GLuint
 	rotation-loc GLint
 
--set-up-renderer void(renderer renderer) summon, unsafe
+-set-up-renderer void(renderer renderer) summon, unsafe, native extern
 	gl = renderer gl
 	gl glEnable GL_CULL_FACE
 	gl glCullFace GL_BACK
@@ -169,14 +169,14 @@ main void() summon, trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
--main-loop-body void(renderer renderer) summon, trusted
+-main-loop-body void(renderer renderer) summon, trusted, (native, SDL2) extern
 	key-states-pointer = null SDL_GetKeyboardState
 	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
 	if key-states[SDL_SCANCODE_RETURN.to::nat32 to] != 0
 		out print "return is pressed"
 	renderer.render-thread-id run-with-thread-id () =>
 		renderer render
--render void(renderer renderer) summon, unsafe
+-render void(renderer renderer) summon, unsafe, (native, SDL2) extern
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1
 	gl glClear GL_COLOR_BUFFER_BIT
@@ -190,7 +190,7 @@ main void() summon, trusted
 
 	renderer.window SDL_GL_SwapWindow
 
--run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared
+-run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared, native extern
 	loop
 		if cur-thread-id == thread-id
 			break cb[]
@@ -198,7 +198,7 @@ main void() summon, trusted
 			yield-fiber
 			continue
 
--look-for-quit-event bool() summon
+-look-for-quit-event bool() summon, (native, SDL2) extern
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -208,19 +208,19 @@ main void() summon, trusted
 		else
 			continue
 
--handle-sdl-error void(err c-int, description string) summon, unsafe
+-handle-sdl-error void(err c-int, description string) summon, unsafe, (native, SDL2) extern
 	unless err == 0
 		description fail-sdl-error
 
 -sdl-error record(action string, description string) exception variant-member
--describe string(a sdl-error)
+-show string(a sdl-error)
 	"SDL error in {a action}: {a description}"
 
--fail-sdl-error void(description string) summon, unsafe
+-fail-sdl-error void(description string) summon, unsafe, (native, SDL2) extern
 	SDL_Quit
 	throw description sdl-error SDL_GetError.to
 
--vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
+-vbo-create GLuint(gl gl-ext, vertices vertex[]) summon, unsafe, native extern
 	vbo mut GLuint = 0
 	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
@@ -234,10 +234,10 @@ main void() summon, trusted
 		throw "Creating VBO" gl-error err
 	vbo
 
-size-bytes nat(vertices vertex array) unsafe
+size-bytes nat(vertices vertex[]) unsafe, native extern
 	vertices.size * size-of@vertex
 
--vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe
+-vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe, native extern
 	gl glDeleteBuffers 1, &vbo
 
 -gl-check-error void(gl gl-ext, desc string) summon

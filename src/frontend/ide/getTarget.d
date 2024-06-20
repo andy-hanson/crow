@@ -2,7 +2,7 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, PositionKind;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
 	AutoFun,
@@ -12,23 +12,21 @@ import model.model :
 	CallExpr,
 	CallOptionExpr,
 	CommonTypes,
-	Destructure,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
-	FlagsFunction,
+	ExprRef,
+	ExternExpr,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
 	FunInst,
 	FunPointerExpr,
-	isPointer,
 	Module,
 	mustUnwrapOptionType,
 	RecordField,
 	SpecDecl,
 	StructAlias,
-	StructBody,
 	StructDecl,
 	StructInst,
 	Test,
@@ -138,6 +136,8 @@ Opt!Target exprTarget(in CommonTypes commonTypes, ExpressionPosition a) =>
 			calledTarget(commonTypes, x.called),
 		(ExprKeyword x) =>
 			none!Target,
+		(ExternExpr _) =>
+			none!Target,
 		(FunPointerExpr x) =>
 			calledTarget(commonTypes, x.called),
 		(ExpressionPositionKind.Literal) =>
@@ -175,8 +175,7 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 					returnTypeTarget(decl),
 				(FunBody.CreateVariant x) =>
 					Target(only(a.paramTypes).as!(StructInst*).decl),
-				(EnumFunction x) =>
-					// goto the type
+				(EnumOrFlagsFunction x) =>
 					returnTypeTarget(decl),
 				(Expr _) =>
 					Target(decl),
@@ -185,18 +184,16 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 				(FunBody.FileImport) =>
 					// TODO: Target for a file showing all imports
 					Target(decl),
-				(FlagsFunction) =>
-					returnTypeTarget(decl),
 				(FunBody.RecordFieldCall x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldGet x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldPointer x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldSet x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.UnionMemberGet x) =>
-					unionMemberTarget(decl, x.memberIndex),
+					Target(x.member),
 				(FunBody.VarGet x) =>
 					Target(x.var),
 				(FunBody.VariantMemberGet) =>
@@ -211,14 +208,3 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 
 Target returnTypeTarget(FunDecl* fun) =>
 	Target(fun.returnType.as!(StructInst*).decl);
-
-Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
-	StructInst* inst = fun.params.as!(Destructure[])[0].type.as!(StructInst*);
-	StructDecl* record = isPointer(*inst.decl) ? only(inst.typeArgs).as!(StructInst*).decl : inst.decl;
-	return Target(&record.body_.as!(StructBody.Record).fields[fieldIndex]);
-}
-
-Target unionMemberTarget(FunDecl* fun, size_t memberIndex) {
-	StructDecl* union_ = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
-	return Target(&union_.body_.as!(StructBody.Union*).members[memberIndex]);
-}

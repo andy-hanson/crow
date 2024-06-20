@@ -6,12 +6,12 @@ no-std
 import
 	./compare: equal
 	./exception: error, exception
-	./json: json, to
+	./json: json, show
 	./misc: new, to, void
 	./string: interpolate, string
 
 +expected-equal record(a json, b json) exception variant-member
-+describe string(a expected-equal)
++show string(a expected-equal)
 	"Expected {a a} is {a b}"
 
 ###

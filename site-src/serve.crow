@@ -7,33 +7,33 @@ import
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 
-main void() summon
+main void() summon, (native, posix) extern
 	port nat16 = 8080
 	handler http-handler = req =>
 		res = req handle-request
-		info log "{req.path} {req.query} {res status}"
+		info log "{req path} {req query} {res status}"
 		res
 	with _ : port http-server handler
 		out print "serving on http://localhost:{port}/"
 		out print "press enter to stop"
 		_ = read-stdin
 
-to string(a string[symbol])
+-show string(a string[symbol])
 	"&" join for x, y : a
 		"{x}={y}"
 
--handle-request http-response(a http-request) summon
+-handle-request http-response(a http-request) summon, native extern
 	path = "site" child-path a.path
 	full-path = path.is-directory ? path child-path "index.html" : path
 	try
 		full-path file-response full-path.read-file
 	catch path-not-found _
-		http-not-found
+		throw http-not-found
 
-file-response http-response(path string, content nat8[])
+-file-response http-response(path string, content nat8[])
 	200, "OK", (("Content-Type", path.content-type),), content
 
-content-type string(path string)
+-content-type string(path string)
 	if path ends-with ".html"
 		"text/html"
 	elif path ends-with ".css"

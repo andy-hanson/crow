@@ -3,10 +3,9 @@ module util.col.arrayBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.array : small, SmallArray;
+import util.col.array : contains, small, SmallArray;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
-import util.comparison : Comparer;
 import util.conv : safeToUint;
 
 struct ArrayBuilder(T) {
@@ -17,7 +16,7 @@ struct Builder(T) {
 	private Alloc* allocPtr;
 	private ArrayBuilder!T inner;
 
-	private ref Alloc alloc() =>
+	ref Alloc alloc() return scope =>
 		*allocPtr;
 
 	void opOpAssign(string op)(in T x) scope if (op == "~") {
@@ -26,6 +25,11 @@ struct Builder(T) {
 	void opOpAssign(string op)(in T[] xs) scope if (op == "~") {
 		addAll!T(alloc, inner, xs);
 	}
+}
+
+void addIfNotContains(T)(scope ref Builder!T a, T value) {
+	if (!contains(asTemporaryArray(a), value))
+		a ~= value;
 }
 
 immutable(SmallArray!T) smallFinish(T)(scope ref Builder!T a) =>
@@ -45,6 +49,9 @@ SmallArray!T buildSmallArray(T)(ref Alloc alloc, in void delegate(scope ref Buil
 	cb(res);
 	return smallFinish(res);
 }
+
+size_t sizeSoFar(T)(in Builder!T a) =>
+	mutArrSize(a.inner.data);
 
 void add(T)(scope ref Alloc alloc, ref ArrayBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
@@ -72,11 +79,11 @@ const(T[]) asTemporaryArray(T)(ref const ArrayBuilder!T a) =>
 const(T[]) asTemporaryArray(T)(ref const Builder!T a) =>
 	.asTemporaryArray(a.inner);
 
-void arrayBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
-	sortInPlace!(immutable T)(asTemporaryArray(a), compare);
+void arrayBuilderSort(T, alias compare)(scope ref ArrayBuilder!T a) {
+	sortInPlace!(immutable T, compare)(asTemporaryArray(a));
 }
-void arrayBuilderSort(T)(scope ref Builder!T a, in Comparer!T compare) {
-	arrayBuilderSort!T(a.inner, compare);
+void arrayBuilderSort(T, alias compare)(scope ref Builder!T a) {
+	arrayBuilderSort!(T, compare)(a.inner);
 }
 
 immutable(SmallArray!T) smallFinish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>

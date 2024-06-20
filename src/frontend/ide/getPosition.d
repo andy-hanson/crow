@@ -2,14 +2,12 @@ module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.ideUtil :
-	findInPackedTypeArgs, eachTypeComponent, findDirectChildExpr, funBodyExprRef, specsMatch, testBodyExprRef;
+import frontend.ide.ideUtil : findInPackedTypeArgs, eachTypeComponent, specsMatch;
 import frontend.ide.position :
 	ExpressionPosition,
 	ExpressionPositionKind,
 	ExprContainer,
 	ExprKeyword,
-	ExprRef,
 	LocalContainer,
 	Position,
 	PositionKind,
@@ -73,8 +71,12 @@ import model.model :
 	Destructure,
 	EnumOrFlagsMember,
 	Expr,
+	ExprRef,
+	ExternExpr,
 	FinallyExpr,
+	findDirectChildExpr,
 	FunBody,
+	funBodyExprRef,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
@@ -113,6 +115,7 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	Test,
+	testBodyExprRef,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -140,7 +143,7 @@ import util.union_ : TaggedUnion, Union;
 import util.util : enumConvert;
 
 Opt!Position getPosition(ref Program program, Module* module_, Pos pos) {
-	Ctx ctx = Ctx(program.commonTypes);
+	Ctx ctx = Ctx(program.commonTypesPtr);
 	Opt!PositionKind kind = getPositionKind(ctx, *module_, pos);
 	return optIf(has(kind), () => Position(module_, force(kind)));
 }
@@ -632,6 +635,8 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos
 		(ClosureSetExpr x) =>
 			optIf(isAtAssignment(ast, pos), () =>
 				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local)),
+		(ExternExpr x) =>
+			some(expressionPosition(ExpressionPositionKind(x))),
 		(ref FinallyExpr x) =>
 			keywordAt(ast.kind.as!(FinallyAst*).finallyKeywordRange(ast), ExprKeyword.finally_),
 		(FunPointerExpr x) =>
@@ -785,6 +790,7 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 			case CallAst.Style.subscript:
 			case CallAst.Style.questionSubscript:
 				return false;
+			case CallAst.Style.augment:
 			case CallAst.Style.dot:
 			case CallAst.Style.infix:
 			case CallAst.Style.prefixBang:

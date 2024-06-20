@@ -11,7 +11,7 @@ page-template path-and-content(path string, title string, content string)
 	<link rel="icon" href="/crow.svg" type="image/x-icon">
 	<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hack-font@3/build/web/hack-subset.css">
 	<link rel="stylesheet" href="/index.css">
-	<script type="module" async src="/script/index.js"></script>
+	<script async src="/index.js"></script>
 </head>
 <body>
 	<header>
@@ -25,6 +25,11 @@ page-template path-and-content(path string, title string, content string)
 				{path nav-links}
 			</ul>
 			<ul>
+				<li>
+					<a href="https://x.com/crow_lang">
+						𝕏<crow-icon icon="external-link"></crow-icon>
+					</a>
+				</li>
 				<li>
 					<a href="https://gitter.im/crow-lang-org/community">
 						chat<crow-icon icon="external-link"></crow-icon>

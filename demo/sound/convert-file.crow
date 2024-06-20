@@ -4,13 +4,13 @@ import
 	crow/io/print: out, print
 	audio/read-sound-file: read-sound-file
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
-	audio/sound: format, to, with-sample-rate
+	audio/sound: format, show, with-sample-rate
 
-main nat(args string[]) summon
+main nat(args string[]) summon, (native, sndfile) extern
 	assert args.size == 2 : "Usage: crow convert-file.crow toccata.ogg toccata.flac" error
 	in-path = args[0]
 	out-path = args[1]
-	ext = out-path.get-extension ?? throw "Output file needs extension" error
+	ext = out-path get-extension ?? throw "Output file needs extension" error
 	format sound-file-format = default-file-types[ext to] ?? throw describe-out-exts error
 
 	sound = in-path.read-sound-file with-sample-rate 48000

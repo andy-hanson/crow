@@ -5,8 +5,8 @@ import
 	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
-		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
-		response-body, status, status-desc
+		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
+		http-response, new, respond-error, response-body, status, status-desc, to
 	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler, tcp-server
 
 # Reference to a running server.
@@ -23,7 +23,12 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t(a http-server-options, cb t mut(server http-server)) summon, t shared
++with-block[t] t(
+	a http-server-options,
+	cb t mut(server http-server),
+) summon, t shared, native extern
+	assert trusted extern libc : not-implemented
+	assert trusted extern posix : not-implemented
 	server tcp-server future = with : parallel
 		client-states http-parse-state mut[SOCKET] = ()
 		handler tcp-handler = do
@@ -45,9 +50,9 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	client-states http-parse-state mut[SOCKET],
 	sock SOCKET,
 	state http-parse-state,
-	chunk nat8 array,
+	chunk nat8[],
 	handler http-handler,
-) summon, unsafe
+) summon, unsafe, (libc, posix, native) extern
 	state.unparsed ~~= chunk
 	request-state = if state.content-length == 0
 		state handle-http-initial
@@ -60,22 +65,32 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		()
 	as finished
 		request = state finish-request
-		_ = (client-states remove sock)!
+		_ = client-states remove! sock
 		with : fire-and-forget
-			response = match (() => handler[request]) catch-all
-			as ok o
-				o
-			as error e
-				error log "{e}"
-				http-internal-server-error
-			sock write-until-finished response.response-to-array
+			sock write-until-finished (handler run-handler-and-catch request).response-to-array
 			sock close-client
 			()
 	as abandon
-		_ = (client-states remove sock)!
+		_ = client-states remove! sock
 
--write-until-finished void(sock SOCKET, content nat8 array) summon, unsafe
-	remaining mut nat8 array = content
+-run-handler-and-catch http-response(handler http-handler, request http-request) unsafe
+	cb http-response mut() = () =>
+		try
+			handler[request]
+		catch respond-error x
+			x to
+	match cb catch-all
+	as ok o
+		o
+	as error e
+		error log "HTTP handler error: {e}"
+		http-internal-server-error to
+
+-write-until-finished void(
+	sock SOCKET,
+	content nat8[],
+) summon, unsafe, (libc, native, posix) extern
+	remaining mut nat8[] = content
 	until remaining.is-empty
 		wrote = sock.as-fd write remaining.begin-pointer, remaining.size
 		if wrote == -1
@@ -91,7 +106,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	path, query = state.path-and-query parse-path-and-query
 	state.method, path, query, state.headers.move-to::(symbol, string)[].to, state.unparsed.move-to
 
--response-to-array nat8 array(a http-response)
+-response-to-array nat8[](a http-response) native extern
 	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive,
 	# maybe forbid any upper-case letters in headers to be consistent
@@ -102,19 +117,19 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	if a.response-body is-empty
 		"{head}\r\n\r\n" to-bytes
 	else
-		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body to
+		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body
 
 http-initial-state enum(needs-more, finished, abandon)
 
 -handle-http-initial http-initial-state(state http-parse-state)
 	loop
 		guard line ?= state.unparsed try-take-first-line : break needs-more
-		guard !line.is-empty : break state.content-length == 0 ? finished : needs-more
+		guard line !is-empty : break state.content-length == 0 ? finished : needs-more
 		if state.path-and-query is-empty
 			# Expect something like "GET / HTTP/1.1"
 			parts string[] = line split " "
 			assert parts.size == 3
-			state.method := parts[0].to ?? todo
+			state.method := parts[0] to ?? todo
 			state.path-and-query := parts[1]
 			assert parts[2] == "HTTP/1.1"
 			forbid state.path-and-query is-empty
@@ -159,7 +174,7 @@ http-initial-state enum(needs-more, finished, abandon)
 		a, ()
 
 -parse-query string[symbol](a string)
-	(query parse a).ok ?? ()
+	query parse a ok ?? ()
 
 -query string[symbol] grammar()
 	query-part separated-by "&" map parts =>

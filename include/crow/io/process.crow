@@ -16,11 +16,10 @@ import
 		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
 		PeekNamedPipe, _popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES,
 		SetHandleInformation, Sleep, STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
-	../col/mut-list: unsafe-set-size
+	../col/mut-slice: begin-pointer, mut-slice, new, size, subscript
 	../c-types: fd-t
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
-	../version: is-windows
 	./environ: get-environ-raw
 	./file: file-system-error, is-file
 	./posix-util: check-errno, check-posix-error
@@ -45,35 +44,38 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-+spawn-and-wait-result process-result(exe string, args string[]) summon
++spawn-and-wait-result process-result(exe string, args string[]) summon, native extern
 	assert exe is-file : exe file-system-error "{exe} is not a file"
 	trusted
 		exe-c-string c-string = exe to
-		if is-windows
+		if extern windows
 			exe-c-string spawn-and-wait-result-windows args
-		else
+		elif extern (libc, posix)
 			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
+		else
+			throw not-implemented
 
--keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe
+-keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe, (libc, native) extern
 	read-at-a-time nat64 = 0x1000
 	old-size = res size
-	res unsafe-set-size old-size + read-at-a-time
+	res push-gc-safe-values read-at-a-time
 	old-end = res.end-pointer - read-at-a-time
-	err = old-end fgets read-at-a-time.to, file
-	if err == null
-		res unsafe-set-size old-size
+	out = old-end fgets read-at-a-time.to, file
+	if out == null
+		res reduce-size-to old-size
 		unless file feof
 			check-errno
 	else
+		assert out == old-end
 		new-end = old-end find-c-string-end
-		res unsafe-set-size new-end - res.begin-pointer
+		res reduce-size-to new-end - res.begin-pointer
 		res keep-reading file
 
 ###
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-+spawn-and-wait process-exit(exe string, args string[]) summon
++spawn-and-wait process-exit(exe string, args string[]) summon, (native, posix) extern
 	# TODO: kill, handle that error properly
 	assert exe is-file : exe file-system-error "{exe} is not a file"
 	# First argument should be the executable path
@@ -82,21 +84,24 @@ The child process shares stdout and stderr with the parent process.
 		exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-+shell-exec string(command string) summon
-	trusted
-		pipe = is-windows ? command.to _popen "r" : command.to popen "r"
-		if pipe == null
-			todo
-		res char8 mut[] = ()
-		res keep-reading pipe
-		err = is-windows ? pipe _pclose : pipe pclose
-		assert err == 0
-		res move-to
++shell-exec string(command string) summon, trusted, native extern
+	assert extern libc : not-implemented
+	pipe = extern ucrtbase ? command.to _popen "r" : command.to popen "r"
+	if pipe == null
+		todo
+	res char8 mut[] = ()
+	res keep-reading pipe
+	err = extern ucrtbase ? pipe _pclose : pipe pclose
+	assert err == 0
+	res move-to
 
--convert-args c-string[](exe-c-string c-string, args string[]) unsafe
+-convert-args c-string[](exe-c-string c-string, args string[]) unsafe, native extern
 	exe-c-string ~ (for x : args; x to) ~ null
 
--spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe
+-spawn-and-wait-result-windows process-result(
+	exe c-string,
+	args string[],
+) summon, unsafe, (native, windows) extern
 	all-args c-string = " " join (exe.to::string ~ args) to
 
 	stdout-read mut HANDLE = ()
@@ -116,7 +121,7 @@ The child process shares stdout and stderr with the parent process.
 	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), &startup-info, &process-info
 	assert ok4
 
-	assert stdout-write.CloseHandle && stderr-write.CloseHandle
+	assert stdout-write CloseHandle && stderr-write CloseHandle
 
 	stdout, stderr = stdout-read read-from-pipes-windows stderr-read
 	assert stdout-read CloseHandle
@@ -128,13 +133,16 @@ The child process shares stdout and stderr with the parent process.
 	ok5 = process-info.hProcess GetExitCodeProcess &exit-code
 	assert ok5
 	# TODO: should be in a 'finally'
-	assert process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
+	assert process-info.hProcess CloseHandle && process-info.hThread CloseHandle
 
 	exit-code.wrap-to.exited, stdout, stderr
 
 # We need to read from stdout and stderr together,
 # or else the process may block when writing too much to stderr while this is waiting on stdout
--read-from-pipes-windows (string, string)(stdout HANDLE, stderr HANDLE) summon, unsafe
+-read-from-pipes-windows (string, string)(
+	stdout HANDLE,
+	stderr HANDLE,
+) summon, unsafe, (native, windows) extern
 	res-out nat8 mut[] = ()
 	res-err nat8 mut[] = ()
 	sleep mut nat32 = 1
@@ -152,16 +160,17 @@ The child process shares stdout and stderr with the parent process.
 	res-out.move-to::nat8[].as-string, res-err.move-to::nat8[].as-string
 
 -pipe-state enum(available, awaiting, closed)
--read-some-if-available pipe-state(res nat8 mut[], pipe HANDLE, pipe-desc string) summon, unsafe
+-read-some-if-available pipe-state(
+	res nat8 mut[],
+	pipe HANDLE,
+	pipe-desc string,
+) summon, unsafe, (native, windows) extern
 	if x ?= pipe peek-available pipe-desc
 		x == 0 ? awaiting : res read-some pipe, x
 	else
 		closed
 
--peek-available nat64?(pipe HANDLE, desc string) summon, unsafe
-	buf nat8 mut[] = ()
-	buf-size nat64 = 8
-	buf unsafe-set-size buf-size
+-peek-available nat64?(pipe HANDLE, desc string) summon, unsafe, (native, windows) extern
 	n-read mut nat32 = 0
 	total-available mut nat32 = 0
 	bytes-left mut nat32 = 0
@@ -172,23 +181,30 @@ The child process shares stdout and stderr with the parent process.
 		assert GetLastError == ERROR_BROKEN_PIPE :
 			"Error peeking {desc}: {GetLastError show-win32-error}".error
 
--read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe
+-read-some pipe-state(
+	res nat8 mut[],
+	pipe HANDLE,
+	n-to-read nat64,
+) summon, unsafe, (native, windows) extern
 	old-size = res size
-	res unsafe-set-size old-size + n-to-read
+	res push-gc-safe-values n-to-read
 	old-end = res.end-pointer - n-to-read
 	n-read mut nat32 = 0
 	ok = pipe ReadFile old-end, n-to-read.to, &n-read, null
 	if ok
 		assert n-read.to::nat64 == n-to-read
-		res unsafe-set-size old-size + n-read.to
+		res reduce-size-to old-size + n-read.to
 		available
 	else
-		res unsafe-set-size old-size
+		res reduce-size-to old-size
 		err = GetLastError
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}".error
 		closed
 
--spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe
+-spawn-and-wait-result-posix process-result(
+	exe c-string,
+	args c-string[],
+) summon, unsafe, (libc, native, posix) extern
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -203,7 +219,7 @@ The child process shares stdout and stderr with the parent process.
 	&actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
 	pid mut pid_t = 0
-	&pid posix_spawn exe, &actions, null, args.to.begin-pointer, get-environ-raw check-posix-error
+	&pid posix_spawn exe, &actions, null, args.begin-pointer, get-environ-raw check-posix-error
 
 	# Close child-side of pipes (from this process, child still has them)
 	stdout-pipes.read-pipe.close check-posix-error
@@ -215,10 +231,9 @@ The child process shares stdout and stderr with the parent process.
 	stdout-pipes.write-pipe keep-polling stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
-
 	exit-code, stdout-builder.move-to, stderr-builder.move-to
 
--make-pipes pipes() summon, unsafe
+-make-pipes pipes() summon, unsafe, (native, posix) extern
 	res mut pipes = 0, 0
 	(&res).pipe check-posix-error
 	res
@@ -228,8 +243,8 @@ The child process shares stdout and stderr with the parent process.
 	stderr-pipe fd-t,
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
-) summon, unsafe
-	poll-fds pollfd mut-array = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
+) summon, unsafe, (libc, native, posix) extern
+	poll-fds pollfd mut-slice = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events int64 = poll-fds.begin-pointer poll poll-fds.size, -1 to
 	if n-pollfds-with-events == 0
@@ -240,54 +255,56 @@ The child process shares stdout and stderr with the parent process.
 		b = poll-fds[1] handle-revents stderr-builder
 		assert a.any.to + b.any.to == n-pollfds-with-events.to
 		# Apparently stdout and stderr can hang up at slightly different times.
-		unless a.hung-up && b.hung-up
+		unless a hung-up && b hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
 
 -handle-revents-result record(had-POLLIN bool, hung-up bool)
 
 -any bool(r handle-revents-result)
-	r.had-POLLIN || r.hung-up
+	r had-POLLIN || r hung-up
 
--handle-revents handle-revents-result(pollfd pollfd, builder char8 mut[]) summon
+-handle-revents handle-revents-result(
+	pollfd pollfd,
+	builder char8 mut[],
+) summon, (native, posix) extern
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN
-		pollfd.fd read-to-buffer-until-eof builder
+		pollfd.fd read-some-to-buffer builder
 	hung-up = revents has-POLLHUP
-	if revents.has-POLLPRI || revents.has-POLLOUT || revents.has-POLLERR || revents.has-POLLNVAL
+	if revents has-POLLPRI || revents has-POLLOUT || revents has-POLLERR || revents has-POLLNVAL
 		todo
 	had-POLLIN, hung-up
 
--read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon
+-read-some-to-buffer void(fd fd-t, buffer char8 mut[]) summon, trusted, (native, posix) extern
 	read-max nat64 = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer size
-	trusted
-		buffer unsafe-set-size old-size + read-max
-		add-data-to = buffer.begin-pointer + old-size
-		n-bytes-read = fd read add-data-to.pointer-cast, read-max
-		match n-bytes-read
-		as -1
-			# Error
-			todo
-		as 0
-			# EOF, done
-			buffer unsafe-set-size old-size
-		else
-			assert n-bytes-read.to::nat64 <= read-max
-			new-size = old-size + n-bytes-read.to
-			buffer unsafe-set-size new-size
-			fd read-to-buffer-until-eof buffer
+	buffer push-gc-safe-values read-max
+	add-data-to = buffer.begin-pointer + old-size
+	n-bytes-read = fd read add-data-to.pointer-cast, read-max
+	match n-bytes-read
+	as -1
+		# Error
+		todo
+	as 0
+		# EOF, done
+		buffer reduce-size-to old-size
+	else
+		assert n-bytes-read.to::nat64 <= read-max
+		buffer reduce-size-to old-size + n-bytes-read.to
+		if n-bytes-read == read-max.to
+			fd read-some-to-buffer buffer
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
--spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe
+-spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe, (native, posix) extern
 	pid mut pid_t = 0
-	args-pointer = args.to::(c-string array) begin-pointer
+	args-pointer = args begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
--wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe
+-wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe, (native, posix) extern
 	wait-status mut status-t = 0
 	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid

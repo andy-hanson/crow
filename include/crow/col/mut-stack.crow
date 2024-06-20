@@ -6,8 +6,8 @@ import
 	../option: option
 	./collection: iterate
 	./array: array
-	./list: list
-	./mut-list: ~=, ~~=, copy, filter=, is-empty, iterate, mut-list, peek, pop, size, to
+	./mut-array:
+		~=, ~~=, copy, filter=, is-empty, iterate, mut-array, peek, pop, size, subscript, to
 
 ###
 Mutable stack.
@@ -18,7 +18,7 @@ Iteration functions move from the bottom to the top.
 +mut-stack[t] record mut
 	-inner t mut[]
 
-+new[t] t mut-stack(...a t array)
++new[t] t mut-stack(...a t[])
 	a.to,
 
 +copy[t] t mut-stack(a t mut-stack)
@@ -49,6 +49,10 @@ This is O(n).
 # Pushes many values to the top of the stack.
 +~~=[t, col] void(a t mut-stack, values col) (col, t) iterate
 	a.inner ~~= values
+
+# Nth element from the bottom.
++subscript[t] t(a t mut-stack, index nat64)
+	a.inner[index]
 
 ###
 Returns the top element of the stack without removing it.

@@ -4,18 +4,8 @@ module frontend.ide.getReferences;
 
 import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : Target, targetForPosition;
-import frontend.ide.ideUtil :
-	eachFunSpec,
-	eachSpecParent,
-	eachTypeComponent,
-	eachDescendentExprExcluding,
-	eachDescendentExprIncluding,
-	eachPackedTypeArg,
-	funBodyExprRef,
-	ReferenceCb,
-	testBodyExprRef,
-	TypeCb;
-import frontend.ide.position : ExprContainer, ExprRef, Position, PositionKind;
+import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, ReferenceCb, TypeCb;
+import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
 	AssertOrForbidAst,
 	AssignmentAst,
@@ -58,21 +48,28 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	caseNameRange,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
 	Condition,
 	Destructure,
+	eachDescendentExprExcluding,
+	eachDescendentExprIncluding,
 	eachImportOrReExport,
 	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
+	ExprRef,
+	ExternExpr,
 	FinallyExpr,
 	FunBody,
+	funBodyExprRef,
 	FunDecl,
 	FunDeclSource,
 	FunInst,
 	FunPointerExpr,
+	getCalledAtExpr,
 	greatestVisibility,
 	IfExpr,
 	ImportOrExport,
@@ -95,6 +92,8 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Module,
+	moduleAtUri,
+	mustFindFunNamed,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -111,6 +110,7 @@ import model.model :
 	StructDeclSource,
 	StructInst,
 	Test,
+	testBodyExprRef,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -119,19 +119,19 @@ import model.model :
 	TypedExpr,
 	UnionMember,
 	VarDecl,
+	variantMethodCaller,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
-import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip, zipIfSizeEq;
+import util.col.array : allSame, contains, fold, isEmpty, only, zip, zipIfSizeEq;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.col.hashTable : mustGet;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol;
 import util.uri : Uri;
 
 UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
-	Opt!Target target = targetForPosition(*program.commonTypes, pos.kind);
+	Opt!Target target = targetForPosition(program.commonTypes, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
 			eachReferenceForTarget(program, pos.module_.uri, force(target), (in UriAndRange x) {
@@ -163,7 +163,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForLocal(program, curUri, x, cb);
 		},
 		(Target.Loop x) {
-			referencesForLoop(*program.commonTypes, curUri, x, cb);
+			referencesForLoop(program.commonTypes, curUri, x, cb);
 		},
 		(Module* x) {
 			referencesForModule(program, x, cb);
@@ -184,7 +184,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForStructDecl(program, x, cb);
 		},
 		(PositionKind.TypeParamWithContainer x) {
-			referencesForTypeParam(*program.commonTypes, curUri, x, cb);
+			referencesForTypeParam(program.commonTypes, curUri, x, cb);
 		},
 		(UnionMember* x) {
 			referencesForUnionMember(program, x, cb);
@@ -193,10 +193,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForVarDecl(program, x, cb);
 		},
 		(PositionKind.VariantMethod x) {
-			FunDecl* fun = mustFindFunNamed(moduleOf(program, x.variant.moduleUri), x.method.name, (in FunDecl fun) =>
-				fun.source.isA!(FunDeclSource.VariantMethod) &&
-				fun.source.as!(FunDeclSource.VariantMethod).method == x.method);
-			referencesForFunDecl(program, fun, cb);
+			referencesForFunDecl(program, variantMethodCaller(program, x), cb);
 			// TODO: Also find all structs that implement the variant and their implementations for this sig.
 		});
 
@@ -249,13 +246,13 @@ void referencesForLocal(in Program program, Uri curUri, in PositionKind.LocalPos
 				? some(ContainerAndBody(ExprContainer(x), funBodyExprRef(x)))
 				: none!ContainerAndBody,
 		(Test* x) =>
-			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(*program.commonTypes, x))),
+			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(program.commonTypes, x))),
 		(SpecDecl*) =>
 			none!ContainerAndBody,
 		(StructDecl*) =>
 			none!ContainerAndBody);
 	if (has(body_))
-		eachDescendentExprIncluding(*program.commonTypes, force(body_).body_, (ExprRef x) {
+		eachDescendentExprIncluding(program.commonTypes, force(body_).body_, (ExprRef x) {
 			Opt!(Local*) itsLocal = exprLocalReference(x.expr.kind);
 			if (has(itsLocal) && force(itsLocal) == a.local && !x.expr.ast.kind.isA!AssignmentCallAst)
 				cb(UriAndRange(force(body_).container.moduleUri, x.expr.range));
@@ -460,6 +457,7 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in CallOptionExpr _) {},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr _) {},
+		(in ExternExpr _) {},
 		(in FinallyExpr _) {},
 		(in FunPointerExpr _) {},
 		(in IfExpr x) {
@@ -546,7 +544,7 @@ void referencesForFunDecls(in Program program, in FunDecl*[] decls, in Reference
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
 		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => x.moduleUri));
-		Module* itsModule = moduleOf(program, decls[0].moduleUri);
+		Module* itsModule = moduleAtUri(program, decls[0].moduleUri);
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, ExprRef x) {
 			eachFunReferenceAtExpr(module_, x, decls, cb);
 		});
@@ -558,14 +556,6 @@ void eachFunReferenceAtExpr(in Module module_, in ExprRef x, in FunDecl*[] decls
 	if (has(called) && force(called).isA!(FunInst*) && contains(decls, force(called).as!(FunInst*).decl))
 		cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 }
-Opt!Called getCalledAtExpr(in ExprKind x) =>
-	x.isA!CallExpr
-		? some(x.as!CallExpr.called)
-		: x.isA!(CallOptionExpr*)
-		? some(x.as!(CallOptionExpr*).called)
-		: x.isA!FunPointerExpr
-		? some(x.as!FunPointerExpr.called)
-		: none!Called;
 
 Range callNameRange(in ExprAst a) {
 	ExprAstKind kind = a.kind;
@@ -591,19 +581,18 @@ void eachExprThatMayReference(
 	eachModuleThatMayReference(program, visibility, module_, (in Module module_) {
 		foreach (ref FunDecl fun; module_.funs)
 			if (fun.body_.isA!Expr)
-				eachDescendentExprIncluding(*program.commonTypes, funBodyExprRef(&fun), (ExprRef x) {
+				eachDescendentExprIncluding(program.commonTypes, funBodyExprRef(&fun), (ExprRef x) {
 					cb(module_, x);
 				});
 		foreach (ref Test test; module_.tests)
-			eachDescendentExprIncluding(
-				*program.commonTypes, testBodyExprRef(*program.commonTypes, &test), (ExprRef x) {
-					cb(module_, x);
-				});
+			eachDescendentExprIncluding(program.commonTypes, testBodyExprRef(program.commonTypes, &test), (ExprRef x) {
+				cb(module_, x);
+			});
 	});
 }
 
 void referencesForSpecSig(in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
-	Module* itsModule = moduleOf(program, a.spec.moduleUri);
+	Module* itsModule = moduleAtUri(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, ExprRef x) {
 		Opt!Called called = getCalledAtExpr(x.expr.kind);
 		if (has(called) &&
@@ -621,15 +610,16 @@ void referencesForRecordField(in Program program, in RecordField field, in Refer
 
 void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* member, in ReferenceCb cb) {
 	StructDecl* enum_ = member.containingEnum;
-	Module* declaringModule = moduleOf(program, enum_.moduleUri);
+	Module* declaringModule = moduleAtUri(program, enum_.moduleUri);
 	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateEnumOrFlags) && fun.body_.as!(FunBody.CreateEnumOrFlags).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchEnumExpr*)) {
-			if (x.expr.kind.as!(MatchEnumExpr*).enum_ == enum_)
-				foreach (size_t caseIndex, MatchEnumExpr.Case case_; x.expr.kind.as!(MatchEnumExpr*).cases)
+			MatchEnumExpr* matchEnum = x.expr.kind.as!(MatchEnumExpr*);
+			if (matchEnum.enum_ == enum_)
+				foreach (size_t caseIndex, MatchEnumExpr.Case case_; matchEnum.cases)
 					if (case_.member == member)
-						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+						cb(UriAndRange(m.uri, caseNameRange(*x.expr, caseIndex)));
 		} else
 			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});
@@ -637,15 +627,16 @@ void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* me
 
 void referencesForUnionMember(in Program program, in UnionMember* member, in ReferenceCb cb) {
 	StructDecl* union_ = member.containingUnion;
-	Module* declaringModule = moduleOf(program, union_.moduleUri);
+	Module* declaringModule = moduleAtUri(program, union_.moduleUri);
 	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateUnion) && fun.body_.as!(FunBody.CreateUnion).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchUnionExpr*)) {
-			if (x.expr.kind.as!(MatchUnionExpr*).union_.decl == union_) {
-				foreach (size_t caseIndex, ref MatchUnionExpr.Case case_; x.expr.kind.as!(MatchUnionExpr*).cases) {
+			MatchUnionExpr* matchUnion = x.expr.kind.as!(MatchUnionExpr*);
+			if (matchUnion.union_.decl == union_) {
+				foreach (size_t caseIndex, ref MatchUnionExpr.Case case_; matchUnion.cases) {
 					if (case_.member == member)
-						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+						cb(UriAndRange(m.uri, caseNameRange(*x.expr, caseIndex)));
 				}
 			}
 		} else
@@ -655,7 +646,7 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 
 void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) {
 	// Find references to get/set
-	Module* declaringModule = moduleOf(program, a.moduleUri);
+	Module* declaringModule = moduleAtUri(program, a.moduleUri);
 	FunDecl*[2] funs = mustFindFunsNamed(declaringModule, a.name, (in FunDecl x) =>
 		(x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a) ||
 		(x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a));
@@ -668,7 +659,7 @@ void withRecordFieldFunctions(
 	in void delegate(in FunDecl*[]) @safe @nogc pure nothrow cb,
 ) =>
 	withMaxStackArray!(void, FunDecl*)(3, (scope ref MaxStackArray!(FunDecl*) res) {
-		eachFunNamed(moduleOf(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
+		eachFunNamed(moduleAtUri(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
 			if (isRecordFieldFunction(fun.body_)) {
 				Type paramType = only(fun.params.as!(Destructure[])).type;
 				// TODO: for RecordFieldPointer we need to look for pointer to the struct
@@ -696,8 +687,6 @@ FunDecl*[2] mustFindFunsNamed(
 	return res;
 }
 
-FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
-	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));
 void eachFunNamed(in Module* module_, Symbol name, in void delegate(FunDecl*) @safe @nogc pure nothrow cb) {
 	foreach (ref FunDecl fun; module_.funs)
 		if (fun.name == name)
@@ -708,7 +697,7 @@ bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);
 
 void referencesForSpecDecl(in Program program, in SpecDecl* a, in ReferenceCb refCb) {
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
+	eachModuleThatMayReference(program, a.visibility, moduleAtUri(program, a.moduleUri), (in Module module_) {
 		scope void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
 				refCb(UriAndRange(module_.uri, ast.range));
@@ -733,8 +722,8 @@ void eachTypeInProgram(
 	Uri moduleUri,
 	in void delegate(in Module, in Type, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
-	eachModuleThatMayReference(program, visibility, moduleOf(program, moduleUri), (in Module module_) {
-		eachTypeInModule(*program.commonTypes, module_, (in Type type, in TypeAst ast) {
+	eachModuleThatMayReference(program, visibility, moduleAtUri(program, moduleUri), (in Module module_) {
+		eachTypeInModule(program.commonTypes, module_, (in Type type, in TypeAst ast) {
 			eachTypeInType(type, ast, (in Type typeInner, in TypeAst astInner) {
 				cb(module_, typeInner, astInner);
 			});
@@ -749,9 +738,6 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 	});
 	assert(!has(res));
 }
-
-Module* moduleOf(in Program program, Uri uri) =>
-	mustGet(program.allModules, uri);
 
 void referencesForModule(in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
@@ -779,7 +765,7 @@ void eachModuleReferencing(
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable Module* importingModule; program.allModules)
-		eachImportOrReExport(*importingModule, (in ImportOrExport x) {
+		eachImportOrReExport(*importingModule, (ref ImportOrExport x) {
 			if (x.modulePtr == exportingModule)
 				cb(*importingModule, x);
 		});

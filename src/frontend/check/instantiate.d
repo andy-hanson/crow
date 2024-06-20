@@ -2,7 +2,8 @@ module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
-import frontend.allInsts : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
+import frontend.allInsts :
+	getAllFutureAndMutArrayImpls, getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
 	BuiltinType,
 	CommonTypes,
@@ -11,6 +12,7 @@ import model.model :
 	combinePurityRange,
 	FunDecl,
 	FunInst,
+	isOptionType,
 	Linkage,
 	LinkageRange,
 	linkageRange,
@@ -37,6 +39,7 @@ import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
 import util.col.array : emptySmallArray, fold, map, small, SmallArray, sum;
 import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : ValueAndDidAdd;
+import util.col.map : Map;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
@@ -186,9 +189,6 @@ StructInst* makeOptionType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type
 Type makeOptionIfNotAlready(InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
 	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
 
-bool isOptionType(in CommonTypes commonTypes, in Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
-
 StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.pointerConst, [pointeeType]);
 
@@ -233,6 +233,17 @@ SpecInst* instantiateSpecInst(
 		specInst.typeArgs,
 		(ref Type x) => instantiateType(ctx, x, typeArgs, noDelayStructInsts),
 		(scope Type[] itsTypeArgs) => instantiateSpec(ctx, specInst.decl, small!Type(itsTypeArgs), delaySpecInsts));
+
+Map!(StructInst*, StructInst*) getAllFutureAndMutArrayImpls(
+	ref Alloc alloc,
+	ref InstantiateCtx ctx,
+	StructDecl* futureImpl,
+	StructDecl* mutArrayImpl,
+) =>
+	.getAllFutureAndMutArrayImpls(
+		alloc, ctx.allInsts,
+		(TypeArgs typeArgs) => instantiateStructNeverDelay(ctx, futureImpl, typeArgs),
+		(TypeArgs typeArgs) => instantiateStructNeverDelay(ctx, mutArrayImpl, typeArgs));
 
 private:
 

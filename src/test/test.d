@@ -8,6 +8,7 @@ import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
+import test.testHashTable : testHashTable;
 import test.testHover : testHover;
 import test.testIntegralValues : testIntegralValues;
 import test.testInterpreter : testInterpreter;
@@ -16,9 +17,11 @@ import test.testMemory : testMemory;
 import test.testMutMultiMap : testMutMultiMap;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
+import test.testSourceMap : testSourceMap;
 import test.testSourceRange : testSourceRange;
 import test.testStack : testStack;
 import test.testSymbol : testSymbol;
+import test.testSymbolSet : testSymbolSet;
 import test.testSyntaxTranslate : testSyntaxTranslate;
 import test.testUnicode : testUnicode;
 import test.testUri : testUri;
@@ -60,6 +63,7 @@ immutable NameAndTest[] allTests = [
 	NameAndTest("all-insts", &testAllInsts),
 	NameAndTest("apply-fn", &testApplyFn),
 	NameAndTest("fake-extern", &testFakeExtern),
+	NameAndTest("hash-table", &testHashTable),
 	NameAndTest("hover", &testHover),
 	NameAndTest("integral-values", &testIntegralValues),
 	NameAndTest("interpreter", &testInterpreter),
@@ -69,9 +73,11 @@ immutable NameAndTest[] allTests = [
 	NameAndTest("mut-multi-map", &testMutMultiMap),
 	NameAndTest("server", &testServer),
 	NameAndTest("sort-util", &testSortUtil),
+	NameAndTest("source-map", &testSourceMap),
 	NameAndTest("source-range", &testSourceRange),
 	NameAndTest("stack", &testStack),
 	NameAndTest("symbol", &testSymbol),
+	NameAndTest("symbol-set", &testSymbolSet),
 	NameAndTest("syntax-translate", &testSyntaxTranslate),
 	NameAndTest("unicode", &testUnicode),
 	NameAndTest("uri", &testUri),

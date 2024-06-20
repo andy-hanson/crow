@@ -8,13 +8,14 @@ import
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: &&, true
-	../col/array: as-array, new
+	../col/array: array, new
+	../col/mut-slice: as-mut-slice, cast-immutable
 	../compare: !=, >
 	../misc: new, void
 	../option: new, option
 	../pointer:
 		==, <=>, +, *, as-const, mem-copy, mut-pointer, null, pointer-cast, set-deref, size-of
-	../version: is-interpreted, is-stack-trace-enabled, is-windows
+	../version: is-interpreted, is-stack-trace-enabled
 	./alloc: gc-ctx, try-allocate
 	./bootstrap: hard-assert
 	./c-string-util: char8, c-string, c-string-size-incl-nul
@@ -24,27 +25,33 @@ import
 	./number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	./range-low-level: ..
 	./thread-utils: acquire, global-lock, release
-export
-	./bootstrap:
-		backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number,
-		new
 
--new backtrace() bare
-	(),
+~native-backtrace alias
+	backtrace-entry[]
+# 'extern' because interpreter also declares this type
+~backtrace-entry record extern
+	# These point into either GC or permanent memory. May be empty strings, never null.
+	function-name c-string
+	file-path c-string
+	# 1-indexed. 0 if unknown.
+	line-number nat32
+	# 1-indexed. 0 if unknown.
+	column-number nat32
 
 # Taking 'gc' explicitly to avoid accidental uses
-get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe
+native-backtrace native-backtrace(gc gc-ctx, skip nat64) bare, unsafe, native extern
 	guard is-stack-trace-enabled
 	max-entries nat64 = 16
 	guard entries ?= (gc try-allocate max-entries)::backtrace-entry mut*?
 	if is-interpreted
 		end = entries interpreter-backtrace max-entries, skip
 		gc copy-strings entries, end
-		(entries .. end).as-array,
-	elif is-windows
-		gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
-	else
-		gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
+		(entries .. end).as-mut-slice cast-immutable
+	elif extern windows
+		if extern DbgHelp
+			gc native-backtrace-windows entries, max-entries, (skip wrap-add 2)
+	elif extern unwind
+		gc native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
 
 ###
 Implemented by interpreter only.
@@ -57,34 +64,38 @@ Result entries are temporary, must copy!
 	skip nat64,
 ) builtin, bare, unsafe
 
--copy-strings void(gc gc-ctx, begin backtrace-entry mut*, end backtrace-entry mut*) bare, unsafe
+-copy-strings void(
+	gc gc-ctx,
+	begin backtrace-entry mut*,
+	end backtrace-entry mut*,
+) bare, unsafe, native extern
 	cur mut = begin
 	until cur == end
 		*cur := gc copy-c-strings *cur
 		cur +:= 1
 
--copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) bare, unsafe
+-copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) bare, unsafe, native extern
 	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path),
 		a.line-number, a.column-number
 
--get-native-backtrace-windows backtrace(
+-native-backtrace-windows native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) bare, unsafe
+) bare, unsafe, (DbgHelp, native, windows) extern
 	global-lock acquire
 	finally global-lock release
 	guard vars ?= gc try-alloc-windows-backtrace-vars
 	gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
 
--get-windows-backtrace-with-vars backtrace(
+-get-windows-backtrace-with-vars native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
 	vars windows-backtrace-vars,
-) bare, unsafe
+) bare, unsafe, (DbgHelp, native, windows) extern
 	process = GetCurrentProcess
 	thread = GetCurrentThread
 	if process SymInitialize null, true
@@ -99,7 +110,7 @@ Result entries are temporary, must copy!
 			max-end, skip, process, thread, &context, &frame, vars
 		ok = process SymCleanup
 		ok hard-assert
-		(entries .. end).as-array,
+		(entries .. end).as-mut-slice cast-immutable
 
 -windows-backtrace-vars record by-val, mut
 	offset nat64 mut*
@@ -107,7 +118,9 @@ Result entries are temporary, must copy!
 	symbol IMAGEHLP_SYMBOL64 mut*
 	line IMAGEHLP_LINE64 mut*
 
--try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe
+-try-alloc-windows-backtrace-vars windows-backtrace-vars?(
+	gc gc-ctx,
+) bare, unsafe, (native, windows) extern
 	guard offset ?= gc.try-allocate :: nat64 mut*?
 	guard displacement ?= gc.try-allocate :: nat32 mut*?
 	symbol-max-name-length nat64 = 255
@@ -129,7 +142,7 @@ Result entries are temporary, must copy!
 	context CONTEXT mut*,
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
-) bare, unsafe
+) bare, unsafe, (DbgHelp, native, windows) extern
 	if out == out-end
 		out
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame,
@@ -148,7 +161,7 @@ Result entries are temporary, must copy!
 	process HANDLE,
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
-) bare, unsafe
+) bare, unsafe, (DbgHelp, native, windows) extern
 	name c-string = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
 		gc copy-c-string-or-empty &vars.symbol->Name
 	else
@@ -158,7 +171,7 @@ Result entries are temporary, must copy!
 	else
 		name, "", 0, 0
 
--copy-c-string-or-empty c-string(gc gc-ctx, a c-string) bare, unsafe
+-copy-c-string-or-empty c-string(gc gc-ctx, a c-string) bare, unsafe, native extern
 	size = a c-string-size-incl-nul
 	if out ?= (gc try-allocate size) :: char8 mut*?
 		out mem-copy a, size
@@ -166,24 +179,24 @@ Result entries are temporary, must copy!
 	else
 		""
 
--get-native-backtrace-libunwind backtrace(
+-native-backtrace-libunwind native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) bare, unsafe
+) bare, unsafe, (native, unwind) extern
 	cursor mut unw_cursor_t = ()
 	context mut unw_context_t = ()
 	err0 = &context unw_getcontext
 	err0 == 0 hard-assert
 	err1 = &cursor unw_init_local &context
 	err1 == 0 hard-assert
-	# omit 'get-native-backtrace' in addition to other skipped
+	# omit 'native-backtrace' in addition to other skipped
 	&cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind entries, entries + max-entries, &cursor
-	(entries .. end).as-array,
+	(entries .. end).as-mut-slice cast-immutable
 
--unwind-skip void(cursor unw_cursor_t mut*, skip nat64) bare, unsafe
+-unwind-skip void(cursor unw_cursor_t mut*, skip nat64) bare, unsafe, unwind extern
 	unless skip == 0
 		_ = cursor unw_step
 		cursor unwind-skip (skip wrap-sub 1)
@@ -194,7 +207,7 @@ Result entries are temporary, must copy!
 	out-begin backtrace-entry mut*,
 	out-end backtrace-entry mut*,
 	cursor unw_cursor_t mut*,
-) bare, unsafe
+) bare, unsafe, (native, unwind) extern
 	out-cur mut = out-begin
 	loop
 		guard out-cur != out-end && cursor.unw_step > 0 : break out-cur

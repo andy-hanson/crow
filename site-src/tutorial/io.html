@@ -145,9 +145,11 @@
 
 	<p>
 		Logging is always allowed, but you can temporarily change the log handler when calling a function.
+		<br />
+		Currently this can only be done for native code, as JS logging always uses the JS console.
 	</p>
 	<crow-runnable>
-		main void()
+		main void() native extern
 			with : (_ => ()) temp-log-handler
 				info log "this won't be logged"
 			info log "done"

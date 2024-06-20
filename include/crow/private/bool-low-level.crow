@@ -12,8 +12,7 @@ This can also be written as `()`.
 +true bool() builtin, bare
 
 # Changes `true` to `false`, and `false` to `true`.
-+not bool(a bool) bare
-	a ? false : true
++not bool(a bool) builtin, bare
 
 ###
 If `a` is `false`, returns `false` immediately and does not evaluate `b`.

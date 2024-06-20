@@ -1,0 +1,5 @@
+import
+	crow/math/math: pi, pi
+
+main void()
+	info log "{pi::float64}"

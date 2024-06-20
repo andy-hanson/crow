@@ -4,7 +4,7 @@ import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.alloc.stackAlloc : withStackArray;
 import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
-import util.opt : force, has, none, MutOpt, Opt, some, someMut;
+import util.opt : force, has, none, MutOpt, Opt, optIf, some, someMut;
 import util.union_ : TaggedUnion, Union;
 import util.util : castImmutable, max, typeAs;
 
@@ -123,6 +123,9 @@ bool sizeEq3(T, U, V)(in T[] a, in U[] b, in V[] c) =>
 
 bool isEmpty(T)(in T[] a) =>
 	a.length == 0;
+
+Opt!T optOnly(T)(in T[] a) =>
+	optIf(a.length == 1, () => only(a));
 
 ref inout(T) only(T)(scope inout T[] a) {
 	assert(a.length == 1);
@@ -598,7 +601,7 @@ SmallArray!Out mapZip(Out, In0, In1)(
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return small!Out(makeArray(alloc, in0.length, (size_t i) =>
+	return small!Out(makeArray!Out(alloc, in0.length, (size_t i) =>
 		cb(in0[i], in1[i])));
 }
 
@@ -640,6 +643,17 @@ bool arraysEqual(T)(in T[] a, in T[] b) =>
 T applyNTimes(T)(T start, size_t times, in T delegate(T) @safe @nogc pure nothrow cb) =>
 	times == 0 ? start : applyNTimes(cb(start), times - 1, cb);
 
+T foldRange(T)(
+	size_t length,
+	in T delegate(size_t) @safe @nogc pure nothrow cbGet,
+	in T delegate(T, T) @safe @nogc pure nothrow cbCombine,
+) {
+	assert(length != 0);
+	T recur(T acc, size_t i) =>
+		i == length ? acc : cbCombine(acc, cbGet(i));
+	return recur(cbGet(0), 1);
+}
+
 T fold(T, U)(T start, in U[] arr, in T delegate(T, in U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
@@ -663,6 +677,16 @@ T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U
 	isEmpty(arr)
 		? start
 		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
+
+Out mapReduce(Out, In)(
+	in In[] in_,
+	in Out delegate(ref In) @safe @nogc pure nothrow cbMap,
+	in Out delegate(Out, Out) @safe @nogc pure nothrow cbReduce,
+) {
+	Out recur(Out acc, size_t i) =>
+		i == in_.length ? acc : recur(cbReduce(acc, cbMap(in_[i])), i + 1);
+	return recur(cbMap(in_[0]), 1);
+}
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

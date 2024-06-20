@@ -2,26 +2,26 @@ no-std
 import
 	./bits: ~, &, |, <<, >>, bits-intersect, has-all-bits
 	./bool: ||, bool, false, not, true
-	./compare: !=, <, <=, >, compare, comparison, equal
-	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
+	./compare: !=, <, <=, >, compare, comparison, equal, greater, less
+	./col/array:
+		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-cast, array-iterator, as-array, begin,
+		begin-pointer, build, collection, end, is-empty, iterate, new, next, prev, size, slice,
+		subscript
+	./col/mut-slice: cast-immutable, cast-mutable, copy, mut-slice
 	./col/collection:
-		build, build-options, drop-right-while, drop-while, for-break, for-loop, subscript,
-		try-remove-end, try-split-once, with-block
-	./col/list:
-		==, <=>, ~=, ~, ~~, ~~=, +, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, next, prev, size, slice, to
-	./col/mut-list:
-		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
+		build, build-options, drop-right-while, drop-while, for-break, for-loop,
+		reverse-in-place, try-remove-end, try-split-once, with-block
+	./col/mut-array: ~=, insert-at, move-to, mut-array, new, size, subscript, set-subscript
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
+	./js: ==, <, +, as-js, call, call-property, cast, js-global
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
 		is-nan, is-near-int, min-value, nat8, nat16, nat32, nat64, to, round, truncate-to
 	./option: ??, force, new, option
-	./pointer: ==, <=>, const-pointer
-	./private/bootstrap: inner
+	./pointer: ==, <=>
 	./private/exception-low-level: exception, unreachable
 	./private/number-low-level: wrap-sub
 	./range: .., in, iterate
@@ -31,33 +31,29 @@ export
 	# TODO: don't export find-c-string-end
 	./private/c-string-util: ==, char8, c-string, find-c-string-end, to
 
-+to char8 array(a string)
-	a.inner to
-+to char8[](a string)
-	a inner
++to char8[](a string) builtin, bare
 
 -unsafe-to char32(a char8) builtin, bare
 +to char32(a char8) bare
 	assert a is-valid-single-byte-character
 	a.unsafe-to
-+to char32 array(a string)
-	for x : a; x
 +to char32[](a string)
 	for x : a; x
 
-###
-Concatenate two strings.
-This is O(n).
-
-If you need to concatenate many strings, consider using the `crow/writer` module.
-###
 +~~ string(a string, b string)
-	a.inner ~~ b.inner,
+	if trusted extern js
+		trusted a.as-js + b.as-js cast
+	else
+		a.to::char8[] ~~ b.to to
 
-+interpolate string(...parts string array)
-	"" join parts.to
-+interpolate char8*(...parts string array)
-	("" join parts.to) to
++interpolate string(...parts string[])
+	if trusted extern js
+		# This makes sure it's synchronous, and faster
+		trusted parts.as-js call-property "join", ""::string cast
+	else
+		"" join parts
++interpolate c-string(...parts string[]) unsafe, native extern
+	"" join parts to
 
 # Same as `""`.
 +new string() bare
@@ -65,11 +61,11 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 
 # Same as `a == ""`.
 +is-empty bool(a string) bare
-	a.inner is-empty
+	a.to::char8[] is-empty
 
 # Size in `char8`s
 +size-char8s nat64(a string) bare
-	a.inner size
+	a.to::char8[] size
 +size nat64(a string)
 	res mut nat64 = 0
 	for _ : a
@@ -77,7 +73,10 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	res
 
 +== bool(a string, b string)
-	a.inner == b.inner
+	if trusted extern js
+		trusted a.as-js == b.as-js
+	else
+		a.to::char8[] == b.to
 +== bool(a char32, b char32) bare, builtin
 +to nat32(a char32) bare, builtin
 # This is unsafe because a 'char32' should be a valid unicode character.
@@ -87,15 +86,26 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	trusted a unsafe-to
 
 +<=> comparison(a string, b string)
-	a.inner <=> b.inner
+	if trusted extern js
+		if trusted a.as-js < b.as-js
+			less
+		elif a == b
+			equal
+		else
+			greater
+	else
+		a.to::char8[] <=> b.to
 +<=> comparison(a char8, b char8) bare
 	a.to::nat8 <=> b.to
 +<=> comparison(a char32, b char32) bare
 	a.to::nat32 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
-	for c : a inner
-		hasher hash-mix c
+	chars char8[] = a to
+	i mut nat64 = 0
+	until i == chars.size
+		hasher hash-mix chars[i]
+		i +:= 1
 +hash-mix void(hasher hasher, a char8)
 	hasher hash-mix a.to::nat8.to::nat64
 +hash-mix void(hasher hasher, a char32)
@@ -103,32 +113,25 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 
 region conversion
 
-+to string(a char32 array)
-	a.to::char32[].to
 +to string(a char32[])
 	with out : build
 		for x : a
 			out ~= x
 
 # Assumes its input is valid UTF-8 without validation.
-+trust-as-string string(a char8 array) unsafe
-	a.to,
-+trust-as-string string(a char8[]) bare, unsafe
-	a,
+-trust-as-string string(a char8[]) builtin, bare, unsafe
 
 # Treats UTF-8 character codes as a string. O(n) due to validation.
-+to string(a char8[])
-	res string = a,
++to string(a char8[]) trusted
+	res string = a trust-as-string
 	# Validate decoding
 	for _ : res; ()
 	res
-+to string(a char8 array)
-	a.to::char8[] to
++move-to string(a char8 mut[]) unsafe
+	a.move-to::char8[] to
 # Validates that bytes are UTF-8 character codes, and returns them as a string.
-+as-string string(bytes nat8[])
-	(trusted bytes.list-cast::char8[]) to
-+as-string string(bytes nat8 array)
-	bytes.to::nat8[] as-string
++as-string string(bytes nat8[]) trusted
+	bytes.array-cast::char8[] to
 
 +to nat64(a char8) bare
 	a.to::nat8 to
@@ -137,15 +140,12 @@ region conversion
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-+to-bytes nat8[](a string)
-	trusted a.inner list-cast
-+to-bytes nat8 array(a string)
-	a.to-bytes to
++to-bytes nat8[](a string) trusted
+	a.to::char8[] array-cast
 
-+to nat8 array(a string)
++to nat8[](a string)
 	a to-bytes
 
-# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string
 ###
 Converts a string to a c-string by appending "\0".
 This is O(n).
@@ -153,29 +153,34 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-+to c-string(a string)
-	# TODO: not trusted
-	trusted (a.inner ~ "\0")::char8[].to begin-pointer
++to c-string(a string) unsafe, native extern
+	(a.to::char8[] ~ "\0") begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.
 
 Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
 ###
-+as-string string(a c-string) unsafe
-	(a .. a.find-c-string-end).as-array to
++as-string string(a c-string) unsafe, native extern
+	a.to::char8[] to
+
++to char8[](a c-string) unsafe, native extern
+	a .. a.find-c-string-end as-array
 
 ###
 Unlike 'as-string' this copies the 'c-string'.
 
 This is still unsafe because 'a' must end in a `"\0"` character.
 ###
-+to string(a c-string) unsafe
-	# TODO: 'copy' seems unnecessary since 'to' should do that?
-	a.as-string.inner.to.copy.move-to
++to string(a c-string) unsafe, native extern
+	copy char8 mut-slice = a.to.cast-mutable copy
+	copy.cast-immutable to
+
++show[t] spec
+	show string(a t)
 
 # `"true"` or `"false"`.
-+to string(a bool) bare
++show string(a bool) bare
 	if a
 		"true"
 	else
@@ -184,16 +189,26 @@ This is still unsafe because 'a' must end in a `"\0"` character.
 # String containing a single character.
 +to string(a char8)
 	a.to::char32 to
++show string(a char8)
+	a to
 +to string(a char32)
 	with out : build
 		out ~= a
++show string(a char32)
+	a to
 
 ###
 Converts a nat64 to a string.
 Result is only digits, no punctuation.
 ###
-+to string(a nat64)
-	a to-base 10
++show string(a nat64)
+	if trusted extern js
+		trusted a js-to-string
+	else
+		a to-base 10
+
+-js-to-string[t] string(a t) unsafe, js extern
+	"String".js-global call a cast
 
 -digit-to-string string(a nat64)
 	a.digit-to-char to
@@ -258,42 +273,47 @@ Result is only digits, no punctuation.
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
 
-+to string(a string) bare
++show string(a c-string) unsafe, native extern
+	a to
++show string(a string) bare
 	a
 
-+to string(a nat8)
-	a.to::nat64 to
++show string(a nat8)
+	a.to::nat64 show
 
-+to string(a nat16)
-	a.to::nat64 to
++show string(a nat16)
+	a.to::nat64 show
 
-+to string(a nat32)
-	a.to::nat64 to
++show string(a nat32)
+	a.to::nat64 show
 
-+to string(a int8)
-	a.to::int64 to
++show string(a int8)
+	a.to::int64 show
 
-+to string(a int16)
-	a.to::int64 to
++show string(a int16)
+	a.to::int64 show
 
-+to string(a int32)
-	a.to::int64 to
++show string(a int32)
+	a.to::int64 show
 
-+to string(a int64)
-	if a == min-value
++show string(a int64)
+	if trusted extern js
+		trusted a js-to-string
+	elif a == min-value
 		"-9223372036854775808"
 	else
 		s string = "{a abs}"
 		a < 0 ? "-{s}" : s
 
-+to string(a float32)
-	a.to::float64 to
++show string(a float32)
+	a.to::float64 show
 
-+to string(a float64) trusted
-	guard !a.is-nan : "NaN"
++show string(a float64) trusted
+	guard !(extern js) : a js-to-string
+	guard a !is-nan : "NaN"
 	guard a != infinity : "Infinity"
 	guard a != -infinity : "-Infinity"
-	guard a != a.truncate-to::int64.to : a.truncate-to to
+	guard a != a.truncate-to::int64.to : a.truncate-to show
 	guard a > 0 : a == 0 ? "0" : "-{-a}"
 
 	dec mut, exp mut = a to-decimal-and-exponent
@@ -305,18 +325,19 @@ Result is only digits, no punctuation.
 		dec /:= 10
 		exp +:= 1
 
-	out reverse-in-place
 	if exp <= 0
 		for _ : 0::nat64 .. exp.abs
-			out prepend= "0"
-		out prepend= "."
-		out prepend= "0"
-	elif exp.to::nat64 < out.size
-		out insert-at exp.to, "."
-	else
-		for _ : out.size .. exp.to
 			out ~= "0"
-	out.move-to::(char32 array) to
+		out ~= "."
+		out ~= "0"
+	out reverse-in-place
+	if exp > 0
+		if exp.to::nat64 < out.size
+			out insert-at exp.to, "."
+		else
+			for _ : out.size .. exp.to
+				out ~= "0"
+	out.move-to::char32[] to
 
 -to-decimal-and-exponent (nat64, int64)(a float64)
 	assert a > 0
@@ -327,23 +348,16 @@ Result is only digits, no punctuation.
 		exp -:= 1
 
 	digits mut nat64 = 0
-	loop
-		if x.is-near-int || digits == 15
-			break
-		else
-			x *:= 10
-			exp -:= 1
-			digits +:= 1
-			continue
+	until x is-near-int || digits == 15
+		x *:= 10
+		exp -:= 1
+		digits +:= 1
 
 	dec mut nat64 = x.round.to
 	while dec % 10 == 0
 		dec /:= 10
 		exp +:= 1
 	dec, exp
-
-+move-to string(a char8 mut[]) unsafe
-	a.move-to::(char8 array) to
 
 region spec impls (see collection.crow)
 
@@ -358,22 +372,22 @@ region spec impls (see collection.crow)
 			continue
 
 +string-iterator record by-val
-	-inner char8 list-iterator
+	-inner char8 array-iterator
 
 +== bool(a string-iterator, b string-iterator)
 +<=> comparison(a string-iterator, b string-iterator)
 
 +begin string-iterator(a string) bare
-	a.inner.begin,
+	a.to.begin,
 
 +end string-iterator(a string) bare
-	a.inner.end,
+	a.to.end,
 
-+collection string(a string-iterator) bare
-	a.inner.collection,
++collection string(a string-iterator) bare, trusted
+	a.inner.collection.trust-as-string
 
-+slice string(a string-iterator, b string-iterator)
-	(a.inner slice b.inner),
++slice string(a string-iterator, b string-iterator) bare, trusted
+	a.inner slice b.inner trust-as-string
 
 +next (char32, string-iterator)?(a string-iterator)
 	guard x, next ?= a.inner next
@@ -386,31 +400,28 @@ region spec impls (see collection.crow)
 	((prev2,), char),
 
 +string-builder record mut
-	-inner char8 list-builder
+	-inner char8 array-builder
 +build string(a build-options, f void mut(out string-builder))
 	chars char8[] = a build out => f[out,]
 	trusted chars trust-as-string
 +~= void(a string-builder, value char32)
 	a unicode-encode value.to
 +~~= void(a string-builder, s string)
-	a.inner ~~= s.inner
+	a.inner ~~= s to
 
 region utilities
 
 +invalid-unicode-character record(character nat32) exception variant-member
-+describe string(a invalid-unicode-character)
++show string(a invalid-unicode-character)
 	"0x{a.character to-hex} is not a valid Unicode character."
 +unicode-decode-error record exception variant-member
-+describe string(_ unicode-decode-error)
++show string(_ unicode-decode-error)
 	"Error decoding bytes as UTF-8"
 
 +lines string[](a string)
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
-	arr char32 array = a to
-	for x : arr split ("\n",)
-		rme char32 array? = x try-remove-end "\r"
-		rmex char32 array = rme ?? x
-		rmex.to
+	for x : a.to::char32[] split ("\n",)
+		(x try-remove-end "\r" ?? x) to
 
 # Lower cases every character in `a`.
 +lower-case string(a string)
@@ -537,7 +548,7 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 -push-byte void(out string-builder, a nat8)
 	out.inner ~= a to
 
--unicode-decode (char32, char8 list-iterator)(first-char char8, original-iter char8 list-iterator)
+-unicode-decode (char32, char8 array-iterator)(first-char char8, original-iter char8 array-iterator)
 	if first-char is-valid-single-byte-character
 		first-char.to, original-iter
 	else
@@ -546,7 +557,7 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 		res mut nat32 = first-char.to::nat8 to
 		flag mut nat8 = first-char.to << 1
 		for i : 1::nat64 .. 4
-			next-char, next-iter = iter.next ?? throw unicode-decode-error
+			next-char, next-iter = iter next ?? throw unicode-decode-error
 			code nat8 = next-char to
 			assert (code & first-byte-flags) == byte-top-bit : unicode-decode-error
 			iter := next-iter
@@ -575,8 +586,8 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 	else
 		unreachable
 
--unicode-decode-prev (char8 list-iterator, char32)(
-	original-iter char8 list-iterator,
+-unicode-decode-prev (char8 array-iterator, char32)(
+	original-iter char8 array-iterator,
 	first-char char8,
 )
 	if first-char is-valid-single-byte-character
@@ -584,7 +595,7 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 	else
 		iter mut = original-iter
 		for _ : 1::nat64 .. 4
-			prev-iter, prev-char = iter.prev ?? throw unicode-decode-error
+			prev-iter, prev-char = iter prev ?? throw unicode-decode-error
 			if prev-char is-first-byte
 				res, end-iter = prev-char unicode-decode iter
 				assert end-iter == original-iter.next!.b

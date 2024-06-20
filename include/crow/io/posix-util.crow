@@ -5,10 +5,10 @@ import
 	../exception: error
 	../misc: new, void
 	../number: ==
-	../string: interpolate, to
+	../string: interpolate, show
 
 # Fail if `errno != 0`.
-check-errno void() summon, unsafe
+check-errno void() summon, unsafe, (libc, native) extern
 	errno check-posix-error
 
 # Fail if `e != 0`.

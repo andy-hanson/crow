@@ -16,7 +16,7 @@ import frontend.check.checkCall.checkCall :
 	findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
-import frontend.check.checkCtx : CheckCtx, CommonModule;
+import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule;
 import frontend.check.checkStructBodies : checkLiteralIntegral;
 import frontend.check.exprCtx :
 	addDiag2,
@@ -82,6 +82,7 @@ import model.ast :
 	DoAst,
 	EmptyAst,
 	ExprAst,
+	ExternAst,
 	FinallyAst,
 	ForAst,
 	IdentifierAst,
@@ -113,12 +114,14 @@ import model.ast :
 import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
+	asExtern,
 	AssertOrForbidExpr,
 	BogusExpr,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
 	Called,
+	CalledSpecSig,
 	CallExpr,
 	CharType,
 	ClosureGetExpr,
@@ -133,9 +136,12 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternCondition,
+	ExternExpr,
 	FinallyExpr,
 	FloatType,
 	FunBody,
+	FunDecl,
 	FunFlags,
 	FunInst,
 	FunKind,
@@ -143,6 +149,7 @@ import model.model :
 	IfExpr,
 	IntegralType,
 	IntegralTypes,
+	isBuiltinExtern,
 	isDefinitelyByRef,
 	isEmptyType,
 	isSigned,
@@ -166,13 +173,13 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Mutability,
-	RecordFieldPointerExpr,
+	paramsArray,
 	Purity,
 	purityRange,
+	RecordFieldPointerExpr,
 	ReturnAndParamTypes,
 	SeqExpr,
 	SpecDecl,
-	Specs,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -185,11 +192,11 @@ import model.model :
 	toMutability,
 	Type,
 	TypedExpr,
-	TypeParams,
 	UnionMember,
 	VariableRef,
 	VariantAndMethodImpls;
 import util.alloc.stackAlloc : MaxStackArray, withMapToStackArray, withMaxStackArray, withStackArray;
+import util.cell : Cell;
 import util.col.array :
 	arrayOfSingle,
 	contains,
@@ -217,6 +224,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, s
 import util.sourceRange : Range;
 import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
+import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
@@ -227,28 +235,25 @@ Expr checkFunctionBody(
 	in CommonTypes commonTypes,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
-	TypeContainer typeContainer,
-	Type returnType,
-	TypeParams typeParams,
-	Destructure[] params,
-	in Specs specs,
-	in FunFlags flags,
+	FunDecl* fun,
 	ExprAst* ast,
 ) {
+	assert(!fun.returnType.isBogus);
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe(checkCtx),
 		structsAndAliasesMap,
 		specsMap,
 		funsMap,
 		ptrTrustMe(commonTypes),
-		typeContainer,
-		specs,
-		typeParams,
-		flags);
+		TypeContainer(fun),
+		fun.specs,
+		fun.typeParams,
+		fun.flags,
+		Cell!SymbolSet(fun.externs));
 	Expr res = checkWithParamDestructures(
-		castNonScope_ref(exprCtx), ast, params,
+		castNonScope_ref(exprCtx), ast, paramsArray(fun.params),
 		(ref LocalsInfo innerLocals) =>
-			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, returnType));
+			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, fun.returnType));
 	return res;
 }
 
@@ -260,6 +265,7 @@ Expr checkTestBody(
 	in FunsMap funsMap,
 	TypeContainer typeContainer,
 	FunFlags flags,
+	SymbolSet externs,
 	ExprAst* ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
@@ -271,9 +277,24 @@ Expr checkTestBody(
 		typeContainer,
 		emptySpecs,
 		emptyTypeParams,
-		flags);
+		flags,
+		Cell!SymbolSet(externs));
 	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
+}
+
+Symbol checkExternNameOrBogus(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) =>
+	optOrDefault!Symbol(checkExternName(ctx, name, enclosingExterns), () => symbol!"bogus");
+private Opt!Symbol checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
+	Symbol res = name.name;
+	if (isBuiltinExtern(res) || res in ctx.config.extern_) {
+		if (res in enclosingExterns)
+			addDiag(ctx, name.range, Diag(Diag.ExternRedundant(res)));
+		return some(res);
+	} else {
+		addDiag(ctx, name.range, Diag(Diag.ExternInvalidName(res)));
+		return none!Symbol;
+	}
 }
 
 Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expected expected) =>
@@ -297,6 +318,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkExpr(ctx, locals, a.body_, expected),
 		(EmptyAst a) =>
 			checkEmptyNew(ctx, locals, ast, ast.range, expected),
+		(ExternAst a) =>
+			checkExtern(ctx, locals, ast, a, expected),
 		(FinallyAst* a) =>
 			checkFinally(ctx, locals, ast, a, expected),
 		(ForAst* a) =>
@@ -407,16 +430,22 @@ Expr checkIf(
 	IfAst ast,
 	ref Expected expected,
 ) {
-	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && ast.kind != IfAst.Kind.ifElif))
+	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && !ast.isElseOfParent))
 		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
 	bool isNegated = ast.isConditionNegated;
 	Range emptyNewRange = ast.firstKeywordRange;
-	Expr firstBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source, isNegated ? none!Destructure : destructure, ast.firstBranch, emptyNewRange, expected);
-	Expr secondBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source, isNegated ? destructure : none!Destructure, ast.secondBranch, emptyNewRange, expected);
+	Expr firstBranch = withExternFromCondition(ctx, condition, isNegated, () =>
+		checkExprWithOptDestructureOrEmptyNew(
+			ctx, locals, source,
+			isNegated ? none!Destructure : destructure,
+			ast.firstBranch, emptyNewRange, expected));
+	Expr secondBranch = withExternFromCondition(ctx, condition, !isNegated, () =>
+		checkExprWithOptDestructureOrEmptyNew(
+			ctx, locals, source,
+			isNegated ? destructure : none!Destructure,
+			ast.secondBranch, emptyNewRange, expected));
 	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(
 		condition, isNegated ? secondBranch : firstBranch, isNegated ? firstBranch : secondBranch))));
 }
@@ -464,6 +493,24 @@ Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Trust
 	return Expr(source, ExprKind(allocate(ctx.alloc, TrustedExpr(inner))));
 }
 
+Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
+	if (!checkCanDoUnsafe(ctx))
+		addDiag2(ctx, source, Diag(Diag.ExternIsUnsafe()));
+	bool ok = true;
+	SymbolSet names = buildSymbolSet((scope ref SymbolSetBuilder out_) {
+		foreach (NameAndRange nameAst; ast.names) {
+			Opt!Symbol name = checkExternName(ctx.checkCtx, nameAst, ctx.externs);
+			if (has(name))
+				out_ ~= force(name);
+			else
+				ok = false;
+		}
+	});
+	return ok
+		? check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(names)))
+		: bogus(expected, source);
+}
+
 Expr checkAssertOrForbid(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -473,8 +520,9 @@ Expr checkAssertOrForbid(
 ) {
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
+	bool isForbid = ast.isForbid;
 	return Expr(source, ExprKind(allocate(ctx.alloc, AssertOrForbidExpr(
-		isForbid: ast.isForbid,
+		isForbid: isForbid,
 		condition: condition,
 		thrown: optIf(has(ast.thrown), () {
 			ExprAst* thrownAst = &force(ast.thrown).expr;
@@ -482,11 +530,13 @@ Expr checkAssertOrForbid(
 				addDiag2(ctx, thrownAst.kind.as!(ThrowAst*).keywordRange(thrownAst), Diag(
 					Diag.AssertOrForbidMessageIsThrow()));
 			return allocate(ctx.alloc, withExpect(Type(ctx.commonTypes.exception), (ref Expected expectThrown) =>
-				checkExprWithOptDestructure(
-					ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectThrown)));
+				withExternFromCondition(ctx, condition, !isForbid, () =>
+					checkExprWithOptDestructure(
+						ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectThrown))));
 		}),
-		after: checkExprWithOptDestructure(
-			ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected)))));
+		after: withExternFromCondition(ctx, condition, isForbid, () =>
+			checkExprWithOptDestructure(
+				ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected))))));
 }
 
 Expr checkAssignment(
@@ -567,7 +617,7 @@ Expr checkInterpolated(
 			ExprAst* part = &ast.parts[i];
 			return part.kind.isA!LiteralStringAst
 				? checkLiteralString(ctx, part, part.kind.as!LiteralStringAst.value, argExpected)
-				: checkCallSpecial(ctx, locals, source, part.range, symbol!"to", arrayOfSingle(part), argExpected);
+				: checkCallSpecial(ctx, locals, source, part.range, symbol!"show", arrayOfSingle(part), argExpected);
 		});
 
 struct VariableRefAndType {
@@ -727,33 +777,26 @@ Expr checkAssignIdentifier(
 	ref Expected expected,
 	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbRight,
 ) {
-	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, source, left);
+	MutOpt!VariableRefAndType optVar =
+		getIdentifierNonCall(ctx, locals, some(source), left, LocalAccessKind.setOnStack);
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
-		Expr value = withExpect(var.type, cbRight);
-		return var.variableRef.matchWithPointers!Expr(
-			(Local* local) =>
-				check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
-			(ClosureRef x) =>
-				check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
-	} else
-		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);
-}
-
-MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {
-	MutOpt!VariableRefAndType opVar = getIdentifierNonCall(ctx, locals, some(source), name, LocalAccessKind.setOnStack);
-	if (has(opVar)) {
-		VariableRefAndType var = force(opVar);
 		final switch (var.mutability) {
 			case Mutability.immut:
 				addDiag2(ctx, source, Diag(Diag.LocalNotMutable(var.variableRef)));
-				break;
+				return bogus(expected, source);
 			case Mutability.mut:
-				break;
-		}
-		return someMut(var);
+				Expr value = withExpect(var.type, cbRight);
+				return var.variableRef.matchWithPointers!Expr(
+					(Local* local) =>
+						check(ctx, expected, voidType(ctx), source, ExprKind(
+							LocalSetExpr(local, allocate(ctx.alloc, value)))),
+					(ClosureRef x) =>
+						check(ctx, expected, voidType(ctx), source, ExprKind(
+							ClosureSetExpr(x, allocate(ctx.alloc, value)))));
+				}
 	} else
-		return noneMut!VariableRefAndType;
+		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);
 }
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {
@@ -813,14 +856,13 @@ Expr checkLiteralIntegral(ref ExprCtx ctx, ExprAst* source, in LiteralIntegral a
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
-	immutable StructInst*[9] allowedTypes = [
+	immutable StructInst*[8] allowedTypes = [
 		ctx.commonTypes.char8,
 		ctx.commonTypes.char32,
 		ctx.commonTypes.char8Array,
-		ctx.commonTypes.char8List,
 		ctx.commonTypes.char32Array,
-		ctx.commonTypes.char32List,
 		ctx.commonTypes.cString,
+		ctx.commonTypes.jsAny,
 		ctx.commonTypes.string_,
 		ctx.commonTypes.symbol,
 	];
@@ -829,21 +871,22 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 		LiteralStringLikeExpr.Kind.cString, // won't be used
 		LiteralStringLikeExpr.Kind.cString, // won't be used
 		LiteralStringLikeExpr.Kind.char8Array,
-		LiteralStringLikeExpr.Kind.char8List,
 		LiteralStringLikeExpr.Kind.char32Array,
-		LiteralStringLikeExpr.Kind.char32List,
 		LiteralStringLikeExpr.Kind.cString,
+		LiteralStringLikeExpr.Kind.jsAny,
 		LiteralStringLikeExpr.Kind.string_,
 		LiteralStringLikeExpr.Kind.symbol,
 	];
 
 	if (has(opTypeIndex)) {
 		size_t typeIndex = force(opTypeIndex);
-		ExprKind expr = () {
+		Opt!ExprKind expr = () {
 			if (typeIndex == 0) // char8
-				return ExprKind(LiteralExpr(Constant(IntegralValue(char8LiteralValue(ctx, source.range, value)))));
-			else if (typeIndex == 1) // CHAR32
-				return ExprKind(LiteralExpr(Constant(IntegralValue(char32LiteralValue(ctx, source.range, value)))));
+				return some(ExprKind(LiteralExpr(Constant(
+					IntegralValue(char8LiteralValue(ctx, source.range, value))))));
+			else if (typeIndex == 1) // char32
+				return some(ExprKind(LiteralExpr(Constant(
+					IntegralValue(char32LiteralValue(ctx, source.range, value))))));
 			else {
 				string checkNoNul(Diag.StringLiteralInvalid.Reason reason) {
 					Opt!size_t index = indexOf(value, '\0');
@@ -854,25 +897,32 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 						return value;
 				}
 				LiteralStringLikeExpr.Kind kind = kinds[typeIndex];
-				string fixedValue = () {
+				Opt!string fixedValue = () {
 					final switch (kind) {
 						case LiteralStringLikeExpr.Kind.char8Array:
-						case LiteralStringLikeExpr.Kind.char8List:
 						case LiteralStringLikeExpr.Kind.char32Array:
-						case LiteralStringLikeExpr.Kind.char32List:
-							return value;
+							return some(value);
 						case LiteralStringLikeExpr.Kind.cString:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul));
 						case LiteralStringLikeExpr.Kind.string_:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.stringContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.stringContainsNul));
 						case LiteralStringLikeExpr.Kind.symbol:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul));
+						case LiteralStringLikeExpr.Kind.jsAny:
+							bool ok = symbol!"js" in ctx.externs;
+							if (!ok)
+								addDiag2(ctx, source.range, Diag(
+									Diag.StringLiteralInvalid(Diag.StringLiteralInvalid.Reason.notExternJs)));
+							return optIf(ok, () => value);
 					}
 				}();
-				return ExprKind(LiteralStringLikeExpr(kind, smallString(fixedValue)));
+				return optIf(has(fixedValue), () =>
+					ExprKind(LiteralStringLikeExpr(kind, smallString(force(fixedValue)))));
 			}
 		}();
-		return check(ctx, expected, Type(allowedTypes[typeIndex]), source, expr);
+		return has(expr)
+			? check(ctx, expected, Type(allowedTypes[typeIndex]), source, force(expr))
+			: bogus(expected, source);
 	} else
 		return bogus(expected, source);
 }
@@ -1037,6 +1087,10 @@ Expr checkPointerInner(
 	PointerMutability expectedMutability,
 	ref Expected expected,
 ) {
+	if (symbol!"native" !in ctx.externs) {
+		addDiag2(ctx, source, Diag(Diag.PointerIsNative()));
+		return bogus(expected, source);
+	}
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.PointerIsUnsafe()));
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);
@@ -1075,14 +1129,14 @@ Expr checkPointerOfCall(
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
 			PointerMutability fieldMutability =
-				has(recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability)
+				has(rfg.field.mutability)
 					? PointerMutability.writeable
 					: PointerMutability.readOnly;
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
 				return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.field))));
 			} else if (target.kind.isA!CallExpr) {
 				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
@@ -1098,7 +1152,7 @@ Expr checkPointerOfCall(
 						return bogus(expected, source);
 					} else
 						return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.field))));
 				} else
 					return fail();
 			} else
@@ -1176,9 +1230,21 @@ Expr checkFunPointerInner(
 		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
 		StructInst* structInst = instantiateStructNeverDelay(
 			ctx.instantiateCtx, ctx.commonTypes.funPointerStruct, [called.returnType, paramType]);
+		if (symbol!"js" !in ctx.externs && !isBareForFunctionPointer(called))
+			addDiag2(ctx, source, Diag(Diag.FunPointerNotBare()));
 		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
 	}
 }
+
+bool isBareForFunctionPointer(in Called a) =>
+	a.matchIn!bool(
+		(in Called.Bogus) =>
+			true,
+		(in FunInst x) =>
+			x.decl.isBareOrForceCtx &&
+			every!Called(x.specImpls, (in Called x) => isBareForFunctionPointer(x)),
+		(in CalledSpecSig _) =>
+			false);
 
 Out withReturnAndParamTypes(Out)(
 	ref CommonTypes commonTypes,
@@ -1202,7 +1268,7 @@ Opt!Called findFunctionForPointer(
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
 	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) =>
 		findFunctionForReturnAndParamTypes(
-			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags,
+			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, ctx.externs,
 			locals, name.name, name.range, typeArg, returnAndParamTypes,
 			() => checkCanDoUnsafe(ctx)));
 }
@@ -1368,7 +1434,7 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst*
 			checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected)));
 		overwriteMemory(&loop.body_, body_);
 		if (!info.hasBreak)
-			addDiag2(ctx, source, Diag(Diag.LoopWithoutBreak()));
+			addDiag2(ctx, ast.keywordRange(source), Diag(Diag.LoopWithoutBreak()));
 		return Expr(source, ExprKind(castImmutable(loop)));
 	} else {
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.loop)));
@@ -1448,10 +1514,13 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 		(BuiltinType x) {
 			Opt!CharType charType = optAsCharType(x);
 			Opt!IntegralType integral = optAsIntegralType(x);
+			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLikeFromBuiltin(x);
 			return has(charType)
 				? checkMatchChar(ctx, locals, source, ast, expected, matched, force(charType))
 				: has(integral)
 				? checkMatchIntegral(ctx, locals, source, ast, expected, matched, force(integral))
+				: has(stringLike)
+				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, force(stringLike))
 				: notMatchable();
 		},
 		(ref StructBody.Enum x) =>
@@ -1461,7 +1530,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 		(StructBody.Flags) =>
 			notMatchable(),
 		(StructBody.Record) {
-			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLike(ctx.commonTypes, inst);
+			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLikeFromRecord(ctx.commonTypes, inst);
 			return has(stringLike)
 				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, force(stringLike))
 				: notMatchable();
@@ -1597,7 +1666,7 @@ CaseResult checkMatchUnionOrVariantCase(Member)(
 		if (has(destructureAst))
 			return checkDestructure2(ctx, &force(destructureAst), memberType, DestructureKind.local);
 		else {
-			if (!isEmptyType(ctx.commonTypes, memberType))
+			if (!isEmptyType(memberType))
 				addDiag2(ctx, memberAst.nameRange, Diag(
 					Diag.MatchCaseShouldUseIgnore(Diag.MatchCaseShouldUseIgnore.Member(member))));
 			return Destructure(allocate(ctx.alloc, Destructure.Ignore(memberAst.nameRange.start, memberType)));
@@ -1807,13 +1876,20 @@ Expr checkMatchIntegral(
 		MatchIntegralExpr(MatchIntegralExpr.Kind(integralType), matched, cases, else_))));
 }
 
-Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLike(in CommonTypes commonTypes, in StructInst* inst) =>
+Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromBuiltin(BuiltinType a) {
+	switch (a) {
+		case BuiltinType.string_:
+			return some(LiteralStringLikeExpr.Kind.string_);
+		case BuiltinType.symbol:
+			return some(LiteralStringLikeExpr.Kind.symbol);
+		default:
+			return none!(LiteralStringLikeExpr.Kind);
+	}
+}
+Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromRecord(in CommonTypes commonTypes, in StructInst* inst) =>
 	inst == commonTypes.symbol ? some(LiteralStringLikeExpr.Kind.symbol) :
-	inst == commonTypes.string_ ? some(LiteralStringLikeExpr.Kind.string_) :
 	inst == commonTypes.char32Array ? some(LiteralStringLikeExpr.Kind.char32Array) :
-	inst == commonTypes.char32List ? some(LiteralStringLikeExpr.Kind.char32List) :
 	inst == commonTypes.char8Array ? some(LiteralStringLikeExpr.Kind.char8Array) :
-	inst == commonTypes.char8List ? some(LiteralStringLikeExpr.Kind.char8List) :
 	none!(LiteralStringLikeExpr.Kind);
 
 Expr checkMatchStringLike(
@@ -1837,6 +1913,7 @@ Expr checkMatchStringLike(
 		ctx.typeContainer,
 		ctx.outermostFunSpecs,
 		ctx.outermostFunFlags,
+		ctx.externs,
 		instantiateSpec(ctx.instantiateCtx, force(spec), [matched.type]));
 	SmallArray!(MatchStringLikeExpr.Case) cases = withTempSet!(SmallArray!(MatchStringLikeExpr.Case), string)(
 		ast.cases.length, (scope ref TempSet!string seen) =>
@@ -1898,6 +1975,22 @@ Expr checkExprOrEmptyNew(
 	has(ast)
 		? checkExpr(ctx, locals, force(ast), expected)
 		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
+
+Out withExternFromCondition(Out)(
+	ref ExprCtx ctx,
+	in Condition condition,
+	bool isNegated,
+	in Out delegate() @safe @nogc pure nothrow cb,
+) {
+	Opt!ExternCondition extern_ = asExtern(condition);
+	if (has(extern_) && !(isNegated ^ force(extern_).isNegated)) {
+		SymbolSet originalExterns = ctx.externs;
+		scope (exit) ctx.externs = originalExterns;
+		ctx.externs = ctx.externs | force(extern_).requiredExterns;
+		return cb();
+	} else
+		return cb();
+}
 
 Expr checkExprWithOptDestructureOrEmptyNew(
 	ref ExprCtx ctx,
@@ -2025,6 +2118,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in DoAst x) =>
 			hasBreakOrContinue(*x.body_),
 		(in EmptyAst _) =>
+			false,
+		(in ExternAst _) =>
 			false,
 		(in FinallyAst x) =>
 			false,

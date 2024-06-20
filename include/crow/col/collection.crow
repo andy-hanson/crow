@@ -1,33 +1,33 @@
 no-std
 import
 	../bool: ==, bool, false, new, not, true
-	../compare: >, compare, comparison, equal, greater, less
+	../compare: <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, nat64
+	../number: ==, <=>, +, -, /, nat64
 	../option: ??, force, is-empty, new, option
 	../private/bootstrap: exception, string
-	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
+	../private/range-low-level: .., iterate, range, size, subtract-to-nat
 	../tuple: a, b, new
 export
 	./private/build
 
 +index-too-big record(actual nat64, maximum nat64) by-val, exception variant-member
-+describe string(_ index-too-big)
++show string(_ index-too-big)
 	"The index is bigger than the collection's size"
 
 # Exception when attempting to skip too far forward or backward
 +iterator-out-of-bounds record exception variant-member
-+describe string(_ iterator-out-of-bounds)
++show string(_ iterator-out-of-bounds)
 	"Iterator out of bounds"
 # For a 'slice', the first iterator should be to the right of the second iterator.
 +slice-right-to-left record exception variant-member
-+describe string(_ slice-right-to-left)
++show string(_ slice-right-to-left)
 	"Iterators for slice were in the wrong order"
 
 # Some iterator operations like 'slice' require two iterators to be for the same collection.
 +iterator-not-comparable record exception variant-member
-+describe string(_ iterator-not-comparable)
++show string(_ iterator-not-comparable)
 	"Iterators are for different collections and can't be compared."
 
 +is-empty[t] spec
@@ -60,6 +60,9 @@ export
 
 +slice[col, iter] spec
 	slice col(begin iter, end iter)
++slice-out-of-order record exception variant-member
++show string(_ slice-out-of-order)
+	"Tried to slice from a later iterator to an earlier one."
 
 +skip-prev[iter] spec
 	- iter(a iter, n nat64)
@@ -74,39 +77,28 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 
 # Represents an index relative to the size of a collection
 +index-relative-to-end record(subtract nat64) by-val
-
 +end index-relative-to-end() bare
 	0,
+-to-index[col] nat64(a col, index index-relative-to-end) bare, col size
+	a.size - index.subtract
 
 +- index-relative-to-end(a index-relative-to-end, n nat64) bare
 	a.subtract + n,
 
-+subscript[col, iter, elem] elem(
-	a col,
-	index nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, col size, bare
-	assert x, _ ?= a.begin + index next : a.size index-too-big index
-	x
++at-index[col, elem] spec
+	subscript elem(a col, index nat64)
++set-at-index[col, elem] spec
+	set-subscript void(a col, index nat64, value elem)
 
-+subscript[col, iter, elem] elem(
-	a col,
-	index index-relative-to-end,
-) (iter, col) end, iter skip-prev, (elem, iter) next, col size, bare
-	assert x, _ ?= a.end - index.subtract next : a.size index-too-big index.subtract
-	x
++subscript[col, elem] elem(a col, index index-relative-to-end) bare, (col, elem) at-index, col size
+	a[a to-index index]
 
-+set-subscript[col, iter, elem] void(
-	a col,
-	index nat64,
-	value elem,
-) (iter, col) begin, iter skip-next, (iter, elem) set-next, bare
-	a.begin + index set-next value
-+set-subscript[col, iter, elem] void(
++set-subscript[col, elem] void(
 	a col,
 	index index-relative-to-end,
 	value elem,
-) (iter, col) end, iter skip-prev, (iter, elem) set-next, bare
-	a.end - index.subtract set-next value
+) bare, (col, elem) set-at-index, col size
+	a[(a to-index index)] := value
 
 +fill[col, iter, elem] void(
 	a col,
@@ -131,17 +123,18 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +.. range-relative-to-end(low nat64, high index-relative-to-end) bare
 	low, high
 
-+subscript[col, iter] col(
-	a col,
-	indices nat64 range,
-) (iter, col) begin, iter skip-next, (col, iter) slice, bare
-	a.begin + indices.low slice a.begin + indices.high
++to-range nat64 range(a range-relative-to-end, size nat64) bare
+	assert a.low <= size : a.low index-too-big size
+	assert a.high.subtract <= size : a.high.subtract index-too-big size
+	high = size - a.high.subtract
+	assert a.low <= high
+	a.low .. high
 
-+subscript[col, iter] col(
-	a col,
-	indices range-relative-to-end,
-) (iter, col) begin-end, iter skip-prev-next, (col, iter) slice, bare
-	a.begin + indices.low slice a.end - indices.high.subtract
++subscript-range[col] spec
+	subscript col(a col, range nat64 range)
+
++subscript[col] col(a col, indices range-relative-to-end) col size, col subscript-range, bare
+	a[indices to-range a.size]
 
 +slice-left[col, iter] col(a iter) (col, iter) collection, (iter, col) begin, (col, iter) slice
 	a.collection.begin slice a
@@ -154,23 +147,33 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	lo mut = a begin
 	hi mut = a end
 	while hi - lo > 1
-		pair0 = lo.next!
-		pair1 = hi.prev!
+		pair0 = lo next!
+		pair1 = hi prev!
 		lo set-next pair1.b
 		hi set-prev pair0.a
 		lo := pair0 b
 		hi := pair1 a
 
-swap-at[col, iter, elem] void(
++swap-at[col, elem] void(a col, i nat64, j nat64) (col, elem) at-index, (col, elem) set-at-index
+	temp = a[i]
+	a[i] := a[j]
+	a[j] := temp
++swap-at[col, elem] void(
 	a col,
 	i nat64,
-	j nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, (iter, elem) set-next
-	x = a.begin + i
-	y = a.begin + j
-	temp = x.next!.a
-	x set-next y.next!.a
-	y set-next temp
+	j index-relative-to-end,
+) col size, (col, elem) at-index, (col, elem) set-at-index
+	a swap-at i, (a to-index j)
++swap-at[col, elem] void(
+	a col,
+	i index-relative-to-end,
+	j index-relative-to-end,
+) col size, (col, elem) at-index, (col, elem) set-at-index
+	a swap-at (a to-index i), (a to-index j)
+
++reverse-in-place[col, elem] void(a col) col size, (col, elem) at-index, (col, elem) set-at-index
+	for i : 0::nat64 .. a.size / 2
+		a swap-at i, a.size - 1 - i
 
 region 'for' loops
 
@@ -255,7 +258,7 @@ sequence-equal[col, iter, elem] bool(
 	bi mut = b begin
 	loop
 		if na ?= ai next
-			nb = bi.next!
+			nb = bi next!
 			if na.a == nb.a
 				ai := na b
 				bi := nb b
@@ -298,10 +301,10 @@ For sets, prefer `in`.
 	a iterate x => x == value
 
 +starts-with[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
-	!(a.begin iter-starts-with b).is-empty
+	a.begin iter-starts-with b !is-empty
 
 +ends-with[col, iter, elem] bool(a col, b col) (iter, col) end, (elem, iter) prev, elem equal
-	!(a.end iter-ends-with b).is-empty
+	a.end iter-ends-with b !is-empty
 
 +try-remove-start[col, iter, elem] col?(
 	a col,
@@ -369,7 +372,7 @@ For sets, prefer `in`.
 That means: The elements in `b` appear in `a`, in order, without interruptions.
 ###
 +contains-seq[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
-	!(a iters-of-seq b).is-empty
+	a iters-of-seq b !is-empty
 
 ###
 Finds the first appearance of `b` in `a`,
@@ -482,7 +485,7 @@ Calls `f` on each element of `a` and returns `false` the fist time `f` does.
 Returns `true` iff `f` returned `true` every time.
 ###
 +every[col, elem] bool(a col, f bool mut(elem elem)) (col, elem) iterate
-	!(a iterate x => !f[x])
+	a !iterate x => !f[x]
 
 ###
 Drops elements from the left until `f` returns `false`.
@@ -629,4 +632,28 @@ region with-index
 	a.inner iterate x =>
 		res = f[i, x]
 		i +:= 1
+		res
+
++corresponds[col0, iter0, elem0, col1, iter1, elem1] bool(
+	a col0,
+	b col1,
+	f bool mut(x elem0, y elem1)
+) col0 size, (iter0, col0) begin, (elem0, iter0) next,
+		col1 size, (iter1, col1) begin, (elem1, iter1) next
+	if a.size == b.size
+		i0 mut = a begin
+		i1 mut = b begin
+		res mut = true
+		loop
+			if x, i0n ?= i0 next
+				i0 := i0n
+				y, i1n = i1 next!
+				i1 := i1n
+				if f[x, y]
+					continue
+				else
+					res := false
+					break
+			else
+				break
 		res

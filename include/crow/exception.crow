@@ -1,44 +1,59 @@
 no-std
 import
 	./bool: ||, bool, new, true
-	./col/array: +, begin, iterate, next, size, slice
-	./col/collection: find-index, for-loop, starts-with, subscript
-	./col/list: ~=, build
+	./col/array: ~=, build, iterate, size, subscript
+	./col/collection: find-index, for-loop, starts-with
 	./compare: >
+	./js: as-js, cast, subscript
 	./number: ==, <=>, -
+	./option: new, option
 	./range: ..
 	./result: result
-	./string: ==, begin, interpolate, is-empty, join, next, string, to
+	./string: ==, begin, interpolate, is-empty, join, next, show, string, to
+	./private/bootstrap: hard-unreachable
 export
-	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
+	./private/backtrace: native-backtrace, backtrace-entry, file-path, function-name, line-number
 	./private/exception-low-level:
-		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
+		backtrace, catch-all, error, exception, exception-and-backtrace, rethrow, show,
+		threw-non-exception, thrown, unreachable
 
-region handling
++ignore-exceptions record nominal
++with-block[t] t?(_ ignore-exceptions, f t mut())
+	match f catch-all
+	as ok x
+		x,
+	as error _
+		()
 
 +todo record exception variant-member
-+describe string(_ todo)
++show string(_ todo)
 	"TODO"
 
++not-implemented record exception variant-member
++show string(_ not-implemented)
+	"The operation is not implemented on this platform."
+
 # Outputs the exception's message and backtrace to a string.
-+to string(a exception-and-backtrace) unsafe
-	"{a exception}{a backtrace}"
-
-+to string(a exception)
-	a describe
-
-+to string(a backtrace) unsafe
-	# Don't include entries from runtime, only at start of function
-	kept-entries = if idx ?= a.entries find-index x => x is-runtime-function-entry
-		if idx > 0
-			if a.entries[idx - 1].function-name.to::string == "call"
-				a.entries[0 .. idx - 1]
-			else
-				a.entries[0 .. idx]
-		else
-			a entries
++show string(a exception-and-backtrace) unsafe
+	if extern native
+		"{a exception}{a backtrace}"
+	elif extern js
+		a.exception.as-js["stack"] cast
 	else
-		a entries
+		hard-unreachable
+
+-show string(a native-backtrace) unsafe, native extern
+	# Don't include entries from runtime, only at start of function
+	kept-entries = if idx ?= a find-index x => x is-runtime-function-entry
+		if idx > 0
+			if a[idx - 1].function-name.to::string == "call"
+				a[0 .. idx - 1]
+			else
+				a[0 .. idx]
+		else
+			a
+	else
+		a
 	"" join for x : kept-entries
 		"\n\tat {x}"
 
@@ -48,7 +63,7 @@ region handling
 	else
 		a
 
--is-runtime-function-entry bool(a backtrace-entry)
+-is-runtime-function-entry bool(a backtrace-entry) native extern
 	(trusted a.function-name.to) is-runtime-function-name
 
 -is-runtime-function-name bool(a string)
@@ -59,7 +74,7 @@ region handling
 	elif a == "invoke-action" || a == "invoke__45action"
 		true
 
--to string(a backtrace-entry)
+-show string(a backtrace-entry) native extern
 	name string = trusted a.function-name.to translate-name
 	path string = trusted a.file-path to
 	if name is-empty

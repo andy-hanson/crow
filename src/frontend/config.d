@@ -10,7 +10,7 @@ import util.col.array : fold;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.json : Json;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.jsonParse : parseJson;
 import util.string : CString;
 import util.symbol : Symbol, symbol;
@@ -54,25 +54,38 @@ ConfigContent parseConfigRecur(
 		Json value = field.value;
 		switch (field.key.value) {
 			case symbol!"include".value:
-				return withInclude(cur, parseIncludeOrExtern(alloc, dirContainingConfig, diags, value));
+				return withInclude(cur, parseInclude(alloc, dirContainingConfig, diags, value));
 			case symbol!"extern".value:
-				return withExtern(cur, parseIncludeOrExtern(alloc, dirContainingConfig, diags, value));
+				return withExtern(cur, parseExtern(alloc, dirContainingConfig, diags, value));
 			default:
 				todo!void("diag -- bad key");
 				return cur;
 		}
 	});
 
-Map!(Symbol, Uri) parseIncludeOrExtern(
+ConfigImportUris parseInclude(
 	ref Alloc alloc,
 	Uri dirContainingConfig,
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) =>
-	parseSymbolMap!Uri(alloc, diags, json, (in Json value) {
-		Opt!Uri res = parseUri(dirContainingConfig, diags, value);
-		return has(res) ? force(res) : bogusUri();
-	});
+	parseSymbolMap!Uri(alloc, diags, json, (in Json value) =>
+		parseUriOrBogus(dirContainingConfig, diags, value));
+
+ConfigExternUris parseExtern(
+	ref Alloc alloc,
+	Uri dirContainingConfig,
+	scope ref ArrayBuilder!Diagnostic diags,
+	in Json json,
+) =>
+	parseSymbolMap!(Opt!Uri)(alloc, diags, json, (in Json value) =>
+		optIf(!value.isA!(Json.Null), () =>
+			parseUriOrBogus(dirContainingConfig, diags, value)));
+
+Uri parseUriOrBogus(Uri dirContainingConfig, scope ref ArrayBuilder!Diagnostic diags, in Json value) {
+	Opt!Uri res = parseUri(dirContainingConfig, diags, value);
+	return has(res) ? force(res) : bogusUri();
+}
 
 Opt!Uri parseUri(
 	Uri dirContainingConfig,

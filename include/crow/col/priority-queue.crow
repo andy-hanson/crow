@@ -1,25 +1,5 @@
-no-std
 import
-	../bool: bool, new, not, true
-	../compare: <, >, <=, compare
-	../fun-util: subscript
-	../json: to
-	../misc: data, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, nat64
-	../option: force, is-empty, new, option
-	../range: .., iterate
-	../string: ==, interpolate, join, new, string, to
-	../test-util: is
-	../tuple: ==, a, b, new
-	./array:
-		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next, size,
-		slice
-	./collection: .., build, build-options, end, for-break, for-loop, subscript, swap-at, with-block
-	./mut-array:
-		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
-		next, prev, set-next, size, slice
-	./list: ==, ~=, build, list, new, to
-	./sort: sort, sort=
+	./mut-slice
 
 ###
 Immutable priority queue.
@@ -53,12 +33,12 @@ they would join with the `1` on the right to size 4, then with the `2` on the ri
 then with the `4` to size 10, then with the `8` to size 18, leaving only one node.)
 ###
 
--node[k, v] record(min (k, v), pairs (k, v) array, next (k, v) node?)
+-node[k, v] record(min (k, v), pairs (k, v)[], next (k, v) node?)
 
-+new[k, v] (k, v) priority-queue(...a (k, v) array) k priority
-	a.to to
++new[k, v] (k, v) priority-queue(...a (k, v)[]) k priority
+	a to
 
-+to[k, v] (k, v) priority-queue(a (k, v) array) k priority
++to[k, v] (k, v) priority-queue(a (k, v)[]) k priority
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
@@ -67,9 +47,6 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 		root (k, v) node = sorted[0], sorted[1 .. end], ()
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
-
-+to[k, v] (k, v) priority-queue(a (k, v)[]) k priority
-	a.to::((k, v) array) to
 
 +to[k, v] (k, v)[](a (k, v) priority-queue) k priority
 	for k, v : a
@@ -154,7 +131,7 @@ This is amortized O(log n).
 	if mid.n-before-mid == 0
 		a
 	else
-		root = a.root!
+		root = a root!
 		match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			# TODO: type annotation should not be necessary
@@ -203,7 +180,7 @@ This is amortized O(log n).
 	n-to-compact nat64,
 	nodes-to-compact (k, v) node?,
 ) k compare
-	compacted (k, v) mut-array = with out : n-to-compact build
+	compacted (k, v) mut-slice = with out : n-to-compact build
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
 	assert compacted.size == n-to-compact
@@ -211,14 +188,14 @@ This is amortized O(log n).
 	arr = trusted compacted cast-immutable
 	arr[0], arr[1 .. end], ()
 
--compact-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node)
+-compact-singles[k, v] void(out (k, v) mut-slice-builder, a (k, v) node)
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		if next ?= a next
 			out compact-singles next
 		out ~= a min
 
--compact-non-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node?)
+-compact-non-singles[k, v] void(out (k, v) mut-slice-builder, a (k, v) node?)
 	cur mut = a
 	while node ?= cur
 		out ~= node min
@@ -240,10 +217,10 @@ region spec impls (see collection.crow)
 +iterate[k, v] bool(a (k, v) priority-queue, f bool mut(key k, value v)) k priority
 	a.each-arr walk f
 
--each-part[k, v] record(min mut (k, v), pairs mut (k, v) array) mut
+-each-part[k, v] record(min mut (k, v), pairs mut (k, v)[]) mut
 
--each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) k compare
-	res (k, v) each-part mut-array = with out : a.node-count build
+-each-arr[k, v] (k, v) each-part mut-slice(a (k, v) priority-queue) k compare
+	res (k, v) each-part mut-slice = with out : a.node-count build
 		out fill-each-arr a.root
 	assert res.size == a.node-count
 	res sort= x => x.min a
@@ -258,14 +235,14 @@ region spec impls (see collection.crow)
 	else
 		acc
 
--fill-each-arr[k, v] void(out (k, v) each-part mut-array-builder, a (k, v) node?)
+-fill-each-arr[k, v] void(out (k, v) each-part mut-slice-builder, a (k, v) node?)
 	cur mut = a
 	while node ?= cur
 		out ~= (node.min, node.pairs)
 		cur := node next
 
--walk[k, v] bool(a (k, v) each-part mut-array, f bool mut(key k, value v)) k compare
-	guard !a.is-empty
+-walk[k, v] bool(a (k, v) each-part mut-slice, f bool mut(key k, value v)) k compare
+	guard a !is-empty
 	head = a[0]
 	if f[head min]
 		true
@@ -277,7 +254,7 @@ region spec impls (see collection.crow)
 		a swap-sorted
 		a walk f
 
--swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
+-swap-sorted[k, v] void(a (k, v) each-part mut-slice) k compare
 	for i : 0::nat64 .. a.size - 1
 		if a[i].min.a > a[i + 1].min.a
 			a swap-at i, i + 1
@@ -291,10 +268,10 @@ region spec impls (see collection.crow)
 	a build-options,
 	f void mut(out (k, v) priority-queue-builder),
 ) k priority
-	(a build out => f[out,])::((k, v) array) to
+	a build (out => f[out,]) to
 +~=[k, v] void(a (k, v) priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value
-+~~=[k, v] void(a (k, v) priority-queue-builder, values (k, v) array) k priority
++~~=[k, v] void(a (k, v) priority-queue-builder, values (k, v)[]) k priority
 	a.inner ~~= values
 
 test
@@ -307,7 +284,7 @@ test
 	p2.dbg is "6 6 []; 5 5 []"
 	p2.compact-leading-nodes.dbg is "5 5 [6 6]"
 
-	p2pop = p2.pop!
+	p2pop = p2 pop!
 	p2pop.a is (5, "5")
 	p2pop.b.dbg is "6 6 []"
 
@@ -316,14 +293,14 @@ test
 
 	p4.dbg is "7 7 []; 4 4 []; 6 6 []; 5 5 []"
 
-	p4pop = p4.pop!
+	p4pop = p4 pop!
 	p4pop.a is (4, "4")
 	p4pop.b.dbg is "5 5 [6 6, 7 7]"
 
 	p5 = p4pop.b ~ (6, "6b") ~ (6, "6c")
 	p5.dbg is "6 6c []; 6 6b []; 5 5 [6 6, 7 7]"
 
-	p5pop = p5.pop!
+	p5pop = p5 pop!
 	p5pop.a is (5, "5")
 	p5pop.b.dbg is "6 6 [7 7]; 6 6b [6 6c]"
 
@@ -333,7 +310,7 @@ test
 	p6-pairs (nat64, string)[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	p6.to::(nat64, string)[] is p6-pairs
 
-	p6pop = p6.pop!
+	p6pop = p6 pop!
 	p6pop.a is (6, "6")
 	p6pop.b.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
 

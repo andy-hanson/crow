@@ -1,0 +1,57 @@
+import
+	../js
+	./util: json-parse
+
++alert void(message string) summon, trusted, js extern
+	_ = "alert".js-global call message
+
++document-cookies record
++cookies document-cookies()
+	()
++subscript string?(_ document-cookies, cookie-name string) trusted, js extern
+	cookie-string string = "document".js-global["cookie"] cast
+	unless cookie-string is-empty
+		for part : cookie-string split ";"
+			name, value = part try-split-once! "="
+			if name == cookie-name
+				break value
+
++fetch-error record(url string, status nat, message string) exception variant-member
++show string(a fetch-error)
+	"HTTP {a status} error fetching {a url}: {a message}"
+
++fetch string(url string) summon, trusted, js extern
+	url fetch-text ()
++fetch json(url string) summon, trusted, js extern
+	url.fetch.json-parse to
+
++post[in] json(
+	url string,
+	body in,
+) (json, string) to, in show, summon, trusted, js extern
+	url post body, exclude-credentials
++include-credentials enum(include-credentials, exclude-credentials)
++post[in] json(
+	url string,
+	body in,
+	credentials include-credentials,
+) in show, summon, trusted, js extern
+	(url fetch-text (body.show post-options credentials)).json-parse to
+-post-options js-any(body string, credentials include-credentials) trusted, js extern
+	cred js-any = match credentials
+	as include-credentials
+		"include"
+	as exclude-credentials
+		undefined
+	("method", "POST"), ("body", body.show.as-js), ("credentials", cred)
+
+-fetch-text string(url string, options js-any) summon, trusted, js extern
+	(url fetch-response options call-property "text").await cast
+-fetch-response js-any(url string, options js-any) summon, unsafe, js extern
+	response = "fetch".js-global call url, options await
+	status nat = response["status"].cast::float to
+	assert status == 200 : url fetch-error status, response.get-text
+	response
+
+-get-text string(response js-any) summon, unsafe, js extern
+	(response call-property "text").await cast

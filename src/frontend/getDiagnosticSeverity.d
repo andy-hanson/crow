@@ -15,7 +15,11 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.AutoFunError) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.BuiltinFunCantHaveBody) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.BuiltinUnsupported) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.CallMissingExtern) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CallMultipleMatches) =>
 			DiagnosticSeverity.checkError,
@@ -41,6 +45,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateExports) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.DuplicateImportName) =>
+			DiagnosticSeverity.warning,
 		(in Diag.DuplicateImports) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.EmptyEnumOrUnion) =>
@@ -51,6 +57,14 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExpectedTypeIsNotALambda) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.ExternBodyMultiple) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.ExternInvalidName) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.ExternIsUnsafe) =>
+			DiagnosticSeverity.warning,
+		(in Diag.ExternRedundant) =>
+			DiagnosticSeverity.warning,
 		(in Diag.ExternFunVariadic) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternHasUnnecessaryLibraryName) =>
@@ -63,11 +77,13 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.FunCantHaveBody) =>
+		(in Diag.FlagsSigned) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunctionWithSignatureNotFound) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerExprMustBeName) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.FunPointerNotBare) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.IfThrow) =>
 			DiagnosticSeverity.warning,
@@ -109,6 +125,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
 			DiagnosticSeverity.warning,
+		(in Diag.MainMissingExterns) =>
+			DiagnosticSeverity.commonMissing,
 		(in Diag.MatchCaseDuplicate) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchCaseForType) =>
@@ -155,8 +173,10 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in ParseDiag x) =>
 			parseDiagSeverity(x),
-		(in Diag.PointerIsUnsafe) =>
+		(in Diag.PointerIsNative) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.PointerIsUnsafe) =>
+			DiagnosticSeverity.warning,
 		(in Diag.PointerMutToConst) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PointerUnsupported) =>
@@ -212,6 +232,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.Unused) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.VariantMemberIsTemplate) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VariantMemberMissingVariant) =>
 			DiagnosticSeverity.checkError,

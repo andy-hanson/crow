@@ -1,11 +1,11 @@
 main void()
 	()
 
-f void() bare, c extern
+f void() bare, libc extern
 
-f void() unsafe, c extern
+f void() unsafe, libc extern
 
-f void() summon, c extern
+f void() summon, libc extern
 
 f void() pure
 	()

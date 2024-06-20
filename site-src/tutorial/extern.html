@@ -1,244 +1,262 @@
 <section>
-	<h2>"Extern" functions</h2>
+	<h2><code class="keyword">extern</code> modifiers</h2>
+
 	<p>
-		Crow functions can call C functions directly.
+		In the previous two sections ({{tutorial/low-level}} and {{tutorial/js}}),
+		we saw examples of code that can only run in a certain context.
 		<br />
-		To declare an external function, write the function header normally,
-		then write <code>c extern</code> in spec position.
-		<br />
-		Simply omit the function body.
+		<code>native extern</code> code can't be used when compiling to JavaScript;
+		<code>js extern</code> code can only be used when compiling to JavaScript.
 	</p>
 	<p>
-		An <code class="keyword">extern</code> function is <code class="keyword">bare</code>,
-		<code class="keyword">summon</code>, and <code class="keyword">unsafe</code> by default.
-		<br />
-		Mark it <code class="keyword">pure</code> (negating <code class="keyword">summon</code>)
-		if it doesn't do I/O, access global state, or otherwise violate Crow's purity rules.
-		<br />
-		Mark it <code class="keyword">trusted</code> (negating <code class="keyword">unsafe</code>)
-		if it doesn't do bad things even if called with wrong inputs.
-		(E.g., <code>regfree</code> must remain <code class="keyword">unsafe</code> because it
-		could be used incorrectly by calling it twice.)
+		The other builtin <code>extern</code>s are <code>posix</code>, <code>linux</code>, and <code>windows</code>,
+		which mark functions that can only be used in the named operating system family.
 	</p>
-	<aside class="danger">
-		<code class="keyword">summon</code> and <code class="keyword">unsafe</code> are the defaults for a reason.
+	<p>
+		External libraries work similarly.
+		For example, <code>sqlite3 extern</code> code can only be used when the library is available.
 		<br />
-		Don't change them unless you're sure.
+		You won't be able to use a library name in <code>extern</code>
+		unless it's configured in <code>crow-config.json</code>; that will be explained in {{tutorial/config}}.
+	</p>
+	<p>
+		A normal function that doesn't any have an <code class="keyword">extern</code> modifier is universal;
+		it can be used in any environment.
+	</p>
+
+	<h3>Posix-only example</h3>
+	<p>
+		This example won't work in the browser, so you have to download and <code>crow time-posix.crow</code>.
+	</p>
+	<crow-runnable name="time-posix.crow" no-run>
+		import
+			crow/io/duration: second
+			crow/io/time: delay
+			crow/c-types: err-t, long
+
+		main void() summon, (native, posix) extern
+			info log "It is now {get-unix-time}"
+			1.second delay
+			info log "It is now {get-unix-time}"
+
+		get-unix-time nat() summon, trusted, (native, posix) extern
+			time mut timespec = 0, 0
+			err = CLOCK_REALTIME clock_gettime &time
+			assert err == 0 : "Error getting time" error
+			time.tv_sec to
+
+		clock_gettime err-t(clock-id clockid, timespec timespec mut*) posix extern
+		timespec record(tv_sec long, tv_nsec long) extern
+		clockid enum extern
+			CLOCK_REALTIME = 0
+			# etc...
+	</crow-runnable>
+	<aside class="small">
+		<code>(native, posix) extern</code> means that the function requires <em>both</em>
+		<code>native</code> and <code>posix</code>.
 	</aside>
 
-	<crow-runnable no-run name="regex.crow">
-		import
-			crow/c-types: c-int, size_t
-
-		main void()
-			"cro\\+w" test-regex ("crow", "crooow", "duck")
-			"[0-9" test-regex ("42",)
-
-		test-regex void(source string, candidates string[])
-			trusted match source parse
-			as ok regex
-				for x : candidates
-					info log "{source} matches {x}? {regex matches x}"
-				regex free
-			as error e
-				error log "bad regex {source}: {e}"
-
-		regex record(wrapped mut regex_t) by-ref, mut
-
-		# Unsafe because the caller must 'free' the regex
-		parse (regex, string) result(source string) unsafe
-			res regex = (),
-			err = &res.wrapped regcomp source.to, ()
-			if err == REG_NOERROR
-				res ok
-			else
-				buf char8 mut[] = 1000 n-of "\0"
-				_ = err regerror &res.wrapped, buf.begin-pointer, buf.size
-				res free
-				"{buf.begin-pointer.as-const}" error
-
-		free void(a regex) unsafe
-			&a.wrapped regfree
-
-		matches bool(a regex, candidate string)
-			err = trusted &a.wrapped regexec candidate.to, (), (), ()
-			if err == REG_NOERROR
-				true
-			elif err == REG_NOMATCH
-				false
-			else
-				buf char8 mut[] = 1000 n-of "\0"
-				trusted
-					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
-					throw buf.begin-pointer.as-const.to error
-
-		regex_t extern(64)
-
-		regoff_t alias
-			c-int
-
-		regmatch_t extern
-
-		reg_errcode_t enum extern, c-int storage
-			REG_ENOSYS = -1
-			REG_NOERROR
-			REG_NOMATCH
-			_REG_BADPAT
-			_REG_ECOLLATE
-			_REG_ECTYPE
-			_REG_EESCAPE
-			_REG_ESUBREG
-			_REG_EBRACK
-			_REG_EPAREN
-			_REG_EBRACE
-			_REG_BADBR
-			_REG_ERANGE
-			_REG_ESPACE
-			_REG_BADRPT
-
-		regcomp reg_errcode_t(
-			regex regex_t mut*,
-			pattern c-string,
-			cflags c-int,
-		) c extern, pure
-
-		regfree void(preg regex_t mut*) c extern, pure
-
-		regexec reg_errcode_t(
-			preg regex_t*,
-			string c-string,
-			nmatch size_t,
-			pmatch regmatch_t mut*,
-			eflags c-int,
-		) c extern, pure
-
-		regerror size_t(
-			errcode reg_errcode_t,
-			preg regex_t*,
-			errbuff char8 mut*,
-			errbuf_size size_t,
-		) c extern, pure
-	</crow-runnable>
-
 	<p>
-		This example can't be run on the web;
-		you'll have to download and run it with <code>crow run ~/Downloads/regex.crow</code>.
+		Since <code class="function">clock_gettime</code> has no body but it does have an
+		<code class="keyword">extern</code> modifier, it comes from an external library.
 		<br />
-		This uses the <code>regex.h</code> library available on Linux.
-		For an example on Windows, see <code>libraries/SDL2/SDL.crow</code> from where you downloaded Crow.
+		External functions default to <code class="keyword">bare</code>, <code class="keyword">unsafe</code>,
+		and <code class="keyword">summon</code>.
+		<br />
+		Add <code class="keyword">trusted</code> to negate <code class="keyword">unsafe</code> and
+		<code class="keyword">pure</code> to negate <code class="keyword">summon</code> if appropriate.
+		<br />
+		In this case neither is appropriate; the function has an obvious side effect (reading the time),
+		and it's <code class="keyword">unsafe</code> because the caller must be careful to pass a valid pointer.
 	</p>
 
 	<aside>
-		<h4>Specifying the library</h4>
+		<h4>Trusting an extern function</h4>
 		<p>
-			<code>crow build</code> and <code>crow run</code> don't take linker options;
-			these are inferred from your code.
+			Mark a function <code class="keyword">pure</code> if it depends only its arguments' values.
 			<br />
-			If the library needs to be linked to with <code>-lfoo</code>,
-			its functions should be declared with <code>foo extern</code> instead of <code>c extern</code>.
+			Leave it <code class="keyword">summon</code> if the function interacts with the external world.
+		</p>
+		<p>
+			Mark a function <code class="keyword">trusted</code> if it works with all possible inputs.
 			<br />
-			For example, SDL functions are declared with <code>SDL2 extern</code>.
-			<br />
-			If that function is included in the compile, the library name gets added to the linker options.
+			Leave it <code class="keyword">unsafe</code> if some possible combination of parameters
+			can cause bad behavior (such as a segmentation fault).
+		</p>
+		<p>
+			The defaults are usually right;
+			most C library functions are both <code>summon</code> and <code>unsafe</code>.
 		</p>
 	</aside>
+
+	<p>
+		Extern functions are meant for native libraries.
+		<br />
+		To call a JavaScript function, call a <code>js-global</code>,
+		as in <code>"alert".js-global call "hello"::string</code>.
+	</p>
+
+	<p>
+		Just like with <code class="keyword">summon</code>,
+		the caller of a function with <code class="keyword">extern</code>s
+		must specify the same <code class="keyword">extern</code>s (or a superset).
+		<br />
+		So, <code class="function">main</code> must declare <code>(native, posix) extern</code>
+		because it calls <code class="function">get-unix-time</code>.
+		<br />
+		Also like with <code class="keyword">summon</code>,
+		you can create a lambda inside a function with <code class="keyword">extern</code>s,
+		and pass it to functions without any <code class="keyword">extern</code> to make it available there.
+	</p>
 
 </section>
 <section>
 	<h2>Extern types</h2>
+
 	<p>
-		This introduces a new kind of type declaration: <code>regex_t extern(64)</code>.
+		Notice the <code class="keyword">extern</code> modifiers on the <code class="keyword">record</code> and
+		<code class="keyword">enum</code> declarations above.
+		Any type referred to by an <code class="keyword">extern</code> function
+		needs to be marked <code class="keyword">extern</code>. (The library name doesn't need to be on the type.)
 		<br />
-		This declares an opaque type that takes up 64 bytes.
-		This lets you use an external library without declaring implementation details.
-		<br />
-		By default its alignment is the largest power of 2 that the size is divisible by, up to 8,
-		so 8 in this example.
-		<br />
-		You can specify a custom alignment like <code>extern(64, 1)</code>.
-	</p>
-	<p>
-		<code>regmatch_t extern</code> declares an external type with unknown size.
-		<br />
-		This can be the target of a pointer, but you can't do anything with it.
-		This is useful for types that are always passed as opaque pointers.
-	</p>
-</section>
-<section>
-	<p>
-		<code class="type">reg_errcode_t</code> must be marked <code class="keyword">extern</code>.
-		<br />
-		This allows it to be used in <code class="keyword">extern</code> functions.
-		<br />
-		Otherwise, Crow would be free to layout the type any way it wants,
-		which would break compatibility with external libraries.
+		This forces Crow to use a C-compatible type layout.
 		<br />
 		A <code class="keyword">record</code> that is <code class="keyword">extern</code> is always
-		<code class="keyword">by-val</code>.
-		For compatibility, it's laid out just like a C <code class="keyword">struct</code>.
+		<code class="keyword">by-val</code>, like a C <code class="keyword">struct</code>.
 	</p>
 	<p>
-		Primitive types like <code class="type">nat64</code> that have C equivalents
+		Primitive types like <code class="type">nat</code> that have C equivalents
 		are all <code class="keyword">extern</code>.
 		<br />
 		Crow-specific types like <code class="type">string</code> are not.
 	</p>
-
 	<aside class="danger">
 		<h4>C equivalent types</h4>
 		<p>
 			In Crow, <code class="type">int</code> always means <code class="type">int64</code> on all systems.
 			<br />
-			This is not the case in C, so when translating C headers,
+			This is not guaranteed in C, so when translating C headers,
 			use an alias from {{doc/c-types}} like <code class="type">c-int</code>.
 		</p>
 	</aside>
 </section>
 <section>
-	<h2>Version differences</h2>
+	<h2>Supporting multiple platforms</h2>
+
 	<p>
-		Sometimes you need to do different things on different platforms.
-		{{doc/version}} has functions to help with that.
+		Crow doesn't have any kind of conditional compilation; all code is type-checked the same on all platforms.
+		<br />
+		That means code that has no compile errors on your machine will have no compile errors anywhere else.
+		<br />
+		However, sometimes you want different behavior on different platforms.
 	</p>
-	<crow-runnable>
+
+	<p>
+		What if we want a <code class="function">get-unix-time</code> function that works on all platforms
+		(like the one in <code class="module">crow/io/time</code> does)?
+		<br />
+		For that, there is a special kind of expression <code>extern foo</code>.
+		<br />
+		This has a <code class="type">bool</code> value and will be true
+		if the external capability <code>foo</code> is available.
+		<br />
+		There is also <code>extern (foo, bar)</code> which is equivalent to <code>extern foo && extern bar</code>.
+		<br />
+		If the condition of an <code class="keyword">if</code> expression is an <code class="keyword">extern</code>
+		expression, the <code>true</code> branch of the <code class="keyword">if</code>
+		will have those externs in scope.
+	</p>
+
+	<crow-runnable name="time-xplat.crow" run-js>
 		import
-			crow/version: is-windows
-			system/stdio: stdout
-			system/unistd: write
-			system/win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
+			crow/io/duration: second
+			crow/io/time: delay
+			crow/js: js-global, call-new, call-property, cast
+			crow/c-types: err-t, long
 
 		main void() summon
-			text nat8 array = "hello\n" to-bytes
-			trusted if is-windows
-				out = STD_OUTPUT_HANDLE.GetStdHandle
-				written mut DWORD = 0
-				_ = out WriteFile text.begin-pointer, text.size.to, &written, null
+			info log "It is now {get-unix-time}"
+			1.second delay
+			info log "It is now {get-unix-time}"
+
+		get-unix-time nat() summon, trusted
+			if extern (native, posix)
+				time mut timespec = 0, 0
+				err = CLOCK_REALTIME clock_gettime &time
+				assert err == 0 : "Error getting time" error
+				time.tv_sec to
+			elif extern js
+				msec float = "Date".js-global.call-new call-property "valueOf" cast
+				msec / 1000 to
 			else
-				_ = stdout write text.begin-pointer, text.size
-			()
+				throw not-implemented
+
+		clock_gettime err-t(clock-id clockid, timespec timespec mut*) posix extern
+		timespec record(tv_sec long, tv_nsec long) extern
+		clockid enum extern
+			CLOCK_REALTIME = 0
+			# etc...
 	</crow-runnable>
 
+	<aside>
+		<h4>Observing the platform</h4>
+		<p>
+			Using an <code>extern</code> expression is unsafe, since it lets you change behavior based on platform.
+			Usually, you should mark the function using it as <code class="keyword">summon</code>,
+			because it accesses information (the current platform) not passed into the function through a parameter.
+			<br />
+			In some rare cases, a function that uses <code class="keyword">extern</code> conditions
+			does not have to be marked <code class="keyword">summon</code> if it has identical behavior
+			on all platforms regardless of implementation details.
+			<br />
+			For example, <code>subscript</code> on an array has a different implementation for
+			<code>extern native</code> vs <code>extern js</code>, but the behavior is the same.
+		</p>
+	</aside>
+
 	<p>
-		Both branches of <code>if is-windows</code> are type-checked on all systems.
-		But after that, code generation keeps only the branch that matches your system.
-		<br />
-		On Windows, the <code>false</code> branch won't be compiled.
-		On Linux (or in the browser), the <code>true</code> branch won't be compiled.
-	</p>
-	<p>
-		Notice how all functions are imported unconditionally.
-		Importing a function does <em>not</em> cause it to be included in the compilation.
-		<br />
-		Crow chooses what functions to include by starting with <code class="function">main</code>,
-		then repeatedly adding any function called by an included function.
-		<br />
-		This process ignores the unused branch of a version check like <code>if is-windows</code>.
+		Running this in the browser will use the <code>extern js</code> branch,
+		while downloading and using <code>crow time-xplat.crow</code>
+		will use the <code>extern (native, posix)</code> branch.
 	</p>
 
-	<aside class="small">
-		There's currently no way to make the contents of a type conditional on the version.
+	<p>
+		Above, the body of <code>if extern (native, posix)</code> can assume
+		<code>native</code> and <code>posix</code> externs are available;
+		the body of <code>elif extern js</code> can assume <code>js</code> is available;
+		and the <code>else</code> branch can assume nothing.
+	</p>
+</section>
+
+<section>
+	<h2>Extern type declarations</h2>
+	<p>
+		In some external libraries, there are types that are completely opaque, and only dealt with through pointers.
+		For those, you can declare the type as simply: <code>foo extern</code>.
+		You can't create such a type by value, but you can declare a <code>foo*</code> or <code>foo mut*</code>.
+	<p>
+		Sometimes you do need to create the type by value, but still don't need to know any of the details.
 		<br />
-		As a workaround, you can use a <code class="keyword">union</code> and use different parts of the union
-		depending on the version.
-	</aside>
+		In that case, declare it with a size (in bytes): <code>foo extern(64)</code>.
+		You can also specify alignment: <code>foo extern(64, 1)</code>.
+		Otherwise alignment is the largest power of 2, up to 8, that the size is divisible by.
+	</p>
+</section>
+
+<section>
+	<h2>Types that vary by platform</h2>
+
+	<p>
+		If the contents of a type needs to be different depending on the platform,
+		use a <code>union</code> of the possibilities.
+		<br />
+		Then to use the type, use <code>if extern</code> and force the appropriate member of the union.
+	</p>
+</section>
+<section>
+	<h2>Using external libraries</h2>
+	<p>
+		To actually use an external library,
+		it will need to be enabled in <code>crow-config.json</code>; see the next section.
+	</p>
 </section>

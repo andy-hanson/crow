@@ -28,7 +28,6 @@ import model.lowModel :
 	isChar8,
 	isChar32,
 	isPointerNonGc,
-	isVoid,
 	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
@@ -74,14 +73,14 @@ import util.writer :
 	makeStringWithWriter,
 	withWriter,
 	writeEscapedChar_inner,
-	writeFloatLiteral,
+	writeFloatLiteralForC,
 	writeNewline,
 	writeQuotedString,
 	Writer,
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithSpaces;
-import versionInfo : isWindows;
+import versionInfo : OS;
 
 private immutable string boilerplatePosix = import("writeToC_boilerplate_posix.c");
 private immutable string boilerplateMsvc = import("writeToC_boilerplate_msvc.c");
@@ -104,7 +103,7 @@ immutable struct WriteToCParams {
 }
 
 WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram program, in WriteToCParams params) {
-	bool isMSVC = isWindows(program.version_);
+	bool isMSVC = program.version_.os == OS.windows;
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeCommandComment(writer, params.cCompiler, args);
@@ -192,8 +191,10 @@ public void getLinkOptions(
 				cb(cStringOfFilePath(alloc, asFilePath(force(x.configuredDir)) / xDotLib));
 			} else
 				switch (x.libraryName.value) {
-					case symbol!"c".value:
+					case symbol!"libc".value:
 					case symbol!"m".value:
+					case symbol!"ucrtbase".value:
+					case symbol!"windows".value:
 						break;
 					default:
 						cb(cStringOfSymbol(alloc, xDotLib));
@@ -209,15 +210,27 @@ public void getLinkOptions(
 				}));
 			}
 
-			cb(withWriter(alloc, (scope ref Writer writer) {
-				writer ~= "-l";
-				writer ~= x.libraryName;
-			}));
+			if (!ignoreExternLibrary(x.libraryName))
+				cb(withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "-l";
+					writer ~= x.libraryName;
+				}));
 		}
 	}
 }
 
 private:
+
+bool ignoreExternLibrary(Symbol a) {
+	switch (a.value) {
+		case symbol!"libc".value:
+		case symbol!"linux".value:
+		case symbol!"posix".value:
+			return true;
+		default:
+			return false;
+	}
+}
 
 CString[] cCompileArgs(
 	ref Alloc alloc,
@@ -371,7 +384,7 @@ void writeEscapedCharForC(scope ref Writer writer, dchar a) {
 		// avoid trigraphs
 		writer ~= "\\?";
 	else
-		writeEscapedChar_inner(writer, a);
+		writeEscapedChar_inner(writer, a, forC: true);
 }
 
 bool useStructThreadLocals(in Ctx ctx) =>
@@ -554,7 +567,7 @@ bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
 	isEmptyType(ctx.ctx, a);
 
 void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
-	if (a.packed && ctx.isMSVC)
+	if (a.isPacked && ctx.isMSVC)
 		writer ~= "__pragma(pack(push, 1))\n";
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref LowField field; a.fields) {
@@ -567,7 +580,7 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 		}
 	}
 	writer ~= "\n}";
-	if (a.packed)
+	if (a.isPacked)
 		writer ~= ctx.isMSVC ? "__pragma(pack(pop))" : " __attribute__ ((__packed__))";
 	writer ~= ";\n";
 }
@@ -776,7 +789,9 @@ void writeFunWithExprBody(
 	if (body_.hasTailRecur)
 		writer ~= "\n\ttop:;"; // Need ';' so it labels a statement
 	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
-	WriteKind writeKind = isVoid(fun.returnType) ? WriteKind(WriteKind.Void()) : WriteKind(WriteKind.Return());
+	WriteKind writeKind = isEmptyType(ctx, fun.returnType)
+		? WriteKind(WriteKind.Void())
+		: WriteKind(WriteKind.Return());
 	cast(void) writeExpr(writer, 1, bodyCtx, writeKind, body_.expr);
 	writer ~= "\n}\n";
 }
@@ -1031,12 +1046,12 @@ WriteExprResult writeExpr(
 			inlineableSimple(() {
 				writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it);
 			}),
-		(in LowExprKind.SpecialUnary it) =>
-			writeSpecialUnary(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.SpecialUnary x) =>
+			writeSpecialUnary(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.SpecialUnaryMath x) =>
 			specialCallUnary(writer, indent, ctx, writeKind, type, x.arg, stringOfEnum(builtinForUnaryMath(x.kind))),
-		(in LowExprKind.SpecialBinary it) =>
-			writeSpecialBinary(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.SpecialBinary x) =>
+			writeSpecialBinary(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary x) {
@@ -1050,8 +1065,7 @@ WriteExprResult writeExpr(
 			final switch (x.kind) {
 				case Builtin4ary.switchFiberInitial:
 					// defined in writeToC_boilerplace.c
-					return specialCallNary(
-						writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
+					return specialCallNary(writer, indent, ctx, writeKind, type, x.args, "switch_fiber_initial");
 			}
 		},
 		(in LowExprKind.Switch x) =>
@@ -1465,7 +1479,7 @@ void writeConstantRef(
 				default:
 					assert(false);
 			}
-			writeFloatLiteral(writer, x.value);
+			writeFloatLiteralForC(writer, x.value);
 		},
 		(in Constant.FunPointer x) {
 			if (isPointerNonGc(type))
@@ -1636,33 +1650,39 @@ WriteExprResult writeSpecialUnary(
 	in LowExprKind.SpecialUnary a,
 ) {
 	WriteExprResult prefix(string prefix) =>
-		writeInlineableSingleArg(
-			writer, indent, ctx, writeKind, type, a.arg,
-			(in WriteExprResult temp) {
-				writer ~= '(';
-				writer ~= prefix;
-				writeTempOrInline(writer, ctx, a.arg, temp);
-				writer ~= ')';
-			});
+		writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.arg, (in WriteExprResult temp) {
+			writer ~= '(';
+			writer ~= prefix;
+			writeTempOrInline(writer, ctx, a.arg, temp);
+			writer ~= ')';
+		});
 
 	WriteExprResult writeCast() =>
-		writeInlineableSingleArg(
-			writer, indent, ctx, writeKind, type, a.arg,
-			(in WriteExprResult temp) {
-				if (isEmptyType(ctx, a.arg.type))
-					writeTempOrInline(writer, ctx, a.arg, temp);
-				else {
-					writer ~= '(';
-					writeCastToType(writer, ctx.ctx, type);
-					writeTempOrInline(writer, ctx, a.arg, temp);
-					writer ~= ')';
-				}
-			});
+		writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.arg, (in WriteExprResult temp) {
+			if (isEmptyType(ctx, a.arg.type))
+				writeTempOrInline(writer, ctx, a.arg, temp);
+			else {
+				writer ~= '(';
+				writeCastToType(writer, ctx.ctx, type);
+				writeTempOrInline(writer, ctx, a.arg, temp);
+				writer ~= ')';
+			}
+		});
 
 	WriteExprResult specialCall(in string name) =>
 		specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
 
 	final switch (a.kind) {
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
+			// Done in lower
+			assert(false);
 		case BuiltinUnary.asAnyPointer:
 			return prefix("(uint8_t*) ");
 		case BuiltinUnary.deref:
@@ -1672,7 +1692,6 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
 			return specialCall(ctx.isMSVC ? "isnan" : "__builtin_isnan");
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
@@ -1709,10 +1728,16 @@ WriteExprResult writeSpecialUnary(
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
 			return specialCall(ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl");
+		case BuiltinUnary.not:
+			return prefix("!");
 		case BuiltinUnary.jumpToCatch:
 			return specialCall("jump_to_catch");
 		case BuiltinUnary.setupCatch:
 			return specialCall("setup_catch");
+		// Concretize removes these calls
+		case BuiltinUnary.toChar8ArrayFromString:
+		case BuiltinUnary.trustAsString:
+			assert(false);
 	}
 }
 
@@ -1834,6 +1859,10 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
 		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.unsafeAddNat8:
+		case BuiltinBinary.unsafeAddNat16:
+		case BuiltinBinary.unsafeAddNat32:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapAddNat32:
@@ -1879,6 +1908,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			return operator("==");
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
@@ -1899,11 +1929,17 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.unsafeMulInt16:
 		case BuiltinBinary.unsafeMulInt32:
 		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeMulNat64:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			return operator("*");
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			if (!writeKind.isA!(WriteKind.Inline))
 				writeExprVoid(writer, indent, ctx, left);
@@ -1915,6 +1951,10 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
 		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.unsafeSubNat8:
+		case BuiltinBinary.unsafeSubNat16:
+		case BuiltinBinary.unsafeSubNat32:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapSubNat8:
 		case BuiltinBinary.wrapSubNat16:
 		case BuiltinBinary.wrapSubNat32:

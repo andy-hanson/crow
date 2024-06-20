@@ -13,7 +13,8 @@ import util.comparison : Comparison;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
-import util.string : compareStringsAlphabetically, copyString, CString, SmallString, smallString, stringsEqual;
+import util.string :
+	compareStringsAlphabetically, copyString, CString, isDecimalDigit, SmallString, smallString, stringsEqual;
 import util.unicode : mustUnicodeDecode;
 import util.util : assertNormalEnum, castImmutable, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
@@ -26,6 +27,9 @@ immutable struct Symbol {
 	uint value; // Public for 'switch'
 	@disable this();
 	private this(uint v) { value = v; }
+
+	static Symbol fromValue(uint x) =>
+		Symbol(x);
 
 	uint asUintForTaggedUnion() =>
 		value;
@@ -44,11 +48,11 @@ immutable struct Symbol {
 		if (isShortSymbol(this))
 			return eachCharInShortSymbol(this, (char x) => cb(x));
 		else {
+			int res = 0;
 			mustUnicodeDecode(asLongSymbol(this), (dchar x) {
-				int res = cb(x);
-				assert(res == 0);
+				if (res == 0) res = cb(x);
 			});
-			return 0;
+			return res;
 		}
 	}
 
@@ -161,8 +165,10 @@ enum Extension {
 	dll,
 	exe,
 	ilk,
+	js,
 	json,
 	lib,
+	map,
 	none, // ""
 	obj,
 	other,
@@ -289,6 +295,17 @@ Symbol symbolOfEnum(E)(E a) {
 	return symbols[a];
 }
 
+Opt!E enumOfSymbol(E)(Symbol a) {
+	assertNormalEnum!E();
+	switch (a.value) {
+		static foreach (size_t index, string member; __traits(allMembers, E))
+			case symbol!(stripUnderscore!member).value:
+				return some(cast(E) index);
+		default:
+			return none!E;
+	}
+}
+
 Symbol toLowerCase(Symbol a) =>
 	makeSymbol((scope ref Writer writer) {
 		foreach (char x; a)
@@ -395,7 +412,7 @@ Opt!Symbol tryPackShortSymbol(in string str) {
 				push(codeForHyphen);
 			else if (x == '_')
 				push(codeForUnderscore);
-			else if ('0' <= x && x <= '9') {
+			else if (isDecimalDigit(x)) {
 				push(codeForNextIsDigit);
 				push(x - '0');
 			} else if ('A' <= x && x <= 'Z') {
@@ -484,8 +501,14 @@ immutable string[] specialSymbols = [
 	"!",
 
 	// from names in Crow code
+	"array-pointer",
+	"array-size",
 	"as-any-mut-pointer",
 	"as-fun-pointer",
+	"as-future",
+	"as-future-impl",
+	"as-mut-array",
+	"as-mut-array-impl",
 	"begin-pointer",
 	"bool-low-level",
 	"call-fun-pointer",
@@ -493,6 +516,7 @@ immutable string[] specialSymbols = [
 	"create-record",
 	"clock_gettime",
 	"concrete-model",
+	"console",
 	"const-pointer",
 	"crow-config.json",
 	"cur-catch-point",
@@ -515,7 +539,10 @@ immutable string[] specialSymbols = [
 	"local-pointer",
 	"loop-continue",
 	"mutAllocated",
+	"mut-slice-pointer",
+	"mut-slice-size",
 	"number-low-level",
+	"parallel",
 	"parseDiagnostics",
 	"per-thread-init",
 	"pointer-cast-from-extern",
@@ -524,7 +551,10 @@ immutable string[] specialSymbols = [
 	"reference-equal",
 	"reference-kind",
 	"reference-from-pointer",
+	"replace",
 	"rethrow-current-exception",
+	"round-down",
+	"round-up",
 	"run-fiber",
 	"runtime",
 	"set-cur-catch-point",
@@ -554,6 +584,7 @@ immutable string[] specialSymbols = [
 	"invokeCCompiler",
 	"onFileChanged",
 	"storageFileInfo",
+	"symbolSet",
 
 	// from names in compiled code
 	"__builtin_isnan",
@@ -579,7 +610,7 @@ immutable string[] specialSymbols = [
 	"tokenModifiers",
 	"unloadedUris",
 
-	// Below are needed when using 32 bit instead of 64 bit symbols
+	".",
 	"abstract",
 	"aliases",
 	"alignment",
@@ -591,15 +622,23 @@ immutable string[] specialSymbols = [
 	"as-const",
 	"atan2f",
 	"atomic-bool",
+	"asUintN",
+	"BigInt",
 	"bootstrap",
+	"browser",
 	"builtin",
 	"built-on",
 	"byAlloc",
 	"byMeasure",
+	"call-new",
+	"call-property",
+	"call-property-spread",
 	"capabilities",
 	"case-exprs",
 	"case-values",
+	"cast-immutable",
 	"catch-cases",
+	"catching",
 	"catch-member",
 	"catches",
 	"changes",
@@ -616,6 +655,7 @@ immutable string[] specialSymbols = [
 	"concretize",
 	"condition",
 	"constant",
+	"constructor",
 	"containing",
 	"content",
 	"contents",
@@ -623,13 +663,17 @@ immutable string[] specialSymbols = [
 	"countAllocs",
 	"countBlocks",
 	"count-ones",
+	"c-string-of-symbol",
+	"DbgHelp",
 	"d-compiler",
+	"debugger",
 	"default",
 	"definition",
 	"destruct",
 	"destructure",
 	"diagnostics",
 	"enum-members",
+	"enum-or-flags-fun",
 	"exception",
 	"exception-member-index",
 	"exitCode",
@@ -640,6 +684,7 @@ immutable string[] specialSymbols = [
 	"field-index",
 	"file-type",
 	"finally",
+	"finish-constructor",
 	"first-arg",
 	"first-branch",
 	"first-keyword",
@@ -662,9 +707,13 @@ immutable string[] specialSymbols = [
 	"fun-shared",
 	"function",
 	"fut-expr",
+	"future-impl",
+	"future-low-level",
 	"gccCompile",
 	"gccJit",
+	"gc-safe-value",
 	"generated",
+	"greater",
 	"has-assertions",
 	"if-kind",
 	"import-kind",
@@ -672,6 +721,7 @@ immutable string[] specialSymbols = [
 	"include",
 	"includeDir",
 	"infinity",
+	"instanceof",
 	"int16",
 	"int32",
 	"int64",
@@ -679,12 +729,14 @@ immutable string[] specialSymbols = [
 	"interpolate",
 	"interpreter",
 	"interpreter-uses-tail-calls",
+	"intersect",
 	"is-debug-build",
 	"is-less",
+	"isNaN",
 	"is-signed",
 	"is-wasm",
-	"is-windows",
 	"jump-to-catch",
+	"js-global",
 	"keyword",
 	"keyword-pos",
 	"library-name",
@@ -693,6 +745,7 @@ immutable string[] specialSymbols = [
 	"loop-break",
 	"lspState",
 	"mallocs",
+	"mappings",
 	"mark-arr",
 	"mark-ctx",
 	"mark-root",
@@ -703,6 +756,7 @@ immutable string[] specialSymbols = [
 	"member-indices",
 	"member-name",
 	"members",
+	"_members",
 	"memmove",
 	"message",
 	"messages",
@@ -710,7 +764,10 @@ immutable string[] specialSymbols = [
 	"modifiers",
 	"modules",
 	"mutability",
-	"mut-list",
+	"mutable",
+	"mut-slice",
+	"mut-array",
+	"mut-array-impl",
 	"mut-map",
 	"mut-pointer",
 	"nanosleep",
@@ -719,9 +776,14 @@ immutable string[] specialSymbols = [
 	"nat64",
 	"newName",
 	"newText",
+	"new-array",
+	"new-mut-slice",
 	"new-void",
-	"n-parents",
+	"node-js",
 	"nominal",
+	"n-parents",
+	"Number",
+	"Object",
 	"ok-if-unused",
 	"operation",
 	"overflow",
@@ -744,6 +806,8 @@ immutable string[] specialSymbols = [
 	"pointer-cast",
 	"position",
 	"private",
+	"process",
+	"Promise",
 	"pthread",
 	"question-pos",
 	"records",
@@ -760,22 +824,29 @@ immutable string[] specialSymbols = [
 	"set-n0",
 	"setup-catch",
 	"severity",
-	"shared-list",
+	"shared-array",
 	"shared-map",
 	"size-bytes",
 	"size-of",
+	"sources",
+	"sourcesContent",
 	"spec-impls",
 	"specInsts",
 	"static_",
+	"string-of-symbol",
 	"storage",
 	"structInsts",
 	"structs",
 	"subscript",
 	"suffix-pos",
 	"supports-jit",
+	"symbol-of-c-string",
+	"TextDecoder",
+	"TextEncoder",
 	"thread-local",
 	"throw-impl",
 	"tokenTypes",
+	"toString",
 	"true-branch",
 	"truncate-to",
 	"trusted",
@@ -791,6 +862,7 @@ immutable string[] specialSymbols = [
 	"type-args",
 	"type-index",
 	"type-params",
+	"Uint8Array",
 	"unknownUris",
 	"unsafe-add",
 	"unsafe-div",
@@ -803,11 +875,14 @@ immutable string[] specialSymbols = [
 	"updates",
 	"user-main",
 	"re-exports",
+	"ucrtbase",
 	"variadic",
 	"variant-member-get",
 	"variants",
 	"var-kind",
+	"version",
 	"visibility",
+	"windows",
 	"with-block",
 	"wrap-add",
 	"wrap-mul",

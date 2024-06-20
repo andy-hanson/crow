@@ -1,5 +1,5 @@
 #!/usr/bin/env crow
-main void()
+main void() (example, native) extern
 	trusted
 		&my_void_fn f_void
 		assert some-var == 42
@@ -116,7 +116,7 @@ some-var thread-local(nat)
 	a is 6.4
 	a + 0.1
 
--my_nat64_ptr_fn nat64*(a nat64*) unsafe
+-my_nat64_ptr_fn nat64*(a nat64*) unsafe, native extern
 	*a is 64
 	a
 

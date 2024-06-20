@@ -1,0 +1,8 @@
+dummy-enums nat()
+	0
+
+test
+	x.to::nat32 is 0
+	y.to::nat32 is 1
+	enum-members::(symbol, e)[] is (("x", x), ("y", y))
+-e enum(x, y)

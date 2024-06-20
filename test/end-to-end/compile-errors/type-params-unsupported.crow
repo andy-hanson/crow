@@ -1,7 +1,7 @@
 main void()
 	()
 
-f[t] void() c extern
+f[t] void() libc extern
 ex[t] extern
 seq[t] alias
 	t[]

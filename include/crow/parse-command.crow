@@ -13,7 +13,7 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 +== bool(a parsed-command, b parsed-command)
 -to json(a parsed-command)
 
-+parse-command-error record(describe string) exception variant-member
++parse-command-error record(show string) exception variant-member
 
 ###
 See comment on `parsed-command` for syntax.
@@ -63,7 +63,7 @@ If the argument syntax is invalid, returns an empty option.
 			values[index] := ((values[index] ?? ()) ~~ value),
 		else
 			err := true
-	if parsed.nameless.is-empty && parsed.after.is-empty && !err
+	if parsed.nameless is-empty && parsed.after is-empty && !err
 		values.move-to,
 
 ###

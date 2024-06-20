@@ -15,6 +15,7 @@ module-export-value union
 	record-decl record-decl
 	spec-decl spec-decl
 	union-decl union-decl
+	var-decl var-decl
 	variant-decl variant-decl
 
 alias-decl record(target type-ref)
@@ -34,6 +35,8 @@ spec-decl record(is-builtin bool, parents spec-ref[], sigs spec-sig[])
 spec-sig record(doc string, name symbol, return-type type-ref, params param[])
 union-decl record(purity purity, members union-member[])
 union-member record(name symbol, type type-ref?)
+var-decl record(kind var-kind, type type-ref)
+var-kind enum(var-global, var-thread-local)
 variant-decl record(purity purity)
 type-ref record(name symbol, type-args type-ref[])
 spec-ref record(name symbol, type-args type-ref[])

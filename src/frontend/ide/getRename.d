@@ -16,7 +16,7 @@ import util.string : copyString;
 import util.uri : Uri;
 
 Opt!WorkspaceEdit getRenameForPosition(ref Alloc alloc, in Program program, in Position pos, in string newName) {
-	Opt!Target target = targetForPosition(*program.commonTypes, pos.kind);
+	Opt!Target target = targetForPosition(program.commonTypes, pos.kind);
 	return has(target)
 		? some(WorkspaceEdit(makeMultiMap!(Uri, TextEdit)(alloc, (in MultiMapCb!(Uri, TextEdit) cb) {
 			string newNameOut = copyString(alloc, newName);

@@ -1,12 +1,14 @@
 no-std
 import
+	./js: call-property, js-global
 	./fun-util: subscript
 	./io/print: err, out, pipe, print
 	./misc: new, void
-	./private/bootstrap: must-cur-fiber, set-log-handler
-	./string: interpolate, string, to
+	./private/bootstrap: must-cur-fiber, set-log-handler, todo
+	./string: interpolate, show, string
 export
-	./private/bootstrap: error, info, level, logged, log-handler, log-level, message, warn
+	./private/bootstrap:
+		==, enum-members, error, info, level, logged, log-handler, log-level, message, warn
 
 +new logged(level log-level, message string)
 	level logged message
@@ -28,14 +30,14 @@ Temporarily replaces the log handler.
 Only applies within this task. Even if you launch a task inside `with-log-handler`,
 that task will still have the default log handler.
 ###
-+with-block[t] t(a temp-log-handler, cb t mut())
++with-block[t] t(a temp-log-handler, cb t mut()) native extern
 	original-handler = get-log-handler
 	trusted a.handler set-log-handler
 	finally trusted original-handler set-log-handler
 	cb[]
 
-# TODO: this is what 'to string' in enum.crow would do, is there a way to use that?
--to string(a log-level)
+# TODO: this is what 'show' in enum.crow would do, is there a way to use that?
+-show string(a log-level)
 	match a
 	as debug
 		"debug"
@@ -66,8 +68,15 @@ then fall back to the original log handler.
 If you just want to call the curent log handler, you could just use `log`.
 ###
 +get-log-handler log-handler()
-	trusted must-cur-fiber.log-handler
+	trusted if extern native
+		must-cur-fiber log-handler
+	elif extern js
+		logged =>
+			content string = "{logged level}: {logged message}"
+			_ = "console".js-global call-property logged.level.show, content
+	else
+		todo
 
 # WARN: Most code should use 'temp-log-handler' to set it back. This is just to set it initially.
-~set-log-handler void(handler log-handler) bare, unsafe
+~set-log-handler void(handler log-handler) bare, unsafe, native extern
 	must-cur-fiber.log-handler := handler

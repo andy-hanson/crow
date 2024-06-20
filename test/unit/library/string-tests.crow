@@ -1,0 +1,36 @@
+import
+	crow/math/math: pi
+
+dummy-string-tests nat64()
+	0
+
+test
+	c8s char8[] = "$¥₿𝄮"
+	c32s char32[] = "$¥₿𝄮"
+	s string = "$¥₿𝄮"
+
+	c8s.to::string is s
+	s.to::char8[] is c8s
+	c32s.to::string is s
+	s.to::char32[] is c32s
+
+	s.reverse is "𝄮₿¥$"
+	"\ue000"::string.to::char32[] is "\ue000"
+	"\ue000"::char32[].to::string is "\ue000"
+
+test
+	3::float64.show is "3"
+	12.3::float64.show is "12.3"
+	0.04::float64.show is "0.04"
+	0.123::float64.show is "0.123"
+	0.001::float64.show is "0.001"
+	3.14159::float64.show is "3.14159"
+	pi::float64.show is "3.141592653589794"
+
+	infinity::float64.show is "Infinity"
+	(-infinity)::float64.show is "-Infinity"
+	(trusted nan)::float64.show is "NaN"
+
+test
+	"a\nb".lines is ("a", "b")
+	"a\r\nb".lines is ("a", "b")

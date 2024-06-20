@@ -1,17 +1,16 @@
 no-std
 import
 	../bool: &&, ||, bool, false, true
-	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../col/mut-array:
-		-, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
+	../col/mut-slice: begin-pointer, end-pointer, gc-safe-mut-slice, mut-slice, new, size, subscript
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, get-log-handler
 	../misc: new, shared, void
-	../number: ==, is-multiple-of, nat64
+	../number: ==, <=>, -, is-multiple-of, nat64
 	../option: ??, is-empty, new, option
 	../pointer: ==, *, as-const, mut-pointer, null, to
+	../range: ..
 	../string: string
 	../version: is-wasm
 	./alloc:
@@ -36,7 +35,7 @@ import
 ~set-global-ctx void(value global-ctx mut*) bare, unsafe
 	global-ctx-var := value
 
-cur-exclusion exclusion() unsafe
+cur-exclusion exclusion() unsafe, native extern
 	must-cur-fiber cur-exclusion
 
 global-ctx record by-val, mut
@@ -67,7 +66,7 @@ global-ctx record by-val, mut
 +cur-thread-id nat64() unsafe
 	thread-id-var
 
-uninit global-ctx(n-threads nat64) bare, summon, unsafe
+uninit global-ctx(n-threads nat64) bare, summon, unsafe, native extern
 	may-be-work-to-do: uninit
 	any-unhandled-exceptions: false
 	gc: uninit
@@ -80,7 +79,7 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	next-exclusion: uninit
 	is-shut-down: false
 
-init void(a global-ctx mut*) bare, unsafe
+init void(a global-ctx mut*) bare, unsafe, (libc, native) extern
 	init-global-lock
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
@@ -90,7 +89,7 @@ init void(a global-ctx mut*) bare, unsafe
 	a.n-waiting-threads init
 	a.next-exclusion init
 
-destroy void(a global-ctx mut*) bare, unsafe
+destroy void(a global-ctx mut*) bare, unsafe, native extern
 	a.fiber-queue destroy
 	a.may-be-work-to-do destroy-condition
 
@@ -107,19 +106,19 @@ Initializes the stack, then returns the new stack pointer. (This is a bit below 
 	from stack-pointer mut*,
 	stack-high stack-pointer,
 	func void function(a fiber),
-) builtin, bare
+) builtin, bare, native extern
 
 ###
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
 ###
--switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare
+-switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare, native extern
 
 # Stack pointer for the runtime. Regular fibers return to this when they yield.
 # TODO: This could be by-value. But we currently don't support pointer to thread-local.
 -thread-base-stack-pointer thread-local(stack-pointer mut*)
 
--is-valid-stack bool(a nat64 mut-array) bare, unsafe
+-is-valid-stack bool(a nat64 mut-slice) bare, unsafe, native extern
 	a.begin-pointer.to is-multiple-of 16 && a.size is-multiple-of 2
 
 ###
@@ -127,7 +126,7 @@ Normally only a fiber can create another fiber.
 To initialize the first one, set a dummy fiber.
 It will be initialized properly the first time you switch to another fiber.
 ###
-~set-dummy-fiber void() summon, unsafe
+~set-dummy-fiber void() summon, unsafe, native extern
 	cur-fiber.is-empty hard-assert
 	fiber fiber = do
 		state: running
@@ -141,13 +140,13 @@ It will be initialized properly the first time you switch to another fiber.
 	cur-fiber := fiber,
 
 # Caller is responsible for catching all exceptions in 'action'
-add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
+add-new-fiber void(a global-ctx mut*, action void mut()) unsafe, native extern
 	a enqueue-fiber (a create-new-fiber action)
--create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe
+-create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe, native extern
 	# WARN: 'opSwitchFiberInitial' hardcodes this size
-	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
+	stack1 nat64 mut-slice = 0x20000 gc-safe-mut-slice
 	# Align the stack
-	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
+	stack = stack1 is-valid-stack ? stack1 : stack1.begin-pointer[1 .. stack1.size - 1]
 	stack.is-valid-stack hard-assert
 	res fiber = do
 		state: action queued-initial
@@ -160,10 +159,10 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 		cur-catch-point: null
 	res
 
--fiber-func void(fiber fiber) force-ctx, unsafe
+-fiber-func void(fiber fiber) force-ctx, unsafe, native extern
 	cur-fiber := fiber,
 	gc-root == null hard-assert
-	func = fiber.state.queued-initial ?? hard-unreachable
+	func = fiber.state queued-initial ?? hard-unreachable
 	fiber.state := running
 	# It will 'mutator-end' every time it yields and 'mutator-begin' upon resuming
 	get-global-ctx.gc mutator-begin
@@ -171,7 +170,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe
 	mutator-end
 	done yield-this-fiber
 
-enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
+enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe, native extern
 	fiber.state.is-queued-or-queued-initial hard-assert
 	a.fiber-queue-lock acquire
 	a.fiber-queue enqueue-fiber fiber
@@ -187,16 +186,20 @@ enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe
 	else
 		false
 
-delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted
+delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted, native extern
 	target-nsec.delay-until-time yield-this-fiber
 
--enqueue-timed-fiber void(a global-ctx mut*, time timestamp, fiber fiber) bare, unsafe
+-enqueue-timed-fiber void(
+	a global-ctx mut*,
+	time timestamp,
+	fiber fiber,
+) bare, unsafe, native extern
 	a.fiber-queue-lock acquire
 	a.fiber-queue enqueue-timed-fiber time, fiber
 	a.fiber-queue-lock release
 	a.may-be-work-to-do broadcast
 
-thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
+thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe, native extern
 	# This will be initialized properly the first time we switch away
 	stack-pointer-value mut stack-pointer = null
 	thread-base-stack-pointer := &stack-pointer-value
@@ -219,11 +222,11 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		as shut-down
 			break gctx thread-shut-down
 
--change-this-fibers-exclusion void(new-exclusion exclusion) unsafe
+-change-this-fibers-exclusion void(new-exclusion exclusion) unsafe, native extern
 	new-exclusion.change-exclusion yield-this-fiber
 
 # The caller should do something to ensure the fiber will eventually be resumed.
-~yield-this-fiber void(request yield-request) unsafe
+~yield-this-fiber void(request yield-request) unsafe, native extern
 	fiber = must-cur-fiber
 	fiber.state := request yield-request
 	mutator-end
@@ -233,7 +236,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	cur-fiber := fiber,
 
 # Runs the fiber until its next yield
-~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe
+~run-fiber void(gctx global-ctx mut*, fiber fiber) bare, summon, unsafe, native extern
 	match fiber state
 	as queued-initial _
 		fiber switch-fiber-initial thread-base-stack-pointer, fiber.stack.end-pointer, &fiber-func
@@ -248,7 +251,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 
 	state = fiber state
 	fiber.state := queued # Since most cases don't overwrite this
-	match state.yield-request ?? hard-unreachable
+	match state yield-request ?? hard-unreachable
 	as add-to-queue
 		gctx enqueue-fiber fiber
 	as await-future future, add-awaiting-fiber
@@ -262,7 +265,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	as done
 		fiber.state := done
 
--do-gc void(gctx global-ctx mut*) bare, unsafe
+-do-gc void(gctx global-ctx mut*) bare, unsafe, native extern
 	gc = gctx gc
 	if gc gc-begin
 		gctx.as-const.fiber-queue add-gc-roots gc
@@ -270,7 +273,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		gc gc-complete
 	gc gc-end
 
--thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe
+-thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe, native extern
 	gctx.may-be-work-to-do broadcast
 	gctx.fiber-queue-lock acquire
 	gctx.as-const.fiber-queue.slow-is-empty hard-assert
@@ -285,7 +288,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
--decide-what-to-do what-to-do(gctx global-ctx mut*) bare, summon, unsafe
+-decide-what-to-do what-to-do(gctx global-ctx mut*) bare, summon, unsafe, native extern
 	cur-time nat64 = if is-wasm
 		0
 	else
@@ -300,7 +303,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 			x fiber
 		as no-immediate first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
-			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
+			if (n-waiting == gctx->n-threads && first-task-time is-empty) || gctx->is-shut-down
 				# Can't possibly be any more tasks:
 				# No timed tasks, no threads doing work to add tasks.
 				gctx->is-shut-down := true
@@ -312,7 +315,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	res
 
 # This is called by the compiler for 'shared () => ...' lambdas.
-~shared-of-mut-lambda[r, p] r shared(param p)(a r mut(param p)) r shared, p shared
+~shared-of-mut-lambda[r, p] r shared(param p)(a r mut(param p)) r shared, p shared, native extern
 	trusted
 		exclusion = cur-exclusion
 		wrapper (r, p) force-lambda-shared = a,

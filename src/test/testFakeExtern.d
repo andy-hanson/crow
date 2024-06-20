@@ -28,12 +28,12 @@ private:
 @trusted void testMallocAndFree(ref Test test) {
 	withFakeExtern(test.alloc, unreachableWriteCb, (scope ref Extern extern_) @trusted {
 		Symbol[2] exportNames = [symbol!"free", symbol!"malloc"];
-		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
+		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"libc", none!Uri, exportNames)];
 		Opt!ExternPointersForAllLibraries funPtrsOpt =
 			extern_.loadExternPointers(externLibraries, (in string _) =>
 				assert(false));
 		ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
-		ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+		ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"libc");
 		FunPointer free = mustGet(forCrow, symbol!"free").asFunPointer;
 		FunPointer malloc = mustGet(forCrow, symbol!"malloc").asFunPointer;
 
@@ -79,12 +79,12 @@ void testWrite(ref Test test) {
 	ExitCode result =
 		withFakeExtern(test.alloc, fakeWrite, (scope ref Extern extern_) @trusted {
 			Symbol[1] exportNames = [symbol!"write"];
-			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
+			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"libc", none!Uri, exportNames)];
 			Opt!ExternPointersForAllLibraries funPtrsOpt =
 				extern_.loadExternPointers(externLibraries, (in string _) =>
 					assert(false));
 			ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
-			ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+			ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"libc");
 			FunPointer write = mustGet(forCrow, symbol!"write").asFunPointer;
 
 			DynCallType[4] sigTypes = [

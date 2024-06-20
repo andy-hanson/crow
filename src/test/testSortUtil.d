@@ -9,7 +9,6 @@ import util.comparison : compareUint;
 
 void testSortUtil(ref Test test) {
 	scope uint[3] xs = [3, 1, 2];
-	sortInPlace!uint(xs, (in uint a, in uint b) =>
-		compareUint(a, b));
+	sortInPlace!(uint, compareUint)(xs);
 	assert(arraysEqual!uint(xs, [1, 2, 3]));
 }

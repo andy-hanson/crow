@@ -36,7 +36,7 @@
 		crow record(height nat) bird variant-member
 		duck record bird variant-member
 
-		describe string(a bird)
+		show string(a bird)
 			match a
 			as crow x
 				"A {x.height}cm crow"
@@ -96,13 +96,13 @@
 			info log duck.describe
 
 		bird variant
-			describe string()
+			show string()
 		crow record(height nat) bird variant-member
 		duck record bird variant-member
 
-		describe string(a crow)
+		show string(a crow)
 			"A {a height}cm crow"
-		describe string(_ duck)
+		show string(_ duck)
 			"A duck"
 	</crow-runnable>
 

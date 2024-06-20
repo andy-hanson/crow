@@ -1,6 +1,0 @@
-exit code: 1
-stderr:
-test/end-to-end/compile-errors/variant-template-cant-infer.crow 11:8-11:9 Can't infer type arguments of x
-Uncaught exception: Reached compile error
-	at f
-	at main

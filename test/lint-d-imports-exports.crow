@@ -7,14 +7,14 @@ import
 	crow/test-util/test-runner: run-all-tests
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main nat(_ string[]) summon
+main nat(_ string[]) summon, (libc, native) extern
 	run-all-tests
 	failures = all-files lint-files
 	for x : failures
 		err print x
 	failures size
 
-+all-files file[]() summon
++all-files file[]() summon, (libc, native) extern
 	paths = "src" search-dir-recursive x => x ends-with ".d"
 	members = paths get-members-per-path
 	for path : paths parallel
@@ -35,7 +35,7 @@ main nat(_ string[]) summon
 		for private-member : file.members private
 			guard file.uses[private-member] < 2
 			guard file.path != "src/util/union_.d"
-			guard !(private-member in allow-private-unused)
+			guard private-member !in allow-private-unused
 			failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
@@ -64,12 +64,12 @@ main nat(_ string[]) summon
 
 -members record(public symbol set, private symbol set)
 
--get-members-per-path members[string](paths string[]) summon
+-get-members-per-path members[string](paths string[]) summon, (libc, native) extern
 	"dub run dscanner --yes -- --ctags {" " join paths}".shell-exec get-members-per-path
 -get-members-per-path members[string](stdout string)
 	members-by-path mut-members mut[string] = ()
-	look-for string = "!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n"
-	rest = (stdout try-split-once look-for)!.b
+	_, rest = stdout try-split-once! \
+		"!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n"
 	for line : rest lines
 		guard !(line == "" || line contains-seq "enum:" || line contains-seq "struct:")
 		parts = line split "\t"
@@ -106,8 +106,8 @@ main nat(_ string[]) summon
 	rest mut = a
 	while pair ?= rest try-split-once "import "
 		if pair.a ends-with "\n" || pair.a ends-with "\n\t"
-			after-colon = (pair.b try-split-once ":")!.b
-			split-semi = (after-colon try-split-once ";")!
+			_, after-colon = pair.b try-split-once! ":"
+			split-semi = after-colon try-split-once! ";"
 			for word : split-semi.a words
 				res ~= word
 			since-last-import := split-semi b

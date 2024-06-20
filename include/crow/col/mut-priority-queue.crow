@@ -4,19 +4,17 @@ import
 	../compare: ==, <=>, <, compare-reverse
 	../fun-util: subscript
 	../json: to
-	../misc: new, to, void
+	../misc: new, void
 	../number: ==, <=>, +, nat64
 	../option: ==, force, new, option
-	../string: ==, interpolate, join, new, string, to
+	../string: ==, interpolate, join, new, show, string
 	../test-util: is
 	../tuple: ==, new
-	./array: +, array, begin, iterate, next, size
-	./collection:
-		build-options, for-loop, is-at-end, reversed, set-reverse, subscript, with-index
-	./list: ==, ~=, build, list, list-builder, new, to
-	./mut-list:
-		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
-		next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to
+	./array: ==, ~=, array, array-builder, build, iterate, new, size, subscript
+	./collection: build-options, for-loop, is-at-end, reversed, set-reverse, with-index
+	./mut-array:
+		~=, ~~=, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-array, new, next,
+		next-index, peek, pop, prev, set-next, set-prev, size, subscript, temp-as-array, to
 	./priority-queue: priority
 	./sort: sort=
 	./private/sort-utils: binary-search-insert
@@ -37,10 +35,10 @@ If two pairs have the same key, the second pair added will be popped second.
 	-buckets (k, v) mut[] mut[]
 
 # New priority queue containing the given pairs.
-+new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k priority
-	a.to to
++new[k, v] (k, v) mut-priority-queue(...a (k, v)[]) k priority
+	a to
 
-# Copies a list to a new priority queue.
+# Copies an array to a new priority queue.
 +to[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins (k, v) mut[] = a to
 	mins sort= (k, _) => k compare-reverse
@@ -88,7 +86,7 @@ This is amortized O(log n).
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert a.mins.size + 1 == a.buckets.size
-		bucket = a.buckets.pop!
+		bucket = a.buckets pop!
 		# Mins are popped off from the right.
 		# This preserves insertion order: 'sort' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
@@ -121,7 +119,7 @@ This is O(n).
 	for x : a.mins reversed; x
 
 -spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
-	old-mins (k, v) array = a.mins move-to
+	old-mins (k, v)[] = a.mins move-to
 	for index, old-min : old-mins with-index
 		if index < a.buckets.size
 			bucket = a.buckets[index]
@@ -138,7 +136,7 @@ This is O(n).
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
--dbg[k, v] string(a (k, v) mut-priority-queue) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) mut-priority-queue) k show, v show
 	# TODO: should be able to infer type arguments
 	trusted
 		mins = a.mins temp-as-array
@@ -151,7 +149,7 @@ This is O(n).
 					" [{parts}]"
 			"{min dbg}{show-bucket}"
 
--dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
+-dbg[k, v] string((k k, v v)) k show, v show
 	"{k} -> {v}"
 
 -verify void(a (nat64, string) mut-priority-queue, expected string)
@@ -160,7 +158,7 @@ This is O(n).
 region build
 
 +mut-priority-queue-builder[k, v] record mut
-	-inner (k, v) list-builder
+	-inner (k, v) array-builder
 +build[k, v] (k, v) mut-priority-queue(
 	a build-options,
 	f void mut(out (k, v) mut-priority-queue-builder),

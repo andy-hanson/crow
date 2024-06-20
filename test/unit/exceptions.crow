@@ -1,3 +1,6 @@
+import
+	crow/js: as-js, cast, eval, subscript
+
 dummy-exceptions nat()
 	0
 
@@ -24,7 +27,7 @@ test
 		finally throw "thrown second" error
 		throw "thrown first" error
 	catch error e
-		e.describe is "thrown second"
+		e.show is "thrown second"
 
 # Test that yielding the fiber does not break exception handling
 test
@@ -37,3 +40,17 @@ test
 	catch divide-by-0
 		xs ~= 4
 	xs.to::nat[] is (1, 2, 4)
+
+test
+	(() => 6 / 2).catch-all.ok!::nat is 3
+	assert (() => 1::nat / 0).catch-all.error!.exception is-divide-by-0
+-is-divide-by-0 bool(a exception)
+	if _ ?= a divide-by-0
+		true
+
+test trusted, js extern
+	error = (() => "throw 0" eval).catch-all.error!
+	exception = error exception
+	exception.show is "Threw a non-exception value 0"
+	exception.as-js["message"].cast::string is "Threw a non-exception value 0"
+	assert error.show starts-with "Error: Threw a non-exception value 0"

@@ -5,15 +5,30 @@ import
 	../option: ??, new
 	../pointer: mut-pointer
 	../result: error, ok, result
-	./bootstrap:
-		awaiting-future, awaited-by, empty, exception-and-backtrace, fiber, future, future-state,
-		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state
-	./exception-low-level: rethrow
+	./bootstrap: awaiting-future, fiber, future, hard-unreachable, queued, set-state, state
+	./exception-low-level: exception-and-backtrace, rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
+~future-impl[t] record by-ref, force-shared
+	-lk mut lock
+	-state mut t future-state
+-future-state[t] union mut
+	# The future is not resolved and nothing is awaiting it yet.
+	empty
+	# The future is not resolved, and fibers are waiting on it.
+	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future'.
+	awaited-by fiber
+	# The future completed successfully.
+	resolved t
+	# The future completed with an exception.
+	rejected exception-and-backtrace
+
+~as-future-impl[t] t future-impl(a t future) builtin, bare, native extern
+~as-future[t] t future(a t future-impl) builtin, bare, native extern
+
 # If the future is already complete, returns 'false'
-~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
+~try-add-awaiting-fiber[t] bool(a t future-impl, fiber fiber) bare, unsafe, native extern
 	&a.lk acquire
 	res bool = match a state
 	as empty
@@ -31,21 +46,28 @@ import
 	&a.lk release
 	res
 
-~unresolved[t] t future() unsafe
-	res t future = uninit, empty
+~unresolved[t] t future-impl() unsafe, native extern
+	empty new-future-impl
+~resolved[t] t future-impl(value t) unsafe, native extern
+	value.resolved new-future-impl
+~rejected[t] t future-impl(err exception-and-backtrace) unsafe, native extern
+	err.rejected new-future-impl
+
+-new-future-impl[t] t future-impl(state t future-state) unsafe, native extern
+	res t future-impl = uninit, state
 	res.lock init
 	res
 
--lock[t] lock mut*(a t future) bare, unsafe
+-lock[t] lock mut*(a t future-impl) bare, unsafe, native extern
 	&a.lk
 
-~resolve[t] void(a t future, value t) unsafe
+~resolve[t] void(a t future-impl, value t) unsafe, native extern
 	a resolve-or-reject value.resolved
 
-~reject[t] void(a t future, error exception-and-backtrace) unsafe
+~reject[t] void(a t future-impl, error exception-and-backtrace) unsafe, native extern
 	a resolve-or-reject error.rejected
 
-~is-completed[t] bool(a t future)
+~is-completed[t] bool(a t future-impl)
 	match a state
 	as empty
 		false
@@ -56,7 +78,7 @@ import
 	as rejected _
 		true
 
--resolve-or-reject[t] void(a t future, new-state t future-state) bare, unsafe
+-resolve-or-reject[t] void(a t future-impl, new-state t future-state) bare, unsafe, native extern
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -67,7 +89,7 @@ import
 	as awaited-by fiber
 		cur mut = fiber
 		loop
-			opt-next = cur.state.awaiting-future ?? hard-unreachable
+			opt-next = cur.state awaiting-future ?? hard-unreachable
 			cur.state := queued
 			get-global-ctx enqueue-fiber cur
 			if next ?= opt-next
@@ -80,15 +102,15 @@ import
 	as rejected _
 		hard-unreachable
 
-~must-get-result[t] t(a t future) bare, unsafe
-	match a.get-result
+~must-get-result[t] t(a t future-impl) bare, unsafe, native extern
+	match a get-result
 	as ok x
 		x
 	as error x
 		x rethrow
 
 # Assuming the future is resolved, get the result.
-~get-result[t] (t, exception-and-backtrace) result(a t future) bare, unsafe
+~get-result[t] (t, exception-and-backtrace) result(a t future-impl) bare, unsafe, native extern
 	a.lock acquire
 	res (t, exception-and-backtrace) result = match a state
 	as empty

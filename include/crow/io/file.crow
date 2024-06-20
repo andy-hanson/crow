@@ -6,30 +6,30 @@ import
 	system/sys/types: mode_t
 	system/unistd: getcwd, readlink, rmdir, symlink, unlink
 	system/win32:
-		cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND,
-		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
-		FindFirstFileA, FindNextFileA, _getcwd, GetFileAttributesA, GetLastError, HANDLE,
-		INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
+		==, &, |, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_ALREADY_EXISTS,
+		ERROR_FILE_NOT_FOUND, ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY,
+		FindClose, FindFirstFileA, FindNextFileA, flags-members, _getcwd, GetFileAttributesA,
+		GetLastError, HANDLE, INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
-	../version: is-windows
+	../col/mut-slice
 	./path: child-path
 	./win32-util: show-win32-error
 
 +path-already-exists record(path string) exception variant-member
-+describe string(a path-already-exists)
++show string(a path-already-exists)
 	"Path already exists: {a path}"
 
 +path-not-found record(path string) exception variant-member
-+describe string(a path-not-found)
++show string(a path-not-found)
 	"Path not found: {a path}"
 
 +file-system-error record(path string, description string) exception variant-member
-+describe string(a file-system-error)
++show string(a file-system-error)
 	"Error at path {a path}: {a description}"
 
 # `true` iff anything (like a file or directory) exists at the path.
-+path-exists bool(path string) summon
++path-exists bool(path string) summon, native extern
 	try _ = path get-path-kind catch path-not-found _ : false
 	true
 
@@ -39,7 +39,7 @@ import
 `true` if the path is a symlink to a directory.
 `false` if nothing exists at the path.
 ###
-+is-directory bool(path string) summon
++is-directory bool(path string) summon, native extern
 	try kind = path get-path-kind catch path-not-found _ : false
 	kind == directory
 
@@ -49,18 +49,18 @@ import
 `true` if the path is a symlink to a file.
 `false` if nothing exists at the path.
 ###
-is-file bool(path string) summon
+is-file bool(path string) summon, native extern
 	try kind = path get-path-kind catch path-not-found _ : false
 	kind == file
 
 +path-kind enum(file, directory, other)
 
-+get-path-kind path-kind(path string) summon
-	trusted if is-windows
++get-path-kind path-kind(path string) summon, trusted, native extern
+	if extern windows
 		attr = path.to GetFileAttributesA
 		forbid attr == INVALID_FILE_ATTRIBUTES : path exception-for-last
 		FILE_ATTRIBUTE_DIRECTORY is-in attr ? directory : file
-	else
+	elif extern posix
 		s mut stat = ()
 		err = path.to stat &s
 		if err == 0
@@ -73,9 +73,11 @@ is-file bool(path string) summon
 		else
 			assert err == -1
 			throw path exception-for-last
+	else
+		throw not-implemented
 
--exception-for-last exception(path string) summon, unsafe
-	if is-windows
+-exception-for-last exception(path string) summon, unsafe, native extern
+	if extern windows
 		err = GetLastError
 		if err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
 			path path-not-found
@@ -83,22 +85,24 @@ is-file bool(path string) summon
 			path path-already-exists
 		else
 			path file-system-error err.show-win32-error
-	else
+	elif extern libc
 		if errno == ENOENT
 			path path-not-found
 		elif errno == EEXIST
 			path path-already-exists
 		else
 			path file-system-error "{errno}" # TODO: better error description
+	else
+		throw not-implemented
 
--exception-for-last-no-path exception() summon, unsafe
+-exception-for-last-no-path exception() summon, unsafe, native extern
 	"<<no path>>" exception-for-last
 
 ###
 Returns all children of the directory `path`, as full paths.
 Use `names-in-dir` if you just want their names.
 ###
-+paths-in-dir string[](path string) summon
++paths-in-dir string[](path string) summon, native extern
 	for x : path names-in-dir
 		path child-path x
 
@@ -107,27 +111,29 @@ Returns the basename of all children of the directory.
 Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
-+names-in-dir string[](path string) summon
-	trusted if is-windows
++names-in-dir string[](path string) summon, trusted, native extern
+	if extern windows
 		path-search c-string = "{path}\\*" to
 		file-data mut WIN32_FIND_DATAA = ()
 		file = path-search FindFirstFileA &file-data
 		forbid file == INVALID_HANDLE_VALUE : path exception-for-last
-		finally file find-close path.to
+		finally file find-close path
 		path names-in-dir-windows file sort
-	else
+	elif extern posix
 		dirp = path.to opendir
 		forbid dirp == null : path exception-for-last
 		finally dirp close-dir path
 		dirp.names-in-dir-posix sort
+	else
+		throw not-implemented
 
--find-close void(file HANDLE, path string) summon, unsafe
+-find-close void(file HANDLE, path string) summon, unsafe, (native, windows) extern
 	assert file.FindClose : path exception-for-last
 
--close-dir void(dirp DIR mut*, path string) summon, unsafe
+-close-dir void(dirp DIR mut*, path string) summon, unsafe, (native, posix) extern
 	assert dirp.closedir == 0 : path exception-for-last
 
--names-in-dir-windows string[](dir-path string, file HANDLE) summon, unsafe
+-names-in-dir-windows string[](dir string, file HANDLE) summon, unsafe, (native, windows) extern
 	with out : build
 		loop
 			file-data mut WIN32_FIND_DATAA = ()
@@ -139,10 +145,10 @@ Use `paths-in-dir` if you want full paths.
 				continue
 			else
 				err = GetLastError
-				assert err == ERROR_NO_MORE_FILES : dir-path exception-for-last
+				assert err == ERROR_NO_MORE_FILES : dir exception-for-last
 				break
 
--names-in-dir-posix string[](dirp DIR mut*) summon, unsafe
+-names-in-dir-posix string[](dirp DIR mut*) summon, unsafe, (native, posix) extern
 	with out : build
 		loop
 			# Initial value of entry / result should not matter
@@ -161,47 +167,49 @@ Use `paths-in-dir` if you want full paths.
 				continue
 
 # Gets the path a symbolic link refers to.
-+read-link string(path string) summon
++read-link string(path string) summon, (native, posix) extern
 	trusted
 		# TODO: smart small and retry if necessAry
-		buff char8 mut-array = 1000 zeroed-mut-array
+		buff char8 mut-slice = 1000 gc-safe-mut-slice
 		size = path.to readlink buff.begin-pointer, buff.size
 		forbid size == -1 : path exception-for-last
 		buff.cast-immutable[0 .. size.to] to
 
 # Create a symbolic link at `link` with the target `target`.
-+make-symlink-to void(link string, target string) summon
-	trusted if is-windows
++make-symlink-to void(link string, target string) summon, trusted, native extern
+	if extern windows
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE |
 			(target.is-directory ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
 		assert link.to CreateSymbolicLinkA target.to, link-flags : link exception-for-last
-	else
+	elif extern posix
 		err = target.to symlink link.to
 		unless err == 0
 			assert err == -1
 			throw link exception-for-last
+	else
+		throw not-implemented
 
 ###
 Gets the path of the current executable.
 If this program was built to executable, this will return its path.
 Otherwise, this will be the path where `crow` is installed.
 ###
-+current-executable-path string() summon
++current-executable-path string() summon, (native, posix) extern
 	"/proc/self/exe" read-link
 
 +not-a-text-file record(path string) exception variant-member
-+describe string(a not-a-text-file)
++show string(a not-a-text-file)
 	"File is not valid UTF-8: {a path}"
 
 # Reads the full contents of the file.
-+read-file string(path string) summon
++read-file string(path string) summon, native extern
 	try
 		path.read-file::nat8[] as-string
 	catch unicode-decode-error
 		throw path not-a-text-file
 
 # Like 'read-file', but returns an empty string instead of throwing 'path-not-found'.
-+read-file-or-empty string(path string) summon
++read-file-or-empty string(path string) summon, native extern
 	try
 		path read-file
 	catch path-not-found _
@@ -211,15 +219,17 @@ Otherwise, this will be the path where `crow` is installed.
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-+write-file void(path string, content string) summon, trusted
++write-file void(path string, content string) summon, trusted, native extern
+	assert extern libc : todo
 	fd = path.to fopen "wb"
 	forbid fd == null : path exception-for-last
 	finally fd close-fd path
-	bytes nat8 array = content to-bytes
+	bytes nat8[] = content to-bytes
 	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
 	assert wrote-bytes == bytes.size : path exception-for-last
 
-+read-file nat8[](path string) summon, trusted
++read-file nat8[](path string) summon, trusted, native extern
+	assert extern libc : todo
 	fd = path.to fopen "rb"
 	forbid fd == null : path exception-for-last
 	finally fd close-fd path
@@ -235,23 +245,28 @@ If the file already exists, overwrites it.
 		assert err2 == 0 : todo
 
 		file-size-nat nat64 = file-size to
-		res nat8 mut-array = file-size-nat zeroed-mut-array
+		res nat8 mut-slice = file-size-nat gc-safe-mut-slice
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : path exception-for-last
-		res.cast-immutable to
+		res cast-immutable
 
--close-fd void(fd FILE mut*, path string) summon, unsafe
+-close-fd void(fd FILE mut*, path string) summon, unsafe, (libc, native) extern
 	assert fd.fclose == 0 : path exception-for-last
 
 # Gets the current directory (of the user that ran the program).
-+current-directory string() summon, trusted
-	buff char8 mut-array = 256 zeroed-mut-array
-	b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
++current-directory string() summon, trusted, native extern
+	buff char8 mut-slice = 256 gc-safe-mut-slice
+	b = if extern ucrtbase
+		buff.begin-pointer _getcwd buff.size
+	elif extern posix
+		buff.begin-pointer getcwd buff.size
+	else
+		throw not-implemented
 	forbid b == null : exception-for-last-no-path
 	assert b == buff.begin-pointer
 	res string = b.as-const to
-	if is-windows
+	if extern windows
 		res replace-all "\\", "/"
 	else
 		res
@@ -260,7 +275,7 @@ If the file already exists, overwrites it.
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.
 Else, calls `f[path]`.
 ###
-+each-child-recursive void(path string, f void mut(path string)) summon
++each-child-recursive void(path string, f void mut(path string)) summon, native extern
 	path each-child-recursive (_ => true), f
 
 ###
@@ -271,7 +286,7 @@ and skips them if `filter` returns false.
 	path string,
 	filter bool mut(path string),
 	f void mut(path string),
-) summon
+) summon, native extern
 	if path is-directory
 		for child-name : path names-in-dir
 			if filter[child-name]
@@ -303,52 +318,58 @@ and skips them if `filter` returns false.
 
 # TODO: this might not be the correct default permissions
 # Creates a new empty directory at `path`.
-+make-directory void(path string) summon
++make-directory void(path string) summon, native extern
 	path make-directory all-permissions.user-only
 
-+make-directory void(path string, permissions file-permissions) summon
++make-directory void(path string, permissions file-permissions) summon, native extern
 	assert path make-directory-inner permissions : trusted path exception-for-last
 
 # Like 'make-directory', but OK if it already exists.
-+ensure-directory void(path string) summon
++ensure-directory void(path string) summon, native extern
 	try
 		path make-directory all-permissions.user-only
 	catch path-already-exists _
 		()
 
--make-directory-inner bool(path string, permissions file-permissions) summon
+-make-directory-inner bool(path string, permissions file-permissions) summon, native extern
 	trusted
 		mode = permissions to-mode
-		err = is-windows ? path.to _mkdir mode : path.to mkdir mode
+		err = if extern ucrtbase
+			path.to _mkdir mode
+		elif extern posix
+			path.to mkdir mode
+		else
+			throw not-implemented
 		err == 0
 
 # Deletes the file at `path`.
-+remove-file void(path string) summon
-	trusted if is-windows
++remove-file void(path string) summon, native extern
+	trusted if extern windows
 		ok = path.to DeleteFileA
 		assert ok : path exception-for-last
-	else
+	elif extern posix
 		assert path.to.unlink == 0 : path exception-for-last
+	else
+		throw not-implemented
 
 ###
 Deletes the directory at `path`.
 It should be empty.
 ###
-+remove-directory void(path string) summon
-	trusted
-		assert path.to.rmdir == 0 : path exception-for-last
++remove-directory void(path string) summon, trusted, (libc, native) extern
+	assert path.to.rmdir == 0 : path exception-for-last
 
 # "/dev/null" or "NUL" on windows
 +null-path string() unsafe
-	if is-windows
+	if extern windows
 		"NUL"
 	else
 		"/dev/null"
 
-remove-directory-and-contents-non-recursive void(path string) summon
+remove-directory-and-contents-non-recursive void(path string) summon, (native, libc) extern
 	path remove-directory-contents-non-recursive
 	path remove-directory
 
-remove-directory-contents-non-recursive void(path string) summon
+remove-directory-contents-non-recursive void(path string) summon, native extern
 	for child : path names-in-dir
 		"{path}/{child}" remove-file

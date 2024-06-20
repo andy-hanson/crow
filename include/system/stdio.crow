@@ -7,7 +7,7 @@ import
 	crow/pointer: const-pointer, mut-pointer
 	crow/private/c-string-util: char8, c-string
 
-+perror void(s c-string) c extern
++perror void(s c-string) libc extern
 
 +stdin fd-t() bare
 	0
@@ -16,32 +16,32 @@ import
 +stderr fd-t() bare
 	2
 
-+puts err-t(s c-string) c extern
++puts err-t(s c-string) libc extern
 
 +FILE extern
 
-+popen FILE mut*(command c-string, modes c-string) c extern
-+pclose c-int(stream FILE mut*) c extern
++popen FILE mut*(command c-string, modes c-string) libc extern
++pclose c-int(stream FILE mut*) libc extern
 
-+feof bool(stream FILE mut*) c extern
-+fgets char8 mut*(s char8 mut*, n c-int, stream FILE mut*) c extern
++feof bool(stream FILE mut*) libc extern
++fgets char8 mut*(s char8 mut*, n c-int, stream FILE mut*) libc extern
 
-+fopen FILE mut*(filename c-string, mode c-string) c extern
-+fclose c-int(stream FILE mut*) c extern
-+fseek c-int(stream FILE mut*, offset long, whence SEEK) c extern
-+ftell long(stream FILE mut*) c extern
-+ferror bool(stream FILE mut*) c extern
++fopen FILE mut*(filename c-string, mode c-string) libc extern
++fclose c-int(stream FILE mut*) libc extern
++fseek c-int(stream FILE mut*, offset long, whence SEEK) libc extern
++ftell long(stream FILE mut*) libc extern
++ferror bool(stream FILE mut*) libc extern
 +fread size_t(
 	_Buffer nat8 mut*,
 	_ElementSize size_t,
 	_ElementCount size_t,
 	_Stream FILE mut*,
-) c extern
+) libc extern
 +fwrite size_t(
 	_Buffer nat8*,
 	_ElementSize size_t,
 	_ElementCount size_t,
 	_Stream FILE mut*,
-) c extern
+) libc extern
 
 +SEEK enum(SEEK_SET, SEEK_CUR, SEEK_END) extern, nat32 storage

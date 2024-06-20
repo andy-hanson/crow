@@ -13,7 +13,6 @@ import frontend.showModel :
 	writeFunDeclAndTypeArgs,
 	writeFunInst,
 	writeKeyword,
-	writeLineAndColumnRange,
 	writeName,
 	writePurity,
 	writeSig,
@@ -49,7 +48,7 @@ import model.model :
 	minValue,
 	nTypeParams,
 	Params,
-	Program,
+	ProgramWithOptMain,
 	SpecDecl,
 	Signature,
 	StructBody,
@@ -82,7 +81,12 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
+string stringOfDiagnostics(
+	ref Alloc alloc,
+	in ShowDiagCtx ctx,
+	in ProgramWithOptMain program,
+	in Opt!(Uri[]) onlyForUris,
+) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
@@ -107,7 +111,7 @@ string stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
 string stringOfParseDiagnostics(ref Alloc alloc, in ShowCtx ctx, Uri uri, in ParseDiagnostic[] diagnostics) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
-			writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[uri][x.range]);
+			writer ~= ctx.lineAndColumnGetters[uri][x.range];
 			writer ~= ' ';
 			writeParseDiag(writer, ctx, x.kind);
 		});
@@ -118,7 +122,7 @@ immutable struct UriAndDiagnostics {
 	Diagnostic[] diagnostics;
 }
 
-UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
+UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in ProgramWithOptMain program) {
 	MultiMap!(Uri, Diagnostic) map = makeMultiMap!(Uri, Diagnostic)(alloc, (in MultiMapCb!(Uri, Diagnostic) cb) {
 		eachDiagnostic(program, (in UriAndDiagnostic x) {
 			cb(x.uri, x.diagnostic);
@@ -130,17 +134,19 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
 				compareDiagnostic(x, y));
 			res ~= UriAndDiagnostics(uri, sortedDiags);
 		}
-		arrayBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
-			compareUriAlphabetically(x.uri, y.uri));
+		arrayBuilderSort!(UriAndDiagnostics, compareUriAndDiagnosticsByUri)(res);
 	});
 }
 
 private:
 
+Comparison compareUriAndDiagnosticsByUri(in UriAndDiagnostics a, in UriAndDiagnostics b) =>
+	compareUriAlphabetically(a.uri, b.uri);
+
 Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b) =>
 	compareRange(a.range, b.range);
 
-DiagnosticSeverity maxDiagnosticSeverity(in Program a) {
+DiagnosticSeverity maxDiagnosticSeverity(in ProgramWithOptMain a) {
 	DiagnosticSeverity res = DiagnosticSeverity.unusedCode;
 	eachDiagnostic(a, (in UriAndDiagnostic x) {
 		res = max(res, getDiagnosticSeverity(x.kind));
@@ -471,9 +477,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					writer ~= " or ";
 					writeKeyword(writer, ctx, symbol!"union");
 					writer ~= " type.";
-					if (p.isEnumOrFlags)
-						writer ~= "\nAn 'enum' or 'flags' type doesn't need automatic functions; " ~
-							"it gets these from 'enum-util' or 'flags-util'.";
 				},
 				(in Diag.AutoFunError.WrongReturnType p) {
 					writer ~= () {
@@ -488,12 +491,22 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					}();
 				});
 		},
+		(in Diag.BuiltinFunCantHaveBody x) {
+			writer ~= "A 'builtin' function can't have a body.";
+		},
 		(in Diag.BuiltinUnsupported x) {
 			writer ~= "Crow does not implement a builtin ";
 			writer ~= stringOfEnum(x.kind);
 			writer ~= " named ";
 			writeName(writer, ctx, x.name);
 			writer ~= '.';
+		},
+		(in Diag.CallMissingExtern x) {
+			writer ~= "Function ";
+			writeFunDecl(writer, ctx, x.callee);
+			writer ~= " requires extern ";
+			writeName(writer, ctx, x.missingExtern);
+			writer ~= ", but that is not in scope.";
 		},
 		(in Diag.CallMultipleMatches x) {
 			writer ~= "Cannot choose an overload of ";
@@ -634,6 +647,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= '.';
 		},
+		(in Diag.DuplicateImportName x) {
+			writeName(writer, ctx, x.name);
+			writer ~= " is imported twice from the same module.";
+		},
 		(in Diag.DuplicateImports x) {
 			//TODO: use x.kind
 			writer ~= "The symbol ";
@@ -664,6 +681,21 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			} else
 				writer ~= "There is no expected type at this location; lambdas need an expected type.";
 		},
+		(in Diag.ExternBodyMultiple x) {
+			writer ~= "This function has multiple 'extern' modifiers, so it's ambiguous which to use for the body.";
+		},
+		(in Diag.ExternInvalidName x) {
+			writeName(writer, ctx, x.name);
+			writer ~= " is not a builtin extern name and is not configured in 'crow-config.json'";
+		},
+		(in Diag.ExternIsUnsafe x) {
+			writer ~= "An 'extern' expression can only appear in an 'unsafe' or 'trusted' context.";
+		},
+		(in Diag.ExternRedundant x) {
+			writer ~= "Extern ";
+			writeName(writer, ctx, x.name);
+			writer ~= " is already in scope, so this expression is always 'true'.";
+		},
 		(in Diag.ExternFunVariadic) {
 			writer ~= "An 'extern' function can't be variadic.";
 		},
@@ -693,10 +725,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
 		},
-		(in Diag.FunCantHaveBody x) {
-			writer ~= "A '";
-			writer ~= stringOfEnum(x.reason);
-			writer ~= "' function can't have a body.";
+		(in Diag.FlagsSigned) {
+			writer ~= "A 'flags' type can't use a signed storage type.";
 		},
 		(in Diag.FunctionWithSignatureNotFound x) {
 			writer ~= "Could not find a function '";
@@ -712,6 +742,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.FunPointerExprMustBeName) {
 			writer ~= "Function pointer expression must be a plain identifier ('&f').";
+		},
+		(in Diag.FunPointerNotBare) {
+			writer ~= "The target of a function pointer must be a 'bare' function.";
 		},
 		(in Diag.IfThrow) {
 			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
@@ -823,7 +856,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Literal of type '";
 			writeName(writer, ctx, stringOfEnum(x.type));
 			writer ~= "' will be rounded to ";
-			writeFloatLiteral(writer, x.actual);
+			writeFloatLiteral(writer, x.actual, infinity: "infinity", nan: "NaN");
 		},
 		(in Diag.LiteralMultipleMatch x) {
 			writer ~= "Multiple possible types for literal expression: ";
@@ -864,6 +897,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.LoopWithoutBreak) {
 			writer ~= "'loop' has no 'break'.";
+		},
+		(in Diag.MainMissingExterns x) {
+			writer ~= "'main' function depends on extern ";
+			writeWithCommas!Symbol(writer, x.missing, (in Symbol x) {
+				writeName(writer, ctx, x);
+			});
+			writer ~= " which is not provided.";
 		},
 		(in Diag.MatchCaseDuplicate x) {
 			writer ~= "Duplicate branch ";
@@ -1044,8 +1084,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in ParseDiag x) {
 			writeParseDiag(writer, ctx, x);
 		},
+		(in Diag.PointerIsNative) {
+			writer ~= "Can only get a pointer in an 'extern native' context.";
+		},
 		(in Diag.PointerIsUnsafe) {
-			writer ~= "Can only get a pointer in an 'unsafe' function or 'trusted' expression.";
+			writer ~= "Can only get a pointer in an 'unsafe' or 'trusted' context.";
 		},
 		(in Diag.PointerMutToConst x) {
 			writer ~= () {
@@ -1184,17 +1227,18 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " can't have specs.";
 		},
 		(in Diag.StringLiteralInvalid x) {
-			writeName(writer, ctx, () {
+			writer ~= () {
 				final switch (x.reason) {
 					case Diag.StringLiteralInvalid.Reason.cStringContainsNul:
-						return "c-string";
+						return "'c-string' literal can't contain '\\0'.";
+					case Diag.StringLiteralInvalid.Reason.notExternJs:
+						return "Cant' create a 'js-any' value without 'js extern'.";
 					case Diag.StringLiteralInvalid.Reason.stringContainsNul:
-						return "string";
+						return "'string' literal can't contain '\\0'.";
 					case Diag.StringLiteralInvalid.Reason.symbolContainsNul:
-						return "symbol";
+						return "'symbol' literal can't contain '\\0'.";
 				}
-			}());
-			writer ~= " literal can't contain '\\0'";
+			}();
 		},
 		(in Diag.StorageMissingType) {
 			writer ~= "'storage' needs a type.";
@@ -1258,6 +1302,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
 				final switch (x.kind) {
+					case Diag.TypeShouldUseSyntax.Kind.array:
+						return "Prefer to write 't[]' instead of 't array'.";
 					case Diag.TypeShouldUseSyntax.Kind.funData:
 						return "Prefer to write 'r data(x p)' instead of '(r, p) fun-data'.";
 					case Diag.TypeShouldUseSyntax.Kind.funMut:
@@ -1266,22 +1312,20 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to writer 'r function(x p)' instead of '(r, p) fun-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.funShared:
 						return "Prefer to write 'r shared(x p)' instead of '(r, p) fun-shared'.";
-					case Diag.TypeShouldUseSyntax.Kind.list:
-						return "Prefer to write 't[]' instead of 't list'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
 						return "Prefer to write 'v[k]' instead of '(k, v) map'.";
+					case Diag.TypeShouldUseSyntax.Kind.mutArray:
+						return "Prefer to write 't mut[]' instead of 't mut-array'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutMap:
 						return "Prefer to write 'v mut[k]' instead of '(k, v) mut-map'.";
-					case Diag.TypeShouldUseSyntax.Kind.mutList:
-						return "Prefer to write 't mut[]' instead of 't mut-list'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
 						return "Prefer to write 't mut*' instead of 't mut-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
 						return "Prefer to write 't?' instead of 't option'.";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
 						return "Prefer to write 't*' instead of 't const-pointer'.";
-					case Diag.TypeShouldUseSyntax.Kind.sharedList:
-						return "Prefer to write 't shared[]' instead of 't shared-list'.";
+					case Diag.TypeShouldUseSyntax.Kind.sharedArray:
+						return "Prefer to write 't shared[]' instead of 't shared-array'.";
 					case Diag.TypeShouldUseSyntax.Kind.sharedMap:
 						return "Prefer to write 'v shared[k]' instead of '(k, v) shared-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:
@@ -1311,6 +1355,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Variadic parameter must be an ";
 			writeName(writer, ctx, symbol!"array");
 			writer ~= '.';
+		},
+		(in Diag.VariantMemberIsTemplate x) {
+			writeName(writer, ctx, x.member.name);
+			writer ~= " can't be a 'variant-member' because it is a template.";
 		},
 		(in Diag.VariantMemberMissingVariant x) {
 			writer ~= "'variant-member' needs a variant.";
@@ -1653,6 +1701,10 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'mut'.";
 		case Token.name:
 			return "Did not expect a name here.";
+		case Token.nameAfterBang:
+			return "Did not expect a '!name' here.";
+		case Token.nameBang:
+			return "Did not expect a 'name!' here.";
 		case Token.nameOrOperatorColonEquals:
 			return "Did not expect a 'name:=' here.";
 		case Token.nameOrOperatorEquals:

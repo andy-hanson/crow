@@ -16,20 +16,19 @@ import model.lowModel :
 	LowFunPointerType,
 	LowFunSource,
 	LowLocal,
-	LowLocalSource,
 	LowProgram,
 	LowRecord,
 	LowType,
 	LowUnion,
 	LowVar,
 	LowVarIndex;
-import model.model : Local;
 import util.alloc.alloc : Alloc;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, Opt;
+import util.string : isAsciiIdentifierChar;
 import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.util : stringOfEnum, todo;
@@ -196,16 +195,9 @@ private void maybeWriteIndexSuffix(scope ref Writer writer, Opt!size_t index) {
 }
 
 void writeLowLocalName(scope ref Writer writer, in MangledNames mangledNames, in LowLocal a) {
-	a.source.matchIn!void(
-		(in Local it) {
-			// Need to distinguish local names from function names
-			writer ~= "__local";
-			writeMangledName(writer, mangledNames, it.name);
-		},
-		(in LowLocalSource.Generated it) {
-			writeMangledName(writer, mangledNames, it.name);
-			writer ~= it.index;
-		});
+	writer ~= "__local";
+	writeMangledName(writer, mangledNames, a.name);
+	writer ~= a.index;
 }
 
 void writeConstantArrStorageName(
@@ -266,7 +258,7 @@ void addToPrevOrIndex(T)(
 				})));
 }
 
-public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Symbol a) {
+public void writeMangledName(scope ref Writer writer, in MangledNames mangledNames, Symbol a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
 	if (a == symbol!"errno") {
 		writer ~= "_crow_errno";
@@ -275,6 +267,11 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
+	mangleNameCommon(writer, a);
+}
+
+// Used for both JS and C
+public void mangleNameCommon(Writer)(scope ref Writer writer, in Symbol a) {
 	foreach (dchar x; a) {
 		if (!isAsciiIdentifierChar(x)) {
 			writer ~= "__";
@@ -283,12 +280,6 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 			writer ~= x;
 	}
 }
-
-bool isAsciiIdentifierChar(dchar a) =>
-	('a' <= a && a <= 'z') ||
-	('A' <= a && a <= 'Z') ||
-	('0' <= a && a <= '9') ||
-	a == '_';
 
 bool conflictsWithCName(Symbol a) {
 	switch (a.value) {

@@ -1,0 +1,4 @@
+f string()
+	match ()::nat?
+	as
+		1

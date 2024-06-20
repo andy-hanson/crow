@@ -3,6 +3,7 @@ module lib.lsp.lspParse;
 @safe @nogc pure nothrow:
 
 import lib.lsp.lspTypes :
+	BuildJsScriptParams,
 	CancelRequestParams,
 	SyntaxTranslateParams,
 	DefinitionParams,
@@ -38,7 +39,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : map;
 import util.json : get, hasKey, Json;
 import util.jsonParse : asUint;
-import util.opt : none, some;
+import util.opt : none, Opt, optIf, some;
 import util.sourceRange : LineAndCharacter, LineAndCharacterRange;
 import util.uri : mustParseUri, Uri;
 import util.util : enumOfString;
@@ -66,12 +67,10 @@ LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 				get!"source"(params).as!string,
 				enumOfString!Language(get!"from"(params).as!string),
 				enumOfString!Language(get!"to"(params).as!string)));
+		case "custom/build-js-script":
+			return request(BuildJsScriptParams(parseUriProperty(params), parseDiagnosticsOnlyForUris(alloc, params)));
 		case "custom/run":
-			return request(RunParams(
-				parseUriProperty(params),
-				hasKey!"diagnosticsOnlyForUris"(params)
-					? some(parseUriList(alloc, get!"diagnosticsOnlyForUris"(params)))
-					: none!(Uri[])));
+			return request(RunParams(parseUriProperty(params), parseDiagnosticsOnlyForUris(alloc, params)));
 		case "custom/unloadedUris":
 			return request(UnloadedUrisParams());
 		case "exit":
@@ -111,6 +110,10 @@ LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 }
 
 private:
+
+Opt!(Uri[]) parseDiagnosticsOnlyForUris(ref Alloc alloc, in Json params) =>
+	optIf(hasKey!"diagnosticsOnlyForUris"(params), () =>
+		parseUriList(alloc, get!"diagnosticsOnlyForUris"(params)));
 
 Uri[] parseUriList(ref Alloc alloc, in Json a) =>
 	map(alloc, a.as!(Json[]), (ref Json x) =>

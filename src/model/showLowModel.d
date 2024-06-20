@@ -12,7 +12,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ReferenceKind;
-import frontend.showModel : ShowCtx, writeLineAndColumn, writeTypeArgsGeneric;
+import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes,
 	LowExternType,
@@ -100,7 +100,7 @@ private void writeConcreteFunSig(scope ref Writer writer, in ShowCtx ctx, in Con
 	UriLineAndColumnRange range = ctx.lineAndColumnGetters[a.range];
 	writer ~= range.uri;
 	writer ~= ' ';
-	writeLineAndColumn(writer, range.range.start);
+	writer ~= range.range.start;
 }
 
 void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {

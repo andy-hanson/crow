@@ -1,7 +1,7 @@
 dummy-by-val-or-ref nat()
 	0
 
-test trusted
+test trusted, native extern
 	size-of@bv is 24
 	size-of@br is 8
 	size-of@unspecified is 16

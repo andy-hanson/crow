@@ -2,55 +2,9 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : ExprRef;
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
-import model.model :
-	arrayElementType,
-	AssertOrForbidExpr,
-	BogusExpr,
-	CallExpr,
-	CallOptionExpr,
-	ClosureGetExpr,
-	ClosureSetExpr,
-	CommonTypes,
-	Condition,
-	Expr,
-	ExprAndType,
-	FinallyExpr,
-	FunDecl,
-	FunDeclSource,
-	FunPointerExpr,
-	IfExpr,
-	LambdaExpr,
-	LetExpr,
-	LiteralExpr,
-	LiteralStringLikeExpr,
-	LocalGetExpr,
-	LocalPointerExpr,
-	LocalSetExpr,
-	LoopBreakExpr,
-	LoopContinueExpr,
-	LoopExpr,
-	LoopWhileOrUntilExpr,
-	MatchEnumExpr,
-	MatchIntegralExpr,
-	MatchStringLikeExpr,
-	MatchUnionExpr,
-	MatchVariantExpr,
-	RecordFieldPointerExpr,
-	SeqExpr,
-	SpecInst,
-	SpecDecl,
-	StructInst,
-	Test,
-	ThrowExpr,
-	TrustedExpr,
-	TryExpr,
-	TryLetExpr,
-	Type,
-	TypedExpr,
-	TypeParamIndex;
-import util.col.array : arrayOfSingle, count, first, firstPointer, firstZip, firstZipPointerFirst, isEmpty, only, only2;
+import model.model : FunDecl, FunDeclSource, SpecInst, SpecDecl, StructInst, Type, TypeParamIndex;
+import util.col.array : arrayOfSingle, count, firstZip, isEmpty, only, only2;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
 import util.util : ptrTrustMe;
@@ -58,11 +12,6 @@ import util.util : ptrTrustMe;
 alias ReferenceCb = void delegate(in UriAndRange) @safe @nogc pure nothrow;
 
 private alias SpecCb = void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow;
-
-ExprRef funBodyExprRef(FunDecl* a) =>
-	ExprRef(&a.body_.as!Expr(), a.returnType);
-ExprRef testBodyExprRef(ref CommonTypes commonTypes, Test* a) =>
-	ExprRef(&a.body_, Type(commonTypes.void_));
 
 void eachSpecParent(in SpecDecl a, in SpecCb cb) {
 	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in SpecUseAst ast) {
@@ -139,7 +88,9 @@ Opt!T findInPackedTypeArgs(T)(in Type[] typeArgs, in Opt!TypeAst ast, in TypeCbO
 	}
 }
 
-private Opt!T findInTypeArgs(T)(in Type[] typeArgs, in TypeAst ast, in TypeCbOpt!T cb) =>
+private:
+
+Opt!T findInTypeArgs(T)(in Type[] typeArgs, in TypeAst ast, in TypeCbOpt!T cb) =>
 	ast.match!(Opt!T)(
 		(TypeAst.Bogus) =>
 			none!T,
@@ -162,16 +113,16 @@ private Opt!T findInTypeArgs(T)(in Type[] typeArgs, in TypeAst ast, in TypeCbOpt
 		(ref TypeAst.Tuple x) =>
 			zipEachTypeArg!T(typeArgs, x.members, cb));
 
-private Opt!T zipEachTypeArgMayUnpackTuple(T)(in Type[] typeArgs, in TypeAst typeArgAst, in TypeCbOpt!T cb) =>
+Opt!T zipEachTypeArgMayUnpackTuple(T)(in Type[] typeArgs, in TypeAst typeArgAst, in TypeCbOpt!T cb) =>
 	zipEachTypeArg!T(
 		typeArgs,
 		typeArgs.length == 1 ? arrayOfSingle(ptrTrustMe(typeArgAst)) : typeArgAst.as!(TypeAst.Tuple*).members,
 		cb);
 
-private Opt!T zipEachTypeArg(T)(in Type[] typeArgs, in TypeAst[] typeArgAsts, in TypeCbOpt!T cb) =>
+Opt!T zipEachTypeArg(T)(in Type[] typeArgs, in TypeAst[] typeArgAsts, in TypeCbOpt!T cb) =>
 	firstZip!(T, Type, TypeAst)(typeArgs, typeArgAsts, (Type x, TypeAst y) => cb(x, y));
 
-private Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst, in TypeCbOpt!T cb) =>
+Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst, in TypeCbOpt!T cb) =>
 	paramsAst.matchIn!(Opt!T)(
 		(in DestructureAst[] params) =>
 			params.length == 1
@@ -180,11 +131,16 @@ private Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst
 		(in ParamsAst.Varargs) =>
 			none!T);
 
-private Opt!T eachTypeInDestructureParts(T)(in Type type, in DestructureAst[] parts, in TypeCbOpt!T cb) =>
-	firstZip!(T, Type, DestructureAst)(type.as!(StructInst*).typeArgs, parts, (Type typeArg, DestructureAst param) =>
-		eachTypeInDestructure!T(typeArg, param, cb));
+Opt!T eachTypeInDestructureParts(T)(in Type type, in DestructureAst[] parts, in TypeCbOpt!T cb) =>
+	type.isBogus
+		? none!T
+		: firstZip!(T, Type, DestructureAst)(
+			type.as!(StructInst*).typeArgs,
+			parts,
+			(Type typeArg, DestructureAst param) =>
+				eachTypeInDestructure!T(typeArg, param, cb));
 
-private Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in TypeCbOpt!T cb) =>
+Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in TypeCbOpt!T cb) =>
 	ast.matchIn!(Opt!T)(
 		(in DestructureAst.Single x) =>
 			has(x.type) ? cb(type, *force(x.type)) : none!T,
@@ -192,174 +148,3 @@ private Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in T
 			none!T,
 		(in DestructureAst[] parts) =>
 			eachTypeInDestructureParts!T(type, parts, cb));
-
-void eachDescendentExprIncluding(
-	ref CommonTypes commonTypes,
-	ExprRef a,
-	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
-) {
-	cb(a);
-	eachDescendentExprExcluding(commonTypes, a, cb);
-}
-
-void eachDescendentExprExcluding(
-	ref CommonTypes commonTypes,
-	ExprRef a,
-	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
-) {
-	eachDirectChildExpr(commonTypes, a, (ExprRef x) {
-		eachDescendentExprIncluding(commonTypes, x, cb);
-	});
-}
-
-private void eachDirectChildExpr(
-	ref CommonTypes commonTypes,
-	ExprRef a,
-	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
-) {
-	Opt!bool res = findDirectChildExpr!bool(commonTypes, a, (ExprRef x) {
-		cb(x);
-		return none!bool;
-	});
-	assert(!has(res));
-}
-
-Opt!T findDirectChildExpr(T)(
-	ref CommonTypes commonTypes,
-	ExprRef a,
-	in Opt!T delegate(ExprRef) @safe @nogc pure nothrow cb,
-) {
-	Type boolType = Type(commonTypes.bool_);
-	Type exceptionType = Type(commonTypes.exception);
-	Type voidType = Type(commonTypes.void_);
-	ExprRef sameType(Expr* x) =>
-		ExprRef(x, a.type);
-	ExprRef toRef(ExprAndType* x) =>
-		ExprRef(&x.expr, x.type);
-
-	ExprRef directChildInCondition(Condition cond) =>
-		cond.matchWithPointers!ExprRef(
-			(Expr* x) =>
-				ExprRef(x, boolType),
-			(Condition.UnpackOption* x) =>
-				toRef(&x.option));
-	Opt!T directChildInMatchVariantCases(MatchVariantExpr.Case[] cases) =>
-		firstPointer!(T, MatchVariantExpr.Case)(cases, (MatchVariantExpr.Case* x) =>
-			cb(sameType(&x.then)));
-
-	return a.expr.kind.matchWithPointers!(Opt!T)(
-		(AssertOrForbidExpr* x) =>
-			optOr!T(
-				cb(directChildInCondition(x.condition)),
-				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), exceptionType)) : none!T,
-				() => cb(sameType(&x.after))),
-		(BogusExpr _) =>
-			none!T,
-		(CallExpr x) {
-			assert(a.type == x.called.returnType);
-			if (x.called.isVariadic) {
-				Type argType = arrayElementType(commonTypes, only(x.called.paramTypes));
-				return firstPointer!(T, Expr)(x.args, (Expr* e) => cb(ExprRef(e, argType)));
-			} else
-				return firstZipPointerFirst!(T, Expr, Type)(x.args, x.called.paramTypes, (Expr* e, Type t) =>
-					cb(ExprRef(e, t)));
-		},
-		(CallOptionExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.firstArg)),
-				() => firstZipPointerFirst!(T, Expr, Type)(x.restArgs, x.called.paramTypes[1 .. $], (Expr* e, Type t) =>
-					cb(ExprRef(e, t)))),
-		(ClosureGetExpr x) {
-			assert(a.type == x.local.type);
-			return none!T;
-		},
-		(ClosureSetExpr x) {
-			assert(a.type == voidType);
-			return cb(ExprRef(x.value, x.local.type));
-		},
-		(FinallyExpr* x) =>
-			optOr!T(
-				cb(ExprRef(&x.right, voidType)),
-				() => cb(sameType(&x.below))),
-		(FunPointerExpr _) =>
-			none!T,
-		(IfExpr* x) =>
-			optOr!T(
-				cb(directChildInCondition(x.condition)),
-				() => cb(sameType(&x.firstBranch(a.expr.ast))),
-				() => cb(sameType(&x.secondBranch(a.expr.ast)))),
-		(LambdaExpr* x) =>
-			cb(ExprRef(&x.body_(), x.returnType)),
-		(LetExpr* x) =>
-			optOr!T(cb(ExprRef(&x.value, x.destructure.type)), () => cb(sameType(&x.then))),
-		(LiteralExpr _) =>
-			none!T,
-		(LiteralStringLikeExpr _) =>
-			none!T,
-		(LocalGetExpr x) {
-			assert(a.type == x.local.type);
-			return none!T;
-		},
-		(LocalPointerExpr _) =>
-			none!T,
-		(LocalSetExpr x) {
-			assert(a.type == voidType);
-			return cb(ExprRef(x.value, x.local.type));
-		},
-		(LoopExpr* x) =>
-			cb(sameType(&x.body_)),
-		(LoopBreakExpr* x) =>
-			cb(sameType(&x.value)),
-		(LoopContinueExpr _) =>
-			none!T,
-		(LoopWhileOrUntilExpr* x) =>
-			optOr!T(
-				cb(directChildInCondition(x.condition)),
-				() => cb(ExprRef(&x.body_, voidType)),
-				() => cb(sameType(&x.after))),
-		(MatchEnumExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.matched)),
-				() => firstPointer!(T, MatchEnumExpr.Case)(x.cases, (MatchEnumExpr.Case* y) => cb(sameType(&y.then))),
-				() => has(x.else_) ? cb(sameType(&force(x.else_))) : none!T),
-		(MatchIntegralExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.matched)),
-				() => firstPointer!(T, MatchIntegralExpr.Case)(x.cases, (MatchIntegralExpr.Case* y) =>
-					cb(sameType(&y.then))),
-				() => cb(sameType(&x.else_))),
-		(MatchStringLikeExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.matched)),
-				() => firstPointer!(T, MatchStringLikeExpr.Case)(x.cases, (MatchStringLikeExpr.Case* y) =>
-					cb(sameType(&y.then))),
-				() => cb(sameType(&x.else_))),
-		(MatchUnionExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.matched)),
-				() => firstPointer!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case* case_) =>
-					cb(sameType(&case_.then))),
-				() => has(x.else_) ? cb(sameType(force(x.else_))) : none!T),
-		(MatchVariantExpr* x) =>
-			optOr!T(
-				cb(toRef(&x.matched)),
-				() => directChildInMatchVariantCases(x.cases),
-				() => cb(sameType(&x.else_))),
-		(RecordFieldPointerExpr* x) =>
-			cb(toRef(&x.target)),
-		(SeqExpr* x) =>
-			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(&x.then))),
-		(ThrowExpr* x) =>
-			cb(ExprRef(&x.thrown, exceptionType)),
-		(TrustedExpr* x) =>
-			cb(sameType(&x.inner)),
-		(TryExpr* x) =>
-			optOr!T(cb(sameType(&x.tried)), () => directChildInMatchVariantCases(x.catches)),
-		(TryLetExpr* x) =>
-			optOr!T(
-				cb(ExprRef(&x.value, x.destructure.type)),
-				() => cb(sameType(&x.catch_.then)),
-				() => cb(sameType(&x.then))),
-		(TypedExpr* x) =>
-			cb(sameType(&x.inner)));
-}

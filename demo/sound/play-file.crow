@@ -7,7 +7,7 @@ import
 	audio/read-sound-file: read-sound-file
 	audio/sound: sample-rate, with-sample-rate
 
-main nat(args string[]) summon
+main nat(args string[]) summon, (native, sndfile, SDL2) extern
 	assert args.size == 1 : "Usage: crow play-file.crow toccata.ogg" error
 	audio = start-sdl-audio
 	sound = args[0].read-sound-file with-sample-rate audio.format.sample-rate

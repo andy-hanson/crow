@@ -13,10 +13,11 @@ import concretize.concretizeExpr :
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	fieldIndexFromField,
 	genConstant,
 	genCreateRecord,
 	genCreateUnion,
-	genLocalGet,
+	genIdentifier,
 	genRecordFieldCall,
 	genRecordFieldGet,
 	genRecordFieldPointer,
@@ -46,6 +47,8 @@ import model.concreteModel :
 	hasSizeOrPointerSizeBytes,
 	isBogus,
 	mustBeByVal,
+	pointeeType,
+	pointeeTypeIfIsPointer,
 	purity,
 	ReferenceKind,
 	sizeOrPointerSizeBytes,
@@ -57,20 +60,24 @@ import model.model :
 	BuiltinType,
 	CommonTypes,
 	Destructure,
-	EnumFunction,
-	EnumOrFlagsMember,
+	eachTest,
+	EnumOrFlagsFunction,
 	Expr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
+	getAllFlagsValue,
 	ImportFileContent,
 	IntegralType,
+	isArrayOrMutSlice,
+	isFuture,
 	isLambdaType,
-	isNonFunctionPointer,
+	isMutArray,
+	isPointerConstOrMut,
+	isString,
+	isSymbol,
 	isTuple,
 	Local,
-	Module,
 	paramsArray,
 	Program,
 	Purity,
@@ -95,9 +102,9 @@ import util.col.array :
 	isEmpty,
 	map,
 	mapPointers,
-	mapPointersWithIndex,
 	mapZip,
 	maxBy,
+	mustHaveIndexOfPointer,
 	newSmallArray,
 	only,
 	onlyPointer,
@@ -105,6 +112,7 @@ import util.col.array :
 	SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
+import util.col.map : mustGet;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
@@ -113,6 +121,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : OS, VersionInfo;
 
@@ -162,12 +171,10 @@ struct ConcretizeCtx {
 	immutable VersionInfo versionInfo;
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
+	SymbolSet allExterns;
 	Late!(ConcreteFun*) createErrorFunction_;
-	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
-	Late!(ConcreteFun*) newChar8ListFunction_;
-	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructSource.Inst, getStructKey) nonLambdaConcreteStructs;
@@ -183,15 +190,13 @@ struct ConcretizeCtx {
 	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMemberAndMethodImpls) variantStructToMembers;
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
-	Late!ConcreteType _char8Type;
 	Late!ConcreteType _char8ArrayType;
-	Late!ConcreteType _char32Type;
+	Late!ConcreteType _char8ConstPointerType;
 	Late!ConcreteType _char32ArrayType;
 	Late!ConcreteType _exceptionType;
 	Late!ConcreteType _voidType;
 	Late!ConcreteType _nat64Type;
 	Late!ConcreteType _ctxType;
-	Late!ConcreteType _stringType;
 	Late!ConcreteType _symbolType;
 
 	ref Alloc alloc() return scope =>
@@ -200,17 +205,11 @@ struct ConcretizeCtx {
 	ref Program program() return scope const =>
 		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
-		*program.commonTypes;
-	ConcreteFun* char8ArrayTrustAsString() return scope const =>
-		lateGet(char8ArrayTrustAsString_);
+		program.commonTypes;
 	ConcreteFun* equalNat64Function() return scope const =>
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>
 		lateGet(lessNat64Function_);
-	ConcreteFun* newChar8ListFunction() return scope const =>
-		lateGet(newChar8ListFunction_);
-	ConcreteFun* newChar32ListFunction() return scope const =>
-		lateGet(newChar32ListFunction_);
 	ConcreteFun* newJsonFromPairsFunction() return scope const =>
 		lateGet(newJsonFromPairsFunction_);
 	ConcreteFun* createErrorFunction() return scope const =>
@@ -261,17 +260,12 @@ ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, emptySmallArray!ConcreteType));
 
-ConcreteType char8Type(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._char8Type, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.char8, emptySmallArray!ConcreteType));
-
 ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
-
-ConcreteType char32Type(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._char32Type, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.char32, emptySmallArray!ConcreteType));
+private ConcreteType char8ConstPointerType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char8ConstPointerType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char8ConstPointer, emptySmallArray!ConcreteType));
 
 ConcreteType char32ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char32ArrayType, () =>
@@ -284,9 +278,6 @@ ConcreteType nat64Type(ref ConcretizeCtx a) =>
 ConcreteType exceptionType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._exceptionType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.exception, emptySmallArray!ConcreteType));
-ConcreteType stringType(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._stringType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.string_, emptySmallArray!ConcreteType));
 
 ConcreteType symbolType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._symbolType, () =>
@@ -353,8 +344,16 @@ private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
 	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
-) =>
-	withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
+) {
+	if (isFuture(*inst) || isMutArray(*inst))
+		return getConcreteType_forStructInst(
+			ctx, mustGet(ctx.program.otherTypes.futureOrMutArrayToImpl, inst), typeArgsScope);
+	if (isString(Type(inst)))
+		return char8ArrayType(ctx);
+	if (isSymbol(Type(inst)))
+		return char8ConstPointerType(ctx);
+
+	return withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
 		StructDecl* decl = inst.decl;
 		scope ConcreteStructSource.Inst key = ConcreteStructSource.Inst(decl, small!ConcreteType(typeArgs));
 		ValueAndDidAdd!(ConcreteStruct*) res =
@@ -363,13 +362,13 @@ private ConcreteType getConcreteType_forStructInst(
 					Purity purity = fold!(Purity, ConcreteType)(
 						decl.purity, typeArgs, (Purity p, in ConcreteType ta) =>
 							worsePurity(p, purity(ta)));
-					ConcreteStruct.SpecialKind specialKind = decl == ctx.commonTypes.array
-						? ConcreteStruct.SpecialKind.array
+					ConcreteStruct.SpecialKind specialKind = isArrayOrMutSlice(*decl)
+						? ConcreteStruct.SpecialKind.arrayOrMutArray
 						: inst == ctx.program.commonFuns.catchPointType
 						? ConcreteStruct.SpecialKind.catchPoint
 						: inst == ctx.commonTypes.fiber
 						? ConcreteStruct.SpecialKind.fiber
-						: isNonFunctionPointer(ctx.commonTypes, decl)
+						: isPointerConstOrMut(*decl)
 						? ConcreteStruct.SpecialKind.pointer
 						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple
@@ -383,7 +382,7 @@ private ConcreteType getConcreteType_forStructInst(
 				});
 		if (res.didAdd) {
 			initializeConcreteStruct(ctx, *inst, res.value, typeArgsScope);
-			if (isLambdaType(ctx.commonTypes, decl))
+			if (isLambdaType(*decl))
 				mustAdd(ctx.alloc, ctx.lambdaStructToImpls, res.value, MutArr!ConcreteLambdaImpl());
 		}
 		if (!res.value.defaultReferenceKindIsSet)
@@ -392,6 +391,7 @@ private ConcreteType getConcreteType_forStructInst(
 			res.value.defaultReferenceKind = ReferenceKind.byRef;
 		return ConcreteType(res.value.defaultReferenceKind, res.value);
 	});
+}
 
 ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typeArgsScope) =>
 	t.matchWithPointers!ConcreteType(
@@ -490,19 +490,17 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 	add(ctx.alloc, ctx.allConcreteFuns, fun);
 }
 
-ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
-	Test[] allTests = buildArray!Test(ctx.alloc, (scope ref Builder!Test res) {
-		foreach (immutable Module* m; ctx.program.allModules)
-			res ~= m.tests;
-	});
-	Constant arr = getConstantArray(
+ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) =>
+	ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(getConstantArray(
 		ctx.alloc,
 		ctx.allConstants,
 		mustBeByVal(returnType),
-		mapPointersWithIndex!(Constant, Test)(ctx.alloc, allTests, (size_t testIndex, Test* x) =>
-			Constant(Constant.FunPointer(concreteFunForTest(ctx, x, testIndex)))));
-	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
-}
+		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
+			size_t testIndex = 0;
+			eachTest(ctx.program, ctx.allExterns, (Test* test) {
+				out_ ~= Constant(Constant.FunPointer(concreteFunForTest(ctx, test, testIndex++)));
+			});
+		})))));
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, Test* test, size_t testIndex) {
 	ConcreteType voidType = voidType(ctx);
@@ -515,8 +513,8 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, Test* test, size_t testIn
 	return res;
 }
 
-public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringList, FunInst* modelMain) {
-	ConcreteType stringListType = getConcreteType_forStructInst(ctx, modelStringList, emptySmallArray!ConcreteType);
+public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringArray, FunInst* modelMain) {
+	ConcreteType stringArrayType = getConcreteType_forStructInst(ctx, modelStringArray, emptySmallArray!ConcreteType);
 	ConcreteFun* innerMain = getNonTemplateConcreteFun(ctx, modelMain);
 	/*
 	This is like:
@@ -534,7 +532,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		nat64,
 		newSmallArray(ctx.alloc, [
-			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringArrayType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
@@ -756,14 +754,19 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		(FunBody.CreateVariant x) =>
 			createUnionBody(ctx.alloc, cf, ensureVariantMember(
 				ctx, cf.returnType, isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
-		(EnumFunction x) {
+		(EnumOrFlagsFunction x) {
 			final switch (x) {
-				case EnumFunction.equal:
-				case EnumFunction.intersect:
-				case EnumFunction.toIntegral:
-				case EnumFunction.union_:
+				case EnumOrFlagsFunction.negate:
+					return ConcreteFunBody(ConcreteFunBody.FlagsFn(
+						getAllFlagsValue(mustBeByVal(cf.returnType)),
+						x));
+				case EnumOrFlagsFunction.equal:
+				case EnumOrFlagsFunction.intersect:
+				case EnumOrFlagsFunction.none:
+				case EnumOrFlagsFunction.toIntegral:
+				case EnumOrFlagsFunction.union_:
 					return ConcreteFunBody(x);
-				case EnumFunction.members:
+				case EnumOrFlagsFunction.members:
 					return bodyForEnumOrFlagsMembers(ctx, cf.returnType);
 			}
 		},
@@ -773,33 +776,29 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
 		(FunBody.FileImport x) =>
 			ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
-		(FlagsFunction it) =>
-			ConcreteFunBody(ConcreteFunBody.FlagsFn(
-				getAllFlagsValue(mustBeByVal(cf.returnType)),
-				it)),
 		(FunBody.RecordFieldCall x) =>
 			genRecordFieldCall(ctx, cf, x),
 		(FunBody.RecordFieldGet x) =>
 			ConcreteFunBody(genRecordFieldGet(
 				cf.returnType, cf.range,
-				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
-				x.fieldIndex)),
+				allocate(ctx.alloc, genIdentifier(cf.range, onlyPointer(cf.params))),
+				fieldIndexFromField(only(cf.params).type, x.field))),
 		(FunBody.RecordFieldPointer x) =>
 			ConcreteFunBody(genRecordFieldPointer(
 				cf.returnType, cf.range,
-				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
-				x.fieldIndex)),
+				allocate(ctx.alloc, genIdentifier(cf.range, onlyPointer(cf.params))),
+				fieldIndexFromField(pointeeType(only(cf.params).type), x.field))),
 		(FunBody.RecordFieldSet x) {
 			assert(cf.params.length == 2);
 			return ConcreteFunBody(genRecordFieldSet(
 				ctx,
 				cf.range,
-				genLocalGet(cf.range, &cf.params[0]),
-				x.fieldIndex,
-				genLocalGet(cf.range, &cf.params[1])));
+				genIdentifier(cf.range, &cf.params[0]),
+				fieldIndexFromField(pointeeTypeIfIsPointer(cf.params[0].type), x.field),
+				genIdentifier(cf.range, &cf.params[1])));
 		},
 		(FunBody.UnionMemberGet x) =>
-			genUnionMemberGet(ctx, cf, x.memberIndex),
+			genUnionMemberGet(ctx, cf, unionMemberIndex(only(concreteParams).type, x.member)),
 		(FunBody.VarGet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
 		(FunBody.VariantMemberGet x) =>
@@ -815,6 +814,10 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);
 }
+size_t unionMemberIndex(ConcreteType union_, UnionMember* member) =>
+	mustHaveIndexOfPointer(
+		mustBeByVal(union_).source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Union*).members,
+		member);
 
 ConcreteExpr genCreateRecordFromParams(
 	ref Alloc alloc,
@@ -823,13 +826,13 @@ ConcreteExpr genCreateRecordFromParams(
 	ConcreteLocal[] params,
 ) =>
 	genCreateRecord(recordType, range, mapPointers(alloc, params, (ConcreteLocal* param) =>
-		genLocalGet(range, param)));
+		genIdentifier(range, param)));
 
 ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
 	isEmpty(cf.params)
 		? ConcreteFunBody(genConstantUnionEmptyMemberType(alloc, cf.returnType, cf.range, memberIndex))
 		: ConcreteFunBody(genCreateUnion(
-			alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
+			alloc, cf.returnType, cf.range, memberIndex, genIdentifier(cf.range, onlyPointer(cf.params))));
 
 ConcreteExpr genConstantUnionEmptyMemberType(
 	ref Alloc alloc,
@@ -863,16 +866,10 @@ public ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, emptySmallArray!ConcreteType))));
 
 ulong getAllFlagsValue(ConcreteStruct* a) =>
-	fold!(ulong, EnumOrFlagsMember)(
-		0,
-		a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags).members,
-		(ulong a, in EnumOrFlagsMember b) =>
-			a | b.value.asUnsigned());
+	getAllFlagsValue(a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags));
 
 TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 	final switch (kind) {
-		case BuiltinType.void_:
-			return TypeSize(0, 1);
 		case BuiltinType.bool_:
 		case BuiltinType.char8:
 		case BuiltinType.int8:
@@ -892,8 +889,15 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.nat64:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
+		case BuiltinType.symbol:
 			return TypeSize(8, 8);
-		case BuiltinType.lambda:
+		case BuiltinType.future: // Replaced by 'future-impl'
+		case BuiltinType.lambda: // Replaced by variants
+		case BuiltinType.mutArray: // Replaced by 'mut-array-impl'
+			assert(false);
+		case BuiltinType.array:
+		case BuiltinType.mutSlice:
+		case BuiltinType.string_:
 			return TypeSize(16, 8);
 		case BuiltinType.catchPoint:
 			if (version_.isInterpreted)
@@ -904,6 +908,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 					case OS.linux:
 						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_posix.c
 						return TypeSize(0x40, 8);
+					case OS.nodeJs:
 					case OS.web:
 						// Always interpreted
 						assert(false);
@@ -911,5 +916,8 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
 						return TypeSize(0x100, 16);
 				}
+		case BuiltinType.jsAny: // JS builds don't use concretize. But JS type may appear in a union.
+		case BuiltinType.void_:
+			return TypeSize(0, 1);
 	}
 }

@@ -1,45 +1,44 @@
 import
 	crow/io/process: has-error, spawn-and-wait-result, stderr, stdout
 	crow/parse: ~~, force, parse, spaces
-	crow/version: is-windows
 	./module
 
-get-modules module[](paths string[], remove-prefix string) summon
+get-modules module[](paths string[], remove-prefix string) summon, native extern
 	result = crow-path spawn-and-wait-result "document" ~ paths
 	forbid result has-error : "Could not get documentation. stderr: {result stderr}" error
-	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
+	(json ~~ spaces) parse! result.stdout to-modules remove-prefix
 
 -crow-path string()
-	if trusted is-windows
+	if trusted extern windows
 		"bin\\crow.exe"
 	else
 		"bin/crow"
 
 -to-modules module[](a json, remove-prefix string)
-	res module[] = for x : a["modules"].list!
+	res module[] = for x : a["modules"] list!
 		x to-module remove-prefix
-	res filter x => !x.exports.is-empty
+	res filter x => x.exports !is-empty
 
 -to-module module(a json, remove-prefix string)
 	path = a["uri"] to-path remove-prefix
-	path, a.get-doc, for x : a["exports"].list!
+	path, a.get-doc, for x : a["exports"] list!
 		x to-export
 
 -to-path symbol(a json, remove-prefix string)
-	(a.string! try-remove-start remove-prefix)! to
+	a.string! try-remove-start! remove-prefix to
 
 -get-doc string(a json)
 	doc = a["doc"]
-	doc == null ? "" : doc.string!
+	doc == null ? "" : doc string!
 
 -to-export module-export(a json)
 	t = a["type-params"]
-	type-params type-param[] = for x : t.list-or-null!; x to-type-param
+	type-params type-param[] = for x : t list-or-null!; x to-type-param
 	value = a["value"] to-export-value
 	a.get-name, a.get-doc, type-params, value
 
 -to-export-value module-export-value(a json)
-	kind = a["kind"].symbol!
+	kind = a["kind"] symbol!
 	match kind
 	as "alias"
 		a.to-alias-decl alias-decl
@@ -49,14 +48,18 @@ get-modules module[](paths string[], remove-prefix string) summon
 		a.to-enum-decl enum-decl
 	as "extern"
 		extern-decl
+	as "global"
+		(var-global, a.get-type) var-decl
 	as "flags"
 		a.to-flags-decl flags-decl
 	as "fun"
 		a.to-fun-decl fun-decl
-	as "spec"
-		a.to-spec-decl spec-decl
 	as "record"
 		a.to-record-decl record-decl
+	as "spec"
+		a.to-spec-decl spec-decl
+	as "thread-local"
+		(var-thread-local, a.get-type) var-decl
 	as "union"
 		a.to-union-decl union-decl
 	as "variant"
@@ -75,17 +78,17 @@ get-modules module[](paths string[], remove-prefix string) summon
 	a.get-enum-flags-members,
 
 -get-enum-flags-members symbol[](a json)
-	for x : a["members"].list!
+	for x : a["members"] list!
 		x.string! to
 
 -to-record-decl record-decl(a json)
 	purity: a get-purity
-	variants: for x : a["variants"].list-or-null!
+	variants: for x : a["variants"] list-or-null!
 		x to-type-ref
-	fields: for x : a["fields"].list!
+	fields: for x : a["fields"] list!
 		x to-record-field
-	has-non-public-fields: a["has-non-public-fields"].bool-or-null!
-	nominal_: a["nominal"].bool-or-null!
+	has-non-public-fields: a["has-non-public-fields"] bool-or-null!
+	nominal_: a["nominal"] bool-or-null!
 
 -get-purity purity(a json)
 	p = a["purity"]
@@ -103,7 +106,7 @@ get-modules module[](paths string[], remove-prefix string) summon
 	a.get-name, a.get-type, a["mut"].bool-or-null!
 
 -to-union-decl union-decl(a json)
-	a.get-purity, for x : a["members"].list!
+	a.get-purity, for x : a["members"] list!
 		x to-union-member
 
 -to-union-member union-member(a json)
@@ -114,7 +117,7 @@ get-modules module[](paths string[], remove-prefix string) summon
 	a.get-purity,
 
 -get-name symbol(a json)
-	a["name"].symbol!
+	a["name"] symbol!
 
 -to-type-param type-param(a json)
 	a.get-name,
@@ -123,19 +126,19 @@ get-modules module[](paths string[], remove-prefix string) summon
 	a["type"] to-type-ref
 
 -get-type-args type-ref[](a json)
-	for x : a["type-args"].list-or-null!
+	for x : a["type-args"] list-or-null!
 		x to-type-ref
 
 -to-fun-decl fun-decl(a json)
-	variadic = a["variadic"].bool-or-null!
-	a.get-return-type, variadic, a.get-params, for x : a["specs"].list-or-null!
+	variadic = a["variadic"] bool-or-null!
+	a.get-return-type, variadic, a.get-params, for x : a["specs"] list-or-null!
 		x to-spec-ref
 
 -to-spec-decl spec-decl(a json)
-	is-builtin = a["builtin"].bool-or-null!
-	parents spec-ref[] = for x : a["parents"].list!
+	is-builtin = a["builtin"] bool-or-null!
+	parents spec-ref[] = for x : a["parents"] list!
 		x to-spec-ref
-	sigs spec-sig[] = for x : a["sigs"].list!
+	sigs spec-sig[] = for x : a["sigs"] list!
 		x to-sig
 	is-builtin, parents, sigs
 
@@ -146,15 +149,15 @@ get-modules module[](paths string[], remove-prefix string) summon
 	a["return-type"] to-type-ref
 
 -get-params param[](a json)
-	for x : a["params"].list!
+	for x : a["params"] list!
 		x to-param
 
 -to-param param(a json)
 	a.get-name, a.get-type
 
 -to-type-ref type-ref(a json)
-	name symbol = a["name"].symbol!
-	match a["kind"].symbol!
+	name symbol = a["name"] symbol!
+	match a["kind"] symbol!
 	as type-param
 		name, ()
 	as struct
@@ -163,8 +166,8 @@ get-modules module[](paths string[], remove-prefix string) summon
 		throw "bad type-ref {a}" error
 
 -to-spec-ref spec-ref(a json)
-	name symbol = a["name"].symbol!
-	match a["kind"].symbol!
+	name symbol = a["name"] symbol!
+	match a["kind"] symbol!
 	as "special"
 		name, ()
 	as "spec"

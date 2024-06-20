@@ -2,9 +2,9 @@
 +sound record
 	-ignore void
 	format sound-format
-	samples float32 array
+	samples float32[]
 
-+new sound(format sound-format, samples float32 array)
++new sound(format sound-format, samples float32[])
 	nc = format n-channels
 	ns = samples size
 	assert ns is-multiple-of nc :
@@ -22,7 +22,7 @@
 +samples-per-second nat64(a sound-format)
 	a.n-channels * a.sample-rate
 
-+to string(a sound-format)
++show string(a sound-format)
 	"{a n-channels}×{a sample-rate}Hz"
 
 +* sound(a sound, b float32)
@@ -35,7 +35,7 @@
 	old-sample-rate = a.format sample-rate
 	new-n-samples = a.samples.size * new-sample-rate / old-sample-rate \
 		round-down-to-multiple-of n-channels
-	new-samples float32 array = for i : 0::nat64 .. new-n-samples
+	new-samples float32[] = for i : 0::nat64 .. new-n-samples
 		channel = i % n-channels
 		out-frame = i / n-channels
 		in-frame = out-frame * old-sample-rate / new-sample-rate

@@ -1,3 +1,6 @@
+import
+	./mut-slice
+
 ###
 Mutable grid (matrix) type.
 This is intended for data that happens to fall in a grid; it may not be ideal for linear algebra.
@@ -9,7 +12,7 @@ then the second row left-to-right, etc.
 Grid elements are mutable, but changing the width or height is not supported.
 ###
 +mut-grid[t] record mut
-	-elements t mut-array
+	-elements t mut-slice
 	width nat64
 	height nat64
 
@@ -28,7 +31,7 @@ Coordinate in a grid.
 +== bool(a coord, b coord) bare
 
 # `"<x, y>"`
-+to string(a coord)
++show string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
@@ -40,7 +43,7 @@ Returns the entire row `y`.
 This is O(1).
 Throws if `y` is out of range.
 ###
-+row[t] t mut-array(a t mut-grid, y nat64)
++row[t] t mut-slice(a t mut-grid, y nat64)
 	assert y < a.height
 	begin = y * a.width
 	a.elements[begin .. begin + a.width]
@@ -55,7 +58,7 @@ Throws if `y` is out of range.
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 +make[t] t mut-grid(width nat64, height nat64, f t mut(x nat64, y nat64))
-	elements t mut-array = with out : width * height build
+	elements t mut-slice = with out : width * height build
 		for y : 0::nat64 .. height
 			for x : 0::nat64 .. width
 				out ~= f[x, y]
@@ -84,7 +87,7 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-+to[t] string(a t mut-grid) (string, t) to
++show[t] string(a t mut-grid) t show
 	"\n" join for row : a rows
 		" " join for value : row
 			"{value}"
@@ -97,7 +100,7 @@ region rows
 	a,
 +size[t] nat64(a t mut-grid-rows)
 	a.inner height
-+iterate[t] bool(a t mut-grid-rows, f bool mut(elem t mut-array))
++iterate[t] bool(a t mut-grid-rows, f bool mut(elem t mut-slice))
 	0::nat64 .. a.size iterate y =>
 		f[a.inner row y]
 
@@ -124,7 +127,7 @@ region spec impls (see collection.crow)
 
 test
 	a string mut-grid = 3 make 2, (x, y) => "{x}|{y}"
-	a.to::string is "0|0 1|0 2|0\n0|1 1|1 2|1"
+	a.show is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	values = " " join for coord, value : a with-coords
 		"{coord}/{value}"

@@ -21,8 +21,8 @@ New map containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-+new[k, v] (k, v) mut-sorted-map(...a (k, v) array) k key
-	a.to to
++new[k, v] (k, v) mut-sorted-map(...a (k, v)[]) k key
+	a to
 
 +to[k, v] (k, v) mut-sorted-map(a (k, v)[]) k key
 	res (k, v) mut-sorted-map = ()::(k, v?) mut[], 0, ()
@@ -62,7 +62,7 @@ This is O(log n).
 ###
 +subscript[k, v] v?(a (k, v) mut-sorted-map, key k) k key
 	if iter ?= a find-exact key
-		(_, v), _ = iter.next!
+		(_, v), _ = iter next!
 		v
 
 # Adds a key-value pair, replacing any existing one with that key.
@@ -173,7 +173,7 @@ Else, returns an empty option.
 			_, v = a.pairs remove-at iter.next-index
 			v
 		else
-			(_, old-value), _ = iter.next!
+			(_, old-value), _ = iter next!
 			iter.next := key, ()
 			old-value
 		unless res is-empty
@@ -203,13 +203,13 @@ Else, returns an empty option.
 -compact[k, v] void(a (k, v) mut-sorted-map) k key
 	guard next ?= a next
 	next compact
-	a.pairs filter= (_, v) => !v.is-empty
+	a.pairs filter= (_, v) => v !is-empty
 	a.pairs merge-no-duplicates next.pairs, ((k0, _), (k1, _)) =>
 		k0 <=> k1 assert-comparison-not-equal
 	a.next := ()
 	a.node-size := a.pairs size
 
--find-exact[k, v] (k, v?) mut-list-iterator?(a (k, v) mut-sorted-map, key k) k key
+-find-exact[k, v] (k, v?) mut-array-iterator?(a (k, v) mut-sorted-map, key k) k key
 	a.pairs binary-search-exact (k, _) => key <=> k
 
 region mutating iteration
@@ -243,7 +243,7 @@ region spec impls (see collection.crow)
 		f[k, v!]
 
 +mut-sorted-map-builder[k, v] record mut
-	-inner (k, v) list-builder
+	-inner (k, v) array-builder
 
 +build[k, v] (k, v) mut-sorted-map(
 	a build-options,
@@ -256,9 +256,9 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a (k, v) mut-sorted-map) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) mut-sorted-map) k show, v show
 	pairs = ", " join for k, v : a pairs
-		"{k} -> {v?.to ?? "_"}"
+		"{k} -> {v?.show ?? "_"}"
 	if next ?= a next
 		"[{pairs}], {next dbg}"
 	else

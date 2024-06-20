@@ -117,12 +117,12 @@ immutable struct TypeAst {
 	immutable struct SuffixSpecial {
 		@safe @nogc pure nothrow:
 		enum Kind : ubyte {
-			list,
-			mutList,
+			array,
+			mutArray,
 			mutPtr,
 			option,
 			ptr,
-			sharedList,
+			sharedArray,
 		}
 		TypeAst left;
 		Pos suffixPos;
@@ -174,17 +174,17 @@ static assert(TypeAst.sizeof == size_t.sizeof + NameAndRange.sizeof);
 
 private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.list:
+		case TypeAst.SuffixSpecial.Kind.array:
 			return cast(uint) "[]".length;
 		case TypeAst.SuffixSpecial.Kind.option:
 			return cast(uint) "?".length;
-		case TypeAst.SuffixSpecial.Kind.mutList:
+		case TypeAst.SuffixSpecial.Kind.mutArray:
 			return cast(uint) "mut[]".length;
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return cast(uint) "mut*".length;
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return cast(uint) "*".length;
-		case TypeAst.SuffixSpecial.Kind.sharedList:
+		case TypeAst.SuffixSpecial.Kind.sharedArray:
 			return cast(uint) "shared[]".length;
 	}
 }
@@ -202,18 +202,18 @@ Symbol symbolForTypeAstMap(TypeAst.Map.Kind a) {
 
 Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.list:
-			return symbol!"list";
-		case TypeAst.SuffixSpecial.Kind.mutList:
-			return symbol!"mut-list";
+		case TypeAst.SuffixSpecial.Kind.array:
+			return symbol!"array";
+		case TypeAst.SuffixSpecial.Kind.mutArray:
+			return symbol!"mut-array";
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return symbol!"mut-pointer";
 		case TypeAst.SuffixSpecial.Kind.option:
 			return symbol!"option";
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return symbol!"const-pointer";
-		case TypeAst.SuffixSpecial.Kind.sharedList:
-			return symbol!"shared-list";
+		case TypeAst.SuffixSpecial.Kind.sharedArray:
+			return symbol!"shared-array";
 	}
 }
 
@@ -231,24 +231,24 @@ immutable struct ArrowAccessAst {
 
 immutable struct AssertOrForbidAst {
 	@safe @nogc pure nothrow:
-	immutable struct Thrown {
-		@safe @nogc pure nothrow:
-		Pos colonPos;
-		ExprAst expr;
-
-		Range colonRange() scope =>
-			rangeOfStartAndLength(colonPos, ":".length);
-	}
 
 	bool isForbid;
 	ConditionAst condition;
-	Opt!(Thrown*) thrown;
+	Opt!(AssertOrForbidThrownAst*) thrown;
 	ExprAst* after;
 
 	Range keywordRange(in ExprAst* ast) scope {
 		static assert("assert".length == "forbid".length);
 		return ast.range[0 .. "assert".length];
 	}
+}
+immutable struct AssertOrForbidThrownAst {
+	@safe @nogc pure nothrow:
+	Pos colonPos;
+	ExprAst expr;
+
+	Range colonRange() scope =>
+		rangeOfStartAndLength(colonPos, ":".length);
 }
 
 // `left := right`
@@ -284,6 +284,7 @@ immutable struct CallAst {
 	@safe @nogc pure nothrow:
 
 	enum Style : ubyte {
+		augment, // This is the call for '!' in 'x !f y' or for '?!' in 'x f?! y'
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		emptyParens, // `()`
@@ -316,6 +317,8 @@ immutable struct CallAst {
 
 	Opt!Range keywordRange() scope {
 		final switch (style) {
+			case Style.augment:
+				return some(funName.range);
 			case Style.comma:
 			case Style.dot:
 			case Style.subscript:
@@ -357,6 +360,10 @@ immutable struct DoAst {
 
 // Used for implicit 'else ()' or implicit '()' after a Let
 immutable struct EmptyAst {}
+
+immutable struct ExternAst {
+	NameAndRange[] names;
+}
 
 immutable struct FinallyAst {
 	@safe @nogc pure nothrow:
@@ -427,6 +434,7 @@ immutable struct IfAst {
 	}
 
 	Kind kind;
+	bool isElseOfParent; // 'ifWithoutElse', 'ifElif', and 'ifElse' could all be the 'else' branch of a preceding 'if'
 	Pos firstKeywordPos; // Position of 'if' or '?' or 'unless'
 	Pos secondKeywordPos_; // Position of 'elif' or 'else' or ':' keyword
 	ConditionAst condition;
@@ -542,6 +550,7 @@ private size_t countIfBranches(IfAst.Kind kind) {
 IfAst createIfAst(
 	ref Alloc alloc,
 	IfAst.Kind kind,
+	bool isElseOfParent,
 	Pos firstKeywordPos,
 	ConditionAst condition,
 	Opt!ExprAst firstBranch,
@@ -551,6 +560,7 @@ IfAst createIfAst(
 	assert(countIfBranches(kind) == has(firstBranch) + has(secondBranch));
 	return IfAst(
 		kind: kind,
+		isElseOfParent: isElseOfParent,
 		firstKeywordPos: firstKeywordPos,
 		secondKeywordPos_: optOrDefault!Pos(secondKeywordPos, () => 0),
 		condition: condition,
@@ -862,6 +872,7 @@ immutable struct ExprAstKind {
 		CallNamedAst,
 		DoAst,
 		EmptyAst,
+		ExternAst,
 		FinallyAst*,
 		ForAst*,
 		IdentifierAst,

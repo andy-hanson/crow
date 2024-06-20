@@ -5,6 +5,7 @@ module model.jsonOfAst;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssertOrForbidThrownAst,
 	AssignmentAst,
 	AssignmentCallAst,
 	BogusAst,
@@ -19,6 +20,7 @@ import model.ast :
 	EnumOrFlagsMemberAst,
 	ExprAst,
 	ExprAstKind,
+	ExternAst,
 	FieldMutabilityAst,
 	FileAst,
 	FinallyAst,
@@ -131,9 +133,7 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, in Ctx ctx, in ImportOrExportAst a
 			(in ImportOrExportAstKind.ModuleWhole) =>
 				jsonString!"whole",
 			(in NameAndRange[] names) =>
-				jsonObject(alloc, [
-					field!"names"(jsonList!NameAndRange(alloc, names, (in NameAndRange name) =>
-						jsonOfNameAndRange(alloc, ctx, name)))]),
+				jsonObject(alloc, [field!"names"(jsonOfNameAndRangeArray(alloc, ctx, names))]),
 			(in ImportOrExportAstKind.File f) =>
 				jsonObject(alloc, [
 					field!"name"(jsonOfNameAndRange(alloc, ctx, f.name)),
@@ -396,6 +396,10 @@ Json jsonOfExprAsts(ref Alloc alloc, in Ctx ctx, in ExprAst[] asts) =>
 	jsonList!ExprAst(alloc, asts, (in ExprAst x) =>
 		jsonOfExprAst(alloc, ctx, x));
 
+Json jsonOfNameAndRangeArray(ref Alloc alloc, in Ctx ctx, in NameAndRange[] a) =>
+	jsonList!NameAndRange(alloc, a, (in NameAndRange x) =>
+		jsonOfNameAndRange(alloc, ctx, x));
+
 Json jsonOfNameAndRange(ref Alloc alloc, in Ctx ctx, in NameAndRange a) =>
 	jsonObject(alloc, [
 		field!"start"(jsonOfLineAndColumn(alloc, ctx.lineAndColumnGetter[a.start, PosKind.startOfRange])),
@@ -412,7 +416,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField(e.isForbid ? "forbid" : "assert"),
 				field!"condition"(jsonOfConditionAst(alloc, ctx, e.condition)),
-				optionalField!("thrown", AssertOrForbidAst.Thrown*)(e.thrown, (in AssertOrForbidAst.Thrown* thrown) =>
+				optionalField!("thrown", AssertOrForbidThrownAst*)(e.thrown, (in AssertOrForbidThrownAst* thrown) =>
 					jsonObject(alloc, [
 						field!"colon"(thrown.colonPos),
 						field!"expr"(jsonOfExprAst(alloc, ctx, thrown.expr))])),
@@ -441,15 +445,16 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in CallNamedAst x) =>
 			jsonObject(alloc, [
 				kindField!"call-named",
-				field!"names"(jsonList!NameAndRange(alloc, x.names, (in NameAndRange y) =>
-					jsonOfNameAndRange(alloc, ctx, y))),
+				field!"names"(jsonOfNameAndRangeArray(alloc, ctx, x.names)),
 				field!"args"(jsonOfExprAsts(alloc, ctx, x.args))]),
 		(in DoAst x) =>
 			jsonObject(alloc, [
 				kindField!"do",
 				field!"body"(jsonOfExprAst(alloc, ctx, *x.body_))]),
-		(in EmptyAst e) =>
+		(in EmptyAst _) =>
 			jsonObject(alloc, [kindField!"empty"]),
+		(in ExternAst x) =>
+			jsonObject(alloc, [kindField!"extern", field!"name"(jsonOfNameAndRangeArray(alloc, ctx, x.names))]),
 		(in FinallyAst x) =>
 			jsonObject(alloc, [
 				kindField!"finally",

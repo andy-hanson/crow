@@ -936,17 +936,17 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowE
 			recordFieldSetToGcc(ctx, locals, emit, it),
 		(Constant x) =>
 			constantToGcc(ctx, emit, a.type, x),
-		(ref LowExprKind.SpecialUnary x) =>
+		(LowExprKind.SpecialUnary x) =>
 			unaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.SpecialUnaryMath x) =>
+		(LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
-		(ref LowExprKind.SpecialBinary x) =>
+		(LowExprKind.SpecialBinary x) =>
 			binaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.SpecialBinaryMath x) =>
+		(LowExprKind.SpecialBinaryMath x) =>
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
-		(ref LowExprKind.SpecialTernary x) =>
+		(LowExprKind.SpecialTernary x) =>
 			ternaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.Special4ary x) =>
+		(LowExprKind.Special4ary x) =>
 			fouraryToGcc(ctx, locals, emit, a.type, x),
 		(ref LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),
@@ -1414,18 +1414,32 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 		callBuiltinUnaryAndCast(ctx, locals, emit, a.arg, x, getGccType(ctx.types, type));
 	ExprResult callFn(const gcc_jit_function* func, bool noSideEffects = false) =>
 		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
+	ExprResult unaryOp(gcc_jit_unary_op op) =>
+		emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_unary_op(
+				ctx.gcc,
+				null,
+				op,
+				getGccType(ctx.types, type),
+				emitToRValue(ctx, locals, a.arg)));
 
 	final switch (a.kind) {
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
+		case BuiltinUnary.toChar8ArrayFromString:
+		case BuiltinUnary.trustAsString:
+			// done in lower
+			assert(false);
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
 		case BuiltinUnary.bitwiseNotNat64:
-			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_unary_op(
-				ctx.gcc,
-				null,
-				gcc_jit_unary_op.GCC_JIT_UNARY_OP_BITWISE_NEGATE,
-				getGccType(ctx.types, type),
-				emitToRValue(ctx, locals, a.arg)));
+			return unaryOp(gcc_jit_unary_op.GCC_JIT_UNARY_OP_BITWISE_NEGATE);
 		case BuiltinUnary.countOnesNat64:
 			return builtinAndCast(BuiltinFunction.__builtin_popcountl);
 		case BuiltinUnary.deref:
@@ -1435,7 +1449,6 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 			emitToVoid(ctx, locals, a.arg);
 			return emitVoid(ctx, emit);
 		case BuiltinUnary.asAnyPointer:
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:
@@ -1472,6 +1485,8 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 			return builtinAndCast(BuiltinFunction.__builtin_isnan);
 		case BuiltinUnary.jumpToCatch:
 			return callFn(ctx.jumpToCatchFunction);
+		case BuiltinUnary.not:
+			return unaryOp(gcc_jit_unary_op.GCC_JIT_UNARY_OP_LOGICAL_NEGATE);
 		case BuiltinUnary.setupCatch:
 			return callFn(ctx.setupCatchFunction);
 		case BuiltinUnary.toNat64FromPtr:
@@ -1581,6 +1596,10 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
 		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.unsafeAddNat8:
+		case BuiltinBinary.unsafeAddNat16:
+		case BuiltinBinary.unsafeAddNat32:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapAddNat32:
@@ -1629,6 +1648,7 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:
@@ -1649,12 +1669,18 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.unsafeMulInt16:
 		case BuiltinBinary.unsafeMulInt32:
 		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeMulNat64:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			emitToVoid(ctx, locals, left);
 			return toGccExpr(ctx, locals, emit, right);
@@ -1664,6 +1690,10 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
 		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.unsafeSubNat8:
+		case BuiltinBinary.unsafeSubNat16:
+		case BuiltinBinary.unsafeSubNat32:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapSubNat8:
 		case BuiltinBinary.wrapSubNat16:
 		case BuiltinBinary.wrapSubNat32:

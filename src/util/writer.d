@@ -3,12 +3,13 @@ module util.writer;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, withStackAlloc, withStackAllocImpure;
-import util.col.arrayBuilder : Builder, finish;
-import util.col.array : zip;
-import util.conv : bitsOfFloat64;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
+import util.col.arrayBuilder : asTemporaryArray, Builder, finish, sizeSoFar;
+import util.col.array : reverseInPlace, zip;
+import util.conv : bitsOfFloat64, round, safeToSizeT, safeToUlong;
 import util.string : eachChar, CString, stringOfCString;
-import util.unicode : isValidUnicodeCharacter, mustUnicodeEncode;
-import util.util : abs, debugLog, isNan, max;
+import util.unicode : isValidUnicodeCharacter, mustUnicodeDecode, mustUnicodeEncode;
+import util.util : abs, castImmutable, debugLog, isNan, max, min;
 
 T withStackWriterImpure(T)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
@@ -20,11 +21,11 @@ T withStackWriterImpure(T)(
 		return cbRes(finish(writer.res));
 	});
 
-T withStackWriterImpureCString(T)(
+T withStackWriterImpureCString(T, size_t maxSize = 0x10000)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
 	in T delegate(in CString) @safe @nogc nothrow cbRes,
 ) =>
-	withStackAllocImpure!(0x10000, T)((scope ref Alloc alloc) {
+	withStackAllocImpure!(maxSize, T)((scope ref Alloc alloc) {
 		scope Writer writer = Writer(&alloc);
 		cb(writer);
 		return cbRes(finishCString(writer));
@@ -38,9 +39,12 @@ struct Writer {
 	private:
 	Builder!(immutable char) res;
 
-	this(return scope Alloc* allocPtr) {
+	public this(return scope Alloc* allocPtr) {
 		res = Builder!(immutable char)(allocPtr);
 	}
+
+	public ref Alloc alloc() return scope =>
+		res.alloc;
 
 	void opOpAssign(string op : "~")(bool a) {
 		res ~= (a ? "true" : "false");
@@ -51,8 +55,8 @@ struct Writer {
 	void opOpAssign(string op : "~")(dchar a) {
 		mustUnicodeEncode(res, a);
 	}
-	void opOpAssign(string op : "~")(in string a) {
-		res ~= a;
+	void opOpAssign(string op : "~")(in char[] a) {
+		res ~= castImmutable(a);
 	}
 	void opOpAssign(string op : "~")(in CString a) {
 		eachChar(a, (char c) {
@@ -62,19 +66,22 @@ struct Writer {
 	void opOpAssign(string op : "~")(ubyte a) {
 		writeNat(this, a);
 	}
+	void opOpAssign(string op : "~")(ushort a) {
+		writeNat(this, a);
+	}
+	void opOpAssign(string op : "~")(uint a) {
+		writeNat(this, a);
+	}
 	void opOpAssign(string op : "~")(int a) {
 		this ~= long(a);
+	}
+	void opOpAssign(string op : "~")(ulong a) {
+		writeNat(this, a);
 	}
 	void opOpAssign(string op : "~")(long a) {
 		if (a < 0)
 			this ~= '-';
 		this ~= abs(a);
-	}
-	void opOpAssign(string op : "~")(uint a) {
-		writeNat(this, a);
-	}
-	void opOpAssign(string op : "~")(ulong a) {
-		writeNat(this, a);
 	}
 	void opOpAssign(string op : "~", T)(T a) {
 		a.writeTo(this);
@@ -124,6 +131,19 @@ CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @s
 	return finishCString(writer);
 }
 
+void writeAndVerify(
+	scope ref Writer writer,
+	in void delegate() @safe @nogc pure nothrow cbWrite,
+	in void delegate(in string) @safe @nogc pure nothrow cbVerify,
+) {
+	size_t prevSize = sizeSoFar(writer.res);
+	cbWrite();
+	cbVerify(asTemporaryArray(writer.res)[prevSize .. $]);
+}
+
+string finish(scope ref Writer writer) =>
+	finish(writer.res);
+
 private @trusted CString finishCString(scope ref Writer writer) {
 	writer ~= '\0';
 	return CString(finish(writer.res).ptr);
@@ -132,7 +152,7 @@ private @trusted CString finishCString(scope ref Writer writer) {
 string makeStringWithWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
-	return finish(writer.res);
+	return finish(writer);
 }
 
 void writeHex(scope ref Writer writer, ulong a, uint minDigits = 1) {
@@ -145,7 +165,88 @@ void writeHex(scope ref Writer writer, long a) {
 	writeHex(writer, cast(ulong) (a < 0 ? -a : a));
 }
 
-void writeFloatLiteral(scope ref Writer writer, double a) {
+void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in string nan) {
+	if (a < 0) {
+		writer ~= '-';
+		writeFloatLiteral(writer, -a, infinity, nan);
+	} else if (isNan(a))
+		writer ~= nan;
+	else if (a == double.infinity)
+		writer ~= infinity;
+	else if ((cast(double) (cast(long) a)) == a) {
+		// Being careful to handle -0
+		if (1.0 / a < 0)
+			writer ~= '-';
+		writer ~= abs(cast(long) a);
+	} else {
+		DecimalAndExponent de = toDecimalAndExponent(a);
+		ulong dec = de.decimal;
+		long exp = de.exponent;
+		withBuildStackArray!(void, char)(
+			(ref StackArrayBuilder!char out_) {
+				while (dec != 0) {
+					ulong digit = dec % 10;
+					out_ ~= digitChar(digit);
+					dec /= 10;
+					exp++;
+				}
+				if (exp <= 0) {
+					foreach (ulong i; 0 .. abs(exp))
+						out_ ~= '0';
+					out_ ~= '.';
+					out_ ~= '0';
+				}
+				reverseInPlace(out_.asTemporaryArray);
+				if (exp <= 0) {
+					// did before reverse
+				} else if (safeToSizeT(exp) < out_.sizeSoFar)
+					out_.insertAt(safeToSizeT(exp), '.');
+				else {
+					foreach (size_t _; out_.sizeSoFar .. safeToSizeT(exp))
+						out_ ~= '0';
+				}
+			},
+			(scope char[] xs) {
+				writer ~= xs;
+			});
+	}
+}
+
+private immutable struct DecimalAndExponent {
+	ulong decimal;
+	long exponent;
+}
+private DecimalAndExponent toDecimalAndExponent(double a) {
+	assert(a > 0);
+	double x = a;
+	long exp = 0;
+	while (x < 1) {
+		x *= 10;
+		exp--;
+	}
+
+	ulong digits = 0;
+	while (!isNearInt(x) && digits < 15) {
+		x *= 10;
+		exp--;
+		digits++;
+	}
+
+	ulong dec = safeToUlong(cast(long) round(x));
+	while (dec % 10 == 0) {
+		dec /= 10;
+		exp++;
+	}
+	return DecimalAndExponent(dec, exp);
+}
+private bool isNearInt(double a) {
+	double b = round(a);
+	double diff = abs(a - b);
+	double epsilon = 2.22e-16;
+	return a == b || diff <= epsilon || diff <= epsilon * min(abs(a), abs(b));
+}
+
+void writeFloatLiteralForC(scope ref Writer writer, double a) {
 	if (isNan(a))
 		writer ~= "NAN";
 	else if (a == double.infinity)
@@ -189,10 +290,38 @@ char digitChar(ulong digit) {
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
+void writeWithCommas(T)(scope ref Writer writer, in T[] a) {
+	writeWithCommas!T(writer, a, (in T x) {
+		writer ~= x;
+	});
+}
+
 void writeWithCommas(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ", ", cb);
 }
 
+void writeWithCommasAndAnd(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	if (a.length == 2) {
+		cb(a[0]);
+		writer ~= " and ";
+		cb(a[1]);
+	} else {
+		foreach (size_t i; 0 .. a.length) {
+			if (i != 0) {
+				writer ~= ", ";
+				if (i == a.length - 1)
+					writer ~= "and ";
+			}
+			cb(a[i]);
+		}
+	}
+}
+
+void writeWithCommasCompact(T)(scope ref Writer writer, in T[] a) {
+	writeWithCommasCompact!T(writer, a, (in T x) {
+		writer ~= x;
+	});
+}
 void writeWithCommasCompact(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ",", cb);
 }
@@ -271,8 +400,9 @@ void writeWithSeparatorAndFilter(T)(
 
 void writeQuotedString(scope ref Writer writer, in string s) {
 	writer ~= '"';
-	foreach (char c; s)
-		writeEscapedChar_inner(writer, c);
+	mustUnicodeDecode(s, (dchar x) {
+		writeEscapedChar_inner(writer, x);
+	});
 	writer ~= '"';
 }
 void writeQuotedString(scope ref Writer writer, in CString s) {
@@ -292,7 +422,7 @@ void writeEscapedChar(scope ref Writer writer, dchar c) {
 		writeEscapedChar_inner(writer, c);
 }
 
-void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
+void writeEscapedChar_inner(scope ref Writer writer, dchar c, bool forC = false) {
 	switch (c) {
 		case '\n':
 			writer ~= "\\n";
@@ -314,9 +444,10 @@ void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
 			break;
 		// TODO: handle other special characters like this one
 		case '\x1b':
-			// NOTE: need two adjacent concatenated strings
-			// in case the next character is a valid hex digit
-			writer ~= "\\x1b\"\"";
+			writer ~= "\\x1b";
+			if (forC)
+				// Need two adjacent concatenated strings in case the next character is a valid hex digit
+				writer ~= "\"\"";
 			break;
 		default:
 			writer ~= isValidUnicodeCharacter(c) ? c : '�';

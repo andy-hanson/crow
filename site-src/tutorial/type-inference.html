@@ -114,9 +114,7 @@
 			<br />
 			<crow-runnable>
 				main void()
-					x = () :: nat
-					# Converting string to json to string causes it to be quoted
-					info log x.to::string.to::json.to
+					info log "{1.5::float.to::nat.to::json}"
 			</crow-runnable>
 		</li>
 	</ul>

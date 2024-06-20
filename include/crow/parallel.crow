@@ -1,78 +1,101 @@
 no-std
 import
 	./bool: bool
-	./col/collection: build, flatten, for-loop, iterate, size, subscript, with-block, with-index
+	./col/array: ~~, ~=, array, build, iterate, new, size, subscript
+	./col/collection: build, flatten, for-loop, iterate, size, with-block, with-index
 	./col/util: groupable, groups-of
-	./col/list: ~~, +, ~=, begin, build, iterate, list, new, next, size
-	./exception: catch-all, exception-and-backtrace, rethrow, to
+	./exception: catch-all, exception-and-backtrace, rethrow, show
 	./fun-util: subscript
+	./js: as-js, await, call, call-new, cast, call-property, js-cast, js-global
 	./log: error, log
-	./number: nat64
+	./number: float, nat64
 	./misc: shared, new, void
-	./pointer: any-mut-pointer, as-any-mut-pointer, mut-pointer, reference-from-pointer
-	./private/bootstrap: add-to-queue, await-future, fiber, lk, new, rejected, resolved
-	./private/future-low-level: get-result, reject, resolve, try-add-awaiting-fiber, unresolved
+	./pointer: any-mut-pointer, as-any-mut-pointer, reference-from-pointer
+	./private/bootstrap: add-to-queue, await-future, fiber, new, todo
+	./private/future-low-level:
+		as-future, as-future-impl, future-impl, get-result, reject, rejected, resolve, resolved,
+		try-add-awaiting-fiber, unresolved
 	./private/runtime: add-new-fiber, get-global-ctx, yield-this-fiber
-	./private/thread-utils: init, lock, uninit
 	./result: result
 	./string: interpolate
 export
 	./private/bootstrap: future
 
 +await[t] t(a t future) trusted
-	match a await-result
-	as ok x
-		x
-	as error x
-		x rethrow
+	if extern native
+		match a await-result
+		as ok x
+			x
+		as error x
+			x rethrow
+	elif extern js
+		a.as-js.await cast
+	else
+		todo
 
-+await-result[t] (t, exception-and-backtrace) result(a t future) trusted
++await-result[t] (t, exception-and-backtrace) result(a t future) trusted, native extern
 	(a.as-any-mut-pointer, &add-awaiting-fiber-for-t@t).await-future yield-this-fiber
-	a get-result
+	a.as-future-impl get-result
 
 # Just yields the fiber temporarily. It may be restarted immediately.
 +yield-fiber void() trusted
-	add-to-queue yield-this-fiber
+	if extern native
+		add-to-queue yield-this-fiber
+	elif extern js
+		resolver void mut(resolve void mut()) = resolve =>
+			_ = "setTimeout".js-global call resolve, 0::float
+		_ = "Promise".js-global call-new resolver await
+	else
+		todo
 
-add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe
-	typed t future = future reference-from-pointer
+add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe, native extern
+	typed t future-impl = future reference-from-pointer
 	typed try-add-awaiting-fiber fiber
 
--lock[t] lock mut*(a t future) unsafe
-	&a.lk
-
 # Converts a value to a future resolved with that value.
-+new[t] t future(value t)
-	res t future = trusted uninit, value.resolved
-	trusted res.lock init
-	res
++new[t] t future(value t) trusted
+	if extern native
+		value.resolved as-future
+	elif extern js
+		"Promise".js-global call-property "resolve", value cast
+	else
+		todo
 
 # Future resolved with an exception.
-+rejected[t] t future(err exception-and-backtrace)
-	res t future = trusted uninit, err.rejected
-	trusted res.lock init
-	res
++rejected[t] t future(err exception-and-backtrace) trusted
+	if extern native
+		err.rejected as-future
+	elif extern js
+		"Promise".js-global call-property "rejected", err cast
+	else
+		todo
 
 +parallel record nominal
 ###
 Run `f` in a new fiber with a new exclusion and return a future for its result.
 ###
-+with-block[t] t future(_ parallel, f t shared())
-	res t future = trusted unresolved
-	trusted get-global-ctx add-new-fiber () =>
-		match (() => f[]) catch-all
-		as ok x
-			res resolve x
-		as error e
-			res reject e
-	res
++with-block[t] t future(_ parallel, f t shared()) trusted
+	if extern native
+		res t future-impl = unresolved
+		get-global-ctx add-new-fiber () =>
+			match (() => f[]) catch-all
+			as ok x
+				res resolve x
+			as error e
+				res reject e
+		res as-future
+	elif extern js
+		# `Promise.resolve().then(f)`; this ensures 'f' is not run immediately
+		"Promise".js-global call-property "resolve" call-property "then", f cast
+	else
+		todo
 
 ###
 This is like running something with `parallel` and then waiting on it.
 The purpose is to allow other fibers with the current exclusion to run while waiting.
 ###
 +new-exclusion record nominal
-+with-block[t] t(_ new-exclusion, f t shared())
++with-block[t] t(_ new-exclusion, f t shared()) native extern
 	parallel with-block f await
 
 +later record nominal
@@ -80,11 +103,13 @@ The purpose is to allow other fibers with the current exclusion to run while wai
 Run `f` in a new fiber with the current exclusion. So it can't run until the current fiber yields.
 ###
 +with-block[t] t future(_ later, f t mut()) t shared
-	fs t shared() = shared () => f[]
-	parallel with-block fs
+	parallel with-block if trusted extern js
+		trusted f js-cast
+	else
+		shared () => f[]
 
 # Does not await the future, but will log any exceptions from the future once it is done.
-+forget[t] void(a t future)
++forget[t] void(a t future) native extern
 	trusted get-global-ctx add-new-fiber () =>
 		match a await-result
 		as ok _
@@ -96,7 +121,7 @@ Run `f` in a new fiber with the current exclusion. So it can't run until the cur
 ###
 Runs 'f' in parallel and logs any exceptions, but does not await it.
 ###
-+with-block void(_ fire-and-forget, f void shared()) trusted
++with-block void(_ fire-and-forget, f void shared()) trusted, native extern
 	parallel with-block f forget
 
 +parallel-collection[col] record(collection col)
@@ -109,21 +134,29 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 	a in-col parallel-collection,
 	f out-elem shared(elem in-elem),
 ) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
-	futures out-elem future[] = for x : a collection
-		with : parallel
+	if trusted extern native
+		futures out-elem future[] = for x : a collection
+			with : parallel
+				f[x]
+		for x : futures
+			x await
+	else
+		for x : a.collection
 			f[x]
-	for x : futures
-		x await
 # Same as the above but returning 'void'.
 +for-loop[in-col, in-elem] void(
 	a in-col parallel-collection,
 	f void shared(elem in-elem),
 ) (in-col, in-elem) iterate, in-col size, in-elem shared
-	futures void future[] = for x : a collection
-		with : parallel
+	if trusted extern native
+		futures void future[] = for x : a collection
+			with : parallel
+				f[x]
+		for x : futures
+			x await
+	else
+		for x : a.collection
 			f[x]
-	for x : futures
-		x await
 
 # Runs `f` in parallel for each element of `a` and concatenates results.
 +parallel-concat[col] record(collection col) nominal
@@ -137,7 +170,7 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 +filter[out-col, in-col, elem, builder] out-col(
 	a in-col parallel-collection,
 	f bool shared(elem elem),
-) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
+) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, native extern
 	bools bool[] = a for-loop f
 	with out : build
 		for i, x : a.collection with-index
@@ -155,16 +188,24 @@ Works like `parallel`, but works in groups of 'chunk-size' elements to reduce pa
 	a in-col chunked-parallel,
 	f out-elem shared(elem in-elem),
 ) out-elem shared, (in-col, in-iter, in-elem) chunkable
-	for chunk : a.collection groups-of a.chunk-size parallel-concat
-		for x : chunk
+	if trusted extern native
+		for chunk : a.collection groups-of a.chunk-size parallel-concat
+			for x : chunk
+				f[x]
+	else
+		for x : a.collection
 			f[x]
 
 +for-loop[in-col, in-iter, in-elem] void(
 	a in-col chunked-parallel,
 	f void shared(elem in-elem),
 ) (in-col, in-iter, in-elem) chunkable
-	for chunk : a.collection groups-of a.chunk-size parallel
-		for x : chunk
+	if trusted extern native
+		for chunk : a.collection groups-of a.chunk-size parallel
+			for x : chunk
+				f[x]
+	else
+		for x : a.collection
 			f[x]
 
 +filter[out-col, in-col, in-iter, elem, builder] out-col(

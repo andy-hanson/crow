@@ -16,7 +16,7 @@ import util.col.array : arraysEqual, arrayOfRange, arraysCorrespond, endPtr, ind
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, CStringAndLength, stringOfCString;
-import util.symbol : Extension, Symbol;
+import util.symbol : Extension;
 import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
 import util.util : ptrTrustMe;
@@ -104,28 +104,26 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 
 pure:
 
-void assertEqual(in string actual, in string expected) {
+void assertEqual(T)(
+	in T actual,
+	in T expected,
+	in void delegate(scope ref Writer, in T) @safe @nogc pure nothrow cbShow,
+) {
 	if (actual != expected) {
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Actual: ";
-			writer ~= actual;
+			cbShow(writer, actual);
 			writer ~= "\nExpected: ";
-			writer ~= expected;
+			cbShow(writer, expected);
 		});
 		assert(false);
 	}
 }
 
-void assertEqual(scope ref Test test, Symbol a, Symbol b) {
-	if (a != b) {
-		debugLogWithWriter((scope ref Writer writer) {
-			writer ~= "Actual: ";
-			writer ~= a;
-			writer ~= "\nExpected: ";
-			writer ~= b;
-		});
-		assert(false);
-	}
+void assertEqual(T)(in immutable T actual, in immutable T expected) {
+	assertEqual!(immutable T)(actual, expected, (scope ref Writer writer, in immutable T x) {
+		writer ~= x;
+	});
 }
 
 void withTestServer(
@@ -194,17 +192,15 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/col/experimental/frozen-map.crow",
 	"crow/col/experimental/frozen-set.crow",
 	"crow/col/experimental/index-set.crow",
-	"crow/col/list.crow",
 	"crow/col/map.crow",
+	"crow/col/mut-slice.crow",
 	"crow/col/mut-array.crow",
-	"crow/col/mut-list.crow",
 	"crow/col/mut-map.crow",
 	"crow/col/mut-set.crow",
 	"crow/col/private/array-low-level.crow",
 	"crow/col/private/build.crow",
-	"crow/col/private/list-low-level.crow",
 	"crow/col/set.crow",
-	"crow/col/shared-list.crow",
+	"crow/col/shared-array.crow",
 	"crow/col/shared-map.crow",
 	"crow/col/sort.crow",
 	"crow/col/util.crow",
@@ -218,6 +214,7 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/io/print.crow",
 	"crow/io/private/time-low-level.crow",
 	"crow/io/win32-util.crow",
+	"crow/js.crow",
 	"crow/json.crow",
 	"crow/log.crow",
 	"crow/misc.crow",

@@ -1,9 +1,15 @@
 module model.model;
 
+// See also frontendUtil.d
+
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
+import frontend.storage : FileContentGetters;
 import model.ast :
+	AssertOrForbidAst,
+	CaseAst,
+	ConditionAst,
 	DestructureAst,
 	EnumOrFlagsMemberAst,
 	ExprAst,
@@ -11,6 +17,7 @@ import model.ast :
 	FunDeclAst,
 	IfAst,
 	ImportOrExportAst,
+	MatchAst,
 	ModifierAst,
 	NameAndRange,
 	RecordOrUnionMemberAst,
@@ -19,6 +26,7 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
+	TryAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -27,11 +35,16 @@ import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	arrayOfSingle,
+	concatenate,
 	emptySmallArray,
 	every,
 	exists,
 	first,
+	firstPointer,
+	firstZipPointerFirst,
+	fold,
 	isEmpty,
+	mustFindPointer,
 	mustHaveIndexOfPointer,
 	newArray,
 	only,
@@ -39,18 +52,19 @@ import util.col.array :
 	small,
 	SmallArray,
 	sum;
-import util.col.hashTable : existsInHashTable, HashTable;
-import util.col.map : Map;
+import util.col.hashTable : existsInHashTable, HashTable, mustGet;
+import util.col.map : Map, mustGet;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : force, has, none, Opt, optEqual, some;
+import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
-import util.symbol : Symbol, symbol;
+import util.symbol : enumOfSymbol, Symbol, symbol, symbolOfEnum;
+import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.union_ : IndexType, TaggedUnion, Union;
-import util.uri : Uri;
+import util.uri : RelPath, Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
 import versionInfo : VersionFun;
 
@@ -118,10 +132,111 @@ immutable struct Type {
 		taggedPointerEquals(b);
 }
 
-bool isEmptyType(in CommonTypes commonTypes, in Type a) =>
-	isVoid(commonTypes, a) || isEmptyRecord(*a.as!(StructInst*).decl);
+bool isEmptyType(in Type a) =>
+	isVoid(a) || isEmptyRecord(*a.as!(StructInst*).decl);
 private bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
+
+bool isArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.array);
+bool isMutArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
+bool isMutArray(in StructInst a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
+bool isMutSlice(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutSlice);
+bool isArrayOrMutSlice(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutSlice);
+
+bool isTuple(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
+bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
+	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
+	return has(actual) && force(actual) == a;
+}
+Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
+	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
+
+bool isBool(in Type a) =>
+	isBuiltinType(a, BuiltinType.bool_);
+bool isChar8(in Type a) =>
+	isBuiltinType(a, BuiltinType.char8);
+bool isChar32(in Type a) =>
+	isBuiltinType(a, BuiltinType.char32);
+bool isFloat32(in Type a) =>
+	isBuiltinType(a, BuiltinType.float32);
+bool isFloat64(in Type a) =>
+	isBuiltinType(a, BuiltinType.float64);
+bool isFuture(in Type a) =>
+	isBuiltinType(a, BuiltinType.future);
+bool isFuture(in StructInst a) =>
+	isBuiltinType(a, BuiltinType.future);
+bool isInt8(in Type a) =>
+	isBuiltinType(a, BuiltinType.int8);
+bool isInt16(in Type a) =>
+	isBuiltinType(a, BuiltinType.int16);
+bool isInt32(in Type a) =>
+	isBuiltinType(a, BuiltinType.int32);
+bool isInt64(in Type a) =>
+	isBuiltinType(a, BuiltinType.int64);
+bool isJsAny(in Type a) =>
+	isBuiltinType(a, BuiltinType.jsAny);
+bool isNat8(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat8);
+bool isNat16(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat16);
+bool isNat32(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat32);
+bool isNat64(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat64);
+bool isString(in Type a) =>
+	isBuiltinType(a, BuiltinType.string_);
+bool isString(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.string_);
+bool isSymbol(in Type a) =>
+	isBuiltinType(a, BuiltinType.symbol);
+bool isVoid(in Type a) =>
+	isBuiltinType(a, BuiltinType.void_);
+
+private bool isBuiltinType(in Type a, BuiltinType builtin) =>
+	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*), builtin);
+private bool isBuiltinType(in StructInst a, BuiltinType builtin) =>
+	isBuiltinType(*a.decl, builtin);
+private bool isBuiltinType(in StructDecl a, BuiltinType builtin) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == builtin;
+
+Type arrayElementType(Type type) {
+	assert(isArray(type));
+	return only(type.as!(StructInst*).typeArgs);
+}
+
+Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
+	assert(isOptionType(commonTypes, a));
+	return only(a.as!(StructInst*).typeArgs);
+}
+
+bool isOptionType(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
+
+bool isFunPointer(in Type a) =>
+	isBuiltinType(a, BuiltinType.funPointer);
+bool isLambdaType(in Type a) =>
+	isBuiltinType(a, BuiltinType.lambda);
+bool isLambdaType(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.lambda);
+
+bool isPointerConstOrMut(in Type a) =>
+	isPointerConst(a) || isPointerMut(a);
+bool isPointerConstOrMut(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+bool isPointerConst(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerConst);
+bool isPointerMut(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerMut);
+Type pointeeType(in Type a) {
+	assert(isPointerConstOrMut(a));
+	return only(a.as!(StructInst*).typeArgs);
+}
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -153,6 +268,9 @@ immutable struct Params {
 	}
 
 	mixin TaggedUnion!(SmallArray!Destructure, Varargs*);
+
+	static Params empty() =>
+		Params(emptySmallArray!Destructure);
 
 	Arity arity() scope =>
 		matchIn!Arity(
@@ -274,6 +392,8 @@ immutable struct UnionMember {
 	StructDecl* containingUnion;
 	Type type; // This will be 'void' if no type is specified
 
+	bool hasValue() =>
+		!isVoid(type);
 	size_t memberIndex() =>
 		mustHaveIndexOfPointer(containingUnion.body_.as!(StructBody.Union*).members, &this);
 	Uri moduleUri() scope =>
@@ -376,7 +496,12 @@ Symbol nameOfEnumOrFlagsMember(in EnumOrFlagsMember* a) =>
 Symbol nameOfUnionMember(in UnionMember* a) =>
 	a.name;
 
+ulong getAllFlagsValue(in StructBody.Flags body_) =>
+	fold!(ulong, EnumOrFlagsMember)(0, body_.members, (ulong a, in EnumOrFlagsMember b) =>
+		a | b.value.asUnsigned());
+
 enum BuiltinType {
+	array,
 	bool_,
 	catchPoint,
 	char8,
@@ -384,17 +509,23 @@ enum BuiltinType {
 	float32,
 	float64,
 	funPointer,
+	future,
 	int8,
 	int16,
 	int32,
 	int64,
+	jsAny,
 	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
+	mutArray,
+	mutSlice,
 	nat8,
 	nat16,
 	nat32,
 	nat64,
 	pointerConst,
 	pointerMut,
+	string_,
+	symbol,
 	void_,
 }
 bool isCharOrIntegral(BuiltinType a) {
@@ -410,20 +541,25 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat32:
 		case BuiltinType.nat64:
 			return true;
+		case BuiltinType.array:
 		case BuiltinType.bool_:
 		case BuiltinType.catchPoint:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
+		case BuiltinType.future:
 		case BuiltinType.funPointer:
+		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
+		case BuiltinType.mutArray:
+		case BuiltinType.mutSlice:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
+		case BuiltinType.string_:
+		case BuiltinType.symbol:
 		case BuiltinType.void_:
 			return false;
 	}
 }
-bool isPointer(BuiltinType a) =>
-	a == BuiltinType.pointerConst || a == BuiltinType.pointerMut;
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -540,8 +676,6 @@ immutable struct StructDecl {
 	bool isTemplate() scope =>
 		!isEmpty(typeParams);
 }
-bool isPointer(in StructDecl a) =>
-	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
 immutable struct VariantAndMethodImpls {
 	@safe @nogc pure nothrow:
@@ -598,22 +732,13 @@ bool isDefinitelyByRef(in StructInst a) {
 		optEqual!ByValOrRef(body_.as!(StructBody.Record).flags.forcedByValOrRef, some(ByValOrRef.byRef));
 }
 
-bool isTuple(in CommonTypes commonTypes, in Type a) =>
-	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
-bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
-	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
-	return has(actual) && force(actual) == a;
-}
-Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
-	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
-
 immutable struct SpecDeclBody {
 	Opt!BuiltinSpec builtin;
 	Specs parents;
 	SmallArray!Signature sigs;
 }
 
-enum BuiltinSpec { data, enum_, flags, shared_ }
+enum BuiltinSpec { data, shared_ }
 
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
@@ -675,8 +800,16 @@ immutable struct SpecInst {
 	Symbol name() scope =>
 		decl.name;
 }
+private void eachSpecSig(in SpecInst a, in void delegate(Signature*) @safe @nogc pure nothrow cb) {
+	foreach (SpecInst* parent; a.parents)
+		eachSpecSig(*parent, cb);
+	foreach (ref Signature sig; a.decl.sigs)
+		cb(&sig);
+}
+size_t countSigs(in SpecInst*[] a) =>
+	sum(a, (in SpecInst* x) => countSigs(*x));
 size_t countSigs(in SpecInst a) =>
-	sum(a.parents, (in SpecInst* x) => countSigs(*x)) + a.sigTypes.length;
+	countSigs(a.parents) + a.sigTypes.length;
 
 immutable struct SpecInstBody {
 	Specs parents;
@@ -684,21 +817,14 @@ immutable struct SpecInstBody {
 	SmallArray!ReturnAndParamTypes sigTypes;
 }
 
-alias EnumFunction = immutable EnumFunction_;
-private enum EnumFunction_ {
+enum EnumOrFlagsFunction {
 	equal,
-	intersect,
+	intersect, // flags only
 	members,
+	negate, // flags only
+	none, // flags only
 	toIntegral,
-	union_,
-}
-
-// These are just the functions needing an 'all' value, otherwise they are in EnumFunction
-alias FlagsFunction = immutable FlagsFunction_;
-private enum FlagsFunction_ {
-	all,
-	negate,
-	new_,
+	union_, // flags only
 }
 
 enum VarKind { global, threadLocal }
@@ -728,6 +854,7 @@ immutable struct AutoFun {
 }
 
 immutable struct FunBody {
+	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
 	immutable struct CreateEnumOrFlags {
 		EnumOrFlagsMember* member;
@@ -748,22 +875,24 @@ immutable struct FunBody {
 		ImportFileContent content;
 	}
 	immutable struct RecordFieldCall {
-		size_t fieldIndex;
+		RecordField* field;
 		FunKind funKind;
 	}
 	immutable struct RecordFieldGet {
-		size_t fieldIndex;
+		RecordField* field;
 	}
 	immutable struct RecordFieldPointer {
-		size_t fieldIndex;
+		RecordField* field;
 	}
 	immutable struct RecordFieldSet {
-		size_t fieldIndex;
+		RecordField* field;
 	}
-	immutable struct UnionMemberGet { size_t memberIndex; }
+	immutable struct UnionMemberGet {
+		UnionMember* member;
+	}
 	immutable struct VarGet { VarDecl* var; }
 	immutable struct VariantMemberGet {}
-	immutable struct VariantMethod { size_t methodIndex; }
+	immutable struct VariantMethod { Signature* method; }
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -776,11 +905,10 @@ immutable struct FunBody {
 		CreateRecordAndConvertToVariant,
 		CreateUnion,
 		CreateVariant,
-		EnumFunction,
+		EnumOrFlagsFunction,
 		Expr,
 		Extern,
 		FileImport,
-		FlagsFunction,
 		RecordFieldCall,
 		RecordFieldGet,
 		RecordFieldPointer,
@@ -790,13 +918,35 @@ immutable struct FunBody {
 		VariantMemberGet,
 		VariantMethod,
 		VarSet);
+
+	bool isGenerated() scope =>
+		!isA!Bogus && !isA!AutoFun && !isA!BuiltinFun && !isA!Expr && !isA!Extern && !isA!FileImport;
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
+
+enum JsFun {
+	asJsAny,
+	await,
+	call,
+	callNew,
+	callProperty,
+	callPropertySpread,
+	cast_,
+	eqEqEq,
+	get,
+	instanceof,
+	jsGlobal,
+	less,
+	plus,
+	set,
+	typeof_,
+}
 
 immutable struct BuiltinFun {
 	immutable struct AllTests {}
 	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
+	immutable struct GcSafeValue {}
 	immutable struct Init {
 		enum Kind { global, perThread }
 		Kind kind;
@@ -819,7 +969,9 @@ immutable struct BuiltinFun {
 		CallLambda,
 		CallFunPointer,
 		Constant,
+		GcSafeValue,
 		Init,
+		JsFun,
 		MarkRoot,
 		MarkVisit,
 		PointerCast,
@@ -829,21 +981,30 @@ immutable struct BuiltinFun {
 }
 
 enum BuiltinUnary {
+	arrayPointer, // works on mut-slice too
+	arraySize, // works on mut-slice too
 	asAnyPointer,
+	asFuture,
+	asFutureImpl,
+	asMutArray,
+	asMutArrayImpl,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
 	bitwiseNotNat32,
 	bitwiseNotNat64,
 	countOnesNat64,
+	cStringOfSymbol,
 	deref,
 	drop,
-	enumToIntegral,
 	isNanFloat32,
 	isNanFloat64,
+	not,
 	jumpToCatch,
 	referenceFromPointer,
 	setupCatch,
+	symbolOfCString,
 	toChar8FromNat8,
+	toChar8ArrayFromString,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
 	toFloat64FromInt64,
@@ -859,6 +1020,7 @@ enum BuiltinUnary {
 	toNat64FromPtr,
 	toPtrFromNat64,
 	truncateToInt64FromFloat64,
+	trustAsString,
 	unsafeToChar32FromChar8,
 	unsafeToChar32FromNat32,
 	unsafeToNat32FromInt32,
@@ -872,8 +1034,7 @@ enum BuiltinUnary {
 	unsafeToNat32FromNat64,
 }
 
-alias BuiltinUnaryMath = immutable BuiltinUnaryMath_;
-private enum BuiltinUnaryMath_ {
+enum BuiltinUnaryMath {
 	acosFloat32,
 	acosFloat64,
 	acoshFloat32,
@@ -890,8 +1051,12 @@ private enum BuiltinUnaryMath_ {
 	cosFloat64,
 	coshFloat32,
 	coshFloat64,
+	roundDownFloat32,
+	roundDownFloat64,
 	roundFloat32,
 	roundFloat64,
+	roundUpFloat32,
+	roundUpFloat64,
 	sinFloat32,
 	sinFloat64,
 	sinhFloat32,
@@ -961,6 +1126,8 @@ enum BuiltinBinary {
 	lessPointer,
 	mulFloat32,
 	mulFloat64,
+	newArray, // Also works for mut-slice
+	referenceEqual,
 	seq,
 	subFloat32,
 	subFloat64,
@@ -970,6 +1137,10 @@ enum BuiltinBinary {
 	unsafeAddInt16,
 	unsafeAddInt32,
 	unsafeAddInt64,
+	unsafeAddNat8,
+	unsafeAddNat16,
+	unsafeAddNat32,
+	unsafeAddNat64,
 	unsafeBitShiftLeftNat64,
 	unsafeBitShiftRightNat64,
 	unsafeDivFloat32,
@@ -987,10 +1158,18 @@ enum BuiltinBinary {
 	unsafeMulInt16,
 	unsafeMulInt32,
 	unsafeMulInt64,
+	unsafeMulNat8,
+	unsafeMulNat16,
+	unsafeMulNat32,
+	unsafeMulNat64,
 	unsafeSubInt8,
 	unsafeSubInt16,
 	unsafeSubInt32,
 	unsafeSubInt64,
+	unsafeSubNat8,
+	unsafeSubNat16,
+	unsafeSubNat32,
+	unsafeSubNat64,
 	wrapAddNat8,
 	wrapAddNat16,
 	wrapAddNat32,
@@ -1029,30 +1208,27 @@ immutable struct FunFlags {
 	bool summon;
 	enum Safety : ubyte { safe, trusted, unsafe }
 	Safety safety;
-	bool preferred;
 	bool okIfUnused;
-	enum SpecialBody : ubyte { none, builtin, extern_, generated }
-	SpecialBody specialBody;
 	bool forceCtx;
 
 	FunFlags withOkIfUnused() =>
-		FunFlags(bare, summon, safety, preferred, true, specialBody, forceCtx);
+		FunFlags(bare, summon, safety, true, forceCtx);
 	FunFlags withSummon() =>
-		FunFlags(bare, true, safety, preferred, okIfUnused, specialBody, forceCtx);
+		FunFlags(bare, true, safety, okIfUnused, forceCtx);
 
-	static FunFlags regular(bool bare, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
-		FunFlags(bare, summon, safety, false, false, specialBody, forceCtx);
+	static FunFlags regular(bool bare, bool summon, Safety safety, bool forceCtx) =>
+		FunFlags(bare, summon, safety, false, forceCtx);
 
 	static FunFlags none() =>
-		FunFlags(false, false, Safety.safe, false, false, SpecialBody.none);
+		FunFlags(safety: Safety.safe);
 	static FunFlags generatedBare() =>
-		FunFlags(true, false, Safety.safe, false, true, SpecialBody.generated);
+		FunFlags(bare: true, safety: Safety.safe, okIfUnused: true);
 	static FunFlags generatedBareUnsafe() =>
-		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
+		FunFlags(bare: true, safety: Safety.unsafe, okIfUnused: true);
 	static FunFlags generated() =>
-		FunFlags(false, false, Safety.safe, false, true, SpecialBody.generated);
+		FunFlags(safety: Safety.safe, okIfUnused: true);
 }
-static assert(FunFlags.sizeof == 7);
+static assert(FunFlags.sizeof == 5);
 
 immutable struct FunDeclSource {
 	@safe @nogc pure nothrow:
@@ -1157,12 +1333,14 @@ immutable struct FunDecl {
 	Type returnType;
 	Params params;
 	FunFlags flags;
+	SymbolSet externs;
 	Specs specs;
 	private Late!FunBody lateBody;
 
 	ref FunBody body_() return scope =>
 		lateGet(lateBody);
-
+	bool bodyIsSet() return scope =>
+		lateIsSet(lateBody);
 	void body_(FunBody b) {
 		lateSet(lateBody, b);
 	}
@@ -1204,8 +1382,10 @@ immutable struct FunDecl {
 
 	bool isBare() scope =>
 		flags.bare;
+	bool isBareOrForceCtx() scope =>
+		flags.bare || flags.forceCtx;
 	bool isGenerated() scope =>
-		flags.specialBody == FunFlags.SpecialBody.generated;
+		body_.isGenerated;
 	bool isSummon() scope =>
 		flags.summon;
 	bool isUnsafe() scope =>
@@ -1222,6 +1402,24 @@ immutable struct FunDecl {
 	Arity arity() scope =>
 		params.arity;
 }
+bool eachSpecInFunIncludingParents(in FunDecl a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.specs, (ref const SpecInst* spec) =>
+		eachSpecIncludingParents(spec, cb));
+private bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.parents, (ref const SpecInst* parent) => eachSpecIncludingParents(parent, cb)) || cb(a);
+void eachSpecSigAndImpl(
+	in FunDecl a,
+	in SpecImpls impls,
+	in void delegate(SpecInst*, Signature*, Called) @safe @nogc pure nothrow cb,
+) {
+	assert(impls.length == countSigs(a.specs));
+	size_t implIndex = 0;
+	foreach (SpecInst* spec; a.specs)
+		eachSpecSig(*spec, (Signature* sig) {
+			cb(spec, sig, impls[implIndex++]);
+		});
+	assert(implIndex == impls.length);
+}
 
 immutable struct Test {
 	@safe @nogc pure nothrow:
@@ -1229,10 +1427,14 @@ immutable struct Test {
 	TestAst* ast;
 	Uri moduleUri;
 	FunFlags flags;
+	SymbolSet externs;
 	Expr body_;
 
-	UriAndRange range() =>
+	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+
+	Symbol name() scope =>
+		symbol!"test";
 }
 
 immutable struct FunDeclAndTypeArgs {
@@ -1402,7 +1604,7 @@ Type paramTypeAt(in Called a, size_t argIndex) scope =>
 		(in Called.Bogus x) =>
 			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
 		(in FunInst x) =>
-			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
+			a.isVariadic ? arrayElementType(only(x.paramTypes)) : x.paramTypes[argIndex],
 		(in CalledSpecSig x) {
 			assert(!a.isVariadic);
 			return x.paramTypes[argIndex];
@@ -1469,6 +1671,7 @@ immutable struct Module {
 	@safe @nogc pure nothrow:
 
 	Uri uri;
+	Config* config; // The config closest to this module. (Not necessarily the main config.)
 	FileAst* ast;
 	SmallArray!Diagnostic diagnostics; // See also 'ast.diagnostics'
 	SmallArray!ImportOrExport imports; // includes import of std (if applicable)
@@ -1488,7 +1691,7 @@ immutable struct Module {
 Uri getModuleUri(in Module* a) =>
 	a.uri;
 
-void eachImportOrReExport(in Module a, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
+void eachImportOrReExport(in Module a, in void delegate(ref ImportOrExport) @safe @nogc pure nothrow cb) {
 	foreach (ref ImportOrExport x; a.imports)
 		cb(x);
 	foreach (ref ImportOrExport x; a.reExports)
@@ -1504,12 +1707,13 @@ immutable struct ImportOrExport {
 	// If this is internal, imports internal and public exports; if this is public, import only public exports
 	ExportVisibility importVisibility;
 	// If the ast was NameAndRange[], this will have an entry for each name (except when there was nothing to import).
-	// For an import of a ModuleWhole (except 'std'), this tracks what was actually used in this module.
+	// For an import of a ModuleWhole, this tracks what was actually used in this module.
 	// For a re-export of a ModuleWhole, this is not used.
 	Late!ImportedReferents imported_;
 
 	ref Module module_() return scope =>
 		*modulePtr;
+	// WARN: This is not set for a re-export of a ModuleWhole. Test 'hasImported' first.
 	ref ImportedReferents imported() return scope =>
 		lateGet(imported_);
 	void imported(ImportedReferents value) {
@@ -1519,6 +1723,8 @@ immutable struct ImportOrExport {
 		lateIsSet(imported_);
 	bool isStd() scope =>
 		!has(source);
+	bool isRelativeImport() scope =>
+		has(source) && force(source).path.isA!RelPath;
 }
 alias ImportedReferents = HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer);
 
@@ -1560,8 +1766,13 @@ enum FunKind {
 	function_,
 }
 
+immutable struct CommonFunsAndDiagnostics {
+	CommonFuns commonFuns;
+	SmallArray!UriAndDiagnostic diagnostics;
+}
 immutable struct CommonFuns {
 	@safe @nogc pure nothrow:
+	FunInst* jsAwait;
 	FunInst* curCatchPoint;
 	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
@@ -1572,11 +1783,9 @@ immutable struct CommonFuns {
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
-	FunDecl* newTList;
 	FunInst* runFiber;
 	FunInst* rtMain;
 	FunInst* throwImpl;
-	FunInst* char8ArrayTrustAsString;
 	FunInst* equalNat64;
 	FunInst* lessNat64;
 	FunInst* rethrowCurrentException;
@@ -1602,7 +1811,9 @@ immutable struct CommonTypes {
 	StructInst* fiber;
 	StructInst* float32;
 	StructInst* float64;
+	StructDecl* future;
 	IntegralTypes integrals;
+	StructInst* jsAny;
 	StructInst* string_;
 	StructInst* symbol;
 	StructInst* symbolArray;
@@ -1610,11 +1821,9 @@ immutable struct CommonTypes {
 
 	StructDecl* array;
 	StructInst* char8Array;
+	StructInst* char8ConstPointer;
 	StructInst* char32Array;
 	StructInst* nat8Array;
-	StructDecl* list;
-	StructInst* char8List;
-	StructInst* char32List;
 	StructDecl* option;
 	StructDecl* pointerConst;
 	StructDecl* pointerMut;
@@ -1627,34 +1836,17 @@ immutable struct CommonTypes {
 	StructDecl* funPointerStruct() =>
 		funStructs[FunKind.function_];
 
+	StructDecl* pair() return scope =>
+		force(tuple(2));
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
 
 	size_t maxTupleSize() scope =>
 		9;
 }
-
-Type arrayElementType(in CommonTypes commonTypes, Type type) {
-	assert(type.as!(StructInst*).decl == commonTypes.array);
-	return only(type.as!(StructInst*).typeArgs);
+immutable struct OtherTypes {
+	Map!(StructInst*, StructInst*) futureOrMutArrayToImpl;
 }
-
-Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
-	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
-	return only(a.as!(StructInst*).typeArgs);
-}
-
-bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
-	a == commonTypes.option;
-
-bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) =>
-	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
-
-bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) =>
-	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
-
-bool isVoid(in CommonTypes commonTypes, Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
@@ -1737,46 +1929,130 @@ ulong maxValue(IntegralType type) {
 }
 
 immutable struct ProgramWithMain {
-	Config* mainConfig;
-	MainFun mainFun;
+	@safe @nogc pure nothrow:
 	Program program;
+	MainFunAndDiagnostics mainFunAndDiagnostics;
+
+	Uri mainUri() scope =>
+		mainFun.fun.decl.moduleUri;
+	MainFun mainFun() return scope =>
+		mainFunAndDiagnostics.mainFun;
+	UriAndDiagnostic[] mainFunDiagnostics() return scope =>
+		mainFunAndDiagnostics.diagnostics;
+	Module* mainModule() return scope =>
+		mustGet(program.allModules, mainUri);
+	ref Config mainConfig() return scope =>
+		*mainModule.config;
 }
 
+private enum _BuildTarget { js, native }
+alias BuildTarget = immutable _BuildTarget;
+
+// All 'extern's to compile with for the given target
+SymbolSet allExterns(in ProgramWithMain program, BuildTarget target) =>
+	allExternsForMainConfig(program.mainConfig, some(target));
+SymbolSet allExternsForMainConfig(in Config mainConfig, Opt!BuildTarget target) =>
+	buildSymbolSet((scope ref SymbolSetBuilder out_) {
+		if (has(target)) {
+			final switch (force(target)) {
+				case BuildTarget.js:
+					out_ ~= symbol!"js";
+					break;
+				case BuildTarget.native:
+					version (Windows)
+						out_ ~= [
+							symbolOfEnum(BuiltinExtern.DbgHelp),
+							symbolOfEnum(BuiltinExtern.ucrtbase),
+							symbolOfEnum(BuiltinExtern.windows),
+						];
+					else
+						out_ ~= [
+							symbolOfEnum(BuiltinExtern.linux),
+							symbolOfEnum(BuiltinExtern.posix),
+							symbolOfEnum(BuiltinExtern.pthread),
+							symbolOfEnum(BuiltinExtern.sodium),
+							symbolOfEnum(BuiltinExtern.unwind),
+						];
+					out_ ~= [symbolOfEnum(BuiltinExtern.libc), symbolOfEnum(BuiltinExtern.native)];
+					break;
+			}
+		}
+		foreach (Symbol name, Opt!Uri uri; mainConfig.extern_)
+			if (has(uri))
+				out_ ~= name;
+	});
+
+immutable struct ProgramWithOptMain {
+	@safe @nogc pure nothrow:
+	Program program;
+	private Opt!MainFunAndDiagnostics mainFunAndDiagnostics;
+
+	bool hasMain() scope =>
+		has(mainFunAndDiagnostics);
+	ProgramWithMain asProgramWithMain() return scope =>
+		ProgramWithMain(program, force(mainFunAndDiagnostics));
+	Program asProgram() return scope =>
+		program;
+}
+ProgramWithOptMain asProgramWithOptMain(ProgramWithMain a) =>
+	ProgramWithOptMain(a.program, some(a.mainFunAndDiagnostics));
+ProgramWithOptMain asProgramWithOptMain(Program a) =>
+	ProgramWithOptMain(a, none!MainFunAndDiagnostics);
+
+immutable struct MainFunAndDiagnostics {
+	MainFun mainFun;
+	SmallArray!UriAndDiagnostic diagnostics;
+}
 immutable struct MainFun {
+	@safe @nogc pure nothrow:
+
 	immutable struct Nat64OfArgs {
 		FunInst* fun;
 	}
 
 	immutable struct Void {
 		// Needed to wrap it to the Nat64OfArgs signature
-		StructInst* stringList;
+		StructInst* stringArray;
 		FunInst* fun;
 	}
 
 	mixin Union!(Nat64OfArgs, Void);
+
+	FunInst* fun() return scope =>
+		match!(FunInst*)(
+			(Nat64OfArgs x) => x.fun,
+			(Void x) => x.fun);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
-	hasAnyDiagnostics(a.program);
-
+	hasAnyDiagnostics(a.program) || !isEmpty(a.mainFunDiagnostics);
 bool hasFatalDiagnostics(in ProgramWithMain a) =>
-	existsDiagnostic(a.program, (in UriAndDiagnostic x) =>
-		isFatal(getDiagnosticSeverity(x.kind)));
+	hasFatalDiagnostics(a.program) || !isEmpty(a.mainFunDiagnostics);
 
 immutable struct Program {
+	@safe @nogc pure nothrow:
 	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
-	Module*[] rootModules;
-	SmallArray!UriAndDiagnostic commonFunsDiagnostics;
-	CommonFuns commonFuns;
-	CommonTypes* commonTypes;
+	CommonFunsAndDiagnostics commonFunsAndDiagnostics;
+	CommonTypes* commonTypesPtr;
+	OtherTypes otherTypes;
+
+	ref CommonFuns commonFuns() return =>
+		commonFunsAndDiagnostics.commonFuns;
+	ref CommonTypes commonTypes() return scope =>
+		*commonTypesPtr;
 }
+Module* moduleAtUri(in Program program, Uri uri) =>
+	mustGet(program.allModules, uri);
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
+bool hasFatalDiagnostics(in Program a) =>
+	existsDiagnostic(a, (in UriAndDiagnostic x) =>
+		isFatal(getDiagnosticSeverity(x.kind)));
 
 // Iterates in no particular order
-void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
+void eachDiagnostic(in ProgramWithOptMain a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
 	bool res = existsDiagnostic(a, (in UriAndDiagnostic x) {
 		cb(x);
 		return false;
@@ -1784,8 +2060,15 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 	assert(!res);
 }
 
+private bool existsDiagnostic(
+	in ProgramWithOptMain a,
+	in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb,
+) =>
+	(a.hasMain && exists!UriAndDiagnostic(a.asProgramWithMain.mainFunDiagnostics, cb)) ||
+	existsDiagnostic(a.program, cb);
+
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
-	exists!UriAndDiagnostic(a.commonFunsDiagnostics, cb) ||
+	exists!UriAndDiagnostic(a.commonFunsAndDiagnostics.diagnostics, cb) ||
 	existsInHashTable!(immutable Config*, Uri, getConfigUri)(a.allConfigs, (in Config* config) =>
 		exists!Diagnostic(config.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(force(config.configUri), x)))) ||
@@ -1794,6 +2077,14 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 			cb(UriAndDiagnostic(UriAndRange(module_.uri, x.range), Diag(x.kind)))) ||
 		exists!Diagnostic(module_.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(module_.uri, x))));
+
+void eachTest(ref Program program, in SymbolSet allExterns, in void delegate(Test*) @safe @nogc pure nothrow cb) {
+	foreach (immutable Module* m; program.allModules) {
+		foreach (ref Test x; m.tests)
+			if (allExterns.containsAll(x.externs))
+				cb(&x);
+	}
+}
 
 immutable struct Config {
 	Opt!Uri configUri; // none for default config
@@ -1808,7 +2099,7 @@ Config configForDiag(ref Alloc alloc, Uri uri, Diag diag) =>
 	Config(some(uri), newArray(alloc, [Diagnostic(Range.empty, diag)]));
 
 alias ConfigImportUris = Map!(Symbol, Uri);
-alias ConfigExternUris = Map!(Symbol, Uri);
+alias ConfigExternUris = Map!(Symbol, Opt!Uri);
 
 immutable struct LocalSource {
 	immutable struct Generated { Symbol name; }
@@ -1866,7 +2157,7 @@ immutable struct LocalMutability {
 	static LocalMutability mutableOnStack() =>
 		LocalMutability(LocalMutability.MutableOnStack());
 
-	bool isImmutable() =>
+	bool isImmutable() scope =>
 		isA!Immutable;
 }
 
@@ -1949,8 +2240,16 @@ immutable struct Destructure {
 		Type type;
 	}
 	immutable struct Split {
-		Type destructuredType; // This will be a tuple instance or Bogus.
+		@safe @nogc pure nothrow:
+		// This will be the type attempted to destructure.
+		// If it can't be destructured, each of 'parts' will have a bogus type.
+		Type destructuredType;
 		SmallArray!Destructure parts;
+
+		bool isValidDestructure(in CommonTypes commonTypes) scope {
+			Opt!(Type[]) types = asTuple(commonTypes, destructuredType);
+			return has(types) && force(types).length == parts.length;
+		}
 	}
 	mixin TaggedUnion!(Ignore*, Local*, Split*);
 
@@ -1981,6 +2280,17 @@ immutable struct Destructure {
 			(in Split x) =>
 				x.destructuredType);
 }
+void eachLocal(Destructure a, in void delegate(Local*) @safe @nogc pure nothrow cb) {
+	a.matchWithPointers!void(
+		(Destructure.Ignore*) {},
+		(Local* x) {
+			cb(x);
+		},
+		(Destructure.Split* x) {
+			foreach (Destructure part; x.parts)
+				eachLocal(part, cb);
+		});
+}
 
 immutable struct Expr {
 	@safe @nogc pure nothrow:
@@ -1999,6 +2309,7 @@ immutable struct ExprKind {
 		CallOptionExpr*,
 		ClosureGetExpr,
 		ClosureSetExpr,
+		ExternExpr,
 		FinallyExpr*,
 		FunPointerExpr,
 		IfExpr*,
@@ -2041,11 +2352,80 @@ immutable struct Condition {
 	mixin TaggedUnion!(Expr*, UnpackOption*);
 }
 
+immutable struct ExternCondition {
+	bool isNegated;
+	// If isNegated is set, this means !(x && y && ...)
+	SymbolSet requiredExterns;
+}
+bool evalExternCondition(in ExternCondition a, in SymbolSet allExterns) =>
+	a.isNegated ^ allExterns.containsAll(a.requiredExterns);
+Opt!ExternCondition asExtern(in Condition a) =>
+	a.isA!(Expr*)
+		? asExtern(*a.as!(Expr*))
+		: none!ExternCondition;
+private Opt!ExternCondition asExtern(ref Expr a) {
+	Expr e = skipTrusted(a);
+	if (e.kind.isA!CallExpr) {
+		CallExpr call = e.kind.as!CallExpr;
+		if (isAnd(call.called)) {
+			assert(call.args.length == 2);
+			Opt!ExternCondition arg0 = asExtern(call.args[0]);
+			Opt!ExternCondition arg1 = asExtern(call.args[1]);
+			return optIf(has(arg0) && !force(arg0).isNegated && has(arg1) && !force(arg1).isNegated, () =>
+				ExternCondition(false, force(arg0).requiredExterns | force(arg1).requiredExterns));
+		} else if (isNot(call.called)) {
+			Opt!SymbolSet names = asExternExpr(skipTrusted(only(call.args)));
+			return optIf(has(names), () => ExternCondition(true, force(names)));
+		} else
+			return none!ExternCondition;
+	} else {
+		Opt!SymbolSet names = asExternExpr(e);
+		return optIf(has(names), () => ExternCondition(false, force(names)));
+	}
+}
+private bool isAnd(in Called a) =>
+	isBuiltinFun(a, (in BuiltinFun x) =>
+		x.isA!BuiltinBinaryLazy && x.as!BuiltinBinaryLazy == BuiltinBinaryLazy.boolAnd);
+private bool isNot(in Called a) =>
+	isBuiltinFun(a, (in BuiltinFun x) =>
+		x.isA!BuiltinUnary && x.as!BuiltinUnary == BuiltinUnary.not);
+private bool isBuiltinFun(in Called a, in bool delegate(in BuiltinFun) @safe @nogc pure nothrow cb) =>
+	// A BuiltinFun body is never set late
+	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isBuiltinFun(a.as!(FunInst*).decl.body_, cb);
+private bool isBuiltinFun(in FunBody a, in bool delegate(in BuiltinFun) @safe @nogc pure nothrow cb) =>
+	a.isA!BuiltinFun && cb(a.as!BuiltinFun);
+private Opt!SymbolSet asExternExpr(in Expr a) =>
+	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.names);
+private ref Expr skipTrusted(return ref Expr a) =>
+	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
+
 immutable struct AssertOrForbidExpr {
 	bool isForbid;
 	Condition condition;
 	Opt!(Expr*) thrown;
 	Expr after;
+}
+private immutable struct PrefixAndRange {
+	string prefix;
+	Range range;
+}
+string defaultAssertOrForbidMessage(
+	ref Alloc alloc,
+	Uri curUri,
+	in Expr expr,
+	in AssertOrForbidExpr a,
+	in FileContentGetters content,
+) {
+	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
+		(ref ExprAst condition) =>
+			PrefixAndRange(
+				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
+				expr.ast.kind.as!AssertOrForbidAst.condition.range),
+		(ref ConditionAst.UnpackOption unpack) =>
+			PrefixAndRange(
+				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",
+				unpack.option.range));
+	return concatenate(alloc, x.prefix, content.getSourceText(curUri, x.range));
 }
 
 immutable struct BogusExpr {}
@@ -2080,6 +2460,28 @@ immutable struct ClosureSetExpr {
 
 	Local* local() return scope =>
 		closureRef.local;
+}
+
+immutable struct ExternExpr {
+	SymbolSet names;
+}
+
+bool isBuiltinExtern(Symbol a) =>
+	has(asBuiltinExtern(a));
+Opt!BuiltinExtern asBuiltinExtern(Symbol a) =>
+	enumOfSymbol!BuiltinExtern(a);
+immutable enum BuiltinExtern {
+	DbgHelp,
+	js,
+	libc,
+	linux,
+	native,
+	posix,
+	pthread,
+	sodium,
+	ucrtbase,
+	unwind,
+	windows,
 }
 
 immutable struct FinallyExpr {
@@ -2146,7 +2548,9 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralStringLikeExpr {
-	enum Kind { char8Array, char8List, char32Array, char32List, cString, string_, symbol }
+	@safe @nogc pure nothrow:
+
+	enum Kind { char8Array, char32Array, cString, jsAny, string_, symbol }
 	Kind kind;
 	SmallString value; // For char32Array, this will be decoded in concretize.
 }
@@ -2205,6 +2609,18 @@ immutable struct MatchEnumExpr {
 
 	StructBody.Enum* enumBody() =>
 		enum_.body_.as!(StructBody.Enum*);
+}
+
+Range caseNameRange(in Expr matchExpr, size_t caseIndex) {
+	assert(
+		matchExpr.kind.isA!(MatchEnumExpr*) ||
+		matchExpr.kind.isA!(MatchUnionExpr*) ||
+		matchExpr.kind.isA!(MatchVariantExpr*) ||
+		matchExpr.kind.isA!(TryExpr*));
+	SmallArray!CaseAst cases = matchExpr.ast.kind.isA!TryAst
+		? matchExpr.ast.kind.as!TryAst.catches
+		: matchExpr.ast.kind.as!MatchAst.cases;
+	return cases[caseIndex].member.nameRange;
 }
 
 // Match on charX, intX, natX type
@@ -2285,17 +2701,15 @@ immutable struct RecordFieldPointerExpr {
 	@safe @nogc pure nothrow:
 
 	ExprAndType target; // This will be a pointer or by-ref type
-	size_t fieldIndex;
+	RecordField* field;
 
-	StructDecl* recordDecl(in CommonTypes commonTypes) scope {
-		StructInst* inst = target.type.as!(StructInst*);
-		return isNonFunctionPointer(commonTypes, inst.decl)
-			? only(inst.typeArgs).as!(StructInst*).decl
-			: inst.decl;
-	}
+	StructDecl* recordDecl() scope =>
+		isPointerConstOrMut(target.type)
+			? pointeeType(target.type).as!(StructInst*).decl
+			: target.type.as!(StructInst*).decl;
 
-	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
-		&recordDecl(commonTypes).body_.as!(StructBody.Record).fields[fieldIndex];
+	size_t fieldIndex() =>
+		mustHaveIndexOfPointer(recordDecl.body_.as!(StructBody.Record).fields, field);
 }
 
 immutable struct SeqExpr {
@@ -2348,3 +2762,214 @@ Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);
 Visibility greatestVisibility(Visibility a, Visibility b) =>
 	max(a, b);
+
+Opt!Called getCalledAtExpr(in ExprKind x) =>
+	x.isA!CallExpr
+		? some(x.as!CallExpr.called)
+		: x.isA!(CallOptionExpr*)
+		? some(x.as!(CallOptionExpr*).called)
+		: x.isA!FunPointerExpr
+		? some(x.as!FunPointerExpr.called)
+		: none!Called;
+
+immutable struct ExprRef {
+	Expr* expr;
+	Type type;
+}
+
+ExprRef funBodyExprRef(FunDecl* a) =>
+	ExprRef(&a.body_.as!Expr(), a.returnType);
+ExprRef testBodyExprRef(ref CommonTypes commonTypes, Test* a) =>
+	ExprRef(&a.body_, Type(commonTypes.void_));
+
+void eachDescendentExprIncluding(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	cb(a);
+	eachDescendentExprExcluding(commonTypes, a, cb);
+}
+
+void eachDescendentExprExcluding(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	eachDirectChildExpr(commonTypes, a, (ExprRef x) {
+		eachDescendentExprIncluding(commonTypes, x, cb);
+	});
+}
+
+void eachDirectChildExpr(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	Opt!bool res = findDirectChildExpr!bool(commonTypes, a, (ExprRef x) {
+		cb(x);
+		return none!bool;
+	});
+	assert(!has(res));
+}
+
+Opt!T findDirectChildExpr(T)(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in Opt!T delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	Type boolType = Type(commonTypes.bool_);
+	Type exceptionType = Type(commonTypes.exception);
+	Type voidType = Type(commonTypes.void_);
+	ExprRef sameType(Expr* x) =>
+		ExprRef(x, a.type);
+	ExprRef toRef(ExprAndType* x) =>
+		ExprRef(&x.expr, x.type);
+
+	ExprRef directChildInCondition(Condition cond) =>
+		cond.matchWithPointers!ExprRef(
+			(Expr* x) =>
+				ExprRef(x, boolType),
+			(Condition.UnpackOption* x) =>
+				toRef(&x.option));
+	Opt!T directChildInMatchVariantCases(MatchVariantExpr.Case[] cases) =>
+		firstPointer!(T, MatchVariantExpr.Case)(cases, (MatchVariantExpr.Case* x) =>
+			cb(sameType(&x.then)));
+
+	return a.expr.kind.matchWithPointers!(Opt!T)(
+		(AssertOrForbidExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), exceptionType)) : none!T,
+				() => cb(sameType(&x.after))),
+		(BogusExpr _) =>
+			none!T,
+		(CallExpr x) {
+			assert(a.type == x.called.returnType);
+			if (x.called.isVariadic) {
+				Type argType = arrayElementType(only(x.called.paramTypes));
+				return firstPointer!(T, Expr)(x.args, (Expr* e) => cb(ExprRef(e, argType)));
+			} else
+				return firstZipPointerFirst!(T, Expr, Type)(x.args, x.called.paramTypes, (Expr* e, Type t) =>
+					cb(ExprRef(e, t)));
+		},
+		(CallOptionExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.firstArg)),
+				() => firstZipPointerFirst!(T, Expr, Type)(x.restArgs, x.called.paramTypes[1 .. $], (Expr* e, Type t) =>
+					cb(ExprRef(e, t)))),
+		(ClosureGetExpr x) {
+			assert(a.type == x.local.type);
+			return none!T;
+		},
+		(ClosureSetExpr x) {
+			assert(a.type == voidType);
+			return cb(ExprRef(x.value, x.local.type));
+		},
+		(ExternExpr x) =>
+			none!T,
+		(FinallyExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.right, voidType)),
+				() => cb(sameType(&x.below))),
+		(FunPointerExpr _) =>
+			none!T,
+		(IfExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(sameType(&x.firstBranch(a.expr.ast))),
+				() => cb(sameType(&x.secondBranch(a.expr.ast)))),
+		(LambdaExpr* x) =>
+			cb(ExprRef(&x.body_(), x.returnType)),
+		(LetExpr* x) =>
+			optOr!T(cb(ExprRef(&x.value, x.destructure.type)), () => cb(sameType(&x.then))),
+		(LiteralExpr _) =>
+			none!T,
+		(LiteralStringLikeExpr _) =>
+			none!T,
+		(LocalGetExpr x) {
+			assert(a.type == x.local.type || x.local.type.isBogus);
+			return none!T;
+		},
+		(LocalPointerExpr _) =>
+			none!T,
+		(LocalSetExpr x) {
+			assert(a.type == voidType);
+			return cb(ExprRef(x.value, x.local.type));
+		},
+		(LoopExpr* x) =>
+			cb(sameType(&x.body_)),
+		(LoopBreakExpr* x) =>
+			cb(sameType(&x.value)),
+		(LoopContinueExpr _) =>
+			none!T,
+		(LoopWhileOrUntilExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(ExprRef(&x.body_, voidType)),
+				() => cb(sameType(&x.after))),
+		(MatchEnumExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchEnumExpr.Case)(x.cases, (MatchEnumExpr.Case* y) => cb(sameType(&y.then))),
+				() => has(x.else_) ? cb(sameType(&force(x.else_))) : none!T),
+		(MatchIntegralExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchIntegralExpr.Case)(x.cases, (MatchIntegralExpr.Case* y) =>
+					cb(sameType(&y.then))),
+				() => cb(sameType(&x.else_))),
+		(MatchStringLikeExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchStringLikeExpr.Case)(x.cases, (MatchStringLikeExpr.Case* y) =>
+					cb(sameType(&y.then))),
+				() => cb(sameType(&x.else_))),
+		(MatchUnionExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case* case_) =>
+					cb(sameType(&case_.then))),
+				() => has(x.else_) ? cb(sameType(force(x.else_))) : none!T),
+		(MatchVariantExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => directChildInMatchVariantCases(x.cases),
+				() => cb(sameType(&x.else_))),
+		(RecordFieldPointerExpr* x) =>
+			cb(toRef(&x.target)),
+		(SeqExpr* x) =>
+			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(&x.then))),
+		(ThrowExpr* x) =>
+			cb(ExprRef(&x.thrown, exceptionType)),
+		(TrustedExpr* x) =>
+			cb(sameType(&x.inner)),
+		(TryExpr* x) =>
+			optOr!T(cb(sameType(&x.tried)), () => directChildInMatchVariantCases(x.catches)),
+		(TryLetExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.value, x.destructure.type)),
+				() => cb(sameType(&x.catch_.then)),
+				() => cb(sameType(&x.then))),
+		(TypedExpr* x) =>
+			cb(sameType(&x.inner)));
+}
+
+FunDecl* variantMemberGetter(FunDecl[] funs, in StructDecl* struct_, in VariantAndMethodImpls x) =>
+	mustFindFunNamed(funs, struct_.name, (in FunDecl fun) =>
+		fun.body_.isA!(FunBody.VariantMemberGet) &&
+		only(paramsArray(fun.params)).type == Type(x.variant) &&
+		fun.source.as!(StructDecl*) == struct_);
+FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a) =>
+	mustFindFunNamed(moduleAtUri(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
+		fun.source.isA!(FunDeclSource.VariantMethod) &&
+		fun.source.as!(FunDeclSource.VariantMethod).method == a.method);
+
+FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
+	mustFindFunNamed(module_.funs, name, cb);
+private FunDecl* mustFindFunNamed(
+	FunDecl[] funs,
+	Symbol name,
+	in bool delegate(in FunDecl) @safe @nogc pure nothrow cb,
+) =>
+	mustFindPointer!FunDecl(funs, (ref FunDecl fun) => fun.name == name && cb(fun));

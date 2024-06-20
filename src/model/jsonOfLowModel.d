@@ -129,6 +129,7 @@ Json jsonOfLowFunBody(ref Alloc alloc, in Ctx ctx, in LowFunBody a) =>
 Json jsonOfLowLocal(ref Alloc alloc, in LowLocal a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfLowLocalSource(alloc, a.source)),
+		field!"index"(a.index),
 		field!"type"(jsonOfLowType(alloc, a.type))]);
 
 Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
@@ -136,10 +137,7 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 		(in Local x) =>
 			jsonString(x.name),
 		(in LowLocalSource.Generated x) =>
-			jsonObject(alloc, [
-				kindField!"generated",
-				field!"name"(x.name),
-				field!"index"(x.index)]));
+			jsonObject(alloc, [kindField!"generated", field!"name"(x.name), field!"mutable"(x.isMutable)]));
 
 Json jsonOfLowExpr(ref Alloc alloc, in Ctx ctx, in LowExpr a) =>
 	jsonObject(alloc, [

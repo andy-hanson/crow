@@ -6,16 +6,15 @@ import
 	../../number: nat64
 	../../option: ??, is-empty, new, option
 	../../tuple: a, b, new
-	../array: array
+	../array: array, iterate, size
 	../collection: for-loop
 	../map: ~=, build, get-or-add, is-empty, iterate, map, size, subscript, try-remove
-	../list: iterate, list, size, to
 
 +hamt-set[t] record
 	-inner void[t]
 
-+new[t] t hamt-set(...values t array) t key
-	values.to to
++new[t] t hamt-set(...values t[]) t key
+	values to
 
 +to[t] t hamt-set(a t[]) t key
 	inner void[t] = for x : a; x, ()
@@ -28,7 +27,7 @@ import
 	a.inner size
 
 +in[t] bool(value t, a t hamt-set) t key
-	!a.inner[value].is-empty
+	a.inner[value] !is-empty
 
 + ~[t] t hamt-set(a t hamt-set, value t) t key
 	a try-add value ?? a

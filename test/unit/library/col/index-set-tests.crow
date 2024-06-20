@@ -1,0 +1,69 @@
+import
+	../../../../include/crow/col/experimental/index-set:
+		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less,
+		in, index-set, iterate, new, size, to, try-add, try-remove
+
+dummy-index-set-tests nat64()
+	0
+
+-verify void(a index-set, expected string, expected-list nat64[])
+	a.dbg is expected
+	actual-list nat64[] = a to
+	actual-list is expected-list
+	prev mut nat64 = 0
+	for cur : a
+		for x : prev .. cur
+			x in a is false
+		cur in a is true
+		prev := cur + 1
+	a.size is actual-list.size
+
+test
+	a index-set = ()
+	a verify "_", ()
+	3::nat in a is false
+
+	b = a ~ 8
+	b verify "[100 0 0 0]", (8,)
+
+	b count-less 8 is 0
+	b count-greater-or-equal 8 is 1
+	b count-range 4, 8 is 0
+	b count-range 8, 9 is 1
+
+	c = b ~~ (4, 9)
+	c verify "[310 0 0 0]", (4, 8, 9)
+
+	c try-remove 7 is ()
+	c try-add 8 is ()
+
+	d = c - 8
+	d verify "[210 0 0 0]", (4, 9)
+
+	e = c filter-less 9
+	e verify "[110 0 0 0]", (4, 8)
+
+	# TODO
+	# filtered = c filter it => it != 8
+	# filtered verify "[x210]", (4, 9)
+
+	mapped index-set = for x : c
+		10 - x
+	mapped verify "[46 0 0 0]", (1, 2, 6)
+
+test
+	a index-set = 100,
+	a verify "[0 1000000000 0 0]", (100,)
+	b = a ~ 1000
+	b verify "([0 1000000000 0 0] _ _ [0 0 0 10000000000])", (100, 1000)
+	c = b ~ 5000
+	cv string =
+		"((([0 1000000000 0 0] _ _ [0 0 0 10000000000]) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)"
+	c verify cv, (100, 1000, 5000)
+	d = c - 1000
+	d verify "((([0 1000000000 0 0] _ _ _) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)", (100, 5000)
+	e = c - 5000
+	e verify "([0 1000000000 0 0] _ _ [0 0 0 10000000000])", (100, 1000)
+
+-to json(a index-set)
+	a.to::nat[] to

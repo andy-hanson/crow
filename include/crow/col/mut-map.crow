@@ -1,26 +1,25 @@
 no-std
 import
-	../bool: &&, ||, bool, false, not
+	../bool: &&, ||, bool, false, not, true
 	../compare: >, >=
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../json: to
-	../misc: key, new, void, to
+	../misc: key, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: ==, ??, is-empty, new, option
-	../string: ==, interpolate, join, string, to
+	../string: ==, interpolate, join, show, string
 	../test-util: is
 	../tuple: ==, new
-	./array: array, iterate, size
-	./collection:
-		build-options, fill, find, find-index, for-loop, n-of, map=, set-subscript, size-hint,
-		subscript
+	./array: ==, ~=, array, build, iterate, new, size
+	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
-	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
-	./list: ==, ~=, build, iterate, list, new, size
-	./mut-list:
-		~=, +, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
-		remove-unordered-at, set-next, size
+	./mut-array:
+		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-array, new, next,
+		remove-unordered-at, set-next, set-subscript, size, subscript
+	./mut-slice:
+		~=, begin, build, iterate, is-empty, mut-slice, new, next, set-next, set-subscript, size,
+		subscript
 
 ###
 Mutable unordered map.
@@ -28,7 +27,7 @@ Mutable unordered map.
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
 +mut-map[k, v] record mut
-	-entries mut (k, v) entry mut-array
+	-entries mut (k, v) entry mut-slice
 	-total-size mut nat64
 
 -entry[k, v] union(none, one (k, v), many (k, v) mut[]) mut
@@ -38,7 +37,7 @@ New map containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-+new[k, v] v mut[k](...a (k, v) array) k key
++new[k, v] v mut[k](...a (k, v)[]) k key
 	a to
 
 ###
@@ -50,7 +49,7 @@ this makes no guarantees about whether more allocations will be needed.
 ###
 -mut-map-with-capacity[k, v] v mut[k](capacity nat64) k key
 	# TODO: should not need type annotation
-	(capacity n-of none)::((k, v) entry mut-array), 0
+	(capacity n-of none)::((k, v) entry mut-slice), 0
 
 ###
 Convert a list of pairs to a map.
@@ -58,8 +57,6 @@ Convert a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v mut[k](a (k, v)[]) k key
-	for x : a; x
-+to[k, v] v mut[k](a (k, v) array) k key
 	for x : a; x
 +to[k, v] v[k](a v mut[k]) k key
 	for x : a; x
@@ -85,7 +82,7 @@ Later pairs overwrite earlier pairs with the same key.
 
 # Copy pairs to a new map.
 +copy[k, v] v mut[k](a v mut[k]) k key
-	entries (k, v) entry mut-array = for entry : a entries
+	entries (k, v) entry mut-slice = for entry : a entries
 		match entry
 		as none
 			none
@@ -119,7 +116,7 @@ Gets the value associated with a key.
 Returns an empty option if the key is not in the map.
 ###
 +subscript[k, v] v?(a v mut[k], key k) k key
-	guard !a.is-empty
+	guard a !is-empty
 	match a.entries[key.hash % a.entries.size]
 	as none
 		()
@@ -219,7 +216,11 @@ Returns an empty option if the key was not in the map.
 				old-value,
 			else
 				guard value ?= new-value
-				if (trusted m is-at-capacity) && a should-expand
+				at-capacity = trusted if extern native
+					m is-at-capacity
+				else
+					true
+				if at-capacity && a should-expand
 					a expand
 					a[key] := value
 				else
@@ -307,7 +308,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to
+-dbg[k, v] string(a v mut[k]) k show, v show
 	parts string[] = for entry : a entries
 		match entry
 		as none
@@ -317,7 +318,7 @@ region test
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
 	" " join parts
--dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
+-dbg[k, v] string((k k, v v)) k show, v show
 	"{k} -> {v}"
 
 -verify void(a string mut[nat64], expected string)

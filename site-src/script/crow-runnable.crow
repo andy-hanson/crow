@@ -1,0 +1,193 @@
+import
+	crow/js
+	crow/js/dom
+	./crow: crow-server, get-hover, get-tokens, open-file, run, run-js
+	./crow-text: create-crow-text, new
+	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
+	./loading-spinner: create-loading-spinner
+	./lsp-types:
+		==, diagnostic, enum-members, exit-code, line-and-character, new, pipe, run-result,
+		severity, text, tokens-and-diagnostics, writes
+	./util/browser-util:
+		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
+		push-history
+	./util/mutable-observable: get, mutable-observable, observable, new, now-and-subscribe, set
+	./util/util: from-base-64, get-child-text, to-base-64
+
+define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
+	names names = ()
+	"crow-runnable" define-custom-element (x => x.is-play.css), x =>
+		x connected crow, names
+
+-names record(seen string mut-set, next-index mut nat) mut
+-new names()
+	(), 0
+-get-default-name string(a names) unsafe
+	index = a.next-index
+	a.next-index +:= 1
+	"demo{index}.crow"
+
+-get-crow-runnable-name string(a names, name-attr string?) unsafe, js extern
+	name = name-attr ?? a get-default-name
+	assert name ends-with ".crow"
+	unless a.seen try-add name
+		error log "Two CrowRunnable have the same name {name}"
+	name
+
+-get-crow-runnable-initial-text string(play bool, node node) summon, unsafe, js extern
+	(play ? get-code-from-url) ?? node get-child-text
+-get-code-from-url string?() summon, unsafe, js extern
+	if code ?= "code" get-url-search
+		code.from-base-64,
+
+-copy-play-link-from-text void(text string) summon, unsafe, js extern
+	url string = "{location origin}{location pathname}?code={text to-base-64}"
+	url push-history
+	url copy-text-to-clipboard
+
+-is-play bool(a custom-element-node) unsafe, js extern
+	a.attributes["play"] !is-empty
+
+-connected void(a custom-element-node, crow crow-server, names names) summon, unsafe, js extern
+	name = names get-crow-runnable-name a.attributes["name"]
+	no-run = a.attributes["no-run"] !is-empty
+	run-js = a.attributes["run-js"] !is-empty
+	play = a is-play
+	initial-text = play get-crow-runnable-initial-text a.as-node
+	main-uri string = "file:///{name}"
+	text-mut string mutable-observable = initial-text,
+	text = text-mut observable
+	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
+	get-hover string mut(x line-and-character) = position => crow get-hover main-uri, position
+	crow-text = (get-hover, tokens-and-diagnostics.observable, text-mut) create-crow-text
+
+	text now-and-subscribe shared value =>
+		diagnostics = crow open-file main-uri, value
+		tokens = crow get-tokens main-uri
+		error-diagnostics diagnostic[] = diagnostics filter x => x.severity <= 1
+		tokens-and-diagnostics set (tokens, error-diagnostics)
+
+	output output = ()
+
+	collapse-button mut node = gc-safe-value
+	collapse-button := "Hide output" create-button "collapsed", (up-icon,), () =>
+		output hide
+		collapse-button.classes ~= "collapsed"
+	collapse-button.style["float"] := "right"
+
+	run-button node? = unless no-run
+		button = "Run" create-button "run", (play-icon,), () =>
+			output start-running
+			collapse-button remove-class "collapsed"
+			yield-fiber # Allow to show loading before 'crow run'locks up the UI
+			output finish-running if run-js
+				crow run-js main-uri
+			else
+				crow run main-uri
+		button,
+
+	copy-button = "Copy to clipboard" create-button "", (copy-icon,), () =>
+		text.get copy-text-to-clipboard
+	download-button = "Download" create-button "", (download-icon,), () =>
+		name download-text text.get
+	link-button node? = if play
+		button = "Copy link to clipboard" create-button "", (link-icon,), () =>
+			text.get copy-play-link-from-text
+		button,
+
+	buttons node[] =
+		run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
+	bottom = "bottom" create-div buttons
+	container = "outer-container" create-div (crow-text, output.container, bottom)
+	a.shadow-root ~= container
+
+-output record(container node) mut
+-new output() trusted, js extern
+	res output = ("output" create-div ()),
+	res hide
+	res
+-hide void(a output) trusted, js extern
+	a.container.style["height"] := "0"
+-start-running void(a output) trusted, js extern
+	a.container.classes := "output", "running"
+	a.container.style["height"] := "2em"
+	a.container remove-all-children
+	a.container ~= create-loading-spinner
+-finish-running void(a output, run-result run-result) unsafe, js extern
+	a.container remove-class "running"
+	a.container.style["height"] := ""
+	a.container remove-all-children
+	a.container add-spans-for-writes run-result
+
+-add-spans-for-writes void(container node, run-result run-result) js extern
+	cur-pipe mut string? = ()
+	cur-line mut string = ""
+	finish-line void mut() = () =>
+		unless trusted container.as-js["textContent"].cast::string is-empty
+			container ~= "br".create-node
+		container ~= cur-pipe!.show create-span (cur-line.create-text-node,)
+		cur-line := ""
+
+	for write : run-result writes
+		pipe string = write.pipe to
+		text = write text
+		if x ?= cur-pipe
+			if x != pipe && cur-line != ""
+				finish-line[]
+
+		cur-pipe := pipe,
+		parts = text split "\n"
+		cur-line ~~:= parts[0]
+		for part : parts[1 .. end]
+			finish-line[]
+			cur-line ~~:= part
+	if cur-line != ""
+		finish-line[]
+
+	if run-result.exit-code != 0
+		cur-pipe := "exit-code",
+		cur-line := "Exit code: {run-result exit-code}"
+		finish-line[]
+	elif run-result.writes is-empty
+		cur-pipe := "stdout",
+		cur-line := "<<no output>>"
+		finish-line[]
+
+-css string(play bool)
+	"""
+.outer-container \{
+	max-width: {play ? 60::nat : 40}em;
+	margin-left: auto;
+	margin-right: auto;
+}
+.output \{
+	width: 100%;
+	color: #fdf9f3;
+	background: #161517;
+	font-family: "hack";
+	white-space: pre-wrap;
+	tab-size: 4;
+	overflow: hidden;
+}
+.output.running \{ transition: none; }
+.output > .stderr \{ color: #ff6622; }
+.output > .exit-code \{ color: #ff4444; }
+button \{
+	border: none;
+	outline: none;
+	color: #ffebbd;
+	background: #00000000;
+	cursor: pointer;
+}
+.run \{ color: #ffd866; }
+.bottom \{
+	border-bottom-left-radius: 1.5em;
+	border-bottom-right-radius: 1.5em;
+	background: #423e44;
+	margin: 0;
+	padding-left: 0.5em;
+	padding-right: 0.5em;
+}
+div.icon svg \{ height: 1.5em; }
+button.collapsed \{ display: none; }
+"""

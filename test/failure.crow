@@ -1,24 +1,13 @@
-import
-	crow/io/print: err, pipe, print, print-no-newline
-
 failure record(path string, message string)
 
-print-failures nat(failures failure[]) summon
-	for failure : failures
-		failure print-failure
-	err print "{failures.size} failures"
-	failures.size
-
--print-failure void(failure failure) summon
-	err print-bold
-	err print-no-newline failure.path
-	err print-reset
-	err print-no-newline " "
-	err print failure.message
+show-failures string(failures failure[])
+	s string = "\n" join for failure : failures
+		"{bold}{failure.path}{reset} {failure.message}"
+	"{s}\n{failures.size} failures"
 
 # TODO:MOVE
--print-bold void(pipe pipe) summon
-	pipe print-no-newline "\x1b[1m"
+-bold string()
+	"\x1b[1m"
 
--print-reset void(pipe pipe) summon
-	pipe print-no-newline "\x1b[m"
+-reset string()
+	"\x1b[m"

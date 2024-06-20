@@ -8,11 +8,10 @@ import
 	./compare: !=, <, <=, >, >=, min
 	./private/bootstrap: exception, string
 	./private/number-low-level:
-		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul,
-		wrap-sub
+		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul
 export
 	./private/number-low-level:
-		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-value, min-value,
+		==, <=>, float32, float64, int8, int16, int32, int64, is-even, max-value, min-value,
 		nat8, nat16, nat32, nat64, new, round-up-to-power-of-two, to, wrap-to
 
 +int alias
@@ -46,13 +45,13 @@ region arithmetic
 	a signed
 
 +unary-out-of-range record(input integral-value) by-val, exception variant-member
-+describe string(_ unary-out-of-range)
++show string(_ unary-out-of-range)
 	"Output of unary function does not fit in the result type"
 +binary-out-of-range record(a integral-value, b integral-value) by-val, exception variant-member
-+describe string(_ binary-out-of-range)
++show string(_ binary-out-of-range)
 	"Output of binary function does not fit in the result type"
 +divide-by-0 record exception variant-member
-+describe string(_ divide-by-0)
++show string(_ divide-by-0)
 	"Division by 0"
 
 ###
@@ -80,16 +79,16 @@ Throws if the result would overflow.
 # Throws if the result would be negative.
 +- nat8(a nat8, b nat8) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat16(a nat16, b nat16) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat32(a nat32, b nat32) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat64(a nat64, b nat64) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 
 # Throws if the result would overflow.
 +* nat64(a nat64, b nat64) bare
@@ -99,7 +98,6 @@ Throws if the result would overflow.
 	assert res / b == a : a.to binary-out-of-range b.to
 	assert res / a == b : a.to binary-out-of-range b.to
 	res
-
 
 ###
 Flooring division of `a` divided by `b`.
@@ -157,7 +155,7 @@ Be less than the least possible value or greater than the greatest possible valu
 + + int16(a int16, b int16) bare
 	trusted a.to unsafe-add b.to to
 + + int32(a int32, b int32) bare
-	trusted a.to unsafe-add b.to to
+	trusted a.to::int64 unsafe-add b.to to
 + + int64(a int64, b int64) bare
 	overflow = if b > 0
 		a > (trusted max-value unsafe-sub b)
@@ -167,7 +165,7 @@ Be less than the least possible value or greater than the greatest possible valu
 	trusted a unsafe-add b
 
 +- int32(a int32, b int32) bare
-	trusted a.to unsafe-sub b.to to
+	trusted a.to::int64 unsafe-sub b.to to
 +- int64(a int64, b int64) bare
 	overflow = if b > 0
 		a < (trusted min-value unsafe-add b)
@@ -181,7 +179,7 @@ Be less than the least possible value or greater than the greatest possible valu
 +* int16(a int16, b int16) bare
 	trusted a.to unsafe-mul b.to to
 +* int32(a int32, b int32) bare
-	trusted a.to unsafe-mul b.to to
+	trusted a.to::int64 unsafe-mul b.to to
 +* int64(a int64, b int64) bare
 	overflow = if a == -1
 		b == min-value
@@ -337,9 +335,17 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 +round float32(a float32) bare, builtin
 +round float64(a float64) bare, builtin
+# floor
++round-down float32(a float32) bare, builtin
++round-down float64(a float64) bare, builtin
+# ceiling
++round-up float32(a float32) bare, builtin
++round-up float64(a float64) bare, builtin
 
 +to nat64(a float64) bare
 	a.to::int64 to
++to nat32(a float64) bare
+	a.to::nat64 to
 
 # Throws if the result would overflow.
 +to int64(a nat64) bare
@@ -368,6 +374,12 @@ Conversions involving floats (in either direction) are approximate and never thr
 +to int32(a nat64) bare
 	a.to::int64 to
 
++clamp-sub nat64(a nat64, b nat64)
+	if a >= b
+		a - b
+	else
+		0
+
 # Return the closest value. Never throws.
 +clamp-to int32(a int64) bare
 	if a < min-value::int32.to
@@ -391,10 +403,12 @@ Conversions involving floats (in either direction) are approximate and never thr
 +clamp-to nat64(a int64) bare
 	if a >= 0
 		trusted a unsafe-to
++clamp-to nat64(a float64) bare
+	a.to::int64 clamp-to
 
 # Return the closest possible value to `a + b`. Never throws.
 +clamp-add int32(a int32, b int32) bare
-	trusted a.to unsafe-add b.to clamp-to
+	trusted a.to::int64 unsafe-add b.to clamp-to
 
 # Throws if the result would not have the same value as the input (due to overflow or underflow)
 +to nat64(a int64) bare

@@ -81,7 +81,7 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 	(cast(Out function(
 		in void delegate(ref StackArrayBuilder!Elem) @safe @nogc pure nothrow,
 		in Out delegate(scope Elem[]) @safe @nogc pure nothrow,
-	) @safe @nogc pure nothrow) &withBuildStackArray_impure!(Out, Elem))(cbBuild, cb);
+	) @safe @nogc pure nothrow) &withBuildStackArrayImpure!(Out, Elem))(cbBuild, cb);
 
 @trusted Out withExactStackArray(Out, Elem)(
 	size_t size,
@@ -91,16 +91,25 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 		ExactSizeArrayBuilder!Elem builder = ExactSizeArrayBuilder!Elem(storage, storage.ptr);
 		return cb(builder);
 	});
-private @system Out withBuildStackArray_impure(Out, Elem)(
+@trusted Out withExactStackArrayImpure(Out, Elem)(
+	size_t size,
+	in Out delegate(scope ref ExactSizeArrayBuilder!Elem) @safe @nogc nothrow cb,
+) =>
+	withStackArrayUninitialized_impure!(Out, Elem)(size, (scope Elem[] storage) @trusted {
+		ExactSizeArrayBuilder!Elem builder = ExactSizeArrayBuilder!Elem(storage, storage.ptr);
+		return cb(builder);
+	});
+
+@trusted Out withBuildStackArrayImpure(Out, Elem)(
 	in void delegate(ref StackArrayBuilder!Elem) @safe @nogc pure nothrow cbBuild,
-	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
+	in Out delegate(scope Elem[]) @safe @nogc nothrow cb,
 ) {
 	assert((cast(ulong) stackArrayNext) % ulong.sizeof == 0);
 
 	assert(!isBuildingStackArray);
 	isBuildingStackArray = true;
 	Elem* begin = cast(Elem*) stackArrayNext;
-	StackArrayBuilder!Elem builder = StackArrayBuilder!Elem(begin);
+	StackArrayBuilder!Elem builder = StackArrayBuilder!Elem(begin, begin);
 	cbBuild(builder);
 	isBuildingStackArray = false;
 	stackArrayNext = roundUpToWord(builder.cur);
@@ -112,16 +121,36 @@ private @system Out withBuildStackArray_impure(Out, Elem)(
 struct StackArrayBuilder(T) {
 	@safe @nogc pure nothrow:
 
+	private T* begin;
 	private T* cur;
-
-	@system void pop() {
-		cur--;
-	}
 
 	@trusted void opOpAssign(string op : "~")(T value) {
 		debug assert(cast(ulong*) (cur + 1) <= endPtr(stackArrayStorage));
 		initMemory(cur, value);
 		cur++;
+	}
+	@trusted void opOpAssign(string op : "~")(in T[] values) {
+		foreach (T value; values)
+			this ~= value;
+	}
+
+	size_t sizeSoFar() =>
+		cur - begin;
+
+	@system void pop() {
+		assert(cur > begin);
+		cur--;
+	}
+
+	@trusted T[] asTemporaryArray() =>
+		arrayOfRange(begin, cur);
+
+	@trusted void insertAt()(size_t index, T value) {
+		assert(index <= sizeSoFar);
+		cur++;
+		foreach_reverse (size_t i; index .. sizeSoFar)
+			begin[i + 1] = begin[i];
+		begin[index] = value;
 	}
 }
 
@@ -220,4 +249,13 @@ pure Out withMapOrNoneToStackArray(Out, Elem, InElem)(
 				return cbFail();
 		}
 		return cbOk(finish(elems));
+	});
+
+Out withConcatImpure(Out, Elem)(in Elem[] a, in Elem[] b, in Out delegate(in Elem[]) @safe @nogc nothrow cb) =>
+	withExactStackArrayImpure!(Out, Elem)(a.length + b.length, (scope ref ExactSizeArrayBuilder!Elem elems) {
+		foreach (Elem x; a)
+			elems ~= x;
+		foreach (Elem x; b)
+			elems ~= x;
+		return cb(finish(elems));
 	});

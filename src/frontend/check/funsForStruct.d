@@ -20,7 +20,7 @@ import model.model :
 	Destructure,
 	IntegralType,
 	isVoid,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	FunBody,
 	FunDecl,
@@ -48,6 +48,7 @@ import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
+import util.symbolSet : emptySymbolSet;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));
@@ -59,13 +60,13 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in BuiltinType _) =>
 			0,
 		(in StructBody.Enum x) =>
-			// 'to' and a constructor for each member
-			1 + x.members.length,
+			// 'enum-members', 'to', '==', and a constructor for each member
+			3 + x.members.length,
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
 		(in StructBody.Flags x) =>
-			// 'to' and a constructor for each member
-			1 + x.members.length,
+			// 'flags-members', 'to', '==', 'new', '~', '&', '|', and a constructor for each member
+			7 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
 				1 + has(field.mutability));
@@ -76,7 +77,7 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		},
 		(in StructBody.Union x) =>
 			// A constructor and getter for each member
-			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(commonTypes, x.type)),
+			x.members.length + count!UnionMember(x.members, (in UnionMember x) => !isVoid(x.type)),
 		(in StructBody.Variant x) =>
 			x.methods.length);
 private size_t countFunsForVariants(in StructDecl a) =>
@@ -193,12 +194,30 @@ FunDecl funDeclWithBody(
 	immutable(SpecInst*)[] specInsts,
 	FunBody body_,
 ) {
-	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small!(immutable SpecInst*)(specInsts));
+	FunDecl res = FunDecl(
+		source, visibility, name, returnType, params, flags, emptySymbolSet, small!(immutable SpecInst*)(specInsts));
 	res.body_ = body_;
 	return res;
 }
 
 private:
+
+FunDecl funForStruct(
+	StructDecl* struct_,
+	Symbol name,
+	Type returnType,
+	Params params,
+	FunFlags flags,
+	FunBody body_,
+) =>
+	basicFunDecl(
+		FunDeclSource(struct_),
+		struct_.visibility,
+		name,
+		returnType,
+		params,
+		flags,
+		body_);
 
 FunDecl basicFunDecl(
 	FunDeclSource source,
@@ -212,9 +231,8 @@ FunDecl basicFunDecl(
 	funDeclWithBody(source, visibility, name, returnType, params, flags, [], body_);
 
 FunDecl newExtern(InstantiateCtx ctx, StructDecl* struct_) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
+	funForStruct(
+		struct_,
 		symbol!"new",
 		Type(instantiateNonTemplateStructDeclNeverDelay(ctx, struct_)),
 		Params([]),
@@ -235,7 +253,9 @@ void addFunsForEnum(
 	ref StructBody.Enum enum_,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, inst, commonTypes);
+	funsBuilder ~= enumOrFlagsMembersFunction(ctx, commonTypes, inst, symbol!"enum-members");
+	funsBuilder ~= enumOrFlagsToIntegralFunction(ctx.alloc, commonTypes, enum_.storage, inst);
+	funsBuilder ~= enumOrFlagsEqualsFunction(ctx.alloc, commonTypes, inst);
 	foreach (ref EnumOrFlagsMember member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
@@ -248,7 +268,24 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, inst, commonTypes);
+	funsBuilder ~= enumOrFlagsMembersFunction(ctx, commonTypes, inst, symbol!"flags-members");
+	funsBuilder ~= enumOrFlagsToIntegralFunction(ctx.alloc, commonTypes, flags.storage, inst);
+	funsBuilder ~= enumOrFlagsEqualsFunction(ctx.alloc, commonTypes, inst);
+
+	FunDecl make(Symbol name, Type returnType, in ParamShort[] params, EnumOrFlagsFunction fun) =>
+		funForStruct(
+			struct_,
+			name,
+			returnType,
+			makeParams(ctx.alloc, params),
+			FunFlags.generatedBare,
+			FunBody(fun));
+	Type type = Type(inst);
+	funsBuilder ~= make(symbol!"new", type, [], EnumOrFlagsFunction.none);
+	funsBuilder ~= make(symbol!"~", type, [param!"a"(type)], EnumOrFlagsFunction.negate);
+	funsBuilder ~= make(symbol!"|", type, [param!"a"(type), param!"b"(type)], EnumOrFlagsFunction.union_);
+	funsBuilder ~= make(symbol!"&", type, [param!"a"(type), param!"b"(type)], EnumOrFlagsFunction.intersect);
+
 	foreach (ref EnumOrFlagsMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
@@ -263,21 +300,39 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, StructIns
 		FunFlags.generatedBare,
 		FunBody(FunBody.CreateEnumOrFlags(member)));
 
-FunDecl enumToIntegralFunction(
+FunDecl enumOrFlagsMembersFunction(ref CheckCtx ctx, ref CommonTypes commonTypes, StructInst* enum_, Symbol name) =>
+	funForStruct(
+		enum_.decl,
+		name,
+		Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.array, [
+			Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.pair, [
+				Type(commonTypes.symbol), Type(enum_)]))])),
+		Params.empty,
+		FunFlags.generatedBare,
+		FunBody(EnumOrFlagsFunction.members));
+
+FunDecl enumOrFlagsEqualsFunction(ref Alloc alloc, ref CommonTypes commonTypes, StructInst* enum_) =>
+	funForStruct(
+		enum_.decl,
+		symbol!"==",
+		Type(commonTypes.bool_),
+		makeParams(alloc, [param!"a"(Type(enum_)), param!"b"(Type(enum_))]),
+		FunFlags.generatedBare,
+		FunBody(EnumOrFlagsFunction.equal));
+
+FunDecl enumOrFlagsToIntegralFunction(
 	ref Alloc alloc,
-	StructDecl* struct_,
+	ref CommonTypes commonTypes,
 	IntegralType storageType,
 	StructInst* inst,
-	ref CommonTypes commonTypes,
 ) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
+	funForStruct(
+		inst.decl,
 		symbol!"to",
 		Type(commonTypes.integrals[storageType]),
 		makeParams(alloc, [param!"a"(Type(inst))]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(EnumFunction.toIntegral));
+		FunBody(EnumOrFlagsFunction.toIntegral));
 
 void addFunsForRecord(
 	ref CheckCtx ctx,
@@ -289,8 +344,8 @@ void addFunsForRecord(
 	Type structType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
-	foreach (size_t fieldIndex, ref RecordField field; record.fields)
-		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, &field);
+	foreach (ref RecordField field; record.fields)
+		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, &field);
 }
 
 Type instantiateStructWithTypeArgsFromParams(ref CheckCtx ctx, StructDecl* struct_) =>
@@ -330,7 +385,6 @@ void addFunsForRecordField(
 	StructDecl* struct_,
 	Type recordType,
 	bool recordIsByVal,
-	size_t fieldIndex,
 	RecordField* field,
 ) {
 	funsBuilder ~= funDeclWithBody(
@@ -341,7 +395,7 @@ void addFunsForRecordField(
 		makeParams(ctx.alloc, [param!"a"(recordType)]),
 		FunFlags.generatedBare,
 		[],
-		FunBody(FunBody.RecordFieldGet(fieldIndex)));
+		FunBody(FunBody.RecordFieldGet(field)));
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		funsBuilder ~= funDeclWithBody(
@@ -352,10 +406,10 @@ void addFunsForRecordField(
 			makeParams(ctx.alloc, [param!"a"(recordPointer)]),
 			FunFlags.generatedBareUnsafe,
 			[],
-			FunBody(FunBody.RecordFieldPointer(fieldIndex)));
+			FunBody(FunBody.RecordFieldPointer(field)));
 	}
 
-	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, fieldIndex, field);
+	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, field);
 
 	if (recordIsByVal)
 		addRecordFieldPointer(
@@ -378,7 +432,7 @@ void addFunsForRecordField(
 				]),
 				FunFlags.generatedBareUnsafe,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex)));
+				FunBody(FunBody.RecordFieldSet(field)));
 			addRecordFieldPointer(
 				setVisibility,
 				recordMutPointer,
@@ -392,7 +446,7 @@ void addFunsForRecordField(
 				makeParams(ctx.alloc, [param!"a"(recordType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex)));
+				FunBody(FunBody.RecordFieldSet(field)));
 	}
 }
 
@@ -406,7 +460,6 @@ void maybeAddFieldCaller(
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	Type recordType,
-	size_t fieldIndex,
 	RecordField* field,
 ) {
 	Opt!FunType optFunType = getFunType(commonTypes, field.type);
@@ -421,7 +474,7 @@ void maybeAddFieldCaller(
 			params,
 			FunFlags.generated.withOkIfUnused,
 			[],
-			FunBody(FunBody.RecordFieldCall(fieldIndex, funType.kind)));
+			FunBody(FunBody.RecordFieldCall(field, funType.kind)));
 	}
 }
 
@@ -459,8 +512,8 @@ void addFunsForUnion(
 	ref StructBody.Union union_,
 ) {
 	Type unionType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
-	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
-		bool voidMember = isVoid(commonTypes, member.type);
+	foreach (ref UnionMember member; union_.members) {
+		bool voidMember = isVoid(member.type);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(&member),
 			struct_.visibility,
@@ -479,7 +532,7 @@ void addFunsForUnion(
 				makeParams(ctx.alloc, [param!"a"(unionType)]),
 				FunFlags.generatedBare,
 				[],
-				FunBody(FunBody.UnionMemberGet(memberIndex)));
+				FunBody(FunBody.UnionMemberGet(&member)));
 	}
 }
 
@@ -490,7 +543,7 @@ void addFunsForVariant(
 	StructDecl* struct_,
 	ref StructBody.Variant variant,
 ) {
-	foreach (size_t methodIndex, ref Signature sig; variant.methods)
+	foreach (ref Signature sig; variant.methods)
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(FunDeclSource.VariantMethod(struct_, &sig)),
 			struct_.visibility,
@@ -503,5 +556,5 @@ void addFunsForVariant(
 				sig.params)),
 			FunFlags.generated,
 			[],
-			FunBody(FunBody.VariantMethod(methodIndex)));
+			FunBody(FunBody.VariantMethod(&sig)));
 }

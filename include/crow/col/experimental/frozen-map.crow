@@ -9,14 +9,13 @@ import
 	../../option: is-empty, new, option
 	../../range: .., iterate, range
 	../../tuple: a, b
-	../array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
+	../array: array, is-empty, iterate, new, size, subscript
 	../collection:
 		.., build, build-options, end, exists, for-break, for-loop, indices, n-of, map=,
-		set-subscript, subscript, swap-at, with-block, with-index
-	../mut-array:
-		~=, +, begin, build, cast-immutable, iterate, mut-array, mut-array-builder, next, set-next,
-		size
-	../list: list, to
+		subscript, swap-at, with-block, with-index
+	../mut-slice:
+		~=, begin, build, cast-immutable, iterate, mut-slice, mut-slice-builder, next, set-next,
+		set-subscript, size, subscript, to
 
 ###
 Immutable map that is not efficient to update.
@@ -24,20 +23,18 @@ However, this is more compact than `map` and has faster lookups.
 ###
 +frozen-map[k, v] record by-val
 	# exposed for tests only
-	~pairs (k, v) array
-	~bucket-starts nat64 array
+	~pairs (k, v)[]
+	~bucket-starts nat64[]
 
-+new[k, v] (k, v) frozen-map(...a (k, v) array) k key
-	a.to to
++new[k, v] (k, v) frozen-map(...a (k, v)[]) k key
+	a to
 
 +to[k, v] (k, v) frozen-map(a (k, v)[]) k key
 	trusted a.to as-frozen-map
 
 # This is O(1).
-+to[k, v] (k, v) array(a (k, v) frozen-map) bare
++to[k, v] (k, v)[](a (k, v) frozen-map) bare
 	a pairs
-+to[k, v] (k, v)[](a (k, v) frozen-map)
-	a.to::((k, v) array) to
 
 +is-empty[k, v] bool(a (k, v) frozen-map)
 	a.pairs is-empty
@@ -50,7 +47,7 @@ However, this is more compact than `map` and has faster lookups.
 		a.pairs[index].b,
 
 +in[k, v] bool(key k, a (k, v) frozen-map) k key
-	!(a try-get-unordered-index key is-empty)
+	a try-get-unordered-index key !is-empty
 
 try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
 	for i : a bucket-indices key
@@ -72,21 +69,21 @@ try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
 		a.bucket-starts[bucket-index + 1]
 	bucket-start .. bucket-end
 
--bucket-at-index[k, v] (k, v) array(a (k, v) frozen-map, bucket-index nat64)
+-bucket-at-index[k, v] (k, v)[](a (k, v) frozen-map, bucket-index nat64)
 	a.pairs[a bucket-indices-at-index bucket-index]
 
--as-frozen-map[k, v] (k, v) frozen-map(a (k, v) mut-array) unsafe, k key
-	a.mut-array-to-frozen-map-promise-no-duplicates remove-duplicates
+-as-frozen-map[k, v] (k, v) frozen-map(a (k, v) mut-slice) unsafe, k key
+	a.mut-slice-to-frozen-map-promise-no-duplicates remove-duplicates
 
-mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
-	a (k, v) mut-array,
+mut-slice-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
+	a (k, v) mut-slice,
 ) unsafe, k key
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
 		n-buckets = a.size / 2
 		bucket-starts = a get-bucket-starts n-buckets
-		bucket-counts nat64 mut-array = n-buckets n-of 0
+		bucket-counts nat64 mut-slice = n-buckets n-of 0
 		cur mut nat64 = 0
 		until cur == a.size
 			bucket-index = a[cur].a get-bucket-index bucket-counts.size
@@ -104,23 +101,22 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 
 -remove-duplicates[k, v] (k, v) frozen-map(a (k, v) frozen-map) unsafe, k key
 	if a has-duplicates
-		# Write out pairs from each bucket to a mut-array,
+		# Write out pairs from each bucket to a mut-slice,
 		# omitting a pair if its key appears later in the same bucket.
-		# Then call mut-array-to-frozen-map-promise-no-duplicates
-		xs (k, v) mut-array = with out : a.size build
+		xs (k, v) mut-slice = with out : a.size build
 			out write-without-duplicates a
-		xs mut-array-to-frozen-map-promise-no-duplicates
+		xs mut-slice-to-frozen-map-promise-no-duplicates
 	else
 		a
 
--write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-map) k key
+-write-without-duplicates[k, v] void(out (k, v) mut-slice-builder, a (k, v) frozen-map) k key
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
 		for i : a.bucket-starts indices
 			out write-bucket-without-duplicates (a bucket-at-index i)
 
--write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k key
+-write-bucket-without-duplicates[k, v] void(out (k, v) mut-slice-builder, pairs (k, v)[]) k key
 	for i, pair : pairs with-index
 		unless pair.a key-in-range pairs[i + 1 .. end]
 			out ~= pair
@@ -132,15 +128,15 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 		a.bucket-starts.indices exists i =>
 			a bucket-at-index i bucket-has-duplicates
 
--bucket-has-duplicates[k, v] bool(pairs (k, v) array) k key
+-bucket-has-duplicates[k, v] bool(pairs (k, v)[]) k key
 	pairs.with-index exists (i, (k, _)) =>
 		k key-in-range pairs[i + 1 .. end]
 
--key-in-range[k, v] bool(key k, pairs (k, v) array) k key
+-key-in-range[k, v] bool(key k, pairs (k, v)[]) k key
 	pairs exists (k, _) => k == key
 
--get-bucket-starts[k, v] nat64 array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
-	res nat64 mut-array = n-buckets n-of 0
+-get-bucket-starts[k, v] nat64[](a (k, v) mut-slice, n-buckets nat64) unsafe, k key
+	res nat64 mut-slice = n-buckets n-of 0
 	for k, _ : a
 		res[k get-bucket-index n-buckets] +:= 1
 	res running-sum
@@ -149,7 +145,7 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 -get-bucket-index[k] nat64(key k, n-buckets nat64) k key
 	key.hash % n-buckets
 
--running-sum void(a nat64 mut-array)
+-running-sum void(a nat64 mut-slice)
 	acc mut nat64 = 0
 	a map= x =>
 		start = acc
@@ -162,7 +158,7 @@ region spec impls (see collection.crow)
 	a.pairs iterate f
 
 +frozen-map-builder[k, v] record mut
-	-inner (k, v) mut-array-builder
+	-inner (k, v) mut-slice-builder
 +build[k, v] (k, v) frozen-map(a build-options, f void mut(out (k, v) frozen-map-builder)) k key
 	trusted (a build out => f[out,]) as-frozen-map
 + ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))

@@ -1,7 +1,5 @@
 import
-	crow/parse:
-		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
-		text-not-containing-any, to
+	crow/parse
 	./module
 
 all-exports record(types module-path[symbol], specs module-path[symbol])
@@ -18,6 +16,8 @@ all-exports all-exports(modules module[])
 				specs add-or-warn x.name, module.path
 			as export-fun
 				()
+			as export-var
+				()
 	types.move-to, specs.move-to
 
 -add-or-warn void(map module-path mut[symbol], key symbol, value module-path)
@@ -26,7 +26,7 @@ all-exports all-exports(modules module[])
 	else
 		map[key] := value
 
--export-kind enum(export-type, export-spec, export-fun)
+-export-kind enum(export-type, export-spec, export-fun, export-var)
 
 -export-kind export-kind(a module-export-value)
 	match a
@@ -48,6 +48,8 @@ all-exports all-exports(modules module[])
 		export-spec
 	as union-decl _
 		export-type
+	as var-decl _
+		export-var
 	as variant-decl _
 		export-type
 
@@ -79,7 +81,7 @@ module-content string(a module, all-exports all-exports)
 	assert module ?= map[name] :
 		"Could not find {kind} {name} in {ctx current-module} member {ctx current-export}" error
 	module-path string = if module != ctx.current-module
-		"/doc/{(module.to::string try-remove-end ".crow")!}.html"
+		"/doc/{module.to::string try-remove-end! ".crow"}.html"
 	"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 
 -module-top string(path module-path)
@@ -121,6 +123,8 @@ module-content string(a module, all-exports all-exports)
 		"spec"
 	as union-decl _
 		"union"
+	as var-decl _
+		"variable"
 	as variant-decl _
 		"variant"
 
@@ -144,11 +148,13 @@ module-content string(a module, all-exports all-exports)
 		"interface"
 	as union-decl _
 		"type"
+	as var-decl _
+		"variable"
 	as variant-decl _
 		"type"
 
 -type-params-content string(a type-param[])
-	guard !a.is-empty
+	guard a !is-empty
 	type-params = ", " join for x : a
 		"""<code class="typeParameter">{x name}</code>"""
 	"""<span class="type-params">[{type-params}]</span>"""
@@ -188,6 +194,13 @@ module-content string(a module, all-exports all-exports)
 		"{(s.is-builtin ? "spec builtin" : "spec") keyword}{s.parents spec-refs-content ctx}"
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
+	as var-decl x
+		kw string = match x kind
+		as var-global
+			"global"
+		as var-thread-local
+			"thread-local"
+		"{kw keyword}({x.type type-ref-content ctx})"
 	as variant-decl x
 		"{"variant" keyword}{x.purity purity-content}"
 
@@ -228,6 +241,8 @@ module-content string(a module, all-exports all-exports)
 		members = "" join for x : u members
 			x union-member-content ctx
 		"""<ul class="members">{members}</ul>"""
+	as var-decl _
+		""
 	as variant-decl _
 		""
 
@@ -275,10 +290,10 @@ module-content string(a module, all-exports all-exports)
 		a type-ref-suffix "?", ctx
 	as "list"
 		a type-ref-suffix "[]", ctx
-	as "mut-list"
-		a type-ref-suffix " mut[]", ctx
 	as "map"
 		a type-ref-map "[", ctx
+	as "mut-array"
+		a type-ref-suffix " mut[]", ctx
 	as "mut-map"
 		a type-ref-map " mut[", ctx
 	as "const-pointer"

@@ -2,8 +2,8 @@ import
 	system/stdio: stdin
 	system/unistd: read
 	system/win32: DWORD, GetLastError, GetStdHandle, ReadConsoleA, STD_INPUT_HANDLE
+	../col/mut-slice
 	../private/bootstrap: todo
-	../version: is-windows
 	./print: out, print
 	./win32-util: show-win32-error
 
@@ -12,20 +12,22 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-+read-stdin string() summon, trusted
++read-stdin string() summon, trusted, native extern
 	with : new-exclusion
 		# TODO: use a non-blocking API
-		buffer nat8 mut-array = 0x2000 zeroed-mut-array
-		bytes-read nat = if is-windows
+		buffer nat8 mut-slice = 0x2000 gc-safe-mut-slice
+		bytes-read nat = if extern windows
 			n-read mut DWORD = 0
 			ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
 				buffer.begin-pointer, buffer.size.to, &n-read, null
 			assert ok : "{GetLastError show-win32-error}".error
 			n-read to
-		else
+		elif extern posix
 			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
 			assert bytes-read-or-err >= 0
 			bytes-read-or-err to
+		else
+			throw not-implemented
 		if bytes-read >= buffer.size
 			todo
 		else
@@ -35,7 +37,10 @@ Result will not have leading or trailing whitespace.
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-+read-stdin-until-parse[t] t(error-message string, parse t? mut(input string)) summon, t shared
++read-stdin-until-parse[t] t(
+	error-message string,
+	parse t? mut(input string),
+) summon, t shared, native extern
 	until res ?= parse[read-stdin]
 		out print error-message
 	res

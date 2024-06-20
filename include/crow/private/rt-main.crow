@@ -1,11 +1,9 @@
 no-std
 import
 	../compare: <
-	../col/array: +, array, begin, next, size, subscript
-	../col/mut-array: +, begin, cast-immutable, mut-array, zeroed-mut-array, set-next
-	../col/collection: set-subscript, subscript
-	../col/list: list, to
-	../exception: catch-all, to
+	../col/array: array, size, subscript
+	../col/mut-slice: cast-immutable, gc-safe-mut-slice, mut-slice, set-subscript
+	../exception: catch-all, show
 	../fun-util: subscript
 	../io/print: err, print
 	../misc: new, void
@@ -16,10 +14,10 @@ import
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../string: c-string, interpolate, string, to
+	../string: c-string, interpolate, show, string, to
 	./alloc: mutator-begin, mutator-end, unmanaged-alloc-uninitialized-elements, unmanaged-free
 	./bootstrap: set-cur-fiber
-	./future-low-level: must-get-result
+	./future-low-level: as-future-impl, must-get-result
 	./runtime:
 		destroy, gc, get-global-ctx, global-ctx, init, set-dummy-fiber, set-global-ctx,
 		thread-function, uninit
@@ -30,7 +28,11 @@ import
 	nat64 function(args string[])
 
 # Treated specially by the compiler
-rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe
+rt-main int32(
+	argc int32,
+	argv c-string*,
+	main-pointer main-pointer,
+) bare, summon, unsafe, (libc, native) extern
 	global-init
 	per-thread-init
 	n-threads = count-processors
@@ -39,7 +41,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	global-ctx := &gctx
 	main-fut = &gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads &gctx
-	res = main-fut must-get-result
+	res = main-fut.as-future-impl must-get-result
 	&gctx destroy
 	res
 
@@ -53,14 +55,17 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	argc int32,
 	argv c-string*,
 	main-pointer main-pointer,
-) bare, summon, trusted
+) bare, summon, trusted, native extern
 	all-args = argv[1 .. argc.to] # First arg is the executable
 	gctx.gc mutator-begin
 	res = all-args invoke-main main-pointer
 	mutator-end
 	res
 
--invoke-main int32 future(args c-string array, main-pointer main-pointer) force-ctx, summon, unsafe
+-invoke-main int32 future(
+	args c-string[],
+	main-pointer main-pointer,
+) force-ctx, summon, unsafe, native extern
 	set-dummy-fiber
 	res int32 future = with : parallel
 		get-global-ctx init-symbol-table
@@ -78,18 +83,18 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	res
 
 # Avoiding a lambda here or the compiler may erroneously think this may yield
--convert-args string[](args c-string array) trusted
-	res string mut-array = args.size zeroed-mut-array
+-convert-args string[](args c-string[]) trusted, native extern
+	res string mut-slice = args.size gc-safe-mut-slice
 	i mut nat64 = 0
 	while i < args.size
 		res[i] := args[i] to
 		i +:= 1
-	res.cast-immutable to
+	res cast-immutable
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 
 # Each thread will get the thread ID, and the common arguments.
--run-threads void(n-threads nat64, gctx global-ctx mut*) bare, summon, unsafe
+-run-threads void(n-threads nat64, gctx global-ctx mut*) bare, summon, unsafe, native extern
 	threads thread-handle mut* = n-threads unmanaged-alloc-uninitialized-elements
 	thread-args thread-args mut* = n-threads unmanaged-alloc-uninitialized-elements
 
@@ -107,7 +112,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	threads thread-handle mut*,
 	thread-args-begin thread-args mut*,
 	gctx global-ctx mut*,
-) bare, summon, unsafe
+) bare, summon, unsafe, native extern
 	i mut nat64 = 0
 	until i == n-threads
 		thread-arg-pointer = thread-args-begin + i
@@ -115,13 +120,13 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 		threads[i] := thread-arg-pointer.pointer-cast create-one-thread &thread-fun
 		i +:= 1
 
--thread-fun any-mut-pointer(args-pointer any-mut-pointer) bare, summon, unsafe
+-thread-fun any-mut-pointer(args-pointer any-mut-pointer) bare, summon, unsafe, native extern
 	per-thread-init
 	args thread-args mut* = args-pointer pointer-cast
 	args->thread-id thread-function args->gctx
 	null
 
--join-threads void(n-threads nat64, threads thread-handle*) bare, summon, unsafe
+-join-threads void(n-threads nat64, threads thread-handle*) bare, summon, unsafe, native extern
 	i mut nat64 = 0
 	until i == n-threads
 		threads[i] join-one-thread

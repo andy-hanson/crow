@@ -2,19 +2,29 @@ module app.parseCommand;
 
 @safe @nogc pure nothrow:
 
-import app.command : BuildOptions, BuildOut, Command, CommandKind, CommandOptions, RunOptions;
+import app.command : BuildOptions, Command, CommandKind, CommandOptions, RunOptions, SingleBuildOutput;
 import frontend.lang : CCompileOptions, CVersion, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
-import util.col.array : copyArray, findIndex, isEmpty, map, only;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
+import util.col.array : copyArray, findIndex, isEmpty, map, newArray, only;
 import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : CString, cString, endsWith, isDecimalDigit, MutCString, startsWith, stringOfCString, tryTakeChar;
+import util.string :
+	CString,
+	cString,
+	endsWith,
+	isDecimalDigit,
+	MutCString,
+	PrefixAndRest,
+	startsWith,
+	stringOfCString,
+	trySplit,
+	tryTakeChar;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :
@@ -28,7 +38,7 @@ import util.uri :
 	Uri,
 	uriIsFile;
 import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
-import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
+import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer, writeWithCommasAndAnd;
 import versionInfo : OS, VersionOptions;
 
 Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
@@ -95,10 +105,10 @@ enum CommandName {
 
 // We always combine this with the commandName, so no need to include it here
 immutable struct Diag {
-	immutable struct BuildOutDuplicate {}
 	immutable struct BuildOutBadFileExtension {
 		Extension executableExtension;
 	}
+	immutable struct BuildOutBadPrefix { string prefix; }
 	immutable struct DuplicatePart { CString tag; }
 	immutable struct ExpectedCrowUri { string actual; }
 	immutable struct ExpectedPaths { Opt!CString tag; }
@@ -108,12 +118,19 @@ immutable struct Diag {
 	immutable struct UnexpectedPart { CString tag; }
 	immutable struct UnexpectedPartArgs { ArgsPart part; }
 	immutable struct UnexpectedBefore { CString arg; }
-	immutable struct RunAotAndJit {}
+	immutable struct RunArgNotSupportedInNodeJs {
+		string arg;
+	}
+	immutable struct RunKindIncompatible {
+		bool aot;
+		bool jit;
+		bool nodeJs;
+	}
 	immutable struct RunOptimizeNeedsAotOrJit {}
 
 	mixin Union!(
-		BuildOutDuplicate,
 		BuildOutBadFileExtension,
+		BuildOutBadPrefix,
 		DuplicatePart,
 		ExpectedCrowUri,
 		ExpectedPaths,
@@ -123,20 +140,23 @@ immutable struct Diag {
 		UnexpectedPart,
 		UnexpectedPartArgs,
 		UnexpectedBefore,
-		RunAotAndJit,
+		RunArgNotSupportedInNodeJs,
+		RunKindIncompatible,
 		RunOptimizeNeedsAotOrJit);
 }
 alias Diags = Builder!Diag;
 
 void writeDiag(scope ref Writer writer, in Diag a) {
 	a.matchIn!void(
-		(in Diag.BuildOutDuplicate) {
-			writer ~= "Crow does not support building to multiple files (except to both C and executable).";
-		},
 		(in Diag.BuildOutBadFileExtension x) {
-			writer ~= "Build output must be a '.c' or ";
+			writer ~= "Build output must be a '.c', '.js', or ";
 			writeExtension(writer, x.executableExtension);
 			writer ~= " file.";
+		},
+		(in Diag.BuildOutBadPrefix x) {
+			writer ~= "Unrecognized output prefix ";
+			writeQuotedString(writer, x.prefix);
+			writer ~= ". An output can start with 'js:' or 'node-js:'.";
 		},
 		(in Diag.DuplicatePart x) {
 			writer ~= "Argument ";
@@ -190,8 +210,26 @@ void writeDiag(scope ref Writer writer, in Diag a) {
 			writeQuotedString(writer, x.arg);
 			writer ~= '.';
 		},
-		(in Diag.RunAotAndJit) {
-			writer ~= "Can't specify both '--aot' and '--jit'.";
+		(in Diag.RunArgNotSupportedInNodeJs x) {
+			writer ~= "Running with node.js does not support the '";
+			writer ~= x.arg;
+			writer ~= "' option.";
+		},
+		(in Diag.RunKindIncompatible x) {
+			writer ~= "Can not specify both ";
+			withBuildStackArray!(void, string)(
+				(ref StackArrayBuilder!string out_) {
+					if (x.aot) out_ ~= "aot";
+					if (x.jit) out_ ~= "jit";
+					if (x.nodeJs) out_ ~= "nodeJs";
+				},
+				(scope string[] kinds) {
+					writeWithCommasAndAnd!string(writer, kinds, (in string kind) {
+						writer ~= "'--";
+						writer ~= kind;
+						writer ~= "'";
+					});
+				});
 		},
 		(in Diag.RunOptimizeNeedsAotOrJit) {
 			writer ~= "'--optimize' must be combined with '--aot' or '--jit'.";
@@ -218,7 +256,7 @@ CommandKind parseCommandKind(
 ) {
 	final switch (commandName) {
 		case CommandName.build:
-			return parseBuildCommand(alloc, cwd, diags, getDefaultExeExtension(os), args);
+			return parseBuildCommand(alloc, cwd, diags, os, args);
 		case CommandName.check:
 			expectEmptyParts(diags, args.parts);
 			expectEmptyAfterDashDash(diags, args.afterDashDash);
@@ -233,7 +271,7 @@ CommandKind parseCommandKind(
 		case CommandName.print:
 			return parsePrintCommand(alloc, cwd, diags, args);
 		case CommandName.run:
-			RunOptions options = parseRunOptions(alloc, getDefaultExeExtension(os), diags, args.parts);
+			RunOptions options = parseRunOptions(alloc, os, diags, args.parts);
 			return CommandKind(CommandKind.Run(
 				parseMainUri(alloc, cwd, diags, args.beforeFirstPart),
 				options,
@@ -267,10 +305,11 @@ void expectEmptyAfterDashDash(scope ref Diags diags, in Opt!(CString[]) after) {
 		diags ~= Diag(Diag.UnexpectedPart(cString!"--"));
 }
 
-Extension getDefaultExeExtension(OS os) {
+public Extension defaultExecutableExtension(OS os) {
 	final switch (os) {
 		case OS.linux:
 			return Extension.none;
+		case OS.nodeJs:
 		case OS.web:
 			assert(false);
 		case OS.windows:
@@ -368,29 +407,19 @@ Opt!uint tryTakeNat(ref MutCString ptr) {
 		return none!uint;
 }
 
-CommandKind parseBuildCommand(
-	ref Alloc alloc,
-	FilePath cwd,
-	scope ref Diags diags,
-	Extension defaultExeExtension,
-	in SplitArgs args,
-) {
+CommandKind parseBuildCommand(ref Alloc alloc, FilePath cwd, scope ref Diags diags, OS os, in SplitArgs args) {
 	expectEmptyAfterDashDash(diags, args.afterDashDash);
 	Uri main = parseMainUri(alloc, cwd, diags, args.beforeFirstPart);
 	return CommandKind(CommandKind.Build(
 		main,
-		parseBuildOptions(alloc, cwd, diags, defaultExeExtension, args.parts, main)));
+		parseBuildOptions(alloc, cwd, diags, os, args.parts, main)));
 }
 
-RunOptions parseRunOptions(
-	ref Alloc alloc,
-	Extension defaultExeExtension,
-	scope ref Diags diags,
-	in ArgsPart[] argParts,
-) {
+RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in ArgsPart[] argParts) {
 	bool noStackTrace = false;
 	bool aot = false;
 	bool jit = false;
+	bool nodeJs = false;
 	bool optimize = false;
 	bool singleThreaded = false;
 	foreach (ArgsPart part; argParts) {
@@ -408,6 +437,10 @@ RunOptions parseRunOptions(
 				if (jit) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				jit = true;
 				break;
+			case "--node-js":
+				if (nodeJs) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				nodeJs = true;
+				break;
 			case "--optimize":
 				if (optimize) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
@@ -421,19 +454,23 @@ RunOptions parseRunOptions(
 		}
 	}
 
-	if (aot && jit)
-		diags ~= Diag(Diag.RunAotAndJit());
+	if ((uint(aot) + jit + nodeJs) > 1)
+		diags ~= Diag(Diag.RunKindIncompatible(aot: aot, jit: jit, nodeJs: nodeJs));
 	if (!aot && !jit && optimize)
 		diags ~= Diag(Diag.RunOptimizeNeedsAotOrJit());
+	if (nodeJs && (singleThreaded || optimize || noStackTrace))
+		diags ~= Diag(Diag.RunArgNotSupportedInNodeJs(
+			singleThreaded ? "--single-threaded" : optimize ? "--optimize" : "--no-stack-trace"));
 
 	VersionOptions version_ = VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace);
 	return aot
 		? RunOptions(RunOptions.Aot(
 			version_,
-			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11),
-			defaultExeExtension))
+			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11)))
 		: jit
 		? RunOptions(RunOptions.Jit(version_, optimize ? JitOptions(OptimizationLevel.o2) : JitOptions()))
+		: nodeJs
+		? RunOptions(RunOptions.NodeJs())
 		: RunOptions(RunOptions.Interpret(version_));
 }
 
@@ -446,11 +483,11 @@ BuildOptions parseBuildOptions(
 	ref Alloc alloc,
 	FilePath cwd,
 	scope ref Diags diags,
-	Extension defaultExeExtension,
+	OS os,
 	in ArgsPart[] argParts,
 	Uri mainUri,
 ) {
-	Cell!(Opt!BuildOut) out_;
+	SingleBuildOutput[] out_;
 	bool optimize = false;
 	bool c99 = false;
 	bool noStackTrace = false;
@@ -467,10 +504,10 @@ BuildOptions parseBuildOptions(
 				noStackTrace = true;
 				break;
 			case "--out":
-				if (has(cellGet(out_)))
+				if (!isEmpty(out_))
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
-					cellSet(out_, some(parseBuildOut(alloc, cwd, defaultExeExtension, diags, part)));
+					out_ = parseBuildOut(alloc, cwd, os, diags, part);
 				break;
 			case "--optimize":
 				expectFlag(diags, part);
@@ -489,14 +526,12 @@ BuildOptions parseBuildOptions(
 		}
 	}
 
-	BuildOut resOut = has(cellGet(out_))
-		? force(cellGet(out_))
-		: BuildOut(
-			outC: none!FilePath,
-			shouldBuildExecutable: true,
-			outExecutable: defaultExePath(
+	SingleBuildOutput[] resOut = !isEmpty(out_)
+		? out_
+		: newArray(alloc, [
+			SingleBuildOutput(SingleBuildOutput.Kind.executable, defaultExecutablePath(
 				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
-				defaultExeExtension));
+				os))]);
 	return BuildOptions(
 		VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace),
 		resOut,
@@ -505,45 +540,77 @@ BuildOptions parseBuildOptions(
 			c99 ? CVersion.c99 : CVersion.c11));
 }
 
-BuildOut parseBuildOut(
-	ref Alloc alloc,
-	FilePath cwd,
-	Extension defaultExeExtension,
-	scope ref Diags diags,
-	ArgsPart part,
-) {
-	Cell!(Opt!FilePath) outC;
-	Cell!(Opt!FilePath) outExe;
-	foreach (CString arg; part.args) {
-		Opt!FilePath opt = parseFilePathWithCwd(cwd, arg);
-		if (has(opt)) {
-			FilePath path = force(opt);
-			Extension extension = getExtension(path);
-			if (extension == Extension.c) {
-				if (has(cellGet(outC)))
-					diags ~= Diag(Diag.BuildOutDuplicate());
-				cellSet(outC, some(path));
-			} else {
-				if (has(cellGet(outExe)))
-					diags ~= Diag(Diag.BuildOutDuplicate());
-				if (extension != defaultExeExtension)
-					diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExeExtension));
-				cellSet(outExe, some(path));
-			}
-		} else
-			diags ~= Diag(Diag.ParseFilePath(arg));
-	}
-	if (!has(cellGet(outC)) && !has(cellGet(outExe)))
+SingleBuildOutput[] parseBuildOut(ref Alloc alloc, FilePath cwd, OS os, scope ref Diags diags, ArgsPart part) {
+	if (isEmpty(part.args))
 		diags ~= Diag(Diag.ExpectedPaths(some(part.tag)));
-	return BuildOut(
-		outC: cellGet(outC),
-		shouldBuildExecutable: has(cellGet(outExe)),
-		outExecutable: optOrDefault!FilePath(cellGet(outExe), () =>
-			defaultExePath(force(cellGet(outC)), defaultExeExtension)));
+	return buildArray!SingleBuildOutput(alloc, (scope ref Builder!SingleBuildOutput out_) {
+		foreach (CString arg; part.args) {
+			Opt!SingleBuildOutput output = parseSingleBuildOut(cwd, os, diags, arg);
+			if (has(output))
+				out_ ~= force(output);
+		}
+	});
 }
 
-FilePath defaultExePath(FilePath base, Extension defaultExeExtension) =>
-	alterExtension(base, defaultExeExtension);
+Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags diags, in CString arg) {
+	Opt!PrefixAndRest optPrefix = trySplit(arg, ':');
+	if (has(optPrefix)) {
+		PrefixAndRest pr = force(optPrefix);
+		FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, pr.rest);
+		Opt!(SingleBuildOutput.Kind) kind = buildKindFromPrefix(pr.prefix, getExtension(path));
+		if (has(kind))
+			return some(SingleBuildOutput(force(kind), path));
+		else {
+			diags ~= Diag(Diag.BuildOutBadPrefix(pr.prefix));
+			return none!SingleBuildOutput;
+		}
+	} else {
+		FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, arg);
+		Opt!(SingleBuildOutput.Kind) kind = buildKindFromExtension(getExtension(path), os);
+		if (has(kind))
+			return some(SingleBuildOutput(force(kind), path));
+		else {
+			diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExecutableExtension(os)));
+			return none!SingleBuildOutput;
+		}
+	}
+}
+
+Opt!(SingleBuildOutput.Kind) buildKindFromPrefix(in string prefix, Extension extension) {
+	switch (prefix) {
+		case "js":
+			return some(extension == Extension.js
+				? SingleBuildOutput.Kind.jsScript
+				: SingleBuildOutput.Kind.jsModules);
+		case "node-js":
+			return some(extension == Extension.js
+				? SingleBuildOutput.Kind.nodeJsScript
+				: SingleBuildOutput.Kind.nodeJsModules);
+		default:
+			return none!(SingleBuildOutput.Kind);
+	}
+}
+Opt!(SingleBuildOutput.Kind) buildKindFromExtension(Extension extension, OS os) {
+	switch (extension) {
+		case Extension.c:
+			return some(SingleBuildOutput.Kind.c);
+		case Extension.js:
+			return some(SingleBuildOutput.Kind.jsScript);
+		default:
+			return optIf(extension == defaultExecutableExtension(os), () =>
+				SingleBuildOutput.Kind.executable);
+	}
+}
+
+
+FilePath parseFilePathWithCwdOrDiag(scope ref Diags diags, FilePath cwd, in CString arg) =>
+	optOrDefault!FilePath(parseFilePathWithCwd(cwd, arg), () {
+		diags ~= Diag(Diag.ParseFilePath(arg));
+		return cwd / symbol!"bogus";
+	});
+
+public FilePath defaultExecutablePath(FilePath base, OS os) =>
+	alterExtension(base, defaultExecutableExtension(os));
 
 immutable struct ArgsPart {
 	CString tag; // includes the "--"

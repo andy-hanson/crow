@@ -5,24 +5,23 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 ###
 no-std
 import
-	./col/array: +, array, begin, is-empty, iterate, new, next, size
-	./col/collection: for-loop, index-of, set-subscript, subscript
-	./col/list: ~=, build
+	./col/array: ~=, array, build, is-empty, iterate, new, size, subscript
+	./col/collection: for-loop, index-of
 	./col/map: ~=, build, iterate, map, size
-	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next, size
+	./col/mut-slice: ~=, build, mut-slice, new, set-subscript, subscript
 	./exception: error
 	./fun-util: subscript
-	./io/duration: duration, nanosecond, to
+	./io/duration: duration, nanosecond, show
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: new, void
 	./number: ==, <=>, +, -, nat64, to
 	./range: .., iterate, size
-	./string: interpolate, join, string, to
-	./symbol: ==, <=>, hash-mix, symbol, to
+	./string: interpolate, join, show, string
+	./symbol: ==, <=>, hash-mix, show, symbol
 	./tuple: new
 
 +perf-result record(total duration, measures measure-total[symbol])
-+to string(a perf-result)
++show string(a perf-result)
 	measures = ", " join for name, total : a measures
 		"{name}: {total}"
 	"total: {a total}, {measures}"
@@ -33,8 +32,8 @@ import
 	count nat64
 	# Total time spent in all measures with this name.
 	total-duration duration
-+to string(a measure-total)
-	"{a count} × {a total-duration}"
++show string(a measure-total)
+	"{a total-duration} (total of {a count} times)"
 
 # Use 'nsec' instead of 'duration' to avoid spending time converting to floats
 -measure-accum record(count nat64, total-nsec nat64)
@@ -43,12 +42,12 @@ import
 -+ measure-accum(a measure-accum, b measure-accum)
 	a.count + b.count, a.total-nsec + b.total-nsec
 
-+measure-performance record(measure-names symbol array) nominal
++measure-performance record(measure-names symbol[]) nominal
 +measure-performance measure-performance()
 	() measure-performance
 
 # Enable performance, run the callback, then return its result and the measured performance.
-+with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon
++with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon, native extern
 	assert (trusted measure-names.is-empty) : "Already measuring performance".error
 	finally trusted clear-perf
 	trusted
@@ -70,7 +69,7 @@ Runs `f` and returns its result.
 If the performance measure `measure-name` is enabled,
 this contribues to its performance measurement.
 ###
-+with-block[t] t(a perf-measure, f t mut())
++with-block[t] t(a perf-measure, f t mut()) native extern
 	guard index ?= (trusted measure-names) index-of a.measure-name : f[]
 	start = perf-now
 	res = f[]
@@ -79,12 +78,12 @@ this contribues to its performance measurement.
 	res
 
 # List of all names being measured
--measure-names thread-local(symbol array)
+-measure-names thread-local(symbol[])
 # Parallel to measure-names
--measure-accums thread-local(measure-accum mut-array)
+-measure-accums thread-local(measure-accum mut-slice)
 -clear-perf void() unsafe
 	measure-names := ()
 	measure-accums := ()
 
--perf-now nat64() bare
+-perf-now nat64() bare, native extern
 	get-monotime-nsec

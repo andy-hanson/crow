@@ -25,6 +25,7 @@ crow-unit-tests: bin\crow.exe
 	.\bin\crow.exe run test\crow-unit-tests.crow
 	.\bin\crow.exe run test\crow-unit-tests.crow --aot
 	.\bin\crow.exe run test\crow-unit-tests.crow --aot --optimize
+	.\bin\crow.exe run test\crow-unit-tests.crow --node-js
 
 test-extern-library: bin\crow.exe bin\example.dll bin\example.lib
 	.\bin\crow run test\test-extern-library\main.crow
@@ -128,13 +129,13 @@ bin\crow.wasm: $(d_dependencies)
 lint: lint-basic lint-dscanner lint-d-imports-exports bin\dependencies.dot
 
 lint-basic: bin\crow.exe
-	.\bin\crow.exe run test\lint-basic.crow
+	.\bin\crow.exe test\lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck src
 
 lint-d-imports-exports: bin\crow.exe
-	.\bin\crow.exe run test\lint-d-imports-exports.crow
+	.\bin\crow.exe test\lint-d-imports-exports.crow
 
 show-dependencies: bin/dependencies.svg
 	start bin/dependencies.svg
@@ -143,12 +144,17 @@ bin\dependencies.svg: bin\dependencies.dot
 	dot -Tsvg -o bin\dependencies.svg bin\dependencies.dot
 
 bin\dependencies.dot: bin\crow.exe test\dependencies.crow
-	.\bin\crow.exe run test\dependencies.crow
+	.\bin\crow.exe test\dependencies.crow
 
 ### site ###
 
-prepare-site: bin\crow.exe bin\crow.wasm bin\crow-windows-x64.tar.xz bin\crow-demo-windows.tar.xz bin\crow.vsix
-	bin\crow run site-src\site.crow
+prepare-site: bin\crow.exe bin\crow.wasm bin\crow-windows-x64.tar.xz bin\crow-demo-windows.tar.xz bin\crow.vsix \
+		site\index.js
+	bin\crow.exe site-src\site.crow
+
+site\index.js: bin\crow.exe site-src\script\*.crow site-src\script\util\*.crow
+	IF NOT EXIST site MKDIR site
+	bin\crow.exe build site-src\script\index.crow --out site\index.js
 
 # TODO: This should be `bin\crow run site-src\serve.crow`,
 # but currently Crow doesn't have a Windows server implementation

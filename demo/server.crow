@@ -4,7 +4,7 @@ import
 	crow/io/net/http-types
 	crow/io/stdin: read-stdin
 
-main void() summon
+main void() summon, native extern
 	port nat16 = 8080
 	handler http-handler = req =>
 		descr = req describe-request
@@ -19,7 +19,7 @@ main void() summon
 		"{k}: {v}"
 	"{a method} {a path}{a query}\n{headers}\n\n{a.body as-string}"
 
-to string(a string[symbol])
+show string(a string[symbol])
 	if a is-empty
 		""
 	else

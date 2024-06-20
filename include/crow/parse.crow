@@ -1,8 +1,8 @@
 no-std
 import
 	./bool: &&, bool, false, not, true
+	./col/array: ~, ~=, array, build, iterate, new, size
 	./col/collection: build, exists, for-break, for-loop, is-at-end, with-block
-	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
 	./compare: <=, equal
 	./exception: exception
@@ -13,7 +13,7 @@ import
 	./result: error, ok, result
 	./string:
 		==, <=>, ~=, begin, build, char32, hash-mix, interpolate, is-empty, iterate, join, next,
-		string, string-iterator, to
+		show, string, string-iterator, to
 	./tuple: a, b, new
 
 ###
@@ -60,8 +60,13 @@ If the string has leading or trailing spaces you must use a grammar that include
 	# Description of what was expected.
 	expected string
 +== bool(a parse-error, b parse-error)
-+describe string(a parse-error)
-	a to
++show string(a parse-error)
+	# TODO: show where it is
+	peek string = if x, _ ?= a.iter next
+		"'{x}'"
+	else
+		"EOF"
+	"Expected {a expected}, got {peek}"
 
 -inner-parse-result[t] union(ok t, error inner-parse-error)
 
@@ -78,14 +83,6 @@ If the string has leading or trailing spaces you must use a grammar that include
 	a.a, a.b then f
 
 -inner-parse-error record(expected string)
-
-+to string(a parse-error)
-	# TODO: show where it is
-	peek string = if x, _ ?= a.iter next
-		"'{x}'"
-	else
-		"EOF"
-	"expected {a expected}, got {peek}"
 
 # This is like 'grammar' but produces no result.
 +grammar-skip record(inner void grammar) mut
@@ -121,7 +118,7 @@ region basic building blocks
 		iter mut = start
 		res string = with out : build
 			loop
-				if possible-endings exists x => !(iter try-take-exact x).is-empty
+				if possible-endings exists x => iter try-take-exact x !is-empty
 					break
 				elif x, rest ?= iter next
 					out ~= x

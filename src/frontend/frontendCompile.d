@@ -4,8 +4,8 @@ module frontend.frontendCompile;
 
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.checkCtx : CommonModule, CommonUris;
-import frontend.check.getCommonFuns : CommonFunsAndMain, getCommonFuns;
-import frontend.check.instantiate : InstantiateCtx;
+import frontend.check.getCommonFuns : getCommonFuns, getMainFunAndDiagnostics;
+import frontend.check.instantiate : getAllFutureAndMutArrayImpls, InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
@@ -24,7 +24,20 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
-	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
+	allExternsForMainConfig,
+	BuildTarget,
+	CommonFunsAndDiagnostics,
+	CommonTypes,
+	Config,
+	emptyConfig,
+	getConfigUri,
+	getModuleUri,
+	Module,
+	moduleAtUri,
+	OtherTypes,
+	Program,
+	ProgramWithMain,
+	StructDecl;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
@@ -38,7 +51,9 @@ import util.col.array :
 	findIndex,
 	indexOf,
 	map,
+	mustFindPointer,
 	MutSmallArray,
+	optOnly,
 	small,
 	SmallArray;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
@@ -48,7 +63,7 @@ import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete;
 import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
-import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
+import util.opt : ConstOpt, force, has, MutOpt, Opt, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Extension, Symbol, symbol;
 import util.unicode : FileContent;
@@ -150,41 +165,52 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
-	CrowFile* mainFile = mustGet(a.crowFiles, mainUri);
-	Common res = makeProgramCommon(perf, alloc, a, [mainUri], some(mainFile.mustHaveModule));
-	return ProgramWithMain(force(mainFile.config), force(res.mainFun), res.program);
-}
-
-Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) =>
-	makeProgramCommon(perf, alloc, a, roots, none!(Module*)).program;
-
-private struct Common {
-	Program program;
-	Opt!MainFun mainFun;
-}
-private Common makeProgramCommon(
+ProgramWithMain makeProgramWithMain(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Frontend a,
-	in Uri[] roots,
-	Opt!(Module*) mainModule,
+	Uri mainUri,
+	in BuildTarget[] targets,
 ) {
+	Program program = makeProgram(perf, alloc, a, [mainUri]);
+	return programWithMainFromProgram(perf, alloc, a, program, mainUri, targets);
+}
+
+ProgramWithMain programWithMainFromProgram(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Frontend a,
+	ref Program program,
+	Uri mainUri,
+	in BuildTarget[] targets,
+) =>
+	ProgramWithMain(
+		program,
+		getMainFunAndDiagnostics(
+			alloc,
+			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)),
+			program, mainUri,
+			allExternsForMainConfig(*moduleAtUri(program, mainUri).config, optOnly(targets))));
+
+Program makeProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) {
 	assert(filesState(a.storage) == FilesState.allLoaded);
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
-	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
-	Program program = Program(
+	CommonFunsAndDiagnostics commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules);
+	StructDecl* futureImpl = mustFindPointer!StructDecl(
+		commonModules[CommonModule.futureLowLevel].structs,
+		(ref const StructDecl x) => x.name == symbol!"future-impl");
+	StructDecl* mutArrayImpl = mustFindPointer!StructDecl(
+		commonModules[CommonModule.mutArray].structs,
+		(ref const StructDecl x) => x.name == symbol!"mut-array-impl");
+	return Program(
 		allConfigs: getAllConfigs(alloc, a),
 		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
-		rootModules: map!(immutable Module*, Uri)(alloc, roots, (ref Uri uri) =>
-			mustGet(a.crowFiles, uri).mustHaveModule),
-		commonFunsDiagnostics: commonFuns.diagnostics,
-		commonFuns: commonFuns.commonFuns,
-		commonTypes: force(a.commonTypes));
-	return Common(program, commonFuns.mainFun);
+		commonFunsAndDiagnostics: commonFuns,
+		commonTypesPtr: force(a.commonTypes),
+		otherTypes: OtherTypes(getAllFutureAndMutArrayImpls(alloc, ctx, futureImpl, mutArrayImpl)));
 }
 
 void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri, FileInfoOrDiag info) {
@@ -273,7 +299,7 @@ void doDirtyWork(scope ref Perf perf, ref Frontend a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
 	if (mayDelete(a.workable, bootstrap)) {
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
-			UriAndAst fa = UriAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
+			UriAndAst fa = UriAndAst(bootstrap.uri, force(bootstrap.config), toAst(alloc, bootstrap.astOrDiag));
 			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allInsts, a.commonUris, fa);
 			a.commonTypes = someMut(bs.commonTypes);
 			return bs.module_;
@@ -338,7 +364,7 @@ T[] rotateToFirst(T)(ref Alloc alloc, in T[] values, in T firstValue) {
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Frontend a, CrowFile* file) {
 	assert(isWorkable(*file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
-	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
+	UriAndAst ast = UriAndAst(file.uri, force(file.config), toAst(alloc, file.astOrDiag));
 	return check(
 		perf, alloc, a.allInsts, a.commonUris, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),
@@ -547,6 +573,7 @@ MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) =>
 
 CommonUris commonUris(Uri includeDir) {
 	Uri includeCrow = includeDir / symbol!"crow";
+	Uri col = includeCrow / symbol!"col";
 	Uri private_ = includeCrow / symbol!"private";
 	return enumMapMapValues!(CommonModule, Uri, Uri)(CommonUris([
 		private_ / symbol!"bootstrap",
@@ -555,9 +582,11 @@ CommonUris commonUris(Uri includeDir) {
 		includeCrow / symbol!"compare",
 		private_ / symbol!"exception-low-level",
 		includeCrow / symbol!"fun-util",
+		private_ / symbol!"future-low-level",
+		includeCrow / symbol!"js",
 		includeCrow / symbol!"json",
-		includeCrow / symbol!"col" / symbol!"list",
 		includeCrow / symbol!"misc",
+		col / symbol!"mut-array",
 		private_ / symbol!"number-low-level",
 		includeCrow / symbol!"std",
 		includeCrow / symbol!"string",

@@ -1,46 +1,58 @@
 <section>
 	<h2>Unsafe code</h2>
 	<p>
-		Crow is normally safe; normal Crow functions can't do bad things like:
+		Crow is normally safe. Normal Crow functions can't do bad things like:
 	</p>
 	<ul class="bullets">
 		<li>Allocate memory and never free it.</li>
 		<li>Free memory, then access it anyway.</li>
 		<li>Access global state.</li>
-		<li>Access information about the system (like endianness or the operating system).</li>
-		<li>Access other information not explicitly passed through parameters, like a stack trace.</li>
-		<li>Access private information about data structures.</li>
+		<li>
+			Have different behavior on different environments (like endianness or the operating system).
+			<br />
+			(A function that simply prints the name of your operating system would be safe,
+			but <code class="keyword">summon</code>.)
+		</li>
+		<li>
+			Access other information not explicitly passed through parameters, like a stack trace.
+		</li>
+		<li>
+			Access private information about data structures.
+			(E.g., distinguish two equal values based on reference identity.)
+		</li>
 	</ul>
 	<p>
-		However, Crow is also intended to be able to do anything C can.
+		However, unsafe Crow running natively can do anything C can.
 		<br />
 		Although most code should do things the safe way,
-		unsafe functionality is in functions marked <code class="keyword">unsafe</code>.
+		unsafe functionality is available in functions marked <code class="keyword">unsafe</code>.
+		<br />
+		You can also mark any of your own functions <code class="keyword">unsafe</code>
+		if it must be called in a particular way.
 		<br />
 		An <code class="keyword">unsafe</code> function can call other <code class="keyword">unsafe</code> functions.
 	</p>
+	<p>
+		Many (but not all) <code class="keyword">unsafe</code> operations
+		also require the function to be marked <code>native extern</code>.
+		This will be explained in {{tutorial/extern}} instead of here.
+	</p>
 
 	<crow-runnable>
-		main void() unsafe
+		main void() unsafe, native extern
 			x string* = null
 			info log "{x.to::nat}"
 	</crow-runnable>
 
 	<aside class="small">
 		Remove <code class="keyword">unsafe</code> from the declaration of <code class="function">main</code>
-		to see a compile error.
+		to see compile errors.
 	</aside>
 
 	<p>
-		The reason <code class="function">capacity</code> is unsafe is that it returns information
-		that normally should not be accessed.
-		Future versions of Crow may return a different result,
-		if the details of how a <code class="type">mut[]</code> allocates change.
+		The above example prints <code>0</code> because that happens to be the representation of a null pointer.
 	</p>
 
-	<aside class="small">
-		The <code class="keyword">unsafe</code> keyword is parsed like a spec and can go anywhere in the list of specs.
-	</aside>
 </section>
 <section>
 	<h2>"Trusted" expressions</h2>
@@ -53,6 +65,8 @@
 	<p>
 		If you're calling an unsafe function in a way that won't do something bad, you can mark the use as
 		<code class="keyword">trusted</code>.
+		<br />
+		<code class="keyword">trusted</code> parses as a prefix, just like <code class="keyword">throw</code>.
 	</p>
 	<p>
 		A common example of this is <code class="function">+</code> functions on integer types,
@@ -64,14 +78,15 @@
 			system/stdio: stdout
 			system/unistd: write
 
-		main void()
+		main void() summon, (native, posix) extern
 			message nat8 array = "hello\n"::string to-bytes
 			_ = trusted stdout write message.begin-pointer, message.size
 	</crow-runnable>
 
 	<aside class="small">
-		<code class="keyword">trusted</code> parses as a prefix, just like <code class="keyword">throw</code>.
+		<code>(native, posix) extern</code> will be explained in {{tutorial/extern}}.
 	</aside>
+
 	<p>
 		The above example calls the Posix <code class="function">write</code> function,
 		which is dangerous in general; it takes a pointer and length separately and does bad things
@@ -97,6 +112,10 @@
 		If so, always mark it as <code class="keyword">unsafe</code>.
 	</p>
 
+	<p>
+		For convenience, <code class="keyword">trusted</code> can also be used as a function modifier.
+		This makes the entire function body <code class="keyword">trusted</code>.
+	</p>
 </section>
 <section>
 	<h2>Pointers</h2>
@@ -116,39 +135,34 @@
 		import
 			system/stdlib: free, malloc
 
-		main void()
-			trusted
-				ptr mut nat mut* = null
-				with : (() => ptr free-nat) finally
-					ptr := new-nat
-					*ptr := 3
-					info log "{*ptr}"
+		main void() trusted, (libc, native) extern
+			ptr nat mut* = new-nat
+			finally ptr free-nat
+			*ptr := 3
+			info log "{*ptr}"
 
-		new-nat nat mut*() unsafe
+		new-nat nat mut*() unsafe, (libc, native) extern
 			(size-of@nat).malloc pointer-cast
-		free-nat void(a nat mut*) unsafe
+		free-nat void(a nat mut*) unsafe, (libc, native) extern
 			a.pointer-cast free
 	</crow-runnable>
 
 	<aside class="small">
-		It's important to set up a <code class="function">finally</code> handler to free the pointer
-		<em>before</em> allocating it.
+		<code>libc</code> will be explained in {{tutorial/extern}}.
 	</aside>
 
 	<p>
-		As in C, you can use <code>&x</code> to point to something on the stack.
+		As in C, you can use <code>&x</code> to get a pointer to a local variable.
 		<br />
 		As in C, this is dangerous if the pointer outlives the stack.
-		(Keep in mind that closures often outlive the stack that created them.)
 	</p>
 
 	<crow-runnable>
-		main void()
-			trusted
-				x mut nat = 1
-				ptr nat mut* = &x
-				*ptr := 2
-				info log "{x}"
+		main void() trusted, native extern
+			x mut nat = 1
+			ptr nat mut* = &x
+			*ptr := 2
+			info log "{x}"
 	</crow-runnable>
 
 	<p>
@@ -172,14 +186,13 @@
 	<aside class="small">These functions are defined in {{doc/pointer}}.</aside>
 
 	<crow-runnable>
-		main void()
-			trusted
-				x mut nat = 1
-				mut-ptr nat mut* = &x
-				const-ptr nat* = mut-ptr as-const
-				*mut-ptr := 2
-				assert const-ptr.as-mut == mut-ptr
-				info log "{*const-ptr}"
+		main void() trusted, native extern
+			x mut nat = 1
+			mut-ptr nat mut* = &x
+			const-ptr nat* = mut-ptr as-const
+			*mut-ptr := 2
+			assert const-ptr.as-mut == mut-ptr
+			info log "{*const-ptr}"
 	</crow-runnable>
 
 	<h3>Accessing data from pointers</h3>
@@ -201,15 +214,14 @@
 	</aside>
 
 	<crow-runnable>
-		main void()
-			trusted
-				foo mut foo = 1,
-				foo-ptr foo mut* = &foo
-				x-ptr nat mut* = foo-ptr.x
-				foo-ptr->x := 2
-				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
-				*x-ptr := 3
-				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
+		main void() trusted, native extern
+			foo mut foo = 1,
+			foo-ptr foo mut* = &foo
+			x-ptr nat mut* = foo-ptr.x
+			foo-ptr->x := 2
+			info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
+			*x-ptr := 3
+			info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
 
 		foo record(x mut nat) by-val, mut
 	</crow-runnable>
@@ -330,7 +342,7 @@
 		<code class="keyword">by-ref</code>.
 	</p>
 	<crow-runnable>
-		main void() unsafe
+		main void() unsafe, native extern
 			# Value type, so its size is the sum of its fields' sizes.
 			info log "r1: {size-of@r1}"
 			# Reference type, so its size is the size of a pointer.
@@ -358,7 +370,7 @@
 	<p>
 		The main reason to make a function <code class="keyword">bare</code>
 		is if C code might call it in an asynchronous callback.
-		Crow code may only allocate if it's part of a Crow task, which wouldn't be the case then.
+		Crow code may only allocate if it's part of a Crow fiber, which wouldn't be the case then.
 	</p>
 
 	<crow-runnable>
@@ -390,8 +402,44 @@
 			<code class="keyword">bare</code> functions are allowed to throw exceptions.
 			(E.g., <code class="function">+</code> is <code class="keyword">bare</code>, and throws on overflow.)
 			<br />
-			If an exception is thrown and it's not part of a Crow task, it might not be caught.
+			If an exception is thrown and it's not part of a Crow fiber, it might not be caught.
 			In that case, the program will abort.
 		</p>
 	</aside>
+</section>
+<section>
+	<h2>Memory slices (buffers)</h2>
+
+	<p>
+		Much low-level code deals with slices of memory (also known as buffers).
+		<br />
+		The Crow types <code>t[]</code> and <code>t mut-slice</code> are guaranteed to be contiguous slices of memory
+		when compiling to native code.
+		<br />
+		So, they have <code class="function">begin-pointer</code> and <code class="function">end-pointer</code>
+		functions.
+		<br />
+		To go in the reverse direction (from pointers to a slice), there are functions
+		<code class="function">as-array</code> and <code class="function">as-mut-slice</code>.
+	</p>
+	<p>
+		<code class="type">t mut[]</code> also has <code class="function">begin-pointer</code> and
+		<code class="function">end-pointer</code> functions, but the pointers aren't guaranteed to last.
+		<br />
+		A <code class="type">t mut[]</code> is not directly a slice of memory but a reference to a slice
+		which may be re-allocated when elements are added or removed from the array.
+		<br />
+		You can (unsafely) access this slice using <code class="function">temp-as-array</code> and
+		<code class="function">temp-as-mut-slice</code>.
+	</p>
+	<p>
+		Often you will want to use a function like <a href="https://linux.die.net/man/2/read"><code>read</code></a>
+		to add elements to a <code class="type">mut[]</code>.
+		To do that, you can use <code class="function">a push-gc-safe-values n</code> to allocate space in the
+		<code class="type">mut[]</code>, then start writing to <code>a.end-pointer - n</code>
+		(where <code>n</code> is the amount of space you need).
+		<br />
+		When done writing, <code>a reduce-size-to x</code> if you didn't use all the space you allocated.
+		(GC-safe values are not safe in general, so it's important to not leave them accessible by safe code.)
+	</p>
 </section>

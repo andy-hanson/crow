@@ -1,7 +1,7 @@
 dummy-pointers nat()
 	0
 
-test trusted
+test trusted, native extern
 	r mut r = 0,
 	rp r mut* = &r
 	rp->x := 3

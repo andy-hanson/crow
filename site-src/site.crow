@@ -3,13 +3,12 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/test-util/test-runner: run-all-tests
-	crow/version: is-windows
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
 	./search-dir-recursive: search-dir-recursive
 
-main void() summon
+main void() summon, native extern
 	run-all-tests
 	all-content = documentation ~~ pages ~~ include-all
 	for content : all-content parallel
@@ -18,14 +17,14 @@ main void() summon
 	for x : all-to-link parallel
 		x ensure-link cwd
 
--ensure-up-to-date void(a path-and-content) summon
+-ensure-up-to-date void(a path-and-content) summon, native extern
 	full-out-path = "site" child-path a.out-path
 	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
 		full-out-path write-file a.content
 		()
 
--ensure-link void(a link, cwd string) summon
+-ensure-link void(a link, cwd string) summon, native extern
 	full-out-path = "site" child-path a.link-path
 	# TODO: check that link target is up to date
 	unless full-out-path path-exists
@@ -35,11 +34,11 @@ main void() summon
 		full-out-path make-symlink-to full-target
 		()
 
--is-up-to-date bool(path string, content string) summon
+-is-up-to-date bool(path string, content string) summon, native extern
 	path.read-file-or-empty == content
 
--ensure-directory-recursive void(path string) summon
-	unless path == "" || path.path-exists
+-ensure-directory-recursive void(path string) summon, native extern
+	unless path == "" || path path-exists
 		path.parent-path ensure-directory-recursive
 		path ensure-directory
 
@@ -47,8 +46,8 @@ link record(target string, link-path string)
 same link(a string)
 	a, a
 
--all-to-link link[]() summon
-	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
+-all-to-link link[]() summon, native extern
+	in-src-paths link[] = for x : ("crow.svg", "index.css", "tutorial/example.json")::string[]
 		("site-src" child-path x), x
 
 	script-paths = "site-src/script" search-dir-recursive x => x ends-with ".js"
@@ -60,7 +59,7 @@ same link(a string)
 
 other-links link[]()
 	with out : build
-		if trusted is-windows
+		if trusted extern windows
 			out ~= "bin/crow-windows-x64.tar.xz" same
 			out ~= "bin/crow-demo-windows.tar.xz" same
 		else
@@ -71,7 +70,7 @@ other-links link[]()
 		out ~= ("editor/crow.sublime-syntax", "bin/crow.sublime-syntax")
 		out ~= "bin/crow.vsix" same
 
--include-all path-and-content[]() summon
+-include-all path-and-content[]() summon, native extern
 	include = "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
 		x.out-path.remove-include.to, x.content
@@ -79,9 +78,9 @@ other-links link[]()
 	("include-all.json", content),
 
 -remove-include string(a string)
-	(a try-remove-start "include/")!
+	a try-remove-start! "include/"
 
--search-all-with-content path-and-content[](path string, remove-prefix string) summon
+-search-all-with-content path-and-content[](path string, remove-prefix string) summon, native extern
 	paths = path search-dir-recursive
 	paths to-paths-and-contents remove-prefix
 
@@ -90,7 +89,10 @@ other-links link[]()
 		target, target try-remove-start remove-prefix ??
 			throw "{target} didn't start with {remove-prefix}" error
 
--to-paths-and-contents path-and-content[](paths string[], remove-prefix string) summon
+-to-paths-and-contents path-and-content[](
+	paths string[],
+	remove-prefix string,
+) summon, native extern
 	for path : paths parallel
 		assert rel-path ?= path try-remove-start remove-prefix :
 			"{path} didn't start with {remove-prefix}".error

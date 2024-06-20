@@ -1,7 +1,7 @@
 dummy-log nat()
 	0
 
-test
+test native extern
 	logs logged mut[] = ()
 	with : (shared log => logs ~= log) temp-log-handler
 		info log "test"

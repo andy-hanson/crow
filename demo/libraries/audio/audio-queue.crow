@@ -1,7 +1,8 @@
 import
+	crow/col/mut-slice
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	./audio: new, playing-sound
-	./sound: ==, format, new, samples, sound, sound-format, to
+	./sound: ==, format, new, samples, show, sound, sound-format
 
 audio-queue record by-ref, force-shared
 	format sound-format
@@ -9,51 +10,55 @@ audio-queue record by-ref, force-shared
 	# All sounds normalized to `format`
 	-playing entry mut[]
 
-lock lock mut*(a audio-queue) bare, unsafe
+lock lock mut*(a audio-queue) bare, unsafe, native extern
 	&a.lk
 
-new audio-queue(format sound-format)
+new audio-queue(format sound-format) native extern
 	trusted
 		res audio-queue = format, uninit, ()
 		res.lock init
 		res
 
 -entry record by-ref, force-shared
-	samples float32 array
+	samples float32[]
 	cur mut float32*
 	looping bool
 
--reset-position void(a entry)
+-reset-position void(a entry) native extern
 	a.cur := trusted a.samples begin-pointer
 
--is-over bool(a entry) bare
-	!a.looping && trusted a.cur == a.samples.end-pointer
+-is-over bool(a entry) bare, native extern
+	a !looping && trusted a.cur == a.samples.end-pointer
 
-clear void(a audio-queue) bare
+clear void(a audio-queue) bare, native extern
 	trusted
 		a.lock acquire
 		a.playing clear
 		a.lock release
 
-play playing-sound(a audio-queue, sound sound)
+play playing-sound(a audio-queue, sound sound) native extern
 	a play-common sound, false
 
-play-loop playing-sound(a audio-queue, sound sound)
+play-loop playing-sound(a audio-queue, sound sound) native extern
 	a play-common sound, true
 
 # This locks the queue, so make sure 'out' isn't huge
-pull void(a audio-queue, out float32 mut-array) bare, unsafe
+pull void(a audio-queue, out float32 mut-slice) bare, unsafe, native extern
 	out fill 0
 	a.lock acquire
 	a.playing.begin-pointer each-playing a.playing.end-pointer, out
 	a.lock release
 
--each-playing void(cur entry mut*, end entry mut*, out float32 mut-array) bare, unsafe
+-each-playing void(
+	cur entry mut*,
+	end entry mut*,
+	out float32 mut-slice,
+) bare, unsafe, native extern
 	guard cur != end
 	*cur add-to out
 	cur + 1 each-playing end, out
 
--add-to void(a entry, out float32 mut-array) bare, unsafe
+-add-to void(a entry, out float32 mut-slice) bare, unsafe, native extern
 	n-remaining = a.samples.end-pointer - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
@@ -61,14 +66,14 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 		a.cur := end
 	else
 		out-mid = out.begin-pointer + n-remaining
-		(out.begin-pointer .. out-mid).as-mut-array add (a.cur .. a.samples.end-pointer).as-array
+		(out.begin-pointer .. out-mid).as-mut-slice add (a.cur .. a.samples.end-pointer).as-array
 		if a looping
 			a.cur := a.samples begin-pointer
-			a add-to (out-mid .. out.end-pointer).as-mut-array
+			a add-to (out-mid .. out.end-pointer).as-mut-slice
 		else
 			a.cur := a.samples end-pointer
 
--add void(a float32 mut-array, b float32 array) bare, unsafe
+-add void(a float32 mut-slice, b float32[]) bare, unsafe, native extern
 	assert a.size == b.size
 	out mut = a begin-pointer
 	read mut = b begin-pointer
@@ -78,13 +83,13 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 		read +:= 1
 	assert read == b.end-pointer
 
--play-common playing-sound(a audio-queue, sound sound, looping bool)
+-play-common playing-sound(a audio-queue, sound sound, looping bool) native extern
 	assert sound.format == a.format :
 		"sound format mismatch: expected {a format}, got {sound format}" error
 	trusted
 		a.lock acquire
 		# Can't use 'filter=' in 'bare' code, so do it here
-		a.playing filter= x => !x.is-over
+		a.playing filter= x => x !is-over
 		entry entry = sound.samples, sound.samples.begin-pointer, looping
 		a.playing ~= entry
 		a.lock release
@@ -93,7 +98,7 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 		set-playing: desired =>
 			a set-playing entry, desired
 
--set-playing void(a audio-queue, entry entry, desired bool)
+-set-playing void(a audio-queue, entry entry, desired bool) native extern
 	trusted
 		a.lock acquire
 		is-playing mut bool = false
@@ -110,11 +115,11 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 			a.playing ~= entry
 		a.lock release
 
-test
+test native extern
 	format sound-format = 2, 44100
 	a audio-queue = format,
 	sound sound = format, (1, 2, 3, 4, 5, 6, 7, 8)
-	buf float32 mut-array = 0, 0, 0
+	buf float32 mut-slice = 0, 0, 0
 	trusted
 		a pull buf
 		buf.to::float32[] is (0, 0, 0)

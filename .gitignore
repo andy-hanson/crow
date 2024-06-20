@@ -3,3 +3,6 @@ site
 dyncall
 editor/vscode/node_modules
 test/test
+demo/webapp/db
+demo/webapp/index.js
+demo/webapp/index.js.map

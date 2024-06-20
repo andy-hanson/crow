@@ -6,11 +6,11 @@ import model.constant : Constant;
 import model.model :
 	BuiltinFun,
 	BuiltinType,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
-	FlagsFunction,
 	FunDecl,
 	IntegralType,
+	isString,
 	isTuple,
 	Local,
 	Params,
@@ -122,6 +122,13 @@ immutable struct ConcreteStructSource {
 		StructDecl* decl;
 		SmallArray!ConcreteType typeArgs;
 
+		this(StructDecl* d, SmallArray!ConcreteType ta) {
+			decl = d;
+			typeArgs = ta;
+			assert(typeArgs.length == decl.typeParams.length);
+			assert(!isString(*decl)); // Concretize should replace 'string' with 'char8 array'
+		}
+
 		bool opEquals(in Inst b) scope =>
 			decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
 
@@ -147,7 +154,7 @@ immutable struct ConcreteStruct {
 
 	enum SpecialKind {
 		none,
-		array,
+		arrayOrMutArray,
 		catchPoint,
 		fiber,
 		pointer, // mut or const
@@ -197,22 +204,26 @@ immutable struct ConcreteStruct {
 	}
 }
 
-bool isArray(in ConcreteStruct a) =>
-	a.specialKind == ConcreteStruct.SpecialKind.array;
+bool isArrayOrMutArray(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.arrayOrMutArray;
 ConcreteType arrayElementType(ConcreteType arrayType) {
-	assert(isArray(*mustBeByVal(arrayType)));
+	assert(isArrayOrMutArray(*mustBeByVal(arrayType)));
 	return only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
 bool isCatchPoint(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.catchPoint;
 bool isFiber(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.fiber;
-bool isPointer(in ConcreteStruct a) =>
+private bool isPointer(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.pointer;
 ConcreteType pointeeType(ConcreteType pointerType) {
 	assert(isPointer(*mustBeByVal(pointerType)));
 	return only(mustBeByVal(pointerType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
+ConcreteType pointeeTypeIfIsPointer(ConcreteType a) =>
+	isPointer(*a.struct_)
+		? pointeeType(a)
+		: a;
 private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
@@ -269,13 +280,13 @@ immutable struct ConcreteFunBody {
 	}
 	immutable struct FlagsFn {
 		ulong allValue;
-		FlagsFunction fn;
+		EnumOrFlagsFunction fn;
 	}
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
 	immutable struct Deferred {} // Should only be used temporarily
 
-	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet, Deferred);
+	mixin Union!(Builtin, EnumOrFlagsFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet, Deferred);
 }
 
 immutable struct ConcreteFunSource {

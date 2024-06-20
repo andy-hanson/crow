@@ -2,13 +2,14 @@
 import
 	crow/io/file: each-child-recursive, read-file-or-empty, write-file
 	crow/io/path: base-name, child-path, get-extension
-	crow/io/print: out, print
+	crow/io/print: err, out, print
 	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
 	crow/parse-command: parse-named-args
-	crow/version: is-windows
+	crow/test-util/test-runner: run-all-tests
 	../failure
 
-main nat(args string[]) summon
+main nat(args string[]) summon, native extern
+	run-all-tests
 	if values ?= args parse-named-args ("print-tests", "overwrite-output", "include-jit", "match")
 		print-tests-strs, overwrite-output-strs, include-jit-strs, match-test-strs = \
 			values as-tuple4
@@ -39,7 +40,7 @@ options:
 
 -test-options record(print-tests bool, overwrite-output bool, include-jit bool, match-test string)
 
--do-test nat(options test-options) summon
+-do-test nat(options test-options) summon, native extern
 	crow-dir string = "."
 	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
 		"./test/end-to-end" child-path name
@@ -50,62 +51,81 @@ options:
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		out print "Ran {tests size} crow tests"
-		()
+		0
 	else
-		failures.print-failures
+		err print failures.show-failures
+		failures size
 
 -parallel-concat-non-windows[t] record(col t[]) nominal
 -for-loop[out, in] out[](
 	a in parallel-concat-non-windows,
 	f out[] shared(x in),
 ) out shared, in shared
-	if trusted is-windows
+	if trusted extern windows
 		for x : a.col and-concat
 			f[x]
 	else
 		a.col.parallel-concat for-loop f
 
 -crow-path string(crow-dir string)
-	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")
+	crow-dir child-path "bin" child-path "crow" ~~ (trusted extern windows ? ".exe" : "")
 
--list-tests string[](path string, match-test string) summon
+-list-tests string[](path string, match-test string) summon, native extern
 	res string mut[] = ()
 	path each-child-recursive child =>
-		if child contains-seq match-test && child.ext-is-crow && !child.is-excluded
+		if child contains-seq match-test && child ext-is-crow && child !is-excluded
 			res ~= child
 	res move-to
 
 # Some tests have different output on Windows
 -is-excluded bool(a string)
-	if trusted is-windows
+	if trusted extern windows
 		a ends-with "/fail.crow"
+-is-excluded-js bool(a string)
+	a.base-name in excluded-js-names
+-excluded-js-names string set()
+	"caught-exception-outside-of-task.crow", \
+	"empty-enum-or-union.crow",
+	"gc.crow",
+	"logging.crow",
+	"main-exit-code-too-big.crow",
+	"pointer-mutability.crow"
 
 -ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
--run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon
+-run-single-crow-test failure[](
+	path-to-crow string,
+	path string,
+	options test-options,
+) summon, native extern
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
-	interpret-failures = path-to-crow run-single path, interpret, overwrite
-	jit-failures = if options.include-jit && interpret-failures.is-empty && !overwrite
-		path-to-crow run-single path, jit, overwrite
+	for kind : values::run-kind[]
+		include = match kind
+		as jit
+			options include-jit
+		as js
+			path !is-excluded-js
+		else
+			true
+		if include
+			failures = path-to-crow run-single path, kind, overwrite
+			unless failures is-empty
+				break failures
 	else
-		interpret-failures
-	if jit-failures.is-empty && !overwrite
-		path-to-crow run-single path, aot, overwrite
-	else
-		jit-failures
+		()
 
-run-kind enum(interpret, jit, aot)
+run-kind enum(interpret, jit, aot, js)
 
 -run-single failure[](
 	path-to-crow string,
 	path string,
 	run-kind run-kind,
 	overwrite-output bool,
-) summon
+) summon, native extern
 	args string[] = match run-kind
 	as interpret
 		"run", path
@@ -113,11 +133,13 @@ run-kind enum(interpret, jit, aot)
 		"run", path, "--jit"
 	as aot
 		"run", path, "--aot"
+	as js
+		"run", path, "--node-js"
 	info log "{path-to-crow} {" " join args}"
 	res = path-to-crow spawn-and-wait-result args
-	path handle-output "{path}.out", res.format-output, overwrite-output
+	path handle-output "{path}.out", (res format-output run-kind), overwrite-output, run-kind
 
--format-output string(a process-result)
+-format-output string(a process-result, run-kind run-kind)
 	if a has-error
 		exit-code = match a exit
 		as exited x
@@ -125,18 +147,24 @@ run-kind enum(interpret, jit, aot)
 		as signaled x
 			x
 		exit-string string = exit-code != 0 && exit-code != 1 ? "big" : "{exit-code}"
-		"exit code: {exit-string}\n{a format-stdout-stderr}"
+		"exit code: {exit-string}\n{a format-stdout-stderr run-kind}"
 	else
 		a.stdout remove-colors
 
--format-stdout-stderr string(a process-result)
+-format-stdout-stderr string(a process-result, run-kind run-kind)
 	stdout string = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
-	"{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
+	stderr-no-color = a.stderr remove-colors
+	stderr string = match run-kind
+	as js
+		stderr-no-color normalize-exceptions-js
+	else
+		stderr-no-color normalize-exceptions
+	"{stdout}stderr:\n{stderr}"
 
 -remove-colors string(a string)
-	if pair ?= a try-split-once "\x1b"
-		pair.a ~~ if pair2 ?= pair.b try-split-once "m"
-			pair2.b remove-colors
+	if before, rest ?= a try-split-once "\x1b"
+		before ~~ if _, after ?= rest try-split-once "m"
+			after remove-colors
 	else
 		a
 
@@ -152,10 +180,95 @@ run-kind enum(interpret, jit, aot)
 			normalized-name == "" ? () : ("\tat {normalized-name}",)
 		else
 			line,
+-normalize-exceptions-js string(a string)
+	state mut js-stack-state = not-started
+	a update-lines line =>
+		match state
+		as not-started
+			if line is-first-line-of-js-exception
+				state := started
+				()
+			elif rest ?= line try-remove-start "Error: "
+				state := started
+				"Uncaught exception: {rest}",
+			else
+				line,
+		as started
+			ls = line strip
+			if ls starts-with "throw new " || ls ends-with "^" || ls == ""
+				()
+			elif rest ?= line try-remove-start "t_error [Error]: "
+				"Uncaught exception: {rest}",
+			elif rest ?= ls try-remove-start "Error: "
+				"Uncaught exception: {rest}",
+			elif rest ?= ls try-remove-start "at "
+				if rest is-first-line-of-js-exception
+					()
+				elif name, _ ?= rest try-split-once "("
+					simple-name = name.strip strip-prefix
+					if simple-name == "main"
+						state := ignore-rest
+					"\tat {simple-name}",
+				else
+					line,
+			elif ls starts-with "f_describe: " || line == "}"
+				()
+			else
+				line,
+		as ignore-rest
+			if line starts-with "Node.js v"
+				"",
+-js-stack-state enum(not-started, started, ignore-rest)
 
--update-lines string(a string, cb string[] data(line string))
+test
+	"foo.js:1".is-first-line-of-js-exception is true
+	"foo.js:1:2".is-first-line-of-js-exception is true
+	"foo.js".is-first-line-of-js-exception is false
+	"foo.crow:1".is-first-line-of-js-exception is false
+
+-is-first-line-of-js-exception bool(a string)
+	if x ?= a remove-colon-numbers-from-end
+		x ends-with ".js"
+-remove-number-from-end string?(a string)
+	res = a try-remove-end "0" ||
+		a try-remove-end "1" ||
+		a try-remove-end "2" ||
+		a try-remove-end "3" ||
+		a try-remove-end "4" ||
+		a try-remove-end "5" ||
+		a try-remove-end "6" ||
+		a try-remove-end "7" ||
+		a try-remove-end "8" ||
+		a try-remove-end "9"
+	if x ?= res
+		x.remove-number-from-end || res
+test
+	"a0".remove-number-from-end is ("a",)
+	"a".remove-number-from-end is ()
+-remove-colon-number-from-end string?(a string)
+	if x ?= a remove-number-from-end
+		x try-remove-end ":"
+test
+	"a:0".remove-colon-number-from-end is ("a",)
+	"a".remove-colon-number-from-end is ()
+# Removes e.g. ':12' or ':1:2:3'
+-remove-colon-numbers-from-end string?(a string)
+	if x ?= a remove-colon-number-from-end
+		(x.remove-colon-number-from-end ?? x),
+test
+	"a:1:2".remove-colon-numbers-from-end is ("a",)
+	"a".remove-colon-numbers-from-end is ()
+
+-strip-prefix string(a string)
+	# For JS exception in a method: Ignore the class name
+	if _, x ?= a try-split-once-right "."
+		x try-remove-start "v_" ?? x
+	else
+		(a try-remove-start "f_" || a try-remove-start "t_") ?? a
+
+-update-lines string(a string, cb string[] mut(line string))
 	"\n" join with out : build
-		for line : a split "\n"
+		for line : a lines
 			for new-line : cb[line]
 				out ~= new-line
 
@@ -168,7 +281,8 @@ run-kind enum(interpret, jit, aot)
 	output-path string,
 	actual string,
 	overwrite-output bool,
-) summon
+	kind run-kind
+) summon, native extern
 	text string = output-path read-file-or-empty
 	if actual.normalize-newlines == text.normalize-newlines
 		()
@@ -176,4 +290,5 @@ run-kind enum(interpret, jit, aot)
 		output-path write-file actual
 		()
 	else
-		(original-path, "{output-path} was not as expected. Actual:\n{actual}"),
+		(original-path, \
+			"For {kind.to::string}: {output-path} was not as expected. Actual:\n{actual}"),

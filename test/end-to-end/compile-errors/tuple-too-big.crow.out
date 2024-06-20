@@ -2,18 +2,5 @@ exit code: 1
 stderr:
 test/end-to-end/compile-errors/tuple-too-big.crow 2:5-2:44 Expected a tuple with 10 elements, but got '<<any>>'.
 test/end-to-end/compile-errors/tuple-too-big.crow 5:4-5:52 This tuple has 10 elements; the maximum allowed is 9
-test/end-to-end/compile-errors/tuple-too-big.crow 6:5-6:6 The literal doesn't match the expected type at this location.
-Expected one of these types:
-	'<<any>>'
-	'<<any>>'
-	'(<<any>>, <<any>>)'
-	'<<any>>'
-	'<<any>>'
-	'(<<any>>, <<any>>)'
-	'<<any>>'
-	'<<any>>'
-	'<<any>>'
-	'(<<any>>, <<any>>)'
-	'(symbol, json)'
 Uncaught exception: Reached compile error
 	at main

@@ -1,0 +1,197 @@
+import
+	crow/js:
+		==, as-js, await, call-new, call-property, call-property-spread, cast, eval, js-any,
+		js-cast, js-global, new, null, set-subscript, subscript
+	./util: cast-option, make-class, method
+
+###
+Represents a DOM node.
+You can use `as-js` and treat this as a JS object.
+###
++node extern
+
+region Create nodes
+
+# Create a new DOM node with the given tag.
++create-node node(tag-name symbol) trusted, js extern
+	"document".js-global call-property "createElement", tag-name cast
+# Create a new node with the given tag and HTML attributes.
++create-node node(tag-name symbol, attr string[symbol]) trusted, js extern
+	node = tag-name create-node
+	for key, value : attr
+		_ = node.as-js call-property "setAttribute", key, value
+	node
++create-node node(
+	tag-name symbol,
+	attr string[symbol],
+	class-name string,
+	children node[],
+) trusted, js extern
+	node = tag-name create-node attr
+	node.as-js["className"] := class-name
+	_ = node.as-js call-property-spread "append", children
+	node js-cast
+
++create-button node(
+	title string,
+	class-name string,
+	children node[],
+	on-click void mut(),
+) trusted, js extern
+	res = "button" create-node (("title", title),), class-name, children
+	res.as-js["onclick"] := on-click
+	res
+
++style record(node node) nominal, mut
++set-subscript void(a style, key symbol, value string) trusted, js extern
+	a.node.as-js["style"][key.to::string] := value
+
++classes record(node node) nominal, mut
++~= void(a classes, class-name string) trusted, js extern
+	_ = a.as-js["classList"] call-property "add", class-name
++set-classes void(a node, class-names string[]) trusted, js extern
+	a.as-js["className"] := (" " join class-names)::string
++remove-class void(a node, class-name string) trusted, js extern
+	_ = a.as-js["classList"] call-property "remove", class-name
+
++set-text-content void(a node, text string) trusted, js extern
+	a.as-js["textContent"] := text
+
++add-event-listener void(a node, event-name string, fn void mut(event js-any)) trusted, js extern
+	_ = a.as-js call-property "addEventListener", event-name, fn
+
++create-input-text node(on-input void mut(x js-any), value string) trusted, js extern
+	res = "input" create-node (("type", "text"), ("value", value))
+	_ = res.as-js call-property "addEventListener", "input"::string, on-input
+	res
+
++create-div node() js extern
+	"" create-div
++create-div node(class-name string) js extern
+	class-name create-div ()
++create-div node(class-name string, children node[]) js extern
+	"div" create-node (), class-name, children
+
++create-span node(class-name string, children node[]) js extern
+	class-name create-span (), children
++create-span node(class-name string, attr string[symbol], children node[]) js extern
+	"span" create-node attr, class-name, children
+
++create-text-node node(text string) trusted, js extern
+	"document".js-global call-property "createTextNode", text cast
+
++document node() summon, trusted, js extern
+	"document".js-global cast
+
+region Node properties
+
++is-text-node bool(a node) trusted, js extern
+	a.as-js["nodeType"].cast::float == 3
+
++attributes record(node node) nominal, mut
++subscript string?(a attributes, attr-name symbol) trusted, js extern
+	res = a.node.as-js call-property "getAttribute", attr-name
+	unless res == null
+		res.cast,
++set-subscript void(a attributes, attr-name symbol, value string) trusted, js extern
+	_ = a.node.as-js call-property "setAttribute", attr-name, value
+
+# Gets the value for an input node, or "" if it's not an input node.
++value string(a node) trusted, js extern
+	a.as-js["value"] cast-option ?? ""
+# You can set a 'value' on any node, but it will only make a visual difference for input nodes.
++set-value void(a node, value string) trusted, js extern
+	a.as-js["value"] := value
+
+region Node queries
+
+# Calls 'querySelector'
++query node?(parent node, selector string) trusted, js extern
+	parent.as-js call-property "querySelector", selector cast-option
+
++query-all node[](selector string) trusted, js extern
+	"document".js-global call-property "querySelectorAll", selector array-of-node-list
+
++child-nodes node[](a node) trusted, js extern
+	a.as-js["childNodes"] array-of-node-list
+
+-array-of-node-list node[](node-list js-any) trusted, js extern
+	"Array".js-global call-property "from", node-list cast
+
+# Calls 'getElementById'
++element node?(parent node, id string) trusted, js extern
+	parent.as-js call-property "getElementById", id cast-option
+
++first-child node?(a node) trusted, js extern
+	res = a.as-js["firstChild"]
+	unless res == null
+		res.cast,
+
+region Events
+
++on-click void(a node, fn void mut()) summon, trusted, js extern
+	_ = a.as-js call-property "addEventListener", "click"::string, fn
+
+region Mutations
+
+# Append a child node.
++~= void(a node, b node) trusted, js extern
+	_ = a.as-js call-property "appendChild", b
+
+# Append many child nodes.
++~~= void(a node, b node[]) js extern
+	for x : b
+		a ~= x
+
+# Overwrites any existing child nodes.
++set-children void(a node, children node[]) js extern
+	a remove-all-children
+	a ~~= children
+
++remove-all-children void(a node) trusted, js extern
+	while child ?= a first-child
+		_ = a.as-js call-property "removeChild", child
+
+region Custom elements
+
++define-custom-element void(element-name string, connected connected-callback) summon, js extern
+	element-name define-custom-element "", connected
++define-custom-element void(
+	element-name string,
+	style-sheet string,
+	connected connected-callback,
+) summon, js extern
+	element-name define-custom-element (_ => style-sheet), connected
++define-custom-element void(
+	element-name string,
+	style-sheet string mut(this custom-element-node),
+	connected connected-callback,
+) summon, trusted, js extern
+	constructor method = (this, _) =>
+		args js-any = ("mode", "open"),
+		root = this call-property "attachShadow", args
+		root.cast set-style-sheet style-sheet[this cast] as-js
+	connected-callback method = (this, _) => connected[this cast] as-js
+	methods method[symbol] = ("connectedCallback", connected-callback),
+	cls = "HTMLElement".js-global make-class constructor, methods
+	_ = "customElements".js-global call-property "define", element-name, cls
+
++connected-callback alias
+	void mut(this custom-element-node)
+
++custom-element-node extern
++as-node node(a custom-element-node) trusted, js extern
+	a js-cast
++attributes attributes(a custom-element-node) js extern
+	a.as-node attributes
++shadow-root node(a custom-element-node) trusted, js extern
+	a.as-js["shadowRoot"] cast
+
+-set-style-sheet void(shadow-root node, css string) trusted, js extern
+	style = "CSSStyleSheet".js-global call-new
+	_ = style call-property "replace", css await
+	shadow-root.as-js["adoptedStyleSheets"] := (style,)::js-any[]
+
++wait-until-window-loaded void() summon, trusted, js extern
+	unless "document".js-global["readyState"].cast::string == "complete"
+		"new Promise(resolve => window.addEventListener('load', resolve))".eval.await cast

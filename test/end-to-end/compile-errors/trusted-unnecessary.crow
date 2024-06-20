@@ -1,13 +1,13 @@
 main void()
 	()
 
-f nat*() unsafe
+f nat*() unsafe, native extern
 	trusted null
 
-f nat*()
+f nat*() native extern
 	trusted trusted null
 
-f nat()
+f nat() native extern
 	# testing twice to verify that we reset 'usedTrusted' after each 'trusted'
 	_ nat = trusted 0
 	trusted 0

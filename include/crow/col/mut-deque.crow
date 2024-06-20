@@ -6,20 +6,19 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, -, *, max-value, nat64, new
 	../option: ==, new, option
-	../pointer: zeroed
+	../pointer: gc-safe-value
 	../range: ..
-	../string: ==, interpolate, join, new, string, to
+	../string: ==, interpolate, join, new, show, string
 	../test-util: is
-	./collection: .., -, end, for-loop, set-subscript, subscript, with-index
-	./mut-array:
-		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
-		set-subscript, size, slice, zero-memory, zeroed-mut-array
-	./list:
-		==, ~=, +, -, begin, build, end, is-empty, list, new, next, size, to
+	./array: ==, ~=, array, build, is-empty, new, size, subscript
+	./collection: .., -, end, for-loop, subscript, with-index
+	./mut-slice:
+		cast-immutable, clear-memory, gc-safe-mut-slice, iterate, mut-slice, is-empty, new,
+		set-subscript, size, subscript
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
-	-inner mut t mut-array
+	-inner mut t mut-slice
 	# Index of the first element. 'nil' for an empty queue.
 	-left mut nat64
 	# Index of the element after the last. 'nil' for an empty queue.
@@ -45,11 +44,11 @@ Copy elements to a list.
 This is O(n).
 ###
 +to[t] t[](a t mut-deque)
-	trusted a.to.cast-immutable to
+	trusted a.to cast-immutable
 
--to[t] t mut-array(a t mut-deque)
-	guard !a.is-empty
-	res t mut-array = trusted a.size zeroed-mut-array
+-to[t] t mut-slice(a t mut-deque)
+	guard a !is-empty
+	res t mut-slice = trusted a.size gc-safe-mut-slice
 	res copy-from-deque a
 	res
 
@@ -113,7 +112,7 @@ Returns an empty option iff `a` was empty (before calling `pop-left`).
 +pop-left[t] t?(a t mut-deque)
 	guard a.left != nil
 	res = a.inner[a.left]
-	a.inner[a.left] := trusted zeroed
+	a.inner[a.left] := trusted gc-safe-value
 	a.left := a next-index a.left
 	if a.left == a.right
 		a.left := nil
@@ -130,7 +129,7 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 	guard a.right != nil
 	a.right := a prev-index a.right
 	res = a.inner[a.right]
-	a.inner[a.right] := trusted zeroed
+	a.inner[a.right] := trusted gc-safe-value
 	if a.right == a.left
 		a.left := nil
 		a.right := nil
@@ -145,7 +144,7 @@ Callers should then push something.
 	if a.left == nil
 		assert a.right == nil
 		if a.inner is-empty
-			a.inner := 2 zeroed-mut-array
+			a.inner := 2 gc-safe-mut-slice
 		a.left := 0
 		a.right := 0
 	else
@@ -155,14 +154,14 @@ Callers should then push something.
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner t mut-array = new-capacity zeroed-mut-array
+			new-inner t mut-slice = new-capacity gc-safe-mut-slice
 			new-inner[0 .. old-capacity] copy-from-deque a
-			new-inner[old-capacity .. new-capacity] zero-memory
+			new-inner[old-capacity .. new-capacity] clear-memory
 			a.inner := new-inner
 			a.left := 0
 			a.right := old-capacity
 
--copy-from-deque[t] void(dest t mut-array, a t mut-deque)
+-copy-from-deque[t] void(dest t mut-slice, a t mut-deque)
 	assert dest.size == a.size
 	if a.left < a.right
 		dest[0 .. end] := a.inner[a.left .. a.right]
@@ -173,7 +172,10 @@ Callers should then push something.
 
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index
-		"{i == a.right ? "<-R "::string}{i == a.left ? "L-> "::string}{x}"
+		is-nil = trusted x == gc-safe-value
+		is-right string = i == a.right ? "<-R "
+		is-left string = i == a.left ? "L-> "
+		"{is-right}{is-left}{is-nil ? "_"::string : "{x}"}"
 
 -verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is (expected.is-empty ? () : (expected[0],))
@@ -188,7 +190,7 @@ test
 	a.pop-right is ()
 	a verify (), ""
 	1::nat64 push a
-	a verify (1,), "<-R 0 L-> 1"
+	a verify (1,), "<-R _ L-> 1"
 	a push 2
 	a verify (1, 2), "2 <-R L-> 1"
 
@@ -196,18 +198,18 @@ test
 	a-copy verify (1, 2), "<-R L-> 1 2"
 
 	a.pop-right is (2,)
-	a verify (1,), "<-R 0 L-> 1"
+	a verify (1,), "<-R _ L-> 1"
 
 	a.pop-right is (1,)
 	a.left is nil
 	a.right is nil
-	a verify (), "0 0"
+	a verify (), "_ _"
 
 	a push 1
-	a verify (1,), "L-> 1 <-R 0"
+	a verify (1,), "L-> 1 <-R _"
 
 	2::nat64 push a
 	a verify (2, 1), "1 <-R L-> 2"
 
 	3::nat64 push a
-	a verify (3, 2, 1), "2 1 <-R 0 L-> 3"
+	a verify (3, 2, 1), "2 1 <-R _ L-> 3"

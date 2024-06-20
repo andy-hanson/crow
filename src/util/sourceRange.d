@@ -10,6 +10,7 @@ import util.json : field, Json, jsonObject;
 import util.string : CString, MutCString, stringOfRange;
 import util.unicode : byteIndexOfCharacterIndex, characterIndexOfByteIndex;
 import util.uri : compareUriAlphabetically, stringOfUri, Uri;
+import util.writer : Writer;
 
 // This is a byte offset into a file. (It should generally point to the *start* of a UTF8 character.)
 alias Pos = uint;
@@ -20,6 +21,7 @@ immutable struct Range {
 	Pos start;
 	Pos end;
 
+	@disable this();
 	this(Pos s, Pos e) {
 		start = s;
 		end = e;
@@ -77,7 +79,7 @@ immutable struct UriAndRange {
 		UriAndRange(uri, Range.empty);
 }
 
-Comparison compareUriAndRange(UriAndRange a, UriAndRange b) {
+Comparison compareUriAndRange(in UriAndRange a, in UriAndRange b) {
 	Comparison cmpUri = compareUriAlphabetically(a.uri, b.uri);
 	return cmpUri != Comparison.equal ? cmpUri : compareRange(a.range, b.range);
 }
@@ -86,14 +88,33 @@ UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
 
 immutable struct LineAndCharacter {
+	@safe @nogc pure nothrow:
+
 	uint line;
 	// This counts tabs as 1 character.
 	uint character;
-}
 
-immutable struct LineAndColumnRange {
+	void writeTo(scope ref Writer writer) {
+		writer ~= line;
+		writer ~= 'x';
+		writer ~= character;
+	}
+}
+Comparison compareLineAndCharacter(LineAndCharacter a, LineAndCharacter b) =>
+	compareOr(compareUint(a.line, b.line), () =>
+		compareUint(a.character, b.character));
+
+private immutable struct LineAndColumnRange {
+	@safe @nogc pure nothrow:
+
 	LineAndColumn start;
 	LineAndColumn end;
+
+	void writeTo(scope ref Writer writer) {
+		writer ~= start;
+		writer ~= '-';
+		writer ~= end;
+	}
 }
 
 immutable struct UriLineAndColumn {
@@ -117,6 +138,12 @@ immutable struct LineAndColumn {
 		line0Indexed + 1;
 	uint column1Indexed() =>
 		column0Indexed + 1;
+
+	void writeTo(scope ref Writer writer) {
+		writer ~= line1Indexed;
+		writer ~= ':';
+		writer ~= column1Indexed;
+	}
 }
 
 immutable struct LineAndCharacterRange {
@@ -200,11 +227,12 @@ immutable struct LineAndCharacterGetter {
 immutable struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
 	LineAndCharacterGetter lineAndCharacterGetter;
+	bool usesCRLF;
 	ubyte[] lineToNTabs;
 
 	static LineAndColumnGetter empty() {
 		static immutable ubyte[] emptyLineToNTabs = [0];
-		return LineAndColumnGetter(LineAndCharacterGetter.empty, emptyLineToNTabs);
+		return LineAndColumnGetter(LineAndCharacterGetter.empty, false, emptyLineToNTabs);
 	}
 
 	Pos opIndex(in LineAndColumn x) scope =>
@@ -252,17 +280,23 @@ LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, return scope CSt
 
 	return LineAndColumnGetter(
 		LineAndCharacterGetter(stringOfRange(text, ptr), finish(alloc, lineToPos), ptr - text, usesCRLF),
+		usesCRLF,
 		finish(alloc, lineToNTabs));
 }
 
 enum PosKind { startOfRange, endOfRange }
 
-uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) =>
-	line < a.lineToPos.length - 1
-		? a.lineToPos[line + 1] - a.lineToPos[line]
-		: line == a.lineToPos.length - 1
-		? a.maxPos - a.lineToPos[line]
-		: 0;
+uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) {
+	if (line < a.lineToPos.length - 1) {
+		Pos next = a.lineToPos[line + 1];
+		Pos here = a.lineToPos[line];
+		assert(next > here + a.usesCRLF);
+		return next - here - 1 - a.usesCRLF;
+	} else if (line == a.lineToPos.length - 1)
+		return a.maxPos - a.lineToPos[line];
+	else
+		return 0;
+}
 
 private:
 

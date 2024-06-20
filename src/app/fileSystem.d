@@ -21,10 +21,14 @@ version (Windows) {
 		ERROR_BROKEN_PIPE,
 		ERROR_FILE_NOT_FOUND,
 		ERROR_SHARING_VIOLATION,
+		FILE_ATTRIBUTE_ARCHIVE,
+		FILE_ATTRIBUTE_DIRECTORY,
+		FILE_ATTRIBUTE_NORMAL,
 		FormatMessageA,
 		FORMAT_MESSAGE_FROM_SYSTEM,
 		FORMAT_MESSAGE_IGNORE_INSERTS,
 		GetExitCodeProcess,
+		GetFileAttributesA,
 		GetLastError,
 		GetModuleFileNameA,
 		GetModuleHandle,
@@ -33,6 +37,7 @@ version (Windows) {
 		HANDLE_FLAG_INHERIT,
 		HMODULE,
 		INFINITE,
+		INVALID_FILE_ATTRIBUTES,
 		LPCSTR,
 		PROCESS_INFORMATION,
 		ReadFile,
@@ -48,41 +53,50 @@ version (Windows) {
 		WaitForSingleObject,
 		WriteFile;
 } else {
+	import core.sys.posix.dirent : closedir, DIR, dirent, opendir, readdir;
+	import core.sys.posix.fcntl : O_CREAT, O_EXCL, open, O_WRONLY;
 	import core.sys.posix.spawn : posix_spawn;
+	import core.sys.posix.stdio : fdopen;
 	import core.sys.posix.sys.wait : waitpid;
-	import core.sys.posix.sys.stat : mkdir, pid_t;
-	import core.sys.posix.unistd : getcwd, read, readlink, unlink, write;
+	import core.sys.posix.sys.stat : mkdir, mode_t, lstat, pid_t, S_IFDIR, S_IFMT, S_IFREG, stat_t;
+	import core.sys.posix.unistd : getcwd, read, readlink, rmdir, unlink, write;
 }
 
 import backend.writeToC : PathAndArgs;
 import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
-import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.col.array : endPtr, exists, newArray;
-import util.col.arrayBuilder : buildArray, Builder;
+import util.alloc.alloc : Alloc, allocateElements;
+import util.alloc.stackAlloc :
+	StackArrayBuilder, withBuildStackArrayImpure, withConcatImpure, withExactStackArrayImpure;
+import util.col.array : endPtr, exists, newArray, sum;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
+import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
-import util.exitCode : ExitCode, okAnd, onError;
+import util.exitCode : eachUntilError, ExitCode, ExitCodeOrSignal, okAnd, onError, Signal;
 import util.memory : memset;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.string : CString, cString;
-import util.symbol : alterExtension, Extension, Symbol;
+import util.string : CString, cString, stringOfCString;
+import util.symbol : alterExtension, Extension, Symbol, symbol, symbolOfString;
 import util.unicode : FileContent;
-import util.union_ : TaggedUnion;
 import util.uri :
 	alterExtension,
 	alterExtensionWithHex,
 	asFilePath,
 	baseName,
-	cStringOfFilePath,
+	concatFilePathAndPath,
+	countComponents,
 	FilePath,
+	FilePermissions,
 	parent,
 	parseFilePath,
+	Path,
+	PathAndContent,
 	Uri,
 	uriIsFile,
 	withCStringOfFilePath;
-import util.util : castImmutable, todo, typeAs;
-import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
+import util.util : castImmutable, castNonScope_ref, todo, typeAs;
+import util.writer : withStackWriterImpure, withStackWriterImpureCString, Writer, writeWithSeparatorAndFilter;
 
 private enum OutPipe { stdout = 1, stderr = 2 }
 
@@ -170,6 +184,108 @@ private @system void writeLn(OutPipe pipe, in string a) {
 	flush(pipe);
 }
 
+// Equivalent to 'rm -rf path'
+private @trusted ExitCode removeFileOrDirectoryIfExists(FilePath path) {
+	final switch (pathKind(path)) {
+		case PathKind.doesNotExist:
+			return ExitCode.ok;
+		case PathKind.error:
+			return printErrorCb((scope ref Writer writer) {
+				writer ~= "Error removing path ";
+				writer ~= path;
+				writer ~= ": ";
+				writeLastError(writer);
+			});
+		case PathKind.file:
+			return removeFileIfExists(path);
+		case PathKind.directory:
+			return removeDirectoryRecursively(path);
+		case PathKind.other:
+			return printErrorCb((scope ref Writer writer) {
+				writer ~= "Don't know how to delete unusual entity ";
+				writer ~= path;
+			});
+	}
+}
+
+private enum PathKind { doesNotExist, error, file, directory, other }
+private PathKind pathKind(FilePath path) {
+	version (Windows) {
+		DWORD attr = withCStringOfFilePath(path, (in CString x) @trusted => GetFileAttributesA(x.ptr));
+		return attr == INVALID_FILE_ATTRIBUTES
+			? (GetLastError() == ERROR_FILE_NOT_FOUND ? PathKind.doesNotExist : PathKind.error)
+			: attr & FILE_ATTRIBUTE_DIRECTORY
+			? PathKind.directory
+			: (attr & FILE_ATTRIBUTE_ARCHIVE) || (attr & FILE_ATTRIBUTE_NORMAL)
+			? PathKind.file
+			: PathKind.other;
+	} else {
+		stat_t statResult;
+		int err = withCStringOfFilePath(path, (in CString x) @trusted => lstat(x.ptr, &statResult));
+		if (err == 0)
+			return S_ISTYPE(statResult.st_mode, S_IFDIR)
+				? PathKind.directory
+				: S_ISTYPE(statResult.st_mode, S_IFREG)
+				? PathKind.file
+				: PathKind.other;
+		else if (errno == ENOENT)
+			return PathKind.doesNotExist;
+		else
+			return PathKind.error;
+	}
+}
+
+version (Windows) {} else {
+	// Taken from core.sys.posix.sys.stat (importing it causes linker errors)
+	private bool S_ISTYPE(mode_t mode, uint mask) =>
+		(mode & S_IFMT) == mask;
+}
+
+private ExitCode removeDirectoryRecursively(FilePath dirPath) =>
+	okAnd(removeAllInDirectory(dirPath), () => removeEmptyDirectory(dirPath));
+
+private ExitCode removeEmptyDirectory(FilePath dirPath) {
+	int err = withCStringOfFilePath(dirPath, (in CString x) @trusted => rmdir(x.ptr));
+	return err == 0 ? ExitCode.ok : printErrorCb((scope ref Writer writer) {
+		writer ~= "Error removing directory ";
+		writer ~= dirPath;
+		writer ~= ": ";
+		writeLastError(writer);
+	});
+}
+
+private @trusted ExitCode removeAllInDirectory(FilePath dirPath) {
+	version (Windows) {
+		return todo!ExitCode("TODO: removeAllInDirectory");
+	} else {
+		DIR* dir = withCStringOfFilePath(dirPath, (in CString x) @trusted => opendir(x.ptr));
+		if (dir == null) {
+			if (errno == ENOENT)
+				return ExitCode.ok;
+			else
+				return printErrorCb((scope ref Writer writer) {
+					writer ~= "Error listing directory ";
+					writer ~= dirPath;
+					writer ~= ": ";
+					writeLastError(writer);
+				});
+		} else {
+			int exit = ExitCode.ok.value;
+			while (exit == ExitCode.ok.value) {
+				dirent* dirent = readdir(dir);
+				if (dirent != null) {
+					Symbol name = symbolOfString(stringOfCString(CString(castImmutable(dirent.d_name.ptr))));
+					if (name != symbol!".." && name != symbol!".")
+						exit = removeFileOrDirectoryIfExists(dirPath / name).value;
+				} else
+					break;
+			}
+			closedir(dir);
+			return ExitCode(exit);
+		}
+	}
+}
+
 private ExitCode removeFileIfExists(FilePath path) =>
 	withCStringOfFilePath(path, (in CString cString) @trusted {
 		version (Windows) {
@@ -197,33 +313,29 @@ private ExitCode removeFileIfExists(FilePath path) =>
 		});
 	});
 
-/**
-This doesn't create the path, 'cb' should do that.
-But if it is a temp path, this deletes it after the callback finishes.
-*/
-ExitCode withPathOrTemp(
-	Opt!FilePath path,
+ExitCodeOrSignal withTempPath(
 	Uri tempBasePath,
 	Extension extension,
-	in ExitCode delegate(FilePath) @safe @nogc nothrow cb,
+	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
 ) =>
-	has(path)
-		? cb(force(path))
-		: withTempPath(tempBasePath, extension, cb);
-
-ExitCode withTempPath(Uri tempBasePath, Extension extension, in ExitCode delegate(FilePath) @safe @nogc nothrow cb) {
-	if (uriIsFile(tempBasePath)) {
-		ubyte[8] bytes = getRandomBytes();
-		FilePath tempPath = alterExtensionWithHex(asFilePath(tempBasePath), bytes, extension);
-		ExitCode exit = cb(tempPath);
-		ExitCode exit2 = removeFileIfExists(tempPath);
-		return okAnd(exit, () => exit2);
-	} else
-		return printErrorCb((scope ref Writer writer) {
+	uriIsFile(tempBasePath)
+		? withTempPath(asFilePath(tempBasePath), extension, cb)
+		: ExitCodeOrSignal(printErrorCb((scope ref Writer writer) {
 			writer ~= "Don't know where to put temporary file near ";
 			writer ~= tempBasePath;
 			writer ~= " (since it is not a file path)";
-		});
+		}));
+
+ExitCodeOrSignal withTempPath(
+	FilePath tempBasePath,
+	Extension extension,
+	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
+) {
+	ubyte[8] bytes = getRandomBytes();
+	FilePath tempPath = alterExtensionWithHex(tempBasePath, bytes, extension);
+	ExitCodeOrSignal exit = cb(tempPath);
+	ExitCodeOrSignal exit2 = ExitCodeOrSignal(removeFileOrDirectoryIfExists(tempPath));
+	return okAnd(exit, () => exit2);
 }
 
 private @trusted ubyte[8] getRandomBytes() {
@@ -292,11 +404,12 @@ private alias TempStrForPath = char[0x1000];
 	if (!uriIsFile(uri))
 		return ReadFileResult(ReadFileDiag.notFound);
 
-	FILE* fd = openFile(asFilePath(uri), "rb");
-	if (fd == null)
+	MutOpt!(FILE*) optFd = openFileForRead(asFilePath(uri));
+	if (!has(optFd))
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
 			: ReadFileResult(ReadFileDiag.error);
+	FILE* fd = force(optFd);
 	scope(exit) fclose(fd);
 
 	int err = fseek(fd, 0, SEEK_END);
@@ -325,12 +438,44 @@ private alias TempStrForPath = char[0x1000];
 	}
 }
 
-private @system FILE* openFile(FilePath path, immutable char* flags) =>
-	withCStringOfFilePath(path, (in CString x) @trusted =>
-		fopen(x.ptr, flags));
+private @system MutOpt!(FILE*) openFileForRead(FilePath path) {
+	FILE* res = withCStringOfFilePath(path, (in CString x) @trusted =>
+		fopen(x.ptr, "rb"));
+	return res == null ? noneMut!(FILE*) : someMut(res);
+}
+private @system MutOpt!(FILE*) openFileForWrite(FilePath path, FilePermissions permissions, FileOverwrite overwrite) {
+	version (Windows) {
+		// TODO: respect FileOverwrite flag
+		FILE* res = withCStringOfFilePath(path, (in CString x) @trusted =>
+			fopen(x.ptr, "w"));
+		return res == null ? noneMut!(FILE*) : someMut!(FILE*)(res);
+	} else {
+		int flags = () {
+			final switch (overwrite) {
+				case FileOverwrite.forbid:
+					return O_CREAT | O_EXCL | O_WRONLY;
+				case FileOverwrite.allow:
+					return O_CREAT | O_WRONLY;
+			}
+		}();
+		int res = withCStringOfFilePath(path, (in CString x) @trusted =>
+			open(x.ptr, flags, filePermissionsInt(permissions)));
+		return res == -1 ? noneMut!(FILE*) : someMut(fdopen(res, "wb"));
+	}
+}
+private int filePermissionsInt(FilePermissions permissions) {
+	final switch (permissions) {
+		case FilePermissions.regular:
+			return octal!"666";
+		case FilePermissions.executable:
+			return octal!"777";
+	}
+}
 
-@trusted ExitCode writeFile(FilePath path, in string content) {
-	MutOpt!(FILE*) fd = tryOpenFileForWrite(path);
+enum FileOverwrite { forbid, allow }
+
+@trusted ExitCode writeFile(FilePath path, in string content, FilePermissions permissions, FileOverwrite overwrite) {
+	MutOpt!(FILE*) fd = tryOpenFileForWrite(path, permissions, overwrite);
 	if (has(fd)) {
 		scope(exit) fclose(force(fd));
 
@@ -346,17 +491,19 @@ private @system FILE* openFile(FilePath path, immutable char* flags) =>
 		return ExitCode.error;
 }
 
-private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path) {
-	FILE* fd = openFile(path, "w");
-	if (fd != null)
-		return someMut(fd);
+private @system MutOpt!(FILE*) tryOpenFileForWrite(
+	FilePath path,
+	FilePermissions permissions,
+	FileOverwrite overwrite,
+) {
+	MutOpt!(FILE*) res = openFileForWrite(path, permissions, overwrite);
+	if (has(res))
+		return res;
 	else if (errno == ENOENT) {
 		Opt!FilePath par = parent(path);
-		if (has(par) && makeDirectoryAndParents(force(par)) == ExitCode.ok) {
-			FILE* res = openFile(path, "w");
-			return res == null ? noneMut!(FILE*) : someMut(res);
-		} else
-			return noneMut!(FILE*);
+		return has(par) && makeDirectoryAndParents(force(par)) == ExitCode.ok
+			? openFileForWrite(path, permissions, overwrite)
+			: noneMut!(FILE*);
 	} else {
 		printErrorCb((scope ref Writer writer) {
 			writer ~= "Failed to write file ";
@@ -390,21 +537,6 @@ private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path) {
 	return parseFilePath(CString(cast(immutable) res.ptr));
 }
 
-immutable struct Signal {
-	@safe @nogc pure nothrow:
-
-	int signal;
-
-	uint asUintForTaggedUnion() =>
-		cast(uint) signal;
-	static Signal fromUintForTaggedUnion(uint a) =>
-		Signal(cast(int) a);
-}
-
-immutable struct ExitCodeOrSignal {
-	mixin TaggedUnion!(ExitCode, Signal);
-}
-
 private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 	a.matchImpure!ExitCode(
 		(in ExitCode x) =>
@@ -415,9 +547,9 @@ private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 				writer ~= x.signal;
 			}));
 
-ExitCode runCompiler(ref TempAlloc tempAlloc, in PathAndArgs pathAndArgs) =>
+ExitCode runCompiler(in PathAndArgs pathAndArgs) =>
 	// Extern library linker arguments are already in args
-	printSignalAndExit(runCommon(tempAlloc, [], pathAndArgs, isCompile: true));
+	printSignalAndExit(runCommon([], pathAndArgs, isCompile: true));
 
 ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 	version (Windows) {
@@ -429,126 +561,139 @@ ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 		return ExitCode.ok;
 }
 
-ExitCodeOrSignal runProgram(ref TempAlloc tempAlloc, in ExternLibraries externLibraries, in PathAndArgs pathAndArgs) =>
-	runCommon(tempAlloc, externLibraries, pathAndArgs, isCompile: false);
+ExitCodeOrSignal runProgram(in ExternLibraries externLibraries, in PathAndArgs pathAndArgs) =>
+	runCommon(externLibraries, pathAndArgs, isCompile: false);
+
+ExitCodeOrSignal runNodeJsProgram(in PathAndArgs pathAndArgs) =>
+	withCStringOfFilePath(pathAndArgs.path, (in CString pathCString) {
+		version (Windows) {
+			return withConcatImpure!(ExitCodeOrSignal, CString)(
+				[castNonScope_ref(pathCString)],
+				pathAndArgs.args,
+				(in CString[] args) =>
+					runCommon(
+						[],
+						PathAndArgs(parseFilePath("C:\\Program Files\\nodejs\\node.exe"), args),
+						isCompile: false));
+		} else {
+			return withConcatImpure!(ExitCodeOrSignal, CString)(
+				[cString!"node", castNonScope_ref(pathCString)],
+				pathAndArgs.args,
+				(in CString[] args) =>
+					runCommon([], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false));
+		}
+	});
 
 private @trusted ExitCodeOrSignal runCommon(
-	ref TempAlloc tempAlloc,
 	in ExternLibraries externLibraries,
 	in PathAndArgs pathAndArgs,
 	bool isCompile,
 ) {
-	CString executablePath = cStringOfFilePath(tempAlloc, pathAndArgs.path);
 	version (Windows) {
-		CString argsCString = windowsArgsCString(tempAlloc, executablePath, pathAndArgs.args);
-
-		foreach (ExternLibrary x; externLibraries) {
-			if (has(x.configuredDir)) {
-				bool ok = withCStringOfFilePath(asFilePath(force(x.configuredDir)), (in CString x) =>
-					SetDllDirectoryA(x.ptr));
-				assert(ok);
+		return withWindowsArgsCString(pathAndArgs, (in CString executablePath, in CString argsCString) @trusted {
+			foreach (ExternLibrary x; externLibraries) {
+				if (has(x.configuredDir)) {
+					bool ok = withCStringOfFilePath(asFilePath(force(x.configuredDir)), (in CString x) =>
+						SetDllDirectoryA(x.ptr));
+					assert(ok);
+				}
 			}
-		}
 
-		HANDLE stdoutRead;
-		HANDLE stdoutWrite;
-		HANDLE stderrRead;
-		HANDLE stderrWrite;
-		char[0x10000] stdoutBuf = void;
-		char[0x10000] stderrBuf = void;
+			HANDLE stdoutRead;
+			HANDLE stdoutWrite;
+			HANDLE stderrRead;
+			HANDLE stderrWrite;
+			char[0x10000] stdoutBuf = void;
+			char[0x10000] stderrBuf = void;
 
-		if (isCompile) {
-			SECURITY_ATTRIBUTES saAttr;
-			saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
-			saAttr.bInheritHandle = true;
-			saAttr.lpSecurityDescriptor = null;
+			if (isCompile) {
+				SECURITY_ATTRIBUTES saAttr;
+				saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+				saAttr.bInheritHandle = true;
+				saAttr.lpSecurityDescriptor = null;
 
-			if (!CreatePipe(&stdoutRead, &stdoutWrite, &saAttr, 0))
-				todo!void("");
-			if (!SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0))
-				todo!void("");
-			if (!CreatePipe(&stderrRead, &stderrWrite, &saAttr, 0))
-				todo!void("");
-			if (!SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0))
-				todo!void("");
-		}
+				if (!CreatePipe(&stdoutRead, &stdoutWrite, &saAttr, 0))
+					todo!void("");
+				if (!SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0))
+					todo!void("");
+				if (!CreatePipe(&stderrRead, &stderrWrite, &saAttr, 0))
+					todo!void("");
+				if (!SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0))
+					todo!void("");
+			}
 
-		STARTUPINFOA startupInfo = void;
-		memset(cast(ubyte*) &startupInfo, 0, STARTUPINFOA.sizeof);
-		startupInfo.cb = STARTUPINFOA.sizeof;
-		if (isCompile) {
-			startupInfo.dwFlags = STARTF_USESTDHANDLES;
-			startupInfo.hStdOutput = stdoutWrite;
-			startupInfo.hStdError = stderrWrite;
-		}
+			STARTUPINFOA startupInfo = void;
+			memset(cast(ubyte*) &startupInfo, 0, STARTUPINFOA.sizeof);
+			startupInfo.cb = STARTUPINFOA.sizeof;
+			if (isCompile) {
+				startupInfo.dwFlags = STARTF_USESTDHANDLES;
+				startupInfo.hStdOutput = stdoutWrite;
+				startupInfo.hStdError = stderrWrite;
+			}
 
-		PROCESS_INFORMATION processInfo;
-		memset(cast(ubyte*) &processInfo, 0, PROCESS_INFORMATION.sizeof);
-		int ok = CreateProcessA(
-			executablePath.ptr,
-			// not sure why Windows makes this mutable
-			cast(char*) argsCString.ptr,
-			null,
-			null,
-			true,
-			0,
-			null,
-			null,
-			&startupInfo,
-			&processInfo);
-		if (!ok) {
-			printErrorCb((scope ref Writer writer) {
-				writer ~= "Error spawning ";
-				writer ~= argsCString;
-				writer ~= '\n';
-				writeLastError(writer);
-			});
-			return ExitCodeOrSignal(ExitCode.error);
-		}
+			PROCESS_INFORMATION processInfo;
+			memset(cast(ubyte*) &processInfo, 0, PROCESS_INFORMATION.sizeof);
+			int ok = CreateProcessA(
+				executablePath.ptr,
+				// not sure why Windows makes this mutable
+				cast(char*) argsCString.ptr,
+				null,
+				null,
+				true,
+				0,
+				null,
+				null,
+				&startupInfo,
+				&processInfo);
+			if (!ok) {
+				printErrorCb((scope ref Writer writer) {
+					writer ~= "Error spawning ";
+					writer ~= argsCString;
+					writer ~= '\n';
+					writeLastError(writer);
+				});
+				return ExitCodeOrSignal(ExitCode.error);
+			}
 
-		if (isCompile) {
-			verifyOk(CloseHandle(stdoutWrite));
-			verifyOk(CloseHandle(stderrWrite));
+			if (isCompile) {
+				verifyOk(CloseHandle(stdoutWrite));
+				verifyOk(CloseHandle(stderrWrite));
 
-			readFromPipe(stdoutBuf, stdoutRead);
-			verifyOk(CloseHandle(stdoutRead));
-			readFromPipe(stderrBuf, stderrRead);
-			verifyOk(CloseHandle(stderrRead));
-		}
+				readFromPipe(stdoutBuf, stdoutRead);
+				verifyOk(CloseHandle(stdoutRead));
+				readFromPipe(stderrBuf, stderrRead);
+				verifyOk(CloseHandle(stderrRead));
+			}
 
-		WaitForSingleObject(processInfo.hProcess, INFINITE);
+			WaitForSingleObject(processInfo.hProcess, INFINITE);
 
-		DWORD exitCode;
-		int ok2 = GetExitCodeProcess(processInfo.hProcess, &exitCode);
-		assert(ok2 == 1);
+			DWORD exitCode;
+			int ok2 = GetExitCodeProcess(processInfo.hProcess, &exitCode);
+			assert(ok2 == 1);
 
-		if (isCompile && exitCode != 0) {
-			printErrorCb((scope ref Writer writer) @trusted {
-				writer ~= "Error running ";
-				writer ~= argsCString;
-				writer ~= "\nExit code ";
-				writer ~= exitCode;
-				writer ~= "\nStderr: ";
-				writer ~= CString(castImmutable(stderrBuf.ptr));
-				writer ~= "\nStdout: ";
-				writer ~= CString(castImmutable(stdoutBuf.ptr));
-			});
-		}
+			if (isCompile && exitCode != 0) {
+				printErrorCb((scope ref Writer writer) @trusted {
+					writer ~= "Error running ";
+					writer ~= argsCString;
+					writer ~= "\nExit code ";
+					writer ~= exitCode;
+					writer ~= "\nStderr: ";
+					writer ~= CString(castImmutable(stderrBuf.ptr));
+					writer ~= "\nStdout: ";
+					writer ~= CString(castImmutable(stdoutBuf.ptr));
+				});
+			}
 
-		verifyOk(CloseHandle(processInfo.hProcess));
-		verifyOk(CloseHandle(processInfo.hThread));
+			verifyOk(CloseHandle(processInfo.hProcess));
+			verifyOk(CloseHandle(processInfo.hThread));
 
-		return ExitCodeOrSignal(ExitCode(exitCode));
+			return ExitCodeOrSignal(ExitCode(exitCode));
+		});
 	} else {
 		pid_t pid;
-		int spawnStatus = posix_spawn(
-			&pid,
-			executablePath.ptr,
-			null,
-			null,
-			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
-			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
-			getEnvironForChildProcess(tempAlloc, externLibraries));
+		int spawnStatus = withConvertArgs!int(pathAndArgs, (in char* executablePath, in char** args) =>
+			withEnvironForChildProcess!int(externLibraries, (in char** environ) @trusted =>
+				posix_spawn(&pid, executablePath, null, null, cast(char**) args, environ)));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -564,7 +709,34 @@ private @trusted ExitCodeOrSignal runCommon(
 	}
 }
 
+ExitCode writeFilesToDir(FilePath baseDir, in PathAndContent[] files) =>
+	// First, build the directories we need.
+	// Make sure to build from the bottom up.
+	okAnd(buildDirectoriesForFiles(baseDir, files), () =>
+		eachUntilError!PathAndContent(files, (ref PathAndContent file) =>
+			writeFile(concatFilePathAndPath(baseDir, file.path), file.content, file.permissions, FileOverwrite.allow)));
+
 private:
+
+ExitCode buildDirectoriesForFiles(FilePath baseDir, in PathAndContent[] files) =>
+	okAnd(makeDirectory(baseDir), () {
+		size_t maxPaths = sum!PathAndContent(files, (in PathAndContent x) => countComponents(x.path));
+		return withTempSetImpure!(ExitCode, Path)(maxPaths, (scope ref TempSet!Path done) {
+			ExitCode ensureDir(Path a) {
+				if (tryAdd(done, a)) {
+					Opt!Path par = parent(a);
+					ExitCode parentExit = has(par) ? ensureDir(force(par)) : ExitCode.ok;
+					return okAnd(parentExit, () => makeDirectory(concatFilePathAndPath(baseDir, a)));
+				} else
+					return ExitCode.ok;
+			}
+
+			return eachUntilError!PathAndContent(files, (ref PathAndContent file) {
+				Opt!Path par = parent(file.path);
+				return has(par) ? ensureDir(force(par)) : ExitCode.ok;
+			});
+		});
+	});
 
 version (Windows) {
 	enum RetryResult { ok, error, retry }
@@ -584,39 +756,53 @@ version (Windows) {
 }
 
 version (Windows) {} else {
-	@system pure immutable(char**) getEnvironForChildProcess(ref Alloc alloc, in ExternLibraries externLibraries) =>
+	Out withEnvironForChildProcess(Out)(
+		in ExternLibraries externLibraries,
+		in Out delegate(in immutable char**) @safe @nogc nothrow cb,
+	) =>
 		exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))
-			? buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) @trusted {
-				immutable(char*)* cur = __environ;
-				while (*cur != null) {
-					res ~= *cur;
-					cur++;
-				}
+			? withLdLibraryPath(externLibraries, (in immutable char* ldLibraryPath) =>
+				withBuildStackArrayImpure!(Out, immutable char*)(
+					(scope ref StackArrayBuilder!(immutable char*) out_) @trusted {
+						immutable(char*)* cur = __environ;
+						while (*cur != null) {
+							out_ ~= *cur;
+							cur++;
+						}
+						out_ ~= ldLibraryPath;
+						out_ ~= typeAs!(immutable char*)(null);
+					},
+					(scope immutable char*[] environ) @trusted => cb(environ.ptr)))
+			: cb(__environ);
 
-				res ~= withWriter(alloc, (scope ref Writer writer) {
-					writer ~= "LD_LIBRARY_PATH=";
-					writeWithSeparatorAndFilter!ExternLibrary(
-						writer,
-						externLibraries,
-						";",
-						(in ExternLibrary x) => has(x.configuredDir),
-						(in ExternLibrary x) {
-							writer ~= '/';
-							writer ~= asFilePath(force(x.configuredDir));
-						});
-				}).ptr;
-
-				res ~= typeAs!(immutable char*)(null);
-			}).ptr
-			: __environ;
+	Out withLdLibraryPath(Out)(
+		in ExternLibraries externLibraries,
+		in Out delegate(in immutable char*) @safe @nogc nothrow cb,
+	) =>
+		withStackWriterImpureCString!(Out, 0x1000)(
+			(scope ref Writer writer) {
+				writer ~= "LD_LIBRARY_PATH=";
+				writeWithSeparatorAndFilter!ExternLibrary(
+					writer,
+					externLibraries,
+					";",
+					(in ExternLibrary x) => has(x.configuredDir),
+					(in ExternLibrary x) {
+						writer ~= '/';
+						writer ~= asFilePath(force(x.configuredDir));
+					});
+			},
+			(in CString x) => cb(x.ptr));
 }
 
 version (Windows) {
 	extern(C) char* _getcwd(char* buffer, int maxlen);
 	extern(C) int _mkdir(scope const char*, immutable uint);
+	extern(C) int _rmdir(scope const char*);
 
 	alias getcwd = _getcwd;
 	alias mkdir = _mkdir;
+	alias rmdir = _rmdir;
 }
 
 ExitCode makeDirectoryAndParents(FilePath dir) =>
@@ -643,16 +829,20 @@ ExitCode makeDirectoryNoPrintErrors(FilePath dir) =>
 		mkdir(x.ptr, octal!"700") == 0 ? ExitCode.ok : ExitCode.error);
 
 version (Windows) {
-	CString windowsArgsCString(ref Alloc alloc, in CString executablePath, in CString[] args) =>
-		withWriter(alloc, (scope ref Writer writer) {
-			writer ~= '"';
-			writer ~= executablePath;
-			writer ~= '"';
-			foreach (CString arg; args) {
-				writer ~= ' ';
-				writer ~= arg;
-			}
-		});
+	ExitCodeOrSignal withWindowsArgsCString(
+		in PathAndArgs a,
+		in ExitCodeOrSignal delegate(in CString, in CString) @safe @nogc nothrow cb,
+	) =>
+		withCStringOfFilePath(a.path, (in CString path) =>
+			withStackWriterImpureCString((scope ref Writer writer) {
+				writer ~= '"';
+				writer ~= path;
+				writer ~= '"';
+				foreach (CString arg; a.args) {
+					writer ~= ' ';
+					writer ~= arg;
+				}
+			}, (in CString args) => cb(path, args)));
 }
 
 void verifyOk(int ok) {
@@ -682,13 +872,20 @@ version (Windows) {
 	}
 }
 
-@system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) =>
-	buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) {
-		res ~= executable.ptr;
-		foreach (CString arg; args)
-			res ~= arg.ptr;
-		res ~= typeAs!(immutable char*)(null);
-	}).ptr;
+@system Out withConvertArgs(Out)(
+	in PathAndArgs a,
+	in Out delegate(in char*, in char**) @safe @nogc nothrow cb,
+) =>
+	withCStringOfFilePath!Out(a.path, (in CString path) =>
+		withExactStackArrayImpure!(Out, const char*)(
+			a.args.length + 2,
+			(scope ref ExactSizeArrayBuilder!(const char*) out_) @trusted {
+				out_ ~= path.ptr;
+				foreach (CString arg; a.args)
+					out_ ~= arg.ptr;
+				out_ ~= null;
+				return cb(path.ptr, finish(out_).ptr);
+			}));
 
 extern(C) immutable char** __environ;
 

@@ -1,5 +1,6 @@
 import
 	crow/col/mut-grid: coord, new, x, y
+	crow/col/mut-slice
 	crow/io/terminal-color: bold, blue, foreground, red, reset
 
 ###
@@ -20,8 +21,8 @@ board record by-val
 	-both-players nat64
 
 board-cache[t] record mut
-	-keys nat32 mut-array
-	-values t mut-array
+	-keys nat32 mut-slice
+	-values t mut-slice
 
 new[t] t board-cache() t new
 	size nat = 0xccce9
@@ -94,7 +95,7 @@ height nat()
 	x * (height + 1) + y
 
 can-place bool(a board, x nat)
-	!(a.both-players bits-intersect x.top-mask)
+	a.both-players !bits-intersect x.top-mask
 
 place board(a board, x nat)
 	assert a can-place x

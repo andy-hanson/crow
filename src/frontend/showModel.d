@@ -33,7 +33,7 @@ import model.model :
 	Visibility;
 import util.col.array : isEmpty, only, only2, sizeEq;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : LineAndColumn, LineAndColumnRange, PosKind, toUriAndPos, UriAndPos, UriAndRange;
+import util.sourceRange : PosKind, toUriAndPos, UriAndPos, UriAndRange;
 import util.symbol : Symbol;
 import util.uri : Uri, UrisInfo, writeUriPreferRelative;
 import util.util : stringOfEnum;
@@ -66,19 +66,11 @@ alias ShowDiagCtx = ShowTypeCtx;
 alias ShowModelCtx = ShowTypeCtx;
 
 struct ShowOptions {
+	@safe @nogc pure nothrow:
 	bool color;
-}
 
-void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) {
-	writeLineAndColumn(writer, a.start);
-	writer ~= '-';
-	writeLineAndColumn(writer, a.end);
-}
-
-void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
-	writer ~= lc.line1Indexed;
-	writer ~= ':';
-	writer ~= lc.column1Indexed;
+	ShowOptions withoutColor() =>
+		ShowOptions(false);
 }
 
 void writeCalled(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in Called a) {
@@ -322,11 +314,11 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 		writeFunType(writer, ctx, typeContainer, kind, rp[0], rp[1]);
 	}
 	void map(string open) {
-		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, withContainer(vk[0]));
+		Type[2] keyVal = only2(s.typeArgs);
+		writeTypeUnquoted(writer, ctx, withContainer(keyVal[1]));
 		writer ~= open;
 		writer ~= '[';
-		writeTypeUnquoted(writer, ctx, withContainer(vk[1]));
+		writeTypeUnquoted(writer, ctx, withContainer(keyVal[0]));
 		writer ~= ']';
 	}
 	void suffix(string suffix) {
@@ -338,6 +330,8 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {
+			case Diag.TypeShouldUseSyntax.Kind.array:
+				return suffix("[]");
 			case Diag.TypeShouldUseSyntax.Kind.map:
 				return map("");
 			case Diag.TypeShouldUseSyntax.Kind.funData:
@@ -348,20 +342,18 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 				return fun(FunKind.function_);
 			case Diag.TypeShouldUseSyntax.Kind.funShared:
 				return fun(FunKind.shared_);
-			case Diag.TypeShouldUseSyntax.Kind.list:
-				return suffix("[]");
+			case Diag.TypeShouldUseSyntax.Kind.mutArray:
+				return suffix(" mut[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutMap:
 				return map(" mut");
-			case Diag.TypeShouldUseSyntax.Kind.mutList:
-				return suffix(" mut[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutPointer:
 				return suffix(" mut*");
 			case Diag.TypeShouldUseSyntax.Kind.opt:
 				return suffix("?");
 			case Diag.TypeShouldUseSyntax.Kind.pointer:
 				return suffix("*");
-			case Diag.TypeShouldUseSyntax.Kind.sharedList:
-				return suffix("[]");
+			case Diag.TypeShouldUseSyntax.Kind.sharedArray:
+				return suffix(" shared[]");
 			case Diag.TypeShouldUseSyntax.Kind.sharedMap:
 				return map(" shared");
 			case Diag.TypeShouldUseSyntax.Kind.tuple:
@@ -497,7 +489,7 @@ void writeSpecInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer
 void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[where].range);
+		writer ~= ctx.lineAndColumnGetters[where].range;
 	if (ctx.options.color)
 		writeReset(writer);
 }
@@ -505,7 +497,7 @@ void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange wh
 void writeUriAndPos(scope ref Writer writer, in ShowCtx ctx, in UriAndPos where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumn(writer, ctx.lineAndColumnGetters[where, PosKind.startOfRange].pos);
+		writer ~= ctx.lineAndColumnGetters[where, PosKind.startOfRange].pos;
 	if (ctx.options.color)
 		writeReset(writer);
 }

@@ -270,11 +270,21 @@ ExpectUnary unaryExpected(
 	return scope LowType argType,
 ) {
 	final switch (kind) {
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
+		case BuiltinUnary.arraySize:
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
+		case BuiltinUnary.toChar8ArrayFromString:
+		case BuiltinUnary.trustAsString:
+			// done in lower
+			assert(false);
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.asAnyPointer:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
-			return ExpectUnary();
-		case BuiltinUnary.enumToIntegral:
 			return ExpectUnary();
 		case BuiltinUnary.bitwiseNotNat8:
 			return expect(nat8Type, nat8Type);
@@ -295,6 +305,8 @@ ExpectUnary unaryExpected(
 			return expect(boolType, float64Type);
 		case BuiltinUnary.jumpToCatch:
 			return expect(voidType, commonTypes.catchPointConstPointer);
+		case BuiltinUnary.not:
+			return expect(boolType, boolType);
 		case BuiltinUnary.setupCatch:
 			return expect(boolType, commonTypes.catchPointMutPointer);
 		case BuiltinUnary.toChar8FromNat8:
@@ -366,7 +378,9 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.atanhFloat32:
 		case BuiltinUnaryMath.cosFloat32:
 		case BuiltinUnaryMath.coshFloat32:
+		case BuiltinUnaryMath.roundDownFloat32:
 		case BuiltinUnaryMath.roundFloat32:
+		case BuiltinUnaryMath.roundUpFloat32:
 		case BuiltinUnaryMath.sinFloat32:
 		case BuiltinUnaryMath.sinhFloat32:
 		case BuiltinUnaryMath.sqrtFloat32:
@@ -382,11 +396,13 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.atanhFloat64:
 		case BuiltinUnaryMath.cosFloat64:
 		case BuiltinUnaryMath.coshFloat64:
+		case BuiltinUnaryMath.roundDownFloat64:
+		case BuiltinUnaryMath.roundFloat64:
+		case BuiltinUnaryMath.roundUpFloat64:
 		case BuiltinUnaryMath.sinFloat64:
 		case BuiltinUnaryMath.sinhFloat64:
 		case BuiltinUnaryMath.tanFloat64:
 		case BuiltinUnaryMath.tanhFloat64:
-		case BuiltinUnaryMath.roundFloat64:
 		case BuiltinUnaryMath.sqrtFloat64:
 		case BuiltinUnaryMath.unsafeLogFloat64:
 			return float64Type;
@@ -473,7 +489,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat8:
 		case BuiltinBinary.bitwiseOrNat8:
 		case BuiltinBinary.bitwiseXorNat8:
+		case BuiltinBinary.unsafeAddNat8:
 		case BuiltinBinary.unsafeDivNat8:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeSubNat8:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapSubNat8:
@@ -481,7 +500,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat16:
 		case BuiltinBinary.bitwiseOrNat16:
 		case BuiltinBinary.bitwiseXorNat16:
+		case BuiltinBinary.unsafeAddNat16:
 		case BuiltinBinary.unsafeDivNat16:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeSubNat16:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapSubNat16:
@@ -489,7 +511,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat32:
 		case BuiltinBinary.bitwiseOrNat32:
 		case BuiltinBinary.bitwiseXorNat32:
+		case BuiltinBinary.unsafeAddNat32:
 		case BuiltinBinary.unsafeDivNat32:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeSubNat32:
 		case BuiltinBinary.wrapAddNat32:
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapSubNat32:
@@ -499,8 +524,11 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseXorNat64:
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 		case BuiltinBinary.unsafeBitShiftRightNat64:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.unsafeDivNat64:
 		case BuiltinBinary.unsafeModNat64:
+		case BuiltinBinary.unsafeMulNat64:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapAddNat64:
 		case BuiltinBinary.wrapMulNat64:
 		case BuiltinBinary.wrapSubNat64:
@@ -541,10 +569,13 @@ ExpectBinary binaryExpected(
 			return expect(boolType, nat64Type, nat64Type);
 		case BuiltinBinary.eqPointer:
 		case BuiltinBinary.lessPointer:
+		case BuiltinBinary.referenceEqual:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);

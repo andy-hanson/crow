@@ -39,6 +39,7 @@ import interpret.applyFn :
 	fnLessNat64,
 	fnMulFloat32,
 	fnMulFloat64,
+	fnNot,
 	fnSubFloat32,
 	fnSubFloat64,
 	fnTruncateToInt64FromFloat64,
@@ -110,6 +111,7 @@ import interpret.runBytecode : opSetupCatch, opSwitchFiber, opSwitchFiberInitial
 import model.constant : Constant;
 import model.lowModel :
 	asNonGcPointee,
+	isSignedInteger,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -569,6 +571,7 @@ void generateSwitch(
  ) {
 	StackEntry stackBefore = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
+	signExtendSignedInts(writer, source, a.value.type.as!PrimitiveType);
 	bool defaultAbort = a.default_.kind.isA!(LowExprKind.Abort);
 	SwitchDelayed delayed = writeSwitchDelay(writer, source, a.caseValues, !defaultAbort);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
@@ -583,6 +586,27 @@ void generateSwitch(
 		if (!defaultAbort)
 			writeCaseOrDefault(a.caseExprs.length, a.default_, true);
 	});
+}
+
+void signExtendSignedInts(ref ByteCodeWriter writer, ByteCodeSource source, PrimitiveType type) {
+	// Switch only works on 64 bit values. A 32 bit signed value must be sign-extended.
+	if (isSignedInteger(type)) {
+		switch (type) {
+			case PrimitiveType.int8:
+				writeFnUnary(writer, source, &fnInt64FromInt8);
+				break;
+			case PrimitiveType.int16:
+				writeFnUnary(writer, source, &fnInt64FromInt16);
+				break;
+			case PrimitiveType.int32:
+				writeFnUnary(writer, source, &fnInt64FromInt32);
+				break;
+			case PrimitiveType.int64:
+				break;
+			default:
+				assert(false);
+		}
+	}
 }
 
 void generateTailRecur(
@@ -790,8 +814,19 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
+		case BuiltinUnary.toChar8ArrayFromString:
+		case BuiltinUnary.trustAsString:
+			// done in lower
+			assert(false);
 		case BuiltinUnary.asAnyPointer:
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toNat8FromChar8:
@@ -826,6 +861,9 @@ void generateSpecialUnary(
 		case BuiltinUnary.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case BuiltinUnary.not:
+			fn(&fnNot);
 			break;
 		case BuiltinUnary.isNanFloat32:
 			fn(&fnIsNanFloat32);
@@ -1110,6 +1148,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.lessChar8:
@@ -1150,6 +1189,8 @@ void generateSpecialBinary(
 		case BuiltinBinary.mulFloat64:
 			fn(&fnMulFloat64);
 			break;
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExpr(writer, ctx, locals, after, right);
@@ -1167,6 +1208,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
 		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.unsafeSubNat8:
+		case BuiltinBinary.unsafeSubNat16:
+		case BuiltinBinary.unsafeSubNat32:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapSubNat8:
 		case BuiltinBinary.wrapSubNat16:
 		case BuiltinBinary.wrapSubNat32:
@@ -1210,6 +1255,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
 		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.unsafeAddNat8:
+		case BuiltinBinary.unsafeAddNat16:
+		case BuiltinBinary.unsafeAddNat32:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapAddNat32:
@@ -1220,6 +1269,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeMulInt16:
 		case BuiltinBinary.unsafeMulInt32:
 		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeMulNat64:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapMulNat32:

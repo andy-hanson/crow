@@ -1,3 +1,6 @@
+import
+	crow/col/queue: queue
+
 main void()
 	()
 
@@ -21,4 +24,4 @@ en enum(x)
 <=> bool(a r, b r)
 to bool(a r)
 
-== bool(a string, b string)
+== bool(a nat queue, b nat queue)

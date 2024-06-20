@@ -97,6 +97,7 @@ import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : emptySymbolSet;
 import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
 
 void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
@@ -143,7 +144,8 @@ void checkStructBodies(
 			(StructBodyAst.Enum x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
 				IntegralType storage = checkEnumOrFlagsModifiers(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers);
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers,
+					isFlags: false);
 				return checkEnum(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage);
 			},
@@ -152,7 +154,8 @@ void checkStructBodies(
 			(StructBodyAst.Flags x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
 				IntegralType storage = checkEnumOrFlagsModifiers(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.flags, ast.modifiers);
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.flags, ast.modifiers,
+					isFlags: false);
 				return StructBody(checkFlags(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage));
 			},
@@ -207,12 +210,18 @@ private SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 		ctx.alloc, ast.modifiers, (ModifierAst* mod, in VariantAndMethodImpls[] soFar) {
 			Opt!VariantAndMethodImpls res = getVariantMemberTypeFromModifier(
 				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, mod);
-			if (has(res) && exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
+			if (has(res)) {
+				if (struct_.isTemplate) {
+					addDiag(ctx, mod.range, Diag(Diag.VariantMemberIsTemplate(struct_)));
+					return none!VariantAndMethodImpls;
+				}
+				if (exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
 					x.variant.decl == force(res).variant.decl)) {
-				addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
-				return none!VariantAndMethodImpls;
-			} else
-				return res;
+					addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
+					return none!VariantAndMethodImpls;
+				}
+			}
+			return res;
 		});
 
 private Opt!VariantAndMethodImpls getVariantMemberTypeFromModifier(
@@ -279,6 +288,7 @@ void checkMethodImplsForVariant(
 					ctx, commonTypes, TypeContainer(struct_),
 					funsInNonExprScope(ctx, funsMap),
 					FunFlags.none,
+					emptySymbolSet,
 					LocalsInfo(),
 					sig.name,
 					variant.ast.range,
@@ -891,6 +901,7 @@ IntegralType checkEnumOrFlagsModifiers(
 	StructDecl* struct_,
 	DeclKind declKind,
 	ModifierAst[] modifiers,
+	bool isFlags,
 ) {
 	MutOpt!(ModifierAst.Keyword*) storage;
 	foreach (ref ModifierAst modifier; modifiers) {
@@ -917,7 +928,10 @@ IntegralType checkEnumOrFlagsModifiers(
 			Type type = typeFromAst(
 				ctx, commonTypes, structsAndAliasesMap,
 				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes);
-			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
+			IntegralType res = getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
+			if (isFlags && isSigned(res))
+				addDiag(ctx, x.keywordRange, Diag(Diag.FlagsSigned()));
+			return res;
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
 			return IntegralType.nat32;
@@ -1029,6 +1043,8 @@ Visibility visibilityFromNewVisibility(ModifierKeyword a) {
 
 BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 	switch (struct_.name.value) {
+		case symbol!"array".value:
+			return BuiltinType.array;
 		case symbol!"bool".value:
 			return BuiltinType.bool_;
 		case symbol!"char8".value:
@@ -1045,6 +1061,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.lambda;
 		case symbol!"fun-pointer".value:
 			return BuiltinType.funPointer;
+		case symbol!"future".value:
+			return BuiltinType.future;
 		case symbol!"int8".value:
 			return BuiltinType.int8;
 		case symbol!"int16".value:
@@ -1053,6 +1071,12 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.int32;
 		case symbol!"int64".value:
 			return BuiltinType.int64;
+		case symbol!"js-any".value:
+			return BuiltinType.jsAny;
+		case symbol!"mut-array".value:
+			return BuiltinType.mutArray;
+		case symbol!"mut-slice".value:
+			return BuiltinType.mutSlice;
 		case symbol!"nat8".value:
 			return BuiltinType.nat8;
 		case symbol!"nat16".value:
@@ -1067,6 +1091,10 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.pointerConst;
 		case symbol!"mut-pointer".value:
 			return BuiltinType.pointerMut;
+		case symbol!"string".value:
+			return BuiltinType.string_;
+		case symbol!"symbol".value:
+			return BuiltinType.symbol;
 		case symbol!"void".value:
 			return BuiltinType.void_;
 		default:

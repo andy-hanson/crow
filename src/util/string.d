@@ -156,6 +156,23 @@ bool startsWithThenWhitespace(in CString a, in string chars) {
 Opt!CString tryGetAfterStartsWith(MutCString ptr, in string chars) =>
 	tryTakeChars(ptr, chars) ? some!CString(ptr) : none!CString;
 
+immutable struct PrefixAndRest {
+	string prefix;
+	CString rest;
+}
+Opt!PrefixAndRest trySplit(CString a, char splitter) {
+	MutCString cur = a;
+	while (!cStringIsEmpty(cur)) {
+		if (*cur == splitter) {
+			string prefix = stringOfRange(a, cur);
+			cur++;
+			return some(PrefixAndRest(prefix, cur));
+		}
+		cur++;
+	}
+	return none!PrefixAndRest;
+}
+
 bool endsWith(string a, string b) =>
 	a.length >= b.length && a[$ - b.length .. $] == b;
 
@@ -182,8 +199,14 @@ bool isWhitespace(char a) {
 	}
 }
 
-bool isDecimalDigit(char c) =>
+bool isDecimalDigit(dchar c) =>
 	'0' <= c && c <= '9';
+
+bool isAsciiIdentifierChar(dchar a) =>
+	('a' <= a && a <= 'z') ||
+	('A' <= a && a <= 'Z') ||
+	isDecimalDigit(a) ||
+	a == '_';
 
 Opt!ubyte decodeHexDigit(char a) =>
 	isDecimalDigit(a)

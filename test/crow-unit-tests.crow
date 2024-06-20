@@ -8,6 +8,7 @@ import
 	crow/col/experimental/frozen-set: frozen-set, new
 	crow/col/experimental/hamt-set: hamt-set, new
 	crow/col/experimental/index-set: index-set, new
+	crow/col/experimental/list: list, new
 	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
 	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
 	crow/col/experimental/sorted-set: new, sorted-set
@@ -36,66 +37,33 @@ import
 	crow/perf: measure-performance
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
-	crow/version: is-windows
-	../include/crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
-	../include/crow/col/experimental/private/index-set-tests: dummy-index-set-tests
-	../include/crow/col/private/array-tests: dummy-array-tests
-	../include/crow/col/private/map-tests: dummy-map-tests
-	../include/crow/col/private/list-tests: dummy-list-tests
-	../include/crow/col/private/set-tests: dummy-set-tests
-	../include/crow/private/tests/exclusion-queue-tests: dummy-exclusion-queue-tests
-	../include/crow/private/tests/bare-map-tests: dummy-bare-map-tests
-	../include/crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
-	../include/crow/private/tests/bits-tests: dummy-bits-tests
-	../include/crow/private/tests/json-tests: dummy-json-tests
-	../include/crow/private/tests/math-tests: dummy-math-tests
-	../include/crow/private/tests/number-tests: dummy-number-tests
-	../include/crow/private/tests/shared-list-tests: dummy-shared-list-tests
-	../include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
-	../include/crow/private/tests/string-tests: dummy-string-tests
-	../editor/vscode/license.txt as license string
 	./unit/all: dummy-unit-tests
 
 main void() summon
-	license is "public domain"
 	_ = ().from-bytes :: nat8[]
 	_ = bold
 	_ = () :: ((nat, nat) compact-map)
 	_ = () :: ((nat, nat) compact-sorted-map)
 	_ = () :: (nat counter)
-	_ = current-directory
+	if trusted extern native
+		_ = current-directory
+		# TODO: Windows support
+		if trusted extern posix
+			_ = generate-login-cookie
+			_ = quality-moderate
+			_ = get-environ
 	_ = () :: (nat deque)
-	_ = dummy-array-tests
-	_ = dummy-bare-map-tests
-	_ = dummy-bare-queue-tests
-	_ = dummy-bits-tests
-	_ = dummy-map-tests
-	_ = dummy-exclusion-queue-tests
-	_ = dummy-frozen-map-tests
-	_ = dummy-index-set-tests
-	_ = dummy-json-tests
-	_ = dummy-list-tests
-	_ = dummy-math-tests
-	_ = dummy-number-tests
-	_ = dummy-set-tests
-	_ = dummy-shared-list-tests
-	_ = dummy-shared-map-tests
-	_ = dummy-string-tests
 	_ = dummy-unit-tests
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
-	# TODO: Windows support
-	unless trusted is-windows
-		_ = generate-login-cookie
-		_ = quality-moderate
-		_ = get-environ
 	_ = () :: grammar-skip
 	_ = () :: http-server
 	_ = () :: (nat hamt-set)
 	_ = "".strip
 	_ = () :: index-set
 	_ = info
+	_ = () :: (nat list)
 	_ = () :: nat mut[]
 	_ = () :: mat3-32
 	_ = () :: (nat mut-deque)
@@ -114,7 +82,8 @@ main void() summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::string shared()
+	if trusted extern native
+		_ = (() => read-stdin)::string shared()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt

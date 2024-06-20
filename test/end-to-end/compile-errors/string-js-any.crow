@@ -1,0 +1,5 @@
+import
+	crow/js: js-any
+
+main void()
+	_ js-any = "foo"

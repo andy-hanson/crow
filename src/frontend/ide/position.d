@@ -8,7 +8,8 @@ import model.model :
 	CallExpr,
 	CallOptionExpr,
 	EnumOrFlagsMember,
-	Expr,
+	ExprRef,
+	ExternExpr,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
@@ -25,7 +26,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
-	Type,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
@@ -228,11 +228,6 @@ immutable struct ExpressionPosition {
 	ExpressionPositionKind kind;
 }
 
-immutable struct ExprRef {
-	Expr* expr;
-	Type type;
-}
-
 immutable struct ExpressionPositionKind {
 	immutable struct Literal {}
 	immutable struct LocalRef {
@@ -245,7 +240,7 @@ immutable struct ExpressionPositionKind {
 		Kind kind;
 		ExprRef loop;
 	}
-	mixin Union!(CallExpr, CallOptionExpr, ExprKeyword, FunPointerExpr, Literal, LocalRef, LoopKeyword);
+	mixin Union!(CallExpr, CallOptionExpr, ExprKeyword, ExternExpr, FunPointerExpr, Literal, LocalRef, LoopKeyword);
 }
 
 enum ExprKeyword {

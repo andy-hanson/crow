@@ -126,9 +126,7 @@ immutable struct Diag {
 		immutable struct WrongParams {
 			AutoFun.Kind kind;
 		}
-		immutable struct WrongParamType {
-			bool isEnumOrFlags;
-		}
+		immutable struct WrongParamType {}
 		immutable struct WrongParamTypeEnumOrFlags {}
 		immutable struct WrongReturnType {
 			AutoFun.Kind kind;
@@ -143,10 +141,16 @@ immutable struct Diag {
 			WrongReturnType);
 	}
 
+	immutable struct BuiltinFunCantHaveBody {}
 	immutable struct BuiltinUnsupported {
 		enum Kind { function_, spec, type }
 		Kind kind;
 		Symbol name;
+	}
+
+	immutable struct CallMissingExtern {
+		FunDecl* callee;
+		Symbol missingExtern;
 	}
 
 	// Note: this error is issued *before* resolving specs.
@@ -245,6 +249,11 @@ immutable struct Diag {
 		Kind kind;
 		Symbol name;
 	}
+	// This is for the same name imported multiple times (`import ./m: foo, foo`)
+	immutable struct DuplicateImportName {
+		Symbol name;
+	}
+	// This is for different types of the same name imported from multiple modules
 	immutable struct DuplicateImports {
 		enum Kind {
 			spec,
@@ -265,6 +274,14 @@ immutable struct Diag {
 	immutable struct ExpectedTypeIsNotALambda {
 		Opt!TypeWithContainer expectedType;
 	}
+	immutable struct ExternBodyMultiple {}
+	immutable struct ExternInvalidName {
+		Symbol name;
+	}
+	immutable struct ExternIsUnsafe {}
+	immutable struct ExternRedundant {
+		Symbol name;
+	}
 	immutable struct ExternFunVariadic {}
 	immutable struct ExternHasUnnecessaryLibraryName {}
 	immutable struct ExternMissingLibraryName {}
@@ -276,16 +293,14 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct ExternUnion {}
-	immutable struct FunCantHaveBody {
-		enum Reason { builtin, extern_ }
-		Reason reason;
-	}
+	immutable struct FlagsSigned {}
 	immutable struct FunctionWithSignatureNotFound {
 		Symbol name;
 		TypeContainer typeContainer;
 		ReturnAndParamTypes returnAndParamTypes;
 	}
 	immutable struct FunPointerExprMustBeName {}
+	immutable struct FunPointerNotBare {}
 	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
@@ -366,6 +381,9 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct LoopWithoutBreak {}
+	immutable struct MainMissingExterns {
+		Symbol[] missing;
+	}
 	immutable struct MatchCaseDuplicate {
 		immutable struct Kind {
 			mixin Union!(Symbol, string, ulong, long);
@@ -454,6 +472,7 @@ immutable struct Diag {
 	}
 	immutable struct ParamMissingType {}
 	immutable struct ParamMutable {}
+	immutable struct PointerIsNative {}
 	immutable struct PointerIsUnsafe {}
 	immutable struct PointerMutToConst {
 		enum Kind { fieldOfByRef, fieldOfByVal, local }
@@ -537,7 +556,7 @@ immutable struct Diag {
 		DeclKind declKind;
 	}
 	immutable struct StringLiteralInvalid {
-		enum Reason { cStringContainsNul, stringContainsNul, symbolContainsNul }
+		enum Reason { cStringContainsNul, notExternJs, stringContainsNul, symbolContainsNul }
 		Reason reason;
 	}
 	immutable struct StorageMissingType {}
@@ -567,18 +586,18 @@ immutable struct Diag {
 	}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
+			array,
 			funData,
 			funMut,
 			funPointer,
 			funShared,
-			list,
 			map,
+			mutArray,
 			mutMap,
-			mutList,
 			mutPointer,
 			opt,
 			pointer,
-			sharedList,
+			sharedArray,
 			sharedMap,
 			tuple,
 		}
@@ -607,6 +626,9 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VariantMemberIsTemplate {
+		StructDecl* member;
+	}
 	immutable struct VariantMemberMissingVariant {}
 	immutable struct VariantMemberMultiple {
 		StructDecl* member;
@@ -645,7 +667,9 @@ immutable struct Diag {
 		AssertOrForbidMessageIsThrow,
 		AssignmentNotAllowed,
 		AutoFunError,
+		BuiltinFunCantHaveBody,
 		BuiltinUnsupported,
+		CallMissingExtern,
 		CallMultipleMatches,
 		CallNoMatch,
 		CallShouldUseSyntax,
@@ -658,20 +682,26 @@ immutable struct Diag {
 		DestructureTypeMismatch,
 		DuplicateDeclaration,
 		DuplicateExports,
+		DuplicateImportName,
 		DuplicateImports,
 		EmptyEnumOrUnion,
 		EnumBackingTypeInvalid,
 		EnumDuplicateValue,
 		ExpectedTypeIsNotALambda,
+		ExternBodyMultiple,
+		ExternInvalidName,
+		ExternIsUnsafe,
+		ExternRedundant,
 		ExternFunVariadic,
 		ExternHasUnnecessaryLibraryName,
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
 		ExternTypeError,
 		ExternUnion,
-		FunCantHaveBody,
+		FlagsSigned,
 		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
+		FunPointerNotBare,
 		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,
@@ -692,6 +722,7 @@ immutable struct Diag {
 		LocalNotMutable,
 		LoopDisallowedBody,
 		LoopWithoutBreak,
+		MainMissingExterns,
 		MatchCaseDuplicate,
 		MatchCaseForType,
 		MatchCaseNameDoesNotMatch,
@@ -715,6 +746,7 @@ immutable struct Diag {
 		ParamMissingType,
 		ParamMutable,
 		ParseDiag,
+		PointerIsNative,
 		PointerIsUnsafe,
 		PointerMutToConst,
 		PointerUnsupported,
@@ -744,6 +776,7 @@ immutable struct Diag {
 		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VariantMemberIsTemplate,
 		VariantMemberMissingVariant,
 		VariantMemberMultiple,
 		VariantMemberOfNonVariant,

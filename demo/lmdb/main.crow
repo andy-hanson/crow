@@ -3,16 +3,14 @@ import
 	crow/io/print: out, print
 	crow/parse-command: parse-named-args, single-string-or-throw
 	crow/serialize: from-bytes
-	lmdb/main:
-		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
-		to, to-lmdb-key, with-block, write-transaction
+	lmdb/main
 
-main nat(args string[]) summon
-	command-name = !args.is-empty ? args[0]
-	rest-args = !args.is-empty ? args[1 .. end]
+main nat(args string[]) summon, (lmdb, native) extern
+	command-name = args !is-empty ? args[0]
+	rest-args = args !is-empty ? args[1 .. end]
 	match command-name
 	as get
-		named-args = (rest-args parse-named-args ("path", "db-name", "key"))!
+		named-args = rest-args parse-named-args! ("path", "db-name", "key")
 		path = named-args[0] single-string-or-throw "path"
 		db-name = named-args[1] single-string-or-throw "db-name"
 		key = named-args[2] single-string-or-throw "key"
@@ -23,7 +21,7 @@ main nat(args string[]) summon
 				out print value
 				()
 	as set
-		named-args = (rest-args parse-named-args ("path", "db-name", "key", "value"))!
+		named-args = rest-args parse-named-args! ("path", "db-name", "key", "value")
 		path = named-args[0] single-string-or-throw "path"
 		db-name = named-args[1] single-string-or-throw "db-name"
 		key = named-args[2] single-string-or-throw "key"
@@ -34,13 +32,13 @@ main nat(args string[]) summon
 					txn set db, key, value
 				()
 	as stat
-		named-args = (rest-args parse-named-args ("path", "db-name"))!
+		named-args = rest-args parse-named-args! ("path", "db-name")
 		path = named-args[0] single-string-or-throw "path"
 		db-name = named-args[1] single-string-or-throw "db-name"
 		with env : path open-lmdb-env true
 			with db : env database@(string, string) db-name
 				out print with txn : env read-transaction
-					txn stat db to
+					txn stat db show
 				()
 	else
 		out print usage

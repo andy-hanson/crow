@@ -1,7 +1,7 @@
 dummy-pointers nat()
 	0
 
-test trusted
+test trusted, native extern
 	r mut r = 0,
 	rp r mut* = &r
 	x nat mut* = rp x
@@ -16,7 +16,7 @@ test trusted
 -r record by-val, mut
 	x mut nat
 
-test trusted
+test trusted, native extern
 	x mut nat = 0
 	get-x nat mut() = () =>
 		x
@@ -29,5 +29,5 @@ test trusted
 	set-x[]
 	get-x[] is 1
 	&x assert-value 1
--assert-value void(x nat*, value nat) unsafe
+-assert-value void(x nat*, value nat) unsafe, native extern
 	*x is value

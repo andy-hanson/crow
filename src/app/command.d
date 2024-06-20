@@ -4,9 +4,10 @@ module app.command;
 
 import frontend.lang : CCompileOptions, JitOptions;
 import lib.server : PrintKind;
-import util.opt : Opt;
+import model.model : BuildTarget;
+import util.alloc.alloc : Alloc;
+import util.col.arrayBuilder : addIfNotContains, buildArray, Builder;
 import util.string : CString;
-import util.symbol : Extension;
 import util.exitCode : ExitCode;
 import util.union_ : Union;
 import util.uri : FilePath, Uri;
@@ -58,31 +59,47 @@ immutable struct CommandKind {
 }
 
 immutable struct RunOptions {
+	immutable struct Aot {
+		VersionOptions version_;
+		CCompileOptions compileOptions;
+	}
 	immutable struct Interpret {
 		VersionOptions version_;
 	}
+	immutable struct NodeJs {}
 	immutable struct Jit {
 		VersionOptions version_;
 		JitOptions options;
 	}
-	immutable struct Aot {
-		VersionOptions version_;
-		CCompileOptions compileOptions;
-		Extension defaultExeExtension;
-	}
-	mixin Union!(Interpret, Jit, Aot);
+	mixin Union!(Aot, Interpret, Jit, NodeJs);
 }
 
 immutable struct BuildOptions {
 	VersionOptions version_;
-	BuildOut out_;
+	SingleBuildOutput[] out_;
 	CCompileOptions cCompileOptions;
 }
 
-// Build to C, executable, or both
-immutable struct BuildOut {
-	Opt!FilePath outC; // If this is 'none', use a temporary file
-	bool shouldBuildExecutable;
-	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
-	FilePath outExecutable;
+immutable struct SingleBuildOutput {
+	enum Kind { c, executable, jsScript, jsModules, nodeJsScript, nodeJsModules }
+	Kind kind;
+	FilePath path;
+}
+
+BuildTarget[] targetsForBuild(ref Alloc alloc, in CommandKind.Build x) =>
+	buildArray!BuildTarget(alloc, (scope ref Builder!BuildTarget out_) {
+		foreach (SingleBuildOutput output; x.options.out_)
+			addIfNotContains!BuildTarget(out_, targetForBuildOutput(output.kind));
+	});
+private BuildTarget targetForBuildOutput(SingleBuildOutput.Kind a) {
+	final switch (a) {
+		case SingleBuildOutput.Kind.c:
+		case SingleBuildOutput.Kind.executable:
+			return BuildTarget.native;
+		case SingleBuildOutput.Kind.jsScript:
+		case SingleBuildOutput.Kind.jsModules:
+		case SingleBuildOutput.Kind.nodeJsScript:
+		case SingleBuildOutput.Kind.nodeJsModules:
+			return BuildTarget.js;
+	}
 }
