@@ -27,9 +27,6 @@ immutable struct CommandKind {
 		Uri mainUri;
 		BuildOptions options;
 	}
-	immutable struct BuildJs {
-		Uri mainUri;
-	}
 	immutable struct Check {
 		Uri[] rootUris;
 	}
@@ -57,7 +54,7 @@ immutable struct CommandKind {
 	}
 	immutable struct Version {}
 
-	mixin Union!(Build, BuildJs, Check, Document, Help, Lsp, Print, Run, Test, Version);
+	mixin Union!(Build, Check, Document, Help, Lsp, Print, Run, Test, Version);
 }
 
 immutable struct RunOptions {
@@ -88,4 +85,5 @@ immutable struct BuildOut {
 	bool shouldBuildExecutable;
 	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
 	FilePath outExecutable;
+	Opt!FilePath outJsDirectory;
 }

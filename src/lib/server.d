@@ -2,7 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import backend.js.js : translateToJs, TranslateToJsResult;
+import backend.js.translateToJs : translateToJs, TranslateToJsResult;
 import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import document.document : documentJSON;

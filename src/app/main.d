@@ -33,6 +33,7 @@ import app.fileSystem :
 	withPathOrTemp,
 	withTempPath,
 	writeFile,
+	writeFilesToDir,
 	writeToStdoutAndFlush;
 import app.parseCommand : parseCommand;
 version (GccJitAvailable) {
@@ -316,11 +317,6 @@ ExitCode go(
 			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FilePath _, in ExternLibraries _2) =>
 				ExitCode.ok);
 		},
-		(in CommandKind.BuildJs x) {
-			loadAllFiles(perf, server, [x.mainUri]);
-			BuildToJsResult result = buildToJs(perf, alloc, server, x.mainUri);
-			return todo!ExitCode("write the result to file system"); // ----------------------------------------------------------------------------
-		},
 		(in CommandKind.Check x) {
 			loadAllFiles(perf, server, x.rootUris);
 			string diags = check(perf, alloc, server, x.rootUris);
@@ -481,17 +477,28 @@ ExitCode withBuild(
 	in BuildOptions options,
 	// WARN: the C file will be deleted by the time this is called
 	in ExitCode delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
-) =>
-	withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
-		withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
-			okAnd(writeFile(cPath, result.writeToCResult.cSource), () =>
-				okAnd(
-					options.out_.shouldBuildExecutable
-						? withMeasure!(ExitCode, () =>
-							runCompiler(alloc, result.writeToCResult.compileCommand)
-						)(perf, alloc, PerfMeasure.invokeCCompiler)
-						: ExitCode.ok,
-					() => cb(cPath, result.externLibraries)))));
+) {
+	if (has(options.out_.outJsDirectory)) {
+		if (has(options.out_.outC) || options.out_.shouldBuildExecutable)
+			todo!void("TODO: support both JS and other build"); // ----------------------------------------------------------------
+		BuildToJsResult result = buildToJs(perf, alloc, server, main);
+		if (!isEmpty(result.diagnostics))
+			printError(result.diagnostics);
+		return result.hasFatalDiagnostics
+			? ExitCode.error
+			: writeFilesToDir(result.result.outputFiles, force(options.out_.outJsDirectory));
+	} else
+		return withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
+			withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
+				okAnd(writeFile(cPath, result.writeToCResult.cSource), () =>
+					okAnd(
+						options.out_.shouldBuildExecutable
+							? withMeasure!(ExitCode, () =>
+								runCompiler(alloc, result.writeToCResult.compileCommand)
+							)(perf, alloc, PerfMeasure.invokeCCompiler)
+							: ExitCode.ok,
+						() => cb(cPath, result.externLibraries)))));
+}
 
 ExitCode withBuildToC(
 	scope ref Perf perf,

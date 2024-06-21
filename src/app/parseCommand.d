@@ -467,10 +467,15 @@ BuildOptions parseBuildOptions(
 				noStackTrace = true;
 				break;
 			case "--out":
-				if (has(cellGet(out_)))
+				if (has(cellGet(out_))) // TODO: this should combine with '--out-js' instead of overwriting it ---------------------
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
 					cellSet(out_, some(parseBuildOut(alloc, cwd, defaultExeExtension, diags, part)));
+				break;
+			case "--out-js":
+				// TODO: this should be combineable with '--out' instead of overwriting it  --------------------------------
+				CString arg = only(part.args); // TODO: this can fail ----------------------------------------------------------------------
+				cellSet(out_, some(BuildOut(outJsDirectory: parseFilePathWithCwd(cwd, arg))));
 				break;
 			case "--optimize":
 				expectFlag(diags, part);

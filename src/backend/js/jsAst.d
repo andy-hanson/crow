@@ -9,7 +9,7 @@ import util.col.map : KeyValuePair, Map;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : Opt;
-import util.symbol : Symbol;
+import util.symbol : Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -35,10 +35,29 @@ immutable struct JsImport {
 }
 
 immutable struct JsDecl {
-	enum Kind { export_, private_ }
-	Kind kind;
-	Symbol name;
-	JsExpr value;
+	enum Exported { private_, export_ }
+	Exported exported;
+	JsName name;
+	JsDeclKind kind;
+}
+immutable struct JsDeclKind {
+	mixin Union!(JsClassDecl, JsExpr);
+}
+immutable struct JsClassDecl {
+	JsClassMember[] members;
+}
+immutable struct JsClassMember {
+	enum Static { instance, static_ }
+	Static isStatic;
+	Symbol name; // member names are never mangled
+	JsClassMemberKind kind;
+}
+immutable struct JsClassMemberKind {
+	mixin Union!(JsClassMethod, JsExpr);
+}
+immutable struct JsClassMethod {
+	JsParams params;
+	JsBlockStatement body_;
 }
 
 immutable struct JsArrowFunction {
@@ -54,18 +73,15 @@ immutable struct JsExprOrStatements {
 }
 
 immutable struct JsDestructure {
-	mixin Union!(JsName, JsArrayDestructure*, JsObjectDestructure*);
-}
-immutable struct JsArrayDestructure {
-	JsDestructure[] elements;
+	mixin Union!(JsName, JsObjectDestructure);
 }
 immutable struct JsObjectDestructure {
-	Map!(Symbol, JsDestructure) fields;
+	KeyValuePair!(Symbol, JsDestructure)[] fields;
 }
 
 immutable struct JsStatement {
 	mixin Union!(
-		JsAssignStatement,
+		JsAssignStatement*,
 		JsBlockStatement,
 		JsBreakStatement,
 		JsContinueStatement,
@@ -81,8 +97,8 @@ immutable struct JsStatement {
 		JsWhileStatement*);
 }
 immutable struct JsAssignStatement {
-	JsName left;
-	JsExpr* right;
+	JsExpr left;
+	JsExpr right;
 }
 immutable struct JsBlockStatement {
 	JsStatement[] inner;
@@ -138,10 +154,12 @@ immutable struct JsExpr {
 		JsArrowFunction,
 		JsBinaryExpr,
 		JsCallExpr,
+		JsCallWithSpreadExpr,
 		JsLiteralBool,
 		JsLiteralNumber,
 		JsLiteralString,
 		JsName,
+		JsNewExpr,
 		JsObjectExpr,
 		JsPropertyAccessExpr,
 		JsUnaryExpr,
@@ -161,6 +179,11 @@ immutable struct JsCallExpr {
 	JsExpr* called;
 	JsExpr[] args;
 }
+immutable struct JsCallWithSpreadExpr {
+	JsExpr* called;
+	JsExpr[] args;
+	JsExpr* spreadArg;
+}
 immutable struct JsInExpr {
 	JsExpr string_;
 	JsExpr object;
@@ -177,6 +200,10 @@ immutable struct JsLiteralNumber {
 }
 immutable struct JsLiteralString {
 	string value;
+}
+immutable struct JsNewExpr {
+	JsExpr* class_;
+	JsExpr[] arguments;
 }
 immutable struct JsObjectExpr {
 	KeyValuePair!(Symbol, JsExpr)[] fields;
@@ -197,26 +224,56 @@ immutable struct JsTernaryExpr {
 	JsExpr else_;
 }
 
+JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
+	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
+JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
+	genAssign(alloc, JsExpr(left), right);
 JsExpr genBool(bool value) =>
 	JsExpr(JsLiteralBool(true));
 JsExpr genCall(JsExpr* called, JsExpr[] args) =>
 	JsExpr(JsCallExpr(called, args));
 JsExpr genCall(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
 	genCall(allocate(alloc, called), newArray(alloc, args));
+JsExpr genCallWithSpread(ref Alloc alloc, JsExpr called, in JsExpr[] args, JsExpr spreadArg) =>
+	JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg)));
 JsStatement genEmptyStatement() =>
 	JsStatement(JsEmptyStatement());
+JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>
+	JsStatement(allocate(alloc, JsIfStatement(cond, then, else_)));
 JsExpr genIn(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.in_, arg0, arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.instanceof, arg0, arg1);
 JsExpr genNot(ref Alloc alloc, JsExpr arg) => //TODO:MOVE -------------------------------------------------------------------------------
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.not, allocate(alloc, arg)));
+JsExpr genNumber(double value) =>
+	JsExpr(JsLiteralNumber(value));
+JsExpr genNew(ref Alloc alloc, JsExpr class_, in JsExpr[] args) =>
+	JsExpr(JsNewExpr(allocate(alloc, class_), newArray(alloc, args)));
 JsExpr genOr(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.or, arg0, arg1);
 JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, Symbol propertyName) =>
 	JsExpr(JsPropertyAccessExpr(allocate(alloc, arg), propertyName));
+JsStatement genReturn(ref Alloc alloc, JsExpr arg) =>
+	JsStatement(JsReturnStatement(allocate(alloc, arg)));
+JsStatement genSwitch(ref Alloc alloc, JsExpr arg, JsSwitchStatement.Case[] cases, JsStatement default_) =>
+	JsStatement(JsSwitchStatement(allocate(alloc, arg), cases, allocate(alloc, default_)));
 JsStatement genThrow(ref Alloc alloc, JsExpr thrown) =>
 	JsStatement(JsThrowStatement(allocate(alloc, thrown)));
+JsStatement genTryCatch(ref Alloc alloc, JsStatement tryBlock, JsName exception, JsStatement catchBlock) =>
+	JsStatement(JsTryCatchStatement(allocate(alloc, tryBlock), exception, allocate(alloc, catchBlock)));
+JsStatement genVarDecl(ref Alloc alloc, JsVarDecl.Kind kind, JsDestructure destructure, JsExpr initializer) =>
+	JsStatement(JsVarDecl(kind, destructure, allocate(alloc, initializer)));
+JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
+	genVarDecl(alloc, JsVarDecl.Kind.const_, destructure, initializer);
+JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
+	genVarDecl(alloc, JsVarDecl.Kind.let, destructure, initializer);
+JsExpr genString(string value) =>
+	JsExpr(JsLiteralString(value));
+JsExpr genThis() =>
+	JsExpr(JsName(symbol!"this"));
+JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsStatement body_) =>
+	JsStatement(allocate(alloc, JsWhileStatement(condition, body_)));
 
 private JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
 	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));

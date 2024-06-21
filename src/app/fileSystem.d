@@ -61,6 +61,7 @@ import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, exists, newArray;
 import util.col.arrayBuilder : buildArray, Builder;
+import util.col.map : Map;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd, onError;
 import util.memory : memset;
@@ -78,6 +79,7 @@ import util.uri :
 	FilePath,
 	parent,
 	parseFilePath,
+	Path,
 	Uri,
 	uriIsFile,
 	withCStringOfFilePath;
@@ -562,6 +564,10 @@ private @trusted ExitCodeOrSignal runCommon(
 		} else
 			return todo!ExitCodeOrSignal("posix_spawn failed");
 	}
+}
+
+ExitCode writeFilesToDir(in Map!(Path, string) files, FilePath outDir) {
+	return todo!ExitCode("writeFilesToDir"); // ------------------------------------------------------------------------------------------------
 }
 
 private:

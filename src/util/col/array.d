@@ -598,7 +598,7 @@ SmallArray!Out mapZip(Out, In0, In1)(
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return small!Out(makeArray(alloc, in0.length, (size_t i) =>
+	return small!Out(makeArray!Out(alloc, in0.length, (size_t i) =>
 		cb(in0[i], in1[i])));
 }
 
