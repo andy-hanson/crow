@@ -495,6 +495,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= '.';
 		},
+		(in Diag.CallMissingExtern x) {
+			writer ~= "Function ";
+			writeFunDecl(writer, ctx, x.callee);
+			writer ~= " requires extern ";
+			writeName(writer, ctx, x.missingExtern);
+			writer ~= ", but that is not in scope.";
+		},
 		(in Diag.CallMultipleMatches x) {
 			writer ~= "Cannot choose an overload of ";
 			writeName(writer, ctx, x.funName);

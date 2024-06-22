@@ -97,6 +97,7 @@ import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : emptySymbolSet;
 import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
 
 void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
@@ -279,6 +280,7 @@ void checkMethodImplsForVariant(
 					ctx, commonTypes, TypeContainer(struct_),
 					funsInNonExprScope(ctx, funsMap),
 					FunFlags.none,
+					emptySymbolSet,
 					LocalsInfo(),
 					sig.name,
 					variant.ast.range,

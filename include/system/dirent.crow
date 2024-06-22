@@ -22,6 +22,6 @@ import
 +d_name c-string(a dirent*) unsafe
 	(&a->d_name)::bytes256* pointer-cast
 
-+opendir DIR mut*(name c-string) c extern
-+closedir err-t(dirp DIR mut*) c extern
-+readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) c extern
++opendir DIR mut*(name c-string) posix extern
++closedir err-t(dirp DIR mut*) posix extern
++readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) posix extern

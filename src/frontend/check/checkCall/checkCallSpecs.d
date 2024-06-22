@@ -45,8 +45,10 @@ import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish, smallFini
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
+import util.symbol : Symbol;
+import util.symbolSet : SymbolSet;
 import util.union_ : Union;
-import util.util : castNonScope_ref;
+import util.util : castNonScope_ref, todo;
 
 bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 	isPurityAlwaysCompatibleConsideringSpecs(funSpecs, type, Purity.shared_);
@@ -81,7 +83,7 @@ Called checkCallSpecs(
 
 Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) =>
 	checkSpecSingleSigIgnoreParents2(
-		ctx, funsMap, decl.nameRange.range, TypeContainer(decl), decl.specs, decl.flags, spec);
+		ctx, funsMap, decl.nameRange.range, TypeContainer(decl), decl.specs, decl.flags, decl.externs, spec);
 Called checkSpecSingleSigIgnoreParents2(
 	ref CheckCtx ctx,
 	in FunsMap funsMap,
@@ -89,6 +91,7 @@ Called checkSpecSingleSigIgnoreParents2(
 	TypeContainer caller,
 	Specs callerSpecs,
 	FunFlags callerFlags,
+	SymbolSet callerExterns,
 	SpecInst* spec,
 ) {
 	FunsInScope funsInScope = FunsInScope(callerSpecs, funsMap, ctx.importsAndReExports);
@@ -104,38 +107,59 @@ Called checkSpecSingleSigIgnoreParents2(
 			} else {
 				Called res = finish(specImpls)[$ - 1];
 				LocalsInfo locals;
-				checkCalled(ctx, diagRange, res, callerFlags, locals, ArgsKind.nonEmpty, () =>
+				bool ok = checkCalled(ctx, diagRange, res, callerFlags, callerExterns, locals, ArgsKind.nonEmpty, () =>
 					allowsUnsafe(callerFlags.safety));
-				return res;
+				return ok ? res : Called(allocate(ctx.alloc, Called.Bogus(toCalledDecl(res), res.returnType, res.paramTypes)));
 			}
 		}));
 }
+CalledDecl toCalledDecl(Called a) =>
+	a.match!CalledDecl(
+		(ref Called.Bogus x) =>
+			x.decl,
+		(ref FunInst x) =>
+			CalledDecl(x.decl),
+		(CalledSpecSig x) =>
+			CalledDecl(x));
 
 // Additional checks on a call after the overload and spec impls have been chosen.
-void checkCalled(
+bool checkCalled(
 	ref CheckCtx ctx,
 	Range diagRange,
 	in Called called,
 	FunFlags funFlags,
+	SymbolSet externs,
 	in LocalsInfo locals,
 	ArgsKind argsKind,
 	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
-) {
-	called.match!void(
-		(ref Called.Bogus) {},
+) =>
+	called.match!bool(
+		(ref Called.Bogus) =>
+			true,
 		(ref FunInst x) {
 			markUsed(ctx, x.decl);
 			checkCallFlags(ctx, diagRange, x.decl, funFlags, locals, argsKind, canDoUnsafe);
-			foreach (ref Called impl; x.specImpls)
-				checkCalled(ctx, diagRange, impl, funFlags, locals, argsKind, canDoUnsafe);
+			return checkCallExterns(ctx, diagRange, x.decl, externs) && every!Called(x.specImpls, (in Called impl) =>
+				checkCalled(ctx, diagRange, impl, funFlags, externs, locals, argsKind, canDoUnsafe));
 		},
-		// For a spec, we do checks when providing the spec impl
-		(CalledSpecSig _) {});
-}
+		(CalledSpecSig _) =>
+			// For a spec, we do checks when providing the spec impl
+			true);
 
 enum ArgsKind { empty, nonEmpty }
 
 private:
+
+bool checkCallExterns(ref CheckCtx ctx, Range diagRange, FunDecl* called, SymbolSet externs) {
+	bool ok = externs.containsAll(called.externs);
+	if (!ok) {
+		foreach (Symbol x; called.externs.symbols) {
+			if (!externs.has(x))
+				addDiag(ctx, diagRange, Diag(Diag.CallMissingExtern(called, x)));
+		}
+	}
+	return ok;
+}
 
 void checkCallFlags(
 	ref CheckCtx ctx,

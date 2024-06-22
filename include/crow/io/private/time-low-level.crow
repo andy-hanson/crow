@@ -3,7 +3,7 @@ import
 	system/time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
 	system/win32: GetTickCount
 	../../number: ==, +, *, /, %, int64, to
-	../../private/bootstrap: nat64, todo
+	../../private/bootstrap: hard-unreachable, nat64, todo
 	../../version: is-windows
 
 # Monotime in nanoseconds.
@@ -14,16 +14,19 @@ timestamp alias
 Get the value from a monotonic clock.
 TODO: This should be 'summon', but I didn't mark it that way so 'perf' can use it.
 ###
-get-monotime-nsec timestamp() bare
-	trusted if is-windows
+get-monotime-nsec timestamp() bare, trusted, native extern
+	if extern windows
 		GetTickCount.to msec-to-nsec
-	else
+	elif extern posix
 		time mut timespec = ()
 		err = CLOCK_MONOTONIC clock_gettime &time
 		if err == 0
 			time.tv_sec.to * 1000000000 + time.tv_nsec.to
 		else
 			todo
+	else
+		# TODO: Ideally this would throw not-implemented -----------------------------------------------------------------------------
+		hard-unreachable
 
 -msec-to-nsec nat64(a nat64) bare
 	a * 1000000

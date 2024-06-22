@@ -156,6 +156,7 @@ import util.col.array :
 	sizeEq,
 	small,
 	SmallArray;
+import util.col.map : hasKey;
 import util.col.mutArr : findIndexOrPush, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -163,7 +164,7 @@ import util.integralValues : IntegralValue, IntegralValues, integralValuesRange,
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : symbol, symbolOfString;
+import util.symbol : Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope_ref, ptrTrustMe, todo;
@@ -1235,7 +1236,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
 		(ExternExpr x) =>
-			todo!ConcreteExpr("CONCRETIZE EXTERN EXPR (at this point we can make it a constant"), // -----------------------------------
+			ConcreteExpr(type, range, ConcreteExprKind(
+				constantBool(hasExtern(ctx.concretizeCtx, x.name)))),
 		(FinallyExpr* x) =>
 			concretizeFinally(ctx, type, range, locals, *x),
 		(FunPointerExpr x) =>
@@ -1297,6 +1299,35 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeTryLet(ctx, type, range, locals, *x),
 		(TypedExpr* x) =>
 			concretizeExpr(ctx, type, locals, x.inner));
+}
+
+//TODO:MOVE
+bool hasExtern(in ConcretizeCtx ctx, in Symbol name) {
+	switch (name.value) {
+		case symbol!"libc".value:
+			return true;
+		case symbol!"js".value:
+			// translate to JS does not use concretize
+			return false;
+		case symbol!"linux".value:
+		case symbol!"posix".value:
+			version (Windows) {
+				return false;
+			} else {
+				return true;
+			}
+		case symbol!"native".value:
+			// translate to JS does not use concretize
+			return true;
+		case symbol!"windows".value:
+			version (Windows) {
+				return true;
+			} else {
+				return false;
+			}
+		default:
+			return hasKey(ctx.programWithMain.mainConfig.extern_, name);
+	}
 }
 
 ConstantsOrExprs constantsOrExprsArr(

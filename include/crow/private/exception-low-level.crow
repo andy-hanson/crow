@@ -98,3 +98,7 @@ Throwing an exception does not modify its backtrace.
 		rethrow-current-exception
 		# unreachable
 		zeroed
+
++todo record exception variant-member
++describe string(_ todo)
+	"TODO"

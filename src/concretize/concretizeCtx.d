@@ -73,6 +73,7 @@ import model.model :
 	Module,
 	paramsArray,
 	Program,
+	ProgramWithMain,
 	Purity,
 	RecordField,
 	SpecInst,
@@ -160,7 +161,7 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	immutable Program* programPtr;
+	immutable ProgramWithMain* programWithMainPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
 	Late!(ConcreteFun*) createErrorFunction_;
 	Late!(ConcreteFun*) char8ArrayTrustAsString_;
@@ -197,8 +198,10 @@ struct ConcretizeCtx {
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 
+	ref ProgramWithMain programWithMain() return scope const =>
+		*programWithMainPtr;
 	ref Program program() return scope const =>
-		*programPtr;
+		programWithMain.program;
 	ref CommonTypes commonTypes() return scope const =>
 		*program.commonTypes;
 	ConcreteFun* char8ArrayTrustAsString() return scope const =>

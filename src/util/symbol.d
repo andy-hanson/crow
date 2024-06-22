@@ -813,6 +813,7 @@ immutable string[] specialSymbols = [
 	"variants",
 	"var-kind",
 	"visibility",
+	"windows",
 	"with-block",
 	"wrap-add",
 	"wrap-mul",

@@ -89,8 +89,10 @@ LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteEr
 		return LibraryAndError(force(fromUri), false);
 	else {
 		switch (libraryName.value) {
-			case symbol!"c".value:
+			case symbol!"libc".value:
+			case symbol!"linux".value:
 			case symbol!"m".value:
+			case symbol!"posix".value:
 				version (Windows) {
 					return loadLibraryFromName(cString!"ucrtbase.dll", writeError);
 				} else {

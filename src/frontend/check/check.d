@@ -47,6 +47,7 @@ import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	CommonTypes,
+	Config,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
@@ -103,6 +104,7 @@ import util.util : enumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
 	Uri uri;
+	Config* config; // TODO: rename UriAndAst then? -----------------------------------------------------------------------------------
 	FileAst* ast;
 }
 
@@ -526,6 +528,7 @@ BootstrapCheck checkWorker(
 			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(commonUris),
 			uriAndAst.uri,
+			uriAndAst.config,
 			importsAndReExports.modules,
 			ptrTrustMe(diagsBuilder));
 

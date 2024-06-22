@@ -2051,9 +2051,14 @@ immutable struct Condition {
 	}
 	mixin TaggedUnion!(Expr*, UnpackOption*);
 }
-Opt!Symbol asExtern(Condition a) =>
-	optIf(a.isA!(Expr*) && a.as!(Expr*).kind.isA!ExternExpr, () =>
-		a.as!(Expr*).kind.as!ExternExpr.name);
+Opt!Symbol asExtern(in Condition a) {
+	if (a.isA!(Expr*)) {
+		Expr* e = a.as!(Expr*);
+		Expr* inner = e.kind.isA!(TrustedExpr*) ? &e.kind.as!(TrustedExpr*).inner : e;
+		return optIf(inner.kind.isA!ExternExpr, () => inner.kind.as!ExternExpr.name);
+	} else
+		return none!Symbol;
+}
 
 immutable struct AssertOrForbidExpr {
 	bool isForbid;

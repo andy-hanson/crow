@@ -19,25 +19,25 @@ import
 	n3 nat64
 	n4 nat64
 
-+InitializeCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern, pure
++InitializeCriticalSection void(a CRITICAL_SECTION mut*) windows extern, pure
 
-+EnterCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern, pure
++EnterCriticalSection void(a CRITICAL_SECTION mut*) windows extern, pure
 
-+LeaveCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern, pure
++LeaveCriticalSection void(a CRITICAL_SECTION mut*) windows extern, pure
 
-+DeleteCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern, pure
++DeleteCriticalSection void(a CRITICAL_SECTION mut*) windows extern, pure
 
 +CONDITION_VARIABLE record(n nat64) extern, mut
 
-+InitializeConditionVariable void(a CONDITION_VARIABLE mut*) kernel32 extern, pure
++InitializeConditionVariable void(a CONDITION_VARIABLE mut*) windows extern, pure
 
 +SleepConditionVariableCS bool(
 	a CONDITION_VARIABLE mut*,
 	crit CRITICAL_SECTION mut*,
 	millis DWORD,
-) kernel32 extern
+) windows extern
 
-+WakeAllConditionVariable void(a CONDITION_VARIABLE mut*) kernel32 extern, pure
++WakeAllConditionVariable void(a CONDITION_VARIABLE mut*) windows extern, pure
 
 +INFINITE DWORD() bare
 	0xffffffff
@@ -54,14 +54,14 @@ import
 	lpBarrier SYNCHRONIZATION_BARRIER mut*,
 	lTotalThreads long,
 	lSpinCount long,
-) kernel32 extern, pure
+) windows extern, pure
 
-+DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) kernel32 extern, pure
++DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) windows extern, pure
 
 +EnterSynchronizationBarrier bool(
 	lpBarrier SYNCHRONIZATION_BARRIER mut*,
 	dwFlags EnterSynchronizationBarrierFlags,
-) kernel32 extern, pure
+) windows extern, pure
 
 +EnterSynchronizationBarrierFlags flags extern, DWORD storage
 	SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY = 1
@@ -77,8 +77,8 @@ import
 +ULONG_PTR alias
 	nat64
 
-+GetLastError DWORD() kernel32 extern
-+SetLastError void(err-code DWORD) kernel32 extern
++GetLastError DWORD() windows extern
++SetLastError void(err-code DWORD) windows extern
 
 +ERROR_BROKEN_PIPE DWORD() bare
 	109
@@ -91,9 +91,9 @@ import
 +INVALID_HANDLE_VALUE HANDLE() bare, unsafe
 	max-value to-mut-pointer
 
-+WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) kernel32 extern
++WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) windows extern
 
-+CloseHandle bool(a HANDLE) kernel32 extern
++CloseHandle bool(a HANDLE) windows extern
 
 +_beginthreadex HANDLE(
 	security any-mut-pointer,
@@ -102,12 +102,12 @@ import
 	arglist any-mut-pointer,
 	initflag u-int,
 	thrdaddr u-int mut*,
-) c extern
+) windows extern
 
 +WAIT_OBJECT_0 DWORD() bare
 	0
 
-+GetStdHandle HANDLE(stdHandle std-handle) kernel32 extern
++GetStdHandle HANDLE(stdHandle std-handle) windows extern
 
 +std-handle enum extern, DWORD storage
 	# In winbase.h these are -10, -11, -12 even though DWORD is unsigned
@@ -121,7 +121,7 @@ import
 	nNumberOfCharsToRead DWORD,
 	lpNumberOfCharsRead DWORD mut*,
 	pInputControl DWORD mut*,
-) kernel32 extern
+) windows extern
 
 +WriteFile bool(
 	hFile HANDLE,
@@ -129,7 +129,7 @@ import
 	nNumberOfBytesToWrite DWORD,
 	lpNumberOfBytesWritten DWORD mut*,
 	lpOverlapped any-mut-pointer,
-) kernel32 extern
+) windows extern
 
 +WIN32_FIND_DATAA record extern, mut
 	dwFileAttributes DWORD
@@ -159,9 +159,9 @@ import
 +new FILETIME() bare
 	(), ()
 
-+DeleteFileA bool(lpFileName c-string) kernel32 extern
++DeleteFileA bool(lpFileName c-string) windows extern
 
-+GetFileAttributesA FileAttributes(lpFileName c-string) kernel32 extern
++GetFileAttributesA FileAttributes(lpFileName c-string) windows extern
 
 +FileAttributes flags extern, nat32 storage
 	FILE_ATTRIBUTE_READONLY = 0x1
@@ -190,14 +190,14 @@ import
 +FindFirstFileA HANDLE(
 	lpFileName c-string,
 	lpFindFileData WIN32_FIND_DATAA mut*,
-) kernel32 extern
-+FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) kernel32 extern
-+FindClose bool(hFindFile HANDLE) kernel32 extern
+) windows extern
++FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) windows extern
++FindClose bool(hFindFile HANDLE) windows extern
 
-+_getcwd c-char mut*(buffer c-char mut*, size size_t) c extern
-+_mkdir err-t(path c-string, mode mode_t) c extern
-+_pclose err-t(stream FILE mut*) c extern
-+_popen FILE mut*(command c-string, mode c-string) c extern
++_getcwd c-char mut*(buffer c-char mut*, size size_t) windows extern
++_mkdir err-t(path c-string, mode mode_t) windows extern
++_pclose err-t(stream FILE mut*) windows extern
++_popen FILE mut*(command c-string, mode c-string) windows extern
 
 +ERROR_FILE_NOT_FOUND DWORD() bare
 	2
@@ -216,7 +216,7 @@ import
 	lpBuffer c-char mut*,
 	nSize DWORD,
 	arguments any-mut-pointer,
-) kernel32 extern
+) windows extern
 
 +FORMAT_MESSAGE_IGNORE_INSERTS DWORD() bare
 	0x200
@@ -301,19 +301,19 @@ import
 	hWritePipe HANDLE mut*,
 	lpPipeAttributes SECURITY_ATTRIBUTES*,
 	nSize DWORD,
-) kernel32 extern
+) windows extern
 
 +CreateSymbolicLinkA bool(
 	lpSymlinkFileName c-string,
 	lpTargetFileName c-string,
 	dwFlags link-flags,
-) kernel32 extern
+) windows extern
 
 +link-flags flags extern, DWORD storage
 	SYMBOLIC_LINK_FLAG_DIRECTORY = 1
 	SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE = 2
 
-+SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) kernel32 extern
++SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) windows extern
 
 +HANDLE_FLAG_INHERIT DWORD() bare
 	1
@@ -331,9 +331,9 @@ import
 	lpCurrentDirectory c-string,
 	lpStartupInfo STARTUPINFOA*,
 	lpProcessInformation PROCESS_INFORMATION mut*,
-) kernel32 extern
+) windows extern
 
-+GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) kernel32 extern
++GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) windows extern
 
 +ReadFile bool(
 	hFile HANDLE,
@@ -342,7 +342,7 @@ import
 	lpNumberOfBytesRead nat32 mut*,
 	# TODO: Overlapped type
 	lpOverlapped any-mut-pointer,
-) kernel32 extern
+) windows extern
 
 +PeekNamedPipe bool(
 	hNamedPipe HANDLE,
@@ -351,12 +351,12 @@ import
 	lpBytesRead DWORD mut*,
 	lpTotalBytesAvail DWORD mut*,
 	lpBytesLeftThisMessage DWORD mut*,
-) kernel32 extern
+) windows extern
 
 +MAKEWORD WORD(a nat8, b nat8)
 	(a.to | (b.to << 8))
 
-+WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) kernel32 extern
++WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) windows extern
 
 +WSADATA record extern, mut
 	wVersion WORD
@@ -374,7 +374,7 @@ import
 +new WSADATA() bare, unsafe
 	(), (), (), (), (), (), ()
 
-+GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) kernel32 extern
++GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) windows extern
 
 +SYSTEM_INFO record extern, mut
 	-DUMMYUNIONNAME DWORD
@@ -392,9 +392,9 @@ import
 	(), (), (), (), (), (), (), (), (), ()
 
 # TODO: should not be 'pure'
-+GetTickCount DWORD() kernel32 extern, pure
++GetTickCount DWORD() windows extern, pure
 
-+Sleep void(dwMilliseconds DWORD) kernel32 extern
++Sleep void(dwMilliseconds DWORD) windows extern
 
 +CONTEXT record extern, mut
 	P1Home DWORD64
@@ -448,7 +448,7 @@ import
 		0, 0, 0, 0, 0, 0, ()
 
 # TODO: should not be 'pure'
-+RtlCaptureContext void(context CONTEXT mut*) kernel32 extern, pure
++RtlCaptureContext void(context CONTEXT mut*) windows extern, pure
 
 # TODO: use a flags enum
 +CONTEXT_AMD64 DWORD() bare
@@ -472,8 +472,8 @@ import
 	CONTEXT_AMD64 | 0x00000040
 
 # TODO: should not be 'pure'
-+GetCurrentProcess HANDLE() kernel32 extern, pure
-+GetCurrentThread HANDLE() kernel32 extern, pure
++GetCurrentProcess HANDLE() windows extern, pure
++GetCurrentThread HANDLE() windows extern, pure
 
 +IMAGE_FILE_MACHINE_AMD64 DWORD() bare
 	0x8664

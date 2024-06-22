@@ -11,6 +11,7 @@ import
 		set-subscript, size-of, subscript
 	../private/alloc: allocate
 	../private/bootstrap: inner
+	../private/exception-low-level: todo
 	../range: .., high, low, range, size
 	../tuple: new
 	./array:
@@ -115,8 +116,10 @@ set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mu
 
 -copy-from[t] void(dest t mut-array, source t array)
 	assert dest.size == source.size
-	trusted
+	trusted if extern native
 		dest.begin-pointer mem-move source.begin-pointer, dest.size
+	else
+		throw todo # ---------------------------------------------------------------------------------------------------
 
 ###
 Allocates a `mut-array` full of zeroes.
@@ -137,7 +140,10 @@ Sets every element to `zeroed`.
 See `zeroed-mut-array` for why this is unsafe.
 ###
 +zero-memory[t] void(a t mut-array) bare, unsafe
-	a.begin-pointer mem-clear a.size
+	if extern native
+		a.begin-pointer mem-clear a.size
+	else
+		throw todo # ---------------------------------------------------------------------------------------------------------
 
 +in[t] bool(value t, a t mut-array) bare, t equal
 	trusted

@@ -149,6 +149,11 @@ immutable struct Diag {
 		Symbol name;
 	}
 
+	immutable struct CallMissingExtern {
+		FunDecl* callee;
+		Symbol missingExtern;
+	}
+
 	// Note: this error is issued *before* resolving specs.
 	// We don't exclude a candidate based on not having specs.
 	immutable struct CallMultipleMatches {
@@ -646,6 +651,7 @@ immutable struct Diag {
 		AssignmentNotAllowed,
 		AutoFunError,
 		BuiltinUnsupported,
+		CallMissingExtern,
 		CallMultipleMatches,
 		CallNoMatch,
 		CallShouldUseSyntax,

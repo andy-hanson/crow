@@ -9,8 +9,8 @@ import
 		*_errno
 	else
 		*__errno_location
--_errno err-t mut*() c extern
--__errno_location err-t mut*() c extern
+-_errno err-t mut*() posix extern
+-__errno_location err-t mut*() posix extern
 
 +ENOENT err-t() bare
 	2

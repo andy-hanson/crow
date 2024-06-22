@@ -9,6 +9,7 @@ import
 	../pointer:
 		+, -, as-const, mem-copy, mem-move, mut-pointer, reference-equal, set-deref, set-subscript,
 		subscript, zeroed
+	../private/exception-low-level: todo
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
@@ -184,20 +185,24 @@ Throws if `n > a.size`.
 	trusted a.backing[new-size .. a.size] zero-memory
 	a.size := new-size
 
-+prepend=[t] void(a t mut[], value t)
-	trusted
++prepend=[t] void(a t mut[], value t) trusted
+	if extern native
 		a incr-capacity
 		a.begin-pointer + 1 mem-move a.begin-pointer.as-const, a.size
 		*a.begin-pointer := value
 		a.size +:= 1
+	else
+		throw todo # -------------------------------------------------------------------------------------------------------------
 
 # Push a value onto the end of the list.
-+~=[t] void(a t mut[], value t)
-	trusted
++~=[t] void(a t mut[], value t) trusted
+	if extern native
 		a incr-capacity
 		assert a.size < a.capacity
 		a.begin-pointer[a size] := value
 		a.size +:= 1
+	else
+		throw todo # ------------------------------------------------------------------------------------------------------------
 
 # Push multiple values onto the end of the list.
 +~~=[t, col] void(a t mut[], values col) (col, t) iterate
@@ -212,13 +217,15 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 	a.begin-pointer[a size] := value
 	a.size +:= 1
 
--increase-capacity-to[t] void(a t mut[], new-capacity nat64)
-	trusted
+-increase-capacity-to[t] void(a t mut[], new-capacity nat64) trusted
+	if extern native
 		assert new-capacity > a.capacity
 		old-begin = a begin-pointer
 		a.backing := new-capacity zeroed-mut-array
 		a.begin-pointer mem-copy old-begin.as-const, a.size
 		a.backing[a.size + 1 .. end] zero-memory
+	else
+		throw todo # -------------------------------------------------------------------------------------------------------------
 
 ###
 For performance, hint that the list will eventually reach 'eventual-size'.

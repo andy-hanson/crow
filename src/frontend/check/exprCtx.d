@@ -89,7 +89,7 @@ struct ExprCtx {
 	immutable FunFlags outermostFunFlags;
 	private bool isInTrusted;
 	private bool usedTrusted;
-	MutSymbolSet extern_;
+	MutSymbolSet externs;
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();

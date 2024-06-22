@@ -6,6 +6,7 @@ import frontend.check.instantiate : InstantiateCtx;
 import model.ast : ImportOrExportAstKind, NameAndRange, typeParamsRange, VisibilityAndRange;
 import model.diag : DeclKind, Diag, Diagnostic;
 import model.model :
+	Config,
 	ExportVisibility,
 	FunDecl,
 	importCanSee,
@@ -38,6 +39,7 @@ struct CheckCtx {
 	InstantiateCtx instantiateCtx;
 	immutable CommonUris* commonUrisPtr;
 	immutable Uri curUri;
+	immutable Config* config;
 	ImportAndReExportModules importsAndReExports;
 	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
 	UsedSet used;

@@ -273,7 +273,7 @@ void doDirtyWork(scope ref Perf perf, ref Frontend a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
 	if (mayDelete(a.workable, bootstrap)) {
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
-			UriAndAst fa = UriAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
+			UriAndAst fa = UriAndAst(bootstrap.uri, force(bootstrap.config), toAst(alloc, bootstrap.astOrDiag));
 			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allInsts, a.commonUris, fa);
 			a.commonTypes = someMut(bs.commonTypes);
 			return bs.module_;
@@ -338,7 +338,7 @@ T[] rotateToFirst(T)(ref Alloc alloc, in T[] values, in T firstValue) {
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Frontend a, CrowFile* file) {
 	assert(isWorkable(*file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
-	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
+	UriAndAst ast = UriAndAst(file.uri, force(file.config), toAst(alloc, file.astOrDiag));
 	return check(
 		perf, alloc, a.allInsts, a.commonUris, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),

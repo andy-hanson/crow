@@ -17,6 +17,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.BuiltinUnsupported) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.CallMissingExtern) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.CallMultipleMatches) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CallNoMatch) =>

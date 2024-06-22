@@ -161,15 +161,24 @@ Contrast with `a == b` which can also be true for different pointers with equal 
 +reference-equal[t] bool(a t, b t) builtin, bare, unsafe
 
 # Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
-+mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
++mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe, native extern
 	d = dest as-const
 	assert d < src ? d + size <= src : src + size <= d
-	_ = dest.pointer-cast memcpy src.pointer-cast, size * size-of@t
+	if extern libc
+		_ = dest.pointer-cast memcpy src.pointer-cast, size * size-of@t
+	else
+		todo # ----------------------------------------------------------------------------------------------------------
 
 # Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
-+mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
-	_ = dest.pointer-cast memmove src.pointer-cast, size * size-of@t
++mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe, native extern
+	if extern libc
+		_ = dest.pointer-cast memmove src.pointer-cast, size * size-of@t
+	else
+		todo # ----------------------------------------------------------------------------------------------------------
 
 # Set a range to 0
-+mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
-	_ = dest.pointer-cast memset 0, size * size-of@t
++mem-clear[t] void(dest t mut*, size nat64) bare, unsafe, native extern
+	if extern libc
+		_ = dest.pointer-cast memset 0, size * size-of@t
+	else
+		todo # ----------------------------------------------------------------------------------------------------------

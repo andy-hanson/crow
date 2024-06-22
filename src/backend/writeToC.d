@@ -192,7 +192,7 @@ public void getLinkOptions(
 				cb(cStringOfFilePath(alloc, asFilePath(force(x.configuredDir)) / xDotLib));
 			} else
 				switch (x.libraryName.value) {
-					case symbol!"c".value:
+					case symbol!"libc".value:
 					case symbol!"m".value:
 						break;
 					default:

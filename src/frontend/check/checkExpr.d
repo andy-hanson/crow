@@ -212,6 +212,7 @@ import util.col.array :
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
+import util.col.map : hasKey;
 import util.col.mutSet : mustAddToMutSet, mutSetHas, mutSetMustDelete;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
@@ -490,7 +491,7 @@ Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Extern
 	if (!checkExternName(ctx, name)) {
 		todo!void("Invalid 'extern' name");
 		return bogus(expected, source);
-	} else if (ctx.extern_.has(name)) {
+	} else if (ctx.externs.has(name)) {
 		todo!void("Diag: 'extern' is always true");
 		return bogus(expected, source);
 	} else
@@ -499,11 +500,16 @@ Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Extern
 
 bool checkExternName(in ExprCtx ctx, Symbol name) {
 	switch (name.value) {
-		case symbol!"c".value:
+		// TODO: this is the same set as in 'hasExtern' in 'concretizeExpr.d', share code! --------------------------------------------
 		case symbol!"js".value:
+		case symbol!"libc".value:
+		case symbol!"linux".value:
+		case symbol!"posix".value:
+		case symbol!"native".value:
+		case symbol!"windows".value:
 			return true;
 		default:
-			return todo!bool("CHECK EXTERN NAME"); // -----------------------------------------------------------------------
+			return hasKey(ctx.checkCtx.config.extern_, name);
 	}
 }
 
@@ -1245,7 +1251,7 @@ Opt!Called findFunctionForPointer(
 	Opt!Type typeArg = optIf(has(typeArgAst), () => typeFromAst2(ctx, *force(typeArgAst)));
 	return withReturnAndParamTypes(ctx.commonTypes, expected, (in ReturnAndParamTypes returnAndParamTypes) =>
 		findFunctionForReturnAndParamTypes(
-			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags,
+			ctx.checkCtx, ctx.commonTypes, ctx.typeContainer, funsInExprScope(ctx), ctx.outermostFunFlags, ctx.externs,
 			locals, name.name, name.range, typeArg, returnAndParamTypes,
 			() => checkCanDoUnsafe(ctx)));
 }
@@ -1880,6 +1886,7 @@ Expr checkMatchStringLike(
 		ctx.typeContainer,
 		ctx.outermostFunSpecs,
 		ctx.outermostFunFlags,
+		ctx.externs,
 		instantiateSpec(ctx.instantiateCtx, force(spec), [matched.type]));
 	SmallArray!(MatchStringLikeExpr.Case) cases = withTempSet!(SmallArray!(MatchStringLikeExpr.Case), string)(
 		ast.cases.length, (scope ref TempSet!string seen) =>
@@ -1952,14 +1959,14 @@ Expr checkExprWithOptDestructureOrEmptyNew(
 	Range emptyNewRange,
 	ref Expected expected,
 ) {
-	SymbolSet originalExtern = ctx.extern_;
+	SymbolSet originalExterns = ctx.externs;
 	if (has(extern_))
-		ctx.extern_ = ctx.extern_.add(force(extern_));
+		ctx.externs = ctx.externs.add(force(extern_));
 	Expr rslt = has(ast)
 		? checkExprWithOptDestructure(ctx, locals, destructure, force(ast), expected)
 		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
 	if (has(extern_))
-		ctx.extern_ = originalExtern;
+		ctx.externs = originalExterns;
 	return rslt;
 }
 

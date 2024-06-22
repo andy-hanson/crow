@@ -3,14 +3,14 @@ module util.symbolSet;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
-import util.col.array : append, contains, emptySmallArray, isEmpty, MutSmallArray, only, SmallArray;
+import util.col.array : append, contains, emptySmallArray, every, isEmpty, MutSmallArray, only, SmallArray;
 import util.opt : Opt, optIf;
 import util.symbol : Symbol;
 
 struct MutSymbolSet {
 	@safe @nogc pure nothrow:
 
-	private MutSmallArray!Symbol symbols;
+	MutSmallArray!Symbol symbols;
 
 	Opt!Symbol asSingle() scope const =>
 		optIf(symbols.length == 1, () => only(symbols));
@@ -18,6 +18,11 @@ struct MutSymbolSet {
 		.isEmpty(symbols);
 	bool has(Symbol x) scope const =>
 		contains(symbols, x);
+
+	bool containsAll(in SymbolSet b) scope const =>
+		// TODO:PERF: Use the fact that they are both sorted! --------------------------------------------------------------------------
+		every!Symbol(b.symbols, (in Symbol x) =>
+			has(x));
 
 	SymbolSet add(Symbol x) =>
 		addSymbol(this, x);
