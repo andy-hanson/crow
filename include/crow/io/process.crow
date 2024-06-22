@@ -20,7 +20,6 @@ import
 	../c-types: fd-t
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
-	../version: is-windows
 	./environ: get-environ-raw
 	./file: file-system-error, is-file
 	./posix-util: check-errno, check-posix-error
@@ -49,12 +48,18 @@ EXE should be a file path and not just a name; this does not search the system p
 	assert exe is-file : exe file-system-error "{exe} is not a file"
 	trusted
 		exe-c-string c-string = exe to
-		if is-windows
+		if extern windows
 			exe-c-string spawn-and-wait-result-windows args
+		elif extern posix
+			# TODO: 'if extern posix && extern libc' should work -------------------------------------------------------------------
+			if extern libc
+				exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
+			else
+				throw not-implemented
 		else
-			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
+			throw not-implemented
 
--keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe
+-keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe, libc extern
 	read-at-a-time nat64 = 0x1000
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
@@ -73,7 +78,7 @@ EXE should be a file path and not just a name; this does not search the system p
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-+spawn-and-wait process-exit(exe string, args string[]) summon
++spawn-and-wait process-exit(exe string, args string[]) summon, posix extern
 	# TODO: kill, handle that error properly
 	assert exe is-file : exe file-system-error "{exe} is not a file"
 	# First argument should be the executable path
@@ -82,21 +87,21 @@ The child process shares stdout and stderr with the parent process.
 		exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-+shell-exec string(command string) summon
++shell-exec string(command string) summon, libc extern
 	trusted
-		pipe = is-windows ? command.to _popen "r" : command.to popen "r"
+		pipe = extern windows ? command.to _popen "r" : command.to popen "r"
 		if pipe == null
 			todo
 		res char8 mut[] = ()
 		res keep-reading pipe
-		err = is-windows ? pipe _pclose : pipe pclose
+		err = extern windows ? pipe _pclose : pipe pclose
 		assert err == 0
 		res move-to
 
 -convert-args c-string[](exe-c-string c-string, args string[]) unsafe
 	exe-c-string ~ (for x : args; x to) ~ null
 
--spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe
+-spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe, windows extern
 	all-args c-string = " " join (exe.to::string ~ args) to
 
 	stdout-read mut HANDLE = ()
@@ -134,7 +139,7 @@ The child process shares stdout and stderr with the parent process.
 
 # We need to read from stdout and stderr together,
 # or else the process may block when writing too much to stderr while this is waiting on stdout
--read-from-pipes-windows (string, string)(stdout HANDLE, stderr HANDLE) summon, unsafe
+-read-from-pipes-windows (string, string)(stdout HANDLE, stderr HANDLE) summon, unsafe, windows extern
 	res-out nat8 mut[] = ()
 	res-err nat8 mut[] = ()
 	sleep mut nat32 = 1
@@ -152,13 +157,13 @@ The child process shares stdout and stderr with the parent process.
 	res-out.move-to::nat8[].as-string, res-err.move-to::nat8[].as-string
 
 -pipe-state enum(available, awaiting, closed)
--read-some-if-available pipe-state(res nat8 mut[], pipe HANDLE, pipe-desc string) summon, unsafe
+-read-some-if-available pipe-state(res nat8 mut[], pipe HANDLE, pipe-desc string) summon, unsafe, windows extern
 	if x ?= pipe peek-available pipe-desc
 		x == 0 ? awaiting : res read-some pipe, x
 	else
 		closed
 
--peek-available nat64?(pipe HANDLE, desc string) summon, unsafe
+-peek-available nat64?(pipe HANDLE, desc string) summon, unsafe, windows extern
 	buf nat8 mut[] = ()
 	buf-size nat64 = 8
 	buf unsafe-set-size buf-size
@@ -172,7 +177,7 @@ The child process shares stdout and stderr with the parent process.
 		assert GetLastError == ERROR_BROKEN_PIPE :
 			"Error peeking {desc}: {GetLastError show-win32-error}".error
 
--read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe
+-read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe, windows extern
 	old-size = res size
 	res unsafe-set-size old-size + n-to-read
 	old-end = res.end-pointer - n-to-read
@@ -188,7 +193,7 @@ The child process shares stdout and stderr with the parent process.
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}".error
 		closed
 
--spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe
+-spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe, (libc, posix) extern
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -218,7 +223,7 @@ The child process shares stdout and stderr with the parent process.
 
 	exit-code, stdout-builder.move-to, stderr-builder.move-to
 
--make-pipes pipes() summon, unsafe
+-make-pipes pipes() summon, unsafe, posix extern
 	res mut pipes = 0, 0
 	(&res).pipe check-posix-error
 	res
@@ -228,7 +233,7 @@ The child process shares stdout and stderr with the parent process.
 	stderr-pipe fd-t,
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
-) summon, unsafe
+) summon, unsafe, (libc, posix) extern
 	poll-fds pollfd mut-array = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events int64 = poll-fds.begin-pointer poll poll-fds.size, -1 to
@@ -248,7 +253,7 @@ The child process shares stdout and stderr with the parent process.
 -any bool(r handle-revents-result)
 	r.had-POLLIN || r.hung-up
 
--handle-revents handle-revents-result(pollfd pollfd, builder char8 mut[]) summon
+-handle-revents handle-revents-result(pollfd pollfd, builder char8 mut[]) summon, posix extern
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN
@@ -258,7 +263,7 @@ The child process shares stdout and stderr with the parent process.
 		todo
 	had-POLLIN, hung-up
 
--read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon
+-read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon, posix extern
 	read-max nat64 = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer size
@@ -281,13 +286,13 @@ The child process shares stdout and stderr with the parent process.
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
--spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe
+-spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe, posix extern
 	pid mut pid_t = 0
 	args-pointer = args.to::(c-string array) begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
--wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe
+-wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe, posix extern
 	wait-status mut status-t = 0
 	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid

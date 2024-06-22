@@ -671,12 +671,20 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			} else
 				writer ~= "There is no expected type at this location; lambdas need an expected type.";
 		},
+		(in Diag.ExternBodyMultiple x) {
+			writer ~= "This function has multiple 'extern' modifiers, so it's ambiguous which to use for the body.";
+		},
 		(in Diag.ExternInvalidName x) {
 			writeName(writer, ctx, x.name);
 			writer ~= " is not an intrinsic extern name and is not configured in 'crow-config.json'";
 		},
 		(in Diag.ExternIsUnsafe x) {
 			writer ~= "An 'extern' expression can only appear in an 'unsafe' or 'trusted' context.";
+		},
+		(in Diag.ExternRedundant x) {
+			writer ~= "Extern ";
+			writeName(writer, ctx, x.name);
+			writer ~= " is already in scope, so this expression is always 'true'.";
 		},
 		(in Diag.ExternFunVariadic) {
 			writer ~= "An 'extern' function can't be variadic.";

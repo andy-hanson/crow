@@ -36,7 +36,6 @@ import
 	crow/perf: measure-performance
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
-	crow/version: is-windows
 	../include/crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
 	../include/crow/col/experimental/private/index-set-tests: dummy-index-set-tests
 	../include/crow/col/private/array-tests: dummy-array-tests
@@ -86,7 +85,7 @@ main void() summon
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
 	# TODO: Windows support
-	unless trusted is-windows
+	if trusted extern posix
 		_ = generate-login-cookie
 		_ = quality-moderate
 		_ = get-environ
@@ -114,7 +113,8 @@ main void() summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::string shared()
+	if trusted extern native
+		_ = (() => read-stdin)::string shared()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt

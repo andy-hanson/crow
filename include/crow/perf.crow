@@ -48,7 +48,7 @@ import
 	() measure-performance
 
 # Enable performance, run the callback, then return its result and the measured performance.
-+with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon
++with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon, native extern
 	assert (trusted measure-names.is-empty) : "Already measuring performance".error
 	finally trusted clear-perf
 	trusted
@@ -70,7 +70,7 @@ Runs `f` and returns its result.
 If the performance measure `measure-name` is enabled,
 this contribues to its performance measurement.
 ###
-+with-block[t] t(a perf-measure, f t mut())
++with-block[t] t(a perf-measure, f t mut()) native extern
 	guard index ?= (trusted measure-names) index-of a.measure-name : f[]
 	start = perf-now
 	res = f[]
@@ -86,5 +86,5 @@ this contribues to its performance measurement.
 	measure-names := ()
 	measure-accums := ()
 
--perf-now nat64() bare
+-perf-now nat64() bare, native extern
 	get-monotime-nsec

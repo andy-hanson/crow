@@ -5,7 +5,7 @@ dummy-parallel nat()
 	0
 
 # Test future awaited by multiple fibers at once
-test
+test native extern # TODO: get working in JS -----------------------------------------------------------------------------------------------------------------
 	f nat future = with : later
 		1
 	a0 nat future = with : parallel
@@ -26,7 +26,7 @@ test
 	out.move-to.sort::nat[] is for x : 0::nat .. 10; x
 	()
 
-test trusted
+test trusted, native extern # TODO: get working in JS -----------------------------------------------------------------------------------------------------------------
 	a nat future = unresolved
 	b nat future = unresolved
 	both (nat, nat) future = with : parallel

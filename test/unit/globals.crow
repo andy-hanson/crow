@@ -14,7 +14,7 @@ test trusted
 	()
 -g global(nat64)
 
-test summon, trusted
+test summon, trusted, libc extern
 	results nat[] = for x : 0::nat64 .. 100 parallel
 		tl := x
 		tl +:= 1

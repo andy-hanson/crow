@@ -5,14 +5,14 @@ dummy-bare-queue-tests nat()
 	0
 
 -queue record nominal
--with-block void(_ queue, cb void mut(queue nat bare-queue mut*)) unsafe
+-with-block void(_ queue, cb void mut(queue nat bare-queue mut*)) unsafe, native extern
 	queue mut nat bare-queue = ()
 	a nat bare-queue mut* = &queue
 	finally a destroy
 	cb[a]
 
-test
-	trusted with a : queue
+test trusted, native extern
+	with a : queue
 		assert a.as-const is-empty
 		for i : 0::nat64 .. 3
 			a enqueue i

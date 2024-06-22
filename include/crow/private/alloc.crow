@@ -20,20 +20,20 @@ import
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 # Called by the compiler.
-~gc-root gc-root mut*() unsafe
+~gc-root gc-root mut*() unsafe, native extern
 	must-cur-fiber gc-root
 
 # Called by the compiler. 'value' is allocated on the stack and passed here by pointer.
-~set-gc-root void(value gc-root mut*) unsafe
+~set-gc-root void(value gc-root mut*) unsafe, native extern
 	must-cur-fiber.gc-root := value
 
 # Called by the compiler.
-~pop-gc-root void() unsafe
+~pop-gc-root void() unsafe, native extern
 	fiber = must-cur-fiber
 	fiber.gc-root := fiber.gc-root->next
 
 ~gc-roots record nominal
-~for-loop void(_ gc-roots, cb void mut(x gc-root mut*)) unsafe
+~for-loop void(_ gc-roots, cb void mut(x gc-root mut*)) unsafe, native extern
 	cur mut = gc-root
 	while cur != null
 		cb[cur]
@@ -54,9 +54,9 @@ mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) bare, s
 		assert indices.high >= ctx.memory-size-words
 		false
 
--is-word-aligned[t] bool(a t*) bare, unsafe
+-is-word-aligned[t] bool(a t*) bare, unsafe, native extern
 	a.to::nat64 & 7 == 0
--is-word-aligned[t] bool(a t mut*) bare, unsafe
+-is-word-aligned[t] bool(a t mut*) bare, unsafe, native extern
 	a.as-const is-word-aligned
 
 words-of-bytes nat64(size-bytes nat64) bare
@@ -116,7 +116,7 @@ gc record by-val, mut
 # Super unsafe
 # WARN: Unfortunately this doesn't prevent the original allocation in new-gc,
 # just forbids us to use it
-+set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe
++set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe, native extern
 	# TODO: get a lock
 	gc.as-const validate-gc
 	size-words <= gc->size-words hard-assert
@@ -128,7 +128,7 @@ gc record by-val, mut
 	gc.as-const validate-gc
 
 # WARN: this locks up the GC for a long time
-+get-stats gc-stats(gc gc mut*) bare, unsafe
++get-stats gc-stats(gc gc mut*) bare, unsafe, native extern
 	gc.lk acquire
 	gc.as-const validate-gc
 	gc-count = gc->gc-count
@@ -194,7 +194,7 @@ gc-add-root[t] void(gc gc mut*, root t) bare, unsafe
 	(gc->size-words, gc->mark-begin, gc->data-begin) mark-visit root
 
 # See comment on 'garbage-collection-begin'
-gc-complete void(gc gc mut*) bare, unsafe
+gc-complete void(gc gc mut*) bare, unsafe, native extern
 	prev-mark-cur = gc->mark-cur
 	gc->mark-cur := gc->mark-begin
 	gc->data-cur := gc->data-begin
@@ -258,7 +258,7 @@ mutator-end void() bare, unsafe, native extern
 +get-gc gc mut*() unsafe, native extern
 	get-gc-ctx gc
 
-validate-gc void(gc gc*) bare, unsafe
+validate-gc void(gc gc*) bare, unsafe, native extern
 	gc->mark-begin.is-word-aligned hard-assert
 	gc->data-begin.is-word-aligned hard-assert
 	gc->data-cur.is-word-aligned hard-assert

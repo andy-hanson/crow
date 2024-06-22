@@ -33,7 +33,7 @@ import
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 -__xstat c-int(ver c-int, path c-string, buf stat mut*) posix extern
-+stat c-int(path c-string, buf stat mut*) summon, unsafe
++stat c-int(path c-string, buf stat mut*) summon, unsafe, posix extern
 	0 __xstat path, buf
 
 +S_IFMT nat32() bare

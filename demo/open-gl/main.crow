@@ -26,7 +26,7 @@ import
 	./fragment.frag.essl as fragment-shader string
 	./vertex.vert.essl as vertex-shader string
 
-main void() summon, trusted
+main void() summon, trusted, (native, SDL2) extern
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -169,14 +169,14 @@ main void() summon, trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
--main-loop-body void(renderer renderer) summon, trusted
+-main-loop-body void(renderer renderer) summon, trusted, (native, SDL2) extern
 	key-states-pointer = null SDL_GetKeyboardState
 	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
 	if key-states[SDL_SCANCODE_RETURN.to::nat32 to] != 0
 		out print "return is pressed"
 	renderer.render-thread-id run-with-thread-id () =>
 		renderer render
--render void(renderer renderer) summon, unsafe
+-render void(renderer renderer) summon, unsafe, (native, SDL2) extern
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1
 	gl glClear GL_COLOR_BUFFER_BIT
@@ -190,7 +190,7 @@ main void() summon, trusted
 
 	renderer.window SDL_GL_SwapWindow
 
--run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared
+-run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared, native extern
 	loop
 		if cur-thread-id == thread-id
 			break cb[]
@@ -198,7 +198,7 @@ main void() summon, trusted
 			yield-fiber
 			continue
 
--look-for-quit-event bool() summon
+-look-for-quit-event bool() summon, SDL2 extern
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -208,7 +208,7 @@ main void() summon, trusted
 		else
 			continue
 
--handle-sdl-error void(err c-int, description string) summon, unsafe
+-handle-sdl-error void(err c-int, description string) summon, unsafe, SDL2 extern
 	unless err == 0
 		description fail-sdl-error
 
@@ -216,7 +216,7 @@ main void() summon, trusted
 -describe string(a sdl-error)
 	"SDL error in {a action}: {a description}"
 
--fail-sdl-error void(description string) summon, unsafe
+-fail-sdl-error void(description string) summon, unsafe, SDL2 extern
 	SDL_Quit
 	throw description sdl-error SDL_GetError.to
 

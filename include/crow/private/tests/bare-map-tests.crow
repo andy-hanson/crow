@@ -5,7 +5,7 @@ dummy-bare-map-tests nat()
 	0
 
 -bm record nominal
--with-block void(_ bm, cb void mut(map value bare-map mut*)) unsafe
+-with-block void(_ bm, cb void mut(map value bare-map mut*)) unsafe, native extern
 	map mut value bare-map = 1,
 	a value bare-map mut* = &map
 	finally a destroy
@@ -30,8 +30,8 @@ dummy-bare-map-tests nat()
 -to[t] json(a t mut*) unsafe
 	a.to::nat64 to
 
-test
-	trusted with a : bm
+test trusted, native extern
+	with a : bm
 		ptr, f = a find-or-insert-and-inserted 0
 		f is inserted
 		ptr->id is "default"
@@ -46,8 +46,8 @@ test
 		a remove ptr
 		a.as-const.slow-is-empty is true
 
-test
-	trusted with a : bm
+test trusted, native extern
+	with a : bm
 		p3 = a find-or-insert 3
 		p7 = a find-or-insert 7
 		assert (a must-find 3) == p3
@@ -59,7 +59,7 @@ test
 		a find-or-insert 7 is p7
 		()
 
-test trusted
+test trusted, native extern
 	with a : bm
 		for i : 0::nat64 .. 10
 			p = a find-or-insert i * 4
@@ -67,8 +67,8 @@ test trusted
 		for i : 0::nat64 .. 10
 			(a.as-const must-find i * 4)->id is "{i}"
 
-test
-	trusted with a : bm
+test trusted, native extern
+	with a : bm
 		for i : 0::nat64 .. 10
 			p = a find-or-insert i
 			p->id := "{i}"

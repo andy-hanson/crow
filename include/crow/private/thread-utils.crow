@@ -39,7 +39,7 @@ export
 -global-lock-var global(lock mut*)
 ~global-lock lock mut*() bare, unsafe, native extern
 	global-lock-var
-~init-global-lock void() bare, unsafe, native extern, libc extern
+~init-global-lock void() bare, unsafe, (libc, native) extern
 	global-lock-var := (1 calloc size-of@lock) pointer-cast
 	global-lock-var init
 

@@ -356,6 +356,7 @@ For example, this might write it to the console.
 	# The fiber can change its exclusion when calling into a function with a different exclusion
 	cur-exclusion mut exclusion
 	cur-catch-point mut catch-point*
+# TODO: This variable should be 'native extern' --------------------------------------------------------------------------------------
 ~cur-fiber thread-local(fiber?)
 # Represents the point to jump to in 'jump-to-catch'. Stores the state of the stack and registers.
 ~catch-point builtin
@@ -385,7 +386,7 @@ For example, this might write it to the console.
 	delay-until-time nat64
 	done
 
-~must-cur-fiber fiber() bare, unsafe
+~must-cur-fiber fiber() bare, unsafe, native extern
 	if x ?= cur-fiber
 		x
 	else

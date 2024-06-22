@@ -30,7 +30,7 @@ import
 	nat64 function(args string[])
 
 # Treated specially by the compiler
-rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe, native extern, libc extern
+rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe, (libc, native) extern
 	global-init
 	per-thread-init
 	n-threads = count-processors

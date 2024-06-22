@@ -5,7 +5,7 @@ import
 	crow/io/print: out, print
 	./failure: failure, new, print-failures
 
-main nat(_ string[]) summon
+main nat(_ string[]) summon, libc extern
 	files = list-lintable-files
 	failures = for file : files parallel-concat; file lint-file
 	if failures is-empty
@@ -35,7 +35,7 @@ main nat(_ string[]) summon
 	"invalid-utf8.crow", "node_modules", "not-utf8.txt", "package-lock.json", "site",
 	"trailing-indent.crow"
 
--lint-file failure[](path string) summon
+-lint-file failure[](path string) summon, libc extern
 	text string = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension ?? ""

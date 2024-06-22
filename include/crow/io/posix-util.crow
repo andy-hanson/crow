@@ -8,7 +8,7 @@ import
 	../string: interpolate, to
 
 # Fail if `errno != 0`.
-check-errno void() summon, unsafe
+check-errno void() summon, unsafe, libc extern
 	errno check-posix-error
 
 # Fail if `e != 0`.

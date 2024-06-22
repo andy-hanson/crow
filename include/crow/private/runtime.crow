@@ -36,7 +36,7 @@ import
 ~set-global-ctx void(value global-ctx mut*) bare, unsafe
 	global-ctx-var := value
 
-cur-exclusion exclusion() unsafe
+cur-exclusion exclusion() unsafe, native extern
 	must-cur-fiber cur-exclusion
 
 global-ctx record by-val, mut
@@ -80,7 +80,7 @@ uninit global-ctx(n-threads nat64) bare, summon, unsafe, native extern
 	next-exclusion: uninit
 	is-shut-down: false
 
-init void(a global-ctx mut*) bare, unsafe, native extern, libc extern
+init void(a global-ctx mut*) bare, unsafe, (libc, native) extern
 	init-global-lock
 	a.may-be-work-to-do init
 	a.gc init a->n-threads

@@ -53,9 +53,13 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExpectedTypeIsNotALambda) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.ExternBodyMultiple) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternInvalidName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternIsUnsafe) =>
+			DiagnosticSeverity.warning,
+		(in Diag.ExternRedundant) =>
 			DiagnosticSeverity.warning,
 		(in Diag.ExternFunVariadic) =>
 			DiagnosticSeverity.checkError,

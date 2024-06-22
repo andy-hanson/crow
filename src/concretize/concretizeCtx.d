@@ -498,7 +498,7 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 		foreach (immutable Module* m; ctx.program.allModules) {
 			foreach (Test x; m.tests)
 				if (ctx.allExterns.containsAll(x.externs))
-					res ~= m.tests;
+					res ~= x;
 		}
 	});
 	Constant arr = getConstantArray(

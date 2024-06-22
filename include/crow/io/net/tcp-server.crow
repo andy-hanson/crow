@@ -11,7 +11,6 @@ import
 	system/unistd: close, read
 	../../c-types: c-int, fd-t
 	../../private/bootstrap: todo
-	../../version: is-windows
 	../duration: millisecond
 	../posix-util: check-posix-error
 	../print: err, print
@@ -37,16 +36,18 @@ tcp-handler record mut
 Starts running a TCP server on the given port.
 Once the function returns, it is already serving requests.
 ###
-start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
+start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe, (libc, native, posix) extern
 	sock = port bind-to-port
 	max-connections int32 = 1000
 	sock listen max-connections check-posix-error
-	if is-windows
+	if extern windows
 		todo
-	else
+	elif extern linux
 		sock.as-fd start-tcp-server-linux handler
+	else
+		todo
 
--start-tcp-server-linux tcp-server(port-fd fd-t, handler tcp-handler) summon, unsafe
+-start-tcp-server-linux tcp-server(port-fd fd-t, handler tcp-handler) summon, unsafe, (libc, linux, native, posix) extern
 	port-fd set-non-blocking
 
 	epoll-fd = 0 epoll_create1
@@ -78,7 +79,7 @@ start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
 			done await
 
 # Close a TCP client.
-close-client void(client SOCKET) summon, unsafe
+close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 	sd-err = client shutdown SHUT_RDWR
 	assert sd-err == 0
 	client close-socket
@@ -94,7 +95,7 @@ close-client void(client SOCKET) summon, unsafe
 	pad-2 nat32
 	handler tcp-handler
 
--tcp-server-loop-linux void(state tcp-server-state) summon, unsafe
+-tcp-server-loop-linux void(state tcp-server-state) summon, unsafe, (libc, linux, native, posix) extern
 	unless state should-stop
 		event mut epoll_event = ()
 		timeout c-int = 0
@@ -126,7 +127,7 @@ close-client void(client SOCKET) summon, unsafe
 	listen-fd SOCKET,
 	epoll-fd fd-t,
 	on-accepted-client void mut(socket SOCKET),
-) summon, unsafe
+) summon, unsafe, (libc, linux, posix) extern
 	clientaddr mut sockaddr_in = ()
 	clientaddr-as-sockaddr sockaddr mut* = (&clientaddr)::sockaddr_in mut* pointer-cast
 	addrlen mut socklen_t = size-of@sockaddr_in to
@@ -147,7 +148,7 @@ close-client void(client SOCKET) summon, unsafe
 -handle-client-linux void(
 	fd fd-t,
 	on-received-chunk void mut(socket SOCKET, chunk nat8 array),
-) summon, unsafe
+) summon, unsafe, (libc, posix) extern
 	buf nat8 mut-array = 0x1000 zeroed-mut-array
 	count = fd read buf.begin-pointer, buf.size
 	if count < 0
@@ -159,7 +160,7 @@ close-client void(client SOCKET) summon, unsafe
 		on-received-chunk[fd.as-socket, chunk]
 		fd handle-client-linux on-received-chunk
 
--set-non-blocking void(fd fd-t) bare, summon, unsafe
+-set-non-blocking void(fd fd-t) bare, summon, unsafe, (libc, posix) extern
 	file-flags = fd fcntl F_GETFL, 0
 	if file-flags < 0
 		"fcntl() error" perror

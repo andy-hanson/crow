@@ -27,7 +27,7 @@ test
 		e.describe is "thrown second"
 
 # Test that yielding the fiber does not break exception handling
-test
+test native extern
 	xs nat mut[] = ()
 	try
 		xs ~= 1

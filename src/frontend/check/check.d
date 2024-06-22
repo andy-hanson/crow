@@ -97,6 +97,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri : Path, RelPath, Uri;
@@ -301,17 +302,23 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
 				if (x.keyword == ModifierKeyword.extern_) {
-					Symbol name = getExternLibraryName(ctx, x);
+					SymbolSet names = getExternLibraryName(ctx, x);
 					if (has(cellGet(externLibraryName)))
 						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
-					final switch (kind) {
-						case VarKind.global:
-							cellSet(externLibraryName, some(name));
-							break;
-						case VarKind.threadLocal:
-							addDiag(ctx, x.keywordRange, Diag(
-								Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
-							break;
+					else {
+						Opt!Symbol name = names.asSingle;
+						if (has(name)) {
+							final switch (kind) {
+								case VarKind.global:
+									cellSet(externLibraryName, name);
+									break;
+								case VarKind.threadLocal:
+									addDiag(ctx, x.keywordRange, Diag(
+										Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
+									break;
+							}
+						} else
+							addDiag(ctx, x.range, Diag(Diag.ExternBodyMultiple()));
 					}
 				} else
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, declKind(kind))));

@@ -10,19 +10,19 @@ dummy-gc-roots nat()
 -use void(_ r)
 	()
 
--count-roots nat() unsafe
+-count-roots nat() unsafe, native extern
 	res mut nat = 0
 	for _ : gc-roots
 		res +:= 1
 	res
 
 # Doesn't add roots without 'yield-fiber'
-test trusted
+test trusted, native extern
 	start = count-roots
 	r r = 1,
 	count-roots is start
 	r use
-test trusted
+test trusted, native extern
 	start = count-roots
 	r r = 1,
 	yield-fiber
@@ -30,48 +30,48 @@ test trusted
 	r use
 
 # Adds a root for each argument to a call
-test trusted
+test trusted, native extern
 	start = count-roots
 	res = start f2 start.f0, start.f1
 	count-roots is start + 1
 	yield-fiber
 	res.x is 3
 # Same for create record
-test trusted
+test trusted, native extern
 	start = count-roots
 	res r2 = start.f0, start.f1
 	count-roots is start + 1
 	yield-fiber
 	res.x use
 # Same for create array
-test trusted
+test trusted, native extern
 	start = count-roots
 	res r array = start.f0, start.f1
 	count-roots is start + 1
 	yield-fiber
 	res[0] use
 # Same for record field set
-test trusted
+test trusted, native extern
 	start = count-roots
 	(1,).x := do
 		count-roots is start + 1
 		yield-fiber
 		2
--f0 r(start nat) unsafe
+-f0 r(start nat) unsafe, native extern
 	count-roots is start
 	1,
--f1 r(start nat) unsafe
+-f1 r(start nat) unsafe, native extern
 	# The result of 'f0' is on the stack at this point
 	count-roots is start + 1
 	yield-fiber
 	2,
--f2 r(start nat, a r, b r) unsafe
+-f2 r(start nat, a r, b r) unsafe, native extern
 	count-roots is start + 2
 	yield-fiber
 	a.x + b.x,
 
 # 'try-let' restores gc-root
-test trusted
+test trusted, native extern
 	start = count-roots
 	r r = 1,
 	count-roots is start + 1
@@ -83,7 +83,7 @@ test trusted
 	should-throw
 
 # 'finally' block has correct gc-root
-test trusted
+test trusted, native extern
 	ran-finally mut = false
 	try
 		start = count-roots
@@ -104,7 +104,7 @@ test trusted
 		assert ran-finally
 
 # 'catch' restores gc-root
-test trusted
+test trusted, native extern
 	start = count-roots
 	try
 		count-roots is start
@@ -118,7 +118,7 @@ test trusted
 	()
 
 # 'catch-all' restores gc-root
-test trusted
+test trusted, native extern
 	start = count-roots
 	f void mut() = () =>
 		# There are some roots internal to 'catch-all'
@@ -137,7 +137,7 @@ test trusted
 		forbid e.exception.divide-by-0.is-empty
 
 # Closure field set handles roots
-test trusted
+test trusted, native extern
 	start = count-roots
 	x mut nat[] = (),
 	f void mut() = () =>
@@ -148,7 +148,7 @@ test trusted
 	f[]
 	count-roots is start + 3
 	x is (1,)
--blah nat[](start nat) trusted
+-blah nat[](start nat) trusted, native extern
 	count-roots is start + 7
 	yield-fiber
 	1,

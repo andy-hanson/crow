@@ -23,7 +23,7 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t(a http-server-options, cb t mut(server http-server)) summon, t shared
++with-block[t] t(a http-server-options, cb t mut(server http-server)) summon, t shared, (libc, posix, native) extern
 	server tcp-server future = with : parallel
 		client-states http-parse-state mut[SOCKET] = ()
 		handler tcp-handler = do
@@ -47,7 +47,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	state http-parse-state,
 	chunk nat8 array,
 	handler http-handler,
-) summon, unsafe
+) summon, unsafe, (libc, posix, native) extern
 	state.unparsed ~~= chunk
 	request-state = if state.content-length == 0
 		state handle-http-initial
@@ -74,7 +74,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	as abandon
 		_ = (client-states remove sock)!
 
--write-until-finished void(sock SOCKET, content nat8 array) summon, unsafe
+-write-until-finished void(sock SOCKET, content nat8 array) summon, unsafe, (libc, native, posix) extern
 	remaining mut nat8 array = content
 	until remaining.is-empty
 		wrote = sock.as-fd write remaining.begin-pointer, remaining.size

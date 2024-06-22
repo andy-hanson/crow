@@ -24,7 +24,7 @@ struct MutSymbolSet {
 		every!Symbol(b.symbols, (in Symbol x) =>
 			has(x));
 
-	SymbolSet add(Symbol x) =>
+	SymbolSet add(Symbol x) const =>
 		addSymbol(this, x);
 }
 alias SymbolSet = immutable MutSymbolSet;
@@ -38,6 +38,9 @@ private __gshared Alloc* symbolSetAlloc;
 
 pure SymbolSet emptySymbolSet() =>
 	SymbolSet(emptySmallArray!Symbol);
+
+pure SymbolSet symbolSet(Symbol a) =>
+	emptySymbolSet.add(a);
 
 private @trusted pure SymbolSet addSymbol(SymbolSet a, Symbol b) {
 	assert(!a.has(b));

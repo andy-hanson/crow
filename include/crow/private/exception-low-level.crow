@@ -28,9 +28,9 @@ export
 -cur-backtrace thread-local(backtrace)
 
 # Visible for use by compiler
-~cur-catch-point catch-point*() unsafe
+~cur-catch-point catch-point*() unsafe, native extern
 	must-cur-fiber cur-catch-point
-~set-cur-catch-point void(value catch-point*) unsafe
+~set-cur-catch-point void(value catch-point*) unsafe, native extern
 	must-cur-fiber.cur-catch-point := value.pointer-cast
 
 # Used by the compiler when implementing 'try-catch' and 'finally'
@@ -41,7 +41,7 @@ rethrow-current-exception void() bare, unsafe
 		# Throwing outside of a fiber aborts
 		abandon
 
-+catch-all[t] (t, exception-and-backtrace) result(tried t mut())
++catch-all[t] (t, exception-and-backtrace) result(tried t mut()) native extern
 	trusted
 		old-gc-root = gc-root
 		old-catch-point = cur-catch-point

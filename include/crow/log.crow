@@ -3,7 +3,7 @@ import
 	./fun-util: subscript
 	./io/print: err, out, pipe, print
 	./misc: new, void
-	./private/bootstrap: must-cur-fiber, set-log-handler
+	./private/bootstrap: must-cur-fiber, set-log-handler, todo
 	./string: interpolate, string, to
 export
 	./private/bootstrap: error, info, level, logged, log-handler, log-level, message, warn
@@ -66,8 +66,14 @@ then fall back to the original log handler.
 If you just want to call the curent log handler, you could just use `log`.
 ###
 +get-log-handler log-handler()
-	trusted must-cur-fiber.log-handler
+	trusted if extern native
+		must-cur-fiber log-handler
+	else
+		todo
 
 # WARN: Most code should use 'temp-log-handler' to set it back. This is just to set it initially.
 ~set-log-handler void(handler log-handler) bare, unsafe
-	must-cur-fiber.log-handler := handler
+	if extern native
+		must-cur-fiber.log-handler := handler
+	else
+		todo

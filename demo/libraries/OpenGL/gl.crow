@@ -67,7 +67,7 @@ import
 		stride GLsizei,
 		pointer any-const-pointer)
 
-+new gl-ext() summon, unsafe
++new gl-ext() summon, unsafe, SDL2 extern
 	glActiveTexture: "glActiveTexture".load as-fun-pointer
 	glAttachShader: "glAttachShader".load as-fun-pointer
 	glBindBuffer: "glBindBuffer".load as-fun-pointer
@@ -104,7 +104,7 @@ import
 	glUseProgram: "glUseProgram".load as-fun-pointer
 	glVertexAttribPointer: "glVertexAttribPointer".load as-fun-pointer
 
--load any-const-pointer(name c-string) summon, unsafe
+-load any-const-pointer(name c-string) summon, unsafe, SDL2 extern
 	proc = name SDL_GL_GetProcAddress
 	forbid proc == null : "Loading GL library" gl-error name.to
 	proc

@@ -493,7 +493,7 @@ Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Extern
 		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(ast.name.name)));
 		return bogus(expected, source);
 	} else if (ctx.externs.has(name)) {
-		todo!void("Diag: 'extern' is always true");
+		addDiag2(ctx, ast.name.range, Diag(Diag.ExternRedundant(ast.name.name)));
 		return bogus(expected, source);
 	} else
 		return check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(name)));

@@ -5,15 +5,20 @@ Functions for generating cryptographically random numbers.
 import
 	system/sodium: randombytes_random
 	../bits: bits-cat
-	../version: is-windows
 	./private/sodium: ensure-sodium-initialized
 	../private/bootstrap: todo
 
 +random nat32() summon, trusted
 	# TODO: This should actually `assert extern sodium`, but that doesn't work right now ------------------------------------------------------
-	if extern sodium
-		ensure-sodium-initialized
-		randombytes_random
+	if extern native
+		if extern sodium
+			ensure-sodium-initialized
+			randombytes_random
+		else
+			todo
+	elif extern js
+		# Use crypto.getRandomValues()
+		todo
 	else
 		todo
 

@@ -86,7 +86,7 @@ import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
 import util.string : CStringAndLength;
 import util.symbol : Symbol, symbol;
-import util.symbolSet : emptySymbolSet, MutSymbolSet, SymbolSet;
+import util.symbolSet : emptySymbolSet, MutSymbolSet, SymbolSet, symbolSet;
 import util.unicode : unicodeValidate;
 import util.util : optEnumConvert, todo;
 
@@ -134,14 +134,32 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 			ctx, commonTypes, structsAndAliasesMap, returnTypeAst, typeParams, delayStructInsts, AliasAllowed.yes),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
-Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
+SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 	assert(modifier.keyword == ModifierKeyword.extern_);
-	if (has(modifier.typeArg) && force(modifier.typeArg).isA!NameAndRange)
-		return force(modifier.typeArg).as!NameAndRange.name;
-	else {
+	Opt!SymbolSet arg = has(modifier.typeArg) ? tryGetExternLibraryNameFromTypeArg(force(modifier.typeArg)) : none!SymbolSet;
+	if (has(arg)) {
+		// TODO: this should assert that it's a valid name too (just like we do at 'extern' expressions) ---------------------------------------------------------------\--
+		return force(arg);
+	} else {
 		addDiag(ctx, modifier.keywordRange, Diag(Diag.ExternMissingLibraryName()));
-		return symbol!"bogus";
+		return emptySymbolSet;
 	}
+}
+
+Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(in TypeAst arg) {
+	if (arg.isA!NameAndRange)
+		return some(symbolSet(arg.as!NameAndRange.name));
+	else if (arg.isA!(TypeAst.Tuple*)) {
+		MutSymbolSet res;
+		foreach (TypeAst member; arg.as!(TypeAst.Tuple*).members) {
+			if (member.isA!NameAndRange)
+				res = res.add(member.as!NameAndRange.name);
+			else
+				return none!SymbolSet;
+		}
+		return some!SymbolSet(res);
+	} else
+		return none!SymbolSet;
 }
 
 private:
@@ -315,7 +333,8 @@ FunBody checkExternBody(ref CheckCtx ctx, FunDecl* fun) {
 	if (has(single))
 		return FunBody(FunBody.Extern(force(single)));
 	else {
-		return todo!FunBody("Diag: Function with multiple 'extern', so we don't know which one to use"); // ----------------------------------------------
+		addDiag(ctx, fun.nameRange.range, Diag(Diag.ExternBodyMultiple()));
+		return FunBody(FunBody.Bogus());
 	}
 }
 
@@ -362,14 +381,17 @@ FunFlagsAndSpecs checkFunModifiers(
 	in ModifierAst[] asts,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	MutSymbolSet externs = emptySymbolSet;
+	MutSymbolSet externs;
 	SmallArray!(immutable SpecInst*) specs =
 		small!(immutable SpecInst*)(mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) => // OTDO: have mapOP return small?
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
-					if (x.keyword == ModifierKeyword.extern_)
-						externs = externs.add(getExternLibraryName(ctx, x));
-					else {
+					if (x.keyword == ModifierKeyword.extern_) {
+						if (externs.isEmpty)
+							externs = getExternLibraryName(ctx, x);
+						else
+							addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
+					} else {
 						CollectedFunFlags flag = tryGetFunFlag(x.keyword);
 						if (flag == CollectedFunFlags.none)
 							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.function_)));
@@ -420,9 +442,12 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 				if (isAllowedTestFlag(flag)) {
 					modifierTypeArgInvalid(ctx, x);
 					allFlags |= flag;
-				} else if (x.keyword == ModifierKeyword.extern_)
-					externs = externs.add(getExternLibraryName(ctx, x));
-				else
+				} else if (x.keyword == ModifierKeyword.extern_) {
+					if (externs.isEmpty)
+						externs = getExternLibraryName(ctx, x);
+					else
+						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
+				} else
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.test)));
 			},
 			(in SpecUseAst x) {

@@ -13,19 +13,19 @@ import
 export
 	./private/time-low-level: get-monotime-nsec
 
-+get-monotime-msec nat64() summon
++get-monotime-msec nat64() summon, native extern
 	get-monotime-nsec / 1000000
 
 +unix-time record
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-+get-unix-time unix-time() summon
++get-unix-time unix-time() summon, posix extern
 	forbid trusted is-windows : todo
 	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
-+delay void(duration duration) summon
++delay void(duration duration) summon, native extern
 	get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
 
 +interval record
@@ -36,7 +36,7 @@ export
 +for-break[out] out(
 	interval interval,
 	f-loop out break-or-continue mut(),
-) summon, out shared
+) summon, out shared, native extern
 	start-nsec mut = get-monotime-nsec
 	interval-nsec nat64 = interval.time.nanoseconds.to
 	loop

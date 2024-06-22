@@ -1,7 +1,7 @@
 dummy-log nat()
 	0
 
-test
+test native extern # TODO: see if this could work in JS -----------------------------------------------------------------
 	logs logged mut[] = ()
 	with : (shared log => logs ~= log) temp-log-handler
 		info log "test"

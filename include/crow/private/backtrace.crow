@@ -73,7 +73,7 @@ Result entries are temporary, must copy!
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) bare, unsafe, native extern, windows extern, DbgHelp extern
+) bare, unsafe, (DbgHelp, native, windows) extern
 	global-lock acquire
 	finally global-lock release
 	guard vars ?= gc try-alloc-windows-backtrace-vars
@@ -85,7 +85,7 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 	vars windows-backtrace-vars,
-) bare, unsafe, native extern, windows extern, DbgHelp extern
+) bare, unsafe, (DbgHelp, native, windows) extern
 	process = GetCurrentProcess
 	thread = GetCurrentThread
 	if process SymInitialize null, true
@@ -108,7 +108,7 @@ Result entries are temporary, must copy!
 	symbol IMAGEHLP_SYMBOL64 mut*
 	line IMAGEHLP_LINE64 mut*
 
--try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe, windows extern, native extern
+-try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe, (native, windows) extern
 	guard offset ?= gc.try-allocate :: nat64 mut*?
 	guard displacement ?= gc.try-allocate :: nat32 mut*?
 	symbol-max-name-length nat64 = 255
@@ -130,7 +130,7 @@ Result entries are temporary, must copy!
 	context CONTEXT mut*,
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
-) bare, unsafe, native extern, windows extern, DbgHelp extern
+) bare, unsafe, (DbgHelp, native, windows) extern
 	if out == out-end
 		out
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame,
@@ -149,7 +149,7 @@ Result entries are temporary, must copy!
 	process HANDLE,
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
-) bare, unsafe, native extern, windows extern, DbgHelp extern
+) bare, unsafe, (DbgHelp, native, windows) extern
 	name c-string = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
 		gc copy-c-string-or-empty &vars.symbol->Name
 	else
@@ -172,7 +172,7 @@ Result entries are temporary, must copy!
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) bare, unsafe, native extern, unwind extern
+) bare, unsafe, (native, unwind) extern
 	cursor mut unw_cursor_t = ()
 	context mut unw_context_t = ()
 	err0 = &context unw_getcontext
@@ -195,7 +195,7 @@ Result entries are temporary, must copy!
 	out-begin backtrace-entry mut*,
 	out-end backtrace-entry mut*,
 	cursor unw_cursor_t mut*,
-) bare, unsafe, native extern, unwind extern
+) bare, unsafe, (native, unwind) extern
 	out-cur mut = out-begin
 	loop
 		guard out-cur != out-end && cursor.unw_step > 0 : break out-cur
