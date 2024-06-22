@@ -114,6 +114,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : OS, VersionInfo;
 
@@ -161,8 +162,9 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	immutable ProgramWithMain* programWithMainPtr;
+	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
+	SymbolSet allExterns;
 	Late!(ConcreteFun*) createErrorFunction_;
 	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
@@ -198,10 +200,8 @@ struct ConcretizeCtx {
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 
-	ref ProgramWithMain programWithMain() return scope const =>
-		*programWithMainPtr;
 	ref Program program() return scope const =>
-		programWithMain.program;
+		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*program.commonTypes;
 	ConcreteFun* char8ArrayTrustAsString() return scope const =>
@@ -495,8 +495,11 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = buildArray!Test(ctx.alloc, (scope ref Builder!Test res) {
-		foreach (immutable Module* m; ctx.program.allModules)
-			res ~= m.tests;
+		foreach (immutable Module* m; ctx.program.allModules) {
+			foreach (Test x; m.tests)
+				if (ctx.allExterns.containsAll(x.externs))
+					res ~= m.tests;
+		}
 	});
 	Constant arr = getConstantArray(
 		ctx.alloc,

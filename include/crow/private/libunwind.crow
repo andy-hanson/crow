@@ -10,18 +10,18 @@ unw_cursor_t extern(1024)
 unw_context_t extern(1024)
 
 # TODO: aliases for different machine types
-unw_getcontext c-int(context unw_context_t mut*) bare, unsafe
+unw_getcontext c-int(context unw_context_t mut*) bare, unsafe, unwind extern
 	context _Ux86_64_getcontext
-unw_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) bare, unsafe
+unw_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) bare, unsafe, unwind extern
 	cursor _ULx86_64_init_local context
-unw_step c-int(cursor unw_cursor_t mut*) bare, unsafe
+unw_step c-int(cursor unw_cursor_t mut*) bare, unsafe, unwind extern
 	cursor _ULx86_64_step
 unw_get_proc_name c-int(
 	cursor unw_cursor_t mut*,
 	begin c-char mut*,
 	size size_t,
 	offset unw_word_t mut*,
-) bare, unsafe
+) bare, unsafe, unwind extern
 	cursor _ULx86_64_get_proc_name begin, size, offset
 
 # TODO: These should not be 'pure'

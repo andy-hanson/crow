@@ -87,9 +87,9 @@ struct ExprCtx {
 	immutable Specs outermostFunSpecs;
 	immutable TypeParams outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
+	MutSymbolSet externs;
 	private bool isInTrusted;
 	private bool usedTrusted;
-	MutSymbolSet externs;
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();

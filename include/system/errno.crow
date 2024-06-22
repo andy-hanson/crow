@@ -1,15 +1,17 @@
 no-std
 import
 	crow/c-types: err-t
-	crow/version: is-windows
 	crow/pointer: *, mut-pointer
+	../crow/private/bootstrap: todo
 
-+errno err-t() bare, summon, unsafe
-	if is-windows
++errno err-t() bare, summon, unsafe, native extern
+	if extern windows
 		*_errno
-	else
+	elif extern posix
 		*__errno_location
--_errno err-t mut*() posix extern
+	else
+		todo
+-_errno err-t mut*() windows extern
 -__errno_location err-t mut*() posix extern
 
 +ENOENT err-t() bare

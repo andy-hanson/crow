@@ -1230,6 +1230,7 @@ immutable struct Test {
 	TestAst* ast;
 	Uri moduleUri;
 	FunFlags flags;
+	SymbolSet externs;
 	Expr body_;
 
 	UriAndRange range() =>

@@ -45,6 +45,7 @@ External libraries can still launch their own threads.
 True if the code is run on Windows.
 Always false if run in a browser (even on Windows).
 ###
+# TODO: remove, this should always use 'extern windows' instead -----------------------------------------------------------------------------
 +is-windows bool() builtin, bare, unsafe
 
 # True if integers on this machine are big-endian.

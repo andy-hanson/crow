@@ -58,7 +58,7 @@ entry[t, k] spec k data, k equal
 -entry-right[t] t mut*(a t bare-map mut*, hash nat64) bare, unsafe
 	a->begin-right + (hash.hash-right % a->half-capacity)
 
-new[t, k] t bare-map(half-capacity nat64) bare, unsafe, (t, k) entry
+new[t, k] t bare-map(half-capacity nat64) bare, unsafe, (t, k) entry, native extern
 	forbid half-capacity == 0
 	full-capacity = half-capacity * 2
 	begin t mut* = full-capacity unmanaged-alloc-uninitialized-elements
@@ -75,7 +75,7 @@ destroy[t] void(a t bare-map mut*) bare, unsafe, t destroy
 	until cur == a->end-full
 		cur destroy
 		cur +:= 1
--free-table-not-values[t] void(a t bare-map mut*) bare, unsafe
+-free-table-not-values[t] void(a t bare-map mut*) bare, unsafe, native extern
 	a->begin-full unmanaged-free-elements a->full-capacity
 
 must-find[t, k] t*(a t bare-map*, key k) bare, unsafe, (t, k) entry
@@ -97,7 +97,7 @@ find[t, k] t mut*?(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
 		if right->key == key
 			right,
 
-find-or-insert[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
+find-or-insert[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry, native extern
 	res, _ = a find-or-insert-and-inserted key
 	res
 
@@ -105,7 +105,7 @@ found-or-inserted enum(found, inserted)
 find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 	a t bare-map mut*,
 	key k,
-) bare, unsafe, (t, k) entry
+) bare, unsafe, (t, k) entry, native extern
 	hash = key hash
 	loop
 		left = a entry-left hash
@@ -144,7 +144,7 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 
 -increase-capacity[t, k] void(
 	a t bare-map mut*,
-) bare, unsafe, (t, k) entry
+) bare, unsafe, (t, k) entry, native extern
 	forbid a->half-capacity == 0
 	new-half-capacity mut = a->half-capacity
 	out mut t bare-map = zeroed

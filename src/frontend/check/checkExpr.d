@@ -252,8 +252,6 @@ Expr checkFunctionBody(
 		specs,
 		typeParams,
 		flags,
-		false,
-		false,
 		funExterns);
 	Expr res = checkWithParamDestructures(
 		castNonScope_ref(exprCtx), ast, params,
@@ -270,6 +268,7 @@ Expr checkTestBody(
 	in FunsMap funsMap,
 	TypeContainer typeContainer,
 	FunFlags flags,
+	SymbolSet externs,
 	ExprAst* ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
@@ -281,7 +280,8 @@ Expr checkTestBody(
 		typeContainer,
 		emptySpecs,
 		emptyTypeParams,
-		flags);
+		flags,
+		externs);
 	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
 }
@@ -419,8 +419,10 @@ Expr checkIf(
 	IfAst ast,
 	ref Expected expected,
 ) {
-	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && ast.kind != IfAst.Kind.ifElif))
-		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
+	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && ast.kind != IfAst.Kind.ifElif)) {
+		// TODO: This was failing for the 'elif ... else throw'. Since apparently that counts as an if-else. We need a kind for IfAst.Kind.elifElse ....
+		// addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
+	}
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
 	Opt!Symbol extern_ = asExtern(condition);
@@ -485,11 +487,10 @@ Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Trust
 
 Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
 	if (!checkCanDoUnsafe(ctx))
-		todo!void("'extern' is unsafe");
-
+		addDiag2(ctx, source, Diag(Diag.ExternIsUnsafe()));
 	Symbol name = ast.name.name;
 	if (!checkExternName(ctx, name)) {
-		todo!void("Invalid 'extern' name");
+		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(ast.name.name)));
 		return bogus(expected, source);
 	} else if (ctx.externs.has(name)) {
 		todo!void("Diag: 'extern' is always true");
@@ -501,11 +502,15 @@ Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Extern
 bool checkExternName(in ExprCtx ctx, Symbol name) {
 	switch (name.value) {
 		// TODO: this is the same set as in 'hasExtern' in 'concretizeExpr.d', share code! --------------------------------------------
+		case symbol!"DbgHelp".value:
 		case symbol!"js".value:
 		case symbol!"libc".value:
 		case symbol!"linux".value:
 		case symbol!"posix".value:
+		case symbol!"pthread".value:
 		case symbol!"native".value:
+		case symbol!"sodium".value:
+		case symbol!"unwind".value:
 		case symbol!"windows".value:
 			return true;
 		default:

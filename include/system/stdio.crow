@@ -44,4 +44,4 @@ import
 	_Stream FILE mut*,
 ) libc extern
 
-+SEEK enum(SEEK_SET, SEEK_CUR, SEEK_END) libc extern, nat32 storage
++SEEK enum(SEEK_SET, SEEK_CUR, SEEK_END) extern, nat32 storage

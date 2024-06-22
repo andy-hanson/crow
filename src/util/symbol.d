@@ -627,6 +627,7 @@ immutable string[] specialSymbols = [
 	"countAllocs",
 	"countBlocks",
 	"count-ones",
+	"DbgHelp",
 	"d-compiler",
 	"default",
 	"definition",

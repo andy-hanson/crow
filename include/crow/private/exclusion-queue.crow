@@ -63,13 +63,13 @@ exclusion-queue[v] record by-val, mut
 -new[v] v entry(key exclusion) bare, unsafe
 	key, (), null, null
 
-uninit[v] v exclusion-queue() bare, unsafe
+uninit[v] v exclusion-queue() bare, unsafe, native extern
 	(4,), (invalid-key,)
 init[v] void(a v exclusion-queue mut*) bare, unsafe
 	a.queue->prev := a.queue
 	a.queue->next := a.queue
 
-destroy[v] void(a v exclusion-queue mut*) bare, unsafe
+destroy[v] void(a v exclusion-queue mut*) bare, unsafe, native extern
 	a.by-exclusion destroy
 
 # Even if the queue is empty, there may be unlinked elements in the map.
@@ -77,7 +77,7 @@ queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
 	# Queue is empty if the sentinel node is the only one.
 	a->queue.next.as-const == a.queue
 
--destroy[v] void(a v entry mut*) bare, unsafe
+-destroy[v] void(a v entry mut*) bare, unsafe, native extern
 	a.values destroy
 
 -is-in-queue[v] bool(entry v entry*) bare, unsafe
@@ -86,7 +86,7 @@ queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
 	assert res == (entry->next != null)
 	res
 
-enqueue[v] void(a v exclusion-queue mut*, exclusion exclusion, value v) bare, unsafe
+enqueue[v] void(a v exclusion-queue mut*, exclusion exclusion, value v) bare, unsafe, native extern
 	entry, fi = a.by-exclusion find-or-insert-and-inserted exclusion
 	match fi
 	as found

@@ -19,7 +19,7 @@ bare-queue[t] record by-val, mut
 new[t] t bare-queue() bare, unsafe
 	null, null, null, null
 
-destroy[t] void(a t bare-queue mut*) bare, unsafe
+destroy[t] void(a t bare-queue mut*) bare, unsafe, native extern
 	a->alloc-begin unmanaged-free-elements (a->alloc-end - a->alloc-begin)
 
 is-empty[t] bool(a t bare-queue*) bare, unsafe
@@ -40,7 +40,7 @@ dequeue[t] t?(a t bare-queue mut*) bare, unsafe
 			a->end := null
 		res,
 
-enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
+enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe, native extern
 	if a->end == a->begin
 		if a->begin == null && a->alloc-begin != null
 			a->begin := a->alloc-begin
@@ -54,7 +54,7 @@ enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
 		*a->end := value
 		a->end := a.as-const advance a->end
 
--increase-capacity[t] void(a t bare-queue mut*) bare, unsafe
+-increase-capacity[t] void(a t bare-queue mut*) bare, unsafe, native extern
 	old-capacity = a->alloc-end - a->alloc-begin
 	new-capacity nat64 = old-capacity == 0 ? 2 : old-capacity * 2
 	new-begin t mut* = new-capacity unmanaged-alloc-uninitialized-elements

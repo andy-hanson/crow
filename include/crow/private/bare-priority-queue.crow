@@ -20,7 +20,7 @@ bare-priority-queue[k, v] record by-val, mut
 new[k, v] (k, v) bare-priority-queue() bare, unsafe
 	(), (), ()
 
-destroy[k, v] void(a (k, v) bare-priority-queue mut*) bare, unsafe
+destroy[k, v] void(a (k, v) bare-priority-queue mut*) bare, unsafe, native extern
 	a->begin unmanaged-free-elements (a->alloc-end - a->begin)
 
 is-empty[k, v] bool(a (k, v) bare-priority-queue*) bare, unsafe
@@ -33,26 +33,26 @@ peek-key[k, v] k?(a (k, v) bare-priority-queue*) bare, unsafe
 dequeue-if-less-or-equal[k, v] v?(
 	a (k, v) bare-priority-queue mut*,
 	max-key k,
-) bare, unsafe, k compare
+) bare, unsafe, k compare, native extern
 	guard k ?= a.as-const peek-key
 	guard k <= max-key
 	a.dequeue!.b,
 
--dequeue[k, v] (k, v)?(a (k, v) bare-priority-queue mut*) bare, unsafe
+-dequeue[k, v] (k, v)?(a (k, v) bare-priority-queue mut*) bare, unsafe, native extern
 	guard !a.as-const.is-empty
 	res = *a->begin
 	a->end -:= 1
 	a->begin mem-move a->begin.as-const + 1, a->end - a->begin
 	res,
 
-enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe, k compare
+enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe, k compare, native extern
 	a push pair
 	cur mut = a->end - 1
 	until cur == a->begin || cur->a >= (cur - 1)->a
 		cur swap cur - 1
 		cur := cur - 1
 
--push[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe
+-push[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe, native extern
 	if a->end == a->alloc-end
 		old-capacity = a->end - a->begin
 		new-capacity nat64 = old-capacity == 0 ? 4 : old-capacity * 2

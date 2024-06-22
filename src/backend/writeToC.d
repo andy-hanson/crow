@@ -209,15 +209,27 @@ public void getLinkOptions(
 				}));
 			}
 
-			cb(withWriter(alloc, (scope ref Writer writer) {
-				writer ~= "-l";
-				writer ~= x.libraryName;
-			}));
+			if (!ignoreExternLibrary(x.libraryName))
+				cb(withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "-l";
+					writer ~= x.libraryName;
+				}));
 		}
 	}
 }
 
 private:
+
+bool ignoreExternLibrary(Symbol a) {
+	switch (a.value) {
+		case symbol!"libc".value:
+		case symbol!"linux".value:
+		case symbol!"posix".value:
+			return true;
+		default:
+			return false;
+	}
+}
 
 CString[] cCompileArgs(
 	ref Alloc alloc,

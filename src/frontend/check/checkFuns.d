@@ -344,7 +344,7 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 	asTemporaryArray(a)[0].name;
 
-immutable struct FunFlagsAndSpecs {
+immutable struct FunFlagsAndSpecs { // TODO: rename? ----------------------------------------------------------------------------------------------------------
 	FunFlags flags;
 	bool isBuiltin;
 	SymbolSet externs;
@@ -362,13 +362,13 @@ FunFlagsAndSpecs checkFunModifiers(
 	in ModifierAst[] asts,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	MutSymbolSet extern_ = emptySymbolSet;
+	MutSymbolSet externs = emptySymbolSet;
 	SmallArray!(immutable SpecInst*) specs =
 		small!(immutable SpecInst*)(mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) => // OTDO: have mapOP return small?
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
 					if (x.keyword == ModifierKeyword.extern_)
-						extern_ = extern_.add(getExternLibraryName(ctx, x));
+						externs = externs.add(getExternLibraryName(ctx, x));
 					else {
 						CollectedFunFlags flag = tryGetFunFlag(x.keyword);
 						if (flag == CollectedFunFlags.none)
@@ -384,9 +384,9 @@ FunFlagsAndSpecs checkFunModifiers(
 					specFromAst(
 						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts))));
 	return FunFlagsAndSpecs(
-		checkFunFlags(ctx, range, allFlags, isExtern: !hasBody && !extern_.isEmpty, isTest: false),
+		checkFunFlags(ctx, range, allFlags, isExtern: !hasBody && !externs.isEmpty, isTest: false),
 		(allFlags & CollectedFunFlags.builtin) != 0,
-		extern_, specs);
+		externs, specs);
 }
 
 @trusted SmallArray!Test checkTests(
@@ -398,16 +398,21 @@ FunFlagsAndSpecs checkFunModifiers(
 	TestAst[] testAsts,
 ) =>
 	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
-		FunFlags flags = checkTestModifiers(ctx, *ast);
+		TestModifiers modifiers = checkTestModifiers(ctx, *ast);
 		if (ast.body_.kind.isA!EmptyAst)
 			addDiag(ctx, ast.range, Diag(Diag.TestMissingBody()));
 		Expr body_ = checkTestBody(
-			ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), flags, &ast.body_);
-		return Test(ast, ctx.curUri, flags, body_);
+			ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), modifiers.flags, modifiers.externs, &ast.body_);
+		return Test(ast, ctx.curUri, modifiers.flags, modifiers.externs, body_);
 	}));
 
-FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
+immutable struct TestModifiers {
+	FunFlags flags;
+	SymbolSet externs;
+}
+TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
+	MutSymbolSet externs;
 	foreach (ModifierAst modifier; ast.modifiers) {
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
@@ -415,14 +420,16 @@ FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 				if (isAllowedTestFlag(flag)) {
 					modifierTypeArgInvalid(ctx, x);
 					allFlags |= flag;
-				} else
+				} else if (x.keyword == ModifierKeyword.extern_)
+					externs = externs.add(getExternLibraryName(ctx, x));
+				else
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.test)));
 			},
 			(in SpecUseAst x) {
 				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.test)));
 			});
 	}
-	return checkFunFlags(ctx, ast.keywordRange, allFlags, isExtern: false, isTest: true);
+	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExtern: false, isTest: true), externs);
 }
 
 bool isAllowedTestFlag(CollectedFunFlags flag) {

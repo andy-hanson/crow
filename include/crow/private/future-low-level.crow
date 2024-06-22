@@ -39,10 +39,10 @@ import
 -lock[t] lock mut*(a t future) bare, unsafe
 	&a.lk
 
-~resolve[t] void(a t future, value t) unsafe
+~resolve[t] void(a t future, value t) unsafe, native extern
 	a resolve-or-reject value.resolved
 
-~reject[t] void(a t future, error exception-and-backtrace) unsafe
+~reject[t] void(a t future, error exception-and-backtrace) unsafe, native extern
 	a resolve-or-reject error.rejected
 
 ~is-completed[t] bool(a t future)
@@ -56,7 +56,7 @@ import
 	as rejected _
 		true
 
--resolve-or-reject[t] void(a t future, new-state t future-state) bare, unsafe
+-resolve-or-reject[t] void(a t future, new-state t future-state) bare, unsafe, native extern
 	a.lock acquire
 	old-state = a state
 	a.state := new-state

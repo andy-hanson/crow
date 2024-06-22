@@ -100,6 +100,7 @@ Unlike in other programming languages, this isn't a numeric type.
 
 region symbol.crow
 
+# TODO: This should be a builtin type. In native builds it will use a c-string, in JS builds it will use a string. -----------------
 +symbol record by-val
 	~symbol-to-c-string c-string
 
@@ -155,11 +156,19 @@ In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807
 
 region hard assertions
 
-abort void() libc extern, pure
+-abort void() libc extern, pure
+
+~abandon void() bare, unsafe
+	if extern libc
+		abort
+	else
+		# TODO: in JS, 'process.exit(1)' -------------------------------------------------------------------------------------
+		new-void
 
 ###
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+In a JS build, this will be 'null'.
 ###
 +zeroed[t] t() builtin, bare, unsafe
 
@@ -167,12 +176,12 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 ~todo[t] t() bare
 	# this shouldn't really be trusted
 	trusted
-		abort
+		abandon
 		zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-unreachable[t] t() bare, unsafe
-	abort
+	abandon
 	zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
@@ -180,12 +189,12 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 	if condition
 		new-void
 	else
-		abort
+		abandon
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-forbid void(condition bool) bare, unsafe
 	if condition
-		abort
+		abandon
 	else
 		new-void
 

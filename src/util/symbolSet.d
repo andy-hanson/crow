@@ -39,9 +39,13 @@ private __gshared Alloc* symbolSetAlloc;
 pure SymbolSet emptySymbolSet() =>
 	SymbolSet(emptySmallArray!Symbol);
 
-private @trusted pure SymbolSet addSymbol(SymbolSet a, Symbol b) =>
-	(cast(SymbolSet function(SymbolSet, Symbol) @safe @nogc pure nothrow) &addSymbolImpure)(a, b);
+private @trusted pure SymbolSet addSymbol(SymbolSet a, Symbol b) {
+	assert(!a.has(b));
+	return (cast(SymbolSet function(SymbolSet, Symbol) @safe @nogc pure nothrow) &addSymbolImpure)(a, b);
+}
 
 private @system SymbolSet addSymbolImpure(SymbolSet a, Symbol b) =>
 	// TODO: MEMOIZE ------------------------------------------------------------------------------------------------------------------
 	SymbolSet(append!Symbol(*symbolSetAlloc, a.symbols, b));
+
+// TODO: unit test this module ------------------------------------------------------------------------------------------------

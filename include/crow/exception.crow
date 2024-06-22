@@ -12,9 +12,13 @@ import
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level:
-		catch-all, describe, error, exception, exception-and-backtrace, rethrow, todo, unreachable
+		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
 
 region handling
+
++todo record exception variant-member
++describe string(_ todo)
+	"TODO"
 
 +not-implemented record exception variant-member
 +describe string(_ not-implemented)

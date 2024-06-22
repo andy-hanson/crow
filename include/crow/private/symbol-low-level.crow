@@ -12,7 +12,7 @@ import
 	../string: ==, <=>, as-string, char8, c-string, hash-mix, size-char8s, string, to
 	../tuple: new
 	./alloc: unmanaged-alloc-uninitialized-elements
-	./bootstrap: symbol-to-c-string
+	./bootstrap: symbol-to-c-string, todo
 	./runtime: get-global-ctx, global-ctx, set-deref-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
@@ -40,17 +40,21 @@ init-symbol-table void(a global-ctx mut*) unsafe
 Interns a string.
 This is O(log n), where 'n' is the number of unique symbols that exist.
 ###
-+to symbol(a string)
-	gctx = trusted get-global-ctx
-	trusted gctx.symbols-lock with-lock () =>
-		match gctx->symbols-table get-or-add a, () => a.to-malloced-c-string,
-		as got x
-			x
-		as added new-table, symbol
-			gctx->symbols-table := new-table
-			symbol
++to symbol(a string) trusted
+	if extern native
+		gctx = get-global-ctx
+		gctx.symbols-lock with-lock () =>
+			match gctx->symbols-table get-or-add a, () => a.to-malloced-c-string,
+			as got x
+				x
+			as added new-table, symbol
+				gctx->symbols-table := new-table
+				symbol
+	else
+		# TODO: In JS, 'symbol' and 'string' will just be the same type ---------------------------------------------------
+		todo
 
--to-malloced-c-string c-string(a string) unsafe
+-to-malloced-c-string c-string(a string) unsafe, native extern
 	res char8 mut* = a.size-char8s + 1 unmanaged-alloc-uninitialized-elements
 	cur mut = res
 	for x : a.to::char8[]

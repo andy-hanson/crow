@@ -145,7 +145,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe
 	else
 		acc wrap-add cur->to words-used-in-range cur + 1, end
 
-uninit gc() bare, unsafe
+uninit gc() bare, unsafe, native extern
 	# TODO: handle malloc failure
 	# If changing this, be sure `serverBuffer` in `wasm.d` is big enough
 	size-words nat64 = if is-wasm
@@ -181,7 +181,7 @@ This must be called like so:
 	- Then it should call 'gc-complete'.
 * All threads run 'gc-end' that makes them wait for the end.
 ###
-gc-begin bool(gc gc mut*) bare, unsafe
+gc-begin bool(gc gc mut*) bare, unsafe, native extern
 	gc->needs-gc hard-assert
 	res = gc.barrier wait-barrier
 	if res
@@ -205,7 +205,7 @@ gc-complete void(gc gc mut*) bare, unsafe
 	gc->needs-gc := false
 
 # See comment on 'garbage-collection-begin'
-gc-end void(gc gc mut*) bare, unsafe
+gc-end void(gc gc mut*) bare, unsafe, native extern
 	_ = gc.barrier wait-barrier
 
 -clear-free-mem void(
@@ -231,15 +231,16 @@ Currently they all share the common GC and must take a lock every time they allo
 gc-ctx record by-val, mut
 	-gc gc mut*
 
-+force-needs-gc void(gc gc mut*) unsafe
++force-needs-gc void(gc gc mut*) unsafe, native extern
 	gc->needs-gc := true
 
+# TODO: Support making a thread-local 'native extern', since it shouldn't be used otherwise
 -cur-gc-ctx thread-local(gc-ctx?)
 
-try-get-cur-gc-ctx gc-ctx?() bare, unsafe
+try-get-cur-gc-ctx gc-ctx?() bare, unsafe, native extern
 	cur-gc-ctx
 
--get-gc-ctx gc-ctx() unsafe
+-get-gc-ctx gc-ctx() unsafe, native extern
 	cur-gc-ctx!
 
 -force[t] t(a t?) bare, unsafe
@@ -248,13 +249,13 @@ try-get-cur-gc-ctx gc-ctx?() bare, unsafe
 	else
 		hard-unreachable
 
-mutator-begin void(a gc mut*) bare, unsafe
+mutator-begin void(a gc mut*) bare, unsafe, native extern
 	cur-gc-ctx := (a,),
 
-mutator-end void() bare, unsafe
+mutator-end void() bare, unsafe, native extern
 	cur-gc-ctx := ()
 
-+get-gc gc mut*() unsafe
++get-gc gc mut*() unsafe, native extern
 	get-gc-ctx gc
 
 validate-gc void(gc gc*) bare, unsafe
@@ -271,7 +272,7 @@ validate-gc void(gc gc*) bare, unsafe
 	gc->data-end - gc->data-begin == gc->size-words hard-assert
 	mark-idx == data-idx hard-assert
 
--try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) bare
+-try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) bare, native extern
 	trusted
 		gc = gc-ctx gc
 		gc.lk acquire
@@ -310,7 +311,7 @@ validate-gc void(gc gc*) bare, unsafe
 	else
 		mark + 1 first-non-free end
 
-gc-alloc any-mut-pointer(gc gc-ctx, size nat64) bare
+gc-alloc any-mut-pointer(gc gc-ctx, size nat64) bare, native extern
 	if res ?= gc try-gc-alloc size
 		res
 	else
@@ -318,61 +319,73 @@ gc-alloc any-mut-pointer(gc gc-ctx, size nat64) bare
 		todo
 
 # Called by the compiler
-allocate any-mut-pointer(size-bytes nat64) unsafe
+allocate any-mut-pointer(size-bytes nat64) unsafe, native extern
 	get-gc-ctx gc-alloc size-bytes
 
-allocate[t] t mut*() unsafe
+allocate[t] t mut*() unsafe, native extern
 	1 allocate
 
-allocate[t] t mut*(count nat64) unsafe
+allocate[t] t mut*(count nat64) unsafe, native extern
 	get-gc-ctx allocate count
 
-allocate[t] t mut*(gc gc-ctx, count nat64) bare, unsafe
+allocate[t] t mut*(gc gc-ctx, count nat64) bare, unsafe, native extern
 	gc gc-alloc (count wrap-mul size-of@t) pointer-cast
 
-allocate[t] t mut*(gc gc-ctx) bare, unsafe
+allocate[t] t mut*(gc gc-ctx) bare, unsafe, native extern
 	gc allocate 1
 
-try-allocate[t] t mut*?(size nat64) unsafe
+try-allocate[t] t mut*?(size nat64) unsafe, native extern
 	get-gc-ctx try-allocate size
 
-try-allocate[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe
+try-allocate[t] t mut*?(gc gc-ctx, size nat64) bare, unsafe, native extern
 	(gc try-gc-alloc (size wrap-mul size-of@t))?.pointer-cast
 
-try-allocate[t] t mut*?() unsafe
+try-allocate[t] t mut*?() unsafe, native extern
 	1 try-allocate
 
-try-allocate[t] t mut*?(gc gc-ctx) bare, unsafe
+try-allocate[t] t mut*?(gc gc-ctx) bare, unsafe, native extern
 	gc try-allocate 1
 
-unmanaged-alloc-uninitialized[t] t mut*() bare, unsafe
+unmanaged-alloc-uninitialized[t] t mut*() bare, unsafe, native extern
 	1 unmanaged-alloc-uninitialized-elements
 
-+unmanaged-alloc[t] t mut*(value t) bare, unsafe
++unmanaged-alloc[t] t mut*(value t) bare, unsafe, native extern
 	res t mut* = unmanaged-alloc-uninitialized
 	*res := value
 	res
 
-unmanaged-alloc-zeroed-bytes any-mut-pointer(size nat64) bare, unsafe
-	res = size calloc 1
-	res != null hard-assert
-	res
+unmanaged-alloc-zeroed-bytes any-mut-pointer(size nat64) bare, unsafe, native extern
+	if extern libc
+		res = size calloc 1
+		res != null hard-assert
+		res
+	else
+		todo
 
-unmanaged-alloc-uninitialized-bytes any-mut-pointer(size nat64) bare, unsafe
-	res = size malloc
-	res != null hard-assert
-	res
+unmanaged-alloc-uninitialized-bytes any-mut-pointer(size nat64) bare, unsafe, native extern
+	if extern libc
+		res = size malloc
+		res != null hard-assert
+		res
+	else
+		todo
 
-unmanaged-alloc-zeroed-elements[t] t mut*(size-elements nat64) bare, unsafe
+unmanaged-alloc-zeroed-elements[t] t mut*(size-elements nat64) bare, unsafe, native extern
 	# TODO: wrap-mul is unsafe!
 	(size-elements wrap-mul size-of@t).unmanaged-alloc-zeroed-bytes pointer-cast
 
-unmanaged-alloc-uninitialized-elements[t] t mut*(size-elements nat64) bare, unsafe
+unmanaged-alloc-uninitialized-elements[t] t mut*(size-elements nat64) bare, unsafe, native extern
 	# TODO: wrap-mul is unsafe!
 	(size-elements wrap-mul size-of@t).unmanaged-alloc-uninitialized-bytes pointer-cast
 
-unmanaged-free-elements[t] void(begin t mut*, _ nat64) bare, unsafe
-	begin.pointer-cast free
+unmanaged-free-elements[t] void(begin t mut*, _ nat64) bare, unsafe, native extern
+	if extern libc
+		begin.pointer-cast free
+	else
+		todo
 
-+unmanaged-free[t] void(p t mut*) bare, unsafe
-	p.pointer-cast free
++unmanaged-free[t] void(p t mut*) bare, unsafe, native extern
+	if extern libc
+		p.pointer-cast free
+	else
+		todo

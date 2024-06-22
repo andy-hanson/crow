@@ -671,6 +671,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			} else
 				writer ~= "There is no expected type at this location; lambdas need an expected type.";
 		},
+		(in Diag.ExternInvalidName x) {
+			writeName(writer, ctx, x.name);
+			writer ~= " is not an intrinsic extern name and is not configured in 'crow-config.json'";
+		},
+		(in Diag.ExternIsUnsafe x) {
+			writer ~= "An 'extern' expression can only appear in an 'unsafe' or 'trusted' context.";
+		},
 		(in Diag.ExternFunVariadic) {
 			writer ~= "An 'extern' function can't be variadic.";
 		},
@@ -1052,7 +1059,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PointerIsUnsafe) {
-			writer ~= "Can only get a pointer in an 'unsafe' function or 'trusted' expression.";
+			writer ~= "Can only get a pointer in an 'unsafe' or 'trusted' context.";
 		},
 		(in Diag.PointerMutToConst x) {
 			writer ~= () {

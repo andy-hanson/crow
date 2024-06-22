@@ -59,8 +59,8 @@ test
 		a find-or-insert 7 is p7
 		()
 
-test
-	trusted with a : bm
+test trusted
+	with a : bm
 		for i : 0::nat64 .. 10
 			p = a find-or-insert i * 4
 			p->id := "{i}"

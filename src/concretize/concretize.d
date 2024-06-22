@@ -37,14 +37,17 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain;
+import model.model : BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
+import util.col.map : keys;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
+import util.symbol : Symbol, symbol;
+import util.symbolSet : MutSymbolSet, SymbolSet;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
@@ -71,7 +74,7 @@ ConcreteProgram concretizeInner(
 ) {
 	ref Alloc alloc() =>
 		*allocPtr;
-	ConcretizeCtx ctx = ConcretizeCtx(allocPtr, versionInfo, ptrTrustMe(program), castNonScope_ref(fileContentGetters));
+	ConcretizeCtx ctx = ConcretizeCtx(allocPtr, versionInfo, ptrTrustMe(program.program), castNonScope_ref(fileContentGetters), allExterns(*program.mainConfig));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
 	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));
@@ -164,4 +167,26 @@ void finishVariants(ref ConcretizeCtx ctx) {
 		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
 		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}
+}
+
+private:
+
+SymbolSet allExterns(in Config mainConfig) {
+	MutSymbolSet res;
+	version (Windows) {
+		res = res.add(symbol!"DbgHelp");
+		res = res.add(symbol!"windows");
+	} else {
+		res = res.add(symbol!"linux");
+		res = res.add(symbol!"posix");
+		res = res.add(symbol!"pthread");
+		res = res.add(symbol!"sodium");
+	}
+	res = res.add(symbol!"libc");
+	res = res.add(symbol!"native");
+	foreach (Symbol name; keys(mainConfig.extern_))
+		res = res.add(name); // TODO: this should only be if there is a path set for it ---------------------------------------------------
+
+	assert(res.has(symbol!"libc")); // sanity check ------------------------------------------------------------------------------------------
+	return res;
 }

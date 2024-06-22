@@ -1236,8 +1236,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
 		(ExternExpr x) =>
-			ConcreteExpr(type, range, ConcreteExprKind(
-				constantBool(hasExtern(ctx.concretizeCtx, x.name)))),
+			ConcreteExpr(type, range, ConcreteExprKind(constantBool(ctx.concretizeCtx.allExterns.has(x.name)))),
 		(FinallyExpr* x) =>
 			concretizeFinally(ctx, type, range, locals, *x),
 		(FunPointerExpr x) =>
@@ -1299,35 +1298,6 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeTryLet(ctx, type, range, locals, *x),
 		(TypedExpr* x) =>
 			concretizeExpr(ctx, type, locals, x.inner));
-}
-
-//TODO:MOVE
-bool hasExtern(in ConcretizeCtx ctx, in Symbol name) {
-	switch (name.value) {
-		case symbol!"libc".value:
-			return true;
-		case symbol!"js".value:
-			// translate to JS does not use concretize
-			return false;
-		case symbol!"linux".value:
-		case symbol!"posix".value:
-			version (Windows) {
-				return false;
-			} else {
-				return true;
-			}
-		case symbol!"native".value:
-			// translate to JS does not use concretize
-			return true;
-		case symbol!"windows".value:
-			version (Windows) {
-				return true;
-			} else {
-				return false;
-			}
-		default:
-			return hasKey(ctx.programWithMain.mainConfig.extern_, name);
-	}
 }
 
 ConstantsOrExprs constantsOrExprsArr(

@@ -270,6 +270,10 @@ immutable struct Diag {
 	immutable struct ExpectedTypeIsNotALambda {
 		Opt!TypeWithContainer expectedType;
 	}
+	immutable struct ExternInvalidName {
+		Symbol name;
+	}
+	immutable struct ExternIsUnsafe {}
 	immutable struct ExternFunVariadic {}
 	immutable struct ExternHasUnnecessaryLibraryName {}
 	immutable struct ExternMissingLibraryName {}
@@ -669,6 +673,8 @@ immutable struct Diag {
 		EnumBackingTypeInvalid,
 		EnumDuplicateValue,
 		ExpectedTypeIsNotALambda,
+		ExternInvalidName,
+		ExternIsUnsafe,
 		ExternFunVariadic,
 		ExternHasUnnecessaryLibraryName,
 		ExternMissingLibraryName,

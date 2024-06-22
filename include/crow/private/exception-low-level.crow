@@ -3,13 +3,12 @@ import
 	../bool: bool
 	../fun-util: subscript
 	../misc: new, void
-	../number: nat64
 	../pointer: const-pointer, mut-pointer, pointer-cast, zeroed
 	../result: error, ok, result
 	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap:
-		abort, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
+		abandon, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
 		set-cur-catch-point, string
 export
 	./bootstrap: backtrace, describe, exception, exception-and-backtrace
@@ -40,7 +39,7 @@ rethrow-current-exception void() bare, unsafe
 		fiber.cur-catch-point jump-to-catch
 	else
 		# Throwing outside of a fiber aborts
-		abort
+		abandon
 
 +catch-all[t] (t, exception-and-backtrace) result(tried t mut())
 	trusted
@@ -72,12 +71,9 @@ This function is used to mark part of an `if` or `match` that should not be poss
 	throw "Should be unreachable" error
 
 # This is called by the compiler on 'throw'
-throw-impl void(a exception) bare
-	a throw-with-skip 2
-
-throw-with-skip void(a exception, skip nat64) bare
+throw-impl void(a exception) bare, native extern
 	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
-		ctx get-backtrace skip
+		ctx get-backtrace 1
 	else
 		(),
 	(a, backtrace) rethrow
@@ -98,7 +94,3 @@ Throwing an exception does not modify its backtrace.
 		rethrow-current-exception
 		# unreachable
 		zeroed
-
-+todo record exception variant-member
-+describe string(_ todo)
-	"TODO"

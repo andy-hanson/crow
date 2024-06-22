@@ -19,19 +19,19 @@ import
 export
 	./private/bootstrap: future
 
-+await[t] t(a t future) trusted
++await[t] t(a t future) trusted, native extern
 	match a await-result
 	as ok x
 		x
 	as error x
 		x rethrow
 
-+await-result[t] (t, exception-and-backtrace) result(a t future) trusted
++await-result[t] (t, exception-and-backtrace) result(a t future) trusted, native extern
 	(a.as-any-mut-pointer, &add-awaiting-fiber-for-t@t).await-future yield-this-fiber
 	a get-result
 
 # Just yields the fiber temporarily. It may be restarted immediately.
-+yield-fiber void() trusted
++yield-fiber void() trusted, native extern
 	add-to-queue yield-this-fiber
 
 add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe
@@ -57,7 +57,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 ###
 Run `f` in a new fiber with a new exclusion and return a future for its result.
 ###
-+with-block[t] t future(_ parallel, f t shared())
++with-block[t] t future(_ parallel, f t shared()) native extern
 	res t future = trusted unresolved
 	trusted get-global-ctx add-new-fiber () =>
 		match (() => f[]) catch-all
@@ -72,19 +72,19 @@ This is like running something with `parallel` and then waiting on it.
 The purpose is to allow other fibers with the current exclusion to run while waiting.
 ###
 +new-exclusion record nominal
-+with-block[t] t(_ new-exclusion, f t shared())
++with-block[t] t(_ new-exclusion, f t shared()) native extern
 	parallel with-block f await
 
 +later record nominal
 ###
 Run `f` in a new fiber with the current exclusion. So it can't run until the current fiber yields.
 ###
-+with-block[t] t future(_ later, f t mut()) t shared
++with-block[t] t future(_ later, f t mut()) t shared, native extern
 	fs t shared() = shared () => f[]
 	parallel with-block fs
 
 # Does not await the future, but will log any exceptions from the future once it is done.
-+forget[t] void(a t future)
++forget[t] void(a t future) native extern
 	trusted get-global-ctx add-new-fiber () =>
 		match a await-result
 		as ok _
@@ -96,7 +96,7 @@ Run `f` in a new fiber with the current exclusion. So it can't run until the cur
 ###
 Runs 'f' in parallel and logs any exceptions, but does not await it.
 ###
-+with-block void(_ fire-and-forget, f void shared()) trusted
++with-block void(_ fire-and-forget, f void shared()) trusted, native extern
 	parallel with-block f forget
 
 +parallel-collection[col] record(collection col)
@@ -108,7 +108,7 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 +for-loop[out-elem, in-col, in-elem] out-elem[](
 	a in-col parallel-collection,
 	f out-elem shared(elem in-elem),
-) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
+) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size, native extern
 	futures out-elem future[] = for x : a collection
 		with : parallel
 			f[x]
@@ -118,7 +118,7 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 +for-loop[in-col, in-elem] void(
 	a in-col parallel-collection,
 	f void shared(elem in-elem),
-) (in-col, in-elem) iterate, in-col size, in-elem shared
+) (in-col, in-elem) iterate, in-col size, in-elem shared, native extern
 	futures void future[] = for x : a collection
 		with : parallel
 			f[x]
@@ -130,14 +130,14 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 +for-loop[out-elem, in-col, in-elem] out-elem[](
 	a in-col parallel-concat,
 	f out-elem[] shared(elem in-elem),
-) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
+) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size, native extern
 	a.collection.parallel for-loop f flatten
 
 # Runs `f` in parallel for each element of `a` and returns results for which it was `true`.
 +filter[out-col, in-col, elem, builder] out-col(
 	a in-col parallel-collection,
 	f bool shared(elem elem),
-) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
+) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared, native extern
 	bools bool[] = a for-loop f
 	with out : build
 		for i, x : a.collection with-index
@@ -154,7 +154,7 @@ Works like `parallel`, but works in groups of 'chunk-size' elements to reduce pa
 +for-loop[out-elem, in-col, in-iter, in-elem] out-elem[](
 	a in-col chunked-parallel,
 	f out-elem shared(elem in-elem),
-) out-elem shared, (in-col, in-iter, in-elem) chunkable
+) out-elem shared, (in-col, in-iter, in-elem) chunkable, native extern
 	for chunk : a.collection groups-of a.chunk-size parallel-concat
 		for x : chunk
 			f[x]
@@ -162,7 +162,7 @@ Works like `parallel`, but works in groups of 'chunk-size' elements to reduce pa
 +for-loop[in-col, in-iter, in-elem] void(
 	a in-col chunked-parallel,
 	f void shared(elem in-elem),
-) (in-col, in-iter, in-elem) chunkable
+) (in-col, in-iter, in-elem) chunkable, native extern
 	for chunk : a.collection groups-of a.chunk-size parallel
 		for x : chunk
 			f[x]
@@ -170,7 +170,7 @@ Works like `parallel`, but works in groups of 'chunk-size' elements to reduce pa
 +filter[out-col, in-col, in-iter, elem, builder] out-col(
 	a in-col chunked-parallel,
 	f bool shared(elem elem),
-) out-col shared, (in-col, in-iter, elem) chunkable, (out-col, elem, builder) build
+) out-col shared, (in-col, in-iter, elem) chunkable, (out-col, elem, builder) build, native extern
 	bools bool[] = a for-loop f
 	with out : build
 		for i, x : a.collection with-index

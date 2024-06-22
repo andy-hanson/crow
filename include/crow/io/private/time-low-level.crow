@@ -4,7 +4,6 @@ import
 	system/win32: GetTickCount
 	../../number: ==, +, *, /, %, int64, to
 	../../private/bootstrap: hard-unreachable, nat64, todo
-	../../version: is-windows
 
 # Monotime in nanoseconds.
 timestamp alias
