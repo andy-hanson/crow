@@ -67,6 +67,7 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
+	ExternExpr,
 	FinallyExpr,
 	FunBody,
 	FunDecl,
@@ -460,6 +461,7 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in CallOptionExpr _) {},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr _) {},
+		(in ExternExpr _) {},
 		(in FinallyExpr _) {},
 		(in FunPointerExpr _) {},
 		(in IfExpr x) {

@@ -117,6 +117,7 @@ import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
 import util.symbol : initSymbols;
+import util.symbolSet : initSymbolSets;
 import util.uri : FilePath, initUris, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
@@ -354,6 +355,7 @@ private __gshared Server serverStorage = void;
 	server.__ctor(fetch);
 	initIntegralValues(server.metaAlloc);
 	initSymbols(server.metaAlloc);
+	initSymbolSets(server.metaAlloc);
 	initUris(server.metaAlloc);
 	return server;
 }

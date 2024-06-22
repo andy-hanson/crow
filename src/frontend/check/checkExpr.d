@@ -82,6 +82,7 @@ import model.ast :
 	DoAst,
 	EmptyAst,
 	ExprAst,
+	ExternAst,
 	FinallyAst,
 	ForAst,
 	IdentifierAst,
@@ -113,6 +114,7 @@ import model.ast :
 import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
+	asExtern,
 	AssertOrForbidExpr,
 	BogusExpr,
 	BuiltinFun,
@@ -133,6 +135,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternExpr,
 	FinallyExpr,
 	FloatType,
 	FunBody,
@@ -209,6 +212,7 @@ import util.col.array :
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
+import util.col.mutSet : mustAddToMutSet, mutSetHas, mutSetMustDelete;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;
@@ -217,9 +221,10 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, s
 import util.sourceRange : Range;
 import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -233,6 +238,7 @@ Expr checkFunctionBody(
 	Destructure[] params,
 	in Specs specs,
 	in FunFlags flags,
+	SymbolSet funExterns,
 	ExprAst* ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
@@ -244,7 +250,10 @@ Expr checkFunctionBody(
 		typeContainer,
 		specs,
 		typeParams,
-		flags);
+		flags,
+		false,
+		false,
+		funExterns);
 	Expr res = checkWithParamDestructures(
 		castNonScope_ref(exprCtx), ast, params,
 		(ref LocalsInfo innerLocals) =>
@@ -297,6 +306,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkExpr(ctx, locals, a.body_, expected),
 		(EmptyAst a) =>
 			checkEmptyNew(ctx, locals, ast, ast.range, expected),
+		(ExternAst a) =>
+			checkExtern(ctx, locals, ast, a, expected),
 		(FinallyAst* a) =>
 			checkFinally(ctx, locals, ast, a, expected),
 		(ForAst* a) =>
@@ -411,12 +422,19 @@ Expr checkIf(
 		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
+	Opt!Symbol extern_ = asExtern(condition);
 	bool isNegated = ast.isConditionNegated;
 	Range emptyNewRange = ast.firstKeywordRange;
 	Expr firstBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source, isNegated ? none!Destructure : destructure, ast.firstBranch, emptyNewRange, expected);
+		ctx, locals, source,
+		isNegated ? none!Destructure : destructure,
+		isNegated ? none!Symbol : extern_,
+		ast.firstBranch, emptyNewRange, expected);
 	Expr secondBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source, isNegated ? destructure : none!Destructure, ast.secondBranch, emptyNewRange, expected);
+		ctx, locals, source,
+		isNegated ? destructure : none!Destructure,
+		isNegated ? none!Symbol : extern_,
+		ast.secondBranch, emptyNewRange, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(
 		condition, isNegated ? secondBranch : firstBranch, isNegated ? firstBranch : secondBranch))));
 }
@@ -462,6 +480,31 @@ Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAs
 Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TrustedAst* ast, ref Expected expected) {
 	Expr inner = withTrusted!Expr(ctx, source, () => checkExpr(ctx, locals, &ast.inner, expected));
 	return Expr(source, ExprKind(allocate(ctx.alloc, TrustedExpr(inner))));
+}
+
+Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
+	if (!checkCanDoUnsafe(ctx))
+		todo!void("'extern' is unsafe");
+
+	Symbol name = ast.name.name;
+	if (!checkExternName(ctx, name)) {
+		todo!void("Invalid 'extern' name");
+		return bogus(expected, source);
+	} else if (ctx.extern_.has(name)) {
+		todo!void("Diag: 'extern' is always true");
+		return bogus(expected, source);
+	} else
+		return check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(name)));
+}
+
+bool checkExternName(in ExprCtx ctx, Symbol name) {
+	switch (name.value) {
+		case symbol!"c".value:
+		case symbol!"js".value:
+			return true;
+		default:
+			return todo!bool("CHECK EXTERN NAME"); // -----------------------------------------------------------------------
+	}
 }
 
 Expr checkAssertOrForbid(
@@ -1904,13 +1947,21 @@ Expr checkExprWithOptDestructureOrEmptyNew(
 	ref LocalsInfo locals,
 	ExprAst* parent,
 	Opt!Destructure destructure,
+	Opt!Symbol extern_,
 	Opt!(ExprAst*) ast,
 	Range emptyNewRange,
 	ref Expected expected,
-) =>
-	has(ast)
+) {
+	SymbolSet originalExtern = ctx.extern_;
+	if (has(extern_))
+		ctx.extern_ = ctx.extern_.add(force(extern_));
+	Expr rslt = has(ast)
 		? checkExprWithOptDestructure(ctx, locals, destructure, force(ast), expected)
 		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
+	if (has(extern_))
+		ctx.extern_ = originalExtern;
+	return rslt;
+}
 
 Opt!string stringFromCaseAst(ref ExprCtx ctx, CaseMemberAst ast) =>
 	ast.match!(Opt!string)(
@@ -2025,6 +2076,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in DoAst x) =>
 			hasBreakOrContinue(*x.body_),
 		(in EmptyAst _) =>
+			false,
+		(in ExternAst _) =>
 			false,
 		(in FinallyAst x) =>
 			false,

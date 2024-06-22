@@ -24,6 +24,7 @@ import model.ast :
 	EmptyAst,
 	EnumOrFlagsMemberAst,
 	ExprAst,
+	ExternAst,
 	FileAst,
 	FinallyAst,
 	ForAst,
@@ -532,6 +533,9 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, *x.body_);
 		},
 		(in EmptyAst x) {},
+		(in ExternAst x) {
+			reference(ctx.tokens, TokenType.namespace, x.name.range);	
+		},
 		(in FinallyAst x) {
 			addExprTokens(ctx, x.right);
 			addExprTokens(ctx, x.below);

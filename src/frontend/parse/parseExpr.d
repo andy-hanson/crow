@@ -38,6 +38,7 @@ import frontend.parse.parseUtil :
 	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
+	takeName,
 	takeNameAndRange,
 	takeOrAddDiagExpectedToken,
 	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine,
@@ -63,6 +64,7 @@ import model.ast :
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
+	ExternAst,
 	FinallyAst,
 	ForAst,
 	IdentifierAst,
@@ -173,7 +175,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.enum_:
 		case Token.equal:
 		case Token.export_:
-		case Token.extern_:
 		case Token.EOF:
 		case Token.flags:
 		case Token.forceCtx:
@@ -218,6 +219,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.break_:
 		case Token.continue_:
 		case Token.do_:
+		case Token.extern_:
 		case Token.forbid:
 		case Token.guard:
 		case Token.if_:
@@ -897,6 +899,9 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return ExprAst(range(lexer, start), ExprAstKind(LoopContinueAst()));
 		case Token.do_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.do_, () => parseDo(lexer, start));
+		case Token.extern_:
+			NameAndRange name = takeNameAndRange(lexer);
+			return ExprAst(range(lexer, start), ExprAstKind(ExternAst(name)));
 		case Token.if_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start));
 		case Token.for_:

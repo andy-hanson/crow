@@ -42,12 +42,13 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withStackArray;
-import util.col.array : count, isEmpty, map, mapWithFirst, prepend, small, sum;
+import util.col.array : count, isEmpty, map, mapWithFirst, prepend, small, SmallArray, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
+import util.symbolSet : emptySymbolSet;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));
@@ -193,7 +194,7 @@ FunDecl funDeclWithBody(
 	immutable(SpecInst*)[] specInsts,
 	FunBody body_,
 ) {
-	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small!(immutable SpecInst*)(specInsts));
+	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, emptySymbolSet, small!(immutable SpecInst*)(specInsts));
 	res.body_ = body_;
 	return res;
 }

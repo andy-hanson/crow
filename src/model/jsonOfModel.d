@@ -23,6 +23,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternExpr,
 	FinallyExpr,
 	FlagsFunction,
 	FunBody,
@@ -202,7 +203,7 @@ Json.ObjectField[3] commonDeclFields(
 	];
 
 Json funFlags(ref Alloc alloc, in FunFlags a) {
-	Opt!Symbol[5] symbols = [
+	Opt!Symbol[4] symbols = [
 		flag!"bare"(a.bare),
 		flag!"summon"(a.summon),
 		() {
@@ -216,18 +217,6 @@ Json funFlags(ref Alloc alloc, in FunFlags a) {
 			}
 		}(),
 		flag!"ok-if-unused"(a.okIfUnused),
-		() {
-			final switch (a.specialBody) {
-				case FunFlags.SpecialBody.none:
-					return none!Symbol;
-				case FunFlags.SpecialBody.builtin:
-					return some(symbol!"builtin");
-				case FunFlags.SpecialBody.extern_:
-					return some(symbol!"extern");
-				case FunFlags.SpecialBody.generated:
-					return some(symbol!"generated");
-			}
-		}(),
 	];
 	return jsonList(mapOp!(Json, Opt!Symbol)(alloc, symbols, (ref Opt!Symbol x) =>
 		has(x) ? some(jsonString(force(x))) : none!Json));
@@ -384,6 +373,10 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
+		(in ExternExpr x) =>
+			jsonObject(alloc, [
+				kindField!"extern",
+				field!"name"(x.name)]),
 		(in FinallyExpr x) =>
 			jsonObject(alloc, [
 				kindField!"finally",

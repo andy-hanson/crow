@@ -19,6 +19,7 @@ import model.ast :
 	EnumOrFlagsMemberAst,
 	ExprAst,
 	ExprAstKind,
+	ExternAst,
 	FieldMutabilityAst,
 	FileAst,
 	FinallyAst,
@@ -448,8 +449,10 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"do",
 				field!"body"(jsonOfExprAst(alloc, ctx, *x.body_))]),
-		(in EmptyAst e) =>
+		(in EmptyAst _) =>
 			jsonObject(alloc, [kindField!"empty"]),
+		(in ExternAst x) =>
+			jsonObject(alloc, [kindField!"extern", field!"name"(jsonOfNameAndRange(alloc, ctx, x.name))]),
 		(in FinallyAst x) =>
 			jsonObject(alloc, [
 				kindField!"finally",

@@ -555,6 +555,7 @@ immutable string[] specialSymbols = [
 	"invokeCCompiler",
 	"onFileChanged",
 	"storageFileInfo",
+	"symbolSet",
 
 	// from names in compiled code
 	"__builtin_isnan",

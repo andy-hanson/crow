@@ -45,13 +45,14 @@ import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : force, has, none, Opt, optEqual, some;
+import util.opt : force, has, none, Opt, optEqual, optIf, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
-import util.util : enumConvertOrAssert, max, min, stringOfEnum;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum, todo;
 import versionInfo : VersionFun;
 
 alias Purity = immutable Purity_;
@@ -1031,28 +1032,26 @@ immutable struct FunFlags {
 	Safety safety;
 	bool preferred;
 	bool okIfUnused;
-	enum SpecialBody : ubyte { none, builtin, extern_, generated }
-	SpecialBody specialBody;
 	bool forceCtx;
 
 	FunFlags withOkIfUnused() =>
-		FunFlags(bare, summon, safety, preferred, true, specialBody, forceCtx);
+		FunFlags(bare, summon, safety, preferred, true, forceCtx);
 	FunFlags withSummon() =>
-		FunFlags(bare, true, safety, preferred, okIfUnused, specialBody, forceCtx);
+		FunFlags(bare, true, safety, preferred, okIfUnused, forceCtx);
 
-	static FunFlags regular(bool bare, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
-		FunFlags(bare, summon, safety, false, false, specialBody, forceCtx);
+	static FunFlags regular(bool bare, bool summon, Safety safety, bool forceCtx) =>
+		FunFlags(bare, summon, safety, false, false, forceCtx);
 
 	static FunFlags none() =>
-		FunFlags(false, false, Safety.safe, false, false, SpecialBody.none);
+		FunFlags(false, false, Safety.safe, false, false/*, SpecialBody.none*/); // ----------------------------------------------------------
 	static FunFlags generatedBare() =>
-		FunFlags(true, false, Safety.safe, false, true, SpecialBody.generated);
+		FunFlags(true, false, Safety.safe, false, true/*, SpecialBody.generated*/); // TODO: No longer need special 'generated' versions of these functions
 	static FunFlags generatedBareUnsafe() =>
-		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
+		FunFlags(true, false, Safety.unsafe, false, true/*, SpecialBody.generated*/); // ---------------------------------------------------------------
 	static FunFlags generated() =>
-		FunFlags(false, false, Safety.safe, false, true, SpecialBody.generated);
+		FunFlags(false, false, Safety.safe, false, true/*, SpecialBody.generated*/); // ---------------------------------------------------------------------------------------------
 }
-static assert(FunFlags.sizeof == 7);
+static assert(FunFlags.sizeof == 6);
 
 immutable struct FunDeclSource {
 	@safe @nogc pure nothrow:
@@ -1157,12 +1156,14 @@ immutable struct FunDecl {
 	Type returnType;
 	Params params;
 	FunFlags flags;
+	SymbolSet externs;
 	Specs specs;
 	private Late!FunBody lateBody;
 
 	ref FunBody body_() return scope =>
 		lateGet(lateBody);
-
+	bool bodyIsSet() return scope =>
+		lateIsSet(lateBody);
 	void body_(FunBody b) {
 		lateSet(lateBody, b);
 	}
@@ -1205,7 +1206,7 @@ immutable struct FunDecl {
 	bool isBare() scope =>
 		flags.bare;
 	bool isGenerated() scope =>
-		flags.specialBody == FunFlags.SpecialBody.generated;
+		todo!bool("isGenerated -- get from the FunBody"); // ------------------------------------------------
 	bool isSummon() scope =>
 		flags.summon;
 	bool isUnsafe() scope =>
@@ -2008,6 +2009,7 @@ immutable struct ExprKind {
 		CallOptionExpr*,
 		ClosureGetExpr,
 		ClosureSetExpr,
+		ExternExpr,
 		FinallyExpr*,
 		FunPointerExpr,
 		IfExpr*,
@@ -2049,6 +2051,9 @@ immutable struct Condition {
 	}
 	mixin TaggedUnion!(Expr*, UnpackOption*);
 }
+Opt!Symbol asExtern(Condition a) =>
+	optIf(a.isA!(Expr*) && a.as!(Expr*).kind.isA!ExternExpr, () =>
+		a.as!(Expr*).kind.as!ExternExpr.name);
 
 immutable struct AssertOrForbidExpr {
 	bool isForbid;
@@ -2089,6 +2094,10 @@ immutable struct ClosureSetExpr {
 
 	Local* local() return scope =>
 		closureRef.local;
+}
+
+immutable struct ExternExpr {
+	Symbol name;
 }
 
 immutable struct FinallyExpr {

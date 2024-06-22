@@ -16,6 +16,7 @@ import model.model :
 	Condition,
 	Expr,
 	ExprAndType,
+	ExternExpr,
 	FinallyExpr,
 	FunDecl,
 	FunDeclSource,
@@ -278,6 +279,8 @@ Opt!T findDirectChildExpr(T)(
 			assert(a.type == voidType);
 			return cb(ExprRef(x.value, x.local.type));
 		},
+		(ExternExpr x) =>
+			none!T,
 		(FinallyExpr* x) =>
 			optOr!T(
 				cb(ExprRef(&x.right, voidType)),

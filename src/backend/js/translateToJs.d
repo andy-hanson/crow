@@ -86,6 +86,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternExpr,
 	FinallyExpr,
 	FlagsFunction,
 	FunBody,
@@ -642,6 +643,8 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 			forceExpr(ctx, pos, type, JsExpr(JsName(x.local.name))),
 		(ClosureSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc,  JsName(x.local.name), translateExprToExpr(ctx, *x.value, x.local.type))),
+		(ExternExpr x) =>
+			todo!ExprResult("EXTERN EXPR"),
 		(ref FinallyExpr x) =>
 			translateFinally(ctx, x, type, pos),
 		(FunPointerExpr x) =>
@@ -795,13 +798,17 @@ JsExpr translateInlineCall(
 			todo!JsExpr("THIS NEEDS TO BE A STATEMENT TOO"));
 }
 
-ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scope ExprPos pos) =>
-	pos.isA!(ExprPos.Expression) && a.condition.isA!(Expr*)
-		? ExprResult(JsExpr(allocate(ctx.alloc, JsTernaryExpr(
+ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scope ExprPos pos) {
+	Opt!bool constant = tryEvalConstantBool(ctx, a.condition);
+	if (has(constant))
+		return todo!ExprResult("use the constant!"); // -----------------------------------------------------------------------------------
+	else if (pos.isA!(ExprPos.Expression) && a.condition.isA!(Expr*))
+		return ExprResult(JsExpr(allocate(ctx.alloc, JsTernaryExpr(
 			translateExprToExpr(ctx, *a.condition.as!(Expr*), Type(ctx.commonTypes.bool_)),
 			translateExprToExpr(ctx, a.trueBranch, type),
-			translateExprToExpr(ctx, a.falseBranch, type)))))
-		: a.condition.match!ExprResult(
+			translateExprToExpr(ctx, a.falseBranch, type)))));
+	else
+		return a.condition.match!ExprResult(
 			(ref Expr cond) =>
 				forceStatement(ctx, pos, genIf(ctx.alloc,
 					translateExprToExpr(ctx, cond, Type(ctx.commonTypes.bool_)),
@@ -821,6 +828,9 @@ ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scop
 					}
 					*/
 				}));
+}
+Opt!bool tryEvalConstantBool(in TranslateModuleCtx ctx, in Condition a) =>
+	todo!(Opt!bool)("Check if it's an 'extern' expression!"); // Use `bool asExtern(Condition a)` from model.d -------------------------------------------------------------------
 
 ExprResult translateLambda(ref TranslateModuleCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(

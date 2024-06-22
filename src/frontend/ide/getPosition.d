@@ -73,6 +73,7 @@ import model.model :
 	Destructure,
 	EnumOrFlagsMember,
 	Expr,
+	ExternExpr,
 	FinallyExpr,
 	FunBody,
 	FunDecl,
@@ -632,6 +633,8 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos
 		(ClosureSetExpr x) =>
 			optIf(isAtAssignment(ast, pos), () =>
 				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local)),
+		(ExternExpr x) =>
+			none!PositionKind, // TODO ----------------------------------------------------------------------------------------------------
 		(ref FinallyExpr x) =>
 			keywordAt(ast.kind.as!(FinallyAst*).finallyKeywordRange(ast), ExprKeyword.finally_),
 		(FunPointerExpr x) =>

@@ -186,6 +186,7 @@ enum AllocKind {
 	storage,
 	storageFileInfo,
 	symbol,
+	symbolSet,
 	temp,
 	test,
 	uri,

@@ -358,6 +358,10 @@ immutable struct DoAst {
 // Used for implicit 'else ()' or implicit '()' after a Let
 immutable struct EmptyAst {}
 
+immutable struct ExternAst {
+	NameAndRange name;
+}
+
 immutable struct FinallyAst {
 	@safe @nogc pure nothrow:
 
@@ -862,6 +866,7 @@ immutable struct ExprAstKind {
 		CallNamedAst,
 		DoAst,
 		EmptyAst,
+		ExternAst,
 		FinallyAst*,
 		ForAst*,
 		IdentifierAst,

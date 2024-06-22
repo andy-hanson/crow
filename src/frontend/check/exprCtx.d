@@ -13,10 +13,12 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray;
 import util.col.enumMap : EnumMap;
+import util.col.mutSet : MutSet;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, rangeOfStartAndLength;
 import util.symbol : Symbol;
+import util.symbolSet : MutSymbolSet;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
@@ -44,7 +46,7 @@ struct LambdaInfo {
 }
 
 struct LocalsInfo {
-	size_t countAllAccessibleLocals; // all locals in outer lambdas, even those not yet closed over
+	size_t countAllAccessibleLocals; // all locals in outer lambdas, even those not yet closed over (TODO: this is never used????)
 	MutOpt!(LambdaInfo*) lambda;
 	MutOpt!(LocalNode*) locals;
 }
@@ -87,6 +89,7 @@ struct ExprCtx {
 	immutable FunFlags outermostFunFlags;
 	private bool isInTrusted;
 	private bool usedTrusted;
+	MutSymbolSet extern_;
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();

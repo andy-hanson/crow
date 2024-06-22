@@ -1,0 +1,5 @@
+main void() unsafe
+	info log if extern js
+		"hello, js"
+	else
+		"hello, desktop"

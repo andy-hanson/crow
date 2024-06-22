@@ -102,6 +102,7 @@ import model.model :
 	EnumFunction,
 	Expr,
 	ExprAndType,
+	ExternExpr,
 	FinallyExpr,
 	FunBody,
 	FunInst,
@@ -165,7 +166,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe, todo;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>
@@ -1233,6 +1234,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeClosureGet(ctx, type, range, x),
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
+		(ExternExpr x) =>
+			todo!ConcreteExpr("CONCRETIZE EXTERN EXPR (at this point we can make it a constant"), // -----------------------------------
 		(FinallyExpr* x) =>
 			concretizeFinally(ctx, type, range, locals, *x),
 		(FunPointerExpr x) =>
