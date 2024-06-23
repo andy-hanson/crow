@@ -199,6 +199,10 @@ immutable struct Path {
 
 	Path opBinary(string op : "/")(Symbol name) =>
 		childPathWithInfo(this, name, pathInfo(this));
+
+	void writeTo(scope ref Writer writer) {
+		writePath(writer, this);
+	}
 }
 
 Opt!Uri parent(Uri a) {
@@ -328,7 +332,7 @@ immutable struct RelPath {
 	void writeTo(scope ref Writer writer) {
 		foreach (ushort i; 0 .. nParents)
 			writer ~= "../";
-		writePath(writer, path);
+		writer ~= path;
 	}
 }
 

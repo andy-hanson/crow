@@ -70,6 +70,9 @@ struct Writer {
 			this ~= '-';
 		this ~= abs(a);
 	}
+	void opOpAssign(string op : "~")(ushort a) {
+		writeNat(this, a);
+	}
 	void opOpAssign(string op : "~")(uint a) {
 		writeNat(this, a);
 	}

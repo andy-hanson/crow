@@ -61,14 +61,14 @@ immutable struct JsClassMethod {
 
 immutable struct JsArrowFunction {
 	JsParams params;
-	JsExprOrStatements body_;
+	JsExprOrBlockStatement body_;
 }
 immutable struct JsParams {
 	SmallArray!JsDestructure params;
 	Opt!JsDestructure restParam;
 }
-immutable struct JsExprOrStatements {
-	mixin Union!(JsExpr*, JsStatement[]);
+immutable struct JsExprOrBlockStatement {
+	mixin Union!(JsExpr*, JsBlockStatement);
 }
 
 immutable struct JsDestructure {
@@ -91,7 +91,7 @@ immutable struct JsStatement {
 		JsSwitchStatement,
 		JsThrowStatement,
 		JsTryCatchStatement,
-		JsTryFinallyStatement*,
+		JsTryFinallyStatement,
 		JsVarDecl,
 		JsWhileStatement*);
 }
@@ -100,7 +100,7 @@ immutable struct JsAssignStatement {
 	JsExpr right;
 }
 immutable struct JsBlockStatement {
-	JsStatement[] inner;
+	JsStatement[] statements;
 }
 immutable struct JsBreakStatement {}
 immutable struct JsContinueStatement {}
@@ -116,8 +116,8 @@ immutable struct JsReturnStatement {
 immutable struct JsSwitchStatement {
 	immutable struct Case {
 		JsExpr value;
-		// Technically multiple statemnets are allowed, but it's safer to force braces around them so they have a scope
-		JsStatement then;
+		// Technically un-blocked statements are allowed, but it's safer to force braces around them so they have a scope
+		JsBlockStatement then;
 	}
 
 	JsExpr* arg;
@@ -128,13 +128,13 @@ immutable struct JsThrowStatement {
 	JsExpr* arg;
 }
 immutable struct JsTryCatchStatement {
-	JsStatement* tried;
+	JsBlockStatement tried;
 	JsName exception;
-	JsStatement* catch_;
+	JsBlockStatement catch_;
 }
 immutable struct JsTryFinallyStatement {
-	JsStatement tried;
-	JsStatement finally_;
+	JsBlockStatement tried;
+	JsBlockStatement finally_;
 }
 immutable struct JsVarDecl {
 	enum Kind { const_, let }
@@ -268,8 +268,8 @@ JsStatement genSwitch(ref Alloc alloc, JsExpr arg, JsSwitchStatement.Case[] case
 	JsStatement(JsSwitchStatement(allocate(alloc, arg), cases, allocate(alloc, default_)));
 JsStatement genThrow(ref Alloc alloc, JsExpr thrown) =>
 	JsStatement(JsThrowStatement(allocate(alloc, thrown)));
-JsStatement genTryCatch(ref Alloc alloc, JsStatement tryBlock, JsName exception, JsStatement catchBlock) =>
-	JsStatement(JsTryCatchStatement(allocate(alloc, tryBlock), exception, allocate(alloc, catchBlock)));
+JsStatement genTryCatch(ref Alloc alloc, JsBlockStatement tryBlock, JsName exception, JsBlockStatement catchBlock) =>
+	JsStatement(JsTryCatchStatement(tryBlock, exception, catchBlock));
 JsStatement genVarDecl(ref Alloc alloc, JsVarDecl.Kind kind, JsDestructure destructure, JsExpr initializer) =>
 	JsStatement(JsVarDecl(kind, destructure, allocate(alloc, initializer)));
 JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>

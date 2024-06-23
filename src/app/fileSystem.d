@@ -567,10 +567,17 @@ private @trusted ExitCodeOrSignal runCommon(
 }
 
 ExitCode writeFilesToDir(in Map!(Path, string) files, FilePath outDir) {
+	// First, build the directories we need.
+	// Make sure to build from the bottom up.
+	buildDirectoriesForFiles(files);
 	return todo!ExitCode("writeFilesToDir"); // ------------------------------------------------------------------------------------------------
 }
 
 private:
+
+void buildDirectoriesForFiles(in Map!(Path, string) files) {
+	todo!void("BUILD DIRECTORIES");
+}
 
 version (Windows) {
 	enum RetryResult { ok, error, retry }

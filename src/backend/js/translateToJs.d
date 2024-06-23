@@ -44,7 +44,7 @@ import backend.js.jsAst :
 	JsDestructure,
 	JsEmptyStatement,
 	JsExpr,
-	JsExprOrStatements,
+	JsExprOrBlockStatement,
 	JsIfStatement,
 	JsImport,
 	JsLiteralBool,
@@ -490,7 +490,7 @@ JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 		: JsExpr(JsArrowFunction(
 			JsParams(map!(JsDestructure, immutable SpecInst*)(ctx.alloc, a.specs, (ref immutable SpecInst* x) =>
 				JsDestructure(JsName(x.name)))),
-			JsExprOrStatements(allocate(ctx.alloc, fun))));
+			JsExprOrBlockStatement(allocate(ctx.alloc, fun))));
 	return makeDecl(a.visibility, funName(ctx, a), JsDeclKind(funWithSpecs));
 }
 JsDestructure translateDestructure(ref TranslateModuleCtx ctx, in Destructure a) =>
@@ -623,17 +623,17 @@ JsClassMember genConstructor(SmallArray!JsDestructure params, JsStatement[] body
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 	todo!JsDecl("Use 'let' (same for global / thread-local)");
 
-JsExprOrStatements translateFunBody(ref TranslateModuleCtx ctx, in FunBody x, Type returnType) =>
+JsExprOrBlockStatement translateFunBody(ref TranslateModuleCtx ctx, in FunBody x, Type returnType) =>
 	x.isA!(FunBody.FileImport)
-		? todo!JsExprOrStatements("FileImport body") // -----------------------------------------------------------------------------------------------------
-		: translateExprToExprOrStatements(ctx, x.as!Expr, returnType);
+		? todo!JsExprOrBlockStatement("FileImport body") // -----------------------------------------------------------------------------------------------------
+		: translateExprToExprOrBlockStatement(ctx, x.as!Expr, returnType);
 
 struct ExprPos {
 	immutable struct Expression {}
-	immutable struct ExpressionOrStatements {} // Used for return from a function (since an arrow function can be an expression or a block)
+	immutable struct ExpressionOrBlockStatement {} // Used for return from a function (since an arrow function can be an expression or a block)
 	// If the expression is non-void, the statement should 'return'
 	struct Statements { Builder!JsStatement statements; }
-	mixin TaggedUnion!(Expression, ExpressionOrStatements, Statements*);
+	mixin TaggedUnion!(Expression, ExpressionOrBlockStatement, Statements*);
 }
 immutable struct ExprResult {
 	@safe @nogc pure nothrow:
@@ -651,30 +651,42 @@ JsExpr translateExprToExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
 	translateExpr(ctx, a, type, ExprPos(ExprPos.Expression())).as!JsExpr;
 JsStatement translateToStatement(in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
 	translateToStatement((scope ref Builder!JsStatement, scope ExprPos pos) => cb(pos));
-JsStatement translateToStatement(in ExprResult delegate(scope ref Builder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) {
+alias StatementsCb = ExprResult delegate(scope ref Builder!JsStatement, scope ExprPos) @safe @nogc pure nothrow;
+JsStatement translateToStatement(in StatementsCb cb) {
+	JsStatement[] statements = translateToStatements(cb);
+	return statements.length == 1 ? only(statements) : JsStatement(JsBlockStatement(statements));
+}
+JsBlockStatement translateToBlockStatement(in StatementsCb cb) =>
+	JsBlockStatement(translateToStatements(cb));
+JsBlockStatement translateToBlockStatement(in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
+	translateToBlockStatement((scope ref Builder!JsStatement, scope ExprPos pos) => cb(pos));
+JsStatement[] translateToStatements(in StatementsCb cb) {
 	ExprPos.Statements pos;
 	ExprResult res = cb(pos.statements, ExprPos(&pos));
 	assert(res.isA!(ExprResult.Done));
 	JsStatement[] statements = finish(pos.statements);
 	assert(!isEmpty(statements));
-	return statements.length == 1 ? only(statements) : JsStatement(JsBlockStatement(statements));
+	return statements;
 }
+
 JsStatement translateExprToStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
 	translateToStatement((scope ExprPos pos) => translateExpr(ctx, a, type, pos));
-JsExprOrStatements translateExprToExprOrStatements(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
-	translateExpr(ctx, a, type, ExprPos(ExprPos.ExpressionOrStatements())).match!JsExprOrStatements(
+JsBlockStatement translateExprToBlockStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
+	translateToBlockStatement((scope ExprPos pos) => translateExpr(ctx, a, type, pos));
+JsExprOrBlockStatement translateExprToExprOrBlockStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
+	translateExpr(ctx, a, type, ExprPos(ExprPos.ExpressionOrBlockStatement())).match!JsExprOrBlockStatement(
 		(ExprResult.Done) =>
 			assert(false),
 		(JsExpr x) =>
-			JsExprOrStatements(allocate(ctx.alloc, x)),
+			JsExprOrBlockStatement(allocate(ctx.alloc, x)),
 		(JsStatement[] x) =>
-			JsExprOrStatements(x));
+			JsExprOrBlockStatement(JsBlockStatement(x)));
 
 ExprResult forceExpr(ref TranslateModuleCtx ctx, scope ExprPos pos, Type type, JsExpr expr) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
 			ExprResult(expr),
-		(ExprPos.ExpressionOrStatements) =>
+		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(expr),
 		(ref ExprPos.Statements x) {
 			x.statements ~= isVoid(type) ? JsStatement(expr) : genReturn(ctx.alloc, expr);
@@ -685,7 +697,7 @@ ExprResult forceStatements(scope ExprPos pos, in ExprResult delegate(scope ref B
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
 			todo!ExprResult("USE AN IIFE"),
-		(ExprPos.ExpressionOrStatements) {
+		(ExprPos.ExpressionOrBlockStatement) {
 			ExprPos.Statements res;
 			ExprResult inner = cb(res.statements, ExprPos(&res));
 			assert(inner.isA!(ExprResult.Done));
@@ -698,7 +710,7 @@ ExprResult forceStatement(ref TranslateModuleCtx ctx, scope ExprPos pos, JsState
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
 			todo!ExprResult("USE AN IIFE"),
-		(ExprPos.ExpressionOrStatements) =>
+		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(newArray(ctx.alloc, [statement])),
 		(ref ExprPos.Statements x) {
 			x.statements ~= statement;
@@ -932,7 +944,7 @@ Opt!bool tryEvalConstantBool(in TranslateModuleCtx ctx, in Condition a) {
 ExprResult translateLambda(ref TranslateModuleCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(
 		JsParams(newSmallArray(ctx.alloc, [translateDestructure(ctx, a.param)])),
-		translateExprToExprOrStatements(ctx, a.body_, a.returnType))));
+		translateExprToExprOrBlockStatement(ctx, a.body_, a.returnType))));
 
 ExprResult translateLet(ref TranslateModuleCtx ctx, ref LetExpr a, Type type, scope ExprPos pos) =>
 	translateLetLike(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), a.then, type, pos);
@@ -1008,7 +1020,7 @@ ExprResult translateMatchEnum(ref TranslateModuleCtx ctx, ref MatchEnumExpr a, T
 		map(ctx.alloc, a.cases, (ref MatchEnumExpr.Case case_) =>
 			JsSwitchStatement.Case(
 				translateEnumValue(ctx, case_.member),
-				translateExprToStatement(ctx, case_.then, type))),
+				translateExprToBlockStatement(ctx, case_.then, type))),
 		translateSwitchDefault(ctx, a.else_, type, "Invalid enum value")));
 
 ExprResult translateMatchIntegral(ref TranslateModuleCtx ctx, ref MatchIntegralExpr a, Type type, scope ExprPos pos) =>
@@ -1018,7 +1030,7 @@ ExprResult translateMatchIntegral(ref TranslateModuleCtx ctx, ref MatchIntegralE
 		map(ctx.alloc, a.cases, (ref MatchIntegralExpr.Case case_) =>
 			JsSwitchStatement.Case(
 				translateIntegralValue(a.kind, case_.value),
-				translateExprToStatement(ctx, case_.then, type))),
+				translateExprToBlockStatement(ctx, case_.then, type))),
 		translateExprToStatement(ctx, a.else_, type)));
 
 ExprResult translateMatchStringLike(ref TranslateModuleCtx ctx, ref MatchStringLikeExpr a, Type type, scope ExprPos pos) =>
@@ -1026,7 +1038,7 @@ ExprResult translateMatchStringLike(ref TranslateModuleCtx ctx, ref MatchStringL
 		ctx.alloc,
 		translateExprToExpr(ctx, a.matched),
 		map(ctx.alloc, a.cases, (ref MatchStringLikeExpr.Case case_) =>
-			JsSwitchStatement.Case(genString(case_.value), translateExprToStatement(ctx, case_.then, type))),
+			JsSwitchStatement.Case(genString(case_.value), translateExprToBlockStatement(ctx, case_.then, type))),
 		translateExprToStatement(ctx, a.else_, type)));
 
 ExprResult translateMatchUnion(ref TranslateModuleCtx ctx, ref MatchUnionExpr a, Type type, scope ExprPos pos) =>
@@ -1114,18 +1126,18 @@ ExprResult translateFinally(ref TranslateModuleCtx ctx, ref FinallyExpr a, Type 
 		right
 	}
 	*/
-	forceStatement(ctx, pos, JsStatement(allocate(ctx.alloc, JsTryFinallyStatement(
-		translateExprToStatement(ctx, a.below, type),
-		translateExprToStatement(ctx, a.right, Type(ctx.commonTypes.void_))))));
+	forceStatement(ctx, pos, JsStatement(JsTryFinallyStatement(
+		translateExprToBlockStatement(ctx, a.below, type),
+		translateExprToBlockStatement(ctx, a.right, Type(ctx.commonTypes.void_)))));
 
 ExprResult translateTry(ref TranslateModuleCtx ctx, ref TryExpr a, Type type, scope ExprPos pos) {
 	JsName exceptionName = JsName(symbol!"exception");
 	JsExpr exn = JsExpr(exceptionName);
 	return forceStatement(ctx, pos, genTryCatch(
 		ctx.alloc,
-		translateExprToStatement(ctx, a.tried, type),
+		translateExprToBlockStatement(ctx, a.tried, type),
 		exceptionName,
-		translateToStatement((scope ExprPos inner) =>
+		translateToBlockStatement((scope ExprPos inner) =>
 			translateMatchVariant(ctx, exceptionName, a.catches, genThrow(ctx.alloc, JsExpr(exceptionName)), type, inner))));
 }
 
@@ -1148,13 +1160,13 @@ ExprResult translateTryLet(ref TranslateModuleCtx ctx, ref TryLetExpr a, Type ty
 	forceStatements(pos, (scope ref Builder!JsStatement out_, scope ExprPos inner) {
 		JsName catching = JsName(symbol!"catching"); // TODO: make sure to increment temp index...
 		out_ ~= genLet(ctx.alloc, JsDestructure(catching), genBool(true));
-		JsStatement tryBlock = translateToStatement((scope ExprPos tryPos) =>
+		JsBlockStatement tryBlock = translateToBlockStatement((scope ExprPos tryPos) =>
 			translateLetLikeCb(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), tryPos, (scope ref Builder!JsStatement tryOut, scope ExprPos tryInner) {
 				tryOut ~= genAssign(ctx.alloc, catching, genBool(false));
 				return translateExpr(ctx, a.then, type, tryInner);
 			}));
 		JsName exceptionName = JsName(symbol!"exception");
-		JsStatement catchBlock = translateToStatement((scope ref Builder!JsStatement catchOut, scope ExprPos catchPos) {
+		JsBlockStatement catchBlock = translateToBlockStatement((scope ref Builder!JsStatement catchOut, scope ExprPos catchPos) {
 			JsExpr cond = genOr(
 				ctx.alloc,
 				genNot(ctx.alloc, JsExpr(catching)),
