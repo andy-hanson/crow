@@ -398,6 +398,7 @@ Module* checkWorkerAfterCommonTypes(
 	StructDecl[] structs,
 	scope ref DelayStructInsts delayStructInsts,
 	Uri uri,
+	Config* config,
 	ref ImportsAndReExports importsAndReExports,
 	FileAst* ast,
 ) {
@@ -426,6 +427,7 @@ Module* checkWorkerAfterCommonTypes(
 	SmallArray!ImportOrExport imports = finishImports(ctx);
 	return allocate(ctx.alloc, Module(
 		uri,
+		config,
 		ast,
 		finishDiagnostics(ctx),
 		imports,
@@ -568,6 +570,7 @@ BootstrapCheck checkWorker(
 			structs,
 			delayStructInsts,
 			uriAndAst.uri,
+			uriAndAst.config,
 			importsAndReExports,
 			ast);
 		return BootstrapCheck(res, commonTypes);

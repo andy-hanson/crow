@@ -47,6 +47,9 @@ VersionInfo versionInfoForJIT(OS os, VersionOptions options) =>
 VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
 	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
 
+VersionInfo versionInfoForBuildToJS() =>
+	VersionInfo(OS.web, VersionOptions(isSingleThreaded: true, stackTraceEnabled: true), isInterpreted: false, isJit: false);
+
 enum VersionFun {
 	isBigEndian,
 	isInterpreted,

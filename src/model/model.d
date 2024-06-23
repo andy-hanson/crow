@@ -1471,6 +1471,7 @@ immutable struct Module {
 	@safe @nogc pure nothrow:
 
 	Uri uri;
+	Config* config; // The config closest to this module. (Not necessarily the main config.)
 	FileAst* ast;
 	SmallArray!Diagnostic diagnostics; // See also 'ast.diagnostics'
 	SmallArray!ImportOrExport imports; // includes import of std (if applicable)
@@ -1490,7 +1491,7 @@ immutable struct Module {
 Uri getModuleUri(in Module* a) =>
 	a.uri;
 
-void eachImportOrReExport(in Module a, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
+void eachImportOrReExport(in Module a, in void delegate(ref ImportOrExport) @safe @nogc pure nothrow cb) {
 	foreach (ref ImportOrExport x; a.imports)
 		cb(x);
 	foreach (ref ImportOrExport x; a.reExports)
@@ -1506,7 +1507,7 @@ immutable struct ImportOrExport {
 	// If this is internal, imports internal and public exports; if this is public, import only public exports
 	ExportVisibility importVisibility;
 	// If the ast was NameAndRange[], this will have an entry for each name (except when there was nothing to import).
-	// For an import of a ModuleWhole (except 'std'), this tracks what was actually used in this module.
+	// For an import of a ModuleWhole, this tracks what was actually used in this module.
 	// For a re-export of a ModuleWhole, this is not used.
 	Late!ImportedReferents imported_;
 

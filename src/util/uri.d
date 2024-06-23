@@ -5,7 +5,7 @@ module util.uri;
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : fold, indexOf, indexOfStartingAt, isEmpty, reverseInPlace, sum;
+import util.col.array : applyNTimes, fold, indexOf, indexOfStartingAt, isEmpty, reverseInPlace, sum;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
@@ -218,6 +218,14 @@ FilePath parentOrEmpty(FilePath a) {
 	return optOrDefault!FilePath(res, () => a);
 }
 
+Uri firstNComponents(Uri uri, size_t n) {
+	size_t count = countComponents(uri);
+	assert(count >= n);
+	Uri res = applyNTimes!Uri(uri, count - n, (Uri x) => force(parent(x)));
+	assert(countComponents(res) == n);
+	return res;
+}
+
 // Removes an existing extension and adds a new one.
 FilePath alterExtension(FilePath a, Extension newExtension) =>
 	FilePath(alterExtension(a.path, newExtension));
@@ -338,6 +346,12 @@ Opt!Uri resolveUri(Uri base, RelPath relPath) {
 Uri concatUriAndPath(Uri a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		Uri(descendentPath(a.path, components)));
+
+size_t countComponents(Uri a) =>
+	countComponents(a.path);
+size_t countComponents(Path a) =>
+	// TODO: PERF ------------------------------------------------------------------------------------------------------------------
+	withComponents!size_t(a, (in Symbol[] xs) => xs.length);
 
 T withComponents(T)(Path a, in T delegate(in Symbol[]) @safe @nogc pure nothrow cb) =>
 	withComponentsPreferRelative!T(none!Path, a, (bool isRelative, in Symbol[] components) {
@@ -580,28 +594,55 @@ immutable struct UrisInfo {
 	Opt!Uri cwd;
 }
 
-bool isAncestor(Uri a, Uri b) {
+bool isAncestor(Uri a, Uri b) =>
+	isAncestor(a.path, b.path);
+bool isAncestor(Path a, Path b) {
 	if (a == b)
 		return true;
 	else {
-		Opt!Uri par = parent(b);
+		Opt!Path par = parent(b);
 		return has(par) && isAncestor(a, force(par));
 	}
+}
+
+// 'a' must be an ancestor of 'b'. Gives the path from 'a' to 'b'.
+Path pathFromAncestor(Uri a, Uri b) =>
+	pathFromAncestor(a.path, b.path);
+Path pathFromAncestor(Path a, Path b) {
+	assert(isAncestor(a, b));
+	Path parent = force(parent(b));
+	return parent == a
+		? rootPath(baseName(b), PathInfo())
+		: pathFromAncestor(a, parent) / baseName(b);
+}
+
+Path prefixPathComponent(Symbol first, Path rest) =>
+	withComponents(rest, (in Symbol[] components) =>
+		descendentPath(rootPath(first, PathInfo()), components));
+
+RelPath relativePath(Path from, Path to) { // TODO: UNIT TEST _---------------------------------------------------------------
+	/*
+	So...
+	First walk up from 'from' until you get to an ancestor of 'to'.
+	Then, append 'to'. Simples!
+	*/
+	ushort nParents = 0;
+	Cell!Path ancestor = Cell!Path(from);
+	while (!isAncestor(cellGet(ancestor), to)) {
+		nParents++;
+		Opt!Path parent = parent(cellGet(ancestor));
+		if (has(parent))
+			return RelPath(nParents, to);
+		else
+			cellSet(ancestor, force(parent));
+	}
+	return RelPath(nParents, pathFromAncestor(cellGet(ancestor), to));
 }
 
 private:
 
 bool isSlash(char a) =>
 	a == '/' || a == '\\';
-
-Uri removeLastNParts(Uri a, size_t nToRemove) {
-	if (nToRemove == 0)
-		return a;
-	else {
-		Opt!Uri par = parent(a);
-		return removeLastNParts(force(par), nToRemove - 1);
-	}
-}
 
 void writePath(scope ref Writer writer, Path a, bool uriEncode = false) { // TODO: implement 'writeTo' for 'Path'
 	withComponents(a, (in Symbol[] components) {

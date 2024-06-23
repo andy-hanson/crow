@@ -2,7 +2,7 @@ module backend.js.translateToJs;
 
 @safe @nogc pure nothrow:
 
-import backend.js.allUsed : AllUsed, allUsed, AnyDecl, bodyIsInlined, isUsedAnywhere, isUsedInModule;
+import backend.js.allUsed : AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule;
 import backend.js.jsAst :
 	genAssign,
 	genBool,
@@ -13,6 +13,8 @@ import backend.js.jsAst :
 	genIf,
 	genIn,
 	genInstanceof,
+	genIntegerSigned,
+	genIntegerUnsigned,
 	genLet,
 	genNew,
 	genNot,
@@ -63,9 +65,12 @@ import backend.js.jsAst :
 	JsUnaryExpr,
 	JsVarDecl,
 	JsWhileStatement;
+import backend.js.writeJsAst : writeJsAst;
 import frontend.ide.ideUtil : eachDescendentExprIncluding;
 import model.ast : addExtension, ImportOrExportAstKind, PathOrRelPath;
+import model.constant : asBool, Constant;
 import model.model :
+	asExtern,
 	AssertOrForbidExpr,
 	AutoFun,
 	BogusExpr,
@@ -81,6 +86,7 @@ import model.model :
 	Condition,
 	Config,
 	Destructure,
+	eachImportOrReExport,
 	EnumFunction,
 	EnumOrFlagsMember,
 	Expr,
@@ -145,15 +151,18 @@ import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : KeyValuePair, Map, mustGet;
 import util.col.mutArr : MutArr;
-import util.col.mutMap : addOrChange, getOrAdd, hasKey, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
+import util.col.mutMap : addOrChange, getOrAdd, hasKey, mapToMap2, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
 import util.col.set : Set;
+import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
-import util.uri : parsePath, Path, Uri;
+import util.symbolSet : SymbolSet, symbolSet;
 import util.union_ : TaggedUnion, Union;
-import util.util : ptrTrustMe, todo, typeAs;
+import util.uri : countComponents, firstNComponents, isAncestor, parsePath, Path, pathFromAncestor, prefixPathComponent, RelPath, relativePath, Uri;
+import util.util : min, ptrTrustMe, todo, typeAs;
+import versionInfo : isVersion, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
 	Map!(Path, string) outputFiles;
@@ -162,59 +171,126 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) 
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
 	// We need to start with the modules with no dependencies and work down...
 	AllUsed allUsed = allUsed(alloc, program);
+	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
 		program.program.commonTypes,
+		versionInfoForBuildToJS(),
+		allExternForJs(),
 		allUsed,
+		modulePaths,
 		moduleExportMangledNames(alloc, program.program, allUsed));
-	foreach (Module* x; program.program.rootModules)
-		doTranslateModule(ctx, x);
-	return TranslateToJsResult(getOutputFiles(*program.mainConfig, ctx.done));
+	
+	foreach (Module* module_; program.program.rootModules)
+		doTranslateModule(ctx, module_);
+	return TranslateToJsResult(getOutputFiles(alloc, modulePaths, ctx.done));
 }
 
 private:
 
-Map!(Path, string) getOutputFiles(in Config config, in MutMap!(Module*, JsModuleAst) done) {
-	return todo!(Map!(Path, string))("getOutputFiles"); // -------------------------------------------------------------------------
+Map!(Uri, Path) modulePaths(ref Alloc alloc, in ProgramWithMain program) {
+	// First: Find the common URI for all modules accessible from 'main' through relative imports.
+
+	Module* main = only(program.program.rootModules);
+	size_t minComponents = countComponents(main.uri);
+	eachRelativeImportModule(main, (Module* x) {
+		minComponents = min(minComponents, countComponents(x.uri));
+	});
+
+	assert(minComponents > 0);
+	Uri mainCommon = firstNComponents(main.uri, minComponents - 1);
+	eachRelativeImportModule(main, (Module* x) {
+		assert(isAncestor(mainCommon, x.uri));
+	});
+
+	MutMap!(Uri, Path) res;
+	void recur(in Module x, Opt!Path globalPath) @safe @nogc nothrow {
+		if (!hasKey(res, x.uri)) {
+			Path path = optOrDefault!Path(globalPath, () =>
+				prefixPathComponent(symbol!"main", pathFromAncestor(mainCommon, x.uri)));
+			mustAdd(alloc, res, x.uri, path);
+			eachImportOrReExport(x, (ref ImportOrExport im) @safe nothrow {
+				recur(im.module_, has(im.source) ? optPath(force(im.source).path) : some(parsePath("crow/std")));
+			});
+		}
+	}
+	recur(*main, none!Path);
+	return moveToMap(alloc, res);
 }
+Opt!Path optPath(PathOrRelPath a) =>
+	a.match!(Opt!Path)(
+		(Path x) => some(x),
+		(RelPath _) => none!Path);
+
+void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nogc pure nothrow cb) {
+	withTempSet!(void, Module*)(0x100, (scope ref TempSet!(Module*) seen) {
+		void recur(Module* x) @safe @nogc nothrow {
+			if (tryAdd(seen, x)) {
+				cb(x);
+				eachImportOrReExport(*x, (ref ImportOrExport im) @safe nothrow {
+					if (has(im.source) && force(im.source).path.isA!RelPath) {
+						recur(im.modulePtr);
+					}
+				});
+			}
+		}
+		recur(main);
+	});
+}
+
+SymbolSet allExternForJs() =>
+	symbolSet(symbol!"js");
+
+Map!(Path, string) getOutputFiles(
+	ref Alloc alloc,
+	in Map!(Uri, Path) modulePaths,
+	in MutMap!(Module*, JsModuleAst) done,
+) =>
+	mapToMap2!(Path, string, Module*, JsModuleAst)(alloc, done, (Module* key, ref JsModuleAst value) =>
+		immutable KeyValuePair!(Path, string)(mustGet(modulePaths, key.uri), writeJsAst(alloc, value)));
 
 struct TranslateProgramCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	CommonTypes* commonTypes;
-	AllUsed allUsed;
-	ModuleExportMangledNames exportMangledNames;
-	MutMap!(Module*, JsModuleAst) done;
+	immutable CommonTypes* commonTypes;
+	immutable VersionInfo version_;
+	immutable SymbolSet allExtern;
+	immutable AllUsed allUsed;
+	immutable Map!(Uri, Path) modulePaths;
+	immutable ModuleExportMangledNames exportMangledNames;
+	MutMap!(Module*, JsModuleAst) done; // TODO: maybe move this outside of TranslateProgramCtx. It's only used in doTranslateModule
 
 	ref Alloc alloc() =>
 		*allocPtr;
 }
 
 void doTranslateModule(ref TranslateProgramCtx ctx, Module* a) {
-	if (hasKey(ctx.done, a)) return;
+	if (!isModuleUsed(ctx.allUsed, a.uri) || hasKey(ctx.done, a)) return;
 	foreach (ImportOrExport x; a.imports)
 		doTranslateModule(ctx, x.modulePtr);
 	foreach (ImportOrExport x; a.reExports)
 		doTranslateModule(ctx, x.modulePtr);
-	mustAdd(ctx.alloc, ctx.done, a, translateModule(ctx.alloc, *ctx.commonTypes, ctx.allUsed, ctx.exportMangledNames, *a));
+	mustAdd(ctx.alloc, ctx.done, a, translateModule(ctx, *a));
 }
 
-JsModuleAst translateModule(ref Alloc alloc, in CommonTypes commonTypes, in AllUsed allUsed, in ModuleExportMangledNames mangledNames, ref Module a) {
+JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 	MutMap!(StructDecl*, StructAlias*) aliases;
-	JsImport[] imports = translateImports(alloc, allUsed, mangledNames, a.uri, a.imports, aliases, isReExport: false);
-	JsImport[] reExports = translateImports(alloc, allUsed, mangledNames, a.uri, a.reExports, aliases, isReExport: true);
-	TranslateModuleCtx ctx = TranslateModuleCtx(
-		ptrTrustMe(alloc),
-		ptrTrustMe(commonTypes),
-		ptrTrustMe(allUsed),
-		ptrTrustMe(mangledNames),
-		modulePrivateMangledNames(alloc, a, mangledNames, allUsed),
-		moveToMap(alloc, aliases));
+	JsImport[] imports = translateImports(ctx, a.uri, a.imports, aliases, isReExport: false);
+	JsImport[] reExports = translateImports(ctx, a.uri, a.reExports, aliases, isReExport: true);
+	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
+		ctx.allocPtr,
+		ctx.commonTypes,
+		ctx.version_,
+		ctx.allExtern,
+		ptrTrustMe(ctx.allUsed),
+		ptrTrustMe(ctx.exportMangledNames),
+		modulePrivateMangledNames(ctx.alloc, a, ctx.exportMangledNames, ctx.allUsed),
+		moveToMap(ctx.alloc, aliases));
 	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
 		eachDeclInModule(a, (AnyDecl x) {
-			if (isUsedAnywhere(allUsed, x)) {
-				Opt!JsDecl res = translateDecl(ctx, x);
+			if (isUsedAnywhere(ctx.allUsed, x)) {
+				Opt!JsDecl res = translateDecl(moduleCtx, x);
 				if (has(res))
 					out_ ~= force(res);
 			}
@@ -227,6 +303,8 @@ struct TranslateModuleCtx {
 	@safe @nogc pure nothrow:
 	Alloc* allocPtr;
 	immutable CommonTypes* commonTypesPtr;
+	immutable VersionInfo version_;
+	immutable SymbolSet allExtern;
 	immutable AllUsed* allUsedPtr;
 	immutable ModuleExportMangledNames* exportMangledNames;
 	immutable Map!(AnyDecl, ushort) privateMangledNames;
@@ -346,44 +424,42 @@ void eachDeclInModule(ref Module a, in void delegate(AnyDecl) @safe @nogc pure n
 }
 
 JsImport[] translateImports(
-	ref Alloc alloc,
-	in AllUsed allUsed,
-	in ModuleExportMangledNames mangledNames,
+	ref TranslateProgramCtx ctx,	
 	Uri curModuleUri,
 	ImportOrExport[] imports,
 	scope ref MutMap!(StructDecl*, StructAlias*) aliases,
 	bool isReExport,
-) =>
-	map(alloc, imports, (ref ImportOrExport x) {
-		Opt!(JsName[]) names = optIf(!(isReExport && has(x.source) && force(x.source).kind.isA!(ImportOrExportAstKind.ModuleWhole)), () => // TODO: I think we still need to track aliases used by a re-exporting module
-			buildArray(alloc, (scope ref Builder!JsName out_) {
+) {
+	Path importerPath = mustGet(ctx.modulePaths, curModuleUri);
+	return map(ctx.alloc, imports, (ref ImportOrExport x) {
+		Opt!(JsName[]) names = optIf(!(isReExport && isImportModuleWhole(x)), () => // TODO: I think we still need to track aliases used by a re-exporting module
+			buildArray(ctx.alloc, (scope ref Builder!JsName out_) {
 				withSortedKeys!(void, NameReferents*, Symbol, nameFromNameReferentsPointer)(
 					x.imported,
 					(in Symbol x, in Symbol y) => compareSymbolsAlphabetically(x, y),
 					(in Symbol[] names) {
 						foreach (Symbol name; names) {
 							eachNameReferent(*mustGet(x.imported, name), (AnyDecl decl) {
-								if (isUsedInModule(allUsed, curModuleUri, decl))
-									out_ ~= JsName(name, mangledNames.mangledNames[decl]);
+								if (isUsedInModule(ctx.allUsed, curModuleUri, decl))
+									out_ ~= JsName(name, ctx.exportMangledNames.mangledNames[decl]);
 								else if (decl.isA!(StructAlias*)) {
 									StructAlias* alias_ = decl.as!(StructAlias*);
 									StructDecl* target = alias_.target.decl;
-									if (isUsedInModule(allUsed, curModuleUri, AnyDecl(target))) {
-										out_ ~= JsName(name, mangledNames.mangledNames[decl]);
+									if (isUsedInModule(ctx.allUsed, curModuleUri, AnyDecl(target))) {
+										out_ ~= JsName(name, ctx.exportMangledNames.mangledNames[decl]);
 										// If multiple aliases, just use the first
-										getOrAdd!(StructDecl*, StructAlias*)(alloc, aliases, target, () => alias_);
+										getOrAdd!(StructDecl*, StructAlias*)(ctx.alloc, aliases, target, () => alias_);
 									}
 								}
 							});
 						}
 					});
 			}));
-		return JsImport(names, getJsImportUri(x));
+		return JsImport(names, relativePath(importerPath, mustGet(ctx.modulePaths, x.module_.uri)));
 	});
-PathOrRelPath getJsImportUri(in ImportOrExport a) =>
-	has(a.source)
-		? force(a.source).path
-		: PathOrRelPath(parsePath("crow/std.js"));
+}
+bool isImportModuleWhole(in ImportOrExport x) =>
+	!has(x.source) || force(x.source).kind.isA!(ImportOrExportAstKind.ModuleWhole);
 
 Opt!JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 	x.matchWithPointers!(Opt!JsDecl)(
@@ -656,9 +732,9 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 		(ref LetExpr x) =>
 			translateLet(ctx, x, type, pos),
 		(LiteralExpr x) =>
-			todo!ExprResult("LITERAL"),
+			forceExpr(ctx, pos, type, translateLiteral(ctx, x.value, type)),
 		(LiteralStringLikeExpr x) =>
-			todo!ExprResult("LITERAL STRING"),
+			forceExpr(ctx, pos, type, genString(x.value)),
 		(LocalGetExpr x) =>
 			forceExpr(ctx, pos, type, JsExpr(JsName(x.local.name))),
 		(LocalPointerExpr x) =>
@@ -723,7 +799,7 @@ ExprResult translateAssertOrForbid(ref TranslateModuleCtx ctx, ref AssertOrForbi
 
 ExprResult translateCall(ref TranslateModuleCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) =>
 	isInlined(a.called)
-		? forceExpr(ctx, pos, type, translateInlineCall(ctx, a.called.as!(FunInst*).decl.body_, a.args.length, (size_t i) =>
+		? forceExpr(ctx, pos, type, translateInlineCall(ctx, a.called.as!(FunInst*).decl.body_, type, a.args.length, (size_t i) =>
 			translateExprToExpr(ctx, a.args[i], todo!Type("argType"))))
 		: forceExpr(ctx, pos, type, genCall(
 			allocate(ctx.alloc, calledExpr(ctx, a.called)),
@@ -735,6 +811,7 @@ bool isInlined(in Called a) =>
 JsExpr translateInlineCall(
 	ref TranslateModuleCtx ctx,
 	in FunBody body_,
+	Type returnType,
 	size_t nArgs,
 	in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg,
 ) {
@@ -749,8 +826,8 @@ JsExpr translateInlineCall(
 			todo!JsExpr("AUTO"),
 		(in BuiltinFun) =>
 			todo!JsExpr("BUILTIN"),
-		(in FunBody.CreateEnumOrFlags) =>
-			todo!JsExpr("CREATE ENUM"),
+		(in FunBody.CreateEnumOrFlags x) =>
+			genPropertyAccess(ctx.alloc, translateStructReference(ctx, returnType.as!(StructInst*).decl), x.member.name),
 		(in FunBody.CreateExtern) =>
 			assert(false),
 		(in FunBody.CreateRecord) =>
@@ -801,7 +878,7 @@ JsExpr translateInlineCall(
 ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scope ExprPos pos) {
 	Opt!bool constant = tryEvalConstantBool(ctx, a.condition);
 	if (has(constant))
-		return todo!ExprResult("use the constant!"); // -----------------------------------------------------------------------------------
+		return translateExpr(ctx, force(constant) ? a.trueBranch : a.falseBranch, type, pos);
 	else if (pos.isA!(ExprPos.Expression) && a.condition.isA!(Expr*))
 		return ExprResult(JsExpr(allocate(ctx.alloc, JsTernaryExpr(
 			translateExprToExpr(ctx, *a.condition.as!(Expr*), Type(ctx.commonTypes.bool_)),
@@ -829,8 +906,28 @@ ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scop
 					*/
 				}));
 }
-Opt!bool tryEvalConstantBool(in TranslateModuleCtx ctx, in Condition a) =>
-	todo!(Opt!bool)("Check if it's an 'extern' expression!"); // Use `bool asExtern(Condition a)` from model.d -------------------------------------------------------------------
+Opt!bool tryEvalConstantBool(in TranslateModuleCtx ctx, in Condition a) {
+	if (a.isA!(Expr*)) {
+		// TODO: PYRAMID OF DOOM! ------------------------------------------------------------------------------------------------
+		Expr* x = a.as!(Expr*);
+		if (x.kind.isA!CallExpr) {
+			Called y = x.kind.as!CallExpr.called;
+			if (y.isA!(FunInst*)) {
+				FunDecl* decl = y.as!(FunInst*).decl;
+				if (decl.body_.isA!BuiltinFun) {
+					BuiltinFun bf = decl.body_.as!BuiltinFun;
+					if (bf.isA!VersionFun) {
+						return some(isVersion(ctx.version_, bf.as!VersionFun));
+					}
+				}
+			}
+		}
+	}
+
+	Opt!Symbol extern_ = asExtern(a);
+	return optIf(has(extern_), () =>
+		ctx.allExtern.has(force(extern_)));
+}
 
 ExprResult translateLambda(ref TranslateModuleCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(
@@ -866,6 +963,30 @@ ExprResult translateLetLikeCb(
 				value);
 		return cb(out_, inner);
 	});
+
+JsExpr translateLiteral(ref TranslateModuleCtx ctx, Constant value, Type type) {
+	switch (type.as!(StructInst*).decl.body_.as!BuiltinType) {
+		case BuiltinType.bool_:
+			return genBool(asBool(value));
+		case BuiltinType.float32: // TODO: we probably shouldn't allow float32 in JS -------------------------------------------
+		case BuiltinType.float64:
+			return genNumber(value.as!(Constant.Float).value);
+		case BuiltinType.int8:
+		case BuiltinType.int16:
+		case BuiltinType.int32:
+		case BuiltinType.int64:
+			return genIntegerSigned(value.as!IntegralValue.asSigned);
+		case BuiltinType.char8:
+		case BuiltinType.char32:
+		case BuiltinType.nat8:
+		case BuiltinType.nat16:
+		case BuiltinType.nat32:
+		case BuiltinType.nat64:
+			return genIntegerUnsigned(value.as!IntegralValue.asUnsigned);
+		default:
+			assert(false);
+	}
+}
 
 ExprResult translateLoopWhileOrUntil(ref TranslateModuleCtx ctx, ref LoopWhileOrUntilExpr a, Type type, scope ExprPos pos) =>
 	a.condition.match!ExprResult(

@@ -201,5 +201,18 @@ private @trusted Out[] mapToArray(Out, K, V)(
 	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
 }
 
+@trusted Map!(KOut, VOut) mapToMap2(KOut, VOut, KIn, VIn)(
+	ref Alloc alloc,
+	in MutMap!(KIn, VIn) a,
+	in immutable(KeyValuePair!(KOut, VOut)) delegate(KIn, ref const VIn) @safe @nogc pure nothrow cb,
+) {
+	MutMap!(KOut, VOut) res;
+	foreach (const KIn key, ref const VIn value; a) {
+		KeyValuePair!(KOut, VOut) pair = cb(key, value);
+		mustAdd(alloc, res, pair.key, pair.value);
+	}
+	return moveToMap(alloc, res);
+}
+
 V[] valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArray!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);

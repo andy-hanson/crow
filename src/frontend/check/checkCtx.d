@@ -24,7 +24,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : exists, isEmpty, mustFind, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
-import util.col.hashTable : getPointer, isEmpty, moveToImmutable, mustAdd, MutHashTable;
+import util.col.hashTable : getPointer, HashTable, isEmpty, moveToImmutable, mustAdd, MutHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
@@ -113,19 +113,17 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 
 SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
-		if (import_.isStd) continue;
+		if (import_.isStd) {
+			import_.imported = collectImported(ctx, import_); // TODO: What's the performance effect? Maybe this should only be done for a JS build?
+			continue;
+		}
+
 		void addDiagUnused(Range range, Opt!Symbol name) {
 			addDiag(ctx, range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(import_.modulePtr, name)))));
 		}
 		force(import_.source).kind.match!void(
 			(ImportOrExportAstKind.ModuleWhole x) {
-				MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) imported;
-				foreach (ref NameReferents nr; import_.module_.exports) {
-					if (containsUsed(nr, import_.importVisibility, ctx.used))
-						mustAdd(ctx.alloc, imported, &nr);
-				}
-				import_.imported = moveToImmutable(imported);
-				assert(import_.hasImported);
+				import_.imported = collectImported(ctx, import_);
 				if (isEmpty(import_.imported))
 					addDiagUnused(force(import_.source).pathRange, none!Symbol);
 			},
@@ -141,6 +139,14 @@ SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 			});
 	}
 	return ctx.importsAndReExports.imports;
+}
+HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(ref CheckCtx ctx, ref ImportOrExport import_) {
+	MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) res;
+	foreach (ref NameReferents nr; import_.module_.exports) {
+		if (containsUsed(nr, import_.importVisibility, ctx.used))
+			mustAdd(ctx.alloc, res, &nr);
+	}
+	return moveToImmutable(res);
 }
 
 private bool containsUsed(in NameReferents a, ExportVisibility importVisibility, in UsedSet used) =>

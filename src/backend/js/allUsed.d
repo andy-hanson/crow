@@ -33,7 +33,7 @@ import model.model :
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.map : Map, mustGet;
+import util.col.map : hasKey, Map, mustGet;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
@@ -72,6 +72,8 @@ immutable struct AllUsed {
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
 	a.usedDecls.has(x);
+bool isModuleUsed(in AllUsed a, Uri module_) =>
+	hasKey(a.usedPerModule, module_);
 bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) =>
 	mustGet(a.usedPerModule, module_).has(x);
 

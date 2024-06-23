@@ -781,7 +781,7 @@ void eachModuleReferencing(
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable Module* importingModule; program.allModules)
-		eachImportOrReExport(*importingModule, (in ImportOrExport x) {
+		eachImportOrReExport(*importingModule, (ref ImportOrExport x) {
 			if (x.modulePtr == exportingModule)
 				cb(*importingModule, x);
 		});

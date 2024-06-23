@@ -2,7 +2,6 @@ module backend.js.jsAst;
 
 @safe @nogc pure nothrow:
 
-import model.ast : PathOrRelPath;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, SmallArray;
 import util.col.map : KeyValuePair, Map;
@@ -11,7 +10,7 @@ import util.memory : allocate;
 import util.opt : Opt;
 import util.symbol : Symbol, symbol;
 import util.union_ : Union;
-import util.uri : Uri;
+import util.uri : RelPath, Uri;
 
 // This is specifically for what we emit.
 // We emit a bunch of 'const' declarations.
@@ -31,7 +30,7 @@ static assert(JsName.sizeof == ulong.sizeof);
 
 immutable struct JsImport {
 	Opt!(JsName[]) importedNames; // Otherwise this is 'import *'
-	PathOrRelPath path;
+	RelPath path;
 }
 
 immutable struct JsDecl {
@@ -156,6 +155,7 @@ immutable struct JsExpr {
 		JsCallExpr,
 		JsCallWithSpreadExpr,
 		JsLiteralBool,
+		JsLiteralInteger,
 		JsLiteralNumber,
 		JsLiteralString,
 		JsName,
@@ -194,6 +194,10 @@ immutable struct JsInstanceofExpr {
 }
 immutable struct JsLiteralBool {
 	bool value;
+}
+immutable struct JsLiteralInteger {
+	bool isSigned;
+	IntegralValue value;
 }
 immutable struct JsLiteralNumber {
 	double value;
@@ -244,6 +248,10 @@ JsExpr genIn(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.in_, arg0, arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.instanceof, arg0, arg1);
+JsExpr genIntegerSigned(long value) =>
+	JsExpr(JsLiteralInteger(isSigned: true, value: IntegralValue(value)));
+JsExpr genIntegerUnsigned(ulong value) =>
+	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
 JsExpr genNot(ref Alloc alloc, JsExpr arg) => //TODO:MOVE -------------------------------------------------------------------------------
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.not, allocate(alloc, arg)));
 JsExpr genNumber(double value) =>
