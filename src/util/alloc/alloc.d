@@ -523,6 +523,7 @@ size_t blockHeaderSizeWords() {
 	word[] res = a.curWord[0 .. nWords];
 	a.curWord = newCur;
 	assertOwns(a, res);
+	assert(a.curWord <= a.curBlock.end);
 	return res;
 }
 
@@ -544,6 +545,7 @@ size_t blockHeaderSizeWords() {
 		a.curBlock = block;
 		a.curWord = block.words.ptr;
 	}
+	assert(a.curWord <= a.curBlock.end);
 	assert(a.curBlock.end - a.curWord >= minWords);
 	validate(*a.meta);
 }

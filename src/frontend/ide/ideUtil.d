@@ -214,7 +214,7 @@ void eachDescendentExprExcluding(
 	});
 }
 
-private void eachDirectChildExpr(
+void eachDirectChildExpr(
 	ref CommonTypes commonTypes,
 	ExprRef a,
 	in void delegate(ExprRef) @safe @nogc pure nothrow cb,

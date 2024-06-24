@@ -1,3 +1,8 @@
+no-std
+import
+	crow/log: info, log
+	crow/misc: void
+
 main void() unsafe
 	info log if extern js
 		"hello, js"

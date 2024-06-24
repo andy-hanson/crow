@@ -337,19 +337,27 @@ immutable struct RelPath {
 }
 
 Opt!Uri resolveUri(Uri base, RelPath relPath) {
+	Opt!Path res = resolvePath(base.path, relPath);
+	return optIf(has(res), () => Uri(force(res)));
+}
+
+Opt!Path resolvePath(Path base, RelPath relPath) {
 	if (relPath.nParents == 0)
-		return some(concatUriAndPath(base, relPath.path));
+		return some(concatPaths(base, relPath.path));
 	else {
-		Opt!Uri par = parent(base);
+		Opt!Path par = parent(base);
 		return has(par)
-			? resolveUri(force(par), RelPath(cast(ushort) (relPath.nParents - 1), relPath.path))
-			: none!Uri;
+			? resolvePath(force(par), RelPath(cast(ushort) (relPath.nParents - 1), relPath.path))
+			: none!Path;
 	}
 }
 
 Uri concatUriAndPath(Uri a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		Uri(descendentPath(a.path, components)));
+Path concatPaths(Path a, Path b) =>
+	withComponents(b, (in Symbol[] components) =>
+		descendentPath(a, components));
 FilePath concatFilePathAndPath(FilePath a, Path b) => // TODO: come up with a better name -------------------------------------------------
 	withComponents(b, (in Symbol[] components) =>
 		FilePath(descendentPath(a.path, components)));

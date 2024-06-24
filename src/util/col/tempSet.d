@@ -24,6 +24,7 @@ bool tryAdd(T)(scope ref TempSet!T a, T value) {
 	if (contains(a.storage[0 .. a.size], value))
 		return false;
 	else {
+		assert(a.size <= a.storage.length);
 		initMemory(&a.storage[a.size], value);
 		a.size++;
 		return true;

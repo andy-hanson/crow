@@ -2,7 +2,8 @@ module backend.js.translateToJs;
 
 @safe @nogc pure nothrow:
 
-import backend.js.allUsed : AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule;
+import backend.js.allUsed :
+	AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
 import backend.js.jsAst :
 	genAssign,
 	genBool,
@@ -18,6 +19,7 @@ import backend.js.jsAst :
 	genLet,
 	genNew,
 	genNot,
+	genNull,
 	genNumber,
 	genOr,
 	genPropertyAccess,
@@ -27,6 +29,7 @@ import backend.js.jsAst :
 	genThis,
 	genThrow,
 	genTryCatch,
+	genUndefined,
 	genVarDecl,
 	genWhile,
 	JsArrowFunction,
@@ -74,8 +77,15 @@ import model.model :
 	AssertOrForbidExpr,
 	AutoFun,
 	BogusExpr,
+	Builtin4ary,
+	BuiltinBinary,
+	BuiltinBinaryLazy,
+	BuiltinBinaryMath,
 	BuiltinFun,
+	BuiltinTernary,
 	BuiltinType,
+	BuiltinUnary,
+	BuiltinUnaryMath,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -141,13 +151,15 @@ import model.model :
 	TryLetExpr,
 	Type,
 	TypedExpr,
+	TypeParamIndex,
 	VarDecl,
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : emptySmallArray, exists, foldReverse, isEmpty, map, mapWithIndex, mapZip, newArray, newSmallArray, only, small, SmallArray;
-import util.col.arrayBuilder : buildArray, Builder, finish;
+import util.col.array :
+	emptySmallArray, exists, foldReverse, isEmpty, makeArray, map, mapOp, mapWithIndex, mapZip, newArray, newSmallArray, only, small, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder, finish;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : KeyValuePair, Map, mustGet;
 import util.col.mutArr : MutArr;
@@ -160,8 +172,21 @@ import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
 import util.symbolSet : SymbolSet, symbolSet;
 import util.union_ : TaggedUnion, Union;
-import util.uri : countComponents, firstNComponents, isAncestor, parsePath, Path, pathFromAncestor, prefixPathComponent, RelPath, relativePath, Uri;
-import util.util : min, ptrTrustMe, todo, typeAs;
+import util.uri :
+	alterExtension,
+	countComponents,
+	firstNComponents,
+	isAncestor,
+	parent,
+	parsePath,
+	Path,
+	pathFromAncestor,
+	prefixPathComponent,
+	RelPath,
+	relativePath,
+	resolvePath,
+	Uri;
+import util.util : min, ptrTrustMe, stringOfEnum, todo, typeAs;
 import versionInfo : isVersion, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
@@ -170,13 +195,15 @@ immutable struct TranslateToJsResult {
 TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) {
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
 	// We need to start with the modules with no dependencies and work down...
-	AllUsed allUsed = allUsed(alloc, program);
+	VersionInfo version_ = versionInfoForBuildToJS();
+	SymbolSet allExtern = allExternForJs();
+	AllUsed allUsed = allUsed(alloc, program, version_, allExtern);
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
 		program.program.commonTypes,
-		versionInfoForBuildToJS(),
-		allExternForJs(),
+		version_,
+		allExtern,
 		allUsed,
 		modulePaths,
 		moduleExportMangledNames(alloc, program.program, allUsed));
@@ -189,40 +216,52 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) 
 private:
 
 Map!(Uri, Path) modulePaths(ref Alloc alloc, in ProgramWithMain program) {
-	// First: Find the common URI for all modules accessible from 'main' through relative imports.
-
 	Module* main = only(program.program.rootModules);
+	Uri mainCommon = findCommonMainDirectory(main);
+	MutMap!(Uri, Path) res;
+	void recur(in Module x, Opt!Path fromPath, PathOrRelPath pr) @safe @nogc nothrow {
+		if (!hasKey(res, x.uri)) {
+			Path path = pr.match!Path(
+				(Path x) => x,
+				(RelPath x) => force(resolvePath(force(parent(force(fromPath))), x)));
+			import util.writer : debugLogWithWriter, Writer; // -------------------------------------------------------------
+			debugLogWithWriter((scope ref Writer writer) {
+				writer ~= "translate from ";
+				writer ~= x.uri;
+				writer ~= " to ";
+				writer ~= path;
+			});
+			mustAdd(alloc, res, x.uri, alterExtension(path, Extension.js));
+			eachImportOrReExport(x, (ref ImportOrExport im) @safe nothrow {
+				recur(im.module_, some(path), has(im.source) ? force(im.source).path : PathOrRelPath(parsePath("crow/std")));
+			});
+		}
+	}
+	recur(*main, none!Path, PathOrRelPath(prefixPathComponent(symbol!"main", pathFromAncestor(mainCommon, main.uri))));
+	return moveToMap(alloc, res);
+}
+Uri findCommonMainDirectory(in Module* main) {
+	// First: Find the common URI for all modules accessible from 'main' through relative imports.
 	size_t minComponents = countComponents(main.uri);
 	eachRelativeImportModule(main, (Module* x) {
 		minComponents = min(minComponents, countComponents(x.uri));
 	});
 
 	assert(minComponents > 0);
-	Uri mainCommon = firstNComponents(main.uri, minComponents - 1);
+	Uri res = firstNComponents(main.uri, minComponents - 1);
 	eachRelativeImportModule(main, (Module* x) {
-		assert(isAncestor(mainCommon, x.uri));
+		assert(isAncestor(res, x.uri));
 	});
-
-	MutMap!(Uri, Path) res;
-	void recur(in Module x, Opt!Path globalPath) @safe @nogc nothrow {
-		if (!hasKey(res, x.uri)) {
-			Path path = optOrDefault!Path(globalPath, () =>
-				prefixPathComponent(symbol!"main", pathFromAncestor(mainCommon, x.uri)));
-			mustAdd(alloc, res, x.uri, path);
-			eachImportOrReExport(x, (ref ImportOrExport im) @safe nothrow {
-				recur(im.module_, has(im.source) ? optPath(force(im.source).path) : some(parsePath("crow/std")));
-			});
-		}
-	}
-	recur(*main, none!Path);
-	return moveToMap(alloc, res);
+	return res;
 }
+
 Opt!Path optPath(PathOrRelPath a) =>
 	a.match!(Opt!Path)(
 		(Path x) => some(x),
 		(RelPath _) => none!Path);
 
 void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nogc pure nothrow cb) {
+	// TODO: imports aren't recursive, so why did I think I needed a set? ---------------------------------------------------------
 	withTempSet!(void, Module*)(0x100, (scope ref TempSet!(Module*) seen) {
 		void recur(Module* x) @safe @nogc nothrow {
 			if (tryAdd(seen, x)) {
@@ -266,7 +305,15 @@ struct TranslateProgramCtx {
 }
 
 void doTranslateModule(ref TranslateProgramCtx ctx, Module* a) {
-	if (!isModuleUsed(ctx.allUsed, a.uri) || hasKey(ctx.done, a)) return;
+	if (!isModuleUsed(ctx.allUsed, a.uri)) {
+		import util.writer : debugLogWithWriter, Writer; // ------------------------------------------------------------------------------
+		debugLogWithWriter((scope ref Writer writer) {
+			writer ~= "Not translating unused module ";
+			writer ~= a.uri;
+		});
+		return;
+	}
+	if (hasKey(ctx.done, a)) return;
 	foreach (ImportOrExport x; a.imports)
 		doTranslateModule(ctx, x.modulePtr);
 	foreach (ImportOrExport x; a.reExports)
@@ -360,7 +407,7 @@ ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program pr
 	});
 	// For uniquely identified decls, don't mangle
 	eachExportDeclInProgram(program, (AnyDecl decl) {
-		if (isUsedAnywhere(used, decl) && mustGet(indexForName, decl.name) == 1)
+		if (isUsedAnywhere(used, decl) && mustGet(indexForName, decl.name) == 0)
 			mustDelete(res, decl);
 	});
 	return ModuleExportMangledNames(moveToMap(alloc, indexForName), moveToMap(alloc, res));
@@ -376,7 +423,7 @@ Map!(AnyDecl, ushort) modulePrivateMangledNames(ref Alloc alloc, in Module modul
 		}
 	});
 	eachPrivateDeclInModule(module_, (AnyDecl decl) {
-		if (isUsedInModule(used, module_.uri, decl) && mustGet(indexForName, decl.name) == 1)
+		if (isUsedInModule(used, module_.uri, decl) && mustGet(indexForName, decl.name) == 0)
 			mustDelete(res, decl);
 	});
 	return moveToMap(alloc, res);
@@ -431,9 +478,12 @@ JsImport[] translateImports(
 	bool isReExport,
 ) {
 	Path importerPath = mustGet(ctx.modulePaths, curModuleUri);
-	return map(ctx.alloc, imports, (ref ImportOrExport x) {
-		Opt!(JsName[]) names = optIf(!(isReExport && isImportModuleWhole(x)), () => // TODO: I think we still need to track aliases used by a re-exporting module
-			buildArray(ctx.alloc, (scope ref Builder!JsName out_) {
+	return mapOp!(JsImport, ImportOrExport)(ctx.alloc, imports, (ref ImportOrExport x) {
+		RelPath relPath = relativePath(importerPath, mustGet(ctx.modulePaths, x.module_.uri));
+		if (isReExport && isImportModuleWhole(x)) // TODO: I think we still need to track aliases used by a re-exporting module
+			return some(JsImport(none!(JsName[]), relPath));
+		else {
+			JsName[] names = buildArray(ctx.alloc, (scope ref Builder!JsName out_) {
 				withSortedKeys!(void, NameReferents*, Symbol, nameFromNameReferentsPointer)(
 					x.imported,
 					(in Symbol x, in Symbol y) => compareSymbolsAlphabetically(x, y),
@@ -454,8 +504,9 @@ JsImport[] translateImports(
 							});
 						}
 					});
-			}));
-		return JsImport(names, relativePath(importerPath, mustGet(ctx.modulePaths, x.module_.uri)));
+			});
+			return optIf(!isEmpty(names), () => JsImport(some(names), relPath));
+		}
 	});
 }
 bool isImportModuleWhole(in ImportOrExport x) =>
@@ -464,7 +515,7 @@ bool isImportModuleWhole(in ImportOrExport x) =>
 Opt!JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 	x.matchWithPointers!(Opt!JsDecl)(
 		(FunDecl* x) =>
-			some(translateFunDecl(ctx, x)),
+			optIf(!bodyIsInlined(*x), () => translateFunDecl(ctx, x)),
 		(SpecDecl* x) =>
 			some(translateSpecDecl(ctx, x)),
 		(StructAlias* x) =>
@@ -632,7 +683,7 @@ struct ExprPos {
 	immutable struct Expression {}
 	immutable struct ExpressionOrBlockStatement {} // Used for return from a function (since an arrow function can be an expression or a block)
 	// If the expression is non-void, the statement should 'return'
-	struct Statements { Builder!JsStatement statements; }
+	struct Statements { ArrayBuilder!JsStatement statements; }
 	mixin TaggedUnion!(Expression, ExpressionOrBlockStatement, Statements*);
 }
 immutable struct ExprResult {
@@ -649,30 +700,30 @@ JsExpr translateExprToExpr(ref TranslateModuleCtx ctx, ExprAndType a) =>
 	translateExprToExpr(ctx, a.expr, a.type);
 JsExpr translateExprToExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
 	translateExpr(ctx, a, type, ExprPos(ExprPos.Expression())).as!JsExpr;
-JsStatement translateToStatement(in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
-	translateToStatement((scope ref Builder!JsStatement, scope ExprPos pos) => cb(pos));
-alias StatementsCb = ExprResult delegate(scope ref Builder!JsStatement, scope ExprPos) @safe @nogc pure nothrow;
-JsStatement translateToStatement(in StatementsCb cb) {
-	JsStatement[] statements = translateToStatements(cb);
+JsStatement translateToStatement(ref Alloc alloc, in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
+	translateToStatement(alloc, (scope ref ArrayBuilder!JsStatement, scope ExprPos pos) => cb(pos));
+alias StatementsCb = ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow;
+JsStatement translateToStatement(ref Alloc alloc, in StatementsCb cb) {
+	JsStatement[] statements = translateToStatements(alloc, cb);
 	return statements.length == 1 ? only(statements) : JsStatement(JsBlockStatement(statements));
 }
-JsBlockStatement translateToBlockStatement(in StatementsCb cb) =>
-	JsBlockStatement(translateToStatements(cb));
-JsBlockStatement translateToBlockStatement(in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
-	translateToBlockStatement((scope ref Builder!JsStatement, scope ExprPos pos) => cb(pos));
-JsStatement[] translateToStatements(in StatementsCb cb) {
+JsBlockStatement translateToBlockStatement(ref Alloc alloc, in StatementsCb cb) =>
+	JsBlockStatement(translateToStatements(alloc, cb));
+JsBlockStatement translateToBlockStatement(ref Alloc alloc, in ExprResult delegate(scope ExprPos) @safe @nogc pure nothrow cb) =>
+	translateToBlockStatement(alloc, (scope ref ArrayBuilder!JsStatement, scope ExprPos pos) => cb(pos));
+JsStatement[] translateToStatements(ref Alloc alloc, in StatementsCb cb) {
 	ExprPos.Statements pos;
 	ExprResult res = cb(pos.statements, ExprPos(&pos));
 	assert(res.isA!(ExprResult.Done));
-	JsStatement[] statements = finish(pos.statements);
+	JsStatement[] statements = finish(alloc, pos.statements);
 	assert(!isEmpty(statements));
 	return statements;
 }
 
 JsStatement translateExprToStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
-	translateToStatement((scope ExprPos pos) => translateExpr(ctx, a, type, pos));
+	translateToStatement(ctx.alloc, (scope ExprPos pos) => translateExpr(ctx, a, type, pos));
 JsBlockStatement translateExprToBlockStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
-	translateToBlockStatement((scope ExprPos pos) => translateExpr(ctx, a, type, pos));
+	translateToBlockStatement(ctx.alloc, (scope ExprPos pos) => translateExpr(ctx, a, type, pos));
 JsExprOrBlockStatement translateExprToExprOrBlockStatement(ref TranslateModuleCtx ctx, ref Expr a, Type type) =>
 	translateExpr(ctx, a, type, ExprPos(ExprPos.ExpressionOrBlockStatement())).match!JsExprOrBlockStatement(
 		(ExprResult.Done) =>
@@ -689,11 +740,11 @@ ExprResult forceExpr(ref TranslateModuleCtx ctx, scope ExprPos pos, Type type, J
 		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(expr),
 		(ref ExprPos.Statements x) {
-			x.statements ~= isVoid(type) ? JsStatement(expr) : genReturn(ctx.alloc, expr);
+			add(ctx.alloc, x.statements, isVoid(type) ? JsStatement(expr) : genReturn(ctx.alloc, expr));
 			return ExprResult.done;
 		});
 
-ExprResult forceStatements(scope ExprPos pos, in ExprResult delegate(scope ref Builder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) =>
+ExprResult forceStatements(ref TranslateModuleCtx ctx, scope ExprPos pos, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
 			todo!ExprResult("USE AN IIFE"),
@@ -701,7 +752,7 @@ ExprResult forceStatements(scope ExprPos pos, in ExprResult delegate(scope ref B
 			ExprPos.Statements res;
 			ExprResult inner = cb(res.statements, ExprPos(&res));
 			assert(inner.isA!(ExprResult.Done));
-			return ExprResult(finish(res.statements));
+			return ExprResult(finish(ctx.alloc, res.statements));
 		},
 		(ref ExprPos.Statements x) =>
 			cb(x.statements, pos));
@@ -713,7 +764,7 @@ ExprResult forceStatement(ref TranslateModuleCtx ctx, scope ExprPos pos, JsState
 		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(newArray(ctx.alloc, [statement])),
 		(ref ExprPos.Statements x) {
-			x.statements ~= statement;
+			add(ctx.alloc, x.statements, statement);
 			return ExprResult.done;
 		});
 
@@ -744,7 +795,7 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 		(ref LetExpr x) =>
 			translateLet(ctx, x, type, pos),
 		(LiteralExpr x) =>
-			forceExpr(ctx, pos, type, translateLiteral(ctx, x.value, type)),
+			forceExpr(ctx, pos, type, translateConstant(ctx, x.value, type)),
 		(LiteralStringLikeExpr x) =>
 			forceExpr(ctx, pos, type, genString(x.value)),
 		(LocalGetExpr x) =>
@@ -760,7 +811,7 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 			ExprResult res = translateExpr(ctx, x.value, type, pos);
 			assert(res.isA!(ExprResult.Done));
 			if (isVoid(type))
-				pos.as!(ExprPos.Statements*).statements ~= JsStatement(JsBreakStatement());
+				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, JsStatement(JsBreakStatement()));
 			return res;
 		},
 		(LoopContinueExpr x) {
@@ -782,7 +833,7 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 		(ref RecordFieldPointerExpr x) =>
 			todo!ExprResult("RECORD FIELD POINTER -- EMIT BOGUS"),
 		(ref SeqExpr x) =>
-			forceStatements(pos, (scope ref Builder!JsStatement, scope ExprPos inner) {
+			forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement, scope ExprPos inner) {
 				ExprResult first = translateExpr(ctx, x.first, Type(ctx.commonTypes.void_), inner);
 				assert(first.isA!(ExprResult.Done));
 				return translateExpr(ctx, x.then, type, inner);
@@ -799,24 +850,26 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 			translateExpr(ctx, x.inner, type, pos));
 
 ExprResult translateAssertOrForbid(ref TranslateModuleCtx ctx, ref AssertOrForbidExpr a, Type type, scope ExprPos pos) =>
-	forceStatements(pos, (scope ref Builder!JsStatement res, scope ExprPos inner) {
+	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement res, scope ExprPos inner) {
 		JsExpr cond = todo!JsExpr("translate condition"); //translateExprToExpr(ctx, x.condition);
 		JsExpr cond2 = a.isForbid ? cond : genNot(ctx.alloc, cond);
 		JsExpr thrown = has(a.thrown)
 			? translateExprToExpr(ctx, *force(a.thrown), todo!Type("Exception type"))
 			: todo!JsExpr("default thrown");
-		res ~= genIf(ctx.alloc, cond2, genThrow(ctx.alloc, thrown), genEmptyStatement());
+		add(ctx.alloc, res, genIf(ctx.alloc, cond2, genThrow(ctx.alloc, thrown), genEmptyStatement()));
 		return translateExpr(ctx, a.after, type, inner);
 	});
 
-ExprResult translateCall(ref TranslateModuleCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) =>
-	isInlined(a.called)
-		? forceExpr(ctx, pos, type, translateInlineCall(ctx, a.called.as!(FunInst*).decl.body_, type, a.args.length, (size_t i) =>
-			translateExprToExpr(ctx, a.args[i], todo!Type("argType"))))
+ExprResult translateCall(ref TranslateModuleCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) {
+	assert(type == a.called.returnType);
+	return isInlined(a.called)
+		? forceExpr(ctx, pos, type, translateInlineCall(ctx, a.called.as!(FunInst*).decl.body_, type, a.args.length, (size_t argIndex) =>
+			translateExprToExpr(ctx, a.args[argIndex], paramTypeAt(a.called, argIndex))))
 		: forceExpr(ctx, pos, type, genCall(
 			allocate(ctx.alloc, calledExpr(ctx, a.called)),
 			mapWithIndex!(JsExpr, Expr)(ctx.alloc, a.args, (size_t argIndex, ref Expr arg) =>
 				translateExprToExpr(ctx, arg, paramTypeAt(a.called, argIndex)))));
+}
 bool isInlined(in Called a) =>
 	a.isA!(FunInst*) && bodyIsInlined(*a.as!(FunInst*).decl);
 
@@ -831,19 +884,21 @@ JsExpr translateInlineCall(
 		assert(nArgs == 1);
 		return getArg(0);
 	}
+	JsExpr[] args() =>
+		makeArray(ctx.alloc, nArgs, getArg);
 	return body_.matchIn!JsExpr(
 		(in FunBody.Bogus) =>
 			todo!JsExpr("BOGUS"),
 		(in AutoFun) =>
 			todo!JsExpr("AUTO"),
-		(in BuiltinFun) =>
-			todo!JsExpr("BUILTIN"),
+		(in BuiltinFun x) =>
+			translateCallBuiltin(ctx, returnType, x, nArgs, getArg),
 		(in FunBody.CreateEnumOrFlags x) =>
 			genPropertyAccess(ctx.alloc, translateStructReference(ctx, returnType.as!(StructInst*).decl), x.member.name),
 		(in FunBody.CreateExtern) =>
 			assert(false),
 		(in FunBody.CreateRecord) =>
-			todo!JsExpr("CREATE RECORD"),
+			genNew(ctx.alloc, translateStructReference(ctx, returnType.as!(StructInst*).decl), args()),
 		(in FunBody.CreateRecordAndConvertToVariant) =>
 			todo!JsExpr("CREATE RECORD AS VARIANT"), // should be identical to CreateRecord
 		(in FunBody.CreateUnion) =>
@@ -886,9 +941,47 @@ JsExpr translateInlineCall(
 		(in FunBody.VarSet) =>
 			todo!JsExpr("THIS NEEDS TO BE A STATEMENT TOO"));
 }
+JsExpr translateCallBuiltin(ref TranslateModuleCtx ctx, in Type returnType, in BuiltinFun a, size_t nArgs, in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg) =>
+	a.matchIn!JsExpr(
+		(in BuiltinFun.AllTests) =>
+			todo!JsExpr("ALL TESTS"), // ----------------------------------------------------------------
+		(in BuiltinUnary x) =>
+			todo!JsExpr("BUILTIN UNARY"),
+		(in BuiltinUnaryMath x) =>
+			todo!JsExpr("BUILTIN UNARY MATH"),
+		(in BuiltinBinary x) =>
+			todo!JsExpr("BUILTIN BINARY"),
+		(in BuiltinBinaryLazy x) =>
+			todo!JsExpr("BUILTIN BINARY LAZY"),
+		(in BuiltinBinaryMath x) =>
+			todo!JsExpr("BUILTIN BINARY MATH"),
+		(in BuiltinTernary x) =>
+			todo!JsExpr("BUILTIN TERNARY"),
+		(in Builtin4ary x) =>
+			todo!JsExpr("BUILTIN 4ary"),
+		(in BuiltinFun.CallLambda) =>
+			genCall(allocate(ctx.alloc, getArg(0)), makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))),
+		(in BuiltinFun.CallFunPointer) =>
+			todo!JsExpr("CALL FUN POINTER"),
+		(in Constant x) =>
+			translateConstant(ctx, x, returnType),
+		(in BuiltinFun.Init) =>
+			assert(false),
+		(in BuiltinFun.MarkRoot) =>
+			assert(false),
+		(in BuiltinFun.MarkVisit) =>
+			assert(false),
+		(in BuiltinFun.PointerCast) =>
+			assert(false),
+		(in BuiltinFun.SizeOf) =>
+			assert(false),
+		(in BuiltinFun.StaticSymbols) =>
+			assert(false),
+		(in VersionFun x) =>
+			genBool(isVersion(ctx.version_, x)));
 
 ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scope ExprPos pos) {
-	Opt!bool constant = tryEvalConstantBool(ctx, a.condition);
+	Opt!bool constant = tryEvalConstantBool(ctx.version_, ctx.allExtern, a.condition);
 	if (has(constant))
 		return translateExpr(ctx, force(constant) ? a.trueBranch : a.falseBranch, type, pos);
 	else if (pos.isA!(ExprPos.Expression) && a.condition.isA!(Expr*))
@@ -904,7 +997,7 @@ ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scop
 					translateExprToStatement(ctx, a.trueBranch, type),
 					translateExprToStatement(ctx, a.falseBranch, type))),
 			(ref Condition.UnpackOption x) =>
-				forceStatements(pos, (scope ref Builder!JsStatement out_, scope ExprPos inner) {
+				forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 					return todo!ExprResult("UNPACK OPTION"); // ---------------------------------------------------------------------
 					/*
 					For an UnpackOption, compile to:
@@ -917,28 +1010,6 @@ ExprResult translateIf(ref TranslateModuleCtx ctx, ref IfExpr a, Type type, scop
 					}
 					*/
 				}));
-}
-Opt!bool tryEvalConstantBool(in TranslateModuleCtx ctx, in Condition a) {
-	if (a.isA!(Expr*)) {
-		// TODO: PYRAMID OF DOOM! ------------------------------------------------------------------------------------------------
-		Expr* x = a.as!(Expr*);
-		if (x.kind.isA!CallExpr) {
-			Called y = x.kind.as!CallExpr.called;
-			if (y.isA!(FunInst*)) {
-				FunDecl* decl = y.as!(FunInst*).decl;
-				if (decl.body_.isA!BuiltinFun) {
-					BuiltinFun bf = decl.body_.as!BuiltinFun;
-					if (bf.isA!VersionFun) {
-						return some(isVersion(ctx.version_, bf.as!VersionFun));
-					}
-				}
-			}
-		}
-	}
-
-	Opt!Symbol extern_ = asExtern(a);
-	return optIf(has(extern_), () =>
-		ctx.allExtern.has(force(extern_)));
 }
 
 ExprResult translateLambda(ref TranslateModuleCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
@@ -956,47 +1027,59 @@ ExprResult translateLetLike(
 	Type type,
 	scope ExprPos pos,
 ) =>
-	translateLetLikeCb(ctx, destructure, value, pos, (scope ref Builder!JsStatement, scope ExprPos inner) =>
+	translateLetLikeCb(ctx, destructure, value, pos, (scope ref ArrayBuilder!JsStatement, scope ExprPos inner) =>
 		translateExpr(ctx, then, type, inner));
 ExprResult translateLetLikeCb(
 	ref TranslateModuleCtx ctx,
 	ref Destructure destructure,
 	JsExpr value,
 	scope ExprPos pos,
-	in ExprResult delegate(scope ref Builder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb,
+	in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb,
 ) =>
-	forceStatements(pos, (scope ref Builder!JsStatement out_, scope ExprPos inner) {
-		out_ ~= destructure.isA!(Destructure.Ignore*)
+	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
+		add(ctx.alloc, out_, destructure.isA!(Destructure.Ignore*)
 			? JsStatement(value)
 			: genVarDecl(
 				ctx.alloc,
 				hasAnyMutable(destructure) ? JsVarDecl.Kind.let : JsVarDecl.Kind.const_,
 				translateDestructure(ctx, destructure),
-				value);
+				value));
 		return cb(out_, inner);
 	});
 
-JsExpr translateLiteral(ref TranslateModuleCtx ctx, Constant value, Type type) {
-	switch (type.as!(StructInst*).decl.body_.as!BuiltinType) {
-		case BuiltinType.bool_:
-			return genBool(asBool(value));
-		case BuiltinType.float32: // TODO: we probably shouldn't allow float32 in JS -------------------------------------------
-		case BuiltinType.float64:
-			return genNumber(value.as!(Constant.Float).value);
-		case BuiltinType.int8:
-		case BuiltinType.int16:
-		case BuiltinType.int32:
-		case BuiltinType.int64:
-			return genIntegerSigned(value.as!IntegralValue.asSigned);
-		case BuiltinType.char8:
-		case BuiltinType.char32:
-		case BuiltinType.nat8:
-		case BuiltinType.nat16:
-		case BuiltinType.nat32:
-		case BuiltinType.nat64:
-			return genIntegerUnsigned(value.as!IntegralValue.asUnsigned);
-		default:
-			assert(false);
+JsExpr translateConstant(ref TranslateModuleCtx ctx, in Constant value, in Type type) {
+	if (type.isA!TypeParamIndex) {
+		assert(value.isA!(Constant.Zero));
+		return genNull();
+	} else {
+		switch (type.as!(StructInst*).decl.body_.as!BuiltinType) {
+			case BuiltinType.bool_:
+				return genBool(asBool(value));
+			case BuiltinType.float32: // TODO: we probably shouldn't allow float32 in JS -------------------------------------------
+			case BuiltinType.float64:
+				return genNumber(value.as!(Constant.Float).value);
+			case BuiltinType.int8:
+			case BuiltinType.int16:
+			case BuiltinType.int32:
+			case BuiltinType.int64:
+				return genIntegerSigned(value.as!IntegralValue.asSigned);
+			case BuiltinType.char8:
+			case BuiltinType.char32:
+			case BuiltinType.nat8:
+			case BuiltinType.nat16:
+			case BuiltinType.nat32:
+			case BuiltinType.nat64:
+				return genIntegerUnsigned(value.as!IntegralValue.asUnsigned);
+			case BuiltinType.void_:
+				return genUndefined();
+			default:
+				import util.writer : debugLogWithWriter, Writer; // ---------------------------------------------------------------------------------------
+				debugLogWithWriter((scope ref Writer writer) {
+					writer ~= "THE CONSTANT BUILTIN TYPE IS ";
+					writer ~= stringOfEnum(type.as!(StructInst*).decl.body_.as!BuiltinType);
+				});
+				assert(false);
+		}
 	}
 }
 
@@ -1005,8 +1088,8 @@ ExprResult translateLoopWhileOrUntil(ref TranslateModuleCtx ctx, ref LoopWhileOr
 		(ref Expr cond) {
 			JsExpr condition = translateExprToExpr(ctx, cond, Type(ctx.commonTypes.bool_));
 			JsExpr condition2 = a.isUntil ? genNot(ctx.alloc, condition) : condition;
-			return forceStatements(pos, (scope ref Builder!JsStatement res, scope ExprPos inner) {
-				res ~= genWhile(ctx.alloc, condition2, translateExprToStatement(ctx, a.body_, Type(ctx.commonTypes.void_)));
+			return forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement res, scope ExprPos inner) {
+				add(ctx.alloc, res, genWhile(ctx.alloc, condition2, translateExprToStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
 				return translateExpr(ctx, a.after, type, inner);
 			});
 		},
@@ -1084,7 +1167,7 @@ ExprResult translateMatchUnionOrVariant(Case)(
 		MatchUnionOrVariantCase x = cbCase(case_);
 		return genIf(ctx.alloc,
 			x.isMatch,
-			translateToStatement((scope ExprPos pos) =>
+			translateToStatement(ctx.alloc, (scope ExprPos pos) =>
 				translateLetLike(ctx, case_.destructure, x.destructured, case_.then, type, pos)),
 			else_);
 	}));
@@ -1096,9 +1179,9 @@ ExprResult withTemp(
 	scope ExprPos pos,
 	in ExprResult delegate(JsName temp, scope ExprPos inner) @safe @nogc pure nothrow cb,
 ) =>
-	forceStatements(pos, (scope ref Builder!JsStatement out_, scope ExprPos inner) {
+	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 		JsName jsName = JsName(name);
-		out_ ~= genConst(ctx.alloc, JsDestructure(jsName), translateExprToExpr(ctx, value));
+		add(ctx.alloc, out_, genConst(ctx.alloc, JsDestructure(jsName), translateExprToExpr(ctx, value)));
 		return cb(jsName, inner);
 	});
 
@@ -1137,7 +1220,7 @@ ExprResult translateTry(ref TranslateModuleCtx ctx, ref TryExpr a, Type type, sc
 		ctx.alloc,
 		translateExprToBlockStatement(ctx, a.tried, type),
 		exceptionName,
-		translateToBlockStatement((scope ExprPos inner) =>
+		translateToBlockStatement(ctx.alloc, (scope ExprPos inner) =>
 			translateMatchVariant(ctx, exceptionName, a.catches, genThrow(ctx.alloc, JsExpr(exceptionName)), type, inner))));
 }
 
@@ -1157,16 +1240,16 @@ ExprResult translateTryLet(ref TranslateModuleCtx ctx, ref TryLetExpr a, Type ty
 		handler
 	}
 	*/
-	forceStatements(pos, (scope ref Builder!JsStatement out_, scope ExprPos inner) {
+	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 		JsName catching = JsName(symbol!"catching"); // TODO: make sure to increment temp index...
-		out_ ~= genLet(ctx.alloc, JsDestructure(catching), genBool(true));
-		JsBlockStatement tryBlock = translateToBlockStatement((scope ExprPos tryPos) =>
-			translateLetLikeCb(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), tryPos, (scope ref Builder!JsStatement tryOut, scope ExprPos tryInner) {
-				tryOut ~= genAssign(ctx.alloc, catching, genBool(false));
+		add(ctx.alloc, out_, genLet(ctx.alloc, JsDestructure(catching), genBool(true)));
+		JsBlockStatement tryBlock = translateToBlockStatement(ctx.alloc, (scope ExprPos tryPos) =>
+			translateLetLikeCb(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), tryPos, (scope ref ArrayBuilder!JsStatement tryOut, scope ExprPos tryInner) {
+				add(ctx.alloc, tryOut, genAssign(ctx.alloc, catching, genBool(false)));
 				return translateExpr(ctx, a.then, type, tryInner);
 			}));
 		JsName exceptionName = JsName(symbol!"exception");
-		JsBlockStatement catchBlock = translateToBlockStatement((scope ref Builder!JsStatement catchOut, scope ExprPos catchPos) {
+		JsBlockStatement catchBlock = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement catchOut, scope ExprPos catchPos) {
 			JsExpr cond = genOr(
 				ctx.alloc,
 				genNot(ctx.alloc, JsExpr(catching)),
@@ -1174,10 +1257,10 @@ ExprResult translateTryLet(ref TranslateModuleCtx ctx, ref TryLetExpr a, Type ty
 					ctx.alloc,
 					genInstanceof(ctx.alloc, JsExpr(exceptionName),
 					translateStructReference(ctx, a.catch_.member.decl))));
-			catchOut ~= genIf(ctx.alloc, cond, genThrow(ctx.alloc, JsExpr(exceptionName)), genEmptyStatement());
+			add(ctx.alloc, catchOut, genIf(ctx.alloc, cond, genThrow(ctx.alloc, JsExpr(exceptionName)), genEmptyStatement()));
 			return translateLetLike(ctx, a.catch_.destructure, JsExpr(exceptionName), a.catch_.then, type, pos);
 		});
-		out_ ~= genTryCatch(ctx.alloc, tryBlock, exceptionName, catchBlock);
+		add(ctx.alloc, out_, genTryCatch(ctx.alloc, tryBlock, exceptionName, catchBlock));
 		return ExprResult.done;
 	});
 

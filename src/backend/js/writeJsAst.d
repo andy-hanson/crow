@@ -56,6 +56,7 @@ import backend.js.jsAst :
 	JsModuleAst,
 	JsName,
 	JsNewExpr,
+	JsNullExpr,
 	JsObjectDestructure,
 	JsObjectExpr,
 	JsParams,
@@ -69,11 +70,12 @@ import backend.js.jsAst :
 	JsTryFinallyStatement,
 	JsUnaryExpr,
 	JsVarDecl,
+	JsVoidExpr,
 	JsWhileStatement;
 import util.alloc.alloc : Alloc;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, none, Opt, some;
-import util.symbol : Symbol, writeQuotedSymbol;
+import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : Path, RelPath;
 import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
@@ -91,16 +93,21 @@ string writeJsAst(ref Alloc alloc, in JsModuleAst a) =>
 private:
 
 void writeJsName(scope ref Writer writer, in JsName name) {
-	foreach (dchar x; name.crowName) {
-		Opt!string out_ = mangleChar(x);
-		if (has(out_))
-			writer ~= force(out_);
-		else
-			writer ~= x;
-	}
-	if (has(name.mangleIndex)) {
-		writer ~= "__";
-		writer ~= force(name.mangleIndex);
+	if (isJsKeyword(name.crowName) && !has(name.mangleIndex)) {
+		writer ~= '_';
+		writer ~= name.crowName;
+	} else {
+		foreach (dchar x; name.crowName) {
+			Opt!string out_ = mangleChar(x);
+			if (has(out_))
+				writer ~= force(out_);
+			else
+				writer ~= x;
+		}
+		if (has(name.mangleIndex)) {
+			writer ~= "__";
+			writer ~= force(name.mangleIndex);
+		}
 	}
 }
 void writeObjectKey(scope ref Writer writer, Symbol a) {
@@ -130,8 +137,17 @@ void writeNamePossiblyBracketQuoted(scope ref Writer writer, Symbol a) {
 bool needsMangle(Symbol a) {
 	foreach (dchar x; a)
 		if (!isAllowedJsIdentifierChar(x))
+			return true;
+	return isJsKeyword(a);
+}
+bool isJsKeyword(Symbol a) {	
+	switch (a.value) {
+		case symbol!"new".value:
+		case symbol!"null".value:
+			return true;
+		default:
 			return false;
-	return true;
+	}
 }
 bool isAllowedJsIdentifierChar(dchar a) =>
 	!has(mangleChar(a));
@@ -199,7 +215,7 @@ void writeDecl(scope ref Writer writer, in JsDecl decl) {
 			writer ~= "const ";
 			writeJsName(writer, decl.name);
 			writer ~= " = ";
-			writeExpr(writer, 1, x);
+			writeExpr(writer, 0, x);
 		});
 	writer ~= "\n";
 }
@@ -209,9 +225,10 @@ void writeClass(scope ref Writer writer, JsName name, in JsClassDecl x) {
 	writeJsName(writer, name);
 	writer ~= " {";
 	foreach (JsClassMember member; x.members) {
-		writer ~= "\n\t";
+		writeNewline(writer, 1);
 		writeClassMember(writer, member);
 	}
+	writeNewline(writer, 0);
 	writer ~= "}";
 }
 void writeClassMember(scope ref Writer writer, in JsClassMember member) {
@@ -235,7 +252,7 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 }
 
 void writeParams(scope ref Writer writer, in JsParams a, bool alwaysParens) {
-	bool parens = alwaysParens || a.params.length > 1 || has(a.restParam);
+	bool parens = alwaysParens || a.params.length != 1 || has(a.restParam);
 	if (parens) writer ~= '(';
 	writeWithCommas!JsDestructure(writer, a.params, (in JsDestructure x) {
 		writeDestructure(writer, x);
@@ -441,6 +458,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writeArgs(x.arguments);
 			writer ~= ')';
 		},
+		(in JsNullExpr x) {
+			writer ~= "null";
+		},
 		(in JsObjectExpr x) {
 			assert(!isStatement);
 			writer ~= "{ ";
@@ -455,6 +475,13 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writeArg(*x.arg, isStatement);
 			writePropertyAccess(writer, x.name);
 		},
+		(in JsTernaryExpr x) {
+			writeArg(x.condition, isStatement);
+			writer ~= " ? ";
+			writeArg(x.then);
+			writer ~= " : ";
+			writeArg(x.else_);
+		},
 		(in JsUnaryExpr x) {
 			final switch (x.kind) {
 				case JsUnaryExpr.Kind.not:
@@ -463,11 +490,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			}
 			writeArg(*x.arg);
 		},
-		(in JsTernaryExpr x) {
-			writeArg(x.condition, isStatement);
-			writer ~= " ? ";
-			writeArg(x.then);
-			writer ~= " : ";
-			writeArg(x.else_);
+		(in JsVoidExpr x) {
+			writer ~= "void ";
+			writeArg(*x.arg);
 		});
 }

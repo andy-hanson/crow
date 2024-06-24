@@ -59,7 +59,7 @@ import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.col.array : endPtr, exists, newArray;
+import util.col.array : endPtr, exists, newArray, sum;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : KeyValuePair, Map;
 import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
@@ -77,6 +77,7 @@ import util.uri :
 	asFilePath,
 	baseName,
 	concatFilePathAndPath,
+	countComponents,
 	cStringOfFilePath,
 	FilePath,
 	parent,
@@ -583,8 +584,9 @@ ExitCode writeFilesToDir(FilePath baseDir, in KeyValuePair!(Path, string)[] file
 private:
 
 ExitCode buildDirectoriesForFiles(FilePath baseDir, in KeyValuePair!(Path, string)[] files) =>
-	okAnd(makeDirectory(baseDir), () =>
-		withTempSetImpure!(ExitCode, Path)(files.length, (scope ref TempSet!Path done) {
+	okAnd(makeDirectory(baseDir), () {
+		size_t maxPaths = sum!(KeyValuePair!(Path, string))(files, (in KeyValuePair!(Path, string) x) => countComponents(x.key)); // TODO: I should use an actual type and not KeyValuePair
+		return withTempSetImpure!(ExitCode, Path)(maxPaths, (scope ref TempSet!Path done) {
 			ExitCode ensureDir(Path a) {
 				if (tryAdd(done, a)) {
 					Opt!Path par = parent(a);
@@ -603,7 +605,8 @@ ExitCode buildDirectoriesForFiles(FilePath baseDir, in KeyValuePair!(Path, strin
 				}
 			}
 			return ExitCode.ok;
-		}));
+		});
+	});
 
 version (Windows) {
 	enum RetryResult { ok, error, retry }

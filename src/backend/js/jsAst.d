@@ -160,10 +160,12 @@ immutable struct JsExpr {
 		JsLiteralString,
 		JsName,
 		JsNewExpr,
+		JsNullExpr,
 		JsObjectExpr,
 		JsPropertyAccessExpr,
-		JsUnaryExpr,
 		JsTernaryExpr*,
+		JsUnaryExpr,
+		JsVoidExpr,
 	);
 }
 immutable struct JsArrayExpr {
@@ -209,6 +211,7 @@ immutable struct JsNewExpr {
 	JsExpr* class_;
 	JsExpr[] arguments;
 }
+immutable struct JsNullExpr {}
 immutable struct JsObjectExpr {
 	KeyValuePair!(Symbol, JsExpr)[] fields;
 }
@@ -217,15 +220,18 @@ immutable struct JsPropertyAccessExpr {
 	// Property names are not mangled
 	Symbol name;
 }
+immutable struct JsTernaryExpr {
+	JsExpr condition;
+	JsExpr then;
+	JsExpr else_;
+}
 immutable struct JsUnaryExpr {
 	enum Kind { not }
 	Kind kind;
 	JsExpr* arg;
 }
-immutable struct JsTernaryExpr {
-	JsExpr condition;
-	JsExpr then;
-	JsExpr else_;
+immutable struct JsVoidExpr {
+	JsExpr* arg;
 }
 
 JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
@@ -254,6 +260,8 @@ JsExpr genIntegerUnsigned(ulong value) =>
 	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
 JsExpr genNot(ref Alloc alloc, JsExpr arg) => //TODO:MOVE -------------------------------------------------------------------------------
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.not, allocate(alloc, arg)));
+JsExpr genNull() =>
+	JsExpr(JsNullExpr());
 JsExpr genNumber(double value) =>
 	JsExpr(JsLiteralNumber(value));
 JsExpr genNew(ref Alloc alloc, JsExpr class_, in JsExpr[] args) =>
@@ -280,6 +288,9 @@ JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genThis() =>
 	JsExpr(JsName(symbol!"this"));
+JsExpr number0 = genNumber(0);
+JsExpr genUndefined() =>
+	JsExpr(JsVoidExpr(&number0));
 JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsStatement body_) =>
 	JsStatement(allocate(alloc, JsWhileStatement(condition, body_)));
 
