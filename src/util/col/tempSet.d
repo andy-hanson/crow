@@ -1,10 +1,18 @@
 module util.col.tempSet;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
 
-import util.alloc.stackAlloc : withStackArrayUninitialized;
+import util.alloc.stackAlloc : withStackArrayUninitialized, withStackArrayUninitialized_impure;
 import util.col.array : contains;
 import util.memory : initMemory;
+
+@trusted Out withTempSetImpure(Out, Elem)(size_t maxSize, in Out delegate(scope ref TempSet!Elem) @safe @nogc nothrow cb) =>
+	withStackArrayUninitialized_impure!(Out, Elem)(maxSize, (scope Elem[] storage) {
+		TempSet!Elem set = TempSet!Elem(0, storage);
+		return cb(set);
+	});
+
+pure:
 
 struct TempSet(T) {
 	private:

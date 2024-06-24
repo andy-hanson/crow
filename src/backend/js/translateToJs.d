@@ -151,7 +151,7 @@ import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : KeyValuePair, Map, mustGet;
 import util.col.mutArr : MutArr;
-import util.col.mutMap : addOrChange, getOrAdd, hasKey, mapToMap2, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
+import util.col.mutMap : addOrChange, getOrAdd, hasKey, mapToArray, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
 import util.col.set : Set;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.integralValues : IntegralValue;
@@ -165,7 +165,7 @@ import util.util : min, ptrTrustMe, todo, typeAs;
 import versionInfo : isVersion, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
-	Map!(Path, string) outputFiles;
+	KeyValuePair!(Path, string)[] outputFiles;
 }
 TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) {
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
@@ -241,12 +241,12 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 SymbolSet allExternForJs() =>
 	symbolSet(symbol!"js");
 
-Map!(Path, string) getOutputFiles(
+immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 	ref Alloc alloc,
 	in Map!(Uri, Path) modulePaths,
 	in MutMap!(Module*, JsModuleAst) done,
 ) =>
-	mapToMap2!(Path, string, Module*, JsModuleAst)(alloc, done, (Module* key, ref JsModuleAst value) =>
+	mapToArray!(immutable KeyValuePair!(Path, string), Module*, JsModuleAst)(alloc, done, (Module* key, ref JsModuleAst value) =>
 		immutable KeyValuePair!(Path, string)(mustGet(modulePaths, key.uri), writeJsAst(alloc, value)));
 
 struct TranslateProgramCtx {

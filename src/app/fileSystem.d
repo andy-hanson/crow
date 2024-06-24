@@ -50,7 +50,7 @@ version (Windows) {
 } else {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
-	import core.sys.posix.sys.stat : mkdir, pid_t;
+	import core.sys.posix.sys.stat : mkdir, pid_t, lstat;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink, write;
 }
 
@@ -61,7 +61,8 @@ import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, exists, newArray;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.col.map : Map;
+import util.col.map : KeyValuePair, Map;
+import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd, onError;
 import util.memory : memset;
@@ -75,6 +76,7 @@ import util.uri :
 	alterExtensionWithHex,
 	asFilePath,
 	baseName,
+	concatFilePathAndPath,
 	cStringOfFilePath,
 	FilePath,
 	parent,
@@ -566,18 +568,42 @@ private @trusted ExitCodeOrSignal runCommon(
 	}
 }
 
-ExitCode writeFilesToDir(in Map!(Path, string) files, FilePath outDir) {
+ExitCode writeFilesToDir(FilePath baseDir, in KeyValuePair!(Path, string)[] files) =>
 	// First, build the directories we need.
 	// Make sure to build from the bottom up.
-	buildDirectoriesForFiles(files);
-	return todo!ExitCode("writeFilesToDir"); // ------------------------------------------------------------------------------------------------
-}
+	okAnd(buildDirectoriesForFiles(baseDir, files), () {
+		foreach (KeyValuePair!(Path, string) file; files) {
+			ExitCode ok = writeFile(concatFilePathAndPath(baseDir, file.key), file.value);
+			if (ok != ExitCode.ok) // TODO: NEATER ---------------------------------------------------------------------------------------
+				return ok;
+		}
+		return ExitCode.ok;
+	});
 
 private:
 
-void buildDirectoriesForFiles(in Map!(Path, string) files) {
-	todo!void("BUILD DIRECTORIES");
-}
+ExitCode buildDirectoriesForFiles(FilePath baseDir, in KeyValuePair!(Path, string)[] files) =>
+	okAnd(makeDirectory(baseDir), () =>
+		withTempSetImpure!(ExitCode, Path)(files.length, (scope ref TempSet!Path done) {
+			ExitCode ensureDir(Path a) {
+				if (tryAdd(done, a)) {
+					Opt!Path par = parent(a);
+					ExitCode parentExit = has(par) ? ensureDir(force(par)) : ExitCode.ok;
+					return okAnd(parentExit, () => makeDirectory(concatFilePathAndPath(baseDir, a)));
+				} else
+					return ExitCode.ok;
+			}
+
+			foreach (KeyValuePair!(Path, string) file; files) {
+				Opt!Path par = parent(file.key);
+				if (has(par)) {
+					ExitCode x = ensureDir(force(par));
+					if (x != ExitCode.ok) // TODO: neater --------------------------------------------------------------------------
+						return x;
+				}
+			}
+			return ExitCode.ok;
+		}));
 
 version (Windows) {
 	enum RetryResult { ok, error, retry }

@@ -350,6 +350,9 @@ Opt!Uri resolveUri(Uri base, RelPath relPath) {
 Uri concatUriAndPath(Uri a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		Uri(descendentPath(a.path, components)));
+FilePath concatFilePathAndPath(FilePath a, Path b) => // TODO: come up with a better name -------------------------------------------------
+	withComponents(b, (in Symbol[] components) =>
+		FilePath(descendentPath(a.path, components)));
 
 size_t countComponents(Uri a) =>
 	countComponents(a.path);

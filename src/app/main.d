@@ -486,7 +486,7 @@ ExitCode withBuild(
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics
 			? ExitCode.error
-			: writeFilesToDir(result.result.outputFiles, force(options.out_.outJsDirectory));
+			: writeFilesToDir(force(options.out_.outJsDirectory), result.result.outputFiles);
 	} else
 		return withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
 			withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
