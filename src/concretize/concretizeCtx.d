@@ -899,6 +899,8 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
 			return TypeSize(8, 8);
+		case BuiltinType.jsAny:
+			assert(false);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8);
 		case BuiltinType.catchPoint:

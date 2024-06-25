@@ -136,6 +136,7 @@ import model.model :
 	EnumFunction,
 	FlagsFunction,
 	IntegralType,
+	JsFun,
 	Local,
 	Program,
 	VarKind;
@@ -404,8 +405,9 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 					return LowType(PrimitiveType.int32);
 				case BuiltinType.int64:
 					return LowType(PrimitiveType.int64);
-				case BuiltinType.lambda:
-					assert(false); // Compiled away by concretize
+				case BuiltinType.jsAny:
+				case BuiltinType.lambda: // Lambda is compiled away by concretize
+					assert(false);
 				case BuiltinType.nat8:
 					return LowType(PrimitiveType.nat8);
 				case BuiltinType.nat16:
@@ -1393,6 +1395,8 @@ LowExpr getCallBuiltinExpr(
 			LowExpr(type, range, LowExprKind(x)),
 		(BuiltinFun.Init x) =>
 			LowExpr(type, range, LowExprKind(LowExprKind.Init(x.kind))),
+		(JsFun _) =>
+			assert(false),
 		(BuiltinFun.MarkRoot) =>
 			// Handled in getAllLowFuns
 			assert(false),

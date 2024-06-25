@@ -174,16 +174,11 @@ private:
 SymbolSet allExterns(in Config mainConfig) {
 	MutSymbolSet res;
 	version (Windows) {
-		res = res.add(symbol!"DbgHelp");
-		res = res.add(symbol!"windows");
+		res = res.addAll([symbol!"DbgHelp", symbol!"windows"]);
 	} else {
-		res = res.add(symbol!"linux");
-		res = res.add(symbol!"posix");
-		res = res.add(symbol!"pthread");
-		res = res.add(symbol!"sodium");
+		res = res.addAll([symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"]);
 	}
-	res = res.add(symbol!"libc");
-	res = res.add(symbol!"native");
+	res = res.addAll([symbol!"libc", symbol!"native"]);
 	foreach (Symbol name; keys(mainConfig.extern_))
 		res = res.add(name); // TODO: this should only be if there is a path set for it ---------------------------------------------------
 

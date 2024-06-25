@@ -57,15 +57,18 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 ###
 Run `f` in a new fiber with a new exclusion and return a future for its result.
 ###
-+with-block[t] t future(_ parallel, f t shared()) native extern
-	res t future = trusted unresolved
-	trusted get-global-ctx add-new-fiber () =>
-		match (() => f[]) catch-all
-		as ok x
-			res resolve x
-		as error e
-			res reject e
-	res
++with-block[t] t future(_ parallel, f t shared())
+	if trusted extern native
+		res t future = trusted unresolved
+		trusted get-global-ctx add-new-fiber () =>
+			match (() => f[]) catch-all
+			as ok x
+				res resolve x
+			as error e
+				res reject e
+		res
+	else
+		todo # -----------------------------------------------------------------------------------------------------------
 
 ###
 This is like running something with `parallel` and then waiting on it.

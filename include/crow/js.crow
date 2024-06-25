@@ -1,0 +1,8 @@
+
+js-any builtin
+as-js-any[t] js-any() builtin, js extern
+as-t[t] js-any(a t) builtin, js extern
+js-global js-any() builtin, js extern
+get js-any(a js-any, name string) builtin, js extern
+set js-any(a js-any, name string, value js-any) builtin, js extern
+call js-any(a js-any, name string, args js-any array) builtin, js extern

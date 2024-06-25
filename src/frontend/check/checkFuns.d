@@ -142,7 +142,7 @@ SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier
 		return force(arg);
 	} else {
 		addDiag(ctx, modifier.keywordRange, Diag(Diag.ExternMissingLibraryName()));
-		return emptySymbolSet;
+		return symbolSet(symbol!"bogus");
 	}
 }
 
@@ -208,8 +208,11 @@ FunDecl[] checkFunsInitial(
 					flagsAndSpecs.flags,
 					flagsAndSpecs.externs,
 					flagsAndSpecs.specs));
-				if (flagsAndSpecs.isBuiltin)
+				if (flagsAndSpecs.isBuiltin) {
+					if (hasBody)
+						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
 					fun.body_ = getBuiltinFun(ctx, commonTypes, fun);
+				}
 				else if (!hasBody && !flagsAndSpecs.externs.isEmpty)
 					fun.body_ = checkExternBody(ctx, fun);
 			}

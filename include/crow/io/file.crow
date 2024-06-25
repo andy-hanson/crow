@@ -202,14 +202,14 @@ Otherwise, this will be the path where `crow` is installed.
 	"File is not valid UTF-8: {a path}"
 
 # Reads the full contents of the file.
-+read-file string(path string) summon, libc extern
++read-file string(path string) summon
 	try
 		path.read-file::nat8[] as-string
 	catch unicode-decode-error
 		throw path not-a-text-file
 
 # Like 'read-file', but returns an empty string instead of throwing 'path-not-found'.
-+read-file-or-empty string(path string) summon, libc extern
++read-file-or-empty string(path string) summon
 	try
 		path read-file
 	catch path-not-found _
@@ -219,7 +219,8 @@ Otherwise, this will be the path where `crow` is installed.
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-+write-file void(path string, content string) summon, trusted, libc extern
++write-file void(path string, content string) summon, trusted
+	assert extern libc : todo
 	fd = path.to fopen "wb"
 	forbid fd == null : path exception-for-last
 	finally fd close-fd path
@@ -227,7 +228,8 @@ If the file already exists, overwrites it.
 	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
 	assert wrote-bytes == bytes.size : path exception-for-last
 
-+read-file nat8[](path string) summon, trusted, libc extern
++read-file nat8[](path string) summon, trusted
+	assert extern libc : todo
 	fd = path.to fopen "rb"
 	forbid fd == null : path exception-for-last
 	finally fd close-fd path

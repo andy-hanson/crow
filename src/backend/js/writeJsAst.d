@@ -301,9 +301,7 @@ void writeExprOrBlockStatement(scope ref Writer writer, uint indent, in JsExprOr
 void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
 	a.matchIn!void(
 		(in JsAssignStatement x) {
-			writeExpr(writer, indent, x.left);
-			writer ~= " = ";
-			writeExpr(writer, indent, x.right);
+			writeAssign(writer, indent, x);
 		},
 		(in JsBlockStatement x) {
 			writeBlockStatement(writer, indent, x);
@@ -321,64 +319,97 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
 			writeExpr(writer, indent, x, isStatement: true);
 		},
 		(in JsIfStatement x) {
-			writer ~= "if (";
-			writeExpr(writer, indent + 2, x.cond);
-			writer ~= ")";
-			if (writeStatementIndented(writer, indent, x.then))
-				writer ~= ' ';
-			writer ~= "else";
-			writeStatementIndented(writer, indent, x.else_);
+			writeIf(writer, indent, x);
 		},
 		(in JsReturnStatement x) {
 			writer ~= "return ";
 			writeExpr(writer, indent, *x.arg);
 		},
 		(in JsSwitchStatement x) {
-			writer ~= "switch (";
-			writeExpr(writer, indent + 2, *x.arg);
-			writer ~= ") {";
-			foreach (JsSwitchStatement.Case case_; x.cases_) {
-				writeNewline(writer, indent + 1);
-				writer ~= "case ";
-				writeExpr(writer, indent, case_.value);
-				writer ~= ":";
-				writeBlockStatement(writer, indent + 1, case_.then);
-			}
-			writeNewline(writer, indent);
-			writer ~= "}";
+			writeSwitch(writer, indent, x);
 		},
 		(in JsThrowStatement x) {
 			writer ~= "throw ";
 			writeExpr(writer, indent, *x.arg);
 		},
 		(in JsTryCatchStatement x) {
-			writer ~= "try ";
-			writeBlockStatement(writer, indent, x.tried);
-			writer ~= " catch (";
-			writeJsName(writer, x.exception);
-			writer ~= ") ";
-			writeBlockStatement(writer, indent, x.catch_);
+			writeTryCatch(writer, indent, x);
 		},
 		(in JsTryFinallyStatement x) {
-			writer ~= "try ";
-			writeBlockStatement(writer, indent, x.tried);
-			writer ~= " finally ";
-			writeBlockStatement(writer, indent, x.finally_);
+			writeTryFinally(writer, indent, x);
 		},
 		(in JsVarDecl x) {
-			writer ~= stringOfEnum(x.kind);
-			writer ~= ' ';
-			writeDestructure(writer, x.destructure);
-			writer ~= " = ";
-			writeExpr(writer, indent, *x.initializer);
+			writeVarDecl(writer, indent, x);
 		},
 		(in JsWhileStatement x) {
-			writer ~= "while (";
-			writeExpr(writer, indent + 2, x.condition);
-			writer ~= ')';
-			writeStatementIndented(writer, indent, x.body_);
+			writeWhile(writer, indent, x);
 		});
 }
+// Optimized build has infinite compile time inlining 'writeStatement' into itself recursively.
+// May be a similar issue to https://github.com/ldc-developers/ldc/issues/3879
+pragma(inline, false)
+void writeAssign(scope ref Writer writer, uint indent, in JsAssignStatement a) {
+	writeExpr(writer, indent, a.left);
+	writer ~= " = ";
+	writeExpr(writer, indent, a.right);
+}
+pragma(inline, false)
+void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
+	writer ~= "if (";
+	writeExpr(writer, indent + 2, a.cond);
+	writer ~= ")";
+	if (writeStatementIndented(writer, indent, a.then))
+		writer ~= ' ';
+	writer ~= "else";
+	writeStatementIndented(writer, indent, a.else_);
+}
+pragma(inline, false)
+void writeSwitch(scope ref Writer writer, uint indent, in JsSwitchStatement a) {
+	writer ~= "switch (";
+	writeExpr(writer, indent + 2, *a.arg);
+	writer ~= ") {";
+	foreach (JsSwitchStatement.Case case_; a.cases_) {
+		writeNewline(writer, indent + 1);
+		writer ~= "case ";
+		writeExpr(writer, indent, case_.value);
+		writer ~= ":";
+		writeBlockStatement(writer, indent + 1, case_.then);
+	}
+	writeNewline(writer, indent);
+	writer ~= "}";
+}
+pragma(inline, false)
+void writeTryCatch(scope ref Writer writer, uint indent, in JsTryCatchStatement a) {
+	writer ~= "try ";
+	writeBlockStatement(writer, indent, a.tried);
+	writer ~= " catch (";
+	writeJsName(writer, a.exception);
+	writer ~= ") ";
+	writeBlockStatement(writer, indent, a.catch_);
+}
+pragma(inline, false)
+void writeTryFinally(scope ref Writer writer, uint indent, in JsTryFinallyStatement a) {
+	writer ~= "try ";
+	writeBlockStatement(writer, indent, a.tried);
+	writer ~= " finally ";
+	writeBlockStatement(writer, indent, a.finally_);
+}
+pragma(inline, false)
+void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
+	writer ~= stringOfEnum(a.kind);
+	writer ~= ' ';
+	writeDestructure(writer, a.destructure);
+	writer ~= " = ";
+	writeExpr(writer, indent, *a.initializer);
+}
+pragma(inline, false)
+void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
+	writer ~= "while (";
+	writeExpr(writer, indent + 2, a.condition);
+	writer ~= ')';
+	writeStatementIndented(writer, indent, a.body_);
+}
+
 bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement a) {
 	if (a.isA!JsBlockStatement) {
 		writer ~= ' ';

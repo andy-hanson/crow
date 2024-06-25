@@ -8,6 +8,7 @@ import frontend.check.instantiate : isOptionType;
 import model.constant : Constant, constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
+	arrayElementType,
 	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
@@ -23,10 +24,13 @@ import model.model :
 	FlagsFunction,
 	FunBody,
 	FunDecl,
+	isArray,
+	JsFun,
 	paramsArray,
 	SpecInst,
 	StructInst,
-	Type;
+	Type,
+	TypeParamIndex;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
@@ -38,6 +42,7 @@ FunBody getBuiltinFun(ref CheckCtx ctx, in CommonTypes commonTypes, FunDecl* fun
 		ctx, commonTypes, fun.nameRange.range, fun.name, fun.returnType, params.length,
 		params.length >= 1 ? params[0].type : Type.bogus,
 		params.length >= 2 ? params[1].type : Type.bogus,
+		params.length >= 3 ? params[2].type : Type.bogus,
 		fun.specs);
 }
 
@@ -52,6 +57,7 @@ FunBody inner(
 	size_t arity,
 	Type p0,
 	Type p1,
+	Type p2,
 	in SpecInst*[] specs,
 ) {
 	BuiltinUnary failUnary() => cast(BuiltinUnary) 0xffffffff;
@@ -81,6 +87,8 @@ FunBody inner(
 		arity == 2 && isFloat32(rt) && isFloat32(p0) && isFloat32(p1);
 	bool isBinaryFloat64() =>
 		arity == 2 && isFloat64(rt) && isFloat64(p0) && isFloat64(p1);
+	bool isString(in Type x) =>
+		x == Type(commonTypes.string_);
 
 	FunBody unaryFloat64(BuiltinUnary kind) =>
 		unary(isUnaryFloat64() ? kind : failUnary);
@@ -106,6 +114,24 @@ FunBody inner(
 		arity == 2 && kind != failBinaryLazy ? FunBody(BuiltinFun(kind)) : fail();
 
 	switch (name.value) {
+		case symbol!"as-js-any".value:
+			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
+				? FunBody(BuiltinFun(JsFun.asJsAny))
+				: fail();
+		// TODO: MOVE STUFF _----------------------------------------------------------------------------------------------------------
+		case symbol!"as-t".value:
+			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.jsAnyAsT))
+				: fail();
+		case symbol!"js-global".value:
+			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
+		case symbol!"get".value:
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1) ? FunBody(BuiltinFun(JsFun.jsGet)) : fail();
+		case symbol!"set".value:
+			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.jsSet)) : fail();
+		case symbol!"call".value:
+			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAnyArray(commonTypes, p2) ? FunBody(BuiltinFun(JsFun.jsCallProperty)) : fail();
+
 		case symbol!"+".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.addFloat32
@@ -584,8 +610,17 @@ bool isFloat32(in Type a) =>
 bool isFloat64(in Type a) =>
 	isBuiltin(a, BuiltinType.float64);
 
+bool isJsAny(in Type a) =>
+	isBuiltin(a, BuiltinType.jsAny);
+
+bool isJsAnyArray(in CommonTypes commonTypes, in Type a) =>
+	isArray(commonTypes, a) && isJsAny(arrayElementType(commonTypes, a));
+
 bool isPointerConstOrMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst) || isBuiltin(a, BuiltinType.pointerMut);
+
+bool isTypeParam0(in Type a) =>
+	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
 
 bool isVoid(in Type a) =>
 	isBuiltin(a, BuiltinType.void_);

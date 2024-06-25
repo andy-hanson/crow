@@ -290,7 +290,7 @@ immutable struct Diag {
 	}
 	immutable struct ExternUnion {}
 	immutable struct FunCantHaveBody {
-		enum Reason { builtin }
+		enum Reason { builtin } // TODO: only one reason, so maybe just have 'BuiltinFunCantHaveBody' diag .........................
 		Reason reason;
 	}
 	immutable struct FunctionWithSignatureNotFound {

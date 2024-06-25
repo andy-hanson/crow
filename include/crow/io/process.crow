@@ -51,11 +51,8 @@ EXE should be a file path and not just a name; this does not search the system p
 		if extern windows
 			exe-c-string spawn-and-wait-result-windows args
 		elif extern posix
-			# TODO: 'if extern posix && extern libc' should work -------------------------------------------------------------------
-			if extern libc
-				exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
-			else
-				throw not-implemented
+			assert extern libc : not-implemented
+			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 		else
 			throw not-implemented
 

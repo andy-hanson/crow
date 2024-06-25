@@ -431,6 +431,7 @@ immutable struct IfAst {
 	}
 
 	Kind kind;
+	bool isElseOfParent; // 'ifWithoutElse', 'ifElif', and 'ifElse' could all be the 'else' branch of a preceding 'if'
 	Pos firstKeywordPos; // Position of 'if' or '?' or 'unless'
 	Pos secondKeywordPos_; // Position of 'elif' or 'else' or ':' keyword
 	ConditionAst condition;
@@ -546,6 +547,7 @@ private size_t countIfBranches(IfAst.Kind kind) {
 IfAst createIfAst(
 	ref Alloc alloc,
 	IfAst.Kind kind,
+	bool isElseOfParent,
 	Pos firstKeywordPos,
 	ConditionAst condition,
 	Opt!ExprAst firstBranch,
@@ -555,6 +557,7 @@ IfAst createIfAst(
 	assert(countIfBranches(kind) == has(firstBranch) + has(secondBranch));
 	return IfAst(
 		kind: kind,
+		isElseOfParent: isElseOfParent,
 		firstKeywordPos: firstKeywordPos,
 		secondKeywordPos_: optOrDefault!Pos(secondKeywordPos, () => 0),
 		condition: condition,

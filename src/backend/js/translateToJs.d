@@ -112,6 +112,7 @@ import model.model :
 	IfExpr,
 	ImportOrExport,
 	isVoid,
+	JsFun,
 	LambdaExpr,
 	LetExpr,
 	LiteralExpr,
@@ -967,6 +968,8 @@ JsExpr translateCallBuiltin(ref TranslateModuleCtx ctx, in Type returnType, in B
 			translateConstant(ctx, x, returnType),
 		(in BuiltinFun.Init) =>
 			assert(false),
+		(in JsFun _) =>
+			todo!JsExpr("TRANSLATE JSFUN"), // --------------------------------------------------------------------------------------------
 		(in BuiltinFun.MarkRoot) =>
 			assert(false),
 		(in BuiltinFun.MarkVisit) =>

@@ -389,6 +389,7 @@ enum BuiltinType {
 	int16,
 	int32,
 	int64,
+	jsAny,
 	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
 	nat8,
 	nat16,
@@ -416,6 +417,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.float32:
 		case BuiltinType.float64:
 		case BuiltinType.funPointer:
+		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
@@ -794,6 +796,15 @@ immutable struct FunBody {
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
+enum JsFun {
+	asJsAny,
+	jsAnyAsT,
+	jsCallProperty,
+	jsGet,
+	jsGlobal,
+	jsSet,
+}
+
 immutable struct BuiltinFun {
 	immutable struct AllTests {}
 	immutable struct CallLambda {}
@@ -821,6 +832,7 @@ immutable struct BuiltinFun {
 		CallFunPointer,
 		Constant,
 		Init,
+		JsFun,
 		MarkRoot,
 		MarkVisit,
 		PointerCast,
@@ -1636,6 +1648,9 @@ immutable struct CommonTypes {
 	size_t maxTupleSize() scope =>
 		9;
 }
+
+bool isArray(in CommonTypes commonTypes, Type type) => // TODO: If I make 'array' a bulitin type, this won't need commonTypes. Same for string. ...
+	type.isA!(StructInst*) && type.as!(StructInst*).decl == commonTypes.array;
 
 Type arrayElementType(in CommonTypes commonTypes, Type type) {
 	assert(type.as!(StructInst*).decl == commonTypes.array);

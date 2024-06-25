@@ -419,25 +419,23 @@ Expr checkIf(
 	IfAst ast,
 	ref Expected expected,
 ) {
-	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && ast.kind != IfAst.Kind.ifElif)) {
-		// TODO: This was failing for the 'elif ... else throw'. Since apparently that counts as an if-else. We need a kind for IfAst.Kind.elifElse ....
-		// addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
-	}
+	if ((isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && !ast.isElseOfParent)))
+		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
 	Opt!Symbol extern_ = asExtern(condition);
 	bool isNegated = ast.isConditionNegated;
 	Range emptyNewRange = ast.firstKeywordRange;
-	Expr firstBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source,
-		isNegated ? none!Destructure : destructure,
-		isNegated ? none!Symbol : extern_,
-		ast.firstBranch, emptyNewRange, expected);
-	Expr secondBranch = checkExprWithOptDestructureOrEmptyNew(
-		ctx, locals, source,
-		isNegated ? destructure : none!Destructure,
-		isNegated ? none!Symbol : extern_,
-		ast.secondBranch, emptyNewRange, expected);
+	Expr firstBranch = withExternFromCondition(ctx, condition, !isNegated, () =>
+		checkExprWithOptDestructureOrEmptyNew(
+			ctx, locals, source,
+			isNegated ? none!Destructure : destructure,
+			ast.firstBranch, emptyNewRange, expected));
+	Expr secondBranch = withExternFromCondition(ctx, condition, isNegated, () =>
+		checkExprWithOptDestructureOrEmptyNew(
+			ctx, locals, source,
+			isNegated ? destructure : none!Destructure,
+			ast.secondBranch, emptyNewRange, expected));
 	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(
 		condition, isNegated ? secondBranch : firstBranch, isNegated ? firstBranch : secondBranch))));
 }
@@ -527,8 +525,9 @@ Expr checkAssertOrForbid(
 ) {
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
+	bool isForbid = ast.isForbid;
 	return Expr(source, ExprKind(allocate(ctx.alloc, AssertOrForbidExpr(
-		isForbid: ast.isForbid,
+		isForbid: isForbid,
 		condition: condition,
 		thrown: optIf(has(ast.thrown), () {
 			ExprAst* thrownAst = &force(ast.thrown).expr;
@@ -536,11 +535,13 @@ Expr checkAssertOrForbid(
 				addDiag2(ctx, thrownAst.kind.as!(ThrowAst*).keywordRange(thrownAst), Diag(
 					Diag.AssertOrForbidMessageIsThrow()));
 			return allocate(ctx.alloc, withExpect(Type(ctx.commonTypes.exception), (ref Expected expectThrown) =>
-				checkExprWithOptDestructure(
-					ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectThrown)));
+				withExternFromCondition(ctx, condition, isForbid, () =>
+					checkExprWithOptDestructure(
+						ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectThrown))));
 		}),
-		after: checkExprWithOptDestructure(
-			ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected)))));
+		after: withExternFromCondition(ctx, condition, !isForbid, () =>
+			checkExprWithOptDestructure(
+				ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected))))));
 }
 
 Expr checkAssignment(
@@ -1954,26 +1955,35 @@ Expr checkExprOrEmptyNew(
 		? checkExpr(ctx, locals, force(ast), expected)
 		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
 
+Out withExternFromCondition(Out)(
+	ref ExprCtx ctx,
+	in Condition condition,
+	bool isTrueBranch,
+	in Out delegate() @safe @nogc pure nothrow cb,
+) {
+	Opt!Symbol extern_ = asExtern(condition);
+	SymbolSet originalExterns = ctx.externs;
+	if (has(extern_))
+		ctx.externs = ctx.externs.add(force(extern_));
+	scope (exit) {
+		if (has(extern_))
+			ctx.externs = originalExterns;
+	}
+	return cb();
+}
+
 Expr checkExprWithOptDestructureOrEmptyNew(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* parent,
 	Opt!Destructure destructure,
-	Opt!Symbol extern_,
 	Opt!(ExprAst*) ast,
 	Range emptyNewRange,
 	ref Expected expected,
-) {
-	SymbolSet originalExterns = ctx.externs;
-	if (has(extern_))
-		ctx.externs = ctx.externs.add(force(extern_));
-	Expr rslt = has(ast)
+) =>
+	has(ast)
 		? checkExprWithOptDestructure(ctx, locals, destructure, force(ast), expected)
 		: checkEmptyNew(ctx, locals, parent, emptyNewRange, expected);
-	if (has(extern_))
-		ctx.externs = originalExterns;
-	return rslt;
-}
 
 Opt!string stringFromCaseAst(ref ExprCtx ctx, CaseMemberAst ast) =>
 	ast.match!(Opt!string)(

@@ -284,6 +284,7 @@ ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, Pos
 	return ExprAst(range(lexer, start), ExprAstKind(createIfAst(
 		lexer.alloc,
 		hasColon ? IfAst.Kind.ternaryWithElse : IfAst.Kind.ternaryWithoutElse,
+		false,
 		questionPos,
 		ConditionAst(allocate(lexer.alloc, lhs)),
 		some(then),
@@ -559,9 +560,6 @@ ExprAst parseDo(ref Lexer lexer, Pos start) {
 	return ExprAst(range(lexer, start), ExprAstKind(DoAst(allocate(lexer.alloc, body_))));
 }
 
-ExprAst parseIf(ref Lexer lexer, Pos start) =>
-	parseIfRecur(lexer, start);
-
 ConditionAst parseCondition(ref Lexer lexer, AllowedBlock allowedBlock) {
 	if (lookaheadQuestionEquals(lexer)) {
 		DestructureAst lhs = parseDestructureNoRequireParens(lexer);
@@ -574,7 +572,7 @@ ConditionAst parseCondition(ref Lexer lexer, AllowedBlock allowedBlock) {
 		return ConditionAst(allocate(lexer.alloc, parseExprAndAllCalls(lexer, allowedBlock)));
 }
 
-ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
+ExprAst parseIf(ref Lexer lexer, Pos start, bool isElseOfParent) {
 	ConditionAst condition = parseCondition(lexer, AllowedBlock.no);
 	ExprAst then = parseIndentedStatements(lexer);
 	Opt!ElifOrElseKeyword elifOrElse = tryTakeNewlineThenElifOrElse(lexer);
@@ -582,7 +580,7 @@ ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
 	Opt!ExprAst else_ = optIf(has(elifOrElse), () {
 		final switch (force(elifOrElse).kind) {
 			case ElifOrElseKeyword.Kind.elif:
-				return parseIfRecur(lexer, force(elifOrElse).pos);
+				return parseIf(lexer, force(elifOrElse).pos, true);
 			case ElifOrElseKeyword.Kind.else_:
 				return parseIndentedStatements(lexer);
 		}
@@ -601,7 +599,7 @@ ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
 	}();
 
 	ExprAstKind exprKind = ExprAstKind(createIfAst(
-		lexer.alloc, kind, start, condition, some(then), optIf(has(elifOrElse), () => force(elifOrElse).pos), else_));
+		lexer.alloc, kind, isElseOfParent, start, condition, some(then), optIf(has(elifOrElse), () => force(elifOrElse).pos), else_));
 	return ExprAst(range(lexer, start), exprKind);
 }
 
@@ -620,7 +618,7 @@ ConditionAndBody parseConditionAndBody(ref Lexer lexer) {
 ExprAst parseUnless(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
 	return ExprAst(range(lexer, start), ExprAstKind(createIfAst(
-		lexer.alloc, IfAst.Kind.unless, start, cb.condition, some(cb.body_), none!Pos, none!ExprAst)));
+		lexer.alloc, IfAst.Kind.unless, false, start, cb.condition, some(cb.body_), none!Pos, none!ExprAst)));
 }
 
 ExprAst parseShared(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
@@ -671,6 +669,7 @@ ExprAst parseGuard(ref Lexer lexer, Pos start) {
 	return ExprAst(range(lexer, start), ExprAstKind(createIfAst(
 		lexer.alloc,
 		has(firstBranch) ? IfAst.Kind.guardWithColon : IfAst.Kind.guardWithoutColon,
+		false,
 		start,
 		condition,
 		firstBranch,
@@ -903,7 +902,7 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			NameAndRange name = takeNameAndRange(lexer);
 			return ExprAst(range(lexer, start), ExprAstKind(ExternAst(name)));
 		case Token.if_:
-			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start));
+			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start, false));
 		case Token.for_:
 			return parseFor(lexer, start, allowedBlock);
 		case Token.match:

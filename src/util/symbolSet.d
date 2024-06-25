@@ -3,7 +3,7 @@ module util.symbolSet;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
-import util.col.array : append, contains, emptySmallArray, every, isEmpty, MutSmallArray, only, SmallArray;
+import util.col.array : append, contains, emptySmallArray, every, fold, isEmpty, MutSmallArray, only, SmallArray;
 import util.opt : Opt, optIf;
 import util.symbol : Symbol;
 
@@ -26,6 +26,9 @@ struct MutSymbolSet {
 
 	SymbolSet add(Symbol x) const =>
 		addSymbol(this, x);
+	SymbolSet addAll(in Symbol[] xs) const =>
+		fold!(SymbolSet, Symbol)(this, xs, (SymbolSet acc, in Symbol x) =>
+			acc.add(x));
 }
 alias SymbolSet = immutable MutSymbolSet;
 
