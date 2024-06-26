@@ -798,11 +798,11 @@ static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
 enum JsFun {
 	asJsAny,
+	callProperty,
+	get,
 	jsAnyAsT,
-	jsCallProperty,
-	jsGet,
 	jsGlobal,
-	jsSet,
+	set,
 }
 
 immutable struct BuiltinFun {

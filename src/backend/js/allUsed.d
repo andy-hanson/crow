@@ -24,6 +24,9 @@ import model.model :
 	getModuleUri,
 	IfExpr,
 	Local,
+	MatchEnumExpr,
+	MatchUnionExpr,
+	MatchVariantExpr,
 	Module,
 	paramsArray,
 	Program,
@@ -60,6 +63,14 @@ immutable struct AnyDecl {
 	// An inlined function is not considered used, just its return type
 	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
 
+	Uri moduleUri() scope =>
+		matchIn!Uri(
+			(in FunDecl x) => x.moduleUri,
+			(in SpecDecl x) => x.moduleUri,
+			(in StructAlias x) => x.moduleUri,
+			(in StructDecl x) => x.moduleUri,
+			(in VarDecl x) => x.moduleUri);
+
 	Symbol name() scope =>
 		matchIn!Symbol(
 			(in FunDecl x) => x.name,
@@ -78,21 +89,31 @@ immutable struct AnyDecl {
 }
 // This does not include FunDecl if the body would be inlined
 immutable struct AllUsed {
-	Map!(Uri, Set!AnyDecl) usedPerModule; // This will let us know exactly what each module needs to import.
+	Map!(Uri, Set!AnyDecl) usedByModule; // This will let us know exactly what each module needs to import.
 	Set!AnyDecl usedDecls;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
 	a.usedDecls.has(x);
-bool isModuleUsed(in AllUsed a, Uri module_) =>
-	hasKey(a.usedPerModule, module_);
-bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) =>
-	mustGet(a.usedPerModule, module_).has(x);
+bool isModuleUsed(in AllUsed a, Uri module_) {
+	// TODO: PERF ------------------------------------------------------------------------------------------------------------
+	foreach (AnyDecl x; a.usedDecls) {
+		if (x.moduleUri == module_)
+			return true;
+	}
+	return false;
+}
+
+bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
+	// TODO: could we ensure usedByModule is initialized so that this uses mustGet? ---------------------------------------------------
+	Opt!(Set!AnyDecl) set = a.usedByModule[module_];
+	return has(set) && force(set).has(x);
+}
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl);
 	return AllUsed(
-		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedPerModule, (ref MutSet!AnyDecl x) =>
+		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),
 		moveToSet(res.usedDecls));
 }
@@ -131,7 +152,7 @@ struct AllUsedBuilder {
 	immutable Program* program;
 	immutable VersionInfo version_;
 	immutable SymbolSet allExtern;
-	MutMap!(Uri, MutSet!AnyDecl) usedPerModule;
+	MutMap!(Uri, MutSet!AnyDecl) usedByModule;
 	MutSet!AnyDecl usedDecls;
 
 	ref Alloc alloc() =>
@@ -141,7 +162,7 @@ struct AllUsedBuilder {
 }
 
 bool addDecl(ref AllUsedBuilder res, Uri from, AnyDecl used) {
-	MutSet!AnyDecl* perModule = &getOrAdd(res.alloc, res.usedPerModule, from, () => MutSet!AnyDecl());
+	MutSet!AnyDecl* perModule = &getOrAdd(res.alloc, res.usedByModule, from, () => MutSet!AnyDecl());
 	return mayAddToMutSet(res.alloc, *perModule, used) && mayAddToMutSet(res.alloc, res.usedDecls, used);
 }
 
@@ -192,7 +213,25 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a) {
 			(FunBody.Bogus) {},
 			(AutoFun _) {},
 			(BuiltinFun _) {},
-			(FunBody.CreateEnumOrFlags) { usedReturnType(); },
+			(FunBody.CreateEnumOrFlags) {
+				import util.writer : debugLogWithWriter, Writer;
+				debugLogWithWriter((scope ref Writer writer) {
+					writer ~= "from ";
+					writer ~= from;
+					writer ~= ", used CreateEnumOrFlags. Type is ";
+					a.returnType.matchIn!void(
+						(in Type.Bogus x) {
+							writer ~= "BOGUS";
+						},
+						(in TypeParamIndex p) {
+							writer ~= "A type param";
+						},
+						(in StructInst x) {
+							writer ~= x.decl.name;
+						});
+				});
+				usedReturnType();
+			},
 			(FunBody.CreateExtern) { assert(false); },
 			(FunBody.CreateRecord) { usedReturnType(); },
 			(FunBody.CreateRecordAndConvertToVariant) { usedReturnType(); },
@@ -272,6 +311,13 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 			trackAllUsedInExprRef(res, from, ExprRef(force(constant) ? &if_.trueBranch : &if_.falseBranch, a.type));
 		else
 			trackChildren();
-	} else
+	} else {
+		if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
+			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchEnumExpr*).enum_);
+		else if (a.expr.kind.isA!(MatchUnionExpr*))
+			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);
+		else if (a.expr.kind.isA!(MatchVariantExpr*))
+			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchVariantExpr*).variant.decl);
 		trackChildren();
+	}
 }

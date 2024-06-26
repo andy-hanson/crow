@@ -61,6 +61,7 @@ import backend.js.jsAst :
 	JsObjectExpr,
 	JsParams,
 	JsPropertyAccessExpr,
+	JsPropertyAccessComputedExpr,
 	JsReturnStatement,
 	JsStatement,
 	JsSwitchStatement,
@@ -70,7 +71,6 @@ import backend.js.jsAst :
 	JsTryFinallyStatement,
 	JsUnaryExpr,
 	JsVarDecl,
-	JsVoidExpr,
 	JsWhileStatement;
 import util.alloc.alloc : Alloc;
 import util.col.map : KeyValuePair;
@@ -80,14 +80,16 @@ import util.uri : Path, RelPath;
 import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
 
-string writeJsAst(ref Alloc alloc, in JsModuleAst a) =>
+string writeJsAst(ref Alloc alloc, in JsModuleAst a, bool isMain) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		foreach (JsImport x; a.imports)
 			writeImportOrReExport(writer, "import", x);
 		foreach (JsImport x; a.reExports)
 			writeImportOrReExport(writer, "export", x);
-		foreach (JsDecl decl; a.decls)
-			writeDecl(writer, decl);
+		foreach (JsDecl x; a.decls)
+			writeDecl(writer, x);
+		if (isMain)
+			writer ~= "\nmain()\n";
 	});
 
 private:
@@ -446,7 +448,22 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 		(in JsBinaryExpr x) {
 			assert(!isStatement);
 			writer ~= '(';
-			todo!void("BINARY EXPR");
+			writeArg(*x.left);
+			writer ~= ' ';
+			writer ~= () {
+				final switch (x.kind) {
+					case JsBinaryExpr.Kind.eqEqEq:
+						return "===";
+					case JsBinaryExpr.Kind.in_:
+						return "in";
+					case JsBinaryExpr.Kind.instanceof:
+						return "instanceof";
+					case JsBinaryExpr.Kind.or:
+						return "or";
+				}
+			}();
+			writer ~= ' ';
+			writeArg(*x.right);
 			writer ~= ')';
 		},
 		(in JsCallExpr x) {
@@ -503,8 +520,14 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writer ~= " }";
 		},
 		(in JsPropertyAccessExpr x) {
-			writeArg(*x.arg, isStatement);
-			writePropertyAccess(writer, x.name);
+			writeArg(*x.object, isStatement);
+			writePropertyAccess(writer, x.propertyName);
+		},
+		(in JsPropertyAccessComputedExpr x) {
+			writeArg(x.object, isStatement);
+			writer ~= '[';
+			writeArg(x.propertyName);
+			writer ~= ']';
 		},
 		(in JsTernaryExpr x) {
 			writeArg(x.condition, isStatement);
@@ -514,15 +537,16 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writeArg(x.else_);
 		},
 		(in JsUnaryExpr x) {
-			final switch (x.kind) {
-				case JsUnaryExpr.Kind.not:
-					writer ~= '!';
-					break;
-			}
-			writeArg(*x.arg);
-		},
-		(in JsVoidExpr x) {
-			writer ~= "void ";
+			writer ~= () {
+				final switch (x.kind) {
+					case JsUnaryExpr.Kind.not:
+						return "!";
+					case JsUnaryExpr.Kind.typeof_:
+						return "typeof ";
+					case JsUnaryExpr.Kind.void_:
+						return "void ";
+				}
+			}();
 			writeArg(*x.arg);
 		});
 }

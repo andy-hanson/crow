@@ -8,7 +8,7 @@ import util.col.map : KeyValuePair, Map;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : Opt;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
 
@@ -163,19 +163,19 @@ immutable struct JsExpr {
 		JsNullExpr,
 		JsObjectExpr,
 		JsPropertyAccessExpr,
+		JsPropertyAccessComputedExpr*,
 		JsTernaryExpr*,
 		JsUnaryExpr,
-		JsVoidExpr,
 	);
 }
 immutable struct JsArrayExpr {
 	JsExpr[] elements;
 }
 immutable struct JsBinaryExpr {
-	enum Kind { in_, instanceof, or }
+	enum Kind { eqEqEq, in_, instanceof, or }
 	Kind kind;
-	JsExpr* arg0;
-	JsExpr* arg1;
+	JsExpr* left;
+	JsExpr* right;
 }
 immutable struct JsCallExpr {
 	JsExpr* called;
@@ -216,9 +216,13 @@ immutable struct JsObjectExpr {
 	KeyValuePair!(Symbol, JsExpr)[] fields;
 }
 immutable struct JsPropertyAccessExpr {
-	JsExpr* arg;
+	JsExpr* object;
 	// Property names are not mangled
-	Symbol name;
+	Symbol propertyName;
+}
+immutable struct JsPropertyAccessComputedExpr {
+	JsExpr object;
+	JsExpr propertyName;
 }
 immutable struct JsTernaryExpr {
 	JsExpr condition;
@@ -226,11 +230,8 @@ immutable struct JsTernaryExpr {
 	JsExpr else_;
 }
 immutable struct JsUnaryExpr {
-	enum Kind { not }
+	enum Kind { not, typeof_, void_ }
 	Kind kind;
-	JsExpr* arg;
-}
-immutable struct JsVoidExpr {
 	JsExpr* arg;
 }
 
@@ -259,7 +260,7 @@ JsExpr genIntegerSigned(long value) =>
 JsExpr genIntegerUnsigned(ulong value) =>
 	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
 JsExpr genNot(ref Alloc alloc, JsExpr arg) => //TODO:MOVE -------------------------------------------------------------------------------
-	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.not, allocate(alloc, arg)));
+	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 JsExpr genNull() =>
 	JsExpr(JsNullExpr());
 JsExpr genNumber(double value) =>
@@ -270,12 +271,22 @@ JsExpr genOr(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.or, arg0, arg1);
 JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, Symbol propertyName) =>
 	JsExpr(JsPropertyAccessExpr(allocate(alloc, arg), propertyName));
+JsExpr genPropertyAccessComputed(ref Alloc alloc, JsExpr object, JsExpr propertyName) =>
+	propertyName.isA!JsLiteralString
+		? genPropertyAccess(alloc, object, symbolOfString(propertyName.as!JsLiteralString.value))
+		: JsExpr(allocate(alloc, JsPropertyAccessComputedExpr(object, propertyName)));
 JsStatement genReturn(ref Alloc alloc, JsExpr arg) =>
 	JsStatement(JsReturnStatement(allocate(alloc, arg)));
 JsStatement genSwitch(ref Alloc alloc, JsExpr arg, JsSwitchStatement.Case[] cases, JsStatement default_) =>
 	JsStatement(JsSwitchStatement(allocate(alloc, arg), cases, allocate(alloc, default_)));
+JsExpr genTernary(ref Alloc alloc, JsExpr cond, JsExpr then, JsExpr else_) =>
+	JsExpr(allocate(alloc, JsTernaryExpr(cond, then, else_)));
 JsStatement genThrow(ref Alloc alloc, JsExpr thrown) =>
 	JsStatement(JsThrowStatement(allocate(alloc, thrown)));
+JsExpr genTypeof(ref Alloc alloc, JsExpr arg) =>
+	genUnary(alloc, JsUnaryExpr.Kind.typeof_, arg);
+JsExpr genEqEqEq(ref Alloc alloc, JsExpr a, JsExpr b) =>
+	genBinary(alloc, JsBinaryExpr.Kind.eqEqEq, a, b);
 JsStatement genTryCatch(ref Alloc alloc, JsBlockStatement tryBlock, JsName exception, JsBlockStatement catchBlock) =>
 	JsStatement(JsTryCatchStatement(tryBlock, exception, catchBlock));
 JsStatement genVarDecl(ref Alloc alloc, JsVarDecl.Kind kind, JsDestructure destructure, JsExpr initializer) =>
@@ -288,9 +299,11 @@ JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genThis() =>
 	JsExpr(JsName(symbol!"this"));
+JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
+	JsExpr(JsUnaryExpr(kind, allocate(alloc, arg)));
 JsExpr number0 = genNumber(0);
 JsExpr genUndefined() =>
-	JsExpr(JsVoidExpr(&number0));
+	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
 JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsStatement body_) =>
 	JsStatement(allocate(alloc, JsWhileStatement(condition, body_)));
 

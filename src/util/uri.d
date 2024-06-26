@@ -636,11 +636,6 @@ Path prefixPathComponent(Symbol first, Path rest) =>
 		descendentPath(rootPath(first, PathInfo()), components));
 
 RelPath relativePath(Path from, Path to) { // TODO: UNIT TEST _---------------------------------------------------------------
-	/*
-	So...
-	First walk up from 'from' until you get to an ancestor of 'to'.
-	Then, append 'to'. Simples!
-	*/
 	ushort nParents = 0;
 	Cell!Path ancestor = Cell!Path(from);
 	while (!isAncestor(cellGet(ancestor), to)) {

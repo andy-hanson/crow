@@ -1,5 +1,6 @@
 no-std
 import
+	./js: as-t, call, get, js-global
 	./fun-util: subscript
 	./io/print: err, out, pipe, print
 	./misc: new, void
@@ -68,6 +69,9 @@ If you just want to call the curent log handler, you could just use `log`.
 +get-log-handler log-handler()
 	trusted if extern native
 		must-cur-fiber log-handler
+	elif extern js
+		logged =>
+			js-global get "console" call logged.level.to, logged.message as-t
 	else
 		todo
 

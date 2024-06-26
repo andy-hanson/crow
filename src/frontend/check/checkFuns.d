@@ -409,7 +409,7 @@ FunFlagsAndSpecs checkFunModifiers(
 					specFromAst(
 						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts))));
 	return FunFlagsAndSpecs(
-		checkFunFlags(ctx, range, allFlags, isExtern: !hasBody && !externs.isEmpty, isTest: false),
+		checkFunFlags(ctx, range, allFlags, isExternBody: !hasBody && !externs.isEmpty, isTest: false),
 		(allFlags & CollectedFunFlags.builtin) != 0,
 		externs, specs);
 }
@@ -457,7 +457,7 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.test)));
 			});
 	}
-	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExtern: false, isTest: true), externs);
+	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExternBody: false, isTest: true), externs);
 }
 
 bool isAllowedTestFlag(CollectedFunFlags flag) {
@@ -486,13 +486,12 @@ enum CollectedFunFlags {
 CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
 	optEnumConvert!CollectedFunFlags(kind, () => CollectedFunFlags.none);
 
-FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags, bool isExtern, bool isTest) {
+FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags, bool isExternBody, bool isTest) {
 	void warnRedundant(ModifierKeyword modifier, ModifierKeyword redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
 
 	bool builtin = (flags & CollectedFunFlags.builtin) != 0;
-	bool extern_ = isExtern; //(flags & CollectedFunFlags.extern_) != 0; ------------------------------------------------------------------
 	bool explicitBare = (flags & CollectedFunFlags.bare) != 0;
 	bool forceCtx = (flags & CollectedFunFlags.forceCtx) != 0;
 	bool pure_ = (flags & CollectedFunFlags.pure_) != 0;
@@ -500,15 +499,15 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 	bool trusted = (flags & CollectedFunFlags.trusted) != 0;
 	bool explicitUnsafe = (flags & CollectedFunFlags.unsafe) != 0;
 
-	bool implicitUnsafe = extern_;
+	bool implicitUnsafe = isExternBody && !builtin;
 	bool unsafe = explicitUnsafe || implicitUnsafe;
-	bool implicitBare = extern_;
+	bool implicitBare = isExternBody && !builtin;
 	bool bare = explicitBare || implicitBare;
 
 	ModifierKeyword bodyModifier() =>
 		builtin
 			? ModifierKeyword.builtin
-			: extern_
+			: isExternBody
 			? ModifierKeyword.extern_
 			: assert(false);
 
@@ -521,19 +520,17 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		warnRedundant(bodyModifier(), ModifierKeyword.bare);
 	if (implicitUnsafe && explicitUnsafe)
 		warnRedundant(bodyModifier(), ModifierKeyword.unsafe);
-	if (builtin && extern_)
-		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.builtin, ModifierKeyword.extern_)));
 	if (explicitUnsafe && trusted)
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.unsafe, ModifierKeyword.trusted)));
 
 	if (pure_ && summon)
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.pure_, ModifierKeyword.summon)));
-	else if (pure_ && !extern_)
+	else if (pure_ && !isExternBody)
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToDeclKind(ModifierKeyword.pure_, DeclKind.function_)));
-	else if (summon && extern_)
+	else if (summon && isExternBody)
 		warnRedundant(ModifierKeyword.extern_, ModifierKeyword.summon);
 
-	bool isSummon = !pure_ && (extern_ || summon);
+	bool isSummon = !pure_ && (summon || (isExternBody && !builtin));
 	return FunFlags.regular(bare, isSummon, safety, forceCtx);
 }
 

@@ -672,6 +672,7 @@ immutable string[] specialSymbols = [
 	"gccCompile",
 	"gccJit",
 	"generated",
+	"_global",
 	"has-assertions",
 	"if-kind",
 	"import-kind",

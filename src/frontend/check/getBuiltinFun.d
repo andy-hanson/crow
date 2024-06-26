@@ -126,12 +126,13 @@ FunBody inner(
 		case symbol!"js-global".value:
 			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
 		case symbol!"get".value:
-			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1) ? FunBody(BuiltinFun(JsFun.jsGet)) : fail();
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1) ? FunBody(BuiltinFun(JsFun.get)) : fail();
 		case symbol!"set".value:
-			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.jsSet)) : fail();
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
 		case symbol!"call".value:
-			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAnyArray(commonTypes, p2) ? FunBody(BuiltinFun(JsFun.jsCallProperty)) : fail();
-
+			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
+				? FunBody(BuiltinFun(JsFun.callProperty))
+				: fail();
 		case symbol!"+".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.addFloat32
