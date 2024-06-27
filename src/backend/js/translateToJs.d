@@ -588,13 +588,8 @@ Opt!JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 JsDecl makeDecl(Visibility visibility, JsName name, JsDeclKind value) =>
 	JsDecl(visibility == Visibility.private_ ? JsDecl.Exported.private_ : JsDecl.Exported.export_, name, value);
 
-JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
-	JsParams params = a.params.match!JsParams(
-		(Destructure[] xs) =>
-			JsParams(map!(JsDestructure, Destructure)(ctx.alloc, small!Destructure(xs), (ref Destructure x) =>
-				translateDestructure(ctx, x))),
-		(ref Params.Varargs x) =>
-			JsParams(emptySmallArray!JsDestructure, some(translateDestructure(ctx, x.param))));
+JsDecl translateFunDecl(ref TranslateModuleCtx ctx, in FunDecl* a) {
+	JsParams params = translateFunParams(ctx, a.params);
 	JsExpr fun = genArrowFunction(params, translateFunBody(ctx, a.body_, a.returnType));
 	JsExpr funWithSpecs = isEmpty(a.specs)
 		? fun
@@ -604,6 +599,13 @@ JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 			JsExprOrBlockStatement(allocate(ctx.alloc, fun)));
 	return makeDecl(a.visibility, funName(ctx, a), JsDeclKind(funWithSpecs));
 }
+JsParams translateFunParams(ref TranslateModuleCtx ctx, in Params a) =>
+	a.match!JsParams(
+		(Destructure[] xs) =>
+			JsParams(map!(JsDestructure, Destructure)(ctx.alloc, small!Destructure(xs), (ref Destructure x) =>
+				translateDestructure(ctx, x))),
+		(ref Params.Varargs x) =>
+			JsParams(emptySmallArray!JsDestructure, some(translateDestructure(ctx, x.param))));
 JsDestructure translateDestructure(ref TranslateModuleCtx ctx, in Destructure a) =>
 	a.matchIn!JsDestructure(
 		(in Destructure.Ignore) =>
@@ -672,16 +674,24 @@ Opt!JsDecl translateStructDecl(ref TranslateModuleCtx ctx, in StructDecl* a) {
 }
 
 JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
-	if (isInlined(a))
-		return todo!JsClassMember("Inlined variant method impl"); // ------------------------------------------------------------------------------
-	else {
-		// foo(...args) { return foo(this, ...args) }
-		JsName args = JsName(symbol!"args");
-		JsParams params = JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args)));
-		JsBlockStatement body_ = JsBlockStatement(newArray(ctx.alloc, [
-			genReturn(ctx.alloc, genCallWithSpread(ctx.alloc, calledExpr(ctx, a), [genThis()], JsExpr(args)))]));
-		return JsClassMember(JsClassMember.Static.instance, a.name, JsClassMemberKind(JsClassMethod(params, body_)));
-	}
+	JsClassMethod method = () {
+		if (isInlined(a)) {
+			FunDecl* decl = a.as!(FunInst*).decl;
+			return JsClassMethod(
+				translateFunParams(ctx, decl.params),
+				translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
+					translateInlineCall(ctx, a.returnType, pos, decl.body_, a.paramTypes, a.arity.as!uint, (size_t i) =>
+						JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
+		} else {
+			// foo(...args) { return foo(this, ...args) }
+			JsName args = JsName(symbol!"args");
+			JsParams params = JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args)));
+			JsBlockStatement body_ = JsBlockStatement(newArray(ctx.alloc, [
+				genReturn(ctx.alloc, genCallWithSpread(ctx.alloc, calledExpr(ctx, a), [genThis()], JsExpr(args)))]));
+			return JsClassMethod(params, body_);
+		}
+	}();
+	return JsClassMember(JsClassMember.Static.instance, a.name, JsClassMemberKind(method));
 }
 
 void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Enum a) {

@@ -1,14 +1,19 @@
 no-std
 import
+	crow/bool: true
+	crow/col/array: array, new
 	crow/exception: describe, exception
-	crow/log: info, log
+	crow/log: error, info, log
 	crow/misc: void
-	crow/string: string
+	crow/number: nat
+	crow/option: new, option
+	crow/string: interpolate, string, to
 
 my-exception record(message string) exception variant-member
 describe string(a my-exception)
 	a.message
 
 main void() unsafe
-	e exception = "foo" my-exception
-	info log e.describe
+	x string = "foo"
+	xs string array = x,
+	info log xs[0]
