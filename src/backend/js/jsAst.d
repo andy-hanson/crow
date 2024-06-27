@@ -43,6 +43,7 @@ immutable struct JsDeclKind {
 	mixin Union!(JsClassDecl, JsExpr);
 }
 immutable struct JsClassDecl {
+	Opt!(JsExpr*) extends; 
 	JsClassMember[] members;
 }
 immutable struct JsClassMember {
@@ -235,6 +236,8 @@ immutable struct JsUnaryExpr {
 	JsExpr* arg;
 }
 
+JsExpr genArrowFunction(JsParams params, JsExprOrBlockStatement body_) =>
+	JsExpr(JsArrowFunction(params, body_));
 JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
@@ -251,6 +254,8 @@ JsStatement genEmptyStatement() =>
 	JsStatement(JsEmptyStatement());
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>
 	JsStatement(allocate(alloc, JsIfStatement(cond, then, else_)));
+JsExpr genIife(ref Alloc alloc, JsBlockStatement body_) =>
+	genCall(allocate(alloc, genArrowFunction(JsParams(), JsExprOrBlockStatement(body_))), []);
 JsExpr genIn(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.in_, arg0, arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>

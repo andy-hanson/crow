@@ -1,10 +1,14 @@
 no-std
 import
+	crow/exception: describe, exception
 	crow/log: info, log
 	crow/misc: void
+	crow/string: string
+
+my-exception record(message string) exception variant-member
+describe string(a my-exception)
+	a.message
 
 main void() unsafe
-	info log if extern js
-		"hello, js"
-	else
-		"hello, desktop"
+	e exception = "foo" my-exception
+	info log e.describe

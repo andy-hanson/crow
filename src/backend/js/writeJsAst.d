@@ -73,6 +73,7 @@ import backend.js.jsAst :
 	JsVarDecl,
 	JsWhileStatement;
 import util.alloc.alloc : Alloc;
+import util.col.array : isEmpty;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
@@ -225,6 +226,11 @@ void writeDecl(scope ref Writer writer, in JsDecl decl) {
 void writeClass(scope ref Writer writer, JsName name, in JsClassDecl x) {
 	writer ~= "class ";
 	writeJsName(writer, name);
+	if (has(x.extends)) {
+		writer ~= " extends ";
+		writeExpr(writer, 2, *force(x.extends));
+	}
+
 	writer ~= " {";
 	foreach (JsClassMember member; x.members) {
 		writeNewline(writer, 1);
@@ -260,7 +266,9 @@ void writeParams(scope ref Writer writer, in JsParams a, bool alwaysParens) {
 		writeDestructure(writer, x);
 	});
 	if (has(a.restParam)) {
-		writer ~= ", ...";
+		if (!isEmpty(a.params))
+			writer ~= ", ";
+		writer ~= "...";
 		writeDestructure(writer, force(a.restParam));
 	}
 	if (parens) writer ~= ')';
@@ -318,7 +326,7 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
 			writer ~= "{}";
 		},
 		(in JsExpr x) {
-			writeExpr(writer, indent, x, isStatement: true);
+			writeExpr(writer, indent, x, ExprPos.statement);
 		},
 		(in JsIfStatement x) {
 			writeIf(writer, indent, x);
@@ -362,6 +370,7 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 	writer ~= ")";
 	if (writeStatementIndented(writer, indent, a.then))
 		writer ~= ' ';
+	writeNewline(writer, indent);
 	writer ~= "else";
 	writeStatementIndented(writer, indent, a.else_);
 }
@@ -424,9 +433,21 @@ bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement
 	}
 }
 
-void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStatement = false) {
-	void writeArg(in JsExpr arg, bool isStatement = false) {
-		writeExpr(writer, indent, arg);
+struct ExprPos {
+	@safe @nogc pure nothrow:
+
+	bool isStatement; // Expression is at the start of a statement and may need ';'
+	bool isCalled; // Expression is called and may need to be wrapped in '()'
+
+	ExprPos withCalled() =>
+		ExprPos(isStatement, isCalled: true);
+
+	static ExprPos statement() =>
+		ExprPos(isStatement: true);
+}
+void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos()) {
+	void writeArg(in JsExpr arg, ExprPos pos = ExprPos()) {
+		writeExpr(writer, indent, arg, pos);
 	}
 	void writeArgs(in JsExpr[] args) {
 		writeWithCommas!JsExpr(writer, args, (in JsExpr arg) {
@@ -441,12 +462,17 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writer ~= ']';
 		},
 		(in JsArrowFunction x) {
+			assert(!pos.isStatement);
+			if (pos.isCalled)
+				writer ~= '(';
 			writeParams(writer, x.params, alwaysParens: false);
 			writer ~= " => ";
 			writeExprOrBlockStatement(writer, indent, x.body_);
+			if (pos.isCalled)
+				writer ~= ')';
 		},
 		(in JsBinaryExpr x) {
-			assert(!isStatement);
+			assert(!pos.isStatement);
 			writer ~= '(';
 			writeArg(*x.left);
 			writer ~= ' ';
@@ -467,13 +493,13 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writer ~= ')';
 		},
 		(in JsCallExpr x) {
-			writeArg(*x.called, isStatement);
+			writeArg(*x.called, pos.withCalled);
 			writer ~= '(';
 			writeArgs(x.args);
 			writer ~= ')';
 		},
 		(in JsCallWithSpreadExpr x) {
-			writeArg(*x.called, isStatement);
+			writeArg(*x.called, pos.withCalled);
 			writer ~= '(';
 			writeArgs(x.args);
 			writer ~= ", ...";
@@ -510,7 +536,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writer ~= "null";
 		},
 		(in JsObjectExpr x) {
-			assert(!isStatement);
+			assert(!pos.isStatement);
 			writer ~= "{ ";
 			writeWithCommas!(KeyValuePair!(Symbol, JsExpr))(writer, x.fields, (in KeyValuePair!(Symbol, JsExpr) field) {
 				writeObjectKey(writer, field.key);
@@ -520,17 +546,17 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, bool isStateme
 			writer ~= " }";
 		},
 		(in JsPropertyAccessExpr x) {
-			writeArg(*x.object, isStatement);
+			writeArg(*x.object, pos);
 			writePropertyAccess(writer, x.propertyName);
 		},
 		(in JsPropertyAccessComputedExpr x) {
-			writeArg(x.object, isStatement);
+			writeArg(x.object, pos);
 			writer ~= '[';
 			writeArg(x.propertyName);
 			writer ~= ']';
 		},
 		(in JsTernaryExpr x) {
-			writeArg(x.condition, isStatement);
+			writeArg(x.condition, pos);
 			writer ~= " ? ";
 			writeArg(x.then);
 			writer ~= " : ";

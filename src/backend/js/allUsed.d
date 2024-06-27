@@ -213,13 +213,25 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a) {
 			(FunBody.Bogus) {},
 			(AutoFun _) {},
 			(BuiltinFun _) {},
-			(FunBody.CreateEnumOrFlags) { usedReturnType(); },
-			(FunBody.CreateExtern) { assert(false); },
-			(FunBody.CreateRecord) { usedReturnType(); },
-			(FunBody.CreateRecordAndConvertToVariant) { usedReturnType(); },
-			(FunBody.CreateUnion) { usedReturnType(); },
+			(FunBody.CreateEnumOrFlags) {
+				usedReturnType();
+			},
+			(FunBody.CreateExtern) {
+				assert(false);
+			},
+			(FunBody.CreateRecord) {
+				usedReturnType();
+			},
+			(FunBody.CreateRecordAndConvertToVariant x) {
+				trackAllUsedInStruct(res, from, x.member.decl);
+			},
+			(FunBody.CreateUnion) {
+				usedReturnType();
+			},
 			(FunBody.CreateVariant) {},
-			(EnumFunction _) { usedReturnType(); },
+			(EnumFunction _) {
+				usedReturnType();
+			},
 			(Expr _) {
 				trackAllUsedInExprRef(res, a.moduleUri, ExprRef(&a.body_.as!Expr(), a.returnType));
 			},
@@ -299,7 +311,13 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 		else if (a.expr.kind.isA!(MatchUnionExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);
 		else if (a.expr.kind.isA!(MatchVariantExpr*))
-			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchVariantExpr*).variant.decl);
+			trackAllUsedInMatchVariant(res, from, *a.expr.kind.as!(MatchVariantExpr*));
 		trackChildren();
 	}
+}
+
+void trackAllUsedInMatchVariant(ref AllUsedBuilder res, Uri from, in MatchVariantExpr a) {
+	trackAllUsedInStruct(res, from, a.variant.decl);
+	foreach (MatchVariantExpr.Case case_; a.cases)
+		trackAllUsedInStruct(res, from, case_.member.decl);
 }

@@ -159,10 +159,10 @@ region hard assertions
 -abort void() libc extern, pure
 
 ~abandon void() bare, unsafe
+	forbid extern js : "Reached a fatal error" error
 	if extern libc
 		abort
 	else
-		# TODO: in JS, 'process.exit(1)' -------------------------------------------------------------------------------------
 		new-void
 
 ###
@@ -290,6 +290,8 @@ This is a variant type, meaning anything can declare a `variant-member` that is 
 ###
 +exception variant
 	describe string()
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
++error record(describe string) by-val, exception variant-member
 
 ###
 Type of a thrown exception.

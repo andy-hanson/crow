@@ -5,6 +5,7 @@ module backend.js.translateToJs;
 import backend.js.allUsed :
 	AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
 import backend.js.jsAst :
+	genArrowFunction,
 	genAssign,
 	genBool,
 	genCall,
@@ -13,6 +14,7 @@ import backend.js.jsAst :
 	genEmptyStatement,
 	genEqEqEq,
 	genIf,
+	genIife,
 	genIn,
 	genInstanceof,
 	genIntegerSigned,
@@ -175,6 +177,7 @@ import util.col.array :
 	newArray,
 	newSmallArray,
 	only,
+	prepend,
 	small,
 	SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder, finish;
@@ -188,7 +191,7 @@ import util.col.sortUtil : sortInPlace;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
+import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, optOrDefault, some, someMut;
 import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
 import util.symbolSet : MutSymbolSet, SymbolSet, symbolSet;
 import util.union_ : TaggedUnion, Union;
@@ -351,12 +354,6 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 		modulePrivateMangledNames(ctx.alloc, a, ctx.exportMangledNames, ctx.allUsed),
 		moveToMap(ctx.alloc, aliases));
 	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
-		out_ ~= JsDecl(JsDecl.Exported.private_, JsName(symbol!"_global"), JsDeclKind(
-			genTernary(
-				ctx.alloc,
-				genEqEqEq(ctx.alloc, genTypeof(ctx.alloc, JsExpr(JsName(symbol!"window"))), genUndefined()), // TODO: helper for JsExpr(JsName(symbol!"foo"))
-				JsExpr(JsName(symbol!"window")),
-				JsExpr(JsName(symbol!"global"))))); // TODO: have a (D) variable for '_global' to share in all the places it appears
 		eachDeclInModule(a, (AnyDecl x) {
 			if (isUsedAnywhere(ctx.allUsed, x)) {
 				Opt!JsDecl res = translateDecl(moduleCtx, x);
@@ -385,6 +382,9 @@ struct TranslateModuleCtx {
 		*commonTypesPtr;
 	ref AllUsed allUsed() =>
 		*allUsedPtr;
+
+	bool isBrowser() =>
+		allExtern.has(symbol!"browser");
 }
 
 JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
@@ -450,6 +450,8 @@ Map!(AnyDecl, ushort) modulePrivateMangledNames(ref Alloc alloc, in Module modul
 	});
 	return moveToMap(alloc, res);
 }
+JsName localName(in Local a) =>
+	JsName(a.name, some!ushort(99));
 
 void eachExportDeclInProgram(ref Program a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
 	foreach (ref immutable Module* x; a.allModules)
@@ -593,13 +595,13 @@ JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 				translateDestructure(ctx, x))),
 		(ref Params.Varargs x) =>
 			JsParams(emptySmallArray!JsDestructure, some(translateDestructure(ctx, x.param))));
-	JsExpr fun = JsExpr(JsArrowFunction(params, translateFunBody(ctx, a.body_, a.returnType)));
+	JsExpr fun = genArrowFunction(params, translateFunBody(ctx, a.body_, a.returnType));
 	JsExpr funWithSpecs = isEmpty(a.specs)
 		? fun
-		: JsExpr(JsArrowFunction(
+		: genArrowFunction(
 			JsParams(map!(JsDestructure, immutable SpecInst*)(ctx.alloc, a.specs, (ref immutable SpecInst* x) =>
 				JsDestructure(JsName(x.name)))),
-			JsExprOrBlockStatement(allocate(ctx.alloc, fun))));
+			JsExprOrBlockStatement(allocate(ctx.alloc, fun)));
 	return makeDecl(a.visibility, funName(ctx, a), JsDeclKind(funWithSpecs));
 }
 JsDestructure translateDestructure(ref TranslateModuleCtx ctx, in Destructure a) =>
@@ -607,7 +609,7 @@ JsDestructure translateDestructure(ref TranslateModuleCtx ctx, in Destructure a)
 		(in Destructure.Ignore) =>
 			JsDestructure(JsName(symbol!"_")),
 		(in Local x) =>
-			JsDestructure(JsName(x.name)),
+			JsDestructure(localName(x)),
 		(in Destructure.Split x) =>
 			translateDestructureSplit(ctx, x));
 JsDestructure translateDestructureSplit(ref TranslateModuleCtx ctx, in Destructure.Split x) {
@@ -625,14 +627,21 @@ JsDecl translateStructAlias(ref TranslateModuleCtx ctx, in StructAlias* a) =>
 
 Opt!JsDecl translateStructDecl(ref TranslateModuleCtx ctx, in StructDecl* a) {
 	bool shouldEmit;
+	MutOpt!(JsExpr*) extends;
 	JsClassMember[] members = buildArray!JsClassMember(ctx.alloc, (scope ref Builder!JsClassMember out_) {
+		foreach (ref VariantAndMethodImpls v; a.variants) {
+			if (v.variant == ctx.commonTypes.exception)
+				extends = someMut(allocate(ctx.alloc, translateStructReference(ctx, v.variant.decl)));
+		}
+		bool needSuper = has(extends);
+
 		shouldEmit = a.body_.match!bool(
 			(StructBody.Bogus) =>
 				false,
 			(BuiltinType x) =>
 				false,
 			(ref StructBody.Enum x) {
-				translateEnumDecl(ctx, out_, x);
+				translateEnumDecl(ctx, out_, needSuper, x);
 				return true;
 			},
 			(StructBody.Extern) =>
@@ -640,24 +649,26 @@ Opt!JsDecl translateStructDecl(ref TranslateModuleCtx ctx, in StructDecl* a) {
 			(StructBody.Flags) =>
 				todo!bool("FLAGS"), // ------------------------------------------------------------------------------------------------------
 			(StructBody.Record x) {
-				translateRecord(ctx, out_, x);
+				translateRecord(ctx, out_, needSuper, x);
 				return true;
 			},
 			(ref StructBody.Union) {
-				translateUnion(ctx, out_);
+				translateUnion(ctx, out_, needSuper);
 				return true;
 			},
-			(StructBody.Variant) =>
-				todo!bool("VARIANT")); // ------------------------------------------------------------------------------------------------------
+			(StructBody.Variant) {
+				if (a == ctx.commonTypes.exception.decl)
+					extends = someMut(allocate(ctx.alloc, JsExpr(JsName(symbol!"Error"))));
+				return true;
+			});
 
-		foreach (ref VariantAndMethodImpls v; a.variants) {
+		foreach (ref VariantAndMethodImpls v; a.variants)
 			foreach (Opt!Called impl; v.methodImpls)
 				if (has(impl))
 					out_ ~= variantMethodImpl(ctx, force(impl));
-		}
 	});
 	return optIf(shouldEmit, () =>
-		makeDecl(a.visibility, structName(ctx, a), JsDeclKind(JsClassDecl(members))));
+		makeDecl(a.visibility, structName(ctx, a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members))));
 }
 
 JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
@@ -673,7 +684,7 @@ JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
 	}
 }
 
-void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, ref StructBody.Enum a) {
+void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Enum a) {
 	/*
 	class E {
 		constructor(name) { this.name = name }
@@ -681,7 +692,7 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 	}
 	*/
 	JsName name = JsName(symbol!"name");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(name)], [
+	out_ ~= genConstructorIn(ctx.alloc, [JsDestructure(name)], needSuper, [
 		genAssign(ctx.alloc, genPropertyAccess(ctx.alloc, genThis(), symbol!"name"), JsExpr(name))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
 		out_ ~= JsClassMember(JsClassMember.Static.static_, member.name, JsClassMemberKind(
@@ -689,7 +700,7 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 	}
 }
 
-void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, ref StructBody.Record a) {
+void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Record a) {
 	/*
 	class R {
 		constructor(x, fooBar) {
@@ -699,13 +710,16 @@ void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember
 	}
 	*/
 	out_ ~= genConstructor(
+		ctx.alloc,
 		map!(JsDestructure, RecordField)(ctx.alloc, a.fields, (ref RecordField x) =>
-			JsDestructure(JsName(x.name))),
+			JsDestructure(JsName(x.name))), 
+		needSuper,
+		// TODO: use temp alloc (since needSuper is prepended) -----------------------------------------------------------------
 		map(ctx.alloc, a.fields, (ref RecordField x) =>
 			genAssign(ctx.alloc, genPropertyAccess(ctx.alloc, genThis(), x.name), JsExpr(JsName(x.name)))));
 }
 
-void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_) {
+void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper) {
 	/*
 	class U {
 		constructor(arg) {
@@ -714,20 +728,25 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 	}
 	*/
 	JsName arg = JsName(symbol!"arg");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], [
+	out_ ~= genConstructorIn(ctx.alloc, [JsDestructure(arg)], needSuper, [
 		JsStatement(genCall(
 			ctx.alloc,
 			genPropertyAccess(ctx.alloc, JsExpr(JsName(symbol!"Object")), symbol!"assign"),
 			[genThis(), JsExpr(arg)]))]);
 }
 
-JsClassMember genConstructor(ref Alloc alloc, in JsDestructure[] params, in JsStatement[] body_) =>
-	genConstructor(newSmallArray(alloc, params), newArray(alloc, body_));
-JsClassMember genConstructor(SmallArray!JsDestructure params, JsStatement[] body_) =>
+JsClassMember genConstructorIn(ref Alloc alloc, in JsDestructure[] params, bool needSuper, in JsStatement[] body_) =>
+	genConstructor(alloc, newSmallArray(alloc, params), needSuper, newArray(alloc, body_));
+JsClassMember genConstructor(ref Alloc alloc, SmallArray!JsDestructure params, bool needSuper, JsStatement[] body_) =>
 	JsClassMember(
 		JsClassMember.Static.instance,
 		symbol!"constructor",
-		JsClassMemberKind(JsClassMethod(JsParams(params), JsBlockStatement(body_))));
+		JsClassMemberKind(JsClassMethod(
+			JsParams(params),
+			JsBlockStatement(needSuper ? prepend(alloc, genSuper(), body_) : body_))));
+
+JsExpr super_ = JsExpr(JsName(symbol!"super"));
+JsStatement genSuper() => JsStatement(genCall(&super_, []));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 	todo!JsDecl("Use 'let' (same for global / thread-local)");
@@ -748,7 +767,7 @@ immutable struct ExprResult {
 	@safe @nogc pure nothrow:
 
 	immutable struct Done {}
-	mixin Union!(Done, JsExpr, JsStatement[]);
+	mixin Union!(Done, JsExpr, JsBlockStatement);
 
 	static ExprResult done() =>
 		ExprResult(ExprResult.Done());
@@ -788,8 +807,8 @@ JsExprOrBlockStatement translateExprToExprOrBlockStatement(ref TranslateModuleCt
 			assert(false),
 		(JsExpr x) =>
 			JsExprOrBlockStatement(allocate(ctx.alloc, x)),
-		(JsStatement[] x) =>
-			JsExprOrBlockStatement(JsBlockStatement(x)));
+		(JsBlockStatement x) =>
+			JsExprOrBlockStatement(x));
 
 ExprResult forceExpr(ref TranslateModuleCtx ctx, scope ExprPos pos, Type type, JsExpr expr) =>
 	pos.match!ExprResult(
@@ -805,22 +824,24 @@ ExprResult forceExpr(ref TranslateModuleCtx ctx, scope ExprPos pos, Type type, J
 ExprResult forceStatements(ref TranslateModuleCtx ctx, scope ExprPos pos, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
-			todo!ExprResult("USE AN IIFE"),
-		(ExprPos.ExpressionOrBlockStatement) {
-			ExprPos.Statements res;
-			ExprResult inner = cb(res.statements, ExprPos(&res));
-			assert(inner.isA!(ExprResult.Done));
-			return ExprResult(finish(ctx.alloc, res.statements));
-		},
+			ExprResult(genIife(ctx.alloc, makeBlockStatement(ctx.alloc, cb))),
+		(ExprPos.ExpressionOrBlockStatement) =>
+			ExprResult(makeBlockStatement(ctx.alloc, cb)),
 		(ref ExprPos.Statements x) =>
 			cb(x.statements, pos));
+JsBlockStatement makeBlockStatement(ref Alloc alloc, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) {
+	ExprPos.Statements res;
+	ExprResult inner = cb(res.statements, ExprPos(&res));
+	assert(inner.isA!(ExprResult.Done));
+	return JsBlockStatement(finish(alloc, res.statements));
+}
 
 ExprResult forceStatement(ref TranslateModuleCtx ctx, scope ExprPos pos, JsStatement statement) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
 			todo!ExprResult("USE AN IIFE"),
 		(ExprPos.ExpressionOrBlockStatement) =>
-			ExprResult(newArray(ctx.alloc, [statement])),
+			ExprResult(JsBlockStatement(newArray(ctx.alloc, [statement]))),
 		(ref ExprPos.Statements x) {
 			add(ctx.alloc, x.statements, statement);
 			return ExprResult.done;
@@ -831,15 +852,15 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 		(ref AssertOrForbidExpr x) =>
 			translateAssertOrForbid(ctx, x, type, pos),
 		(BogusExpr x) =>
-			todo!ExprResult("BOGUS"),
+			forceStatement(ctx, pos, throwError(ctx, "Reached compile error")),
 		(CallExpr x) =>
 			translateCall(ctx, x, type, pos),
 		(ref CallOptionExpr x) =>
 			todo!ExprResult("CALL OPTION"),
 		(ClosureGetExpr x) =>
-			forceExpr(ctx, pos, type, JsExpr(JsName(x.local.name))),
+			forceExpr(ctx, pos, type, JsExpr(localName(*x.local))),
 		(ClosureSetExpr x) =>
-			forceStatement(ctx, pos, genAssign(ctx.alloc,  JsName(x.local.name), translateExprToExpr(ctx, *x.value, x.local.type))),
+			forceStatement(ctx, pos, genAssign(ctx.alloc,  localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
 			todo!ExprResult("EXTERN EXPR"),
 		(ref FinallyExpr x) =>
@@ -857,11 +878,11 @@ ExprResult translateExpr(ref TranslateModuleCtx ctx, ref Expr a, Type type, scop
 		(LiteralStringLikeExpr x) =>
 			forceExpr(ctx, pos, type, genString(x.value)),
 		(LocalGetExpr x) =>
-			forceExpr(ctx, pos, type, JsExpr(JsName(x.local.name))),
+			forceExpr(ctx, pos, type, JsExpr(localName(*x.local))),
 		(LocalPointerExpr x) =>
 			todo!ExprResult("LOCAL POINTER -- EMIT BOGUS"),
 		(LocalSetExpr x) =>
-			forceStatement(ctx, pos, genAssign(ctx.alloc, JsName(x.local.name), translateExprToExpr(ctx, *x.value, x.local.type))),
+			forceStatement(ctx, pos, genAssign(ctx.alloc, localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ref LoopExpr x) =>
 			forceStatement(ctx, pos, genWhile(ctx.alloc, genBool(true), translateExprToStatement(ctx, x.body_, type))),
 		(ref LoopBreakExpr x) {
@@ -946,8 +967,12 @@ ExprResult translateInlineCall(
 		assert(nArgs == 1);
 		return getArg(0);
 	}
-	JsExpr[] args() =>
-		makeArray(ctx.alloc, nArgs, getArg);
+	JsExpr[] args(size_t skip = 0) {
+		assert(nArgs >= skip);
+		return makeArray(ctx.alloc, nArgs - skip, (size_t i) => getArg(i + skip));
+	}
+	ExprResult createRecord(StructInst* record) =>
+		expr(genNew(ctx.alloc, translateStructReference(ctx, record.decl), args()));
 	return body_.matchIn!ExprResult(
 		(in FunBody.Bogus) =>
 			todo!ExprResult("BOGUS"),
@@ -960,9 +985,9 @@ ExprResult translateInlineCall(
 		(in FunBody.CreateExtern) =>
 			assert(false),
 		(in FunBody.CreateRecord) =>
-			expr(genNew(ctx.alloc, translateStructReference(ctx, returnType.as!(StructInst*).decl), args())),
-		(in FunBody.CreateRecordAndConvertToVariant) =>
-			todo!ExprResult("CREATE RECORD AS VARIANT"), // should be identical to CreateRecord
+			createRecord(returnType.as!(StructInst*)),
+		(in FunBody.CreateRecordAndConvertToVariant x) =>
+			createRecord(x.member),
 		(in FunBody.CreateUnion) =>
 			todo!ExprResult("CREATE UNION"),
 		(in FunBody.CreateVariant) =>
@@ -996,12 +1021,19 @@ ExprResult translateInlineCall(
 		(in FunBody.VariantMemberGet) =>
 			// x instanceof Foo ? some(x) : none
 			todo!ExprResult("VARIANT MEMBER GET"),
-		(in FunBody.VariantMethod) =>
-			// x.foo(...args)
-			todo!ExprResult("VARIANT METHOD"),
+		(in FunBody.VariantMethod x) =>
+			expr(genCall(
+				allocate(ctx.alloc, genPropertyAccess(
+					ctx.alloc,
+					getArg(0),
+					variantMethodName(paramTypes[0], x.methodIndex))),
+				args(skip: 1))),
 		(in FunBody.VarSet) =>
 			todo!ExprResult("VAR SET"));
 }
+// TODO Maybe I should have used a direct pointer to the method here instead of an index ........................................
+Symbol variantMethodName(Type variant, size_t methodIndex) =>
+	variant.as!(StructInst*).decl.body_.as!(StructBody.Variant).methods[methodIndex].name;
 // TODO Maybe I should have used a direct pointer to the field here instead of an index ........................................
 Symbol recordFieldName(Type record, size_t fieldIndex) =>
 	record.as!(StructInst*).decl.body_.as!(StructBody.Record).fields[fieldIndex].name;
@@ -1081,7 +1113,7 @@ ExprResult translateCallJsFun(
 			return expr(genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)));
 		case JsFun.jsGlobal:
 			assert(nArgs == 0);
-			return expr(JsExpr(JsName(symbol!"_global")));
+			return expr(JsExpr(JsName(ctx.isBrowser ? symbol!"window" : symbol!"global")));
 		case JsFun.set:
 			assert(nArgs == 3);
 			return forceStatement(ctx, pos, genAssign(ctx.alloc, genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)), getArg(2)));
@@ -1146,9 +1178,11 @@ ExprResult translateLetLikeCb(
 	in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb,
 ) =>
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
-		add(ctx.alloc, out_, destructure.isA!(Destructure.Ignore*)
-			? JsStatement(value)
-			: genVarDecl(
+		if (destructure.isA!(Destructure.Ignore*)) {
+			if (!value.isA!JsName)
+				add(ctx.alloc, out_, JsStatement(value));
+		} else
+			add(ctx.alloc, out_, genVarDecl(
 				ctx.alloc,
 				hasAnyMutable(destructure) ? JsVarDecl.Kind.let : JsVarDecl.Kind.const_,
 				translateDestructure(ctx, destructure),
