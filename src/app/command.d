@@ -68,7 +68,6 @@ immutable struct RunOptions {
 	immutable struct Aot {
 		VersionOptions version_;
 		CCompileOptions compileOptions;
-		Extension defaultExeExtension;
 	}
 	mixin Union!(Interpret, Jit, Aot);
 }
@@ -79,11 +78,9 @@ immutable struct BuildOptions {
 	CCompileOptions cCompileOptions;
 }
 
-// Build to C, executable, or both
 immutable struct BuildOut {
 	Opt!FilePath outC; // If this is 'none', use a temporary file
-	bool shouldBuildExecutable;
-	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
-	FilePath outExecutable;
-	Opt!FilePath outJsDirectory;
+	Opt!FilePath outExecutable;
+	Opt!FilePath js;
+	Opt!FilePath nodeJs;
 }

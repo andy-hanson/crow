@@ -213,25 +213,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a) {
 			(FunBody.Bogus) {},
 			(AutoFun _) {},
 			(BuiltinFun _) {},
-			(FunBody.CreateEnumOrFlags) {
-				import util.writer : debugLogWithWriter, Writer;
-				debugLogWithWriter((scope ref Writer writer) {
-					writer ~= "from ";
-					writer ~= from;
-					writer ~= ", used CreateEnumOrFlags. Type is ";
-					a.returnType.matchIn!void(
-						(in Type.Bogus x) {
-							writer ~= "BOGUS";
-						},
-						(in TypeParamIndex p) {
-							writer ~= "A type param";
-						},
-						(in StructInst x) {
-							writer ~= x.decl.name;
-						});
-				});
-				usedReturnType();
-			},
+			(FunBody.CreateEnumOrFlags) { usedReturnType(); },
 			(FunBody.CreateExtern) { assert(false); },
 			(FunBody.CreateRecord) { usedReturnType(); },
 			(FunBody.CreateRecordAndConvertToVariant) { usedReturnType(); },

@@ -776,11 +776,11 @@ immutable struct BuildToJsResult {
 	string diagnostics;
 	bool hasFatalDiagnostics;
 }
-BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
+BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, OS os, Uri main, bool isNodeJs) {
 	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 	string diagnostics = showDiagnostics(alloc, server, program.program);
 	bool fatal = hasFatalDiagnostics(program);
-	return BuildToJsResult(fatal ? TranslateToJsResult() : translateToJs(alloc, program), diagnostics, fatal);
+	return BuildToJsResult(fatal ? TranslateToJsResult() : translateToJs(alloc, program, os, isNodeJs), diagnostics, fatal);
 }
 
 ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>

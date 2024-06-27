@@ -190,7 +190,7 @@ import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
-import util.symbolSet : SymbolSet, symbolSet;
+import util.symbolSet : MutSymbolSet, SymbolSet, symbolSet;
 import util.union_ : TaggedUnion, Union;
 import util.uri :
 	alterExtension,
@@ -207,16 +207,16 @@ import util.uri :
 	resolvePath,
 	Uri;
 import util.util : min, ptrTrustMe, stringOfEnum, todo, typeAs;
-import versionInfo : isVersion, VersionFun, VersionInfo, versionInfoForBuildToJS;
+import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
 	KeyValuePair!(Path, string)[] outputFiles;
 }
-TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) {
+TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, OS os, bool isNodeJs) {
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
 	// We need to start with the modules with no dependencies and work down...
-	VersionInfo version_ = versionInfoForBuildToJS();
-	SymbolSet allExtern = allExternForJs();
+	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
+	SymbolSet allExtern = allExternForJs(isNodeJs: isNodeJs);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExtern);
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
@@ -230,7 +230,7 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program) 
 	
 	foreach (Module* module_; program.program.rootModules)
 		doTranslateModule(ctx, module_);
-	return TranslateToJsResult(getOutputFiles(alloc, modulePaths, program.mainFun.fun.decl.moduleUri, ctx.done));
+	return TranslateToJsResult(getOutputFiles(alloc, modulePaths, program.mainFun.fun.decl.moduleUri, ctx.done, isNodeJs: isNodeJs));
 }
 
 private:
@@ -290,17 +290,24 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 	});
 }
 
-SymbolSet allExternForJs() => // TODO: we'll eventually want to have 'browser' exclusive functions? ---------------------------------
-	symbolSet(symbol!"js");
+SymbolSet allExternForJs(bool isNodeJs) { // TODO: we'll eventually want to have 'browser' exclusive functions? ---------------------------------
+	MutSymbolSet res = symbolSet(symbol!"js");
+	return isNodeJs
+		// TODO: I don't know about adding e.g. 'windows' here. node.js is supposed to be cross-platform... ---------------------
+		? res.add(symbol!"node-js")
+		: res.add(symbol!"browser");
+}
 
 immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 	ref Alloc alloc,
 	in Map!(Uri, Path) modulePaths,
 	Uri mainModuleUri,
 	in MutMap!(Module*, JsModuleAst) done,
+	bool isNodeJs,
 ) =>
 	buildArray!(immutable KeyValuePair!(Path, string))(alloc, (scope ref Builder!(immutable KeyValuePair!(Path, string)) out_) {
-		out_ ~= immutable KeyValuePair!(Path, string)(parsePath("package.json"), "{\"type\":\"module\"}"); // TODO: only for --type node
+		if (isNodeJs)
+			out_ ~= immutable KeyValuePair!(Path, string)(parsePath("package.json"), "{\"type\":\"module\"}");
 		foreach (const Module* module_, ref JsModuleAst ast; done)
 			out_ ~= immutable KeyValuePair!(Path, string)(mustGet(modulePaths, module_.uri), writeJsAst(alloc, ast, module_.uri == mainModuleUri));
 	});

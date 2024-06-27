@@ -14,7 +14,7 @@ import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : CString, cString, endsWith, isDecimalDigit, MutCString, startsWith, stringOfCString, tryTakeChar;
+import util.string : CString, cString, cStringIsEmpty, endsWith, isDecimalDigit, MutCString, startsWith, stringOfCString, stringOfRange, tryTakeChar;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :
@@ -27,7 +27,7 @@ import util.uri :
 	toUri,
 	Uri,
 	uriIsFile;
-import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
+import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, todo, typeAs;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
 import versionInfo : OS, VersionOptions;
 
@@ -218,7 +218,7 @@ CommandKind parseCommandKind(
 ) {
 	final switch (commandName) {
 		case CommandName.build:
-			return parseBuildCommand(alloc, cwd, diags, getDefaultExeExtension(os), args);
+			return parseBuildCommand(alloc, cwd, diags, os, args);
 		case CommandName.check:
 			expectEmptyParts(diags, args.parts);
 			expectEmptyAfterDashDash(diags, args.afterDashDash);
@@ -233,7 +233,7 @@ CommandKind parseCommandKind(
 		case CommandName.print:
 			return parsePrintCommand(alloc, cwd, diags, args);
 		case CommandName.run:
-			RunOptions options = parseRunOptions(alloc, getDefaultExeExtension(os), diags, args.parts);
+			RunOptions options = parseRunOptions(alloc, os, diags, args.parts);
 			return CommandKind(CommandKind.Run(
 				parseMainUri(alloc, cwd, diags, args.beforeFirstPart),
 				options,
@@ -267,7 +267,7 @@ void expectEmptyAfterDashDash(scope ref Diags diags, in Opt!(CString[]) after) {
 		diags ~= Diag(Diag.UnexpectedPart(cString!"--"));
 }
 
-Extension getDefaultExeExtension(OS os) {
+public Extension defaultExecutableExtension(OS os) {
 	final switch (os) {
 		case OS.linux:
 			return Extension.none;
@@ -368,26 +368,15 @@ Opt!uint tryTakeNat(ref MutCString ptr) {
 		return none!uint;
 }
 
-CommandKind parseBuildCommand(
-	ref Alloc alloc,
-	FilePath cwd,
-	scope ref Diags diags,
-	Extension defaultExeExtension,
-	in SplitArgs args,
-) {
+CommandKind parseBuildCommand(ref Alloc alloc, FilePath cwd, scope ref Diags diags, OS os, in SplitArgs args) {
 	expectEmptyAfterDashDash(diags, args.afterDashDash);
 	Uri main = parseMainUri(alloc, cwd, diags, args.beforeFirstPart);
 	return CommandKind(CommandKind.Build(
 		main,
-		parseBuildOptions(alloc, cwd, diags, defaultExeExtension, args.parts, main)));
+		parseBuildOptions(alloc, cwd, diags, os, args.parts, main)));
 }
 
-RunOptions parseRunOptions(
-	ref Alloc alloc,
-	Extension defaultExeExtension,
-	scope ref Diags diags,
-	in ArgsPart[] argParts,
-) {
+RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in ArgsPart[] argParts) {
 	bool noStackTrace = false;
 	bool aot = false;
 	bool jit = false;
@@ -430,8 +419,7 @@ RunOptions parseRunOptions(
 	return aot
 		? RunOptions(RunOptions.Aot(
 			version_,
-			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11),
-			defaultExeExtension))
+			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11)))
 		: jit
 		? RunOptions(RunOptions.Jit(version_, optimize ? JitOptions(OptimizationLevel.o2) : JitOptions()))
 		: RunOptions(RunOptions.Interpret(version_));
@@ -446,7 +434,7 @@ BuildOptions parseBuildOptions(
 	ref Alloc alloc,
 	FilePath cwd,
 	scope ref Diags diags,
-	Extension defaultExeExtension,
+	OS os,
 	in ArgsPart[] argParts,
 	Uri mainUri,
 ) {
@@ -470,18 +458,16 @@ BuildOptions parseBuildOptions(
 				if (has(cellGet(out_))) // TODO: this should combine with '--out-js' instead of overwriting it ---------------------
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
-					cellSet(out_, some(parseBuildOut(alloc, cwd, defaultExeExtension, diags, part)));
-				break;
-			case "--out-js":
-				// TODO: this should be combineable with '--out' instead of overwriting it  --------------------------------
-				CString arg = only(part.args); // TODO: this can fail ----------------------------------------------------------------------
-				cellSet(out_, some(BuildOut(outJsDirectory: parseFilePathWithCwd(cwd, arg))));
+					cellSet(out_, some(parseBuildOut(alloc, cwd, os, diags, part)));
 				break;
 			case "--optimize":
 				expectFlag(diags, part);
 				if (optimize)
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
+				break;
+			case "--overwrite":
+				todo!void("HANDLE OVERWRITE FLAG"); // ---------------------------------------------------------------------
 				break;
 			case "--single-threaded":
 				expectFlag(diags, part);
@@ -496,12 +482,9 @@ BuildOptions parseBuildOptions(
 
 	BuildOut resOut = has(cellGet(out_))
 		? force(cellGet(out_))
-		: BuildOut(
-			outC: none!FilePath,
-			shouldBuildExecutable: true,
-			outExecutable: defaultExePath(
-				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
-				defaultExeExtension));
+		: BuildOut(outExecutable: some(defaultExecutablePath(
+			uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
+			os)));
 	return BuildOptions(
 		VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace),
 		resOut,
@@ -510,19 +493,34 @@ BuildOptions parseBuildOptions(
 			c99 ? CVersion.c99 : CVersion.c11));
 }
 
-BuildOut parseBuildOut(
-	ref Alloc alloc,
-	FilePath cwd,
-	Extension defaultExeExtension,
-	scope ref Diags diags,
-	ArgsPart part,
-) {
+BuildOut parseBuildOut(ref Alloc alloc, FilePath cwd, OS os, scope ref Diags diags, ArgsPart part) {
+	if (isEmpty(part.args))
+		diags ~= Diag(Diag.ExpectedPaths(some(part.tag)));
+
 	Cell!(Opt!FilePath) outC;
 	Cell!(Opt!FilePath) outExe;
+	Cell!(Opt!FilePath) js;
+	Cell!(Opt!FilePath) nodeJs;
 	foreach (CString arg; part.args) {
-		Opt!FilePath opt = parseFilePathWithCwd(cwd, arg);
-		if (has(opt)) {
-			FilePath path = force(opt);
+		Opt!PrefixAndRest optPrefix = tryRemoveColonPrefix(arg);
+		if (has(optPrefix)) {
+			PrefixAndRest pr = force(optPrefix);
+			switch (pr.prefix) {
+				case "js":
+					if (has(cellGet(js)))
+						diags ~= Diag(Diag.BuildOutDuplicate());
+					cellSet(js, parseFilePathWithCwd(cwd, pr.rest));
+					break;
+				case "node-js":
+					if (has(cellGet(nodeJs)))
+						diags ~= Diag(Diag.BuildOutDuplicate());
+					cellSet(nodeJs, parseFilePathWithCwd(cwd, pr.rest));
+					break;
+				default:
+					todo!void("DIAG: invalid prefix"); // ---------------------------------------------------------------------
+			}
+		} else {
+			FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, arg);
 			Extension extension = getExtension(path);
 			if (extension == Extension.c) {
 				if (has(cellGet(outC)))
@@ -531,24 +529,40 @@ BuildOut parseBuildOut(
 			} else {
 				if (has(cellGet(outExe)))
 					diags ~= Diag(Diag.BuildOutDuplicate());
-				if (extension != defaultExeExtension)
-					diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExeExtension));
+				if (extension != defaultExecutableExtension(os))
+					diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExecutableExtension(os)));
 				cellSet(outExe, some(path));
 			}
-		} else
-			diags ~= Diag(Diag.ParseFilePath(arg));
+		}
 	}
-	if (!has(cellGet(outC)) && !has(cellGet(outExe)))
-		diags ~= Diag(Diag.ExpectedPaths(some(part.tag)));
-	return BuildOut(
-		outC: cellGet(outC),
-		shouldBuildExecutable: has(cellGet(outExe)),
-		outExecutable: optOrDefault!FilePath(cellGet(outExe), () =>
-			defaultExePath(force(cellGet(outC)), defaultExeExtension)));
+	return BuildOut(outC: cellGet(outC), outExecutable: cellGet(outExe), js: cellGet(js), nodeJs: cellGet(nodeJs));
+}
+immutable struct PrefixAndRest {
+	string prefix; // Will not end in ':'
+	CString rest;
+}
+// TODO: this is just trySplitOnce ----------------------------------------------------------------------------------------------------
+Opt!PrefixAndRest tryRemoveColonPrefix(CString a) {
+	MutCString cur = a;
+	while (!cStringIsEmpty(cur)) {
+		if (*cur == ':') {
+			string prefix = stringOfRange(a, cur);
+			cur++;
+			return some(PrefixAndRest(prefix, cur));
+		}
+		cur++;
+	}
+	return none!PrefixAndRest;
 }
 
-FilePath defaultExePath(FilePath base, Extension defaultExeExtension) =>
-	alterExtension(base, defaultExeExtension);
+FilePath parseFilePathWithCwdOrDiag(scope ref Diags diags, FilePath cwd, in CString arg) =>
+	optOrDefault!FilePath(parseFilePathWithCwd(cwd, arg), () {
+		diags ~= Diag(Diag.ParseFilePath(arg));
+		return cwd / symbol!"bogus";
+	});
+
+public FilePath defaultExecutablePath(FilePath base, OS os) =>
+	alterExtension(base, defaultExecutableExtension(os));
 
 immutable struct ArgsPart {
 	CString tag; // includes the "--"
