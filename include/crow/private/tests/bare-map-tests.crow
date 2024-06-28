@@ -19,15 +19,15 @@ dummy-bare-map-tests nat()
 -new value(key nat) bare
 	key, "default", 0, false
 
--move-from void(dest value mut*, src value*) bare, unsafe
+-move-from void(dest value mut*, src value*) bare, unsafe, native extern
 	*dest := *src
 	dest->moved +:= 1
 
--destroy void(a value mut*) bare, unsafe
+-destroy void(a value mut*) bare, unsafe, native extern
 	forbid a->destroyed
 	a->destroyed := true
 
--to[t] json(a t mut*) unsafe
+-to[t] json(a t mut*) unsafe, native extern
 	a.to::nat64 to
 
 test trusted, native extern

@@ -39,7 +39,7 @@ import
 	Reserved2 DWORD64
 	KdHelp KDHELP64
 
-+new STACKFRAME64(context CONTEXT*) bare, unsafe
++new STACKFRAME64(context CONTEXT*) bare, unsafe, (native, windows) extern
 	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0,
 		0, 0, ()
 
@@ -75,7 +75,7 @@ import
 	# Actually may be more than one char, making the size of this struct actually bigger
 	Name c-char
 
-+new IMAGEHLP_SYMBOL64(max-name-length DWORD) bare, unsafe
++new IMAGEHLP_SYMBOL64(max-name-length DWORD) bare, unsafe, (native, windows) extern
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, 0, 0, 0, max-name-length, "\0"
 
@@ -86,7 +86,7 @@ import
 	FileName c-string
 	Address DWORD64
 
-+new IMAGEHLP_LINE64() bare, unsafe
++new IMAGEHLP_LINE64() bare, unsafe, (native, windows) extern
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, null, 0, null, 0
 

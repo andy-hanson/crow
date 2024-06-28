@@ -17,16 +17,16 @@ bare-priority-queue[k, v] record by-val, mut
 	-end mut (k, v) mut*
 	-alloc-end mut (k, v) mut*
 
-new[k, v] (k, v) bare-priority-queue() bare, unsafe
+new[k, v] (k, v) bare-priority-queue() bare, unsafe, native extern
 	(), (), ()
 
 destroy[k, v] void(a (k, v) bare-priority-queue mut*) bare, unsafe, native extern
 	a->begin unmanaged-free-elements (a->alloc-end - a->begin)
 
-is-empty[k, v] bool(a (k, v) bare-priority-queue*) bare, unsafe
+is-empty[k, v] bool(a (k, v) bare-priority-queue*) bare, unsafe, native extern
 	a->begin == a->end
 
-peek-key[k, v] k?(a (k, v) bare-priority-queue*) bare, unsafe
+peek-key[k, v] k?(a (k, v) bare-priority-queue*) bare, unsafe, native extern
 	unless a is-empty
 		a->begin->a,
 
@@ -64,7 +64,7 @@ enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe,
 	*a->end := pair
 	a->end +:= 1
 
-add-gc-roots[k, v] void(a (k, v) bare-priority-queue*, gc gc mut*) bare, unsafe
+add-gc-roots[k, v] void(a (k, v) bare-priority-queue*, gc gc mut*) bare, unsafe, native extern
 	cur mut = a->begin
 	until cur == a->end
 		gc gc-add-root *cur

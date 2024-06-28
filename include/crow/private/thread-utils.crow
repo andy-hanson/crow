@@ -43,7 +43,7 @@ export
 	global-lock-var := (1 calloc size-of@lock) pointer-cast
 	global-lock-var init
 
-+count-processors nat64() bare, summon, unsafe
++count-processors nat64() bare, summon, unsafe, native extern
 	if is-single-threaded
 		1
 	elif extern windows
@@ -58,15 +58,15 @@ export
 +uninit lock() bare, unsafe
 	zeroed
 
--as-critical-section CRITICAL_SECTION mut*(a lock mut*) bare, unsafe, windows extern
+-as-critical-section CRITICAL_SECTION mut*(a lock mut*) bare, unsafe, (native, windows) extern
 	size-of@CRITICAL_SECTION <= size-of@lock hard-assert
 	a pointer-cast
 
--as-mutex pthread_mutex_t mut*(a lock mut*) bare, unsafe
+-as-mutex pthread_mutex_t mut*(a lock mut*) bare, unsafe, (native, pthread) extern
 	size-of@pthread_mutex_t <= size-of@lock hard-assert
 	a pointer-cast
 
-+init void(a lock mut*) bare, unsafe
++init void(a lock mut*) bare, unsafe, native extern
 	if is-single-threaded
 		()
 	elif extern windows
@@ -77,7 +77,7 @@ export
 	else
 		todo
 
-+acquire void(a lock mut*) bare, unsafe
++acquire void(a lock mut*) bare, unsafe, native extern
 	if is-single-threaded
 		()
 	elif extern windows
@@ -87,7 +87,7 @@ export
 	else
 		todo
 
-+release void(a lock mut*) bare, unsafe
++release void(a lock mut*) bare, unsafe, native extern
 	if is-single-threaded
 		()
 	elif extern windows
@@ -155,7 +155,7 @@ destroy-condition void(a condition mut*) bare, unsafe, native extern
 -hard-assert-posix-error void(err err-t) bare, unsafe
 	err == 0 hard-assert
 
-broadcast void(a condition mut*) bare
+broadcast void(a condition mut*) bare, native extern
 	trusted if is-single-threaded
 		()
 	elif extern windows
@@ -174,7 +174,7 @@ broadcast void(a condition mut*) bare
 sequence-id alias
 	nat64
 
-get-sequence sequence-id(a condition mut*) bare, unsafe
+get-sequence sequence-id(a condition mut*) bare, unsafe, native extern
 	if is-single-threaded
 		0
 	elif extern windows
@@ -253,7 +253,7 @@ barrier record by-val, mut
 uninit barrier() bare, unsafe
 	zeroed
 
-init void(a barrier mut*, n-threads nat64) bare, unsafe
+init void(a barrier mut*, n-threads nat64) bare, unsafe, native extern
 	if is-single-threaded
 		n-threads == 1 hard-assert
 	elif extern windows
@@ -325,9 +325,9 @@ get-and-decrement nat64(t thread-safe-counter mut*) bare, unsafe, native extern
 
 thread-handle record by-val, mut
 	-ptr any-mut-pointer
--as-windows-handle HANDLE(a thread-handle) bare, unsafe, windows extern
+-as-windows-handle HANDLE(a thread-handle) bare, unsafe, (native, windows) extern
 	a.ptr
--as-pthread pthread_t(a thread-handle) bare, unsafe, pthread extern
+-as-pthread pthread_t(a thread-handle) bare, unsafe, (native, pthread) extern
 	a.ptr to
 
 +create-one-thread thread-handle(

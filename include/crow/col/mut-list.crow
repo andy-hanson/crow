@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool, not
+	../bool: bool, false, not
 	../compare: <, <=, >
 	../fun-util: subscript
 	../misc: new, void
@@ -51,16 +51,19 @@ Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
 it's unsafe to use this after the size of `a` changes.
 ###
-+begin-pointer[t] t mut*(a t mut[]) bare, unsafe
++begin-pointer[t] t mut*(a t mut[]) bare, unsafe, native extern
 	a.backing begin-pointer
 
-+end-pointer[t] t mut*(a t mut[]) bare, unsafe
++end-pointer[t] t mut*(a t mut[]) bare, unsafe, native extern
 	a.begin-pointer + a.size
 
 is-at-capacity[t] bool(a t mut[]) bare, unsafe
-	a.capacity == a.size
+	if extern native
+		a.capacity == a.size
+	else
+		false
 
-capacity[t] nat64(a t mut[]) bare, unsafe
+capacity[t] nat64(a t mut[]) bare, unsafe, native extern
 	a.backing size
 
 ###
@@ -105,11 +108,13 @@ Writes to the `mut-list` won't affect the `list`.
 +move-to[t] t array(a t mut[]) bare
 	trusted a.move-to cast-immutable
 +move-to[t] t mut-array(a t mut[]) bare
-	trusted
+	trusted if extern native
 		res = a.begin-pointer[0 .. a.size]
 		a.backing := empty-mut-array
 		a.size := 0
 		res
+	else
+		todo # There's no efficient way to do this in JS ... ----------------------------------------------------------------
 +move-to[t] t mut[](a t mut[])
 	res t mut[] = a.backing, a.mut-list-size
 	a.backing := empty-mut-array
@@ -132,7 +137,10 @@ Converts to an `mut-array`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
 temp-as-mut-array[t] t mut-array(a t mut[]) bare, unsafe
-	a.begin-pointer[0 .. a.size]
+	if extern native
+		a.begin-pointer[0 .. a.size]
+	else
+		todo # This is just the identity, use js-cast -----------------------------------------------------------------------
 
 ###
 Converts to an `array`.
@@ -209,32 +217,30 @@ Throws if `n > a.size`.
 	for x : values
 		a ~= x
 
--incr-capacity[t] void(a t mut[]) unsafe
+-incr-capacity[t] void(a t mut[]) unsafe, native extern
 	a ensure-capacity (a.size + 1 round-up-to-power-of-two)
 
-push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
+push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe, native extern
 	assert a.size < a.capacity
 	a.begin-pointer[a size] := value
 	a.size +:= 1
 
--increase-capacity-to[t] void(a t mut[], new-capacity nat64) trusted
-	if extern native
-		assert new-capacity > a.capacity
-		old-begin = a begin-pointer
-		a.backing := new-capacity zeroed-mut-array
-		a.begin-pointer mem-copy old-begin.as-const, a.size
-		a.backing[a.size + 1 .. end] zero-memory
-	else
-		todo # -------------------------------------------------------------------------------------------------------------
+-increase-capacity-to[t] void(a t mut[], new-capacity nat64) trusted, native extern
+	assert new-capacity > a.capacity
+	old-begin = a begin-pointer
+	a.backing := new-capacity zeroed-mut-array
+	a.begin-pointer mem-copy old-begin.as-const, a.size
+	a.backing[a.size + 1 .. end] zero-memory
 
 ###
 For performance, hint that the list will eventually reach 'eventual-size'.
 This has no observable effect.
 ###
 hint-size[t] void(a t mut[], eventual-size nat64)
-	a ensure-capacity eventual-size
+	if trusted extern native
+		a ensure-capacity eventual-size
 
--ensure-capacity[t] void(a t mut[], min-capacity nat64)
+-ensure-capacity[t] void(a t mut[], min-capacity nat64) native extern
 	if trusted a.capacity < min-capacity
 		a increase-capacity-to min-capacity
 
@@ -246,7 +252,7 @@ This may reserve more space than requested,
 so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
 ###
--reserve[t] void(a t mut[], reserved nat64) unsafe
+-reserve[t] void(a t mut[], reserved nat64) unsafe, native extern
 	a ensure-capacity reserved.round-up-to-power-of-two
 
 ###
@@ -258,14 +264,16 @@ Throws if `index >= a.size`.
 ###
 remove-unordered-at[t] t(a t mut[], index nat64) bare
 	a check-index index
-	trusted
+	trusted if extern native
 		res = a.begin-pointer[index]
 		new-size = a.size - 1
 		a.begin-pointer[index] := a.begin-pointer[new-size]
 		a.size := new-size
 		res
+	else
+		todo # splice? -----------------------------------------------------------------------------------------------------------
 
-uninitialized-mut-list[t] t mut[](size nat64) unsafe
+uninitialized-mut-list[t] t mut[](size nat64) unsafe, native extern
 	res t mut[] = ()
 	res unsafe-set-size size
 	res
@@ -276,7 +284,7 @@ Unsafe because if this increases the size, it exposes uninitialized data.
 If this decreases the size, it doesn't zero out the rest of the data,
 so the garbage collector will keep it alive.
 ###
-unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe
+unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe, native extern
 	a reserve new-size
 	a.size := new-size
 
@@ -289,12 +297,14 @@ Throws if `index > a.size`.
 ###
 +insert-at[t] void(a t mut[], index nat64, value t)
 	assert index <= a.size : index index-too-big a.size
-	trusted
+	trusted if extern native
 		a incr-capacity
 		a.backing[index + 1 .. a.size + 1] := a.temp-as-array[index .. a.size]
 		a.size +:= 1
 		assert a.size <= a.capacity
 		a[index] := value
+	else
+		todo # --------------------------------------------------------------------------------------------------------------
 
 ###
 Removes `a[index]`, and shifts all values from `index` onwards to the left to fill the hole.
@@ -329,7 +339,7 @@ This can be written as `a.filter := f`.
 ###
 +filter=[t] void(a t mut[], f bool mut(elem t))
 	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
-	trusted
+	trusted if extern native
 		out mut = a begin-pointer
 		for x : a
 			if f[x]
@@ -338,25 +348,10 @@ This can be written as `a.filter := f`.
 		new-size = out - a.begin-pointer
 		a.backing[new-size .. a.size] zero-memory
 		a.size := new-size
+	else
+		todo # ----------------------------------------------------------------------------------------------------------
 
 region spec impls (see collection.crow)
-
-###
-Gets the element at the index.
-Throws if `index >= a.size`.
-###
-+at-index[t] t(a t mut[], index nat64) bare
-	a check-index index
-	trusted a.begin-pointer[index]
-
-###
-Sets the element at the index.
-Throws if `index >= a.size`.
-###
-+set-at-index[t] void(a t mut[], index nat64, value t) bare
-	a check-index index
-	trusted
-		a.begin-pointer[index] := value
 
 +iterate[t] bool(a t mut[], f bool mut(elem t))
 	0::nat64 .. a.size iterate i =>

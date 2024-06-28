@@ -127,7 +127,7 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 	listen-fd SOCKET,
 	epoll-fd fd-t,
 	on-accepted-client void mut(socket SOCKET),
-) summon, unsafe, (libc, linux, posix) extern
+) summon, unsafe, (libc, linux, native, posix) extern
 	clientaddr mut sockaddr_in = ()
 	clientaddr-as-sockaddr sockaddr mut* = (&clientaddr)::sockaddr_in mut* pointer-cast
 	addrlen mut socklen_t = size-of@sockaddr_in to
@@ -148,7 +148,7 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 -handle-client-linux void(
 	fd fd-t,
 	on-received-chunk void mut(socket SOCKET, chunk nat8 array),
-) summon, unsafe, (libc, posix) extern
+) summon, unsafe, (libc, native, posix) extern
 	buf nat8 mut-array = 0x1000 zeroed-mut-array
 	count = fd read buf.begin-pointer, buf.size
 	if count < 0

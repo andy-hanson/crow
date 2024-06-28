@@ -103,14 +103,14 @@ Adds an element to the set.
 
 If `value` is already in the set, returns `a` unmodified.
 ###
-+ ~[t] t sorted-set(a t sorted-set, value t) t key
++ ~[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	a try-add value ?? a
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-+try-add[t] t sorted-set?(a t sorted-set, value t) t key
++try-add[t] t sorted-set?(a t sorted-set, value t) t key, native extern
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -123,14 +123,14 @@ Removes a value from the set.
 
 If `value` is not in the set, returns `a` unmodified.
 ###
-+ -[t] t sorted-set(a t sorted-set, value t) t key
++ -[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	a try-remove value ?? a
 
 ###
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-+try-remove[t] t sorted-set?(a t sorted-set, value t) t key
++try-remove[t] t sorted-set?(a t sorted-set, value t) t key, native extern
 	guard r ?= a.add find-in-add-for-remove value, 0
 	removals-here-and-right = (a.remove count-greater-or-equal r.size-left) + 1
 	if r.size-here should-compact r.size-right, removals-here-and-right
@@ -139,7 +139,7 @@ Else, returns an empty option.
 	else
 		(a.add, a.remove ~ r.value-index),
 
--add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t key
+-add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t key, native extern
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -189,7 +189,7 @@ Or a combination of the two.
 -should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
--add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key
+-add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key, native extern
 	assert plan.compacted-size > 1
 	trusted
 		compacted t mut-array = plan.compacted-size zeroed-mut-array
@@ -199,7 +199,7 @@ Or a combination of the two.
 		new-add = compactor do-compact a.add, add-size, a.remove
 		new-add, (a.remove filter-less plan.add-size-left)
 
--remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t key
+-remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t key, native extern
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -220,7 +220,7 @@ Or a combination of the two.
 	add t add-node,
 	add-size nat64,
 	remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	cur mut = add
 	add-size-here-and-left mut = add-size
 	loop
@@ -238,7 +238,7 @@ Or a combination of the two.
 	values t array,
 	add-size-here-and-left nat64,
 	remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	guard n-added != 0
@@ -258,7 +258,7 @@ Or a combination of the two.
 	b t array,
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe, t key
+) unsafe, t key, native extern
 	a-read mut = init-a-read
 	a-write mut = init-a-write
 	b-begin = b begin-pointer
@@ -301,7 +301,7 @@ Or a combination of the two.
 	b t array,
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe
+) unsafe, native extern
 	a-write mut = init-a-write
 	b-read mut = b.end-pointer - 1
 	b-remove-index mut = init-b-remove-index
@@ -316,7 +316,7 @@ Or a combination of the two.
 			b-remove-index -:= 1
 			continue
 
--finish[t] t array(a t compactor) unsafe
+-finish[t] t array(a t compactor) unsafe, native extern
 	assert a.cur == a.end
 	a.begin .. a.end.as-const as-array
 
@@ -421,7 +421,7 @@ region test
 -verify void(a string sorted-set, expected string)
 	a.dbg is expected
 
-test
+test native extern
 	# TODO: be sure to test removing and then adding back
 	a string sorted-set = ()
 	a.is-empty is true

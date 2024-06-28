@@ -17,13 +17,16 @@ export
 	../../private/bootstrap: array, todo
 
 array-reference-equal[t] bool(a t array, b t array) bare, unsafe
-	a.pointer == b.pointer && a.size == b.size
+	if extern native
+		a.pointer == b.pointer && a.size == b.size
+	else
+		todo # Use native JS '===' ------------------------------------------------------------------------------------------------
 
-+begin-pointer[t] t*(a t array) bare, unsafe
++begin-pointer[t] t*(a t array) bare, unsafe, native extern
 	a.pointer
 
 # Pointer to the end of an array.
-+end-pointer[t] t*(a t array) bare, unsafe
++end-pointer[t] t*(a t array) bare, unsafe, native extern
 	a.pointer + a.size
 
 ###
@@ -31,20 +34,20 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-+as-array[t] t array(pointers t* range) bare, unsafe
++as-array[t] t array(pointers t* range) bare, unsafe, native extern
 	pointers.size new-array pointers.low
-+as-array[t] t array(pointers t mut* range) bare, unsafe
++as-array[t] t array(pointers t mut* range) bare, unsafe, native extern
 	pointers.size new-array pointers.low.as-const
 
-+pointers[t] t* range(a t array) bare, unsafe
++pointers[t] t* range(a t array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
 
-array-cast[out, in] out array(a in array) bare, unsafe
+array-cast[out, in] out array(a in array) bare, unsafe, native extern
 	assert size-of@out == size-of@in
 	a.size new-array a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
-+subscript[t] t array(a t*, r nat64 range) bare, unsafe
++subscript[t] t array(a t*, r nat64 range) bare, unsafe, native extern
 	r.size new-array a + r.low
 
 ###
@@ -52,28 +55,31 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 
 Calls `f` for each element in `a`.
 ###
-+iterate[t] bool(a t array, f bool mut(elem t))
-	trusted if size-of@t == 0
-		i mut nat64 = 0
-		loop
-			if i == a.size
-				break false
-			elif f[zeroed]
-				break true
-			else
-				i +:= 1
-				continue
++iterate[t] bool(a t array, f bool mut(elem t)) trusted
+	if extern native
+		if size-of@t == 0
+			i mut nat64 = 0
+			loop
+				if i == a.size
+					break false
+				elif f[zeroed]
+					break true
+				else
+					i +:= 1
+					continue
+		else
+			cur mut = a begin-pointer
+			end = a end-pointer
+			loop
+				if cur == end
+					break false
+				elif f[*cur]
+					break true
+				else
+					cur +:= 1
+					continue
 	else
-		cur mut = a begin-pointer
-		end = a end-pointer
-		loop
-			if cur == end
-				break false
-			elif f[*cur]
-				break true
-			else
-				cur +:= 1
-				continue
+		todo # Use native JS 'array.some(f)' ------------------------------------------------------------------------------------------------------------
 
 +array-builder[t] record mut
 	-buffer mut t mut-array
@@ -126,5 +132,5 @@ Calls `f` for each element in `a`.
 	(size new-array size.allocate.as-const),
 -size[t] nat64(a t mut-array)
 	a.inner size
--begin-pointer[t] t mut*(a t mut-array) unsafe
+-begin-pointer[t] t mut*(a t mut-array) unsafe, native extern
 	a.inner.begin-pointer as-mut

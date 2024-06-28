@@ -61,7 +61,7 @@ pop-task pop-fiber-result(a fiber-queue mut*, cur-time timestamp) bare, unsafe, 
 	while t ?= a.timed dequeue-if-less-or-equal cur-time
 		a.non-timed enqueue t.cur-exclusion, t
 
-release-exclusion void(a fiber-queue mut*, exclusion exclusion) bare, unsafe
+release-exclusion void(a fiber-queue mut*, exclusion exclusion) bare, unsafe, native extern
 	a.non-timed release-exclusion exclusion
 
 enqueue-timed-fiber void(a fiber-queue mut*, time nat64, fiber fiber) bare, unsafe, native extern

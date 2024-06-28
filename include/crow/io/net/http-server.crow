@@ -91,7 +91,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	path, query = state.path-and-query parse-path-and-query
 	state.method, path, query, state.headers.move-to::(symbol, string)[].to, state.unparsed.move-to
 
--response-to-array nat8 array(a http-response)
+-response-to-array nat8 array(a http-response) native extern
 	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive,
 	# maybe forbid any upper-case letters in headers to be consistent

@@ -4,6 +4,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, nat64
+	../private/bootstrap: todo
 	../private/thread-utils: acquire, init, lock, release, uninit
 	../pointer: mut-pointer
 	./array: array
@@ -24,17 +25,22 @@ and iterate it at your leisure.
 -lock[t] lock mut*(a t shared[]) bare, unsafe
 	&a.lk
 -with-lock[out, t] out(a t shared[], cb out mut(a t mut[])) unsafe
-	a.lock acquire
-	finally a.lock release
-	cb[a.inner]
+	if extern native
+		a.lock acquire
+		finally a.lock release
+		cb[a.inner]
+	else
+		todo # ------------------------------------------------------------------------------------------------------------------
 
 +new[t] t shared[](...a t array)
 	a.to new-from-new-mut-list
 -new-from-new-mut-list[t] t shared[](inner t mut[])
-	trusted
+	trusted if extern native
 		res t shared[] = uninit, inner
 		res.lock init
 		res
+	else
+		todo # TODO: in JS builds, 'shared-list' should just be a list with no wrapper ...........................................
 
 +size[t] nat64(a t shared[])
 	trusted a with-lock x => x size

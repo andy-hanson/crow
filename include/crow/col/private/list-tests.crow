@@ -165,7 +165,7 @@ test
 -to string(a big-nat)
 	"{a a}"
 
-test
+test native extern # TODO: test in JS, but then big-nat size would be 8 -----------------------------------------------------------------------------
 	trusted size-of@big-nat is 24
 	a big-nat[] = 5.big, 6.big
 	b big-nat[] = 4.big ~ a

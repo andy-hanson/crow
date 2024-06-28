@@ -20,7 +20,7 @@ export
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-+get-unix-time unix-time() summon, posix extern
++get-unix-time unix-time() summon, (native, posix) extern
 	forbid trusted is-windows : todo
 	trusted null.time,
 

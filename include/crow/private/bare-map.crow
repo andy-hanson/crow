@@ -35,14 +35,14 @@ entry[t, k] spec k data, k equal
 
 -full-capacity[t] nat64(a t bare-map) bare, unsafe
 	a.half-capacity * 2
--end-full[v] v mut*(a v bare-map) bare, unsafe
+-end-full[v] v mut*(a v bare-map) bare, unsafe, native extern
 	a.begin-full + a.full-capacity
 
 -begin-left[t] t mut*(a t bare-map) bare, unsafe
 	a.begin-full
--end-left[t] t mut*(a t bare-map) bare, unsafe
+-end-left[t] t mut*(a t bare-map) bare, unsafe, native extern
 	a.begin-left + a.half-capacity
--begin-right[t] t mut*(a t bare-map) bare, unsafe
+-begin-right[t] t mut*(a t bare-map) bare, unsafe, native extern
 	a.end-left
 
 -hash-left nat64(a nat64) bare
@@ -53,9 +53,9 @@ entry[t, k] spec k data, k equal
 	c = (b ^ (b >> 27)) wrap-mul 0x94d049bb133111eb
 	c ^ (c >> 31)
 
--entry-left[t] t mut*(a t bare-map mut*, hash nat64) bare, unsafe
+-entry-left[t] t mut*(a t bare-map mut*, hash nat64) bare, unsafe, native extern
 	a->begin-left + (hash.hash-left % a->half-capacity)
--entry-right[t] t mut*(a t bare-map mut*, hash nat64) bare, unsafe
+-entry-right[t] t mut*(a t bare-map mut*, hash nat64) bare, unsafe, native extern
 	a->begin-right + (hash.hash-right % a->half-capacity)
 
 new[t, k] t bare-map(half-capacity nat64) bare, unsafe, (t, k) entry, native extern
@@ -70,7 +70,7 @@ new[t, k] t bare-map(half-capacity nat64) bare, unsafe, (t, k) entry, native ext
 
 destroy[t] spec
 	destroy void(a t mut*)
-destroy[t] void(a t bare-map mut*) bare, unsafe, t destroy
+destroy[t] void(a t bare-map mut*) bare, unsafe, t destroy, native extern
 	cur mut = a->begin-full
 	until cur == a->end-full
 		cur destroy
@@ -78,16 +78,16 @@ destroy[t] void(a t bare-map mut*) bare, unsafe, t destroy
 -free-table-not-values[t] void(a t bare-map mut*) bare, unsafe, native extern
 	a->begin-full unmanaged-free-elements a->full-capacity
 
-must-find[t, k] t*(a t bare-map*, key k) bare, unsafe, (t, k) entry
+must-find[t, k] t*(a t bare-map*, key k) bare, unsafe, (t, k) entry, native extern
 	(a.as-mut must-find key).as-const
 
-must-find[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
+must-find[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry, native extern
 	(a find key)!
 
-remove[t, k] void(_ t bare-map mut*, entry t mut*) bare, unsafe, (t, k) entry
+remove[t, k] void(_ t bare-map mut*, entry t mut*) bare, unsafe, (t, k) entry, native extern
 	*entry := (invalid-key,)
 
-find[t, k] t mut*?(a t bare-map mut*, key k) bare, unsafe, (t, k) entry
+find[t, k] t mut*?(a t bare-map mut*, key k) bare, unsafe, (t, k) entry, native extern
 	hash = key hash
 	left = a entry-left hash
 	if left->key == key
@@ -125,12 +125,12 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 			a increase-capacity
 			continue
 
--try-insert[t, k] bool(entry t mut*, key k) bare, unsafe, (t, k) entry
+-try-insert[t, k] bool(entry t mut*, key k) bare, unsafe, (t, k) entry, native extern
 	guard entry->key == invalid-key
 	*entry := (key,)
 	true
 
--try-evict[t, k] t mut*?(a t bare-map mut*, left t mut*, right t mut*) bare, unsafe, (t, k) entry
+-try-evict[t, k] t mut*?(a t bare-map mut*, left t mut*, right t mut*) bare, unsafe, (t, k) entry, native extern
 	# left and right are both occupied. See if we can evict one.
 	evict-left-to-right = a entry-right left->key.hash
 	if evict-left-to-right->key == invalid-key
@@ -186,7 +186,7 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 -try-add-key[t, k] bool(
 	a t bare-map mut*,
 	key k,
-) bare, unsafe, (t, k) entry
+) bare, unsafe, (t, k) entry, native extern
 	hash = key hash
 	left = a entry-left hash
 	right = a entry-right hash
@@ -201,7 +201,7 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 		*e := (key,)
 		true
 
-slow-is-empty[t, k] bool(a t bare-map*) bare, unsafe, (t, k) entry
+slow-is-empty[t, k] bool(a t bare-map*) bare, unsafe, (t, k) entry, native extern
 	cur mut = a->begin-full.as-const
 	loop
 		if cur == a->end-full.as-const
@@ -215,7 +215,7 @@ slow-is-empty[t, k] bool(a t bare-map*) bare, unsafe, (t, k) entry
 add-gc-roots[t] spec
 	add-gc-roots void(a t*, gc gc mut*)
 
-add-gc-roots[t] void(a t bare-map*, gc gc mut*) bare, unsafe, t add-gc-roots
+add-gc-roots[t] void(a t bare-map*, gc gc mut*) bare, unsafe, t add-gc-roots, native extern
 	cur mut = a->begin-full.as-const
 	until cur == a->end-full.as-const
 		cur add-gc-roots gc

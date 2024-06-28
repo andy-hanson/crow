@@ -4,7 +4,7 @@ import
 	crow/pointer: *, mut-pointer
 	../crow/private/bootstrap: todo
 
-+errno err-t() bare, summon, unsafe, libc extern
++errno err-t() bare, summon, unsafe, (libc, native) extern
 	if extern windows
 		*_errno
 	elif extern posix

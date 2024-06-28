@@ -78,7 +78,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 	res
 
 # Avoiding a lambda here or the compiler may erroneously think this may yield
--convert-args string[](args c-string array) trusted
+-convert-args string[](args c-string array) trusted, native extern
 	res string mut-array = args.size zeroed-mut-array
 	i mut nat64 = 0
 	while i < args.size

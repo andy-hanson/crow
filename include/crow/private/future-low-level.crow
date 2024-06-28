@@ -7,13 +7,14 @@ import
 	../result: error, ok, result
 	./bootstrap:
 		awaiting-future, awaited-by, empty, exception-and-backtrace, fiber, future, future-state,
-		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state
+		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state, todo
 	./exception-low-level: rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 
 # If the future is already complete, returns 'false'
 ~try-add-awaiting-fiber[t] bool(a t future, fiber fiber) bare, unsafe
+	guard extern native : todo # ----------------------------------------------------------------------------------------
 	&a.lk acquire
 	res bool = match a state
 	as empty
@@ -31,7 +32,7 @@ import
 	&a.lk release
 	res
 
-~unresolved[t] t future() unsafe
+~unresolved[t] t future() unsafe, native extern
 	res t future = uninit, empty
 	res.lock init
 	res
@@ -80,7 +81,7 @@ import
 	as rejected _
 		hard-unreachable
 
-~must-get-result[t] t(a t future) bare, unsafe
+~must-get-result[t] t(a t future) bare, unsafe, native extern
 	match a.get-result
 	as ok x
 		x
@@ -88,7 +89,7 @@ import
 		x rethrow
 
 # Assuming the future is resolved, get the result.
-~get-result[t] (t, exception-and-backtrace) result(a t future) bare, unsafe
+~get-result[t] (t, exception-and-backtrace) result(a t future) bare, unsafe, native extern
 	a.lock acquire
 	res (t, exception-and-backtrace) result = match a state
 	as empty

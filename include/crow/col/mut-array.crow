@@ -37,7 +37,7 @@ Creates a new `mut-array` with the given elements.
 	a to
 
 # Get a `mut-array` from a pointer and range of indices.
-+subscript[t] t mut-array(a t mut*, indices nat64 range) bare, unsafe
++subscript[t] t mut-array(a t mut*, indices nat64 range) bare, unsafe, native extern
 	a.as-const[indices],
 
 ###
@@ -65,11 +65,11 @@ There is no `move-to` for `mut-array` since there might be slices that still ref
 	a.copy.inner
 
 # Creates a `mut-array` from a range of pointers.
-+as-mut-array[t] t mut-array(a t mut* range) bare, unsafe
++as-mut-array[t] t mut-array(a t mut* range) bare, unsafe, native extern
 	assert a.low <= a.high
 	(a.low .. a.high).as-array,
 
-+pointers[t] t mut* range(a t mut-array) bare, unsafe
++pointers[t] t mut* range(a t mut-array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
 
 # Number of elements.
@@ -81,14 +81,14 @@ There is no `move-to` for `mut-array` since there might be slices that still ref
 	a.size == 0
 
 # Pointer to the beginning of the `mut-array`.
-+begin-pointer[t] t mut*(a t mut-array) bare, unsafe
++begin-pointer[t] t mut*(a t mut-array) bare, unsafe, native extern
 	a.inner.begin-pointer as-mut
 
 ###
 Pointer to the end of the `mut-array`.
 This is one past the last valid pointer.
 ###
-+end-pointer[t] t mut*(a t mut-array) bare, unsafe
++end-pointer[t] t mut*(a t mut-array) bare, unsafe, native extern
 	a.begin-pointer + a.size
 
 ###
@@ -147,8 +147,8 @@ See `zeroed-mut-array` for why this is unsafe.
 	else
 		todo # ---------------------------------------------------------------------------------------------------------------
 
-+in[t] bool(value t, a t mut-array) bare, t equal
-	trusted
++in[t] bool(value t, a t mut-array) bare, t equal, trusted
+	if extern native
 		cur mut = a.begin-pointer as-const
 		end = a.end-pointer as-const
 		loop
@@ -159,6 +159,8 @@ See `zeroed-mut-array` for why this is unsafe.
 			else
 				cur +:= 1
 				continue
+	else
+		todo # -----------------------------------------------------------------------------------------------------------
 
 ###
 Unsafe cast a mut-array to an array.
@@ -182,7 +184,7 @@ so this value must only be used temporarily.
 Casts elements to a different type.
 If the element type is different, adjusts the size so that the number of bytes is the same.
 ###
-+cast-mut-array[out, in] out mut-array(a in mut-array) bare, unsafe
++cast-mut-array[out, in] out mut-array(a in mut-array) bare, unsafe, native extern
 	assert size-of@in != 0 && size-of@out != 0
 	size-bytes = a.size * size-of@in
 	assert size-bytes % size-of@out == 0
@@ -221,21 +223,33 @@ region spec impls (see collection.crow)
 +prev[t] (t mut-array-iterator, t)?(a t mut-array-iterator) bare
 	guard a.next-index != 0
 	assert a.next-index <= a.collection.size
-	((a.collection, a.next-index - 1), trusted a.collection.begin-pointer[a.next-index - 1]),
+	value = trusted if extern native
+		a.collection.begin-pointer[a.next-index - 1]
+	else
+		todo # -----------------------------------------------------------------------------------------------------------
+	((a.collection, a.next-index - 1), value),
 
 +next[t] (t, t mut-array-iterator)?(a t mut-array-iterator) bare
 	guard a.next-index < a.collection.size
-	(trusted a.collection.begin-pointer[a next-index], (a.collection, a.next-index + 1)),
+	value = trusted if extern native
+		a.collection.begin-pointer[a next-index]
+	else
+		todo # -----------------------------------------------------------------------------------------------------------
+	(value, (a.collection, a.next-index + 1)),
 
 +set-prev[t] void(a t mut-array-iterator, value t) bare
 	assert a.next-index <= a.collection.size
-	trusted
+	trusted if extern native
 		a.collection.begin-pointer[a.next-index - 1] := value
+	else
+		todo #-----------------------------------------------------------------------------------------------------------------
 
 +set-next[t] void(a t mut-array-iterator, value t) bare
-	trusted
-		assert a.next-index < a.collection.size
+	assert a.next-index < a.collection.size
+	trusted if extern native
 		a.collection.begin-pointer[a next-index] := value
+	else
+		todo # --------------------------------------------------------------------------------------------------------------
 
 +slice[t] t mut-array(begin t mut-array-iterator, end t mut-array-iterator) bare
 	assert begin.collection == end.collection

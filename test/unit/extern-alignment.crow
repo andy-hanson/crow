@@ -1,7 +1,7 @@
 dummy-extern-alignment void()
 	()
 
-test trusted
+test trusted, native extern
 	r r = (), (), ()
 	rp r* = &r
 	ap nat8* = &rp->a

@@ -21,7 +21,7 @@ import
 		is-nan, is-near-int, min-value, nat8, nat16, nat32, nat64, to, round, truncate-to
 	./option: ??, force, new, option
 	./pointer: ==, <=>, const-pointer
-	./private/bootstrap: inner
+	./private/bootstrap: inner, todo
 	./private/exception-low-level: exception, unreachable
 	./private/number-low-level: wrap-sub
 	./range: .., in, iterate
@@ -56,7 +56,7 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 
 +interpolate string(...parts string array)
 	"" join parts.to
-+interpolate char8*(...parts string array)
++interpolate char8*(...parts string array) native extern
 	("" join parts.to) to
 
 # Same as `""`.
@@ -125,9 +125,12 @@ region conversion
 +to string(a char8 array)
 	a.to::char8[] to
 # Validates that bytes are UTF-8 character codes, and returns them as a string.
-+as-string string(bytes nat8[])
-	(trusted bytes.list-cast::char8[]) to
-+as-string string(bytes nat8 array)
++as-string string(bytes nat8[]) trusted
+	if extern native
+		bytes.list-cast::char8[] to
+	else
+		todo # ----------------------------------------------------------------------------------------------------------
++as-string string(bytes nat8 array) native extern
 	bytes.to::nat8[] as-string
 
 +to nat64(a char8) bare
@@ -137,8 +140,11 @@ region conversion
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-+to-bytes nat8[](a string)
-	trusted a.inner list-cast
++to-bytes nat8[](a string) trusted
+	if extern native
+		a.inner list-cast
+	else
+		todo # -----------------------------------------------------------------------------------------------------------------
 +to-bytes nat8 array(a string)
 	a.to-bytes to
 
@@ -153,7 +159,7 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-+to c-string(a string)
++to c-string(a string) native extern
 	# TODO: not trusted
 	trusted (a.inner ~ "\0")::char8[].to begin-pointer
 
@@ -162,7 +168,7 @@ Treats a c-string as a string by walking to the end.
 
 Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
 ###
-+as-string string(a c-string) unsafe
++as-string string(a c-string) unsafe, native extern
 	(a .. a.find-c-string-end).as-array to
 
 ###
@@ -170,7 +176,7 @@ Unlike 'as-string' this copies the 'c-string'.
 
 This is still unsafe because 'a' must end in a `"\0"` character.
 ###
-+to string(a c-string) unsafe
++to string(a c-string) unsafe, native extern
 	# TODO: 'copy' seems unnecessary since 'to' should do that?
 	a.as-string.inner.to.copy.move-to
 

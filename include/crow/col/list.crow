@@ -149,9 +149,9 @@ export
 +new[t] t[](...a t array)
 	a to
 
-+as-list[t] t[](a t* range) unsafe
++as-list[t] t[](a t* range) unsafe, native extern
 	a.as-array to
-+as-list[t] t[](a t mut* range) unsafe
++as-list[t] t[](a t mut* range) unsafe, native extern
 	a.as-array to
 
 ###
@@ -181,7 +181,7 @@ This is O(1) if the list was converted from an array, meaning a round trip is fr
 +to[t] t mut-array(a t[])
 	for x : a; x
 
-list-cast[out, in] out[](a in[]) unsafe
+list-cast[out, in] out[](a in[]) unsafe, native extern
 	assert size-of@out == size-of@in
 	# TODO:PERF
 	a.to.array-cast::(out array) to
@@ -372,7 +372,7 @@ This is O(log n), amortized O(1).
 # 'trusted' since we are just using it to guide branch sizes
 # (which should have no observable effect)
 -size-bytes[t] nat64(a t array)
-	trusted a.size * size-of@t
+	a.size * trusted extern native ? size-of@t : 8
 -size-bytes[t] nat64(a t array2d)
 	a.arrays size-bytes
 

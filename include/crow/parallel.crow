@@ -34,7 +34,7 @@ export
 +yield-fiber void() trusted, native extern
 	add-to-queue yield-this-fiber
 
-add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe
+add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe, native extern
 	typed t future = future reference-from-pointer
 	typed try-add-awaiting-fiber fiber
 
@@ -43,15 +43,21 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 
 # Converts a value to a future resolved with that value.
 +new[t] t future(value t)
-	res t future = trusted uninit, value.resolved
-	trusted res.lock init
-	res
+	if trusted extern native
+		res t future = trusted uninit, value.resolved
+		trusted res.lock init
+		res
+	else
+		todo # Promise.resolved(x) -----------------------------------------------------------------------------------------------------------------
 
 # Future resolved with an exception.
 +rejected[t] t future(err exception-and-backtrace)
-	res t future = trusted uninit, err.rejected
-	trusted res.lock init
-	res
+	if trusted extern native
+		res t future = trusted uninit, err.rejected
+		trusted res.lock init
+		res
+	else
+		todo # Promise.rejected(x) -----------------------------------------------------------------------------------------
 
 +parallel record nominal
 ###

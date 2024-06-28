@@ -1,4 +1,4 @@
-main void() unsafe
+main void() unsafe, native extern
 	r mut r = 1, 2
 	p r* = &r
 	mp r mut* = &r

@@ -16,22 +16,22 @@ bare-queue[t] record by-val, mut
 	-begin mut t mut*
 	-end mut t mut*
 
-new[t] t bare-queue() bare, unsafe
+new[t] t bare-queue() bare, unsafe, native extern
 	null, null, null, null
 
 destroy[t] void(a t bare-queue mut*) bare, unsafe, native extern
 	a->alloc-begin unmanaged-free-elements (a->alloc-end - a->alloc-begin)
 
-is-empty[t] bool(a t bare-queue*) bare, unsafe
+is-empty[t] bool(a t bare-queue*) bare, unsafe, native extern
 	a->begin == null
 
-size[t] nat64(a t bare-queue*) bare, unsafe
+size[t] nat64(a t bare-queue*) bare, unsafe, native extern
 	if a->begin < a->end
 		a->end - a->begin
 	else
 		(a->alloc-end - a->begin) + (a->end - a->alloc-begin)
 
-dequeue[t] t?(a t bare-queue mut*) bare, unsafe
+dequeue[t] t?(a t bare-queue mut*) bare, unsafe, native extern
 	unless a->begin == null
 		res = *a->begin
 		a->begin := a.as-const advance a->begin
@@ -71,14 +71,14 @@ enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe, native extern
 	a->alloc-begin unmanaged-free-elements a->alloc-end - a->alloc-begin
 	*a := new-begin, new-begin + new-capacity, new-begin, new-end
 
--advance[t] t mut*(a t bare-queue*, ptr t mut*) bare, unsafe
+-advance[t] t mut*(a t bare-queue*, ptr t mut*) bare, unsafe, native extern
 	res = ptr + 1
 	if res == a->alloc-end
 		a->alloc-begin
 	else
 		res
 
-add-gc-roots[t] void(a t bare-queue*, gc gc mut*) bare, unsafe
+add-gc-roots[t] void(a t bare-queue*, gc gc mut*) bare, unsafe, native extern
 	ptr mut = a->begin
 	until ptr == a->end
 		gc gc-add-root *ptr

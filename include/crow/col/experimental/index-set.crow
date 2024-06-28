@@ -10,6 +10,7 @@ import
 	../../number: ==, <=>, +, -, *, /, %, max-value, nat64, new
 	../../option: ??, new, option
 	../../pointer: const-pointer
+	../../private/bootstrap: todo
 	../../private/number-low-level: wrap-sub
 	../../range: ..
 	../../string: interpolate, join, string, to-hex, to
@@ -32,7 +33,10 @@ import
 	a.values[n]
 
 -values nat64 array(a leaf-node)
-	trusted ((&a.a)::nat64*)[0 .. 4]
+	trusted if extern native
+		((&a.a)::nat64*)[0 .. 4]
+	else
+		todo # TODO: there isn't really a way to do this in JS. We could just alloc an array I guess. -----------------------
 -bits-in-leaf-node nat64()
 	# 64 * 4
 	256

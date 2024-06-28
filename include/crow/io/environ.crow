@@ -7,7 +7,7 @@ get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
-+get-environ string[string]() summon
++get-environ string[string]() summon, native extern
 	forbid trusted is-windows : todo
 	with out : build
 		trusted
@@ -16,7 +16,7 @@ get-environ-raw c-string*() summon, unsafe
 				out ~= env->parse-environ-entry
 				env +:= 1
 
--parse-environ-entry (string, string)(entry c-string) unsafe
+-parse-environ-entry (string, string)(entry c-string) unsafe, native extern
 	assert key-end ?= entry find-char-in-c-string "=" : todo
 	key string = (entry .. key-end).as-array to
 	value-begin = key-end + 1

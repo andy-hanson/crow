@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, compare, comparison, equal
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
-	../private/bootstrap: new-array
+	../private/bootstrap: new-array, todo
 	../private/range-low-level: ..
 	../pointer: +, *
 	../tuple: new
@@ -126,14 +126,22 @@ region spec impls (see collection.crow)
 	guard a.next-index != 0
 	new-index = a.next-index - 1
 	assert new-index < a.collection.size
-	value = trusted *(a.collection.begin-pointer + new-index)
+	value = trusted if extern native
+		*(a.collection.begin-pointer + new-index)
+	else
+		# TODO: native JS subscript -------------------------------------------------------------------------------------------
+		todo
 	rest t array-iterator = a.collection, new-index
 	(rest, value),
 
 +next[t] (t, t array-iterator)?(a t array-iterator) bare
 	guard a.next-index != a.collection.size
 	assert a.next-index < a.collection.size
-	value = trusted *(a.collection.begin-pointer + a.next-index)
+	value = trusted if extern native
+		*(a.collection.begin-pointer + a.next-index)
+	else
+		# TODO: native JS subscript -------------------------------------------------------------------------------------------
+		todo
 	rest t array-iterator = a.collection, a.next-index + 1
 	(value, rest),
 
@@ -141,4 +149,7 @@ region spec impls (see collection.crow)
 	assert begin.next-index <= end.next-index
 	assert end.next-index <= begin.collection.size :
 		end.next-index index-too-big begin.collection.size
-	trusted end.next-index - begin.next-index new-array begin.collection.begin-pointer + begin.next-index
+	if trusted extern native
+		trusted end.next-index - begin.next-index new-array begin.collection.begin-pointer + begin.next-index
+	else
+		todo # use native JS 'slice' -----------------------------------------------------------------------------------------------------------------

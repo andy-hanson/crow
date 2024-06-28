@@ -15,7 +15,7 @@ export
 Walk a c-string and return a pointer to the first occurrence of `c`.
 If that is not found, return an empty option.
 ###
-find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
+find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe, native extern
 	cur mut = a
 	loop
 		if *cur == c
@@ -27,18 +27,18 @@ find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 			continue
 
 # Pointer to the end of a c-string.
-find-c-string-end c-string(a c-string) bare, unsafe
+find-c-string-end c-string(a c-string) bare, unsafe, native extern
 	cur mut = a
 	until *cur == "\0"
 		cur +:= 1
 	cur
 
 # Pointer to the end of a c-string.
-find-c-string-end char8 mut*(a char8 mut*) bare, unsafe
+find-c-string-end char8 mut*(a char8 mut*) bare, unsafe, native extern
 	a.as-const.find-c-string-end as-mut
 
-c-string-size nat64(a c-string) bare, unsafe
+c-string-size nat64(a c-string) bare, unsafe, native extern
 	a.find-c-string-end - a
 
-c-string-size-incl-nul nat64(a c-string) bare, unsafe
+c-string-size-incl-nul nat64(a c-string) bare, unsafe, native extern
 	a.c-string-size + 1

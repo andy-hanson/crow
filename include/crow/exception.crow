@@ -23,13 +23,13 @@ export
 	"The operation is not implemented on this platform."
 
 # Outputs the exception's message and backtrace to a string.
-+to string(a exception-and-backtrace) unsafe
++to string(a exception-and-backtrace) unsafe, native extern
 	"{a exception}{a backtrace}"
 
 +to string(a exception)
 	a describe
 
-+to string(a backtrace) unsafe
++to string(a backtrace) unsafe, native extern
 	# Don't include entries from runtime, only at start of function
 	kept-entries = if idx ?= a.entries find-index x => x is-runtime-function-entry
 		if idx > 0
@@ -50,7 +50,7 @@ export
 	else
 		a
 
--is-runtime-function-entry bool(a backtrace-entry)
+-is-runtime-function-entry bool(a backtrace-entry) native extern
 	(trusted a.function-name.to) is-runtime-function-name
 
 -is-runtime-function-name bool(a string)
@@ -61,7 +61,7 @@ export
 	elif a == "invoke-action" || a == "invoke__45action"
 		true
 
--to string(a backtrace-entry)
+-to string(a backtrace-entry) native extern
 	name string = trusted a.function-name.to translate-name
 	path string = trusted a.file-path to
 	if name is-empty

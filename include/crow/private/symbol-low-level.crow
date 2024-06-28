@@ -18,16 +18,22 @@ import
 export
 	../private/bootstrap: symbol
 
-+== bool(a symbol, b symbol) bare
-	# (this is pointer equality)
-	trusted a.symbol-to-c-string == b.symbol-to-c-string
++== bool(a symbol, b symbol) bare, trusted
+	if extern native
+		a.symbol-to-c-string == b.symbol-to-c-string
+	else
+		# Use native js '===' -----------------------------------------------------------------------------------------------------
+		todo
 
 # Same as `a.to::string <=> b.to::string`.
 +<=> comparison(a symbol, b symbol)
 	a.to::string <=> b.to
 
-+to string(a symbol)
-	trusted a.symbol-to-c-string as-string
++to string(a symbol) trusted
+	if extern native
+		a.symbol-to-c-string as-string
+	else
+		todo # ----------------------------------------------------------------------------------------------------------------------------
 
 init-symbol-table void(a global-ctx mut*) unsafe
 	a->symbols-table := for x : static-symbols

@@ -60,7 +60,7 @@ exclusion-queue[v] record by-val, mut
 	max-value
 -key[v] exclusion(a v entry) bare
 	a exclusion
--new[v] v entry(key exclusion) bare, unsafe
+-new[v] v entry(key exclusion) bare, unsafe, native extern
 	key, (), null, null
 
 uninit[v] v exclusion-queue() bare, unsafe, native extern
@@ -73,14 +73,14 @@ destroy[v] void(a v exclusion-queue mut*) bare, unsafe, native extern
 	a.by-exclusion destroy
 
 # Even if the queue is empty, there may be unlinked elements in the map.
-queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
+queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe, native extern
 	# Queue is empty if the sentinel node is the only one.
 	a->queue.next.as-const == a.queue
 
 -destroy[v] void(a v entry mut*) bare, unsafe, native extern
 	a.values destroy
 
--is-in-queue[v] bool(entry v entry*) bare, unsafe
+-is-in-queue[v] bool(entry v entry*) bare, unsafe, native extern
 	# If there is only one entry, it won't have 'prev' or 'next'
 	res = entry->prev != null
 	assert res == (entry->next != null)
@@ -98,7 +98,7 @@ enqueue[v] void(a v exclusion-queue mut*, exclusion exclusion, value v) bare, un
 -add-to-queue[v] void(
 	a v exclusion-queue mut*,
 	entry v entry mut*,
-) bare, unsafe
+) bare, unsafe, native extern
 	forbid entry.as-const is-in-queue
 	last = a.queue->prev
 	last->next := entry
@@ -110,7 +110,7 @@ enqueue[v] void(a v exclusion-queue mut*, exclusion exclusion, value v) bare, un
 Takes the first runnable value out of the queue.
 This acquires the exclusion; call `release-exclusion` when done.
 ###
-dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe
+dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe, native extern
 	guard !a.as-const.queue-is-empty
 	first = a.queue->next
 	value = first.values.dequeue!
@@ -122,7 +122,7 @@ dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe
 	(first->key, value),
 
 # Make the exclusion available so that `dequeue` can call it.
-release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe
+release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe, native extern
 	entry = a.by-exclusion must-find key
 	forbid entry.as-const is-in-queue
 	if entry.as-const.values is-empty
@@ -133,7 +133,7 @@ release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe
 -move-from[v] void(
 	dest v entry mut*,
 	src v entry*,
-) bare, unsafe
+) bare, unsafe, native extern
 	*dest := *src
 	if src->prev == null
 		assert src->next == null
@@ -149,10 +149,10 @@ release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe
 True if there are no values in the queue (whether their exclusion is available or not).
 This is slow as it walks the whole map.
 ###
-slow-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
+slow-is-empty[v] bool(a v exclusion-queue*) bare, unsafe, native extern
 	a.by-exclusion slow-is-empty
 
-add-gc-roots[v] void(a v exclusion-queue*, gc gc mut*) bare, unsafe
+add-gc-roots[v] void(a v exclusion-queue*, gc gc mut*) bare, unsafe, native extern
 	a.by-exclusion add-gc-roots gc
--add-gc-roots[v] void(a v entry*, gc gc mut*) bare, unsafe
+-add-gc-roots[v] void(a v entry*, gc gc mut*) bare, unsafe, native extern
 	a.values add-gc-roots gc

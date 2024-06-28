@@ -62,7 +62,13 @@ main void() summon
 	_ = () :: ((nat, nat) compact-map)
 	_ = () :: ((nat, nat) compact-sorted-map)
 	_ = () :: (nat counter)
-	_ = current-directory
+	if trusted extern native
+		_ = current-directory
+		# TODO: Windows support
+		if trusted extern posix
+			_ = generate-login-cookie
+			_ = quality-moderate
+			_ = get-environ
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
 	_ = dummy-bare-map-tests
@@ -84,11 +90,6 @@ main void() summon
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
-	# TODO: Windows support
-	if trusted extern posix
-		_ = generate-login-cookie
-		_ = quality-moderate
-		_ = get-environ
 	_ = () :: grammar-skip
 	_ = () :: http-server
 	_ = () :: (nat hamt-set)

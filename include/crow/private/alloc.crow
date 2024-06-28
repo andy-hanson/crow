@@ -39,11 +39,11 @@ import
 		cb[cur]
 		cur := cur->next
 
--to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe
+-to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe, native extern
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
 
 # Returns true if the range is GC-allocated memory and was not already marked
-mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) bare, summon, unsafe
+mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) bare, summon, unsafe, native extern
 	words = pointer-any to-word-aligned-range size-bytes
 	guard words.low >= ctx.memory-start.as-const
 	indices = words.low - ctx.memory-start.as-const .. words.high - ctx.memory-start.as-const
@@ -64,12 +64,12 @@ words-of-bytes nat64(size-bytes nat64) bare
 
 round-up-to-multiple-of-8 nat64(n nat64) bare
 	(n wrap-add 7) & ~7
-round-down-to-word nat64*(a nat8*) bare, unsafe
+round-down-to-word nat64*(a nat8*) bare, unsafe, native extern
 	a - (a.to & 7) pointer-cast
-round-up-to-word nat64*(a nat8*) bare, unsafe
+round-up-to-word nat64*(a nat8*) bare, unsafe, native extern
 	a.to.round-up-to-multiple-of-8 to-const-pointer
 
-mark-range bool(start bool mut*, end bool mut*) bare, unsafe
+mark-range bool(start bool mut*, end bool mut*) bare, unsafe, native extern
 	cur mut = start
 	marked-anything mut = false
 	until cur == end
@@ -139,7 +139,7 @@ gc record by-val, mut
 	words-used = cur-word wrap-add used-words-remaining
 	gc-count, cur-word, words-used, total-words - words-used
 
-words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe
+words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe, native extern
 	if cur == end
 		acc
 	else
@@ -169,7 +169,7 @@ uninit gc() bare, unsafe, native extern
 	&res validate-gc
 	res
 
-init void(a gc mut*, n-threads nat64) bare, unsafe
+init void(a gc mut*, n-threads nat64) bare, unsafe, native extern
 	a.lk init
 	a.barrier init n-threads
 
@@ -190,7 +190,7 @@ gc-begin bool(gc gc mut*) bare, unsafe, native extern
 	res
 
 # See comment on 'gc-begin'
-gc-add-root[t] void(gc gc mut*, root t) bare, unsafe
+gc-add-root[t] void(gc gc mut*, root t) bare, unsafe, native extern
 	(gc->size-words, gc->mark-begin, gc->data-begin) mark-visit root
 
 # See comment on 'garbage-collection-begin'
@@ -213,7 +213,7 @@ gc-end void(gc gc mut*) bare, unsafe, native extern
 	mark-end bool mut*,
 	data-begin nat64 mut*,
 	data-end nat64 mut*,
-) bare, unsafe
+) bare, unsafe, native extern
 	assert mark-end - mark-begin == data-end - data-begin
 	mark mut = mark-begin
 	word mut = data-begin
@@ -298,12 +298,12 @@ validate-gc void(gc gc*) bare, unsafe, native extern
 			x mem-clear size-bytes
 		res
 
--maybe-set-needs-gc void(gc gc mut*) bare, unsafe
+-maybe-set-needs-gc void(gc gc mut*) bare, unsafe, native extern
 	cur-word = gc->mark-cur - gc->mark-begin
 	if cur-word > (gc->size-words unsafe-div 2)
 		gc->needs-gc := true
 
--first-non-free bool mut*?(mark bool mut*, end bool mut*) bare, unsafe
+-first-non-free bool mut*?(mark bool mut*, end bool mut*) bare, unsafe, native extern
 	if mark == end
 		()
 	elif *mark

@@ -55,9 +55,9 @@ elements not reachable by any slice will be garbage collected.
 +array[t] builtin extern
 +size[t] nat64(a t array) bare, builtin
 # TODO: native extern --------------------------------------------------------------------------------------------------------------
-~pointer[t] t*(a t array) bare, builtin
+~pointer[t] t*(a t array) bare, builtin, native extern
 # TODO: native extern --------------------------------------------------------------------------------------------------------------
-~new-array[t] t array(size nat64, pointer t*) bare, builtin
+~new-array[t] t array(size nat64, pointer t*) bare, builtin, native extern
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.

@@ -13,7 +13,7 @@ import
 	../../range: ..
 	../../test-util: is
 	../../tuple: a, b, new
-	../../private/bootstrap: nat64
+	../../private/bootstrap: nat64, todo
 	../array:
 		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice
 	../collection: .., end, for-break
@@ -169,6 +169,7 @@ assert-comparison-not-equal unique-comparison(a comparison)
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
 merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data(x t, y t))
+	guard trusted extern native : todo # -------------------------------------------------------------------------------------------------------------------
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size

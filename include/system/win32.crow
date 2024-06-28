@@ -88,7 +88,7 @@ import
 +HANDLE alias
 	any-mut-pointer
 
-+INVALID_HANDLE_VALUE HANDLE() bare, unsafe
++INVALID_HANDLE_VALUE HANDLE() bare, unsafe, (native, windows) extern
 	max-value to-mut-pointer
 
 +WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) windows extern
@@ -151,7 +151,7 @@ import
 +new WIN32_FIND_DATAA() bare, unsafe
 	(), (), (), (), () , (), (), (), (), ()
 
-+cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
++cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe, (native, windows) extern
 	(&a->cFileName_STORAGE)::chars260 mut* pointer-cast
 
 +FILETIME record(dwLowDateTime DWORD, dwHighDateTime DWORD) extern
@@ -273,7 +273,7 @@ import
 	hStdInput HANDLE,
 	hStdOutput HANDLE,
 	hStdError HANDLE,
-) bare, unsafe
+) bare, unsafe, (native, windows) extern
 	size DWORD = size-of@STARTUPINFOA to
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (),
 		hStdInput, hStdOutput, hStdError
@@ -283,7 +283,7 @@ import
 	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
 
-+new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) bare, unsafe
++new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) bare, unsafe, (native, windows) extern
 	# TODO: shouldn't need parens
 	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
@@ -293,7 +293,7 @@ import
 	dwProcessId DWORD
 	dwThreadId DWORD
 
-+new PROCESS_INFORMATION() bare, unsafe
++new PROCESS_INFORMATION() bare, unsafe, (native, windows) extern
 	(), (), (), ()
 
 +CreatePipe bool(
@@ -371,7 +371,7 @@ import
 -chars129 extern(129)
 -chars257 extern(257)
 
-+new WSADATA() bare, unsafe
++new WSADATA() bare, unsafe, (native, windows) extern
 	(), (), (), (), (), (), ()
 
 +GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) windows extern
@@ -388,7 +388,7 @@ import
 	wProcessorLevel WORD
 	wProcessorRevision WORD
 
-+new SYSTEM_INFO() bare, unsafe
++new SYSTEM_INFO() bare, unsafe, (native, windows) extern
 	(), (), (), (), (), (), (), (), (), ()
 
 # TODO: should not be 'pure'
