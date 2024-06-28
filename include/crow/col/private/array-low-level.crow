@@ -10,7 +10,7 @@ import
 		pointer-cast, set-subscript, size-of
 	../../range: .., low, range, size
 	../../private/alloc: allocate
-	../../private/bootstrap: inner, mut-array, new, pointer, size, zeroed
+	../../private/bootstrap: inner, mut-array, new, new-array, pointer, size, zeroed
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
@@ -32,20 +32,20 @@ Arr or the range from begin to end.
 UB if begin > end.
 ###
 +as-array[t] t array(pointers t* range) bare, unsafe
-	pointers.size, pointers.low
+	pointers.size new-array pointers.low
 +as-array[t] t array(pointers t mut* range) bare, unsafe
-	pointers.size, pointers.low.as-const
+	pointers.size new-array pointers.low.as-const
 
 +pointers[t] t* range(a t array) bare, unsafe
 	a.begin-pointer .. a.end-pointer
 
 array-cast[out, in] out array(a in array) bare, unsafe
 	assert size-of@out == size-of@in
-	a.size, a.begin-pointer.pointer-cast
+	a.size new-array a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
 +subscript[t] t array(a t*, r nat64 range) bare, unsafe
-	r.size, a + r.low
+	r.size new-array a + r.low
 
 ###
 Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
@@ -82,8 +82,8 @@ Calls `f` for each element in `a`.
 	if extern native
 		builder t array-builder = a.size-hint.zeroed-mut-array, 0
 		f[builder]
-		res t array = builder.cur-size, builder.buffer.inner.begin-pointer
-		builder.buffer := (0, null),
+		res t array = builder.cur-size new-array builder.buffer.inner.begin-pointer
+		builder.buffer := (0 new-array null),
 		builder.cur-size := max-value
 		res
 	else
@@ -123,7 +123,7 @@ Calls `f` for each element in `a`.
 		todo # ----------------------------------------------------------------------------------------------------------
 
 -zeroed-mut-array[t] t mut-array(size nat64) unsafe, native extern
-	(size, size.allocate.as-const),
+	(size new-array size.allocate.as-const),
 -size[t] nat64(a t mut-array)
 	a.inner size
 -begin-pointer[t] t mut*(a t mut-array) unsafe

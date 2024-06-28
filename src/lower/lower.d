@@ -101,6 +101,7 @@ import model.lowModel :
 	LowExternType,
 	LowExternTypeIndex,
 	LowField,
+	LowFieldSource,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
@@ -304,6 +305,8 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 			source.body_.matchIn!(Opt!uint)(
 				(in ConcreteStructBody.Builtin x) {
 					switch (x.kind) {
+						case BuiltinType.array:
+							return some(addAndGetIndex(alloc, recordsBuilder, LowRecord(source)));
 						case BuiltinType.catchPoint:
 							return some(addAndGetIndex(alloc, externTypesBuilder, LowExternType(source)));
 						case BuiltinType.funPointer:
@@ -338,12 +341,7 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 		indices);
 
 	foreach (ref LowRecord record; allRecords)
-		record.fields = mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
-			alloc,
-			record.source.body_.as!(ConcreteStructBody.Record).fields,
-			record.source.fieldOffsets,
-			(ConcreteField* field, immutable uint fieldOffset) =>
-				LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type)));
+		record.fields = makeRecordFields(getLowTypeCtx, record);
 	foreach (ref LowFunPointerType funPointer; allFunPointerTypes) {
 		ConcreteType[2] typeArgs = only2(funPointer.source.body_.as!(ConcreteStructBody.Builtin*).typeArgs);
 		funPointer.returnType = lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
@@ -356,6 +354,23 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 			(ref ConcreteType member) => lowTypeFromConcreteType(getLowTypeCtx, member));
 
 	return getLowTypeCtx;
+}
+
+SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRecord record) {
+	if (record.source.body_.isA!(ConcreteStructBody.Builtin*)) {
+		ConcreteStructBody.Builtin* builtin = record.source.body_.as!(ConcreteStructBody.Builtin*);
+		assert(builtin.kind == BuiltinType.array);
+		LowType elementType = lowTypeFromConcreteType(getLowTypeCtx, only(builtin.typeArgs));
+		return newSmallArray(getLowTypeCtx.alloc, [
+			LowField(LowFieldSource(LowFieldSource.ArrayField.size), 0, nat64Type),
+			LowField(LowFieldSource(LowFieldSource.ArrayField.pointer), 8, getPointerConst(getLowTypeCtx, elementType))]);
+	} else
+		return mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
+			getLowTypeCtx.alloc,
+			record.source.body_.as!(ConcreteStructBody.Record).fields,
+			record.source.fieldOffsets,
+			(ConcreteField* field, immutable uint fieldOffset) =>
+				LowField(LowFieldSource(field), fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type)));
 }
 
 SmallArray!LowType maybeUnpackTuple(ref Alloc alloc, LowType a) {
@@ -380,6 +395,7 @@ PrimitiveType typeOfIntegralType(IntegralType a) =>
 
 LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* struct_) {
 	uint lowIndex() => mustGet(ctx.lowIndices, struct_);
+	LowType record() => LowType(&ctx.allTypes.allRecords[LowRecordIndex(lowIndex)]);
 	return struct_.body_.matchIn!LowType(
 		(in ConcreteStructBody.Builtin x) {
 			final switch (x.kind) {
@@ -405,6 +421,8 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 					return LowType(PrimitiveType.int32);
 				case BuiltinType.int64:
 					return LowType(PrimitiveType.int64);
+				case BuiltinType.array:
+					return record();
 				case BuiltinType.jsAny:
 				case BuiltinType.lambda: // Lambda is compiled away by concretize
 					assert(false);
@@ -431,7 +449,7 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 		(in ConcreteStructBody.Flags x) =>
 			LowType(typeOfIntegralType(x.storage)),
 		(in ConcreteStructBody.Record) =>
-			LowType(&ctx.allTypes.allRecords[LowRecordIndex(lowIndex)]),
+			record(),
 		(in ConcreteStructBody.Union) =>
 			LowType(&ctx.allTypes.allUnions[LowUnionIndex(lowIndex)]));
 }
@@ -1360,7 +1378,14 @@ LowExpr getCallBuiltinExpr(
 			assert(false), // handled in concretize
 		(BuiltinUnary kind) {
 			assert(args.length == 1);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg0))));
+			switch (kind) {
+				case BuiltinUnary.arrayPointer:
+					return genRecordFieldGet(ctx.alloc, type, range, getArg0, 1);
+				case BuiltinUnary.arraySize:
+					return genRecordFieldGet(ctx.alloc, type, range, getArg0, 0);
+				default:
+					return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg0))));
+			}
 		},
 		(BuiltinUnaryMath kind) {
 			assert(args.length == 1);
@@ -1431,6 +1456,8 @@ LowExpr maybeOptimizeSpecialBinary(
 		LowExpr(type, range, LowExprKind(allocate(ctx. alloc, LowExprKind.SpecialBinary(kind, [arg0, arg1]))));
 
 	switch (kind) {
+		case BuiltinBinary.newArray:
+			return genCreateRecordNoGcRoots(ctx.alloc, type, range, [arg0, arg1]);
 		case BuiltinBinary.addPointerAndNat64:
 			return isEmptyType(ctx.allTypes, asNonGcPointee(arg0.type))
 				? genLetTempConstNoGcRoot(ctx, range, arg0, (LowExpr getA) =>

@@ -139,7 +139,7 @@ import util.integralValues : IntegralValue;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
-import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, todo;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -790,6 +790,9 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+			assert(false);
 		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
@@ -1150,6 +1153,8 @@ void generateSpecialBinary(
 		case BuiltinBinary.mulFloat64:
 			fn(&fnMulFloat64);
 			break;
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExpr(writer, ctx, locals, after, right);

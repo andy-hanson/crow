@@ -728,6 +728,7 @@ immutable string[] specialSymbols = [
 	"nat64",
 	"newName",
 	"newText",
+	"new-array",
 	"new-void",
 	"node-js",
 	"nominal",

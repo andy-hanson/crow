@@ -5,7 +5,7 @@ test/end-to-end/compile-errors/destructure-non-tuple.crow 3:5-3:7 There are func
 Expected return type 'void'.
 Actual argument types:  (Other arguments not checked; gave up early.)
 Candidates (with 1 arguments):
-	'new[t] t array(...t array)' (from include/crow/col/array.crow line 20)
+	'new[t] t array(...t array)' (from include/crow/col/array.crow line 21)
 	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 10)
 	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 76)
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 149)
@@ -24,6 +24,6 @@ Candidates (with 1 arguments):
 	'new[t] t future(value t)' (from include/crow/parallel.crow line 45)
 	'new[col] col parallel-collection(collection col)' (from include/crow/parallel.crow line 108)
 	'new invalid-unicode-character(character nat32)' (from include/crow/string.crow line 400)
-	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 271)
+	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 274)
 Uncaught exception: Reached compile error
 	at main

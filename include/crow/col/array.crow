@@ -4,9 +4,10 @@ import
 	../compare: !=, <, <=, compare, comparison, equal
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
-	../private/bootstrap: new
+	../private/bootstrap: new-array
 	../private/range-low-level: ..
 	../pointer: +, *
+	../tuple: new
 	./collection:
 		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
 		subscript, with-block
@@ -140,4 +141,4 @@ region spec impls (see collection.crow)
 	assert begin.next-index <= end.next-index
 	assert end.next-index <= begin.collection.size :
 		end.next-index index-too-big begin.collection.size
-	trusted end.next-index - begin.next-index, begin.collection.begin-pointer + begin.next-index
+	trusted end.next-index - begin.next-index new-array begin.collection.begin-pointer + begin.next-index

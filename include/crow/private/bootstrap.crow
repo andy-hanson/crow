@@ -52,9 +52,12 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-+array[t] record by-val
-	size nat64
-	~pointer t*
++array[t] builtin extern
++size[t] nat64(a t array) bare, builtin
+# TODO: native extern --------------------------------------------------------------------------------------------------------------
+~pointer[t] t*(a t array) bare, builtin
+# TODO: native extern --------------------------------------------------------------------------------------------------------------
+~new-array[t] t array(size nat64, pointer t*) bare, builtin
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -159,7 +162,7 @@ region hard assertions
 -abort void() libc extern, pure
 
 ~abandon void() bare, unsafe
-	forbid extern js : "Reached a fatal error" error
+	forbid extern js : abandoned
 	if extern libc
 		abort
 	else
@@ -290,8 +293,10 @@ This is a variant type, meaning anything can declare a `variant-member` that is 
 ###
 +exception variant
 	describe string()
-# Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error record(describe string) by-val, exception variant-member
+
+-abandoned record exception variant-member
+-describe string(_ abandoned)
+	"Reached a fatal error"
 
 ###
 Type of a thrown exception.

@@ -9,9 +9,12 @@ import
 	./backtrace: get-backtrace
 	./bootstrap:
 		abandon, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
-		set-cur-catch-point
+		set-cur-catch-point, string
 export
-	./bootstrap: backtrace, describe, error, exception, exception-and-backtrace
+	./bootstrap: backtrace, describe, exception, exception-and-backtrace
+
+# Thrown when an exception is not specified in an 'assert' or 'forbid'.
++error record(describe string) by-val, exception variant-member
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
 # ('setjmp' and 'longjmp' don't work with fibers on Windows.)

@@ -1416,6 +1416,9 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
 
 	final switch (a.kind) {
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+			assert(false);
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
@@ -1655,6 +1658,8 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			emitToVoid(ctx, locals, left);
 			return toGccExpr(ctx, locals, emit, right);

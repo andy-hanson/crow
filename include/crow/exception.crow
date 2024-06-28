@@ -14,8 +14,6 @@ export
 	./private/exception-low-level:
 		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
 
-region handling
-
 +todo record exception variant-member
 +describe string(_ todo)
 	"TODO"

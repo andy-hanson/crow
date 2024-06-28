@@ -1031,6 +1031,8 @@ Visibility visibilityFromNewVisibility(ModifierKeyword a) {
 
 BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 	switch (struct_.name.value) {
+		case symbol!"array".value:
+			return BuiltinType.array;
 		case symbol!"bool".value:
 			return BuiltinType.bool_;
 		case symbol!"char8".value:

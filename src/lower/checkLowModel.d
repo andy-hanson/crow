@@ -270,6 +270,9 @@ ExpectUnary unaryExpected(
 	return scope LowType argType,
 ) {
 	final switch (kind) {
+		case BuiltinUnary.arraySize:
+		case BuiltinUnary.arrayPointer:
+			assert(false);
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.asAnyPointer:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
@@ -545,6 +548,8 @@ ExpectBinary binaryExpected(
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);

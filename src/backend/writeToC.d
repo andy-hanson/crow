@@ -566,7 +566,7 @@ bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
 	isEmptyType(ctx.ctx, a);
 
 void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
-	if (a.packed && ctx.isMSVC)
+	if (a.isPacked && ctx.isMSVC)
 		writer ~= "__pragma(pack(push, 1))\n";
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref LowField field; a.fields) {
@@ -579,7 +579,7 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 		}
 	}
 	writer ~= "\n}";
-	if (a.packed)
+	if (a.isPacked)
 		writer ~= ctx.isMSVC ? "__pragma(pack(pop))" : " __attribute__ ((__packed__))";
 	writer ~= ";\n";
 }
@@ -1675,6 +1675,9 @@ WriteExprResult writeSpecialUnary(
 		specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
 
 	final switch (a.kind) {
+		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.arraySize:
+			assert(false);
 		case BuiltinUnary.asAnyPointer:
 			return prefix("(uint8_t*) ");
 		case BuiltinUnary.deref:
@@ -1916,6 +1919,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapMulNat64:
 			return operator("*");
+		case BuiltinBinary.newArray:
+			assert(false);
 		case BuiltinBinary.seq:
 			if (!writeKind.isA!(WriteKind.Inline))
 				writeExprVoid(writer, indent, ctx, left);

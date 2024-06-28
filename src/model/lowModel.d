@@ -17,6 +17,7 @@ import model.constant : Constant;
 import model.model :
 	Builtin4ary,
 	BuiltinFun,
+	BuiltinType,
 	BuiltinUnary,
 	BuiltinUnaryMath,
 	BuiltinBinary,
@@ -33,7 +34,7 @@ import util.late : Late, lateGet, lateSet;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
@@ -58,13 +59,15 @@ immutable struct LowRecord {
 	void fields(SmallArray!LowField x) =>
 		lateSet(fields_, x);
 
-	//TODO:MOVE
-	bool packed() scope =>
+	//TODO:MOVE --------------------------------------------------------------------------------------------------------------------------------------
+	bool isPacked() scope =>
 		source.source.matchIn!bool(
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst x) =>
-				x.decl.body_.as!(StructBody.Record).flags.packed,
+				x.decl.body_.isA!BuiltinType
+					? false
+					: x.decl.body_.as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }
@@ -243,14 +246,23 @@ private immutable struct LowTypeCombinePointer {
 bool isPrimitiveType(LowType a, PrimitiveType p) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == p;
 
+immutable struct LowFieldSource {
+	enum ArrayField { pointer, size }
+	mixin TaggedUnion!(ConcreteField*, ArrayField);
+}
+
 immutable struct LowField {
-	ConcreteField* source;
+	LowFieldSource source;
 	size_t offset;
 	LowType type;
 }
 
 Symbol debugName(in LowField a) =>
-	a.source.debugName;
+	a.source.matchIn!Symbol(
+		(in ConcreteField x) =>
+			x.debugName,
+		(in LowFieldSource.ArrayField x) =>
+			symbolOfEnum(x));
 
 immutable struct LowLocalSource {
 	immutable struct Generated {
@@ -492,8 +504,23 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct SpecialUnary {
+		@safe @nogc pure nothrow:
+
 		BuiltinUnary kind;
-		LowExpr arg;
+		LowExpr arg; // TODO: this should probably be a pointer, and don't make the SpecialUnary a pointer ----------------------------
+
+		this(BuiltinUnary k, LowExpr a) {
+			kind = k;
+			arg = a;
+			switch (k) {
+				case BuiltinUnary.arrayPointer:
+				case BuiltinUnary.arraySize:
+					// These should be lowered to RecordFieldGet
+					assert(false);
+				default:
+					break;
+			}
+		}
 	}
 
 	immutable struct SpecialUnaryMath {
@@ -502,8 +529,21 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct SpecialBinary {
+		@safe @nogc pure nothrow:
+
 		BuiltinBinary kind;
-		LowExpr[2] args;
+		LowExpr[2] args; // TODO: this should probably be a pointer, and don't make the SpecialBinary a pointer ----------------------------
+
+		this(BuiltinBinary k, LowExpr[2] a) {
+			kind = k;
+			args = a;
+			switch (k) {
+				case BuiltinBinary.newArray:
+					assert(false); // This should be lowered to CreateRecord
+				default:
+					break;
+			}
+		}
 	}
 
 	immutable struct SpecialBinaryMath {

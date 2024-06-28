@@ -260,7 +260,7 @@ Opt!T findDirectChildExpr(T)(
 		(CallExpr x) {
 			assert(a.type == x.called.returnType);
 			if (x.called.isVariadic) {
-				Type argType = arrayElementType(commonTypes, only(x.called.paramTypes));
+				Type argType = arrayElementType(only(x.called.paramTypes));
 				return firstPointer!(T, Expr)(x.args, (Expr* e) => cb(ExprRef(e, argType)));
 			} else
 				return firstZipPointerFirst!(T, Expr, Type)(x.args, x.called.paramTypes, (Expr* e, Type t) =>

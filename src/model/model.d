@@ -378,6 +378,7 @@ Symbol nameOfUnionMember(in UnionMember* a) =>
 	a.name;
 
 enum BuiltinType {
+	array,
 	bool_,
 	catchPoint,
 	char8,
@@ -412,6 +413,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.nat32:
 		case BuiltinType.nat64:
 			return true;
+		case BuiltinType.array:
 		case BuiltinType.bool_:
 		case BuiltinType.catchPoint:
 		case BuiltinType.float32:
@@ -842,6 +844,8 @@ immutable struct BuiltinFun {
 }
 
 enum BuiltinUnary {
+	arrayPointer,
+	arraySize,
 	asAnyPointer,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
@@ -974,6 +978,7 @@ enum BuiltinBinary {
 	lessPointer,
 	mulFloat32,
 	mulFloat64,
+	newArray,
 	seq,
 	subFloat32,
 	subFloat64,
@@ -1649,11 +1654,13 @@ immutable struct CommonTypes {
 		9;
 }
 
-bool isArray(in CommonTypes commonTypes, Type type) => // TODO: If I make 'array' a bulitin type, this won't need commonTypes. Same for string. ...
-	type.isA!(StructInst*) && type.as!(StructInst*).decl == commonTypes.array;
+bool isArray(Type type) =>
+	type.isA!(StructInst*) && isArray(*type.as!(StructInst*).decl);
+private bool isArray(in StructDecl a) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.array;
 
-Type arrayElementType(in CommonTypes commonTypes, Type type) {
-	assert(type.as!(StructInst*).decl == commonTypes.array);
+Type arrayElementType(Type type) {
+	assert(isArray(type));
 	return only(type.as!(StructInst*).typeArgs);
 }
 

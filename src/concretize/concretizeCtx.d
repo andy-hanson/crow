@@ -901,8 +901,10 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 			return TypeSize(8, 8);
 		case BuiltinType.jsAny:
 			assert(false);
-		case BuiltinType.lambda:
+		case BuiltinType.array:
 			return TypeSize(16, 8);
+		case BuiltinType.lambda:
+			return TypeSize(16, 8); // TODO: I think this is no longer used? -----------------------------------------------------------------------
 		case BuiltinType.catchPoint:
 			if (version_.isInterpreted)
 				// Keep in sync with 'struct CatchPoint' in 'runBytecode.d'

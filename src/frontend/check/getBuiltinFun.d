@@ -133,6 +133,16 @@ FunBody inner(
 			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))
 				: fail();
+
+		case symbol!"size".value:
+			return arity == 1 && isNat64(rt) && isArray(p0)
+				? unary(BuiltinUnary.arraySize)
+				: fail();
+		case symbol!"pointer".value:
+			return arity == 1 && isPointerConst(rt) && isArray(p0)
+				? unary(BuiltinUnary.arrayPointer)
+				: fail();
+
 		case symbol!"+".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.addFloat32
@@ -317,6 +327,10 @@ FunBody inner(
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
 		case symbol!"new".value:
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
+		case symbol!"new-array".value:
+			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
+				? binary(BuiltinBinary.newArray)
+				: fail();
 		case symbol!"jump-to-catch".value:
 			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:
@@ -614,16 +628,18 @@ bool isFloat64(in Type a) =>
 bool isJsAny(in Type a) =>
 	isBuiltin(a, BuiltinType.jsAny);
 
-bool isJsAnyArray(in CommonTypes commonTypes, in Type a) =>
-	isArray(commonTypes, a) && isJsAny(arrayElementType(commonTypes, a));
+bool isJsAnyArray(in Type a) =>
+	isArray(a) && isJsAny(arrayElementType(a));
 
 bool isPointerConstOrMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst) || isBuiltin(a, BuiltinType.pointerMut);
+bool isPointerConst(in Type a) =>
+	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d? ----------------------------------------------------
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
 
-bool isVoid(in Type a) =>
+bool isVoid(in Type a) => // TODO: this should be in model.d -----------------------------------------------------------------------
 	isBuiltin(a, BuiltinType.void_);
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
