@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, compare, comparison, equal
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
-	../private/bootstrap: new-array, todo
+	../private/bootstrap: array-size, new-array, todo
 	../private/range-low-level: ..
 	../pointer: +, *
 	../tuple: new
@@ -12,7 +12,7 @@ import
 		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
 		subscript, with-block
 export
-	../private/bootstrap: array, size
+	../private/bootstrap: array
 	./private/array-low-level:
 		~=, ~~=, array-builder, array-cast, array-reference-equal, as-array, begin-pointer, build,
 		end-pointer, iterate, pointers, size, subscript
@@ -20,6 +20,9 @@ export
 # Create an array with the given elements.
 +new[t] t array(...a t array) bare
 	a
+
++size[t] nat64(a t array) bare
+	a array-size
 
 # `true` iff `a.size == 0`.
 +is-empty[t] bool(a t array) bare

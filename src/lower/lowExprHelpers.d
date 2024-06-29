@@ -9,6 +9,7 @@ import model.lowModel :
 	asPointee,
 	AllLowTypes,
 	debugName,
+	isPointerNonGc,
 	LowExpr,
 	LowExprKind,
 	LowFunIndex,
@@ -334,17 +335,21 @@ LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, size_t
 	genLetTempConstNoGcRoot(alloc, range, localIndex, a, (LowExpr getA) =>
 		genSeq(alloc, range, b, getA));
 
-LowExpr genGetArrSize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
+LowExpr genGetArrayOrMutArraySize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
 	genRecordFieldGet(alloc, nat64Type, range, arr, 0);
 
-LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.PointerConst elementPointerType) =>
-	genRecordFieldGet(alloc, LowType(elementPointerType), range, arr, 1);
+LowExpr genGetArrayOrMutArrayConstPointer(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType elementPointerType, LowType constPointerType) {
+	LowExpr value = genRecordFieldGet(alloc, elementPointerType, range, arr, 1);
+	return constPointerType == elementPointerType ? value : genPointerCast(alloc, constPointerType, range, value);
+}
 
-LowType.PointerConst getElementPointerTypeFromArrType(in AllLowTypes allTypes, in LowRecord* arrRecord) {
+LowType getElementPointerTypeFromArrayOrMutArrayType(in AllLowTypes allTypes, in LowRecord* arrRecord) {
 	assert(arrRecord.fields.length == 2);
 	assert(debugName(arrRecord.fields[0]) == symbol!"size");
 	assert(debugName(arrRecord.fields[1]) == symbol!"pointer");
-	return arrRecord.fields[1].type.as!(LowType.PointerConst);
+	LowType res = arrRecord.fields[1].type;
+	assert(isPointerNonGc(res));
+	return res;
 }
 
 @trusted LowExpr genLoop(ref Alloc alloc, LowType type, UriAndRange range, LowExpr body_) =>

@@ -6,11 +6,10 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
 	../../pointer:
-		==, <=>, +, -, *, as-const, as-mut, const-pointer, mem-copy, mut-pointer, null,
-		pointer-cast, set-subscript, size-of
+		==, <=>, +, -, *, as-const, const-pointer, mem-copy, mut-pointer, null, pointer-cast, set-subscript, size-of
 	../../range: .., low, range, size
 	../../private/alloc: allocate
-	../../private/bootstrap: inner, mut-array, new, new-array, pointer, size, zeroed
+	../../private/bootstrap: array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array, new-mut-array, zeroed
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
@@ -18,16 +17,16 @@ export
 
 array-reference-equal[t] bool(a t array, b t array) bare, unsafe
 	if extern native
-		a.pointer == b.pointer && a.size == b.size
+		a.array-pointer == b.array-pointer && a.array-size == b.array-size
 	else
 		todo # Use native JS '===' ------------------------------------------------------------------------------------------------
 
 +begin-pointer[t] t*(a t array) bare, unsafe, native extern
-	a.pointer
+	a array-pointer
 
 # Pointer to the end of an array.
 +end-pointer[t] t*(a t array) bare, unsafe, native extern
-	a.pointer + a.size
+	a.array-pointer + a.array-size
 
 ###
 Arr or the range from begin to end.
@@ -36,7 +35,7 @@ UB if begin > end.
 ###
 +as-array[t] t array(pointers t* range) bare, unsafe, native extern
 	pointers.size new-array pointers.low
-+as-array[t] t array(pointers t mut* range) bare, unsafe, native extern
++as-array[t] t array(pointers t mut* range) bare, unsafe, native extern # TODO: why does this return array and not mut-array?
 	pointers.size new-array pointers.low.as-const
 
 +pointers[t] t* range(a t array) bare, unsafe, native extern
@@ -44,7 +43,7 @@ UB if begin > end.
 
 array-cast[out, in] out array(a in array) bare, unsafe, native extern
 	assert size-of@out == size-of@in
-	a.size new-array a.begin-pointer.pointer-cast
+	a.array-size new-array a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
 +subscript[t] t array(a t*, r nat64 range) bare, unsafe, native extern
@@ -60,7 +59,7 @@ Calls `f` for each element in `a`.
 		if size-of@t == 0
 			i mut nat64 = 0
 			loop
-				if i == a.size
+				if i == a.array-size
 					break false
 				elif f[zeroed]
 					break true
@@ -88,8 +87,8 @@ Calls `f` for each element in `a`.
 	if extern native
 		builder t array-builder = a.size-hint.zeroed-mut-array, 0
 		f[builder]
-		res t array = builder.cur-size new-array builder.buffer.inner.begin-pointer
-		builder.buffer := (0 new-array null),
+		res t array = builder.cur-size new-array builder.buffer.mut-array-pointer.as-const
+		builder.buffer := 0 new-mut-array null
 		builder.cur-size := max-value
 		res
 	else
@@ -102,13 +101,13 @@ Calls `f` for each element in `a`.
 +~=[t] void(a t array-builder, value t) trusted
 	forbid a.cur-size == max-value
 	if extern native
-		capacity = a.buffer size
+		capacity = a.buffer mut-array-size
 		if a.cur-size == capacity
 			new-capacity nat64 = capacity == 0 ? 4 : capacity * 2
 			new-buffer t mut-array = new-capacity zeroed-mut-array
-			new-buffer.begin-pointer mem-copy a.buffer.begin-pointer.as-const, capacity
+			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, capacity
 			a.buffer := new-buffer
-		a.buffer.begin-pointer[a.cur-size] := value
+		a.buffer.mut-array-pointer[a.cur-size] := value
 		a.cur-size +:= 1
 	else
 		todo # ----------------------------------------------------------------------------------------------------------
@@ -116,21 +115,17 @@ Calls `f` for each element in `a`.
 +~~=[t] void(a t array-builder, values t array) trusted
 	forbid a.cur-size == max-value
 	if extern native
-		capacity = a.buffer size
-		if a.cur-size + values.size > capacity
-			new-size = a.cur-size + values.size
+		capacity = a.buffer mut-array-size
+		if a.cur-size + values.array-size > capacity
+			new-size = a.cur-size + values.array-size
 			new-capacity = new-size round-up-to-power-of-two
 			new-buffer t mut-array = new-capacity zeroed-mut-array
-			new-buffer.begin-pointer mem-copy a.buffer.begin-pointer.as-const, a.cur-size
+			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, a.cur-size
 			a.buffer := new-buffer
-		a.buffer.begin-pointer + a.cur-size mem-copy values.begin-pointer, values.size
-		a.cur-size +:= values size
+		a.buffer.mut-array-pointer + a.cur-size mem-copy values.begin-pointer, values.array-size
+		a.cur-size +:= values array-size
 	else
 		todo # ----------------------------------------------------------------------------------------------------------
 
 -zeroed-mut-array[t] t mut-array(size nat64) unsafe, native extern
-	(size new-array size.allocate.as-const),
--size[t] nat64(a t mut-array)
-	a.inner size
--begin-pointer[t] t mut*(a t mut-array) unsafe, native extern
-	a.inner.begin-pointer as-mut
+	size new-mut-array size.allocate

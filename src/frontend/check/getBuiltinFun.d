@@ -25,6 +25,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	isArray,
+	isMutArray,
 	JsFun,
 	paramsArray,
 	SpecInst,
@@ -134,15 +135,14 @@ FunBody inner(
 				? FunBody(BuiltinFun(JsFun.callProperty))
 				: fail();
 
-		case symbol!"size".value:
-			return arity == 1 && isNat64(rt) && isArray(p0)
-				? unary(BuiltinUnary.arraySize)
-				: fail();
-		case symbol!"pointer".value:
-			return arity == 1 && isPointerConst(rt) && isArray(p0)
-				? unary(BuiltinUnary.arrayPointer)
-				: fail();
-
+		case symbol!"array-size".value:
+			return arity == 1 && isNat64(rt) && isArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
+		case symbol!"mut-array-size".value:
+			return arity == 1 && isNat64(rt) && isMutArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
+		case symbol!"array-pointer".value:
+			return arity == 1 && isPointerConst(rt) && isArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"mut-array-pointer".value:
+			return arity == 1 && isPointerMut(rt) && isMutArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
 		case symbol!"+".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.addFloat32
@@ -329,6 +329,10 @@ FunBody inner(
 			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"new-array".value:
 			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
+				? binary(BuiltinBinary.newArray)
+				: fail();
+		case symbol!"new-mut-array".value:
+			return isMutArray(rt) && isNat64(p0) && isPointerMut(p1)
 				? binary(BuiltinBinary.newArray)
 				: fail();
 		case symbol!"jump-to-catch".value:
@@ -634,7 +638,9 @@ bool isJsAnyArray(in Type a) =>
 bool isPointerConstOrMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst) || isBuiltin(a, BuiltinType.pointerMut);
 bool isPointerConst(in Type a) =>
-	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d? ----------------------------------------------------
+	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d ----------------------------------------------------
+bool isPointerMut(in Type a) =>
+	isBuiltin(a, BuiltinType.pointerMut); // TODO: this should be in model.d ----------------------------------------------------
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;

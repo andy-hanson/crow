@@ -392,6 +392,7 @@ enum BuiltinType {
 	int64,
 	jsAny,
 	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
+	mutArray,
 	nat8,
 	nat16,
 	nat32,
@@ -421,6 +422,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.funPointer:
 		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
+		case BuiltinType.mutArray:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
 		case BuiltinType.void_:
@@ -844,8 +846,8 @@ immutable struct BuiltinFun {
 }
 
 enum BuiltinUnary {
-	arrayPointer,
-	arraySize,
+	arrayPointer, // works on mut-array too
+	arraySize, // works on mut-array too
 	asAnyPointer,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
@@ -978,7 +980,7 @@ enum BuiltinBinary {
 	lessPointer,
 	mulFloat32,
 	mulFloat64,
-	newArray,
+	newArray, // Also works for mut-array
 	seq,
 	subFloat32,
 	subFloat64,
@@ -1654,10 +1656,17 @@ immutable struct CommonTypes {
 		9;
 }
 
-bool isArray(Type type) =>
-	type.isA!(StructInst*) && isArray(*type.as!(StructInst*).decl);
-private bool isArray(in StructDecl a) =>
-	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.array;
+bool isArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.array);
+bool isMutArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
+bool isArrayOrMutArray(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutArray);
+
+private bool isBuiltinType(in Type a, BuiltinType builtin) =>
+	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);
+private bool isBuiltinType(in StructDecl a, BuiltinType builtin) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == builtin;
 
 Type arrayElementType(Type type) {
 	assert(isArray(type));
@@ -1672,16 +1681,20 @@ Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
 bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) => 
 	a == commonTypes.option;
 
-bool isLambdaType(in CommonTypes commonTypes, in StructDecl* a) => // TODO: doesn't need commonTypes, use the StructBody ------
-	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.lambda;
+bool isLambdaType(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.lambda);
 
-bool isNonFunctionPointer(in CommonTypes commonTypes, in StructDecl* a) => // TODO: doesn't need commonTypes, use the StructBody
-	a == commonTypes.pointerConst || a == commonTypes.pointerMut;
+bool isNonFunctionPointer(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+bool isNonFunctionPointer(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+Type pointeeType(in Type a) {
+	assert(isNonFunctionPointer(a));
+	return only(a.as!(StructInst*).typeArgs);
+}
 
 bool isVoid(in Type a) =>
-	a.isA!(StructInst*) && isVoid(*a.as!(StructInst*).decl);
-private bool isVoid(in StructDecl a) =>
-	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == BuiltinType.void_;
+	isBuiltinType(a, BuiltinType.void_);
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
@@ -2334,15 +2347,13 @@ immutable struct RecordFieldPointerExpr {
 	ExprAndType target; // This will be a pointer or by-ref type
 	size_t fieldIndex;
 
-	StructDecl* recordDecl(in CommonTypes commonTypes) scope {
-		StructInst* inst = target.type.as!(StructInst*);
-		return isNonFunctionPointer(commonTypes, inst.decl)
-			? only(inst.typeArgs).as!(StructInst*).decl
-			: inst.decl;
-	}
+	StructDecl* recordDecl() scope =>
+		isNonFunctionPointer(target.type)
+			? pointeeType(target.type).as!(StructInst*).decl
+			: target.type.as!(StructInst*).decl;
 
 	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
-		&recordDecl(commonTypes).body_.as!(StructBody.Record).fields[fieldIndex];
+		&recordDecl.body_.as!(StructBody.Record).fields[fieldIndex];
 }
 
 immutable struct SeqExpr {

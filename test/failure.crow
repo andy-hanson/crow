@@ -3,13 +3,13 @@ import
 
 failure record(path string, message string)
 
-print-failures nat(failures failure[]) summon
+print-failures nat(failures failure[]) summon, native extern
 	for failure : failures
 		failure print-failure
 	err print "{failures.size} failures"
 	failures.size
 
--print-failure void(failure failure) summon
+-print-failure void(failure failure) summon, native extern
 	err print-bold
 	err print-no-newline failure.path
 	err print-reset
@@ -17,8 +17,8 @@ print-failures nat(failures failure[]) summon
 	err print failure.message
 
 # TODO:MOVE
--print-bold void(pipe pipe) summon
+-print-bold void(pipe pipe) summon, native extern
 	pipe print-no-newline "\x1b[1m"
 
--print-reset void(pipe pipe) summon
+-print-reset void(pipe pipe) summon, native extern
 	pipe print-no-newline "\x1b[m"

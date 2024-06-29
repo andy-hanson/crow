@@ -53,11 +53,9 @@ A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
 +array[t] builtin extern
-+size[t] nat64(a t array) bare, builtin
-# TODO: native extern --------------------------------------------------------------------------------------------------------------
-~pointer[t] t*(a t array) bare, builtin, native extern
-# TODO: native extern --------------------------------------------------------------------------------------------------------------
-~new-array[t] t array(size nat64, pointer t*) bare, builtin, native extern
+~new-array[t] t array(size nat64, pointer t*) builtin, bare, native extern
+~array-size[t] nat64(a t array) builtin, bare
+~array-pointer[t] t*(a t array) builtin, bare, native extern
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -74,8 +72,10 @@ though you can write to its elements.
 Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-+mut-array[t] record by-val, mut
-	~inner t array
++mut-array[t] builtin extern
+~new-mut-array[t] t mut-array(size nat64, pointer t mut*) builtin, bare, native extern
+~mut-array-size[t] nat64(a t mut-array) builtin, bare
+~mut-array-pointer[t] t mut*(a t mut-array) builtin, bare, unsafe, native extern
 
 region string
 

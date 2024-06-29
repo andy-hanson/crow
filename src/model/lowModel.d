@@ -8,7 +8,7 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteVar,
-	isArray,
+	isArrayOrMutArray,
 	isFiber,
 	isTuple,
 	name,
@@ -75,8 +75,8 @@ immutable struct LowRecord {
 TypeSize typeSize(in LowRecord a) =>
 	a.source.typeSize;
 
-bool isArray(in LowRecord a) =>
-	isArray(*a.source);
+bool isArrayOrMutArray(in LowRecord a) =>
+	isArrayOrMutArray(*a.source);
 bool isFiber(in LowRecord a) =>
 	isFiber(*a.source);
 bool isTuple(in LowRecord a) =>
@@ -234,6 +234,9 @@ immutable(LowType) asNonGcPointee(LowType a) {
 	assert(isPointerNonGc(a));
 	return asPointee(a);
 }
+
+immutable(LowType.PointerConst) asPointerConst(LowType.PointerMut a) =>
+	LowType.PointerConst(a.pointee);
 
 immutable struct LowPointerCombine {
 	LowType pointee;

@@ -306,6 +306,7 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 				(in ConcreteStructBody.Builtin x) {
 					switch (x.kind) {
 						case BuiltinType.array:
+						case BuiltinType.mutArray:
 							return some(addAndGetIndex(alloc, recordsBuilder, LowRecord(source)));
 						case BuiltinType.catchPoint:
 							return some(addAndGetIndex(alloc, externTypesBuilder, LowExternType(source)));
@@ -359,11 +360,14 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRecord record) {
 	if (record.source.body_.isA!(ConcreteStructBody.Builtin*)) {
 		ConcreteStructBody.Builtin* builtin = record.source.body_.as!(ConcreteStructBody.Builtin*);
-		assert(builtin.kind == BuiltinType.array);
+		assert(builtin.kind == BuiltinType.array || builtin.kind == BuiltinType.mutArray);
 		LowType elementType = lowTypeFromConcreteType(getLowTypeCtx, only(builtin.typeArgs));
 		return newSmallArray(getLowTypeCtx.alloc, [
 			LowField(LowFieldSource(LowFieldSource.ArrayField.size), 0, nat64Type),
-			LowField(LowFieldSource(LowFieldSource.ArrayField.pointer), 8, getPointerConst(getLowTypeCtx, elementType))]);
+			LowField(
+				LowFieldSource(LowFieldSource.ArrayField.pointer),
+				8,
+				builtin.kind == BuiltinType.mutArray ? getPointerMut(getLowTypeCtx, elementType) : getPointerConst(getLowTypeCtx, elementType))]);
 	} else
 		return mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
 			getLowTypeCtx.alloc,
@@ -422,6 +426,7 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 				case BuiltinType.int64:
 					return LowType(PrimitiveType.int64);
 				case BuiltinType.array:
+				case BuiltinType.mutArray:
 					return record();
 				case BuiltinType.jsAny:
 				case BuiltinType.lambda: // Lambda is compiled away by concretize

@@ -66,6 +66,7 @@ import model.model :
 	FunInst,
 	ImportFileContent,
 	IntegralType,
+	isArrayOrMutArray,
 	isLambdaType,
 	isNonFunctionPointer,
 	isTuple,
@@ -366,13 +367,13 @@ private ConcreteType getConcreteType_forStructInst(
 					Purity purity = fold!(Purity, ConcreteType)(
 						decl.purity, typeArgs, (Purity p, in ConcreteType ta) =>
 							worsePurity(p, purity(ta)));
-					ConcreteStruct.SpecialKind specialKind = decl == ctx.commonTypes.array
-						? ConcreteStruct.SpecialKind.array
+					ConcreteStruct.SpecialKind specialKind = isArrayOrMutArray(*decl)
+						? ConcreteStruct.SpecialKind.arrayOrMutArray
 						: inst == ctx.program.commonFuns.catchPointType
 						? ConcreteStruct.SpecialKind.catchPoint
 						: inst == ctx.commonTypes.fiber
 						? ConcreteStruct.SpecialKind.fiber
-						: isNonFunctionPointer(ctx.commonTypes, decl)
+						: isNonFunctionPointer(*decl)
 						? ConcreteStruct.SpecialKind.pointer
 						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple
@@ -386,7 +387,7 @@ private ConcreteType getConcreteType_forStructInst(
 				});
 		if (res.didAdd) {
 			initializeConcreteStruct(ctx, *inst, res.value, typeArgsScope);
-			if (isLambdaType(ctx.commonTypes, decl))
+			if (isLambdaType(*decl))
 				mustAdd(ctx.alloc, ctx.lambdaStructToImpls, res.value, MutArr!ConcreteLambdaImpl());
 		}
 		if (!res.value.defaultReferenceKindIsSet)
@@ -902,6 +903,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.jsAny:
 			assert(false);
 		case BuiltinType.array:
+		case BuiltinType.mutArray:
 			return TypeSize(16, 8);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8); // TODO: I think this is no longer used? -----------------------------------------------------------------------

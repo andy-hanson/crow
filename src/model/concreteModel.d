@@ -147,7 +147,7 @@ immutable struct ConcreteStruct {
 
 	enum SpecialKind {
 		none,
-		array,
+		arrayOrMutArray,
 		catchPoint,
 		fiber,
 		pointer, // mut or const
@@ -197,10 +197,10 @@ immutable struct ConcreteStruct {
 	}
 }
 
-bool isArray(in ConcreteStruct a) =>
-	a.specialKind == ConcreteStruct.SpecialKind.array;
+bool isArrayOrMutArray(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.arrayOrMutArray;
 ConcreteType arrayElementType(ConcreteType arrayType) {
-	assert(isArray(*mustBeByVal(arrayType)));
+	assert(isArrayOrMutArray(*mustBeByVal(arrayType)));
 	return only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
 bool isCatchPoint(in ConcreteStruct a) =>

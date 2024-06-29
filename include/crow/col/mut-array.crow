@@ -10,7 +10,7 @@ import
 		==, <=>, +, *, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
 		set-subscript, size-of, subscript
 	../private/alloc: allocate
-	../private/bootstrap: inner, todo
+	../private/bootstrap: new-array, new-mut-array, mut-array-pointer, mut-array-size, todo
 	../range: .., high, low, range, size
 	../tuple: new
 	./array:
@@ -22,13 +22,11 @@ export
 	../private/bootstrap: mut-array
 
 # True if they are identical.
-+==[t] bool(a t mut-array, b t mut-array) bare
-	trusted a.inner array-reference-equal b.inner
++==[t] bool(a t mut-array, b t mut-array) bare, trusted
+	a.cast-immutable array-reference-equal b.cast-immutable
 
-empty-mut-array[t] t mut-array() bare
-	# TODO: should not need type annotation
-	inner t array = ()
-	inner,
+empty-mut-array[t] t mut-array() bare, trusted
+	() cast-mutable
 
 ###
 Creates a new `mut-array` with the given elements.
@@ -38,7 +36,7 @@ Creates a new `mut-array` with the given elements.
 
 # Get a `mut-array` from a pointer and range of indices.
 +subscript[t] t mut-array(a t mut*, indices nat64 range) bare, unsafe, native extern
-	a.as-const[indices],
+	a.as-const[indices] cast-mutable
 
 ###
 Copies the array elements to a new `mut-array`.
@@ -61,20 +59,20 @@ This is O(n).
 
 There is no `move-to` for `mut-array` since there might be slices that still refer to its elements.
 ###
-+to[t] t array(a t mut-array)
-	a.copy.inner
++to[t] t array(a t mut-array) trusted
+	a.copy cast-immutable
 
 # Creates a `mut-array` from a range of pointers.
 +as-mut-array[t] t mut-array(a t mut* range) bare, unsafe, native extern
 	assert a.low <= a.high
-	(a.low .. a.high).as-array,
+	(a.low .. a.high).as-array cast-mutable
 
 +pointers[t] t mut* range(a t mut-array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
 
 # Number of elements.
 +size[t] nat64(a t mut-array) bare
-	a.inner size
+	a mut-array-size
 
 # `true` iff `a.size == 0`.
 +is-empty[t] bool(a t mut-array) bare
@@ -82,7 +80,7 @@ There is no `move-to` for `mut-array` since there might be slices that still ref
 
 # Pointer to the beginning of the `mut-array`.
 +begin-pointer[t] t mut*(a t mut-array) bare, unsafe, native extern
-	a.inner.begin-pointer as-mut
+	a mut-array-pointer
 
 ###
 Pointer to the end of the `mut-array`.
@@ -167,7 +165,16 @@ Unsafe cast a mut-array to an array.
 It must never be written to again.
 ###
 +cast-immutable[t] t array(a t mut-array) bare, unsafe
-	a inner
+	if extern native
+		a.size new-array a.begin-pointer.as-const
+	else
+		todo # js-cast ------------------------------------------------------------------------------------------------------------
+
+~cast-mutable[t] t mut-array(a t array) bare, unsafe
+	if extern native
+		a.size new-mut-array a.begin-pointer.as-mut
+	else
+		todo # js-cast ---------------------------------------------------------------------------------------------------------------
 
 ###
 Unsafe cast to immutable array.
@@ -178,7 +185,7 @@ Unsafe because an array is expected to be fully immutable (meaning: no mutable r
 so this value must only be used temporarily.
 ###
 +temp-as-array[t] t array(a t mut-array) bare, unsafe
-	a inner
+	a cast-immutable
 
 ###
 Casts elements to a different type.
@@ -251,15 +258,15 @@ region spec impls (see collection.crow)
 	else
 		todo # --------------------------------------------------------------------------------------------------------------
 
-+slice[t] t mut-array(begin t mut-array-iterator, end t mut-array-iterator) bare
++slice[t] t mut-array(begin t mut-array-iterator, end t mut-array-iterator) bare, trusted
 	assert begin.collection == end.collection
-	inner-iter = begin.collection.inner begin
-	(inner-iter + begin.next-index slice inner-iter + end.next-index),
+	inner-iter = begin.collection.cast-immutable begin
+	inner-iter + begin.next-index slice inner-iter + end.next-index cast-mutable
 
 +mut-array-builder[t] record mut
 	-inner t array-builder
-+build[t] t mut-array(a build-options, f void mut(out t mut-array-builder))
-	(a build out => f[out,])::(t array),
++build[t] t mut-array(a build-options, f void mut(out t mut-array-builder)) trusted
+	(a build out => f[out,]) cast-mutable
 +~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value
 +~~=[t] void(a t mut-array-builder, values t array)

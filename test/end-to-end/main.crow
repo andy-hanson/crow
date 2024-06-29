@@ -8,7 +8,7 @@ import
 	crow/version: is-windows
 	../failure
 
-main nat(args string[]) summon
+main nat(args string[]) summon, native extern
 	if values ?= args parse-named-args ("print-tests", "overwrite-output", "include-jit", "match")
 		print-tests-strs, overwrite-output-strs, include-jit-strs, match-test-strs = \
 			values as-tuple4
@@ -39,7 +39,7 @@ options:
 
 -test-options record(print-tests bool, overwrite-output bool, include-jit bool, match-test string)
 
--do-test nat(options test-options) summon
+-do-test nat(options test-options) summon, native extern
 	crow-dir string = "."
 	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
 		"./test/end-to-end" child-path name
@@ -68,7 +68,7 @@ options:
 -crow-path string(crow-dir string)
 	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")
 
--list-tests string[](path string, match-test string) summon
+-list-tests string[](path string, match-test string) summon, native extern
 	res string mut[] = ()
 	path each-child-recursive child =>
 		if child contains-seq match-test && child.ext-is-crow && !child.is-excluded
@@ -84,7 +84,7 @@ options:
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
--run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon
+-run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon, native extern
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
@@ -105,7 +105,7 @@ run-kind enum(interpret, jit, aot)
 	path string,
 	run-kind run-kind,
 	overwrite-output bool,
-) summon
+) summon, native extern
 	args string[] = match run-kind
 	as interpret
 		"run", path
@@ -168,7 +168,7 @@ run-kind enum(interpret, jit, aot)
 	output-path string,
 	actual string,
 	overwrite-output bool,
-) summon
+) summon, native extern
 	text string = output-path read-file-or-empty
 	if actual.normalize-newlines == text.normalize-newlines
 		()
