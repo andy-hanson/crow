@@ -24,13 +24,13 @@ region env
 
 +open-lmdb-env record(db-dir string, create-if-not-exists bool) nominal
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-+with-block[t] t(options open-lmdb-env, f t mut(env lmdb-env)) summon, t shared
++with-block[t] t(options open-lmdb-env, f t mut(env lmdb-env)) summon, t shared, (lmdb, native) extern
 	trusted
 		env = options open-env
 		finally env close-env
 		f[env]
 
--open-env lmdb-env(options open-lmdb-env) summon, unsafe
+-open-env lmdb-env(options open-lmdb-env) summon, unsafe, (lmdb, native) extern
 	env mut MDB_env mut* = null
 	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
@@ -48,7 +48,7 @@ region env
 		err check-lmdb-error
 	env,
 
--close-env void(env lmdb-env) summon, unsafe
+-close-env void(env lmdb-env) summon, unsafe, (lmdb, native) extern
 	env.env mdb_env_close
 
 region lmdb-key
@@ -97,13 +97,13 @@ region db
 +with-block[t, k, v] t(
 	a (k, v) database,
 	f t mut(db (k, v) lmdb-db),
-) summon, t shared, k lmdb-key, v serialize
+) summon, t shared, k lmdb-key, v serialize, (lmdb, native) extern
 	trusted
 		db (k, v) lmdb-db = a open-db
 		finally a.env close-db db
 		f[db]
 
--open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
+-open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize, (lmdb, native) extern
 	transaction mut MDB_txn mut* = null
 	a.env.env mdb_txn_begin null, (), &transaction check-lmdb-error
 
@@ -114,7 +114,7 @@ region db
 	transaction.mdb_txn_commit check-lmdb-error
 	dbi,
 
--close-db[k, v] void(env lmdb-env, db (k, v) lmdb-db) summon, unsafe
+-close-db[k, v] void(env lmdb-env, db (k, v) lmdb-db) summon, unsafe, (lmdb, native) extern
 	env.env mdb_dbi_close db.dbi
 
 region transaction
@@ -129,13 +129,13 @@ Open a read-only transaction, then call `f`, then commit the transaction.
 
 Aborts the transaction iff `f` throws an exception.
 ###
-+with-block[t] t(a read-transaction, f t mut(txn lmdb-txn)) summon
++with-block[t] t(a read-transaction, f t mut(txn lmdb-txn)) summon, (lmdb, native) extern
 	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
 +write-transaction record(env lmdb-env) mut, nominal
 # Like `read-transaction`, but the transaction can perform writes.
-+with-block[t] t(a write-transaction, f t mut(txn lmdb-txn)) summon
++with-block[t] t(a write-transaction, f t mut(txn lmdb-txn)) summon, (lmdb, native) extern
 	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
@@ -144,14 +144,14 @@ Aborts the transaction iff `f` throws an exception.
 +abortable-write-transaction record(env lmdb-env) mut, nominal
 # Like `write-transaction`,
 # but `f` returns a pair of the result and whether to commit the transaction.
-+with-block[t] t(a abortable-write-transaction, f (t, transaction-result) mut(txn lmdb-txn)) summon
++with-block[t] t(a abortable-write-transaction, f (t, transaction-result) mut(txn lmdb-txn)) summon, (lmdb, native) extern
 	a.env with-transaction (), f
 
 -with-transaction[t] t(
 	env lmdb-env,
 	mdb-flags mdb-environment-flags,
 	f (t, transaction-result) mut(txn lmdb-txn),
-) summon
+) summon, (lmdb, native) extern
 	trusted
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
@@ -172,7 +172,7 @@ region get / set
 Gets the value associated with a key.
 Returns an empty option iff `key` is not in `db`.
 ###
-+get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v serialize
++get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
@@ -194,13 +194,13 @@ Returns an empty option iff `key` is not in `db`.
 Associates the value with the key.
 This may add the key or overwrite the value if the key is already in the database.
 ###
-+set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
++set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	txn put-inner db, key, value, () check-lmdb-error
 
 ###
 Like `set`, but throws 'key-already-exists' if `key` is already in the `db`.
 ###
-+add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
++add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
 	assert err == MDB_SUCCESS :
 		err == MDB_KEYEXIST ? key-already-exists : err lmdb-error
@@ -211,7 +211,7 @@ Like `set`, but throws 'key-already-exists' if `key` is already in the `db`.
 	key k,
 	value v,
 	mdb-flags mdb-write-flags,
-) summon, k lmdb-key, v serialize
+) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	trusted
 		key-val = key.to-lmdb-key val-of-bytes
 		value-val = value.to-bytes val-of-bytes
@@ -234,7 +234,7 @@ region stat
 	entries = {a entries}"""
 
 # Get statistics about `db`.
-+stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon
++stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon, (lmdb, native) extern
 	trusted
 		s mut mdb_stat = ()
 		txn.txn mdb_stat db.dbi, &s check-lmdb-error
@@ -246,18 +246,18 @@ region stat
 Get the number of entries in `db`.
 (This just uses `stat`.)
 ###
-+count[k, v] nat(txn lmdb-txn, db (k, v) lmdb-db) summon
++count[k, v] nat(txn lmdb-txn, db (k, v) lmdb-db) summon, (lmdb, native) extern
 	txn stat db entries
 
 region iteration
 
 +each[k, v] record(txn lmdb-txn, db (k, v) lmdb-db) mut, nominal
 
-+size[k, v] nat64(a (k, v) each) summon
++size[k, v] nat64(a (k, v) each) summon, (lmdb, native) extern
 	a.txn count a.db
 
 # Calls `f` for each key-value pair in `db`.
-+iterate[k, v] bool(a (k, v) each, f bool mut(key k, value v)) summon, k lmdb-key, v serialize
++iterate[k, v] bool(a (k, v) each, f bool mut(key k, value v)) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
@@ -288,7 +288,7 @@ Returns an array of the results.
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
 	f out mut(key k, db0-value v0, db1-value v1),
-) summon, k lmdb-key, v0 serialize, v1 serialize
+) summon, k lmdb-key, v0 serialize, v1 serialize, (lmdb, native) extern
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
@@ -302,7 +302,7 @@ Returns an array of the results.
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
 	f void mut(key k, db0-value v0, db1-value v1),
-) summon, k lmdb-key, v0 serialize, v1 serialize
+) summon, k lmdb-key, v0 serialize, v1 serialize, (lmdb, native) extern
 	trusted txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			empty mut = empty-val
@@ -313,7 +313,7 @@ Returns an array of the results.
 	cursor0 MDB_cursor mut*,
 	cursor1 MDB_cursor mut*,
 	f void mut(key k, value0 v0, value1 v1),
-) summon, unsafe, k lmdb-key, v0 serialize, v1 serialize
+) summon, unsafe, k lmdb-key, v0 serialize, v1 serialize, (lmdb, native) extern
 	loop
 		key0-val mut = empty-val
 		value0-val mut = empty-val
@@ -342,21 +342,21 @@ Returns an array of the results.
 	txn lmdb-txn,
 	db (k, v) lmdb-db,
 	f t mut(cursor MDB_cursor mut*),
-) summon, unsafe
+) summon, unsafe, (lmdb, native) extern
 	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	finally cursor mdb_cursor_close
 	open-err check-lmdb-error
 	f[cursor]
 
--empty-val MDB_val() unsafe
+-empty-val MDB_val() unsafe, native extern
 	0, null
 
--val-of-bytes MDB_val(a nat8[]) unsafe
+-val-of-bytes MDB_val(a nat8[]) unsafe, native extern
 	array nat8 array = a to
 	array.size, array.begin-pointer.as-mut
 
--bytes-of-val nat8[](a MDB_val) unsafe
+-bytes-of-val nat8[](a MDB_val) unsafe, native extern
 	a.mv_data .. a.mv_data + a.mv_size as-list
 
 -check-lmdb-error void(a mdb-error)

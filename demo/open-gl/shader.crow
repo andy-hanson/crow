@@ -6,7 +6,7 @@ shader-prog-load GLuint(
 	gl gl-ext,
 	vert-shader-source string,
 	frag-shader-source string,
-) summon, unsafe
+) summon, unsafe, native extern
 	vert-shader = gl shader-load "vertex shader", vert-shader-source, GL_VERTEX_SHADER
 	frag-shader = gl shader-load "fragment shader", frag-shader-source, GL_FRAGMENT_SHADER
 	shader-prog GLuint = gl glCreateProgram
@@ -31,7 +31,7 @@ shader-prog-load GLuint(
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	gl glDeleteProgram shader-prog
 
--shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon, unsafe
+-shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon, unsafe, native extern
 	shader = gl create-shader-from-source source, shader-type
 	gl glCompileShader shader
 	compile-succeeded mut GLint = GL_FALSE
@@ -46,7 +46,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 		gl glDeleteShader shader
 		throw "Compiling GLSL {name}" gl-error err-log.to::(char8 array).to
 
--create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
+-create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe, native extern
 	shader = gl glCreateShader shader-type
 	shader-sources c-string array = source.to,
 	gl glShaderSource shader, shader-sources.size.to, shader-sources.begin-pointer, null

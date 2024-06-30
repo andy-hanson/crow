@@ -15,7 +15,7 @@ import
 	../collection: .., end, for-loop, reversed, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
-		slice, to
+		slice, subscript, to
 	../private/list-low-level:
 		array2d, array3d, arrays, down, l1, l2, l3, left, node, nodes, right, root, total-size
 	../util: groups-of

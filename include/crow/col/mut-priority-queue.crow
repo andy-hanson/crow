@@ -10,13 +10,12 @@ import
 	../string: ==, interpolate, join, new, string, to
 	../test-util: is
 	../tuple: ==, new
-	./array: +, array, begin, iterate, next, size
-	./collection:
-		build-options, for-loop, is-at-end, reversed, set-reverse, subscript, with-index
+	./array: array, iterate, size, subscript
+	./collection: build-options, for-loop, is-at-end, reversed, set-reverse, with-index
 	./list: ==, ~=, build, list, list-builder, new, to
 	./mut-list:
-		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
-		next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to
+		~=, ~~=, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
+		next-index, peek, pop, prev, set-next, set-prev, size, subscript, temp-as-array, to
 	./priority-queue: priority
 	./sort: sort=
 	./private/sort-utils: binary-search-insert

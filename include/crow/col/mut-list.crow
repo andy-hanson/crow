@@ -15,8 +15,7 @@ import
 	../tuple: a, b, new
 	./array: +, array, begin, slice
 	./collection:
-		.., -, build-options, end, for-loop, index-too-big, iterate, set-subscript, size-hint,
-		subscript
+		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, subscript
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
 		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-subscript,
@@ -40,6 +39,13 @@ but appending (or removing) from the beginning is always O(N).
 	a mut-list-size
 -set-size[t] void(a t mut[], size nat64) bare
 	a.mut-list-size := size
+
++subscript[t] t(a t mut[], index nat64) bare
+	assert index < a.mut-list-size : index index-too-big a.mut-list-size
+	a.backing[index]
++set-subscript[t] void(a t mut[], index nat64, value t) bare
+	assert index < a.mut-list-size : index index-too-big a.mut-list-size
+	a.backing[index] := value
 
 # True if they are identical.
 +==[t] bool(a t mut[], b t mut[]) bare

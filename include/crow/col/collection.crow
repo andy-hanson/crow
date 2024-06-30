@@ -81,32 +81,24 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +- index-relative-to-end(a index-relative-to-end, n nat64) bare
 	a.subtract + n,
 
-+subscript[col, iter, elem] elem(
-	a col,
-	index nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, col size, bare
-	assert x, _ ?= a.begin + index next : a.size index-too-big index
-	x
++at-index[col, elem] spec
+	subscript elem(a col, index nat64)
 
-+subscript[col, iter, elem] elem(
++subscript[col, elem] elem(
 	a col,
 	index index-relative-to-end,
-) (iter, col) end, iter skip-prev, (elem, iter) next, col size, bare
-	assert x, _ ?= a.end - index.subtract next : a.size index-too-big index.subtract
-	x
+) bare, (col, elem) at-index, col size
+	a[a.size - index.subtract]
 
-+set-subscript[col, iter, elem] void(
-	a col,
-	index nat64,
-	value elem,
-) (iter, col) begin, iter skip-next, (iter, elem) set-next, bare
-	a.begin + index set-next value
++set-at-index[col, elem] spec
+	set-subscript void(a col, index nat64, value elem)
+
 +set-subscript[col, iter, elem] void(
 	a col,
 	index index-relative-to-end,
 	value elem,
-) (iter, col) end, iter skip-prev, (iter, elem) set-next, bare
-	a.end - index.subtract set-next value
+) bare, (col, elem) set-at-index, col size
+	a[a.size - index.subtract] := value
 
 +fill[col, iter, elem] void(
 	a col,

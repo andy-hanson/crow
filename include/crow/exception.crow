@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: ||, bool, new, true
-	./col/array: +, begin, iterate, next, size, slice
+	./col/array: +, begin, iterate, size, slice, subscript
 	./col/collection: find-index, for-loop, starts-with, subscript
 	./col/list: ~=, build
 	./compare: >

@@ -3,6 +3,7 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
+	../js: as-js-any, as-t, get, set
 	../misc: void
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
@@ -14,10 +15,10 @@ import
 	../range: .., high, low, range, size
 	../tuple: new
 	./array:
-		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
-		size, slice, subscript
+		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, size,
+		slice, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, range-relative-to-end, set-subscript, subscript
+	./collection: build-options, for-loop, index-too-big, range-relative-to-end, subscript
 export
 	../private/bootstrap: mut-array
 
@@ -96,6 +97,24 @@ This is O(n).
 ###
 +copy[t] t mut-array(a t mut-array)
 	for x : a; x
+
++subscript[t] t(a t mut-array, index nat64) bare, trusted
+	assert index < a.size : index index-too-big a.size
+	if extern native
+		a.begin-pointer[index]
+	elif extern js
+		a.as-js-any get index as-t
+	else
+		todo
+
++set-subscript[t] void(a t mut-array, index nat64, value t) bare, trusted
+	assert index < a.size : index index-too-big a.size
+	if extern native
+		a.begin-pointer[index] := value
+	elif extern js
+		a.as-js-any set index, value.as-js-any
+	else
+		todo
 
 ###
 Copies elements from `source` to `dest`.

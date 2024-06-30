@@ -14,7 +14,7 @@ import
 	../../private/number-low-level: wrap-sub
 	../../range: ..
 	../../string: interpolate, join, string, to-hex, to
-	../array: +, array, begin, iterate, next, size, slice, subscript
+	../array: +, array, begin, iterate, slice, subscript
 	../collection: build-options, for-loop, subscript
 	../list: ~=, build, iterate, list, list-builder, to
 

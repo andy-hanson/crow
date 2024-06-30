@@ -6,21 +6,20 @@ import
 	system/stdio: SEEK
 	./sound: new, sound
 
-+read-sound-file sound(path string) summon
++read-sound-file sound(path string) summon, (native, sndfile) extern
 	trusted
 		info mut SF_INFO = ()
 		f = path.to sf_open SFM_READ, &info
 		f common info
 
-+sound-from-file-content sound(content nat8 array)
-	trusted
-		info mut SF_INFO = ()
-		user-data mut user-data = content, content.begin-pointer
-		virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
-		f = &virtual sf_open_virtual SFM_READ, &info, (&user-data)::user-data mut*.pointer-cast
-		f common info
++sound-from-file-content sound(content nat8 array) trusted, (native, sndfile) extern
+	info mut SF_INFO = ()
+	user-data mut user-data = content, content.begin-pointer
+	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
+	f = &virtual sf_open_virtual SFM_READ, &info, (&user-data)::user-data mut*.pointer-cast
+	f common info
 
--common sound(f SNDFILE mut*, info SF_INFO) unsafe
+-common sound(f SNDFILE mut*, info SF_INFO) unsafe, (native, sndfile) extern
 	f.sf_error check-sndfile-error
 	n-channels nat64 = info.channels to
 	sample-rate nat64 = info.samplerate to
@@ -30,10 +29,10 @@ import
 	assert n-read == samples.size
 	(n-channels, sample-rate), samples.cast-immutable
 
--get_filelen sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe
+-get_filelen sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe, native extern
 	(user-data-pointer.pointer-cast::user-data mut*)->content size
 
--seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) bare, unsafe
+-seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) bare, unsafe, native extern
 	ap user-data mut* = user-data-pointer pointer-cast
 	a = *ap
 	start = match whence
@@ -52,7 +51,7 @@ import
 	pointer nat8 mut*,
 	count sf_count_t,
 	user-data-pointer any-mut-pointer,
-) bare, unsafe
+) bare, unsafe, native extern
 	ap user-data mut* = user-data-pointer pointer-cast
 	a = *ap
 	n-to-read = count min (a.content.end-pointer - a.cur)
@@ -63,7 +62,7 @@ import
 -write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) bare, unsafe
 	unreachable
 
--tell sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe
+-tell sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe, native extern
 	a user-data mut* = user-data-pointer pointer-cast
 	a->cur - a->content.begin-pointer
 

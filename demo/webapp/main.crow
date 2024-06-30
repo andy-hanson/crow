@@ -7,7 +7,7 @@ import
 	crow/parse: nat, parse, to
 	./db
 
-main void() summon
+main void() summon, (libc, lmdb, native, posix, sodium) extern
 	with db : open-real-db
 		handler http-handler = shared req => req handle-request db
 		port nat16 = 8080
@@ -15,13 +15,13 @@ main void() summon
 			out print "Serving at http://localhost:{port}; press enter to stop"
 			_ = read-stdin
 
--handle-request http-response(req http-request, db db) summon
+-handle-request http-response(req http-request, db db) summon, (lmdb, native, sodium) extern
 	try
 		req handle-request-inner db
 	catch user-not-authorized
 		http-forbidden
 
--handle-request-inner http-response(req http-request, db db) summon
+-handle-request-inner http-response(req http-request, db db) summon, (lmdb, native, sodium) extern
 	path = req path
 	query = req query
 	match req method

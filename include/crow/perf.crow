@@ -5,11 +5,11 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 ###
 no-std
 import
-	./col/array: +, array, begin, is-empty, iterate, new, next, size
-	./col/collection: for-loop, index-of, set-subscript, subscript
+	./col/array: array, is-empty, iterate, new, size, subscript
+	./col/collection: for-loop, index-of
 	./col/list: ~=, build
 	./col/map: ~=, build, iterate, map, size
-	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next, size
+	./col/mut-array: ~=, build, mut-array, new, set-subscript, subscript
 	./exception: error
 	./fun-util: subscript
 	./io/duration: duration, nanosecond, to

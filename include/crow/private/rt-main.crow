@@ -1,9 +1,8 @@
 no-std
 import
 	../compare: <
-	../col/array: +, array, begin, next, size, subscript
-	../col/mut-array: +, begin, cast-immutable, mut-array, zeroed-mut-array, set-next
-	../col/collection: set-subscript, subscript
+	../col/array: array, size, subscript
+	../col/mut-array: cast-immutable, mut-array, zeroed-mut-array, set-subscript
 	../col/list: list, to
 	../exception: catch-all, to
 	../fun-util: subscript

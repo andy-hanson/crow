@@ -9,13 +9,13 @@ import
 	../../option: is-empty, new, option
 	../../range: .., iterate, range
 	../../tuple: a, b
-	../array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
+	../array: +, -, array, begin, end, is-empty, iterate, new, size, slice, subscript
 	../collection:
 		.., build, build-options, end, exists, for-break, for-loop, indices, n-of, map=,
-		set-subscript, subscript, swap-at, with-block, with-index
+		subscript, swap-at, with-block, with-index
 	../mut-array:
 		~=, +, begin, build, cast-immutable, iterate, mut-array, mut-array-builder, next, set-next,
-		size
+		set-subscript, size, subscript
 	../list: list, to
 
 ###

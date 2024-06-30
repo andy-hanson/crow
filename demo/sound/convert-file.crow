@@ -6,7 +6,7 @@ import
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
 	audio/sound: format, to, with-sample-rate
 
-main nat(args string[]) summon
+main nat(args string[]) summon, (native, sndfile) extern
 	assert args.size == 2 : "Usage: crow convert-file.crow toccata.ogg toccata.flac" error
 	in-path = args[0]
 	out-path = args[1]

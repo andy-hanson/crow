@@ -1,9 +1,9 @@
 no-std
 import
 	./bool: bool
-	./col/collection: build, flatten, for-loop, iterate, size, subscript, with-block, with-index
+	./col/collection: build, flatten, for-loop, iterate, size, with-block, with-index
 	./col/util: groupable, groups-of
-	./col/list: ~~, +, ~=, begin, build, iterate, list, new, next, size
+	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
 	./log: error, log

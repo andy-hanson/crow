@@ -20,7 +20,7 @@ import
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 	./crow.bmp as crow-bmp nat8 array
 
-main nat(_ string[]) summon, trusted
+main nat(_ string[]) summon, trusted, (native, SDL2) extern
 	render-thread-id = cur-thread-id
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
@@ -54,7 +54,7 @@ main nat(_ string[]) summon, trusted
 	renderer SDL_Renderer mut*,
 	texture SDL_Texture mut*,
 	render-thread-id nat,
-) summon, trusted
+) summon, trusted, (native, SDL2) extern
 	key-states-pointer = null SDL_GetKeyboardState
 	# TODO: use a mut-enum-lookup type
 	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
@@ -64,7 +64,7 @@ main nat(_ string[]) summon, trusted
 	render-thread-id run-with-thread-id () =>
 		renderer render texture
 
--render void(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, unsafe
+-render void(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, unsafe, (native, SDL2) extern
 	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
 	x int32 = ((get-monotime-msec / 10) % window-width.to).to
 	renderer draw-image texture, x
@@ -73,11 +73,11 @@ main nat(_ string[]) summon, trusted
 	renderer SDL_RenderPresent
 	()
 
--draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe
+-draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe, (native, SDL2) extern
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
--run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared
+-run-with-thread-id[t] t(thread-id nat, cb t mut()) unsafe, t shared, native extern
 	loop
 		if cur-thread-id == thread-id
 			break cb[]
@@ -85,7 +85,7 @@ main nat(_ string[]) summon, trusted
 			yield-fiber
 			continue
 
--look-for-quit-event bool() summon
+-look-for-quit-event bool() summon, SDL2 extern
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -95,12 +95,12 @@ main nat(_ string[]) summon, trusted
 		else
 			continue
 
--renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
+-renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe, (native, SDL2) extern
 	res = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 	assert res != null : "SDL_CreateRenderer" sdl-last-error
 	res
 
--create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
+-create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe, (native, SDL2) extern
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to SDL_LoadBMP_RW 0
 	assert bmp != null : "sdl-loadbmp-error" sdl-last-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
@@ -108,8 +108,8 @@ main nat(_ string[]) summon, trusted
 	assert texture != null : "SDL_CreateTextureFromSurface" sdl-last-error
 	texture
 
--handle-sdl-error void(err c-int, description string) summon, unsafe
+-handle-sdl-error void(err c-int, description string) summon, unsafe, (native, SDL2) extern
 	assert err == 0 : description sdl-last-error
 
--sdl-last-error exception(description string) summon, unsafe
+-sdl-last-error exception(description string) summon, unsafe, (native, SDL2) extern
 	"SDL error in {description}: {SDL_GetError}" error

@@ -11,13 +11,13 @@ import
 	../string: ==, <=>, char32
 	../test-util: is
 	../tuple: a, b, new
-	./array: ==, +, begin, array, new, next, size
+	./array: ==, array, new, subscript
 	./collection:
 		.., begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
 		subscript, swap-at
 	./mut-array:
 		~=, +, -, begin, build, cast-immutable, end, iterate, mut-array, new, next, prev, set-next,
-		size, slice, to
+		size, slice, to, subscript
 	./list: ~=, ==, build, iterate, list, new, size, to
 	./mut-list: mut-list, temp-as-mut-array
 

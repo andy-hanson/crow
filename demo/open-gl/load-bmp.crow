@@ -5,7 +5,7 @@ import
 
 rgba-image record(image-data nat8 mut*, width nat64, height nat64) mut
 
-with-bmp[t] t(src nat8[], cb t mut(image rgba-image)) summon, unsafe, SDL2 extern
+with-bmp[t] t(src nat8[], cb t mut(image rgba-image)) summon, unsafe, (native, SDL2) extern
 	src-array nat8 array = src to
 	surface = src-array.begin-pointer SDL_RWFromConstMem src-array.size.to SDL_LoadBMP_RW 0
 	converted = surface SDL_ConvertSurfaceFormat SDL_PIXELFORMAT_RGBA32, 0

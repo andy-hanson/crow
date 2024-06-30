@@ -6,7 +6,7 @@ import
 		date, day-of-week-long, gmt, iso-date, iso-timestamp, local-time, time-of-day,
 		timezone-name, timezone-offset, year
 
-main void() summon
+main void() summon, (native, posix) extern
 	t = get-unix-time
 	out print """
 ISO time: {t iso-timestamp}

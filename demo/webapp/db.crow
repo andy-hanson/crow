@@ -7,7 +7,7 @@ import
 	crow/serialize: from-bytes, to-bytes
 	lmdb/main
 
-main void() summon
+main void() summon, (lmdb, native, sodium) extern
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -74,7 +74,7 @@ open-db record(db-path string) nominal
 open-real-db open-db()
 	db-path open-db
 
-with-block[t] t(a open-db, f t mut(db db)) summon, t shared
+with-block[t] t(a open-db, f t mut(db db)) summon, t shared, (lmdb, native) extern
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@(string, user) "user-from-name"
 			with user-name : env database@(user, string) "user-name"
@@ -85,16 +85,16 @@ with-block[t] t(a open-db, f t mut(db db)) summon, t shared
 								f[env, user-from-name, user-name, user-pw-hash, user-login,
 									post-user, post-content]
 
-list-users user-info[](db db) summon
+list-users user-info[](db db) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
 		for user, name : txn each db.user-name
 			user, name
 
-user-name string(db db, user user) summon
+user-name string(db db, user user) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
 		(txn get db.user-name, user)!
 
-list-posts post-info[](db db) summon
+list-posts post-info[](db db) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
 		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = (txn get db.user-name, user)!
@@ -106,7 +106,7 @@ register-user-result union
 	user-already-exists
 == bool(a register-user-result, b register-user-result)
 
-register-user register-user-result(db db, user-name string, password string) summon
+register-user register-user-result(db db, user-name string, password string) summon, (lmdb, native, sodium) extern
 	guard !(user-name.size < 4 || user-name.size > 64) :
 		"user name must be 4-64 characters" bad-user-name
 	with txn : db.env abortable-write-transaction
@@ -120,7 +120,7 @@ register-user register-user-result(db db, user-name string, password string) sum
 		txn add db.user-password-hash, new-user-id, hash
 		new-user-id.register-user-success, transaction-commit
 
-login user-cookie?(db db, user-name string, password string) summon
+login user-cookie?(db db, user-name string, password string) summon, (lmdb, native, sodium) extern
 	guard !user-name.is-empty && !password.is-empty
 	with txn : db.env write-transaction
 		guard user ?= db get-user txn, user-name
@@ -130,14 +130,14 @@ login user-cookie?(db db, user-name string, password string) summon
 		txn set db.user-login-cookie, user, cookie
 		(user, cookie),
 
--get-post-info post-info(db db, post post) summon
+-get-post-info post-info(db db, post post) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
 		user = (txn get db.post-user, post)!
 		user-name = (txn get db.user-name, user)!
 		content = (txn get db.post-content, post)!
 		post, user, user-name, content
 
-add-post post(db db, cookie user-cookie, content string) summon
+add-post post(db db, cookie user-cookie, content string) summon, (lmdb, native) extern
 	with txn : db.env write-transaction
 		user = db authenticate txn, cookie
 		post = txn count db.post-user
@@ -145,14 +145,14 @@ add-post post(db db, cookie user-cookie, content string) summon
 		txn add db.post-content, post, content
 		post
 
--get-user user?(db db, txn lmdb-txn, user-name string) summon
+-get-user user?(db db, txn lmdb-txn, user-name string) summon, (lmdb, native) extern
 	txn get db.user-from-name, user-name
 
--authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
+-authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon, (lmdb, native) extern
 	assert db try-authenticate txn, cookie : user-not-authorized
 	cookie user
 
--try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
+-try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon, (lmdb, native) extern
 	guard login-cookie ?= txn get db.user-login-cookie, cookie.user
 	login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 

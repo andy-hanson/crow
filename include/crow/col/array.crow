@@ -2,11 +2,12 @@ no-std
 import
 	../bool: ||, bool
 	../compare: !=, <, <=, compare, comparison, equal
+	../js: as-js-any, as-t, get
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
 	../private/bootstrap: array-size, new-array, todo
 	../private/range-low-level: ..
-	../pointer: +, *
+	../pointer: +, *, subscript
 	../tuple: new
 	./collection:
 		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
@@ -27,6 +28,15 @@ export
 # `true` iff `a.size == 0`.
 +is-empty[t] bool(a t array) bare
 	a.size == 0
+
++subscript[t] t(a t array, index nat64) bare, trusted
+	assert index < a.size : index index-too-big a.size
+	if extern native
+		a.begin-pointer[index]
+	elif extern js
+		a.as-js-any get index as-t
+	else
+		todo
 
 ###
 Prepend an element to an array.

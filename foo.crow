@@ -1,7 +1,7 @@
 no-std
 import
 	crow/bool: true
-	crow/col/array: +, array, begin, new, next, size
+	crow/col/array: +, array, new, subscript
 	crow/col/collection: subscript
 	crow/exception: describe, exception
 	crow/log: error, info, log

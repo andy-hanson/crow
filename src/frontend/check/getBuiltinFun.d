@@ -88,8 +88,6 @@ FunBody inner(
 		arity == 2 && isFloat32(rt) && isFloat32(p0) && isFloat32(p1);
 	bool isBinaryFloat64() =>
 		arity == 2 && isFloat64(rt) && isFloat64(p0) && isFloat64(p1);
-	bool isString(in Type x) =>
-		x == Type(commonTypes.string_);
 
 	FunBody unaryFloat64(BuiltinUnary kind) =>
 		unary(isUnaryFloat64() ? kind : failUnary);
@@ -127,11 +125,11 @@ FunBody inner(
 		case symbol!"js-global".value:
 			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
 		case symbol!"get".value:
-			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1) ? FunBody(BuiltinFun(JsFun.get)) : fail();
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) ? FunBody(BuiltinFun(JsFun.get)) : fail();
 		case symbol!"set".value:
-			return isVoid(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
 		case symbol!"call".value:
-			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
+			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(commonTypes, p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))
 				: fail();
 
@@ -582,6 +580,9 @@ FunBody inner(
 	}
 }
 
+bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
+	isNat64(a) || isString(commonTypes, a);
+
 bool isBuiltin(in Type a, BuiltinType b) =>
 	a.isA!(StructInst*) &&
 	a.as!(StructInst*).decl.body_.isA!BuiltinType &&
@@ -641,6 +642,9 @@ bool isPointerConst(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d ----------------------------------------------------
 bool isPointerMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerMut); // TODO: this should be in model.d ----------------------------------------------------
+
+bool isString(in CommonTypes commonTypes, in Type a) =>
+	a == Type(commonTypes.string_);
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;

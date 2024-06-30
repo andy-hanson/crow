@@ -12,15 +12,13 @@ import
 	../test-util: is
 	../tuple: ==, new
 	./array: array, iterate, size
-	./collection:
-		build-options, fill, find, find-index, for-loop, n-of, map=, set-subscript, size-hint,
-		subscript
+	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
-	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
+	./mut-array: ~=, begin, build, iterate, mut-array, is-empty, new, next, set-next, set-subscript, size, subscript
 	./list: ==, ~=, build, iterate, list, new, size
 	./mut-list:
-		~=, +, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
-		remove-unordered-at, set-next, size
+		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
+		remove-unordered-at, set-next, set-subscript, size, subscript
 
 ###
 Mutable unordered map.

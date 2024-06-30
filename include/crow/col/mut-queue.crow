@@ -9,9 +9,9 @@ import
 	../option: ==, new, option
 	../test-util: is
 	./array: array
-	./collection: for-loop, iterate, set-subscript, subscript, with-index
+	./collection: for-loop, iterate, with-index
 	./list: ~=, ==, build, iterate, list, new
-	./mut-array: +, begin, is-empty, mut-array, new, next, set-next, size, to, zeroed-mut-array
+	./mut-array: is-empty, mut-array, new, set-subscript, size, subscript, to, zeroed-mut-array
 
 +mut-queue[t] record mut
 	# Queue is empty iff 'values' is.

@@ -14,11 +14,11 @@ import
 	../../test-util: is
 	../array:
 		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
-		new, next, next-index, size, slice
-	../collection: .., -, build, build-options, end, for-loop, set-subscript, subscript, with-block
+		new, next-index, size, slice, subscript
+	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
 	../mut-array:
-		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
-		mut-array-builder, next, set-next, size, slice, zeroed-mut-array
+		~=, +, begin, begin-pointer, build, end-pointer, is-empty, mut-array,
+		mut-array-builder, set-subscript, size, slice, subscript, zeroed-mut-array
 	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact

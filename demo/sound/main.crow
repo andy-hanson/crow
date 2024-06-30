@@ -10,7 +10,7 @@ import
 	./toccata.ogg as toccata nat8 array
 	./crow.wav as crow-wav nat8 array
 
-main void() summon
+main void() summon, (native, SDL2, sndfile) extern
 	audio = start-sdl-audio
 	out print "Sound device format is {audio format}"
 	music = toccata.sound-from-file-content with-sample-rate audio.format.sample-rate

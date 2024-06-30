@@ -12,12 +12,12 @@ import
 	../test-util: is
 	../tuple: ==, a, b, new
 	./array:
-		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next, size,
-		slice
+		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, size,
+		slice, subscript
 	./collection: .., build, build-options, end, for-break, for-loop, subscript, swap-at, with-block
 	./mut-array:
 		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
-		next, prev, set-next, size, slice
+		next, prev, set-next, size, slice, subscript
 	./list: ==, ~=, build, list, new, to
 	./sort: sort, sort=
 

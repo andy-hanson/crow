@@ -5,11 +5,11 @@ import
 	./compare: !=, <, <=, >, compare, comparison, equal
 	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
 	./col/collection:
-		build, build-options, drop-right-while, drop-while, for-break, for-loop, subscript,
+		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
 	./col/list:
-		==, <=>, ~=, ~, ~~, ~~=, +, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, next, prev, size, slice, to
+		==, <=>, ~=, ~, ~~, ~~=, begin, build, collection, end, is-empty, iterate,
+		list, list-builder, list-cast, list-iterator, next, prev, size, slice, subscript, to
 	./col/mut-list:
 		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
 	./col/util: split

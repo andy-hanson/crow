@@ -1,15 +1,17 @@
 no-std
 import
-	./private/bootstrap: void, string
+	./private/bootstrap: void, nat64, string
 
 +js-any builtin
-+as-js-any[t] js-any(a t) builtin, unsafe, js extern
-+as-t[t] t(a js-any) builtin, unsafe, js extern
-+js-global js-any() builtin, unsafe, js extern
-+js-global js-any(name string) unsafe, js extern
++as-js-any[t] js-any(a t) builtin, bare, unsafe, js extern
++as-t[t] t(a js-any) builtin, bare, unsafe, js extern
++js-global js-any() builtin, bare, unsafe, js extern
++js-global js-any(name string) bare, unsafe, js extern
 	js-global get name
-+get js-any(a js-any, name string) builtin, unsafe, js extern
-+set void(a js-any, name string, value js-any) builtin, unsafe, js extern
++get js-any(a js-any, name string) builtin, bare, unsafe, js extern
++get js-any(a js-any, name nat64) builtin, bare, unsafe, js extern
++set void(a js-any, name string, value js-any) bare, builtin, unsafe, js extern
++set void(a js-any, name nat64, value js-any) bare, builtin, unsafe, js extern
 +call js-any(a js-any, name string) builtin, unsafe, js extern
 +call[p0] js-any(a js-any, name string, arg p0) builtin, unsafe, js extern
 +call[p0, p1] js-any(a js-any, name string, arg0 p0, arg1 p1) builtin, unsafe, js extern

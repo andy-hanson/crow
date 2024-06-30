@@ -10,12 +10,11 @@ import
 	../range: ..
 	../string: ==, interpolate, join, new, string, to
 	../test-util: is
-	./collection: .., -, end, for-loop, set-subscript, subscript, with-index
+	./collection: .., -, end, for-loop, subscript, with-index
 	./mut-array:
-		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
-		set-subscript, size, slice, zero-memory, zeroed-mut-array
-	./list:
-		==, ~=, +, -, begin, build, end, is-empty, list, new, next, size, to
+		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new,
+		set-subscript, size, slice, subscript, zero-memory, zeroed-mut-array
+	./list: ==, ~=, build, is-empty, list, new, size, subscript, to
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut

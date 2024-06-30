@@ -141,7 +141,7 @@ main void() summon, trusted, (native, SDL2) extern
 	texture GLuint
 	rotation-loc GLint
 
--set-up-renderer void(renderer renderer) summon, unsafe
+-set-up-renderer void(renderer renderer) summon, unsafe, native extern
 	gl = renderer gl
 	gl glEnable GL_CULL_FACE
 	gl glCullFace GL_BACK
@@ -208,7 +208,7 @@ main void() summon, trusted, (native, SDL2) extern
 		else
 			continue
 
--handle-sdl-error void(err c-int, description string) summon, unsafe, SDL2 extern
+-handle-sdl-error void(err c-int, description string) summon, unsafe, (native, SDL2) extern
 	unless err == 0
 		description fail-sdl-error
 
@@ -216,11 +216,11 @@ main void() summon, trusted, (native, SDL2) extern
 -describe string(a sdl-error)
 	"SDL error in {a action}: {a description}"
 
--fail-sdl-error void(description string) summon, unsafe, SDL2 extern
+-fail-sdl-error void(description string) summon, unsafe, (native, SDL2) extern
 	SDL_Quit
 	throw description sdl-error SDL_GetError.to
 
--vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
+-vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe, native extern
 	vbo mut GLuint = 0
 	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
@@ -234,7 +234,7 @@ main void() summon, trusted, (native, SDL2) extern
 		throw "Creating VBO" gl-error err
 	vbo
 
-size-bytes nat(vertices vertex array) unsafe
+size-bytes nat(vertices vertex array) unsafe, native extern
 	vertices.size * size-of@vertex
 
 -vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe

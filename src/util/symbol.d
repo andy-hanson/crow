@@ -837,4 +837,6 @@ immutable string[] specialSymbols = [
 	"BigInt",
 	"Number",
 	"isNaN",
+
+	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

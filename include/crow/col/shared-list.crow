@@ -8,9 +8,9 @@ import
 	../private/thread-utils: acquire, init, lock, release, uninit
 	../pointer: mut-pointer
 	./array: array
-	./collection: build-options, subscript
+	./collection: build-options
 	./list: list
-	./mut-list: +, ~=, begin, build, clear, mut-list, move-to, next, new, size, to
+	./mut-list: ~=, build, clear, mut-list, move-to, new, size, subscript, to
 
 ###
 Shared equivalent to 'mut-list'.

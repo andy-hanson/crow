@@ -9,7 +9,7 @@ import
 
 +sound-file-format enum(flac, ogg-vorbis, wav)
 
-+write-sound-file void(path string, sound sound, format sound-file-format) summon
++write-sound-file void(path string, sound sound, format sound-file-format) summon, (native, sndfile) extern
 	n-channels = sound.format n-channels
 	n-frames = sound.samples.size / n-channels
 	sf-format = format to-sf-format

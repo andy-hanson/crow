@@ -317,14 +317,17 @@ immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 	ref Alloc alloc,
 	in Map!(Uri, Path) modulePaths,
 	Uri mainModuleUri,
-	in MutMap!(Module*, JsModuleAst) done,
+	in MutMap!(Module*, Opt!JsModuleAst) done,
 	bool isNodeJs,
 ) =>
 	buildArray!(immutable KeyValuePair!(Path, string))(alloc, (scope ref Builder!(immutable KeyValuePair!(Path, string)) out_) {
 		if (isNodeJs)
 			out_ ~= immutable KeyValuePair!(Path, string)(parsePath("package.json"), "{\"type\":\"module\"}");
-		foreach (const Module* module_, ref JsModuleAst ast; done)
-			out_ ~= immutable KeyValuePair!(Path, string)(mustGet(modulePaths, module_.uri), writeJsAst(alloc, ast, module_.uri == mainModuleUri));
+		foreach (const Module* module_, ref Opt!JsModuleAst ast; done)
+			if (has(ast))
+				out_ ~= immutable KeyValuePair!(Path, string)(
+					mustGet(modulePaths, module_.uri),
+					writeJsAst(alloc, force(ast), module_.uri == mainModuleUri));
 	});
 
 struct TranslateProgramCtx {
@@ -337,19 +340,22 @@ struct TranslateProgramCtx {
 	immutable AllUsed allUsed;
 	immutable Map!(Uri, Path) modulePaths;
 	immutable ModuleExportMangledNames exportMangledNames;
-	MutMap!(Module*, JsModuleAst) done; // TODO: maybe move this outside of TranslateProgramCtx. It's only used in doTranslateModule
+	// None for unused modules
+	MutMap!(Module*, Opt!JsModuleAst) done; // TODO: maybe move this outside of TranslateProgramCtx. It's only used in doTranslateModule
 
 	ref Alloc alloc() =>
 		*allocPtr;
 }
 
 void doTranslateModule(ref TranslateProgramCtx ctx, Module* a) {
-	if (!isModuleUsed(ctx.allUsed, a.uri) || hasKey(ctx.done, a)) return;
+	if (hasKey(ctx.done, a)) return;
 	foreach (ImportOrExport x; a.imports)
 		doTranslateModule(ctx, x.modulePtr);
 	foreach (ImportOrExport x; a.reExports)
 		doTranslateModule(ctx, x.modulePtr);
-	mustAdd(ctx.alloc, ctx.done, a, translateModule(ctx, *a));
+	// Test 'isModuleUsed' last, because an unused module can still have used re-exports
+	mustAdd(ctx.alloc, ctx.done, a, optIf(isModuleUsed(ctx.allUsed, a.uri), () =>
+		translateModule(ctx, *a)));
 }
 
 JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {

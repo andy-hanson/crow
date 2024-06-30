@@ -2,13 +2,12 @@ no-std
 import
 	system/time: time, time_t
 	../compare: max
-	../exception: todo
 	../fun-util: subscript
 	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, nat64, to
 	../pointer: null
+	../private/bootstrap: todo
 	../private/runtime: delay-cur-fiber-until-time
-	../version: is-windows
 	./duration: duration, nanoseconds
 export
 	./private/time-low-level: get-monotime-nsec
@@ -20,9 +19,11 @@ export
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-+get-unix-time unix-time() summon, (native, posix) extern
-	forbid trusted is-windows : todo
-	trusted null.time,
++get-unix-time unix-time() summon, native extern, trusted
+	if extern posix
+		null.time,
+	else
+		todo # ------------------------------------------------------------------------------------------------------------------------
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void(duration duration) summon, native extern
