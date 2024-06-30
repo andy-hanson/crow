@@ -275,6 +275,8 @@ immutable struct UnionMember {
 	StructDecl* containingUnion;
 	Type type; // This will be 'void' if no type is specified
 
+	bool hasValue() =>
+		!isVoid(type);
 	size_t memberIndex() =>
 		mustHaveIndexOfPointer(containingUnion.body_.as!(StructBody.Union*).members, &this);
 	Uri moduleUri() scope =>
@@ -981,7 +983,7 @@ enum BuiltinBinary {
 	mulFloat32,
 	mulFloat64,
 	newArray, // Also works for mut-array
-	seq,
+	seq, // TODO: this is only used for low-model ..........................................................................
 	subFloat32,
 	subFloat64,
 	subPointerAndNat64, // RHS is multiplied by size of pointee first
@@ -1532,6 +1534,7 @@ immutable struct ImportOrExport {
 
 	ref Module module_() return scope =>
 		*modulePtr;
+	// WARN: This is not set for a re-export of a ModuleWhole. Test 'hasImported' first.
 	ref ImportedReferents imported() return scope =>
 		lateGet(imported_);
 	void imported(ImportedReferents value) {

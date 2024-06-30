@@ -111,7 +111,7 @@ bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
-	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl);
+	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.regular);
 	return AllUsed(
 		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),
@@ -181,7 +181,7 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 			trackAllUsedInStruct(res, a.moduleUri, x.variant.decl);
 			foreach (Opt!Called impl; x.methodImpls)
 				if (has(impl))
-					trackAllUsedInCalled(res, a.moduleUri, force(impl));
+					trackAllUsedInCalled(res, a.moduleUri, force(impl), FunUse.regular);
 		}
 	}
 }
@@ -202,9 +202,18 @@ void trackAllUsedInSpecs(ref AllUsedBuilder res, Uri from, Specs a) {
 		trackAllUsedInSpec(res, from, x.decl);
 }
 
-void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a) {
+enum FunUse { regular, noInline }
+void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use) {
 	// An inlined function isn't considered 'used', but its type is
-	if (bodyIsInlined(*a) || addDecl(res, from, AnyDecl(a))) {
+	bool inlined = () {
+		final switch (use) {
+			case FunUse.regular:
+				return bodyIsInlined(*a);
+			case FunUse.noInline:
+				return false;
+		}
+	}();
+	if (inlined || addDecl(res, from, AnyDecl(a))) {
 		trackAllUsedInSpecs(res, from, a.specs);
 		void usedReturnType() {
 			trackAllUsedInType(res, from, a.returnType);
@@ -278,11 +287,13 @@ void trackAllUsedInDestructure(ref AllUsedBuilder res, Uri from, Destructure a) 
 				trackAllUsedInDestructure(res, from, part);
 		});
 }
-void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Called a) {
+void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Called a, FunUse funUse) {
 	a.match!void(
 		(ref Called.Bogus) {},
 		(ref FunInst x) {
-			trackAllUsedInFun(res, from, x.decl);
+			trackAllUsedInFun(res, from, x.decl, funUse);
+			foreach (Called impl; x.specImpls)
+				trackAllUsedInCalled(res, from, impl, FunUse.noInline);
 		},
 		(CalledSpecSig _) {});
 }
@@ -290,7 +301,7 @@ void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Called a) {
 void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 	Opt!Called called = getCalledAtExpr(a.expr.kind);
 	if (has(called))
-		trackAllUsedInCalled(res, from, force(called));
+		trackAllUsedInCalled(res, from, force(called), FunUse.regular); // TODO: for a function pointer, this should not be regular, should be noInline
 
 	void trackChildren() {
 		eachDirectChildExpr(res.commonTypes, a, (ExprRef x) {

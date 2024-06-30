@@ -51,6 +51,7 @@ import backend.js.jsAst :
 	JsImport,
 	JsLiteralBool,
 	JsLiteralInteger,
+	JsLiteralIntegerLarge,
 	JsLiteralNumber,
 	JsLiteralString,
 	JsModuleAst,
@@ -170,6 +171,10 @@ Opt!string mangleChar(dchar a) {
 			return some("__less");
 		case '>':
 			return some("__gt");
+		case '=':
+			return some("__eq");
+		case '!':
+			return some("__bang");
 		default:
 			return none!string;
 	}
@@ -285,6 +290,7 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 				writer ~= ": ";
 				writeDestructure(writer, pair.value);
 			});
+			writer ~= " }";
 		});
 }
 
@@ -370,7 +376,8 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 	writer ~= ")";
 	if (writeStatementIndented(writer, indent, a.then))
 		writer ~= ' ';
-	writeNewline(writer, indent);
+	else
+		writeNewline(writer, indent);
 	writer ~= "else";
 	writeStatementIndented(writer, indent, a.else_);
 }
@@ -421,6 +428,7 @@ void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
 	writeStatementIndented(writer, indent, a.body_);
 }
 
+// Returns true if it was a block
 bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement a) {
 	if (a.isA!JsBlockStatement) {
 		writer ~= ' ';
@@ -478,14 +486,34 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ' ';
 			writer ~= () {
 				final switch (x.kind) {
+					case JsBinaryExpr.Kind.and:
+						return "&&";
+					case JsBinaryExpr.Kind.bitwiseAnd:
+						return "&";
+					case JsBinaryExpr.Kind.bitwiseOr:
+						return "|";
+					case JsBinaryExpr.Kind.bitwiseXor:
+						return "^";
+					case JsBinaryExpr.Kind.divide:
+						return "/";
 					case JsBinaryExpr.Kind.eqEqEq:
 						return "===";
 					case JsBinaryExpr.Kind.in_:
 						return "in";
 					case JsBinaryExpr.Kind.instanceof:
 						return "instanceof";
+					case JsBinaryExpr.Kind.less:
+						return "<";
+					case JsBinaryExpr.Kind.minus:
+						return "-";
+					case JsBinaryExpr.Kind.modulo:
+						return "%";
 					case JsBinaryExpr.Kind.or:
-						return "or";
+						return "||";
+					case JsBinaryExpr.Kind.plus:
+						return "+";
+					case JsBinaryExpr.Kind.times:
+						return "*";
 				}
 			}();
 			writer ~= ' ';
@@ -516,6 +544,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 				writer ~= x.value.asUnsigned;
 			writer ~= 'n';
 		},
+		(in JsLiteralIntegerLarge x) {
+			writer ~= x.value;
+		},
 		(in JsLiteralNumber x) {
 			writeFloatLiteral(writer, x.value);
 		},
@@ -538,11 +569,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		(in JsObjectExpr x) {
 			assert(!pos.isStatement);
 			writer ~= "{ ";
-			writeWithCommas!(KeyValuePair!(Symbol, JsExpr))(writer, x.fields, (in KeyValuePair!(Symbol, JsExpr) field) {
-				writeObjectKey(writer, field.key);
-				writer ~= ": ";
-				writeArg(field.value);
-			});
+			writeObjectKey(writer, x.name);
+			writer ~= ": ";
+			writeArg(*x.value);
 			writer ~= " }";
 		},
 		(in JsPropertyAccessExpr x) {
@@ -565,6 +594,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		(in JsUnaryExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
+					case JsUnaryExpr.Kind.bitwiseNot:
+						return "~";
 					case JsUnaryExpr.Kind.not:
 						return "!";
 					case JsUnaryExpr.Kind.typeof_:

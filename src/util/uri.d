@@ -213,14 +213,12 @@ Opt!FilePath parent(FilePath a) {
 	Opt!Path res = parent(a.path);
 	return has(res) ? some(FilePath(force(res))) : none!FilePath;
 }
-Uri parentOrEmpty(Uri a) {
-	Opt!Uri res = parent(a);
-	return optOrDefault!Uri(res, () => a);
-}
-FilePath parentOrEmpty(FilePath a) {
-	Opt!FilePath res = parent(a);
-	return optOrDefault!FilePath(res, () => a);
-}
+Uri parentOrEmpty(Uri a) =>
+	optOrDefault!Uri(parent(a), () => a);
+FilePath parentOrEmpty(FilePath a) =>
+	optOrDefault!FilePath(parent(a), () => a);
+Path parentOrEmpty(Path a) =>
+	optOrDefault!Path(parent(a), () => a);
 
 Uri firstNComponents(Uri uri, size_t n) {
 	size_t count = countComponents(uri);
@@ -635,16 +633,16 @@ Path prefixPathComponent(Symbol first, Path rest) =>
 	withComponents(rest, (in Symbol[] components) =>
 		descendentPath(rootPath(first, PathInfo()), components));
 
-RelPath relativePath(Path from, Path to) { // TODO: UNIT TEST _---------------------------------------------------------------
+RelPath relativePath(Path from, Path to) {
 	ushort nParents = 0;
-	Cell!Path ancestor = Cell!Path(from);
+	Cell!Path ancestor = Cell!Path(parentOrEmpty(from));
 	while (!isAncestor(cellGet(ancestor), to)) {
 		nParents++;
 		Opt!Path parent = parent(cellGet(ancestor));
 		if (has(parent))
-			return RelPath(nParents, to);
-		else
 			cellSet(ancestor, force(parent));
+		else
+			return RelPath(nParents, to);
 	}
 	return RelPath(nParents, pathFromAncestor(cellGet(ancestor), to));
 }

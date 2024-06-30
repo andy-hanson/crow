@@ -44,11 +44,11 @@ immutable struct Symbol {
 		if (isShortSymbol(this))
 			return eachCharInShortSymbol(this, (char x) => cb(x));
 		else {
+			int res = 0;
 			mustUnicodeDecode(asLongSymbol(this), (dchar x) {
-				int res = cb(x);
-				assert(res == 0);
+				if (res == 0) res = cb(x);
 			});
-			return 0;
+			return res;
 		}
 	}
 
@@ -832,4 +832,9 @@ immutable string[] specialSymbols = [
 	"wrap-add",
 	"wrap-mul",
 	"wrap-sub",
+
+	//TODO:MOVE ---------------------------------------------------------------------------------------------------------------------
+	"BigInt",
+	"Number",
+	"isNaN",
 ];

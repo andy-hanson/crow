@@ -46,6 +46,9 @@ SmallArray!T buildSmallArray(T)(ref Alloc alloc, in void delegate(scope ref Buil
 	return smallFinish(res);
 }
 
+size_t sizeSoFar(T)(in Builder!T a) =>
+	mutArrSize(a.inner.data);
+
 void add(T)(scope ref Alloc alloc, ref ArrayBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }

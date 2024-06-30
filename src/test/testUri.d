@@ -15,12 +15,16 @@ import util.uri :
 	compareUriAlphabetically,
 	FilePath,
 	getExtension,
+	isAncestor,
 	isWindowsPath,
 	mustParseUri,
 	parent,
 	parseFilePath,
+	parsePath,
 	parseUriWithCwd,
 	Path,
+	relativePath,
+	RelPath,
 	stringOfFilePath,
 	stringOfUri,
 	toUri,
@@ -28,10 +32,12 @@ import util.uri :
 	uriIsFile,
 	withComponents;
 import util.util : stringOfEnum;
+import util.writer : Writer;
 
 void testUri(ref Test test) {
 	testBasic(test);
 	testFile(test);
+	testRelativePath(test);
 }
 
 private:
@@ -57,26 +63,19 @@ void testBasic(ref Test test) {
 
 	Uri zW = parseUriWithCwd(aX, "/z/w.crow");
 	verifyUri(test, zW, ["file://", "z", "w.crow"]);
-	assertEqual(test, baseName(zW), symbolOfString("w.crow"));
+	assertEqual(baseName(zW), symbolOfString("w.crow"));
 	assertEqual(stringOfUri(test.alloc, zW), "file:///z/w.crow");
 	assertEqual(getExtension(zW), Extension.crow);
 	Uri aXZW = parseUriWithCwd(aX, "./z/w");
 	assertEqual(stringOfUri(test.alloc, aXZW), "file:///a/x/z/w");
-	assertEqual(test, aXZW, parseUriWithCwd(aX, "z/w"));
-	assertEqual(test, aY, parseUriWithCwd(aX, "../y"));
+	assertEqual(aXZW, parseUriWithCwd(aX, "z/w"));
+	assertEqual(aY, parseUriWithCwd(aX, "../y"));
 
 	Uri crowLang = mustParseUri("http://crow-lang.org");
-	assert(parseUriWithCwd(aX, "http://crow-lang.org") == crowLang);
+	assertEqual(parseUriWithCwd(aX, "http://crow-lang.org"), crowLang);
 
 	assertEqual(test, parent(crowLang), none!Uri);
 	assertEqual(getExtension(crowLang), Extension.none);
-}
-
-void assertEqual(ref Test test, Uri a, Uri b) {
-	if (a != b) {
-		assertEqual(stringOfUri(test.alloc, a), stringOfUri(test.alloc, b));
-		assert(false);
-	}
 }
 
 void assertEqual(ref Test test, Opt!Uri a, Opt!Uri b) {
@@ -85,15 +84,13 @@ void assertEqual(ref Test test, Opt!Uri a, Opt!Uri b) {
 		assert(false);
 	}
 }
-
 string stringOfOptUri(ref Test test, Opt!Uri a) =>
 	has(a) ? stringOfUri(test.alloc, force(a)) : "<<none>>";
 
 void assertEqual(Extension a, Extension b) {
-	if (a != b) {
-		assertEqual(stringOfEnum(a), stringOfEnum(b));
-		assert(false);
-	}
+	assertEqual(a, b, (scope ref Writer writer, in Extension x) {
+		writer ~= stringOfEnum(x);
+	});
 }
 
 void testFile(ref Test test) {
@@ -142,8 +139,8 @@ void verifyFile(scope ref Test test, in string asUriString, in string asFilePath
 	FilePath filePath = parseFilePath(filePathIn);
 
 	assert(uriIsFile(uri));
-	assert(asFilePath(uri) == filePath);
-	assertEqual(test, toUri(filePath), uri);
+	assertEqual(asFilePath(uri), filePath);
+	assertEqual(toUri(filePath), uri);
 
 	verifyPath(test, filePath.path, components);
 
@@ -159,7 +156,13 @@ void verifyPath(ref Test test, Path a, in string[] expectedComponents) {
 	withComponents(a, (in Symbol[] actual) {
 		assert(actual.length == expectedComponents.length);
 		zip(actual, expectedComponents, (ref Symbol actualComponent, ref const string expectedComponent) {
-			assertEqual(test, actualComponent, symbolOfString(expectedComponent));
+			assertEqual(actualComponent, symbolOfString(expectedComponent));
 		});
 	});
+}
+
+void testRelativePath(ref Test test) {
+	assert(isAncestor(parsePath("a"), parsePath("a/c")));
+	assertEqual(relativePath(parsePath("a/b"), parsePath("a/c")), RelPath(0, parsePath("c")));
+	assertEqual(relativePath(parsePath("a/b"), parsePath("c/d")), RelPath(1, parsePath("c/d")));
 }

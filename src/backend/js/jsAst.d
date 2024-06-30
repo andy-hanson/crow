@@ -7,7 +7,7 @@ import util.col.array : newArray, SmallArray;
 import util.col.map : KeyValuePair, Map;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
-import util.opt : Opt;
+import util.opt : none, Opt;
 import util.symbol : Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
@@ -25,6 +25,16 @@ immutable struct JsModuleAst {
 immutable struct JsName {
 	Symbol crowName;
 	Opt!ushort mangleIndex;
+
+	@safe @nogc pure nothrow:
+	this(Symbol cn, Opt!ushort mi = none!ushort) { // RM --------------------------------------------------------------------------------------------------
+		crowName = cn;
+		mangleIndex = mi;
+		// Test for iteration errors
+		foreach (dchar x; crowName) {
+			assert(true);
+		}
+	}
 }
 static assert(JsName.sizeof == ulong.sizeof);
 
@@ -157,6 +167,7 @@ immutable struct JsExpr {
 		JsCallWithSpreadExpr,
 		JsLiteralBool,
 		JsLiteralInteger,
+		JsLiteralIntegerLarge,
 		JsLiteralNumber,
 		JsLiteralString,
 		JsName,
@@ -173,7 +184,22 @@ immutable struct JsArrayExpr {
 	JsExpr[] elements;
 }
 immutable struct JsBinaryExpr {
-	enum Kind { eqEqEq, in_, instanceof, or }
+	enum Kind {
+		and,
+		bitwiseAnd,
+		bitwiseOr,
+		bitwiseXor,
+		divide,
+		eqEqEq,
+		in_,
+		instanceof,
+		less,
+		minus,
+		modulo, // WARN: not a true modulo, keeps numbers negative
+		plus,
+		or,
+		times,
+	}
 	Kind kind;
 	JsExpr* left;
 	JsExpr* right;
@@ -202,6 +228,9 @@ immutable struct JsLiteralInteger {
 	bool isSigned;
 	IntegralValue value;
 }
+immutable struct JsLiteralIntegerLarge {
+	string value;
+}
 immutable struct JsLiteralNumber {
 	double value;
 }
@@ -214,7 +243,8 @@ immutable struct JsNewExpr {
 }
 immutable struct JsNullExpr {}
 immutable struct JsObjectExpr {
-	KeyValuePair!(Symbol, JsExpr)[] fields;
+	Symbol name;
+	JsExpr* value;
 }
 immutable struct JsPropertyAccessExpr {
 	JsExpr* object;
@@ -231,7 +261,7 @@ immutable struct JsTernaryExpr {
 	JsExpr else_;
 }
 immutable struct JsUnaryExpr {
-	enum Kind { not, typeof_, void_ }
+	enum Kind { bitwiseNot, not, typeof_, void_ }
 	Kind kind;
 	JsExpr* arg;
 }
@@ -242,6 +272,10 @@ JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
+JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
+	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
+JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements) =>
+	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>
 	JsExpr(JsLiteralBool(true));
 JsExpr genCall(JsExpr* called, JsExpr[] args) =>
@@ -264,6 +298,8 @@ JsExpr genIntegerSigned(long value) =>
 	JsExpr(JsLiteralInteger(isSigned: true, value: IntegralValue(value)));
 JsExpr genIntegerUnsigned(ulong value) =>
 	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
+JsExpr genIntegerLarge(string value) =>
+	JsExpr(JsLiteralIntegerLarge(value));
 JsExpr genNot(ref Alloc alloc, JsExpr arg) => //TODO:MOVE -------------------------------------------------------------------------------
 	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 JsExpr genNull() =>
@@ -300,6 +336,8 @@ JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initiali
 	genVarDecl(alloc, JsVarDecl.Kind.const_, destructure, initializer);
 JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
 	genVarDecl(alloc, JsVarDecl.Kind.let, destructure, initializer);
+JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
+	JsExpr(JsObjectExpr(name, allocate(alloc, value)));
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genThis() =>
@@ -311,6 +349,3 @@ JsExpr genUndefined() =>
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
 JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsStatement body_) =>
 	JsStatement(allocate(alloc, JsWhileStatement(condition, body_)));
-
-private JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
-	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
