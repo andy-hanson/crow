@@ -2,26 +2,27 @@ no-std
 import
 	./bits: ~, &, |, <<, >>, bits-intersect, has-all-bits
 	./bool: ||, bool, false, not, true
-	./compare: !=, <, <=, >, compare, comparison, equal
-	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
+	./compare: !=, <, <=, >, compare, comparison, equal, greater, less
+	./col/array:
+		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-iterator, as-array, begin, begin-pointer, build, collection,
+		end, is-empty, iterate, new, next, prev, size, slice
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
-	./col/list:
-		==, <=>, ~=, ~, ~~, ~~=, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, next, prev, size, slice, subscript, to
+	./col/list: ~=, build, iterate, list, list-cast, size, subscript, to
 	./col/mut-list:
 		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
+	./js: js-eq-eq-eq, js-less, js-plus
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
 		is-nan, is-near-int, min-value, nat8, nat16, nat32, nat64, to, round, truncate-to
 	./option: ??, force, new, option
 	./pointer: ==, <=>, const-pointer
-	./private/bootstrap: inner, todo
+	./private/bootstrap: todo
 	./private/exception-low-level: exception, unreachable
 	./private/number-low-level: wrap-sub
 	./range: .., in, iterate
@@ -31,10 +32,9 @@ export
 	# TODO: don't export find-c-string-end
 	./private/c-string-util: ==, char8, c-string, find-c-string-end, to
 
-+to char8 array(a string)
-	a.inner to
++to char8 array(a string) builtin, bare
 +to char8[](a string)
-	a inner
+	a.to::(char8 array) to
 
 -unsafe-to char32(a char8) builtin, bare
 +to char32(a char8) bare
@@ -45,14 +45,11 @@ export
 +to char32[](a string)
 	for x : a; x
 
-###
-Concatenate two strings.
-This is O(n).
-
-If you need to concatenate many strings, consider using the `crow/writer` module.
-###
 +~~ string(a string, b string)
-	a.inner ~~ b.inner,
+	if trusted extern js
+		trusted a js-plus b
+	else
+		a.to::(char8 array) ~~ b.to to
 
 +interpolate string(...parts string array)
 	"" join parts.to
@@ -65,11 +62,11 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 
 # Same as `a == ""`.
 +is-empty bool(a string) bare
-	a.inner is-empty
+	a.to::(char8 array) is-empty
 
 # Size in `char8`s
 +size-char8s nat64(a string) bare
-	a.inner size
+	a.to::(char8 array) size
 +size nat64(a string)
 	res mut nat64 = 0
 	for _ : a
@@ -77,7 +74,10 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	res
 
 +== bool(a string, b string)
-	a.inner == b.inner
+	if trusted extern js
+		trusted a js-eq-eq-eq b
+	else
+		a.to::(char8 array) == b.to
 +== bool(a char32, b char32) bare, builtin
 +to nat32(a char32) bare, builtin
 # This is unsafe because a 'char32' should be a valid unicode character.
@@ -87,14 +87,22 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	trusted a unsafe-to
 
 +<=> comparison(a string, b string)
-	a.inner <=> b.inner
+	if trusted extern js
+		if trusted a js-less b
+			less
+		elif a == b
+			equal
+		else
+			greater
+	else
+		a.to::(char8 array) <=> b.to
 +<=> comparison(a char8, b char8) bare
 	a.to::nat8 <=> b.to
 +<=> comparison(a char32, b char32) bare
 	a.to::nat32 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
-	for c : a inner
+	for c : a.to::(char8 array)
 		hasher hash-mix c
 +hash-mix void(hasher hasher, a char8)
 	hasher hash-mix a.to::nat8.to::nat64
@@ -111,19 +119,18 @@ region conversion
 			out ~= x
 
 # Assumes its input is valid UTF-8 without validation.
-+trust-as-string string(a char8 array) unsafe
-	a.to,
-+trust-as-string string(a char8[]) bare, unsafe
-	a,
++trust-as-string string(a char8 array) builtin, bare, unsafe
++trust-as-string string(a char8[]) unsafe
+	a.to::(char8 array) trust-as-string
 
 # Treats UTF-8 character codes as a string. O(n) due to validation.
 +to string(a char8[])
-	res string = a,
+	a.to::(char8 array) to
++to string(a char8 array) trusted
+	res string = a trust-as-string
 	# Validate decoding
 	for _ : res; ()
 	res
-+to string(a char8 array)
-	a.to::char8[] to
 # Validates that bytes are UTF-8 character codes, and returns them as a string.
 +as-string string(bytes nat8[]) trusted
 	if extern native
@@ -142,7 +149,7 @@ This is O(1).
 ###
 +to-bytes nat8[](a string) trusted
 	if extern native
-		a.inner list-cast
+		a.to::char8[] list-cast
 	else
 		todo # -----------------------------------------------------------------------------------------------------------------
 +to-bytes nat8 array(a string)
@@ -151,7 +158,7 @@ This is O(1).
 +to nat8 array(a string)
 	a to-bytes
 
-# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string
+# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string -------------------------------------------
 ###
 Converts a string to a c-string by appending "\0".
 This is O(n).
@@ -160,8 +167,8 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 +to c-string(a string) native extern
-	# TODO: not trusted
-	trusted (a.inner ~ "\0")::char8[].to begin-pointer
+	# TODO: not trusted ---------------------------------------------------------------------------------------------------------
+	trusted (a.to::(char8 array) ~ "\0") begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.
@@ -178,7 +185,8 @@ This is still unsafe because 'a' must end in a `"\0"` character.
 ###
 +to string(a c-string) unsafe, native extern
 	# TODO: 'copy' seems unnecessary since 'to' should do that?
-	a.as-string.inner.to.copy.move-to
+	copy char8 mut[] = a.as-string.to::(char8 array).to.copy
+	copy.move-to::(char8 array).to
 
 # `"true"` or `"false"`.
 +to string(a bool) bare
@@ -364,22 +372,22 @@ region spec impls (see collection.crow)
 			continue
 
 +string-iterator record by-val
-	-inner char8 list-iterator
+	-inner char8 array-iterator
 
 +== bool(a string-iterator, b string-iterator)
 +<=> comparison(a string-iterator, b string-iterator)
 
 +begin string-iterator(a string) bare
-	a.inner.begin,
+	a.to.begin,
 
 +end string-iterator(a string) bare
-	a.inner.end,
+	a.to.end,
 
-+collection string(a string-iterator) bare
-	a.inner.collection,
++collection string(a string-iterator) bare, trusted
+	a.inner.collection.trust-as-string
 
-+slice string(a string-iterator, b string-iterator)
-	(a.inner slice b.inner),
++slice string(a string-iterator, b string-iterator) bare, trusted
+	a.inner slice b.inner trust-as-string
 
 +next (char32, string-iterator)?(a string-iterator)
 	guard x, next ?= a.inner next
@@ -392,14 +400,14 @@ region spec impls (see collection.crow)
 	((prev2,), char),
 
 +string-builder record mut
-	-inner char8 list-builder
+	-inner char8 array-builder
 +build string(a build-options, f void mut(out string-builder))
-	chars char8[] = a build out => f[out,]
+	chars char8 array = a build out => f[out,]
 	trusted chars trust-as-string
 +~= void(a string-builder, value char32)
 	a unicode-encode value.to
 +~~= void(a string-builder, s string)
-	a.inner ~~= s.inner
+	a.inner ~~= s to
 
 region utilities
 
@@ -543,7 +551,7 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 -push-byte void(out string-builder, a nat8)
 	out.inner ~= a to
 
--unicode-decode (char32, char8 list-iterator)(first-char char8, original-iter char8 list-iterator)
+-unicode-decode (char32, char8 array-iterator)(first-char char8, original-iter char8 array-iterator)
 	if first-char is-valid-single-byte-character
 		first-char.to, original-iter
 	else
@@ -581,8 +589,8 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 	else
 		unreachable
 
--unicode-decode-prev (char8 list-iterator, char32)(
-	original-iter char8 list-iterator,
+-unicode-decode-prev (char8 array-iterator, char32)(
+	original-iter char8 array-iterator,
 	first-char char8,
 )
 	if first-char is-valid-single-byte-character

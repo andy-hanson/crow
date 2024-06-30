@@ -26,6 +26,7 @@ import model.model :
 	FunDecl,
 	isArray,
 	isMutArray,
+	isString,
 	JsFun,
 	paramsArray,
 	SpecInst,
@@ -129,8 +130,20 @@ FunBody inner(
 		case symbol!"set".value:
 			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
 		case symbol!"call".value:
-			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(commonTypes, p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
+			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))
+				: fail();
+		case symbol!"js-eq-eq-eq".value:
+			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.eqEqEq))
+				: fail();
+		case symbol!"js-less".value:
+			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.less))
+				: fail();
+		case symbol!"js-plus".value:
+			return isTypeParam0(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.plus))
 				: fail();
 
 		case symbol!"array-size".value:
@@ -371,6 +384,10 @@ FunBody inner(
 				? isNat8(p0)
 					? BuiltinUnary.toChar8FromNat8
 					: failUnary
+			: isChar8Array(rt)
+				? isString(p0)
+					? BuiltinUnary.toChar8ArrayFromString
+					: failUnary
 			: isFloat32(rt)
 				? isFloat64(p0)
 					? BuiltinUnary.toFloat32FromFloat64
@@ -416,6 +433,10 @@ FunBody inner(
 				: failUnary);
 		case symbol!"true".value:
 			return constant(isBool(rt), constantBool(true));
+		case symbol!"trust-as-string".value:
+			return unary(isString(rt) && isChar8Array(p0)
+				? BuiltinUnary.trustAsString
+				: failUnary);
 		case symbol!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? BuiltinBinary.unsafeAddInt8
@@ -581,7 +602,7 @@ FunBody inner(
 }
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
-	isNat64(a) || isString(commonTypes, a);
+	isNat64(a) || isString(a);
 
 bool isBuiltin(in Type a, BuiltinType b) =>
 	a.isA!(StructInst*) &&
@@ -633,6 +654,8 @@ bool isFloat64(in Type a) =>
 bool isJsAny(in Type a) =>
 	isBuiltin(a, BuiltinType.jsAny);
 
+bool isChar8Array(in Type a) =>
+	isArray(a) && isChar8(arrayElementType(a));
 bool isJsAnyArray(in Type a) =>
 	isArray(a) && isJsAny(arrayElementType(a));
 
@@ -642,9 +665,6 @@ bool isPointerConst(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d ----------------------------------------------------
 bool isPointerMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerMut); // TODO: this should be in model.d ----------------------------------------------------
-
-bool isString(in CommonTypes commonTypes, in Type a) =>
-	a == Type(commonTypes.string_);
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;

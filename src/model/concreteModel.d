@@ -11,6 +11,7 @@ import model.model :
 	FlagsFunction,
 	FunDecl,
 	IntegralType,
+	isString,
 	isTuple,
 	Local,
 	Params,
@@ -121,6 +122,13 @@ immutable struct ConcreteStructSource {
 		@safe @nogc pure nothrow:
 		StructDecl* decl;
 		SmallArray!ConcreteType typeArgs;
+
+		this(StructDecl* d, SmallArray!ConcreteType ta) {
+			decl = d;
+			typeArgs = ta;
+			assert(typeArgs.length == decl.typeParams.length);
+			assert(!isString(*decl)); // Concretize should replace 'string' with 'char8 array'
+		}
 
 		bool opEquals(in Inst b) scope =>
 			decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);

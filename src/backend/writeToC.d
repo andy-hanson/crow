@@ -1728,6 +1728,10 @@ WriteExprResult writeSpecialUnary(
 			return specialCall("jump_to_catch");
 		case BuiltinUnary.setupCatch:
 			return specialCall("setup_catch");
+		// Concretize removes these calls
+		case BuiltinUnary.toChar8ArrayFromString:
+		case BuiltinUnary.trustAsString:
+			assert(false);
 	}
 }
 

@@ -1507,6 +1507,8 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 				? checkMatchChar(ctx, locals, source, ast, expected, matched, force(charType))
 				: has(integral)
 				? checkMatchIntegral(ctx, locals, source, ast, expected, matched, force(integral))
+				: x == BuiltinType.string_
+				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, LiteralStringLikeExpr.Kind.string_)
 				: notMatchable();
 		},
 		(ref StructBody.Enum x) =>
@@ -1516,7 +1518,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 		(StructBody.Flags) =>
 			notMatchable(),
 		(StructBody.Record) {
-			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLike(ctx.commonTypes, inst);
+			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLikeFromRecord(ctx.commonTypes, inst);
 			return has(stringLike)
 				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, force(stringLike))
 				: notMatchable();
@@ -1862,9 +1864,8 @@ Expr checkMatchIntegral(
 		MatchIntegralExpr(MatchIntegralExpr.Kind(integralType), matched, cases, else_))));
 }
 
-Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLike(in CommonTypes commonTypes, in StructInst* inst) =>
+Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromRecord(in CommonTypes commonTypes, in StructInst* inst) =>
 	inst == commonTypes.symbol ? some(LiteralStringLikeExpr.Kind.symbol) :
-	inst == commonTypes.string_ ? some(LiteralStringLikeExpr.Kind.string_) :
 	inst == commonTypes.char32Array ? some(LiteralStringLikeExpr.Kind.char32Array) :
 	inst == commonTypes.char32List ? some(LiteralStringLikeExpr.Kind.char32List) :
 	inst == commonTypes.char8Array ? some(LiteralStringLikeExpr.Kind.char8Array) :

@@ -446,6 +446,7 @@ It also is efficient to split from an iterator.
 
 It does not support efficient access by an index, so iterators should be used instead.
 ###
+# TODO: NO LONGER NEEDED HERE, MOVE TO LIST.CROW -----------------------------------------------------------------------------------------
 +list[t] record by-val
 	~root t l1
 
@@ -467,8 +468,7 @@ A sequence of `char32`s.
 (It's stored as a `char8[]` and is decoded as it's iterated.)
 It can be efficiently concatenated or split, but doesn't support indexed access.
 ###
-+string record by-val
-	~inner char8[]
++string builtin
 
 # Used by the compiler for mutable "local" variables used in a closure.
 ~reference[t] record(value mut t) mut

@@ -1,6 +1,6 @@
 no-std
 import
-	./private/bootstrap: void, nat64, string
+	./private/bootstrap: bool, void, nat64, string
 
 +js-any builtin
 +as-js-any[t] js-any(a t) builtin, bare, unsafe, js extern
@@ -15,3 +15,8 @@ import
 +call js-any(a js-any, name string) builtin, unsafe, js extern
 +call[p0] js-any(a js-any, name string, arg p0) builtin, unsafe, js extern
 +call[p0, p1] js-any(a js-any, name string, arg0 p0, arg1 p1) builtin, unsafe, js extern
+
+region Operators
+~js-eq-eq-eq[t] bool(a t, b t) builtin, unsafe, js extern
+~js-less[t] bool(a t, b t) builtin, unsafe, js extern
+~js-plus[t] t(a t, b t) builtin, unsafe, js extern

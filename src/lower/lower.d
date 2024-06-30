@@ -360,8 +360,10 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRecord record) {
 	if (record.source.body_.isA!(ConcreteStructBody.Builtin*)) {
 		ConcreteStructBody.Builtin* builtin = record.source.body_.as!(ConcreteStructBody.Builtin*);
-		assert(builtin.kind == BuiltinType.array || builtin.kind == BuiltinType.mutArray);
-		LowType elementType = lowTypeFromConcreteType(getLowTypeCtx, only(builtin.typeArgs));
+		assert(lowersToArray(builtin.kind));
+		LowType elementType = builtin.kind == BuiltinType.string_
+			? char8Type
+			: lowTypeFromConcreteType(getLowTypeCtx, only(builtin.typeArgs));
 		return newSmallArray(getLowTypeCtx.alloc, [
 			LowField(LowFieldSource(LowFieldSource.ArrayField.size), 0, nat64Type),
 			LowField(
@@ -376,6 +378,8 @@ SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRec
 			(ConcreteField* field, immutable uint fieldOffset) =>
 				LowField(LowFieldSource(field), fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type)));
 }
+bool lowersToArray(BuiltinType a) =>
+	a == BuiltinType.array || a == BuiltinType.mutArray || a == BuiltinType.string_;
 
 SmallArray!LowType maybeUnpackTuple(ref Alloc alloc, LowType a) {
 	Opt!(SmallArray!LowType) res = tryUnpackTuple(alloc, a);
@@ -443,6 +447,8 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 					return getPointerConst(ctx, lowTypeFromConcreteType(ctx, only(x.typeArgs)));
 				case BuiltinType.pointerMut:
 					return getPointerMut(ctx, lowTypeFromConcreteType(ctx, only(x.typeArgs)));
+				case BuiltinType.string_:
+					assert(false);
 				case BuiltinType.void_:
 					return LowType(PrimitiveType.void_);
 			}
@@ -1383,13 +1389,18 @@ LowExpr getCallBuiltinExpr(
 			assert(false), // handled in concretize
 		(BuiltinUnary kind) {
 			assert(args.length == 1);
+			LowExpr arg = getArg0;
 			switch (kind) {
 				case BuiltinUnary.arrayPointer:
-					return genRecordFieldGet(ctx.alloc, type, range, getArg0, 1);
+					return genRecordFieldGet(ctx.alloc, type, range, arg, 1);
 				case BuiltinUnary.arraySize:
-					return genRecordFieldGet(ctx.alloc, type, range, getArg0, 0);
+					return genRecordFieldGet(ctx.alloc, type, range, arg, 0);
+				case BuiltinUnary.toChar8ArrayFromString:
+				case BuiltinUnary.trustAsString:
+					assert(arg.type == type);
+					return arg;
 				default:
-					return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg0))));
+					return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, arg))));
 			}
 		},
 		(BuiltinUnaryMath kind) {

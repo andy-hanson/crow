@@ -69,6 +69,7 @@ import model.model :
 	isArrayOrMutArray,
 	isLambdaType,
 	isNonFunctionPointer,
+	isString,
 	isTuple,
 	Local,
 	Module,
@@ -205,7 +206,7 @@ struct ConcretizeCtx {
 		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*program.commonTypes;
-	ConcreteFun* char8ArrayTrustAsString() return scope const =>
+	ConcreteFun* char8ArrayTrustAsString() return scope const => // TODO: Since this is now the identity function, we probably don't need it here?
 		lateGet(char8ArrayTrustAsString_);
 	ConcreteFun* equalNat64Function() return scope const =>
 		lateGet(equalNat64Function_);
@@ -357,8 +358,9 @@ private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
 	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
-) =>
-	withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
+) {
+	if (isString(Type(inst))) return char8ArrayType(ctx); // This makes 'string' *not* a distinct type from char8 array. So 'string' won't exist in the ConcreteModel
+	return withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
 		StructDecl* decl = inst.decl;
 		scope ConcreteStructSource.Inst key = ConcreteStructSource.Inst(decl, small!ConcreteType(typeArgs));
 		ValueAndDidAdd!(ConcreteStruct*) res =
@@ -396,6 +398,7 @@ private ConcreteType getConcreteType_forStructInst(
 			res.value.defaultReferenceKind = ReferenceKind.byRef;
 		return ConcreteType(res.value.defaultReferenceKind, res.value);
 	});
+}
 
 ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typeArgsScope) =>
 	t.matchWithPointers!ConcreteType(
@@ -904,6 +907,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 			assert(false);
 		case BuiltinType.array:
 		case BuiltinType.mutArray:
+		case BuiltinType.string_:
 			return TypeSize(16, 8);
 		case BuiltinType.lambda:
 			return TypeSize(16, 8); // TODO: I think this is no longer used? -----------------------------------------------------------------------
@@ -922,6 +926,6 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 					case OS.windows:
 						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
 						return TypeSize(0x100, 16);
-				}
+				}			
 	}
 }

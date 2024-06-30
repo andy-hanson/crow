@@ -401,6 +401,7 @@ enum BuiltinType {
 	nat64,
 	pointerConst,
 	pointerMut,
+	string_,
 	void_,
 }
 bool isCharOrIntegral(BuiltinType a) {
@@ -427,6 +428,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.mutArray:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
+		case BuiltinType.string_:
 		case BuiltinType.void_:
 			return false;
 	}
@@ -805,9 +807,12 @@ static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 enum JsFun {
 	asJsAny,
 	callProperty,
+	eqEqEq,
 	get,
 	jsAnyAsT,
 	jsGlobal,
+	less,
+	plus,
 	set,
 }
 
@@ -865,6 +870,7 @@ enum BuiltinUnary {
 	referenceFromPointer,
 	setupCatch,
 	toChar8FromNat8,
+	toChar8ArrayFromString,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
 	toFloat64FromInt64,
@@ -880,6 +886,7 @@ enum BuiltinUnary {
 	toNat64FromPtr,
 	toPtrFromNat64,
 	truncateToInt64FromFloat64,
+	trustAsString,
 	unsafeToChar32FromChar8,
 	unsafeToChar32FromNat32,
 	unsafeToNat32FromInt32,
@@ -1665,6 +1672,10 @@ bool isMutArray(in Type a) =>
 	isBuiltinType(a, BuiltinType.mutArray);
 bool isArrayOrMutArray(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutArray);
+bool isString(in Type a) =>
+	isBuiltinType(a, BuiltinType.string_);
+bool isString(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.string_);
 
 private bool isBuiltinType(in Type a, BuiltinType builtin) =>
 	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);

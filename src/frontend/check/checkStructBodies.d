@@ -1075,6 +1075,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.pointerConst;
 		case symbol!"mut-pointer".value:
 			return BuiltinType.pointerMut;
+		case symbol!"string".value:
+			return BuiltinType.string_;
 		case symbol!"void".value:
 			return BuiltinType.void_;
 		default:

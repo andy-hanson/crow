@@ -1244,8 +1244,14 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 		case BuiltinUnary.toFloat64FromInt64:
 		case BuiltinUnary.toFloat64FromNat64:
 			return genCall(alloc, JsExpr(JsName(symbol!"Number")), [arg]);
+		case BuiltinUnary.toChar8ArrayFromString:
+			// Array.from(new TextEncoder().encode(arg))
+			return todo!JsExpr("chars of string"); // ----------------------------------------------------------------------
 		case BuiltinUnary.truncateToInt64FromFloat64:
 			return todo!JsExpr("trucate float");
+		case BuiltinUnary.trustAsString:
+			// new TextDecoder().decode(new Uint8Array(arg))
+			return todo!JsExpr("string of chars"); // --------------------------------------------------------------------
 	}
 }
 JsExpr translateBuiltinBinary(ref Alloc alloc, BuiltinBinary a, JsExpr left, JsExpr right) {
@@ -1401,6 +1407,10 @@ ExprResult translateCallJsFun(
 ) {
 	ExprResult expr(JsExpr value) =>
 		forceExpr(ctx.alloc, pos, returnType, value);
+	ExprResult binary(JsBinaryExpr.Kind kind) {
+		assert(nArgs == 2);
+		return expr(genBinary(ctx.alloc, kind, getArg(0), getArg(1)));
+	}
 	final switch (fun) {
 		case JsFun.asJsAny:
 		case JsFun.jsAnyAsT:
@@ -1411,12 +1421,18 @@ ExprResult translateCallJsFun(
 			return expr(genCall(
 				allocate(ctx.alloc, genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1))),
 				makeArray(ctx.alloc, nArgs - 2, (size_t i) => getArg(i + 2))));
+		case JsFun.eqEqEq:
+			return binary(JsBinaryExpr.Kind.eqEqEq);
 		case JsFun.get:
 			assert(nArgs == 2);
 			return expr(genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)));
 		case JsFun.jsGlobal:
 			assert(nArgs == 0);
 			return expr(JsExpr(JsName(ctx.isBrowser ? symbol!"window" : symbol!"global")));
+		case JsFun.less:
+			return binary(JsBinaryExpr.Kind.less);
+		case JsFun.plus:
+			return binary(JsBinaryExpr.Kind.plus);
 		case JsFun.set:
 			assert(nArgs == 3);
 			return forceStatement(ctx.alloc, pos, genAssign(ctx.alloc, genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)), getArg(2)));
