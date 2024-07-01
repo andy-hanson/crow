@@ -12,7 +12,7 @@ import
 	./fun-util: subscript
 	./number: ==, <=>, +, int8, int16, int32, int64, nat8, nat16, nat32, nat64, new, to
 	./private/bootstrap: todo
-	./private/number-low-level: unsafe-to, wrap-sub
+	./private/number-low-level: unsafe-sub, unsafe-to
 
 ###
 Negates every bit.
@@ -170,11 +170,14 @@ bits-cat nat64(a nat32, b nat32)
 	a.to << 32 | b.to
 
 # Number with the highest `n` bits set.
-high-n-bits nat64(n nat64)
+high-n-bits nat64(n nat64) bare, trusted
 	assert n <= 64
-	~(64 wrap-sub n).low-n-bits
+	~(64 unsafe-sub n).low-n-bits
 
 # Number with the lowest `n` bits set.
-low-n-bits nat64(n nat64) bare
-	assert n <= 64
-	(1 << n) wrap-sub 1
+low-n-bits nat64(n nat64) bare, trusted
+	if n == 64
+		0xffffffffffffffff
+	else
+		assert n < 64
+		(1 unsafe-bit-shift-left n) unsafe-sub 1

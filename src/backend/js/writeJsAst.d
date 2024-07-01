@@ -67,6 +67,7 @@ import backend.js.jsAst :
 	JsStatement,
 	JsSwitchStatement,
 	JsTernaryExpr,
+	JsThisExpr,
 	JsThrowStatement,
 	JsTryCatchStatement,
 	JsTryFinallyStatement,
@@ -146,8 +147,26 @@ bool needsMangle(Symbol a) {
 }
 bool isJsKeyword(Symbol a) {	
 	switch (a.value) {
+		case symbol!"await".value:
+		case symbol!"case".value:
+		case symbol!"const".value:
+		case symbol!"debugger".value:
+		case symbol!"default".value:
+		case symbol!"delete".value:
+		case symbol!"false".value:
+		case symbol!"function".value:
+		case symbol!"in".value:
+		case symbol!"instanceof".value:
+		case symbol!"let".value:
 		case symbol!"new".value:
 		case symbol!"null".value:
+		case symbol!"static".value:
+		case symbol!"switch".value:
+		case symbol!"this".value:
+		case symbol!"true".value:
+		case symbol!"typeof".value:
+		case symbol!"var".value:
+		case symbol!"void".value:
 			return true;
 		default:
 			return false;
@@ -157,16 +176,18 @@ bool isAllowedJsIdentifierChar(dchar a) =>
 	!has(mangleChar(a));
 Opt!string mangleChar(dchar a) {
 	switch (a) {
-		case '-':
-			return some("_");
 		case '+':
 			return some("__plus");
+		case '-':
+			return some("_");
 		case '*':
 			return some("__times");
-		case '~':
-			return some("__tilde");
 		case '/':
 			return some("__div");
+		case '%':
+			return some("__mod");
+		case '~':
+			return some("__tilde");
 		case '<':
 			return some("__less");
 		case '>':
@@ -175,6 +196,8 @@ Opt!string mangleChar(dchar a) {
 			return some("__eq");
 		case '!':
 			return some("__bang");
+		case '.':
+			return some("__dot");
 		default:
 			return none!string;
 	}
@@ -423,9 +446,9 @@ void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
 pragma(inline, false)
 void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
 	writer ~= "while (";
-	writeExpr(writer, indent + 2, a.condition);
+	writeExpr(writer, indent + 2, *a.condition);
 	writer ~= ')';
-	writeStatementIndented(writer, indent, a.body_);
+	writeBlockStatement(writer, indent, a.body_);
 }
 
 // Returns true if it was a block
@@ -488,6 +511,10 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 				final switch (x.kind) {
 					case JsBinaryExpr.Kind.and:
 						return "&&";
+					case JsBinaryExpr.Kind.bitShiftLeft:
+						return "<<";
+					case JsBinaryExpr.Kind.bitShiftRight:
+						return ">>";
 					case JsBinaryExpr.Kind.bitwiseAnd:
 						return "&";
 					case JsBinaryExpr.Kind.bitwiseOr:
@@ -546,6 +573,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		},
 		(in JsLiteralIntegerLarge x) {
 			writer ~= x.value;
+			writer ~= 'n';
 		},
 		(in JsLiteralNumber x) {
 			writeFloatLiteral(writer, x.value);
@@ -591,6 +619,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= " : ";
 			writeArg(x.else_);
 		},
+		(in JsThisExpr x) {
+			writer ~= "this";
+		},
 		(in JsUnaryExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
@@ -604,6 +635,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 						return "void ";
 				}
 			}();
+			writer ~= '(';
 			writeArg(*x.arg);
+			writer ~= ')';
 		});
 }

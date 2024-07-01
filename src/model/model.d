@@ -806,6 +806,7 @@ static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
 enum JsFun {
 	asJsAny,
+	call,
 	callProperty,
 	eqEqEq,
 	get,
@@ -900,8 +901,7 @@ enum BuiltinUnary {
 	unsafeToNat32FromNat64,
 }
 
-alias BuiltinUnaryMath = immutable BuiltinUnaryMath_;
-private enum BuiltinUnaryMath_ {
+enum BuiltinUnaryMath {
 	acosFloat32,
 	acosFloat64,
 	acoshFloat32,
@@ -999,6 +999,10 @@ enum BuiltinBinary {
 	unsafeAddInt16,
 	unsafeAddInt32,
 	unsafeAddInt64,
+	unsafeAddNat8,
+	unsafeAddNat16,
+	unsafeAddNat32,
+	unsafeAddNat64,
 	unsafeBitShiftLeftNat64,
 	unsafeBitShiftRightNat64,
 	unsafeDivFloat32,
@@ -1016,10 +1020,18 @@ enum BuiltinBinary {
 	unsafeMulInt16,
 	unsafeMulInt32,
 	unsafeMulInt64,
+	unsafeMulNat8,
+	unsafeMulNat16,
+	unsafeMulNat32,
+	unsafeMulNat64,
 	unsafeSubInt8,
 	unsafeSubInt16,
 	unsafeSubInt32,
 	unsafeSubInt64,
+	unsafeSubNat8,
+	unsafeSubNat16,
+	unsafeSubNat32,
+	unsafeSubNat64,
 	wrapAddNat8,
 	wrapAddNat16,
 	wrapAddNat32,
@@ -1432,7 +1444,7 @@ Type paramTypeAt(in Called a, size_t argIndex) scope =>
 		(in Called.Bogus x) =>
 			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
 		(in FunInst x) =>
-			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
+			a.isVariadic ? arrayElementType(only(x.paramTypes)) : x.paramTypes[argIndex],
 		(in CalledSpecSig x) {
 			assert(!a.isVariadic);
 			return x.paramTypes[argIndex];

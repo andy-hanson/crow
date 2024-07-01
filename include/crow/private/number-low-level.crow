@@ -127,6 +127,10 @@ is-less bool(a nat64, b nat64) builtin, bare
 +wrap-add nat16(a nat16, b nat16) builtin, bare
 +wrap-add nat32(a nat32, b nat32) builtin, bare
 +wrap-add nat64(a nat64, b nat64) builtin, bare
+~unsafe-add nat8(a nat8, b nat8) builtin, bare, unsafe
+~unsafe-add nat16(a nat16, b nat16) builtin, bare, unsafe
+~unsafe-add nat32(a nat32, b nat32) builtin, bare, unsafe
+~unsafe-add nat64(a nat64, b nat64) builtin, bare, unsafe
 
 ~unsafe-add int8(a int8, b int8) builtin, bare, unsafe
 ~unsafe-add int16(a int16, b int16) builtin, bare, unsafe
@@ -137,6 +141,10 @@ is-less bool(a nat64, b nat64) builtin, bare
 +wrap-sub nat16(a nat16, b nat16) builtin, bare
 +wrap-sub nat32(a nat32, b nat32) builtin, bare
 +wrap-sub nat64(a nat64, b nat64) builtin, bare
+~unsafe-sub nat8(a nat8, b nat8) builtin, bare, unsafe
+~unsafe-sub nat16(a nat16, b nat16) builtin, bare, unsafe
+~unsafe-sub nat32(a nat32, b nat32) builtin, bare, unsafe
+~unsafe-sub nat64(a nat64, b nat64) builtin, bare, unsafe
 
 ~unsafe-sub int8(a int8, b int8) builtin, bare, unsafe
 ~unsafe-sub int16(a int16, b int16) builtin, bare, unsafe
@@ -147,6 +155,10 @@ is-less bool(a nat64, b nat64) builtin, bare
 +wrap-mul nat16(a nat16, b nat16) builtin, bare
 +wrap-mul nat32(a nat32, b nat32) builtin, bare
 +wrap-mul nat64(a nat64, b nat64) builtin, bare
++unsafe-mul nat8(a nat8, b nat8) builtin, bare, unsafe
++unsafe-mul nat16(a nat16, b nat16) builtin, bare, unsafe
++unsafe-mul nat32(a nat32, b nat32) builtin, bare, unsafe
++unsafe-mul nat64(a nat64, b nat64) builtin, bare, unsafe
 
 ~unsafe-mul int8(a int8, b int8) builtin, bare, unsafe
 ~unsafe-mul int16(a int16, b int16) builtin, bare, unsafe

@@ -1,8 +1,9 @@
+import
+	crow/test-util/test-runner: run-all-tests
+
 my-exception record(message string) exception variant-member
 describe string(a my-exception)
 	a.message
 
-main void() unsafe
-	x string = "foo"
-	y string = x ~~ "bar"
-	info log y
+main void() summon
+	info log -1.7::float64.truncate-to::int64.to

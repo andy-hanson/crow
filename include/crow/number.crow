@@ -8,8 +8,7 @@ import
 	./compare: !=, <, <=, >, >=, min
 	./private/bootstrap: exception, string
 	./private/number-low-level:
-		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul,
-		wrap-sub
+		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul
 export
 	./private/number-low-level:
 		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-value, min-value,
@@ -80,16 +79,16 @@ Throws if the result would overflow.
 # Throws if the result would be negative.
 +- nat8(a nat8, b nat8) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat16(a nat16, b nat16) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat32(a nat32, b nat32) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 +- nat64(a nat64, b nat64) bare
 	assert a >= b : a.to binary-out-of-range b.to
-	a wrap-sub b
+	trusted a unsafe-sub b
 
 # Throws if the result would overflow.
 +* nat64(a nat64, b nat64) bare
@@ -99,7 +98,6 @@ Throws if the result would overflow.
 	assert res / b == a : a.to binary-out-of-range b.to
 	assert res / a == b : a.to binary-out-of-range b.to
 	res
-
 
 ###
 Flooring division of `a` divided by `b`.
@@ -157,7 +155,7 @@ Be less than the least possible value or greater than the greatest possible valu
 + + int16(a int16, b int16) bare
 	trusted a.to unsafe-add b.to to
 + + int32(a int32, b int32) bare
-	trusted a.to unsafe-add b.to to
+	trusted a.to::int64 unsafe-add b.to to
 + + int64(a int64, b int64) bare
 	overflow = if b > 0
 		a > (trusted max-value unsafe-sub b)
@@ -167,7 +165,7 @@ Be less than the least possible value or greater than the greatest possible valu
 	trusted a unsafe-add b
 
 +- int32(a int32, b int32) bare
-	trusted a.to unsafe-sub b.to to
+	trusted a.to::int64 unsafe-sub b.to to
 +- int64(a int64, b int64) bare
 	overflow = if b > 0
 		a < (trusted min-value unsafe-add b)
@@ -181,7 +179,7 @@ Be less than the least possible value or greater than the greatest possible valu
 +* int16(a int16, b int16) bare
 	trusted a.to unsafe-mul b.to to
 +* int32(a int32, b int32) bare
-	trusted a.to unsafe-mul b.to to
+	trusted a.to::int64 unsafe-mul b.to to
 +* int64(a int64, b int64) bare
 	overflow = if a == -1
 		b == min-value
@@ -394,7 +392,7 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 # Return the closest possible value to `a + b`. Never throws.
 +clamp-add int32(a int32, b int32) bare
-	trusted a.to unsafe-add b.to clamp-to
+	trusted a.to::int64 unsafe-add b.to clamp-to
 
 # Throws if the result would not have the same value as the input (due to overflow or underflow)
 +to nat64(a int64) bare

@@ -840,6 +840,11 @@ immutable string[] specialSymbols = [
 	"BigInt",
 	"Number",
 	"isNaN",
+	"TextDecoder",
+	"TextEncoder",
+	"Uint8Array",
+	"debugger",
+	"instanceof",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

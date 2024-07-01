@@ -1174,6 +1174,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
 		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.unsafeSubNat8:
+		case BuiltinBinary.unsafeSubNat16:
+		case BuiltinBinary.unsafeSubNat32:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapSubNat8:
 		case BuiltinBinary.wrapSubNat16:
 		case BuiltinBinary.wrapSubNat32:
@@ -1217,6 +1221,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
 		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.unsafeAddNat8:
+		case BuiltinBinary.unsafeAddNat16:
+		case BuiltinBinary.unsafeAddNat32:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapAddNat32:
@@ -1227,6 +1235,10 @@ void generateSpecialBinary(
 		case BuiltinBinary.unsafeMulInt16:
 		case BuiltinBinary.unsafeMulInt32:
 		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeMulNat64:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapMulNat32:

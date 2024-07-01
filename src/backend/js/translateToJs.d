@@ -10,7 +10,9 @@ import backend.js.jsAst :
 	genBinary,
 	genBlockStatement,
 	genBool,
+	genBreak,
 	genCall,
+	genCallProperty,
 	genCallWithSpread,
 	genConst,
 	genEmptyStatement,
@@ -43,11 +45,11 @@ import backend.js.jsAst :
 	genUndefined,
 	genVarDecl,
 	genWhile,
+	genWhileTrue,
 	JsArrowFunction,
 	JsAssignStatement,
 	JsBinaryExpr,
 	JsBlockStatement,
-	JsBreakStatement,
 	JsCallExpr,
 	JsClassDecl,
 	JsClassMember,
@@ -81,6 +83,7 @@ import backend.js.jsAst :
 	JsWhileStatement;
 import backend.js.writeJsAst : writeJsAst;
 import frontend.ide.ideUtil : eachDescendentExprIncluding;
+import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted; // ---------------------------------------------------------------------------------
 import model.ast : addExtension, ImportOrExportAstKind, PathOrRelPath;
 import model.constant : asBool, Constant;
 import model.model :
@@ -227,7 +230,7 @@ import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuild
 immutable struct TranslateToJsResult {
 	KeyValuePair!(Path, string)[] outputFiles;
 }
-TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, OS os, bool isNodeJs) {
+TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, OS os, bool isNodeJs, in ShowCtx showCtx) {
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
 	// We need to start with the modules with no dependencies and work down...
 	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
@@ -236,6 +239,7 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, 
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
+		showCtx,
 		program.program.commonTypes,
 		version_,
 		allExtern,
@@ -334,6 +338,7 @@ struct TranslateProgramCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
+	ShowCtx showCtx; // ----------------------------------------------------------------------------------------------------------------
 	immutable CommonTypes* commonTypes;
 	immutable VersionInfo version_;
 	immutable SymbolSet allExtern;
@@ -364,6 +369,7 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 	JsImport[] reExports = translateReExports(ctx, a);
 	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
 		ctx.allocPtr,
+		ctx.showCtx,
 		ctx.commonTypes,
 		ctx.version_,
 		ctx.allExtern,
@@ -384,6 +390,7 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 struct TranslateModuleCtx {
 	@safe @nogc pure nothrow:
 	Alloc* allocPtr;
+	ShowCtx showCtx; // ----------------------------------------------------------------------------------------------------------------
 	immutable CommonTypes* commonTypesPtr;
 	immutable VersionInfo version_;
 	immutable SymbolSet allExtern;
@@ -406,7 +413,8 @@ struct TranslateModuleCtx {
 struct TranslateExprCtx {
 	@safe @nogc pure nothrow:
 	TranslateModuleCtx* ctxPtr;
-	FunDecl* curFun;
+	Opt!(FunDecl*) curFun;
+	uint nextTempIndex; // TODO: use it! --------------------------------------------------------------------------------------------------------------
 
 	ref TranslateModuleCtx ctx() =>
 		*ctxPtr;
@@ -439,39 +447,45 @@ immutable struct ModuleExportMangledNames {
 	// So 'foo' will be renamed 'foo__1'
 	// If no mangling is necessary, it won't be in here.
 	// This is used to get the first index for local names.
-	Map!(Symbol, ushort) indexForName;
+	Map!(Symbol, ushort) lastIndexForName;
 	// Key is some decl, e.g. StructDecl*.
 	// If it's not in the map, don't mangle it.
 	Map!(AnyDecl, ushort) mangledNames;
 }
 ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program program, in AllUsed used) {
-	MutMap!(Symbol, ushort) indexForName;
+	MutMap!(Symbol, ushort) lastIndexForName;
 	MutMap!(AnyDecl, ushort) res;
 	eachExportDeclInProgram(program, (AnyDecl decl) {
 		if (isUsedAnywhere(used, decl)) {
-			ushort index = addOrChange!(Symbol, ushort)(alloc, indexForName, decl.name, () => ushort(0), (ref ushort x) { x++; });
+			ushort index = addOrChange!(Symbol, ushort)(alloc, lastIndexForName, decl.name, () => ushort(0), (ref ushort x) { x++; });
 			mustAdd(alloc, res, decl, index);
 		}
 	});
 	// For uniquely identified decls, don't mangle
 	eachExportDeclInProgram(program, (AnyDecl decl) {
-		if (isUsedAnywhere(used, decl) && mustGet(indexForName, decl.name) == 0)
+		if (isUsedAnywhere(used, decl) && mustGet(lastIndexForName, decl.name) == 0)
 			mustDelete(res, decl);
 	});
-	return ModuleExportMangledNames(moveToMap(alloc, indexForName), moveToMap(alloc, res));
+	return ModuleExportMangledNames(moveToMap(alloc, lastIndexForName), moveToMap(alloc, res));
 }
 
 Map!(AnyDecl, ushort) modulePrivateMangledNames(ref Alloc alloc, in Module module_, in ModuleExportMangledNames exports_, in AllUsed used) {
-	MutMap!(Symbol, ushort) indexForName;
+	MutMap!(Symbol, ushort) lastIndexForName;
 	MutMap!(AnyDecl, ushort) res; // TODO: share code with 'moduleExportMangledNames'? ---------------------------------------
 	eachPrivateDeclInModule(module_, (AnyDecl decl) {
 		if (isUsedInModule(used, module_.uri, decl)) {
-			ushort index = addOrChange!(Symbol, ushort)(alloc, indexForName, decl.name, () => optOrDefault!ushort(exports_.indexForName[decl.name], () => typeAs!ushort(0)), (ref ushort x) { x++; });
+			ushort index = addOrChange!(Symbol, ushort)(
+				alloc, lastIndexForName, decl.name,
+				() {
+					Opt!ushort x = exports_.lastIndexForName[decl.name];
+					return has(x) ? safeToUshort(force(x) + 1) : typeAs!ushort(0);
+				},
+				(ref ushort x) { x++; });
 			mustAdd(alloc, res, decl, index);
 		}
 	});
 	eachPrivateDeclInModule(module_, (AnyDecl decl) {
-		if (isUsedInModule(used, module_.uri, decl) && mustGet(indexForName, decl.name) == 0)
+		if (isUsedInModule(used, module_.uri, decl) && mustGet(lastIndexForName, decl.name) == 0)
 			mustDelete(res, decl);
 	});
 	return moveToMap(alloc, res);
@@ -716,10 +730,11 @@ JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
 	JsClassMethod method = () {
 		if (isInlined(a)) {
 			FunDecl* decl = a.as!(FunInst*).decl;
+			TranslateExprCtx exprCtx = TranslateExprCtx(&ctx, none!(FunDecl*));
 			return JsClassMethod(
 				translateFunParams(ctx, decl.params),
 				translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-					translateInlineCall(ctx, a.returnType, pos, decl.body_, a.paramTypes, a.arity.as!uint, (size_t i) =>
+					translateInlineCall(exprCtx, a.returnType, pos, decl.body_, a.paramTypes, a.arity.as!uint, (size_t i) =>
 						JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
 		} else {
 			// foo(...args) { return foo(this, ...args) }
@@ -782,10 +797,7 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 	*/
 	JsName arg = JsName(symbol!"arg");
 	out_ ~= genConstructorIn(ctx.alloc, [JsDestructure(arg)], needSuper, [
-		JsStatement(genCall(
-			ctx.alloc,
-			genPropertyAccess(ctx.alloc, JsExpr(JsName(symbol!"Object")), symbol!"assign"),
-			[genThis(), JsExpr(arg)]))]);
+		JsStatement(genCallProperty(ctx.alloc, JsExpr(JsName(symbol!"Object")), symbol!"assign", [genThis(), JsExpr(arg)]))]);
 	
 	foreach (ref UnionMember member; a.members) {
 		JsClassMemberKind kind = () {
@@ -823,14 +835,14 @@ JsExprOrBlockStatement translateFunBody(ref TranslateModuleCtx ctx, FunDecl* fun
 	if (fun.body_.isA!(FunBody.FileImport))
 		return todo!JsExprOrBlockStatement("FileImport body"); // -----------------------------------------------------------------------------------------------------
 	else {
-		if (fun.body_.isA!Expr) {
-			TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), fun);
+		TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), some(fun));
+		if (fun.body_.isA!Expr)
 			return translateExprToExprOrBlockStatement(exprCtx, fun.body_.as!Expr, fun.returnType);
-		} else {
+		else {
 			Destructure[] params = fun.params.as!(Destructure[]);
 			Type[] paramTypes = map(ctx.alloc, params, (ref Destructure x) => x.type); // TODO: NO ALLOC ---------------------------
 			return translateToExprOrBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-				translateInlineCall(ctx, fun.returnType, pos, fun.body_, paramTypes, params.length, (size_t i) =>
+				translateInlineCall(exprCtx, fun.returnType, pos, fun.body_, paramTypes, params.length, (size_t i) =>
 					translateLocalGet(params[i].as!(Local*))));
 		}
 	}
@@ -909,12 +921,14 @@ ExprResult forceExpr(ref Alloc alloc, scope ExprPos pos, Type type, JsExpr expr)
 			add(alloc, x.statements, isVoid(type) ? JsStatement(expr) : genReturn(alloc, expr));
 			return ExprResult.done;
 		});
-ExprResult forceStatements(ref TranslateExprCtx ctx, scope ExprPos pos, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) =>
+ExprResult forceStatements(ref TranslateExprCtx ctx, scope ExprPos pos, in StatementsCb cb) =>
+	forceStatements(ctx.alloc, pos, cb);
+ExprResult forceStatements(ref Alloc alloc, scope ExprPos pos, in StatementsCb cb) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
-			ExprResult(genIife(ctx.alloc, makeBlockStatement(ctx.alloc, cb))),
+			ExprResult(genIife(alloc, makeBlockStatement(alloc, cb))),
 		(ExprPos.ExpressionOrBlockStatement) =>
-			ExprResult(makeBlockStatement(ctx.alloc, cb)),
+			ExprResult(makeBlockStatement(alloc, cb)),
 		(ref ExprPos.Statements x) =>
 			cb(x.statements, pos));
 JsBlockStatement makeBlockStatement(ref Alloc alloc, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) {
@@ -929,7 +943,7 @@ ExprResult forceStatement(ref TranslateExprCtx ctx, scope ExprPos pos, JsStateme
 ExprResult forceStatement(ref Alloc alloc, scope ExprPos pos, JsStatement statement) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
-			todo!ExprResult("USE AN IIFE"),
+			ExprResult(genIife(alloc, genBlockStatement(alloc, [statement]))),
 		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(genBlockStatement(alloc, [statement])),
 		(ref ExprPos.Statements x) {
@@ -967,20 +981,22 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 			forceExpr(ctx, pos, type, translateConstant(ctx, x.value, type)),
 		(LiteralStringLikeExpr x) =>
 			forceExpr(ctx, pos, type, genString(x.value)),
-		(LocalGetExpr x) =>
-			forceExpr(ctx, pos, type, translateLocalGet(x.local)),
+		(LocalGetExpr x) {
+			assert(type == x.local.type);
+			return forceExpr(ctx, pos, type, translateLocalGet(x.local));
+		},
 		(LocalPointerExpr x) =>
 			todo!ExprResult("LOCAL POINTER -- EMIT BOGUS"),
 		(LocalSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc, localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ref LoopExpr x) =>
-			forceStatement(ctx, pos, genWhile(ctx.alloc, genBool(true), translateExprToStatement(ctx, x.body_, type))),
+			forceStatement(ctx, pos, genWhileTrue(ctx.alloc, translateExprToBlockStatement(ctx, x.body_, type))),
 		(ref LoopBreakExpr x) {
 			assert(pos.isA!(ExprPos.Statements*));
 			ExprResult res = translateExpr(ctx, x.value, type, pos);
 			assert(res.isA!(ExprResult.Done));
 			if (isVoid(type))
-				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, JsStatement(JsBreakStatement()));
+				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, genBreak());
 			return res;
 		},
 		(LoopContinueExpr x) {
@@ -1032,6 +1048,16 @@ ExprResult translateAssertOrForbid(ref TranslateExprCtx ctx, ref AssertOrForbidE
 }
 
 ExprResult translateCall(ref TranslateExprCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) {
+	import model.diag : TypeContainer, TypeWithContainer;
+	import util.writer : debugLogWithWriter, Writer;
+	ShowTypeCtx showCtx = ShowTypeCtx(ctx.ctx.showCtx, ctx.commonTypesPtr);
+	debugLogWithWriter((scope ref Writer writer) {
+		writer ~= "Expected: ";
+		TypeContainer typeContainer = TypeContainer(force(ctx.curFun));
+		writeTypeUnquoted(writer, showCtx, TypeWithContainer(type, typeContainer));
+		writer ~= " Calling: ";
+		writeCalled(writer, showCtx, typeContainer, a.called);
+	});
 	assert(type == a.called.returnType);
 	return isInlined(a.called)
 		? translateInlineCall(ctx, type, pos, a.called.as!(FunInst*).decl.body_, a.called.as!(FunInst*).paramTypes, a.args.length, (size_t argIndex) =>
@@ -1045,7 +1071,7 @@ bool isInlined(in Called a) =>
 	a.isA!(FunInst*) && bodyIsInlined(*a.as!(FunInst*).decl);
 
 ExprResult translateInlineCall(
-	ref TranslateModuleCtx ctx,
+	ref TranslateExprCtx ctx,
 	Type returnType,
 	scope ExprPos pos,
 	in FunBody body_,
@@ -1101,7 +1127,7 @@ ExprResult translateInlineCall(
 			todo!ExprResult("FLAGS FUNCTION"),
 		(in FunBody.RecordFieldCall x) {
 			assert(nArgs == 2);
-			return expr(genCall(ctx.alloc, genPropertyAccess(ctx.alloc, getArg(0), recordFieldName(paramTypes[0], x.fieldIndex)), [getArg(1)]));
+			return expr(genCallProperty(ctx.alloc, getArg(0), recordFieldName(paramTypes[0], x.fieldIndex), [getArg(1)]));
 		},
 		(in FunBody.RecordFieldGet x) =>
 			expr(genPropertyAccess(ctx.alloc, onlyArg(), recordFieldName(paramTypes[0], x.fieldIndex))),
@@ -1136,7 +1162,7 @@ Symbol recordFieldName(Type record, size_t fieldIndex) =>
 	record.as!(StructInst*).decl.body_.as!(StructBody.Record).fields[fieldIndex].name;
 
 ExprResult translateCallBuiltin(
-	ref TranslateModuleCtx ctx,
+	ref TranslateExprCtx ctx,
 	Type returnType,
 	scope ExprPos pos,
 	in BuiltinFun a,
@@ -1152,15 +1178,17 @@ ExprResult translateCallBuiltin(
 			assert(nArgs == 1);
 			return expr(translateBuiltinUnary(ctx.alloc, x, getArg(0)));
 		},
-		(in BuiltinUnaryMath x) =>
-			todo!ExprResult("BUILTIN UNARY MATH"),
+		(in BuiltinUnaryMath x) {
+			assert(nArgs == 1);
+			return expr(translateBuiltinUnaryMath(ctx.alloc, x, getArg(0)));
+		},
 		(in BuiltinBinary x) {
 			assert(nArgs == 2);
 			return expr(translateBuiltinBinary(ctx.alloc, x, getArg(0), getArg(1)));
 		},
 		(in BuiltinBinaryLazy x) {
 			assert(nArgs == 2);
-			return translateBuiltinBinaryLazy(ctx.alloc, returnType, pos, x, getArg(0), getArg(1));
+			return translateBuiltinBinaryLazy(ctx, returnType, pos, x, getArg(0), getArg(1));
 		},
 		(in BuiltinBinaryMath x) =>
 			todo!ExprResult("BUILTIN BINARY MATH"),
@@ -1218,7 +1246,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 		case BuiltinUnary.enumToIntegral:
 			return todo!JsExpr("Enum to integral value");
 		case BuiltinUnary.isNanFloat64:
-			return genCall(alloc, genPropertyAccess(alloc, JsExpr(JsName(symbol!"Number")), symbol!"isNaN"), [arg]);
+			return genCallProperty(alloc, JsExpr(JsName(symbol!"Number")), symbol!"isNaN", [arg]);
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toInt64FromInt8:
 		case BuiltinUnary.toInt64FromInt16:
@@ -1246,28 +1274,111 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			return genCall(alloc, JsExpr(JsName(symbol!"Number")), [arg]);
 		case BuiltinUnary.toChar8ArrayFromString:
 			// Array.from(new TextEncoder().encode(arg))
-			return todo!JsExpr("chars of string"); // ----------------------------------------------------------------------
+			return genArrayFrom(
+				alloc,
+				genCallProperty(
+					alloc,
+					genNew(alloc, JsExpr(JsName(symbol!"TextEncoder")), []),
+					symbol!"encode",
+					[arg]));
 		case BuiltinUnary.truncateToInt64FromFloat64:
-			return todo!JsExpr("trucate float");
+			return genCall(alloc, JsExpr(JsName(symbol!"BigInt")), [callMath(alloc, symbol!"trunc", arg)]);
 		case BuiltinUnary.trustAsString:
 			// new TextDecoder().decode(new Uint8Array(arg))
-			return todo!JsExpr("string of chars"); // --------------------------------------------------------------------
+			return genCallProperty(
+				alloc,
+				genNew(alloc, JsExpr(JsName(symbol!"TextDecoder")), []),
+				symbol!"decode",
+				[genNew(alloc, JsExpr(JsName(symbol!"Uint8Array")), [arg])]);
 	}
 }
+JsExpr genArrayFrom(ref Alloc alloc, JsExpr arg) =>
+	genCallProperty(alloc, JsExpr(JsName(symbol!"Array")), symbol!"from", [arg]);
+
+JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) =>
+	callMath(alloc, builtinUnaryMathName(a), arg);
+JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
+	genCallProperty(alloc, JsExpr(JsName(symbol!"Math")), name, [arg]);
+Symbol builtinUnaryMathName(BuiltinUnaryMath a) {
+	final switch (a) {
+		case BuiltinUnaryMath.acosFloat32:
+		case BuiltinUnaryMath.acoshFloat32:
+		case BuiltinUnaryMath.asinFloat32:
+		case BuiltinUnaryMath.asinhFloat32:
+		case BuiltinUnaryMath.atanFloat32:
+		case BuiltinUnaryMath.atanhFloat32:
+		case BuiltinUnaryMath.cosFloat32:
+		case BuiltinUnaryMath.coshFloat32:
+		case BuiltinUnaryMath.roundFloat32:
+		case BuiltinUnaryMath.sinFloat32:
+		case BuiltinUnaryMath.sinhFloat32:
+		case BuiltinUnaryMath.sqrtFloat32:
+		case BuiltinUnaryMath.tanFloat32:
+		case BuiltinUnaryMath.tanhFloat32:
+		case BuiltinUnaryMath.unsafeLogFloat32:
+			assert(false);
+		case BuiltinUnaryMath.acosFloat64:
+			return symbol!"acos";
+		case BuiltinUnaryMath.acoshFloat64:
+			return symbol!"acosh";
+		case BuiltinUnaryMath.asinFloat64:
+			return symbol!"asin";
+		case BuiltinUnaryMath.asinhFloat64:
+			return symbol!"asinh";
+		case BuiltinUnaryMath.atanFloat64:
+			return symbol!"atan";
+		case BuiltinUnaryMath.atanhFloat64:
+			return symbol!"atanh";
+		case BuiltinUnaryMath.cosFloat64:
+			return symbol!"cos";
+		case BuiltinUnaryMath.coshFloat64:
+			return symbol!"cosh";
+		case BuiltinUnaryMath.roundFloat64:
+			return symbol!"round";
+		case BuiltinUnaryMath.sinFloat64:
+			return symbol!"sin";
+		case BuiltinUnaryMath.sinhFloat64:
+			return symbol!"sinh";
+		case BuiltinUnaryMath.sqrtFloat64:
+			return symbol!"sqrt";
+		case BuiltinUnaryMath.tanFloat64:
+			return symbol!"tan";
+		case BuiltinUnaryMath.tanhFloat64:
+			return symbol!"tanh";
+		case BuiltinUnaryMath.unsafeLogFloat64:
+			return symbol!"log";
+	}
+}
+
+JsExpr genModulo(ref Alloc alloc, JsExpr left, JsExpr right) =>
+	genBinary(alloc, JsBinaryExpr.Kind.modulo, left, right);
+JsExpr moduloNat8(ref Alloc alloc, JsExpr arg) =>
+	genModulo(alloc, arg, genIntegerUnsigned(0x100));
+JsExpr moduloNat16(ref Alloc alloc, JsExpr arg) =>
+	genModulo(alloc, arg, genIntegerUnsigned(0x10000));
+JsExpr moduloNat32(ref Alloc alloc, JsExpr arg) =>
+	genModulo(alloc, arg, genIntegerUnsigned(0x100000000));
+JsExpr moduloNat64(ref Alloc alloc, JsExpr arg) =>
+	genModulo(alloc, arg, genIntegerLarge("0x10000000000000000"));
+
 JsExpr translateBuiltinBinary(ref Alloc alloc, BuiltinBinary a, JsExpr left, JsExpr right) {
 	JsExpr binary(JsBinaryExpr.Kind kind) =>
 		genBinary(alloc, kind, left, right);
-	JsExpr wrapAdd(string modulo) =>
-		genBinary(alloc, JsBinaryExpr.Kind.modulo, binary(JsBinaryExpr.Kind.plus), genIntegerLarge(modulo));
-	JsExpr wrapMul(string modulo) =>
-		genBinary(alloc, JsBinaryExpr.Kind.modulo, binary(JsBinaryExpr.Kind.times), genIntegerLarge(modulo));
+	JsExpr add() =>
+		binary(JsBinaryExpr.Kind.plus);
+	JsExpr mul() =>
+		binary(JsBinaryExpr.Kind.times);
 	final switch (a) {
 		case BuiltinBinary.addFloat64:
 		case BuiltinBinary.unsafeAddInt8:
 		case BuiltinBinary.unsafeAddInt16:
 		case BuiltinBinary.unsafeAddInt32:
 		case BuiltinBinary.unsafeAddInt64:
-			return binary(JsBinaryExpr.Kind.plus);
+		case BuiltinBinary.unsafeAddNat8:
+		case BuiltinBinary.unsafeAddNat16:
+		case BuiltinBinary.unsafeAddNat32:
+		case BuiltinBinary.unsafeAddNat64:
+			return add();
 		case BuiltinBinary.bitwiseAndInt8:
 		case BuiltinBinary.bitwiseAndInt16:
 		case BuiltinBinary.bitwiseAndInt32:
@@ -1323,16 +1434,25 @@ JsExpr translateBuiltinBinary(ref Alloc alloc, BuiltinBinary a, JsExpr left, JsE
 		case BuiltinBinary.unsafeMulInt16:
 		case BuiltinBinary.unsafeMulInt32:
 		case BuiltinBinary.unsafeMulInt64:
-			return binary(JsBinaryExpr.Kind.times);
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeMulNat64:
+			return mul();
 		case BuiltinBinary.subFloat64:
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:
 		case BuiltinBinary.unsafeSubInt32:
 		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.unsafeSubNat8:
+		case BuiltinBinary.unsafeSubNat16:
+		case BuiltinBinary.unsafeSubNat32:
+		case BuiltinBinary.unsafeSubNat64:
 			return binary(JsBinaryExpr.Kind.minus);
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
+			return moduloNat64(alloc, binary(JsBinaryExpr.Kind.bitShiftLeft));
 		case BuiltinBinary.unsafeBitShiftRightNat64:
-			return todo!JsExpr("bit shift left. Is this << or <<< ?");
+			return moduloNat64(alloc, binary(JsBinaryExpr.Kind.bitShiftRight));
 		case BuiltinBinary.unsafeDivFloat64:
 		case BuiltinBinary.unsafeDivInt8:
 		case BuiltinBinary.unsafeDivInt16:
@@ -1346,22 +1466,21 @@ JsExpr translateBuiltinBinary(ref Alloc alloc, BuiltinBinary a, JsExpr left, JsE
 		case BuiltinBinary.unsafeModNat64:
 			return binary(JsBinaryExpr.Kind.modulo);
 		case BuiltinBinary.wrapAddNat8:
-			return wrapAdd("0x100n");
+			return moduloNat8(alloc, add());
 		case BuiltinBinary.wrapAddNat16:
-			return wrapAdd("0x10000n");
+			return moduloNat16(alloc, add());
 		case BuiltinBinary.wrapAddNat32:
-			return wrapAdd("0x100000000n");
+			return moduloNat32(alloc, add());
 		case BuiltinBinary.wrapAddNat64:
-			// TODO: there should probably be separate 'unsafe-add' and 'wrap-add' functions, to keep the JS simple when we are checking for overflow anyway
-			return wrapAdd("0x10000000000000000n");
+			return moduloNat64(alloc, add());
 		case BuiltinBinary.wrapMulNat8:
-			return wrapMul("0x100n");
+			return moduloNat8(alloc, mul());
 		case BuiltinBinary.wrapMulNat16:
-			return wrapMul("0x10000n");
+			return moduloNat16(alloc, mul());
 		case BuiltinBinary.wrapMulNat32:
-			return wrapMul("0x100000000n");
+			return moduloNat32(alloc, mul());
 		case BuiltinBinary.wrapMulNat64:
-			return wrapMul("0x10000000000000000n");
+			return moduloNat64(alloc, mul());
 		case BuiltinBinary.wrapSubNat8:
 		case BuiltinBinary.wrapSubNat16:
 		case BuiltinBinary.wrapSubNat32:
@@ -1384,16 +1503,21 @@ JsExpr translateBuiltinBinary(ref Alloc alloc, BuiltinBinary a, JsExpr left, JsE
 			assert(false);
 	}
 }
-ExprResult translateBuiltinBinaryLazy(ref Alloc alloc, Type type, scope ExprPos pos, BuiltinBinaryLazy kind, JsExpr left, JsExpr right) {
+ExprResult translateBuiltinBinaryLazy(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, BuiltinBinaryLazy kind, JsExpr left, JsExpr right) {
 	final switch (kind) {
 		case BuiltinBinaryLazy.boolAnd:
-			return forceExpr(alloc, pos, type, genBinary(alloc, JsBinaryExpr.Kind.and, left, right));
+			return forceExpr(ctx.alloc, pos, type, genBinary(ctx.alloc, JsBinaryExpr.Kind.and, left, right));
 		case BuiltinBinaryLazy.boolOr:
-			return forceExpr(alloc, pos, type, genBinary(alloc, JsBinaryExpr.Kind.or, left, right));
+			return forceExpr(ctx.alloc, pos, type, genBinary(ctx.alloc, JsBinaryExpr.Kind.or, left, right));
 		case BuiltinBinaryLazy.optionOr:
 			return todo!ExprResult("option or");
 		case BuiltinBinaryLazy.optionQuestion2:
-			return todo!ExprResult("option or default");
+			return withTemp2(ctx, symbol!"option", left, pos, (JsName option, scope ExprPos inner) =>
+				forceExpr(ctx.alloc, inner, type, genTernary(
+					ctx.alloc,
+					genOptionHas(ctx.alloc, JsExpr(option)),
+					genOptionForce(ctx.alloc, JsExpr(option)),
+					right)));
 	}
 }
 
@@ -1416,6 +1540,10 @@ ExprResult translateCallJsFun(
 		case JsFun.jsAnyAsT:
 			assert(nArgs == 1);
 			return expr(getArg(0));
+		case JsFun.call:
+			return expr(genCall(
+				allocate(ctx.alloc, getArg(0)),
+				makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
 		case JsFun.callProperty:
 			assert(nArgs >= 2);
 			return expr(genCall(
@@ -1479,13 +1607,19 @@ ExprResult translateUnpackOption(ref TranslateExprCtx ctx, Type type, scope Expr
 	withTemp(ctx, symbol!"option", unpack.option, pos, (JsName option, scope ExprPos inner) =>
 		forceStatement(ctx, inner, genIf(
 			ctx.alloc,
-			genIn(ctx.alloc, genString("some"), JsExpr(option)),
+			genOptionHas(ctx.alloc, JsExpr(option)),
 			translateToStatement(ctx.alloc, (scope ExprPos inner2) =>
 				translateLetLikeCb(
-					ctx, unpack.destructure, genPropertyAccess(ctx.alloc, JsExpr(option), symbol!"some"), inner2,
+					ctx, unpack.destructure, genOptionForce(ctx.alloc, JsExpr(option)), inner2,
 					(scope ref ArrayBuilder!JsStatement, scope ExprPos inner3) =>
 						cbTrueBranch(inner3))),
 			translateToStatement(ctx.alloc, cbFalseBranch))));
+
+//TODO:MOVE --------------------------------------------------------------------------------------------------------------------------------
+JsExpr genOptionHas(ref Alloc alloc, JsExpr option) =>
+	genIn(alloc, genString("some"), option);
+JsExpr genOptionForce(ref Alloc alloc, JsExpr option) =>
+	genPropertyAccess(alloc, option, symbol!"some");
 
 ExprResult translateLambda(ref TranslateExprCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(
@@ -1509,7 +1643,7 @@ ExprResult translateLetLikeCb(
 	in Destructure destructure,
 	JsExpr value,
 	scope ExprPos pos,
-	in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb,
+	in StatementsCb cb,
 ) =>
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 		if (destructure.isA!(Destructure.Ignore*)) {
@@ -1569,12 +1703,50 @@ ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUn
 			JsExpr condition = translateExprToExpr(ctx, cond, Type(ctx.commonTypes.bool_));
 			JsExpr condition2 = a.isUntil ? genNot(ctx.alloc, condition) : condition;
 			return forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement res, scope ExprPos inner) {
-				add(ctx.alloc, res, genWhile(ctx.alloc, condition2, translateExprToStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
+				add(ctx.alloc, res, genWhile(ctx.alloc, condition2, translateExprToBlockStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
 				return translateExpr(ctx, a.after, type, inner);
 			});
 		},
-		(ref Condition.UnpackOption) =>
-			todo!ExprResult("UNPACK OPTION IN LOOP"));
+		(ref Condition.UnpackOption unpack) {
+			if (a.isUntil) {
+				/*
+				For an 'until':
+				let option
+				while (true) {
+					option = <<option>>
+					if ("some" in option) break
+					<<body>>
+				}
+				const <<destructure>> = option.some
+				<<after>>
+				*/
+				return todo!ExprResult("translate 'until x ?= option'"); // ----------------------------------------------------
+			} else
+				/*
+				For a 'while':
+				while (true) {
+					const option = <<option>>
+					if ("some" in option) {
+						const <<destructure>> = option.some
+						<<body>>
+					} else
+						break
+				}
+				<<after>>
+				*/
+				return forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement outerOut, scope ExprPos outerPos) =>
+					withTemp(ctx, symbol!"option", unpack.option, outerPos, (JsName option, scope ExprPos tempPos) {
+						JsBlockStatement body_ = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos bodyPos) =>
+							translateUnpackOption(
+								ctx, Type(ctx.commonTypes.void_), bodyPos, unpack,
+								(scope ExprPos thenPos) =>
+									translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), thenPos),
+								(scope ExprPos elsePos) =>
+									forceStatement(ctx, elsePos, genBreak())));
+						add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, body_));
+						return translateExpr(ctx, a.after, type, tempPos);
+					}));
+		});
 
 ExprResult translateMatchEnum(ref TranslateExprCtx ctx, ref MatchEnumExpr a, Type type, scope ExprPos pos) =>
 	forceStatement(ctx, pos, genSwitch(
@@ -1659,9 +1831,17 @@ ExprResult withTemp(
 	scope ExprPos pos,
 	in ExprResult delegate(JsName temp, scope ExprPos inner) @safe @nogc pure nothrow cb,
 ) =>
+	withTemp2(ctx, name, translateExprToExpr(ctx, value), pos, cb);
+ExprResult withTemp2(
+	ref TranslateExprCtx ctx,
+	Symbol name,
+	JsExpr value,
+	scope ExprPos pos,
+	in ExprResult delegate(JsName temp, scope ExprPos inner) @safe @nogc pure nothrow cb,
+) =>
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 		JsName jsName = JsName(name); // TODO: give it a temp index ---------------------------------------------------------
-		add(ctx.alloc, out_, genConst(ctx.alloc, JsDestructure(jsName), translateExprToExpr(ctx, value)));
+		add(ctx.alloc, out_, genConst(ctx.alloc, JsDestructure(jsName), value));
 		return cb(jsName, inner);
 	});
 
@@ -1759,7 +1939,7 @@ bool hasAnyMutable(in Destructure a) =>
 // For a function with specs, it is a double-arrow function with a parameter for each member of the spec.
 // E.g.: const f = (spec0, spec1) => (arg0, arg1) => ...
 JsExpr calledExpr(ref TranslateExprCtx ctx, in Called a) =>
-	calledExpr(ctx.ctx, some(ctx.curFun), a);
+	calledExpr(ctx.ctx, ctx.curFun, a);
 JsExpr calledExpr(ref TranslateModuleCtx ctx, Opt!(FunDecl*) curFun, in Called a) =>
 	a.match!JsExpr(
 		(ref Called.Bogus x) =>

@@ -12,9 +12,11 @@ import
 +get js-any(a js-any, name nat64) builtin, bare, unsafe, js extern
 +set void(a js-any, name string, value js-any) bare, builtin, unsafe, js extern
 +set void(a js-any, name nat64, value js-any) bare, builtin, unsafe, js extern
-+call js-any(a js-any, name string) builtin, unsafe, js extern
-+call[p0] js-any(a js-any, name string, arg p0) builtin, unsafe, js extern
-+call[p0, p1] js-any(a js-any, name string, arg0 p0, arg1 p1) builtin, unsafe, js extern
+# WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
++call[p0] js-any(a js-any, arg p0) builtin, unsafe, js extern
++call-property js-any(a js-any, name string) builtin, unsafe, js extern
++call-property[p0] js-any(a js-any, name string, arg p0) builtin, unsafe, js extern
++call-property[p0, p1] js-any(a js-any, name string, arg0 p0, arg1 p1) builtin, unsafe, js extern
 
 region Operators
 ~js-eq-eq-eq[t] bool(a t, b t) builtin, unsafe, js extern

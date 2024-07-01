@@ -8,7 +8,7 @@ import
 	../col/array: array, begin-pointer, size
 	../c-types: fd-t
 	../exception: exception, not-implemented
-	../js: as-t, call, js-global
+	../js: as-t, call-property, js-global
 	../misc: new, void
 	../number: ==, nat8, nat32, to
 	../pointer: null, size-of
@@ -30,7 +30,7 @@ import
 			"log"
 		as err
 			"error"
-		"console".js-global call fn, message as-t
+		"console".js-global call-property fn, message as-t
 	else
 		throw not-implemented
 

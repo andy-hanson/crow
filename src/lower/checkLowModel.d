@@ -478,7 +478,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat8:
 		case BuiltinBinary.bitwiseOrNat8:
 		case BuiltinBinary.bitwiseXorNat8:
+		case BuiltinBinary.unsafeAddNat8:
 		case BuiltinBinary.unsafeDivNat8:
+		case BuiltinBinary.unsafeMulNat8:
+		case BuiltinBinary.unsafeSubNat8:
 		case BuiltinBinary.wrapAddNat8:
 		case BuiltinBinary.wrapMulNat8:
 		case BuiltinBinary.wrapSubNat8:
@@ -486,7 +489,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat16:
 		case BuiltinBinary.bitwiseOrNat16:
 		case BuiltinBinary.bitwiseXorNat16:
+		case BuiltinBinary.unsafeAddNat16:
 		case BuiltinBinary.unsafeDivNat16:
+		case BuiltinBinary.unsafeMulNat16:
+		case BuiltinBinary.unsafeSubNat16:
 		case BuiltinBinary.wrapAddNat16:
 		case BuiltinBinary.wrapMulNat16:
 		case BuiltinBinary.wrapSubNat16:
@@ -494,7 +500,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseAndNat32:
 		case BuiltinBinary.bitwiseOrNat32:
 		case BuiltinBinary.bitwiseXorNat32:
+		case BuiltinBinary.unsafeAddNat32:
 		case BuiltinBinary.unsafeDivNat32:
+		case BuiltinBinary.unsafeMulNat32:
+		case BuiltinBinary.unsafeSubNat32:
 		case BuiltinBinary.wrapAddNat32:
 		case BuiltinBinary.wrapMulNat32:
 		case BuiltinBinary.wrapSubNat32:
@@ -504,8 +513,11 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.bitwiseXorNat64:
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
 		case BuiltinBinary.unsafeBitShiftRightNat64:
+		case BuiltinBinary.unsafeAddNat64:
 		case BuiltinBinary.unsafeDivNat64:
 		case BuiltinBinary.unsafeModNat64:
+		case BuiltinBinary.unsafeMulNat64:
+		case BuiltinBinary.unsafeSubNat64:
 		case BuiltinBinary.wrapAddNat64:
 		case BuiltinBinary.wrapMulNat64:
 		case BuiltinBinary.wrapSubNat64:

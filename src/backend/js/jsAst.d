@@ -104,7 +104,7 @@ immutable struct JsStatement {
 		JsTryCatchStatement,
 		JsTryFinallyStatement,
 		JsVarDecl,
-		JsWhileStatement*);
+		JsWhileStatement);
 }
 immutable struct JsAssignStatement {
 	JsExpr left;
@@ -154,8 +154,8 @@ immutable struct JsVarDecl {
 	JsExpr* initializer;
 }
 immutable struct JsWhileStatement {
-	JsExpr condition;
-	JsStatement body_;
+	JsExpr* condition;
+	JsBlockStatement body_;
 }
 
 immutable struct JsExpr {
@@ -177,6 +177,7 @@ immutable struct JsExpr {
 		JsPropertyAccessExpr,
 		JsPropertyAccessComputedExpr*,
 		JsTernaryExpr*,
+		JsThisExpr,
 		JsUnaryExpr,
 	);
 }
@@ -186,6 +187,8 @@ immutable struct JsArrayExpr {
 immutable struct JsBinaryExpr {
 	enum Kind {
 		and,
+		bitShiftLeft,
+		bitShiftRight,
 		bitwiseAnd,
 		bitwiseOr,
 		bitwiseXor,
@@ -260,6 +263,7 @@ immutable struct JsTernaryExpr {
 	JsExpr then;
 	JsExpr else_;
 }
+immutable struct JsThisExpr {}
 immutable struct JsUnaryExpr {
 	enum Kind { bitwiseNot, not, typeof_, void_ }
 	Kind kind;
@@ -278,12 +282,16 @@ JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements)
 	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>
 	JsExpr(JsLiteralBool(true));
+JsStatement genBreak() =>
+	JsStatement(JsBreakStatement());
 JsExpr genCall(JsExpr* called, JsExpr[] args) =>
 	JsExpr(JsCallExpr(called, args));
 JsExpr genCall(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
 	genCall(allocate(alloc, called), newArray(alloc, args));
 JsExpr genCallWithSpread(ref Alloc alloc, JsExpr called, in JsExpr[] args, JsExpr spreadArg) =>
 	JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg)));
+JsExpr genCallProperty(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
+	genCall(alloc, genPropertyAccess(alloc, object, property), args);
 JsStatement genEmptyStatement() =>
 	JsStatement(JsEmptyStatement());
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>
@@ -341,11 +349,13 @@ JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genThis() =>
-	JsExpr(JsName(symbol!"this"));
+	JsExpr(JsThisExpr());
 JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
 	JsExpr(JsUnaryExpr(kind, allocate(alloc, arg)));
 JsExpr number0 = genNumber(0);
 JsExpr genUndefined() =>
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
-JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsStatement body_) =>
-	JsStatement(allocate(alloc, JsWhileStatement(condition, body_)));
+JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsBlockStatement body_) =>
+	JsStatement(JsWhileStatement(allocate(alloc, condition), body_));
+JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
+	genWhile(alloc, genBool(true), body_);

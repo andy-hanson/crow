@@ -130,6 +130,10 @@ FunBody inner(
 		case symbol!"set".value:
 			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
 		case symbol!"call".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.call))
+				: fail();
+		case symbol!"call-property".value:
 			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))
 				: fail();
@@ -446,6 +450,14 @@ FunBody inner(
 				? BuiltinBinary.unsafeAddInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeAddInt64
+				: isNat8(rt)
+				? BuiltinBinary.unsafeAddNat8
+				: isNat16(rt)
+				? BuiltinBinary.unsafeAddNat16
+				: isNat32(rt)
+				? BuiltinBinary.unsafeAddNat32
+				: isNat64(rt)
+				? BuiltinBinary.unsafeAddNat64
 				: failBinary);
 		case symbol!"unsafe-div".value:
 			return binary(isFloat32(rt)
@@ -482,6 +494,14 @@ FunBody inner(
 				? BuiltinBinary.unsafeMulInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeMulInt64
+				: isNat8(rt)
+				? BuiltinBinary.unsafeMulNat8
+				: isNat16(rt)
+				? BuiltinBinary.unsafeMulNat16
+				: isNat32(rt)
+				? BuiltinBinary.unsafeMulNat32
+				: isNat64(rt)
+				? BuiltinBinary.unsafeMulNat64
 				: failBinary);
 		case symbol!"unsafe-sub".value:
 			return binary(isInt8(rt)
@@ -492,6 +512,14 @@ FunBody inner(
 				? BuiltinBinary.unsafeSubInt32
 				: isInt64(rt)
 				? BuiltinBinary.unsafeSubInt64
+				: isNat8(rt)
+				? BuiltinBinary.unsafeSubNat8
+				: isNat16(rt)
+				? BuiltinBinary.unsafeSubNat16
+				: isNat32(rt)
+				? BuiltinBinary.unsafeSubNat32
+				: isNat64(rt)
+				? BuiltinBinary.unsafeSubNat64
 				: failBinary);
 		case symbol!"wrap-add".value:
 			return binary(isNat8(rt)

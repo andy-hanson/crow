@@ -15,7 +15,7 @@ import
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
-	./js: js-eq-eq-eq, js-less, js-plus
+	./js: as-t, call, js-eq-eq-eq, js-global, js-less, js-plus
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
@@ -207,7 +207,13 @@ Converts a nat64 to a string.
 Result is only digits, no punctuation.
 ###
 +to string(a nat64)
-	a to-base 10
+	if trusted extern js
+		trusted a js-to-string
+	else
+		a to-base 10
+
+-js-to-string[t] string(a t) unsafe, js extern
+	"String".js-global call a as-t
 
 -digit-to-string string(a nat64)
 	a.digit-to-char to
@@ -294,7 +300,9 @@ Result is only digits, no punctuation.
 	a.to::int64 to
 
 +to string(a int64)
-	if a == min-value
+	if trusted extern js
+		trusted a js-to-string
+	elif a == min-value
 		"-9223372036854775808"
 	else
 		s string = "{a abs}"
@@ -304,33 +312,37 @@ Result is only digits, no punctuation.
 	a.to::float64 to
 
 +to string(a float64) trusted
-	guard !a.is-nan : "NaN"
-	guard a != infinity : "Infinity"
-	guard a != -infinity : "-Infinity"
-	guard a != a.truncate-to::int64.to : a.truncate-to to
-	guard a > 0 : a == 0 ? "0" : "-{-a}"
-
-	dec mut, exp mut = a to-decimal-and-exponent
-	# Ouptut in reverse
-	out char32 mut[] = ()
-	while dec != 0
-		digit = dec % 10
-		out ~= digit digit-to-char
-		dec /:= 10
-		exp +:= 1
-
-	out reverse-in-place
-	if exp <= 0
-		for _ : 0::nat64 .. exp.abs
-			out prepend= "0"
-		out prepend= "."
-		out prepend= "0"
-	elif exp.to::nat64 < out.size
-		out insert-at exp.to, "."
+	# TODO: guard !(extern js) : a js-to-string --------------------------------------------------------------------------------------
+	if extern js
+		a js-to-string
 	else
-		for _ : out.size .. exp.to
-			out ~= "0"
-	out.move-to::(char32 array) to
+		guard !a.is-nan : "NaN"
+		guard a != infinity : "Infinity"
+		guard a != -infinity : "-Infinity"
+		guard a != a.truncate-to::int64.to : a.truncate-to to
+		guard a > 0 : a == 0 ? "0" : "-{-a}"
+
+		dec mut, exp mut = a to-decimal-and-exponent
+		# Ouptut in reverse
+		out char32 mut[] = ()
+		while dec != 0
+			digit = dec % 10
+			out ~= digit digit-to-char
+			dec /:= 10
+			exp +:= 1
+
+		out reverse-in-place
+		if exp <= 0
+			for _ : 0::nat64 .. exp.abs
+				out prepend= "0"
+			out prepend= "."
+			out prepend= "0"
+		elif exp.to::nat64 < out.size
+			out insert-at exp.to, "."
+		else
+			for _ : out.size .. exp.to
+				out ~= "0"
+		out.move-to::(char32 array) to
 
 -to-decimal-and-exponent (nat64, int64)(a float64)
 	assert a > 0
