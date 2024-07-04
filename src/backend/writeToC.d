@@ -1902,6 +1902,7 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			return operator("==");
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:

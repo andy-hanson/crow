@@ -128,7 +128,9 @@ FunBody inner(
 		case symbol!"get".value:
 			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) ? FunBody(BuiltinFun(JsFun.get)) : fail();
 		case symbol!"set".value:
-			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isJsAny(p2) ? FunBody(BuiltinFun(JsFun.set)) : fail();
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isTypeParam0(p2)
+				? FunBody(BuiltinFun(JsFun.set))
+				: fail();
 		case symbol!"call".value:
 			return isJsAny(rt)
 				? FunBody(BuiltinFun(JsFun.call))
@@ -136,6 +138,14 @@ FunBody inner(
 		case symbol!"call-property".value:
 			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))
+				: fail();
+		case symbol!"call-property-spread".value:
+			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0Array(p2)
+				? FunBody(BuiltinFun(JsFun.callPropertySpread))
+				: fail();
+		case symbol!"js-cast".value:
+			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
+				? FunBody(BuiltinFun(JsFun.cast_))
 				: fail();
 		case symbol!"js-eq-eq-eq".value:
 			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
@@ -357,7 +367,7 @@ FunBody inner(
 		case symbol!"null".value:
 			return constant(isPointerConstOrMut(rt), constantZero);
 		case symbol!"reference-equal".value:
-			return binary(BuiltinBinary.eqPointer);
+			return binary(BuiltinBinary.referenceEqual);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
 		case symbol!"set-deref".value:
@@ -684,6 +694,8 @@ bool isJsAny(in Type a) =>
 
 bool isChar8Array(in Type a) =>
 	isArray(a) && isChar8(arrayElementType(a));
+bool isTypeParam0Array(in Type a) =>
+	isArray(a) && isTypeParam0(arrayElementType(a));
 bool isJsAnyArray(in Type a) =>
 	isArray(a) && isJsAny(arrayElementType(a));
 
@@ -696,6 +708,8 @@ bool isPointerMut(in Type a) =>
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
+bool isTypeParam1(in Type a) =>
+	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 1;
 
 bool isVoid(in Type a) => // TODO: this should be in model.d -----------------------------------------------------------------------
 	isBuiltin(a, BuiltinType.void_);

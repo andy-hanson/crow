@@ -1,9 +1,13 @@
 import
+	crow/col/counter: counter, new
+	crow/col/deque: deque, new
+	crow/col/experimental/compact-map: compact-map, new
+	./include/crow/col/private/list-tests: dummy-list-tests
 	crow/test-util/test-runner: run-all-tests
 
 my-exception record(message string) exception variant-member
 describe string(a my-exception)
 	a.message
 
-main void() summon
-	info log -1.7::float64.truncate-to::int64.to
+main void() summon, js extern
+	run-all-tests

@@ -640,6 +640,17 @@ bool arraysEqual(T)(in T[] a, in T[] b) =>
 T applyNTimes(T)(T start, size_t times, in T delegate(T) @safe @nogc pure nothrow cb) =>
 	times == 0 ? start : applyNTimes(cb(start), times - 1, cb);
 
+T foldRange(T)(
+	size_t length,
+	in T delegate(size_t) @safe @nogc pure nothrow cbGet,
+	in T delegate(T, T) @safe @nogc pure nothrow cbCombine,
+) {
+	assert(length != 0);
+	T recur(T acc, size_t i) =>
+		i == length ? acc : cbCombine(acc, cbGet(i));
+	return recur(cbGet(0), 1);
+}
+
 T fold(T, U)(T start, in U[] arr, in T delegate(T, in U) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start
@@ -663,6 +674,12 @@ T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U
 	isEmpty(arr)
 		? start
 		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
+
+Out mapReduce(Out, In)(in In[] in_, in Out delegate(ref In) @safe @nogc pure nothrow cbMap, in Out delegate(Out, Out) @safe @nogc pure nothrow cbReduce) {
+	Out recur(Out acc, size_t i) =>
+		i == in_.length ? acc : recur(cbReduce(acc, cbMap(in_[i])), i + 1);
+	return recur(cbMap(in_[0]), 1);
+}
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

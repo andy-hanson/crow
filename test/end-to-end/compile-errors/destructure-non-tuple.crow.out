@@ -11,7 +11,7 @@ Candidates (with 1 arguments):
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 149)
 	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 63)
 	'new[t] t mut-array(...t array)' (from include/crow/col/mut-array.crow line 35)
-	'new[t] t mut[](...t array)' (from include/crow/col/mut-list.crow line 78)
+	'new[t] t mut[](...t array)' (from include/crow/col/mut-list.crow line 81)
 	'new[k, v] k mut[v](...(k, v) array)' (from include/crow/col/mut-map.crow line 39)
 	'new[t] t mut-set(...t array)' (from include/crow/col/mut-set.crow line 21)
 	'new[t] t set(...t array)' (from include/crow/col/set.crow line 29)

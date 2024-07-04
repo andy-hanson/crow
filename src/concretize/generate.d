@@ -39,6 +39,8 @@ import model.model : AutoFun, Called, EnumOrFlagsMember, FunBody, RecordField, S
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
+	foldRange,
+	isEmpty,
 	map,
 	mapPointers,
 	mapPointersWithIndex,
@@ -411,7 +413,7 @@ ConcreteExpr equalOrCompareRecord(
 	in ConcreteExpr delegate(ConcreteExpr, ConcreteExpr) @safe @nogc pure nothrow cbFold,
 ) {
 	assert(sizeEq(fields, fieldCalled));
-	if (fields.length == 0)
+	if (isEmpty(fields))
 		return cbNoFields();
 	else {
 		UriAndRange range = ctx.curFun.range;
@@ -427,17 +429,6 @@ ConcreteExpr equalOrCompareRecord(
 					genRecordFieldGet(fields[index].type, range, p1, index)]),
 			cbFold);
 	}
-}
-
-T foldRange(T)(
-	size_t length,
-	in T delegate(size_t) @safe @nogc pure nothrow cbGet,
-	in T delegate(T, T) @safe @nogc pure nothrow cbCombine,
-) {
-	assert(length != 0);
-	T recur(T acc, size_t i) =>
-		i == length ? acc : cbCombine(acc, cbGet(i));
-	return recur(cbGet(0), 1);
 }
 
 ConcreteExpr concretizeCompareUnion(

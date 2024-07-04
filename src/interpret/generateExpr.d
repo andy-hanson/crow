@@ -1115,6 +1115,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.lessChar8:

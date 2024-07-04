@@ -54,6 +54,7 @@ import backend.js.jsAst :
 	JsLiteralIntegerLarge,
 	JsLiteralNumber,
 	JsLiteralString,
+	JsLiteralStringFromSymbol,
 	JsModuleAst,
 	JsName,
 	JsNewExpr,
@@ -74,23 +75,27 @@ import backend.js.jsAst :
 	JsUnaryExpr,
 	JsVarDecl,
 	JsWhileStatement;
+import frontend.showModel : ShowCtx, writeLineAndColumnRange;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty;
+import util.col.array : isEmpty, only;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
-import util.uri : Path, RelPath;
+import util.uri : Path, RelPath, Uri;
 import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
 
-string writeJsAst(ref Alloc alloc, in JsModuleAst a, bool isMain) =>
+string writeJsAst(ref Alloc alloc, in ShowCtx showCtx, Uri sourceUri, in JsModuleAst a, bool isMain) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
+		writer ~= "// ";
+		writer ~= sourceUri;
+		writer ~= '\n';
 		foreach (JsImport x; a.imports)
 			writeImportOrReExport(writer, "import", x);
 		foreach (JsImport x; a.reExports)
 			writeImportOrReExport(writer, "export", x);
 		foreach (JsDecl x; a.decls)
-			writeDecl(writer, x);
+			writeDecl(writer, showCtx, x);
 		if (isMain)
 			writer ~= "\nmain()\n";
 	});
@@ -230,7 +235,10 @@ void writeQuotedRelPath(scope ref Writer writer, RelPath path) {
 	writer ~= '"';
 }
 
-void writeDecl(scope ref Writer writer, in JsDecl decl) {
+void writeDecl(scope ref Writer writer, in ShowCtx showCtx, in JsDecl decl) {
+	writer ~= "// ";
+	writeLineAndColumnRange(writer, showCtx.lineAndColumnGetters[decl.source.range].range);
+	writer ~= '\n';
 	final switch (decl.exported) {
 		case JsDecl.Exported.private_:
 			break;
@@ -288,7 +296,7 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 }
 
 void writeParams(scope ref Writer writer, in JsParams a, bool alwaysParens) {
-	bool parens = alwaysParens || a.params.length != 1 || has(a.restParam);
+	bool parens = alwaysParens || a.params.length != 1 || !only(a.params).isA!JsName || has(a.restParam);
 	if (parens) writer ~= '(';
 	writeWithCommas!JsDestructure(writer, a.params, (in JsDestructure x) {
 		writeDestructure(writer, x);
@@ -333,6 +341,17 @@ void writeExprOrBlockStatement(scope ref Writer writer, uint indent, in JsExprOr
 			writeExpr(writer, indent + 1, x);
 		},
 		(in JsBlockStatement x) {
+			writeBlockStatement(writer, indent, x);
+		});
+}
+void writeExprOrBlockStatementIndented(scope ref Writer writer, uint indent, in JsExprOrBlockStatement a) {
+	a.matchIn!void(
+		(in JsExpr x) {
+			writeNewline(writer, indent + 1);
+			writeExpr(writer, indent + 1, x);
+		},
+		(in JsBlockStatement x) {
+			writer ~= ' ';
 			writeBlockStatement(writer, indent, x);
 		});
 }
@@ -397,12 +416,20 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 	writer ~= "if (";
 	writeExpr(writer, indent + 2, a.cond);
 	writer ~= ")";
-	if (writeStatementIndented(writer, indent, a.then))
-		writer ~= ' ';
-	else
-		writeNewline(writer, indent);
-	writer ~= "else";
-	writeStatementIndented(writer, indent, a.else_);
+	bool wasBlock = writeStatementIndented(writer, indent, a.then);
+	if (has(a.else_)) {
+		if (wasBlock)
+			writer ~= ' ';
+		else
+			writeNewline(writer, indent);
+		writer ~= "else";
+		JsStatement else_ = force(a.else_);
+		if (else_.isA!(JsIfStatement*)) {
+			writer ~= ' ';
+			writeStatement(writer, indent, else_);
+		} else
+			writeStatementIndented(writer, indent, else_);
+	}
 }
 pragma(inline, false)
 void writeSwitch(scope ref Writer writer, uint indent, in JsSwitchStatement a) {
@@ -416,6 +443,9 @@ void writeSwitch(scope ref Writer writer, uint indent, in JsSwitchStatement a) {
 		writer ~= ":";
 		writeBlockStatement(writer, indent + 1, case_.then);
 	}
+	writeNewline(writer, indent + 1);
+	writer ~= "default:";
+	writeBlockStatement(writer, indent + 1, a.default_);
 	writeNewline(writer, indent);
 	writer ~= "}";
 }
@@ -497,8 +527,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			if (pos.isCalled)
 				writer ~= '(';
 			writeParams(writer, x.params, alwaysParens: false);
-			writer ~= " => ";
-			writeExprOrBlockStatement(writer, indent, x.body_);
+			writer ~= " =>";
+			writeExprOrBlockStatementIndented(writer, indent, x.body_);
 			if (pos.isCalled)
 				writer ~= ')';
 		},
@@ -535,6 +565,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 						return "-";
 					case JsBinaryExpr.Kind.modulo:
 						return "%";
+					case JsBinaryExpr.Kind.notEqEq:
+						return "!==";
 					case JsBinaryExpr.Kind.or:
 						return "||";
 					case JsBinaryExpr.Kind.plus:
@@ -557,7 +589,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writeArg(*x.called, pos.withCalled);
 			writer ~= '(';
 			writeArgs(x.args);
-			writer ~= ", ...";
+			if (!isEmpty(x.args))
+				writer ~= ", ";
+			writer ~= "...";
 			writeArg(*x.spreadArg);
 			writer ~= ')';
 		},
@@ -580,6 +614,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		},
 		(in JsLiteralString x) {
 			writeQuotedString(writer, x.value);
+		},
+		(in JsLiteralStringFromSymbol x) {
+			writeQuotedSymbol(writer, x.value);
 		},
 		(in JsName x) {
 			writeJsName(writer, x);

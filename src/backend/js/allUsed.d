@@ -9,12 +9,16 @@ import model.model :
 	asExtern,
 	AutoFun,
 	BuiltinFun,
+	BuiltinType,
 	Called,
+	CallOptionExpr,
 	CalledSpecSig,
 	CallExpr,
 	CommonTypes,
 	Condition,
 	Destructure,
+	eachLocal,
+	eachTest,
 	EnumFunction,
 	Expr,
 	FlagsFunction,
@@ -31,15 +35,19 @@ import model.model :
 	paramsArray,
 	Program,
 	ProgramWithMain,
+	RecordField,
 	Signature,
 	SpecDecl,
 	SpecInst,
 	Specs,
 	StructAlias,
+	StructBody,
 	StructDecl,
 	StructInst,
+	Test,
 	Type,
 	TypeParamIndex,
+	UnionMember,
 	VarDecl,
 	VariantAndMethodImpls,
 	Visibility;
@@ -49,7 +57,8 @@ import util.col.mutMap : getOrAdd, mapToMap, MutMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
 import util.opt : force, has, none, Opt, optIf, some;
-import util.symbol : Symbol;
+import util.sourceRange : Range, UriAndRange;
+import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : TaggedUnion;
 import util.uri : Uri;
@@ -61,7 +70,7 @@ immutable struct AnyDecl {
 
 	// WARN: We'll never consider a StructAlias as 'used', only the underlying StructDecl.
 	// An inlined function is not considered used, just its return type
-	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
+	mixin TaggedUnion!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
@@ -69,6 +78,7 @@ immutable struct AnyDecl {
 			(in SpecDecl x) => x.moduleUri,
 			(in StructAlias x) => x.moduleUri,
 			(in StructDecl x) => x.moduleUri,
+			(in Test x) => x.moduleUri,
 			(in VarDecl x) => x.moduleUri);
 
 	Symbol name() scope =>
@@ -77,7 +87,17 @@ immutable struct AnyDecl {
 			(in SpecDecl x) => x.name,
 			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name,
+			(in Test x) => symbol!"test",
 			(in VarDecl x) => x.name);
+
+	UriAndRange range() scope =>
+		matchIn!UriAndRange(
+			(in FunDecl x) => x.range,
+			(in SpecDecl x) => x.range,
+			(in StructAlias x) => x.range,
+			(in StructDecl x) => x.range,
+			(in Test x) => x.range,
+			(in VarDecl x) => x.range);
 
 	Visibility visibility() scope =>
 		matchIn!Visibility(
@@ -85,6 +105,8 @@ immutable struct AnyDecl {
 			(in SpecDecl x) => x.visibility,
 			(in StructAlias x) => x.visibility,
 			(in StructDecl x) => x.visibility,
+			// Treat as public since 'run-all-tests' runs tests from other modules
+			(in Test x) => Visibility.public_,
 			(in VarDecl x) => x.visibility);
 }
 // This does not include FunDecl if the body would be inlined
@@ -119,7 +141,7 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 }
 
 bool bodyIsInlined(in FunDecl a) =>
-	!a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport);
+	!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport);
 
 Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExtern, in Condition a) {
 	if (a.isA!(Expr*)) {
@@ -151,7 +173,7 @@ struct AllUsedBuilder {
 	Alloc* allocPtr;
 	immutable Program* program;
 	immutable VersionInfo version_;
-	immutable SymbolSet allExtern;
+	immutable SymbolSet allExterns;
 	MutMap!(Uri, MutSet!AnyDecl) usedByModule;
 	MutSet!AnyDecl usedDecls;
 
@@ -171,12 +193,14 @@ void trackAllUsedInType(ref AllUsedBuilder res, Uri from, Type a) {
 		(Type.Bogus) {},
 		(TypeParamIndex _) {},
 		(ref StructInst x) {
-			// Don't need to track type args since they are erased	
-			trackAllUsedInStruct(res, from, x.decl);
+			if (!x.decl.body_.isA!BuiltinType)
+				// Don't need to track type args since they are erased	
+				trackAllUsedInStruct(res, from, x.decl);
 		});
 }
 void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 	if (addDecl(res, from, AnyDecl(a))) {
+		trackAllUsedInStructBody(res, a.moduleUri, a.body_);
 		foreach (VariantAndMethodImpls x; a.variants) {
 			trackAllUsedInStruct(res, a.moduleUri, x.variant.decl);
 			foreach (Opt!Called impl; x.methodImpls)
@@ -184,6 +208,24 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 					trackAllUsedInCalled(res, a.moduleUri, force(impl), FunUse.regular);
 		}
 	}
+}
+
+void trackAllUsedInStructBody(ref AllUsedBuilder res, Uri from, in StructBody a) {
+	a.match!void(
+		(StructBody.Bogus) {},
+		(BuiltinType _) {},
+		(ref StructBody.Enum) {},
+		(StructBody.Extern) { assert(false); },
+		(StructBody.Flags) {},
+		(StructBody.Record record) {
+			foreach (RecordField field; record.fields)
+				trackAllUsedInType(res, from, field.type);
+		},
+		(ref StructBody.Union x) {
+			foreach (UnionMember member; x.members)
+				trackAllUsedInType(res, from, member.type);
+		},
+		(StructBody.Variant) {});
 }
 
 void trackAllUsedInSpec(ref AllUsedBuilder res, Uri from, SpecDecl* a) {
@@ -214,14 +256,39 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 		}
 	}();
 	if (inlined || addDecl(res, from, AnyDecl(a))) {
+		if (true) { // TODO: make paaram type checks opitonal ----------------------------------------------------------------------------
+			foreach (ref Destructure param; paramsArray(a.params)) {
+				eachLocal(param, (Local* x) {
+					trackAllUsedInType(res, a.moduleUri, x.type);
+				});
+			}
+		}
+
 		trackAllUsedInSpecs(res, from, a.specs);
-		void usedReturnType() {
-			trackAllUsedInType(res, from, a.returnType);
+		void usedReturnType(Uri where = from) {
+			trackAllUsedInType(res, where, a.returnType);
 		}
 		a.body_.match!void(
 			(FunBody.Bogus) {},
-			(AutoFun _) {},
-			(BuiltinFun _) {},
+			(AutoFun x) {
+				final switch (x.kind) {
+					case AutoFun.Kind.equals:
+						break;
+					case AutoFun.Kind.compare:
+					case AutoFun.Kind.toJson:
+						usedReturnType(a.moduleUri);
+						break;
+				}
+				foreach (Called called; x.members)
+					trackAllUsedInCalled(res, a.moduleUri, called, FunUse.regular);
+			},
+			(BuiltinFun x) {
+				if (x.isA!(BuiltinFun.AllTests)) {
+					eachTest(*res.program, res.allExterns, (Test* test) {
+						trackAllUsedInTest(res, from, test);
+					});
+				}
+			},
 			(FunBody.CreateEnumOrFlags) {
 				usedReturnType();
 			},
@@ -269,6 +336,10 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			});
 	}
 }
+void trackAllUsedInTest(ref AllUsedBuilder res, Uri from, Test* test) {
+	if (addDecl(res, from, AnyDecl(test)))
+		trackAllUsedInExprRef(res, test.moduleUri, ExprRef(&test.body_, Type(res.commonTypes.void_)));
+}
 void trackAllUsedInDestructures(ref AllUsedBuilder res, Uri from, in Destructure[] a) {
 	foreach (Destructure x; a)
 		trackAllUsedInDestructure(res, from, x);
@@ -311,13 +382,15 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 
 	if (a.expr.kind.isA!(IfExpr*)) {
 		IfExpr* if_ = a.expr.kind.as!(IfExpr*);
-		Opt!bool constant = tryEvalConstantBool(res.version_, res.allExtern, if_.condition);
+		Opt!bool constant = tryEvalConstantBool(res.version_, res.allExterns, if_.condition);
 		if (has(constant))
 			trackAllUsedInExprRef(res, from, ExprRef(force(constant) ? &if_.trueBranch : &if_.falseBranch, a.type));
 		else
 			trackChildren();
 	} else {
-		if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
+		if (a.expr.kind.isA!(CallOptionExpr*))
+			trackAllUsedInType(res, from, a.type);
+		else if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchEnumExpr*).enum_);
 		else if (a.expr.kind.isA!(MatchUnionExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);

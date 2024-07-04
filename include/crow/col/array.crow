@@ -2,12 +2,12 @@ no-std
 import
 	../bool: ||, bool
 	../compare: !=, <, <=, compare, comparison, equal
-	../js: as-js-any, as-t, get
-	../number: ==, <=>, +, -, nat64
+	../js: as-js-any, as-t, call-property, get
+	../number: ==, <=>, +, -, float64, nat64, to
 	../option: new, option
 	../private/bootstrap: array-size, new-array, todo
 	../private/range-low-level: ..
-	../pointer: +, *, subscript
+	../pointer: +, subscript
 	../tuple: new
 	./collection:
 		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
@@ -139,30 +139,25 @@ region spec impls (see collection.crow)
 	guard a.next-index != 0
 	new-index = a.next-index - 1
 	assert new-index < a.collection.size
-	value = trusted if extern native
-		*(a.collection.begin-pointer + new-index)
-	else
-		# TODO: native JS subscript -------------------------------------------------------------------------------------------
-		todo
+	value = a.collection[new-index]
 	rest t array-iterator = a.collection, new-index
 	(rest, value),
 
 +next[t] (t, t array-iterator)?(a t array-iterator) bare
 	guard a.next-index != a.collection.size
 	assert a.next-index < a.collection.size
-	value = trusted if extern native
-		*(a.collection.begin-pointer + a.next-index)
-	else
-		# TODO: native JS subscript -------------------------------------------------------------------------------------------
-		todo
+	value = a.collection[a next-index]
 	rest t array-iterator = a.collection, a.next-index + 1
 	(value, rest),
 
 +slice[t] t array(begin t array-iterator, end t array-iterator) bare
-	assert begin.next-index <= end.next-index
-	assert end.next-index <= begin.collection.size :
-		end.next-index index-too-big begin.collection.size
-	if trusted extern native
-		trusted end.next-index - begin.next-index new-array begin.collection.begin-pointer + begin.next-index
+	begin.collection slice begin.next-index, end.next-index
+-slice[t] t array(a t array, begin nat64, end nat64) bare
+	assert begin <= end
+	assert end <= a.size : end index-too-big a.size
+	trusted if extern native
+		end - begin new-array a.begin-pointer + begin
+	elif extern js
+		a.as-js-any call-property "slice", begin.to::float64, end.to::float64 as-t
 	else
-		todo # use native JS 'slice' -----------------------------------------------------------------------------------------------------------------
+		todo

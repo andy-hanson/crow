@@ -3,7 +3,7 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../js: as-js-any, as-t, get, set
+	../js: as-js-any, as-t, get, js-cast, set
 	../misc: void
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
@@ -26,14 +26,15 @@ export
 +==[t] bool(a t mut-array, b t mut-array) bare, trusted
 	a.cast-immutable array-reference-equal b.cast-immutable
 
-empty-mut-array[t] t mut-array() bare, trusted
+empty-mut-array[t] t mut-array() bare, trusted # TODO: Can just use 'new' now ..................................................
 	() cast-mutable
 
 ###
 Creates a new `mut-array` with the given elements.
 ###
-+new[t] t mut-array(...a t array)
-	a to
++new[t] t mut-array(...a t array) bare, trusted
+	# A spread argument is always a new array
+	a cast-mutable
 
 # Get a `mut-array` from a pointer and range of indices.
 +subscript[t] t mut-array(a t mut*, indices nat64 range) bare, unsafe, native extern
@@ -186,14 +187,18 @@ It must never be written to again.
 +cast-immutable[t] t array(a t mut-array) bare, unsafe
 	if extern native
 		a.size new-array a.begin-pointer.as-const
+	elif extern js
+		a js-cast
 	else
-		todo # js-cast ------------------------------------------------------------------------------------------------------------
+		todo
 
 ~cast-mutable[t] t mut-array(a t array) bare, unsafe
 	if extern native
 		a.size new-mut-array a.begin-pointer.as-mut
+	elif extern js
+		a js-cast
 	else
-		todo # js-cast ---------------------------------------------------------------------------------------------------------------
+		todo
 
 ###
 Unsafe cast to immutable array.
@@ -249,33 +254,21 @@ region spec impls (see collection.crow)
 +prev[t] (t mut-array-iterator, t)?(a t mut-array-iterator) bare
 	guard a.next-index != 0
 	assert a.next-index <= a.collection.size
-	value = trusted if extern native
-		a.collection.begin-pointer[a.next-index - 1]
-	else
-		todo # -----------------------------------------------------------------------------------------------------------
+	value = a.collection[a.next-index - 1]
 	((a.collection, a.next-index - 1), value),
 
 +next[t] (t, t mut-array-iterator)?(a t mut-array-iterator) bare
 	guard a.next-index < a.collection.size
-	value = trusted if extern native
-		a.collection.begin-pointer[a next-index]
-	else
-		todo # -----------------------------------------------------------------------------------------------------------
+	value = a.collection[a next-index]
 	(value, (a.collection, a.next-index + 1)),
 
 +set-prev[t] void(a t mut-array-iterator, value t) bare
-	assert a.next-index <= a.collection.size
-	trusted if extern native
-		a.collection.begin-pointer[a.next-index - 1] := value
-	else
-		todo #-----------------------------------------------------------------------------------------------------------------
+	assert a.next-index != 0 && a.next-index <= a.collection.size
+	a.collection[a.next-index - 1] := value
 
 +set-next[t] void(a t mut-array-iterator, value t) bare
 	assert a.next-index < a.collection.size
-	trusted if extern native
-		a.collection.begin-pointer[a next-index] := value
-	else
-		todo # --------------------------------------------------------------------------------------------------------------
+	a.collection[a next-index] := value
 
 +slice[t] t mut-array(begin t mut-array-iterator, end t mut-array-iterator) bare, trusted
 	assert begin.collection == end.collection

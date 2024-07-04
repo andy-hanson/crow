@@ -558,6 +558,7 @@ ExpectBinary binaryExpected(
 			return expect(boolType, nat64Type, nat64Type);
 		case BuiltinBinary.eqPointer:
 		case BuiltinBinary.lessPointer:
+		case BuiltinBinary.referenceEqual:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case BuiltinBinary.lessChar8:

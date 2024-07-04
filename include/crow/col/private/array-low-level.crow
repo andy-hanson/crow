@@ -3,6 +3,7 @@ import
 	../../bool: &&, bool, false, true
 	../../compare: >
 	../../fun-util: subscript
+	../../js: as-js-any, as-t, call-property, call-property-spread, js-cast, js-eq-eq-eq
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
 	../../pointer:
@@ -18,8 +19,10 @@ export
 array-reference-equal[t] bool(a t array, b t array) bare, unsafe
 	if extern native
 		a.array-pointer == b.array-pointer && a.array-size == b.array-size
+	elif extern js
+		a js-eq-eq-eq b
 	else
-		todo # Use native JS '===' ------------------------------------------------------------------------------------------------
+		todo
 
 +begin-pointer[t] t*(a t array) bare, unsafe, native extern
 	a array-pointer
@@ -77,11 +80,14 @@ Calls `f` for each element in `a`.
 				else
 					cur +:= 1
 					continue
+	elif extern js
+		a.as-js-any call-property "some", f as-t
 	else
-		todo # Use native JS 'array.some(f)' ------------------------------------------------------------------------------------------------------------
+		todo
 
 +array-builder[t] record mut
 	-buffer mut t mut-array
+	# Not used in JS
 	-cur-size mut nat64
 +build[t] t array(a build-options, f void mut(out t array-builder)) trusted
 	if extern native
@@ -91,16 +97,28 @@ Calls `f` for each element in `a`.
 		builder.buffer := 0 new-mut-array null
 		builder.cur-size := max-value
 		res
+	elif extern js
+		builder t array-builder = (), max-value
+		f[builder]
+		assert builder.cur-size == max-value
+		builder.buffer.js-cast
 	else
-		todo # -------------------------------------------------------------------------------------------------------------
+		todo
 
-+size[t] nat64(a t array-builder)
-	forbid a.cur-size == max-value
-	a cur-size
+-new[t] t mut-array(...a t array) trusted, js extern
+	a js-cast
+
++size[t] nat64(a t array-builder) trusted
+	if extern js
+		assert a.cur-size == max-value
+		a.buffer.mut-array-size
+	else
+		forbid a.cur-size == max-value
+		a cur-size
 
 +~=[t] void(a t array-builder, value t) trusted
-	forbid a.cur-size == max-value
 	if extern native
+		forbid a.cur-size == max-value
 		capacity = a.buffer mut-array-size
 		if a.cur-size == capacity
 			new-capacity nat64 = capacity == 0 ? 4 : capacity * 2
@@ -109,12 +127,14 @@ Calls `f` for each element in `a`.
 			a.buffer := new-buffer
 		a.buffer.mut-array-pointer[a.cur-size] := value
 		a.cur-size +:= 1
+	elif extern js
+		a.buffer.as-js-any call-property "push", value as-t
 	else
 		todo # ----------------------------------------------------------------------------------------------------------
 
 +~~=[t] void(a t array-builder, values t array) trusted
-	forbid a.cur-size == max-value
 	if extern native
+		forbid a.cur-size == max-value
 		capacity = a.buffer mut-array-size
 		if a.cur-size + values.array-size > capacity
 			new-size = a.cur-size + values.array-size
@@ -124,6 +144,8 @@ Calls `f` for each element in `a`.
 			a.buffer := new-buffer
 		a.buffer.mut-array-pointer + a.cur-size mem-copy values.begin-pointer, values.array-size
 		a.cur-size +:= values array-size
+	elif extern js
+		a.buffer.as-js-any call-property-spread "push", values as-t
 	else
 		todo # ----------------------------------------------------------------------------------------------------------
 

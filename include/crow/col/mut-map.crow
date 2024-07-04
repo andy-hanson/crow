@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: &&, ||, bool, false, not
+	../bool: &&, ||, bool, false, not, true
 	../compare: >, >=
 	../fun-util: subscript
 	../hash: hash, hash-mix
@@ -217,7 +217,11 @@ Returns an empty option if the key was not in the map.
 				old-value,
 			else
 				guard value ?= new-value
-				if (trusted m is-at-capacity) && a should-expand
+				at-capacity = trusted if extern native
+					m is-at-capacity
+				else
+					true
+				if at-capacity && a should-expand
 					a expand
 					a[key] := value
 				else
@@ -305,7 +309,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to
+~dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to # TODO: PRIVATE --------------------------------------------------
 	parts string[] = for entry : a entries
 		match entry
 		as none

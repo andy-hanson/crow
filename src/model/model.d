@@ -39,6 +39,7 @@ import util.col.array :
 	small,
 	SmallArray,
 	sum;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
@@ -808,6 +809,8 @@ enum JsFun {
 	asJsAny,
 	call,
 	callProperty,
+	callPropertySpread,
+	cast_,
 	eqEqEq,
 	get,
 	jsAnyAsT,
@@ -990,6 +993,7 @@ enum BuiltinBinary {
 	mulFloat32,
 	mulFloat64,
 	newArray, // Also works for mut-array
+	referenceEqual,
 	seq, // TODO: this is only used for low-model ..........................................................................
 	subFloat32,
 	subFloat64,
@@ -1273,7 +1277,7 @@ immutable struct Test {
 	SymbolSet externs;
 	Expr body_;
 
-	UriAndRange range() =>
+	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
 }
 
@@ -1868,6 +1872,14 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 		exists!Diagnostic(module_.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(module_.uri, x))));
 
+void eachTest(ref Program program, in SymbolSet allExterns, in void delegate(Test*) @safe @nogc pure nothrow cb) {
+	foreach (immutable Module* m; program.allModules) {
+		foreach (ref Test x; m.tests)
+			if (allExterns.containsAll(x.externs))
+				cb(&x);
+	}
+}
+
 immutable struct Config {
 	Opt!Uri configUri; // none for default config
 	Diagnostic[] diagnostics;
@@ -2053,6 +2065,17 @@ immutable struct Destructure {
 				x.type,
 			(in Split x) =>
 				x.destructuredType);
+}
+void eachLocal(Destructure a, in void delegate(Local*) @safe @nogc pure nothrow cb) {
+	a.matchWithPointers!void(
+		(Destructure.Ignore*) {},
+		(Local* x) {
+			cb(x);
+		},
+		(Destructure.Split* x) {
+			foreach (Destructure part; x.parts)
+				eachLocal(part, cb);
+		});
 }
 
 immutable struct Expr {

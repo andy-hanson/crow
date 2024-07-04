@@ -69,7 +69,7 @@ struct ShowOptions {
 	bool color;
 }
 
-void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) {
+void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) { // TODO: just make this the 'writeTo' implementation?
 	writeLineAndColumn(writer, a.start);
 	writer ~= '-';
 	writeLineAndColumn(writer, a.end);

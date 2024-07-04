@@ -57,6 +57,7 @@ import model.model :
 	BuiltinType,
 	CommonTypes,
 	Destructure,
+	eachTest,
 	EnumFunction,
 	EnumOrFlagsMember,
 	Expr,
@@ -99,6 +100,7 @@ import util.col.array :
 	map,
 	mapPointers,
 	mapPointersWithIndex,
+	mapWithIndex,
 	mapZip,
 	maxBy,
 	newSmallArray,
@@ -497,22 +499,17 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 	add(ctx.alloc, ctx.allConcreteFuns, fun);
 }
 
-ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
-	Test[] allTests = buildArray!Test(ctx.alloc, (scope ref Builder!Test res) {
-		foreach (immutable Module* m; ctx.program.allModules) {
-			foreach (Test x; m.tests)
-				if (ctx.allExterns.containsAll(x.externs))
-					res ~= x;
-		}
-	});
-	Constant arr = getConstantArray(
+ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) =>
+	ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(getConstantArray(
 		ctx.alloc,
 		ctx.allConstants,
 		mustBeByVal(returnType),
-		mapPointersWithIndex!(Constant, Test)(ctx.alloc, allTests, (size_t testIndex, Test* x) =>
-			Constant(Constant.FunPointer(concreteFunForTest(ctx, x, testIndex)))));
-	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
-}
+		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
+			size_t testIndex = 0;
+			eachTest(ctx.program, ctx.allExterns, (Test* test) {
+				out_ ~= Constant(Constant.FunPointer(concreteFunForTest(ctx, test, testIndex++)));
+			});
+		})))));
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, Test* test, size_t testIndex) {
 	ConcreteType voidType = voidType(ctx);

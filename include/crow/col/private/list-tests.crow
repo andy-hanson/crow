@@ -148,7 +148,10 @@ test
 	d = c ~~ c
 	d verify "([1 2 3 4 5] [{s} {s} {s}] [9 8 7 6])"
 	e = d ~~ d
-	e verify "([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
+	e verify if trusted extern native
+		"([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
+	else
+		"([1 2 3 4 5] [{s} {s} {s} {s} {s} {s} {s}] [9 8 7 6])"
 
 # use a big type to force smaller leaves for easier testing
 -big-nat record(a nat64, b nat64, c nat64) by-val
