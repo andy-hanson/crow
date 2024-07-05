@@ -272,8 +272,11 @@ ExpectUnary unaryExpected(
 	final switch (kind) {
 		case BuiltinUnary.arraySize:
 		case BuiltinUnary.arrayPointer:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toChar8ArrayFromString:
 		case BuiltinUnary.trustAsString:
+			// done in lower
 			assert(false);
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.asAnyPointer:

@@ -2,6 +2,7 @@ module backend.js.writeJsAst;
 
 @safe @nogc pure nothrow:
 
+import backend.js.allUsed : AnyDecl;
 import backend.js.jsAst :
 	genAssign,
 	genBool,
@@ -75,7 +76,8 @@ import backend.js.jsAst :
 	JsUnaryExpr,
 	JsVarDecl,
 	JsWhileStatement;
-import frontend.showModel : ShowCtx, writeLineAndColumnRange;
+import frontend.showModel : ShowTypeCtx, writeFunDecl, writeLineAndColumnRange;
+import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, only;
 import util.col.map : KeyValuePair;
@@ -85,7 +87,7 @@ import util.uri : Path, RelPath, Uri;
 import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
 
-string writeJsAst(ref Alloc alloc, in ShowCtx showCtx, Uri sourceUri, in JsModuleAst a, bool isMain) =>
+string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a, bool isMain) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "// ";
 		writer ~= sourceUri;
@@ -158,6 +160,7 @@ bool isJsKeyword(Symbol a) {
 		case symbol!"debugger".value:
 		case symbol!"default".value:
 		case symbol!"delete".value:
+		case symbol!"enum".value:
 		case symbol!"false".value:
 		case symbol!"function".value:
 		case symbol!"in".value:
@@ -235,9 +238,8 @@ void writeQuotedRelPath(scope ref Writer writer, RelPath path) {
 	writer ~= '"';
 }
 
-void writeDecl(scope ref Writer writer, in ShowCtx showCtx, in JsDecl decl) {
-	writer ~= "// ";
-	writeLineAndColumnRange(writer, showCtx.lineAndColumnGetters[decl.source.range].range);
+void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl) {
+	writeDeclComment(writer, showCtx, decl.source);
 	writer ~= '\n';
 	final switch (decl.exported) {
 		case JsDecl.Exported.private_:
@@ -257,6 +259,21 @@ void writeDecl(scope ref Writer writer, in ShowCtx showCtx, in JsDecl decl) {
 			writeExpr(writer, 0, x);
 		});
 	writer ~= "\n";
+}
+
+void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDecl a) {
+	writer ~= "// ";
+	writeLineAndColumnRange(writer, showCtx.lineAndColumnGetters[a.range].range);
+	a.matchWithPointers!void(
+		(FunDecl* x) {
+			writer ~= ' ';
+			writeFunDecl(writer, showCtx, x);
+		},
+		(SpecDecl*) {},
+		(StructAlias*) {},
+		(StructDecl*) {},
+		(Test*) {},
+		(VarDecl*) {});
 }
 
 void writeClass(scope ref Writer writer, JsName name, in JsClassDecl x) {
@@ -366,6 +383,10 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
 		},
 		(in JsBreakStatement x) {
 			writer ~= "break";
+			if (has(x.label)) {
+				writer ~= ' ';
+				writeJsName(writer, force(x.label));
+			}
 		},
 		(in JsContinueStatement x) {
 			writer ~= "continue";
@@ -475,6 +496,10 @@ void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
 }
 pragma(inline, false)
 void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
+	if (has(a.label)) {
+		writeJsName(writer, force(a.label));
+		writer ~= ": ";
+	}
 	writer ~= "while (";
 	writeExpr(writer, indent + 2, *a.condition);
 	writer ~= ')';
@@ -497,14 +522,14 @@ bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement
 struct ExprPos {
 	@safe @nogc pure nothrow:
 
-	bool isStatement; // Expression is at the start of a statement and may need ';'
+	bool isStartOfStatement; // Expression is at the start of a statement and may need ';'
 	bool isCalled; // Expression is called and may need to be wrapped in '()'
 
 	ExprPos withCalled() =>
-		ExprPos(isStatement, isCalled: true);
+		ExprPos(isStartOfStatement, isCalled: true);
 
 	static ExprPos statement() =>
-		ExprPos(isStatement: true);
+		ExprPos(isStartOfStatement: true);
 }
 void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos()) {
 	void writeArg(in JsExpr arg, ExprPos pos = ExprPos()) {
@@ -523,7 +548,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ']';
 		},
 		(in JsArrowFunction x) {
-			assert(!pos.isStatement);
+			assert(!pos.isStartOfStatement);
 			if (pos.isCalled)
 				writer ~= '(';
 			writeParams(writer, x.params, alwaysParens: false);
@@ -533,7 +558,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 				writer ~= ')';
 		},
 		(in JsBinaryExpr x) {
-			assert(!pos.isStatement);
+			if (pos.isStartOfStatement)
+				writer ~= ';';
 			writer ~= '(';
 			writeArg(*x.left);
 			writer ~= ' ';
@@ -632,7 +658,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= "null";
 		},
 		(in JsObjectExpr x) {
-			assert(!pos.isStatement);
+			assert(!pos.isStartOfStatement);
 			writer ~= "{ ";
 			writeObjectKey(writer, x.name);
 			writer ~= ": ";

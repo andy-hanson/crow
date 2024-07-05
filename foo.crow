@@ -2,7 +2,16 @@ import
 	crow/col/counter: counter, new
 	crow/col/deque: deque, new
 	crow/col/experimental/compact-map: compact-map, new
-	./include/crow/col/private/list-tests: dummy-list-tests
+	crow/col/experimental/compact-sorted-map: compact-sorted-map, new
+	crow/col/experimental/frozen-map: frozen-map, new
+	crow/col/experimental/frozen-set: frozen-set, new
+	crow/col/experimental/hamt-set: hamt-set, new
+	crow/col/experimental/index-set: index-set, new
+	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
+	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
+	crow/col/experimental/sorted-set: new, sorted-set
+	crow/col/experimental/tree-set: new, tree-set
+	crow/col/mut-deque: mut-deque, new
 	crow/test-util/test-runner: run-all-tests
 
 my-exception record(message string) exception variant-member
@@ -10,4 +19,10 @@ describe string(a my-exception)
 	a.message
 
 main void() summon, js extern
-	run-all-tests
+	x symbol = "foo"
+	match x
+	as foo
+		info log "yup"
+	else
+		info log "nope"
+	#run-all-tests

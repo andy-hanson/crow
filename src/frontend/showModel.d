@@ -66,7 +66,11 @@ alias ShowDiagCtx = ShowTypeCtx;
 alias ShowModelCtx = ShowTypeCtx;
 
 struct ShowOptions {
+	@safe @nogc pure nothrow:
 	bool color;
+
+	ShowOptions withoutColor() =>
+		ShowOptions(false);
 }
 
 void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) { // TODO: just make this the 'writeTo' implementation?

@@ -27,8 +27,10 @@ import model.model :
 	isArray,
 	isMutArray,
 	isString,
+	isSymbol,
 	JsFun,
 	paramsArray,
+	pointeeType,
 	SpecInst,
 	StructInst,
 	Type,
@@ -159,6 +161,16 @@ FunBody inner(
 			return isTypeParam0(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
 				? FunBody(BuiltinFun(JsFun.plus))
 				: fail();
+		case symbol!"c-string-of-symbol".value:
+			return unary(isCString(rt) && isSymbol(p0)
+				? BuiltinUnary.cStringOfSymbol
+				: failUnary);
+		case symbol!"symbol-of-c-string".value:
+			return unary(isSymbol(rt) && isCString(p0)
+				? BuiltinUnary.symbolOfCString
+				: failUnary);
+		// TODO: MOVE STUFF ABOVE ----------------------------------------------------------------------------------------------------------
+
 
 		case symbol!"array-size".value:
 			return arity == 1 && isNat64(rt) && isArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
@@ -365,7 +377,9 @@ FunBody inner(
 		case symbol!"new-void".value:
 			return constant(isVoid(rt), constantZero);
 		case symbol!"null".value:
-			return constant(isPointerConstOrMut(rt), constantZero);
+			return isJsAny(rt) && arity == 0
+				? FunBody(BuiltinFun(JsFun.null_))
+				: constant(isPointerConstOrMut(rt), constantZero);
 		case symbol!"reference-equal".value:
 			return binary(BuiltinBinary.referenceEqual);
 		case symbol!"round".value:
@@ -705,6 +719,9 @@ bool isPointerConst(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d ----------------------------------------------------
 bool isPointerMut(in Type a) =>
 	isBuiltin(a, BuiltinType.pointerMut); // TODO: this should be in model.d ----------------------------------------------------
+
+bool isCString(in Type a) =>
+	isPointerConst(a) && isChar8(pointeeType(a));
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;

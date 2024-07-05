@@ -13,6 +13,7 @@ import backend.js.jsAst :
 	genBlockStatement,
 	genBool,
 	genBreak,
+	genBreakNoLabel,
 	genCall,
 	genCallProperty,
 	genCallWithSpread,
@@ -241,7 +242,7 @@ import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuild
 immutable struct TranslateToJsResult {
 	KeyValuePair!(Path, string)[] outputFiles;
 }
-TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, in ShowCtx showCtx, OS os, bool isNodeJs) {
+TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, in ShowTypeCtx showCtx, OS os, bool isNodeJs) {
 	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
 	// We need to start with the modules with no dependencies and work down...
 	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
@@ -330,7 +331,7 @@ SymbolSet allExternsForJs(bool isNodeJs) { // TODO: we'll eventually want to hav
 
 immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 	ref Alloc alloc,
-	in ShowCtx showCtx,
+	in ShowTypeCtx showCtx,
 	in Map!(Uri, Path) modulePaths,
 	Uri mainModuleUri,
 	in MutMap!(Module*, Opt!JsModuleAst) done,
@@ -695,7 +696,7 @@ JsParams translateFunParams(ref TranslateExprCtx ctx, in Params a) =>
 JsDestructure translateDestructure(ref TranslateExprCtx ctx, in Destructure a) =>
 	a.matchIn!JsDestructure(
 		(in Destructure.Ignore) =>
-			JsDestructure(JsName(symbol!"ignore", some(safeToUshort(ctx.nextTempIndex++)))),
+			JsDestructure(tempName(ctx, symbol!"ignore")),
 		(in Local x) =>
 			JsDestructure(localName(x)),
 		(in Destructure.Split x) =>
@@ -783,6 +784,7 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 	class E {
 		constructor(name) { this.name = name }
 		static x = new this("x")
+		static members = [this.x]
 	}
 	*/
 	JsName name = JsName(symbol!"name");
@@ -792,6 +794,9 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 		out_ ~= JsClassMember(JsClassMember.Static.static_, member.name, JsClassMemberKind(
 			genNew(ctx.alloc, genThis(), [genString(member.name)])));
 	}
+	out_ ~= JsClassMember(JsClassMember.Static.static_, symbol!"members", JsClassMemberKind(
+		genArray(map(ctx.alloc, a.members, (ref EnumOrFlagsMember member) =>
+			genPropertyAccess(ctx.alloc, genThis(), member.name))))); // TODO: what if a member is named 'members'? ----------------------
 }
 
 void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Record a) {
@@ -873,6 +878,7 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 		case BuiltinType.lambda:
 			return typeof_("function");
 		case BuiltinType.string_:
+		case BuiltinType.symbol:
 			return typeof_("string");
 		case BuiltinType.void_:
 			return typeof_("undefined");
@@ -1141,6 +1147,17 @@ JsExprOrBlockStatement toExprOrBlockStatement(ref Alloc alloc, ExprResult result
 		(JsBlockStatement x) =>
 			JsExprOrBlockStatement(x));
 
+JsBlockStatement translateExprToSwitchBlockStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
+	isVoid(type)
+		? translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
+			forceStatements(ctx.alloc, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
+				ExprResult result = translateExpr(ctx, a, type, inner);
+				assert(result.isA!(ExprResult.Done));
+				add(ctx.alloc, out_, genBreakNoLabel());
+				return result;
+			}))
+		: translateExprToBlockStatement(ctx, a, type);
+
 ExprResult forceExpr(ref TranslateExprCtx ctx, scope ExprPos pos, Type type, JsExpr expr) =>
 	forceExpr(ctx.alloc, pos, type, expr);
 ExprResult forceExpr(ref Alloc alloc, scope ExprPos pos, Type type, JsExpr expr) =>
@@ -1222,13 +1239,13 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(LocalSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc, localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ref LoopExpr x) =>
-			forceStatement(ctx, pos, genWhileTrue(ctx.alloc, translateExprToBlockStatement(ctx, x.body_, type))),
+			forceStatement(ctx, pos, genWhileTrue(ctx.alloc, some(JsName(symbol!"loop")), translateExprToBlockStatement(ctx, x.body_, type))),
 		(ref LoopBreakExpr x) {
 			assert(pos.isA!(ExprPos.Statements*));
 			ExprResult res = translateExpr(ctx, x.value, type, pos);
 			assert(res.isA!(ExprResult.Done));
 			if (isVoid(type))
-				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, genBreak());
+				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, genBreak(JsName(symbol!"loop")));
 			return res;
 		},
 		(LoopContinueExpr x) {
@@ -1302,12 +1319,18 @@ ExprResult translateCallOption(ref TranslateExprCtx ctx, ref CallOptionExpr a, T
 		: Option.none
 	*/
 	withTemp(ctx, symbol!"option", a.firstArg, pos, (JsName option, scope ExprPos inner) {
-		JsExpr call = genCall(allocate(ctx.alloc, calledExpr(ctx, a.called)),
-			buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
-				out_ ~= genOptionForce(ctx.alloc, JsExpr(option));
-				foreach (size_t index, ref Expr arg; a.restArgs)
-					out_ ~= translateExprToExpr(ctx, arg, paramTypeAt(a.called, 1 + index));
-			}));
+		JsExpr forceIt = genOptionForce(ctx.alloc, JsExpr(option));
+		JsExpr call = isInlined(a.called)
+			// TODO: share code with translateCall? -----------------------------------------------------------------------------------
+			? translateToExpr((scope ExprPos callPos) =>
+				translateInlineCall(ctx, a.called.returnType, callPos, a.called.as!(FunInst*).decl.body_, a.called.as!(FunInst*).paramTypes, 1 + a.restArgs.length, (size_t argIndex) =>
+					argIndex == 0 ? forceIt : translateExprToExpr(ctx, a.restArgs[argIndex - 1], paramTypeAt(a.called, argIndex))))
+			: genCall(allocate(ctx.alloc, calledExpr(ctx, a.called)),
+				buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
+					out_ ~= forceIt;
+					foreach (size_t index, ref Expr arg; a.restArgs)
+						out_ ~= translateExprToExpr(ctx, arg, paramTypeAt(a.called, 1 + index));
+				}));
 		JsExpr then = a.called.returnType == type
 			? call
 			: genOptionSome(ctx, type, call);
@@ -1368,8 +1391,8 @@ ExprResult translateInlineCall(
 		},
 		(in FunBody.CreateVariant) =>
 			todo!ExprResult("CREATE VARIANT"), // This should pass the arg through unmodified
-		(in EnumFunction) =>
-			todo!ExprResult("ENUM FUNCTION"),
+		(in EnumFunction x) =>
+			expr(translateEnumFunction(ctx, returnType, x, nArgs, getArg)),
 		(in Expr _) =>
 			assert(false),
 		(in FunBody.Extern) =>
@@ -1391,7 +1414,14 @@ ExprResult translateInlineCall(
 			return forceStatement(ctx, pos, genAssign(ctx.alloc, recordField(x.fieldIndex), getArg(1)));
 		},
 		(in FunBody.UnionMemberGet x) =>
-			todo!ExprResult("UNION MEMBER GET"),
+			withTemp2(ctx, symbol!"member", onlyArg(), pos, (JsName member, scope ExprPos inner) {
+				Symbol memberName = unionMemberName(paramTypes[0], x.memberIndex);
+				return forceExpr(ctx.alloc, inner, returnType, genTernary(
+					ctx.alloc,
+					genIn(ctx.alloc, memberName, JsExpr(member)),
+					genOptionSome(ctx, returnType, genPropertyAccess(ctx.alloc, JsExpr(member), memberName)),
+					genOptionNone(ctx, returnType)));
+			}),
 		(in FunBody.VarGet x) =>
 			expr(translateVarReference(ctx, x.var)),
 		(in FunBody.VariantMemberGet) =>
@@ -1413,6 +1443,9 @@ Symbol variantMethodName(Type variant, size_t methodIndex) =>
 // TODO Maybe I should have used a direct pointer to the field here instead of an index ........................................
 Symbol recordFieldName(Type record, size_t fieldIndex) =>
 	record.as!(StructInst*).decl.body_.as!(StructBody.Record).fields[fieldIndex].name;
+// TODO Maybe I should have used a direct pointer to the member here instead of an index ........................................
+Symbol unionMemberName(Type union_, size_t memberIndex) =>
+	union_.as!(StructInst*).decl.body_.as!(StructBody.Union*).members[memberIndex].name;
 
 ExprResult translateCallBuiltin(
 	ref TranslateExprCtx ctx,
@@ -1476,6 +1509,36 @@ ExprResult translateCallBuiltin(
 		(in VersionFun x) =>
 			expr(genBool(isVersion(ctx.version_, x))));
 }
+JsExpr translateEnumFunction(
+	ref TranslateExprCtx ctx,
+	Type returnType,
+	EnumFunction a,
+	size_t nArgs,
+	in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg,
+) {
+	JsExpr binary(JsBinaryExpr.Kind kind) {
+		assert(nArgs == 2);
+		return genBinary(ctx.alloc, kind, getArg(0), getArg(1));
+	}
+
+	final switch (a) {
+		case EnumFunction.equal:
+			return binary(JsBinaryExpr.Kind.eqEqEq);
+		case EnumFunction.intersect:
+			return binary(JsBinaryExpr.Kind.bitwiseAnd);
+		case EnumFunction.members:
+			assert(nArgs == 0);
+			return genPropertyAccess(
+				ctx.alloc,
+				translateStructReference(ctx, returnType.as!(StructInst*).decl),
+				symbol!"members");
+		case EnumFunction.toIntegral:
+			assert(nArgs == 1);
+			return getArg(0);
+		case EnumFunction.union_:
+			return binary(JsBinaryExpr.Kind.bitwiseOr);
+	}
+}
 
 JsExpr translateAllTests(ref TranslateExprCtx ctx) =>
 	genArray(buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
@@ -1490,16 +1553,19 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 	final switch (a) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.asAnyPointer:
+		case BuiltinUnary.cStringOfSymbol:
 		case BuiltinUnary.deref:
 		case BuiltinUnary.drop:
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.jumpToCatch:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.setupCatch:
+		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toFloat32FromFloat64:
 		case BuiltinUnary.toFloat64FromFloat32:
 		case BuiltinUnary.toNat64FromPtr:
 		case BuiltinUnary.toPtrFromNat64:
+			// These are 'native extern'
 			assert(false);
 		case BuiltinUnary.arraySize:
 			return genCall(alloc, BigInt, [genPropertyAccess(alloc, arg, symbol!"length")]);
@@ -1843,6 +1909,8 @@ ExprResult translateCallJsFun(
 			return expr(JsExpr(JsName(ctx.isBrowser ? symbol!"window" : symbol!"global")));
 		case JsFun.less:
 			return binary(JsBinaryExpr.Kind.less);
+		case JsFun.null_:
+			return expr(genNull());
 		case JsFun.plus:
 			return binary(JsBinaryExpr.Kind.plus);
 		case JsFun.set:
@@ -2017,7 +2085,7 @@ ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUn
 			JsExpr condition = translateExprToExpr(ctx, cond, Type(ctx.commonTypes.bool_));
 			JsExpr condition2 = a.isUntil ? genNot(ctx.alloc, condition) : condition;
 			return forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement res, scope ExprPos inner) {
-				add(ctx.alloc, res, genWhile(ctx.alloc, condition2, translateExprToBlockStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
+				add(ctx.alloc, res, genWhile(ctx.alloc, none!JsName, condition2, translateExprToBlockStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
 				return translateExpr(ctx, a.after, type, inner);
 			});
 		},
@@ -2056,8 +2124,8 @@ ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUn
 								(scope ExprPos thenPos) =>
 									translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), thenPos),
 								(scope ExprPos elsePos) =>
-									forceStatement(ctx, elsePos, genBreak())));
-						add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, body_));
+									forceStatement(ctx, elsePos, genBreakNoLabel())));
+						add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, none!JsName, body_));
 						return translateExpr(ctx, a.after, type, tempPos);
 					}));
 		});
@@ -2069,7 +2137,7 @@ ExprResult translateMatchEnum(ref TranslateExprCtx ctx, ref MatchEnumExpr a, Typ
 		map(ctx.alloc, a.cases, (ref MatchEnumExpr.Case case_) =>
 			JsSwitchStatement.Case(
 				translateEnumValue(ctx, case_.member),
-				translateExprToBlockStatement(ctx, case_.then, type))),
+				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateSwitchDefault(ctx, a.else_, type, "Invalid enum value")));
 
 ExprResult translateMatchIntegral(ref TranslateExprCtx ctx, ref MatchIntegralExpr a, Type type, scope ExprPos pos) =>
@@ -2079,16 +2147,16 @@ ExprResult translateMatchIntegral(ref TranslateExprCtx ctx, ref MatchIntegralExp
 		map(ctx.alloc, a.cases, (ref MatchIntegralExpr.Case case_) =>
 			JsSwitchStatement.Case(
 				translateIntegralValue(a.kind, case_.value),
-				translateExprToBlockStatement(ctx, case_.then, type))),
-		translateExprToBlockStatement(ctx, a.else_, type)));
+				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
+		translateExprToSwitchBlockStatement(ctx, a.else_, type)));
 
 ExprResult translateMatchStringLike(ref TranslateExprCtx ctx, ref MatchStringLikeExpr a, Type type, scope ExprPos pos) =>
 	forceStatement(ctx, pos, genSwitch(
 		ctx.alloc,
 		translateExprToExpr(ctx, a.matched),
 		map(ctx.alloc, a.cases, (ref MatchStringLikeExpr.Case case_) =>
-			JsSwitchStatement.Case(genString(case_.value), translateExprToBlockStatement(ctx, case_.then, type))),
-		translateExprToBlockStatement(ctx, a.else_, type)));
+			JsSwitchStatement.Case(genString(case_.value), translateExprToSwitchBlockStatement(ctx, case_.then, type))),
+		translateExprToSwitchBlockStatement(ctx, a.else_, type)));
 
 ExprResult translateMatchUnion(ref TranslateExprCtx ctx, ref MatchUnionExpr a, Type type, scope ExprPos pos) =>
 	withTemp(ctx, symbol!"matched", a.matched, pos, (JsName matched, scope ExprPos inner) =>
@@ -2154,10 +2222,12 @@ ExprResult withTemp2(
 	in ExprResult delegate(JsName temp, scope ExprPos inner) @safe @nogc pure nothrow cb,
 ) =>
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
-		JsName jsName = JsName(name, some(safeToUshort(ctx.nextTempIndex++)));
+		JsName jsName = tempName(ctx, name);
 		add(ctx.alloc, out_, genConst(ctx.alloc, JsDestructure(jsName), value));
 		return cb(jsName, inner);
 	});
+JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
+	JsName(base, some(safeToUshort(ctx.nextTempIndex++)));
 
 JsStatement genThrowError(ref TranslateModuleCtx ctx, string message) =>
 	genThrow(ctx.alloc, genNewError(ctx, message));
@@ -2166,7 +2236,7 @@ JsExpr genNewError(ref TranslateModuleCtx ctx, string message) =>
 
 JsBlockStatement translateSwitchDefault(ref TranslateExprCtx ctx, Opt!Expr else_, Type type, string error) =>
 	has(else_)
-		? translateExprToBlockStatement(ctx, force(else_), type)
+		? translateExprToSwitchBlockStatement(ctx, force(else_), type)
 		: genBlockStatement(ctx.alloc, [genThrowError(ctx, error)]);
 
 JsExpr translateEnumValue(ref TranslateModuleCtx ctx, EnumOrFlagsMember* a) =>

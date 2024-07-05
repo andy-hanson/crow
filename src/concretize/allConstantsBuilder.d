@@ -132,8 +132,7 @@ Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstant
 
 Constant getConstantSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
 	getOrAdd!(Symbol, Constant)(alloc, allConstants.symbols, value, () =>
-		Constant(Constant.Record(newSmallArray!Constant(alloc, [
-			getConstantCStringForSymbol(alloc, allConstants, value)]))));
+		getConstantCStringForSymbol(alloc, allConstants, value)); // This used to make a record, but that's not needed any more........
 
 private:
 

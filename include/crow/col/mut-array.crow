@@ -3,22 +3,21 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../js: as-js-any, as-t, get, js-cast, set
-	../misc: void
-	../number: ==, <=>, +, -, *, /, %, nat64
+	../js: as-js-any, as-t, call, call-property, get, js-cast, js-global, null, set
+	../misc: new, void
+	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
 	../option: new, option
 	../pointer:
 		==, <=>, +, *, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
 		set-subscript, size-of, subscript
 	../private/alloc: allocate
 	../private/bootstrap: new-array, new-mut-array, mut-array-pointer, mut-array-size, todo
-	../range: .., high, low, range, size
+	../range: .., high, is-empty, iterate, low, range, size, subscript
 	../tuple: new
 	./array:
-		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, size,
-		slice, subscript
+		~=, ~~=, array, array-builder, as-array, begin-pointer, build, iterate, new, size, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, index-too-big, range-relative-to-end, subscript
+	./collection: build-options, for-loop, index-too-big, range-relative-to-end, to-range
 export
 	../private/bootstrap: mut-array
 
@@ -48,10 +47,7 @@ This is O(n).
 +to[t] t mut-array(a t array) trusted
 	# Not using a 'for' loop because the compiler may think it may yield (due to the virtual call)
 	res t mut-array = a.size zeroed-mut-array
-	i mut nat64 = 0
-	while i < a.size
-		res[i] := a[i]
-		i +:= 1
+	res.as-slice copy-from a
 	res
 
 ###
@@ -121,22 +117,79 @@ This is O(n).
 Copies elements from `source` to `dest`.
 Throws if `dest` and `source` are not the same size.
 ###
-set-subscript[t] void(dest t mut-array, range nat64 range, source t array)
-	assert range.size == source.size
++set-subscript[t] void(dest t mut-array, range nat64 range, source t array) bare
 	dest[range] copy-from source
-set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-array)
-	dest[range] := trusted source.temp-as-array
-set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t array)
++set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-array) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-slice) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t array) bare
+	dest[range to-range dest.size] := source
++set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-array) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-slice) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t array) bare
 	dest[range] copy-from source
-set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-array)
-	dest[range] := trusted source.temp-as-array
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t mut-array) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t mut-slice) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t array) bare
+	dest[range to-range dest.size] := source
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-array) bare
+	dest[range to-range dest.size] := source
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-slice) bare
+	dest[range to-range dest.size] := source
 
--copy-from[t] void(dest t mut-array, source t array)
+# TODO: MOVE?---------------------------------------------------------------------------------------------------------------------
+# TODO: this could be a 'builtin' type. In native build it could just be mut-array.
++mut-slice[t] record by-val
+	# TODO: in a native build, don't need begin/end ...............................................................................
+	-inner t mut-array
+	-range nat64 range
++is-empty[t] bool(a t mut-slice) bare
+	a.range is-empty
++size[t] nat64(a t mut-slice) bare
+	a.range size
++subscript[t] t(a t mut-slice, index nat64) bare
+	a.inner[a.range[index]]
++subscript[t] t mut-slice(a t mut-slice, range nat64 range) bare
+	a.inner, a.range[range]
++set-subscript[t] void(a t mut-slice, index nat64, value t) bare
+	a.inner[a.range[index]] := value
++as-slice[t] t mut-slice(a t mut-array) bare
+	a, 0 .. a.size
++subscript[t] t mut-slice(a t mut-array, indices nat64 range) bare
+	assert indices.high <= a.size : indices.high index-too-big a.size
+	a, indices
++subscript[t] t mut-slice(a t mut-array, indices range-relative-to-end) bare
+	a[indices to-range a.size]
++begin-pointer[t] t mut*(a t mut-slice) bare, unsafe, native extern
+	a.inner.begin-pointer + a.range.low
++temp-as-array[t] t array(a t mut-slice) bare, unsafe
+	if extern native
+		a.begin-pointer[0 .. a.size] temp-as-array
+	elif extern js
+		a.inner.as-js-any call-property "slice", a.range.low.to::float64, a.range.high.to::float64 as-t
+	else
+		todo
++iterate[t] bool(a t mut-slice, f bool mut(x t))
+	a.range iterate i => f[a.inner[i]]
++copy-to[t] t mut-array(a t mut-slice) trusted
+	res t mut-array = a.size zeroed-mut-array
+	res[0 .. a.size] := a
+	res
+
+-copy-from[t] void(dest t mut-slice, source t array) bare
 	assert dest.size == source.size
 	trusted if extern native
-		dest.begin-pointer mem-move source.begin-pointer, dest.size
+		dest.begin-pointer mem-move source.begin-pointer, source.size
 	else
-		todo # --------------------------------------------------------------------------------------------------------------
+		i mut nat64 = 0
+		until i == source.size
+			dest[i] := source[i]
+			i +:= 1
 
 ###
 Allocates a `mut-array` full of zeroes.
@@ -152,16 +205,26 @@ This is used by collections like `mut[]` that need some excess capacity that wil
 +zeroed-mut-array[t] t mut-array(size nat64) unsafe
 	if extern native
 		(size.allocate::t mut*)[0 .. size]
+	elif extern js
+		# Array(size).fill(null)
+		"Array".js-global call size.to::float64 call-property "fill", null as-t
 	else
-		todo # ------------------------------------------------------------------------------------------------------------
+		todo
 
 ###
 Sets every element to `zeroed`.
 See `zeroed-mut-array` for why this is unsafe.
 ###
 +zero-memory[t] void(a t mut-array) bare, unsafe
+	a.as-slice zero-memory
++zero-memory[t] void(a t mut-slice) bare, unsafe
 	if extern native
 		a.begin-pointer mem-clear a.size
+	elif extern js
+		i mut nat64 = a.range low
+		until i == a.range.high
+			a.inner[i] := null as-t
+			i +:= 1
 	else
 		todo # ---------------------------------------------------------------------------------------------------------------
 
@@ -186,9 +249,16 @@ It must never be written to again.
 ###
 +cast-immutable[t] t array(a t mut-array) bare, unsafe
 	if extern native
-		a.size new-array a.begin-pointer.as-const
+		a.as-slice cast-immutable
 	elif extern js
 		a js-cast
+	else
+		todo
++cast-immutable[t] t array(a t mut-slice) bare, unsafe
+	if extern native
+		a.size new-array a.begin-pointer.as-const
+	elif extern js
+		a temp-as-array
 	else
 		todo
 
@@ -270,10 +340,11 @@ region spec impls (see collection.crow)
 	assert a.next-index < a.collection.size
 	a.collection[a next-index] := value
 
-+slice[t] t mut-array(begin t mut-array-iterator, end t mut-array-iterator) bare, trusted
-	assert begin.collection == end.collection
-	inner-iter = begin.collection.cast-immutable begin
-	inner-iter + begin.next-index slice inner-iter + end.next-index cast-mutable
+# JS can't slice a 'mut-array', so this is only available in native code.
++slice[t] t mut-slice(begin t mut-array-iterator, end t mut-array-iterator) bare, trusted
+	assert begin.collection == end.collection # TODO: WHAT ERROR? -------------------------------------------------------------------
+	assert begin.next-index <= end.next-index # TODO: WHAT ERROR? -------------------------------------------------------------------
+	begin.collection[begin.next-index .. end.next-index]
 
 +mut-array-builder[t] record mut
 	-inner t array-builder

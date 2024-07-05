@@ -12,7 +12,7 @@ import
 	../../test-util: is
 	../../tuple: a
 	../array:
-		~=, ~~=, +, -, array, array-builder, array-iterator, begin, build, collection, end,
+		~=, ~~=, +, array, array-builder, array-iterator, begin, build, collection, end,
 		insert-at, is-empty, iterate, next, next-index, remove-at, size, slice, subscript
 	../collection:
 		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, slice-left,

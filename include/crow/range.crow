@@ -1,9 +1,9 @@
 no-std
 import
 	./bool: &&, bool
-	./col/collection: iterator-not-comparable
+	./col/collection: index-too-big, iterator-not-comparable
 	./compare: <, <=, >, compare, comparison, equal
-	./number: nat64
+	./number: ==, <=>, nat64
 	./option: new, option
 	./private/bootstrap: new
 export
@@ -55,3 +55,11 @@ region iteration
 
 +in[t] bool(a t, b t range) bare, t compare
 	b.low <= a && a < b.high
+
++subscript[t] t(a t range, index nat64) bare, t rangeable
+	assert index < a.size : index index-too-big a.size
+	a.low + index
+
++subscript[t] t range(a t range, indices nat64 range) bare, t rangeable
+	assert indices.high <= a.size : indices.high index-too-big a.size
+	a.low + indices.low .. a.low + indices.high

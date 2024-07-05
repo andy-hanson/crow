@@ -74,6 +74,7 @@ CommonTypes* getCommonTypes(
 		void_: void_,
 		array: array,
 		char8Array: instantiate1(ctx, array, char8),
+		char8ConstPointer: instantiate1(ctx, pointerConst, char8),
 		char32Array: instantiate1(ctx, array, char32),
 		nat8Array: instantiate1(ctx, array, integrals.nat8),
 		list: list,

@@ -40,7 +40,7 @@ Returns the entire row `y`.
 This is O(1).
 Throws if `y` is out of range.
 ###
-+row[t] t mut-array(a t mut-grid, y nat64)
++row[t] t mut-slice(a t mut-grid, y nat64)
 	assert y < a.height
 	begin = y * a.width
 	a.elements[begin .. begin + a.width]
@@ -97,7 +97,7 @@ region rows
 	a,
 +size[t] nat64(a t mut-grid-rows)
 	a.inner height
-+iterate[t] bool(a t mut-grid-rows, f bool mut(elem t mut-array))
++iterate[t] bool(a t mut-grid-rows, f bool mut(elem t mut-slice))
 	0::nat64 .. a.size iterate y =>
 		f[a.inner row y]
 

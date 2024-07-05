@@ -14,14 +14,12 @@ import
 	../tuple: a, b, new
 	../private/bootstrap: todo
 	./array:
-		~, ~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new,
-		remove-at, size, slice, subscript, update-at
+		~, ~=, ~~=, array, array-builder, build, is-empty, iterate, new, remove-at, size, subscript, update-at
 	./collection:
 		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, n-of,
 		subscript, with-block, with-index
 	./mut-array: ~=, build, cast-immutable, mut-array, set-subscript, subscript
-	./list:
-		~~, ~=, +, -, begin, build, end, iterate, list, new, size, slice, subscript, to
+	./list: ~~, ~=, build, iterate, list, new, size, subscript, to
 
 ###
 Immutable unordered map type.

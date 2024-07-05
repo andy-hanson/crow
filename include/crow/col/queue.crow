@@ -8,7 +8,7 @@ import
 	../option: force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new
-	./array: +, -, array, begin, end, is-empty, iterate, new, size, slice, subscript
+	./array: array, is-empty, iterate, new, size, subscript
 	./collection: .., build-options, end, for-loop, subscript
 	./list: ==, ~=, build, list, list-builder, new, to
 	./stack: ~, is-empty, iterate, new, size, stack, to

@@ -448,6 +448,8 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 				case BuiltinType.pointerMut:
 					return getPointerMut(ctx, lowTypeFromConcreteType(ctx, only(x.typeArgs)));
 				case BuiltinType.string_:
+				case BuiltinType.symbol:
+					// concretize turns string into 'char array' and symbol into 'char*'
 					assert(false);
 				case BuiltinType.void_:
 					return LowType(PrimitiveType.void_);
@@ -1395,6 +1397,8 @@ LowExpr getCallBuiltinExpr(
 					return genRecordFieldGet(ctx.alloc, type, range, arg, 1);
 				case BuiltinUnary.arraySize:
 					return genRecordFieldGet(ctx.alloc, type, range, arg, 0);
+				case BuiltinUnary.cStringOfSymbol:
+				case BuiltinUnary.symbolOfCString:
 				case BuiltinUnary.toChar8ArrayFromString:
 				case BuiltinUnary.trustAsString:
 					assert(arg.type == type);

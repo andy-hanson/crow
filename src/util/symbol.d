@@ -848,6 +848,9 @@ immutable string[] specialSymbols = [
 	"Uint8Array",
 	"debugger",
 	"instanceof",
+	"c-string-of-symbol",
+	"symbol-of-c-string",
+	"string-of-symbol",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

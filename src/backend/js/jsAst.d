@@ -115,7 +115,9 @@ immutable struct JsAssignStatement {
 immutable struct JsBlockStatement {
 	JsStatement[] statements;
 }
-immutable struct JsBreakStatement {}
+immutable struct JsBreakStatement {
+	Opt!JsName label;
+}
 immutable struct JsContinueStatement {}
 immutable struct JsEmptyStatement {}
 immutable struct JsIfStatement {
@@ -156,6 +158,7 @@ immutable struct JsVarDecl {
 	JsExpr* initializer;
 }
 immutable struct JsWhileStatement {
+	Opt!JsName label;
 	JsExpr* condition;
 	JsBlockStatement body_;
 }
@@ -289,8 +292,10 @@ JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements)
 	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>
 	JsExpr(JsLiteralBool(value));
-JsStatement genBreak() =>
-	JsStatement(JsBreakStatement());
+JsStatement genBreakNoLabel() =>
+	JsStatement(JsBreakStatement(none!JsName));
+JsStatement genBreak(JsName label) =>
+	JsStatement(JsBreakStatement(some(label)));
 JsExpr genCall(JsExpr* called, JsExpr[] args) =>
 	JsExpr(JsCallExpr(called, args));
 JsExpr genCall(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
@@ -368,7 +373,7 @@ JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
 JsExpr number0 = genNumber(0);
 JsExpr genUndefined() =>
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
-JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsBlockStatement body_) =>
-	JsStatement(JsWhileStatement(allocate(alloc, condition), body_));
-JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
-	genWhile(alloc, genBool(true), body_);
+JsStatement genWhile(ref Alloc alloc, Opt!JsName label, JsExpr condition, JsBlockStatement body_) =>
+	JsStatement(JsWhileStatement(label, allocate(alloc, condition), body_));
+JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement body_) =>
+	genWhile(alloc, label, genBool(true), body_);

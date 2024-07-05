@@ -6,23 +6,29 @@ import
 	../col/list: iterate, list
 	../col/map: ~=, build, get-or-add
 	../compare: comparison
+	../js: js-cast, js-eq-eq-eq
 	../misc: void
 	../number: +
 	../pointer: ==, +, *, as-const, mut-pointer, set-deref
 	../string: ==, <=>, as-string, char8, c-string, hash-mix, size-char8s, string, to
 	../tuple: new
 	./alloc: unmanaged-alloc-uninitialized-elements
-	./bootstrap: symbol-to-c-string, todo
+	./bootstrap: todo
 	./runtime: get-global-ctx, global-ctx, set-deref-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
 	../private/bootstrap: symbol
 
+-c-string-of-symbol c-string(a symbol) builtin, bare, unsafe, native extern
+# Be sure the input is interned!
+-symbol-of-c-string symbol(a c-string) builtin, bare, unsafe, native extern
+
 +== bool(a symbol, b symbol) bare, trusted
 	if extern native
-		a.symbol-to-c-string == b.symbol-to-c-string
+		a.c-string-of-symbol == b.c-string-of-symbol
+	elif extern js
+		a js-eq-eq-eq b
 	else
-		# Use native js '===' -----------------------------------------------------------------------------------------------------
 		todo
 
 # Same as `a.to::string <=> b.to::string`.
@@ -31,9 +37,11 @@ export
 
 +to string(a symbol) trusted
 	if extern native
-		a.symbol-to-c-string as-string
+		a.c-string-of-symbol as-string
+	elif extern js
+		a js-cast
 	else
-		todo # ----------------------------------------------------------------------------------------------------------------------------
+		todo
 
 init-symbol-table void(a global-ctx mut*) unsafe
 	a->symbols-table := for x : static-symbols
@@ -50,12 +58,14 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 	if extern native
 		gctx = get-global-ctx
 		gctx.symbols-lock with-lock () =>
-			match gctx->symbols-table get-or-add a, () => a.to-malloced-c-string,
+			match gctx->symbols-table get-or-add a, () => a.to-malloced-c-string symbol-of-c-string
 			as got x
 				x
 			as added new-table, symbol
 				gctx->symbols-table := new-table
 				symbol
+	elif extern js
+		a js-cast
 	else
 		# TODO: In JS, 'symbol' and 'string' will just be the same type ---------------------------------------------------
 		todo

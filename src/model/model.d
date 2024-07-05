@@ -403,6 +403,7 @@ enum BuiltinType {
 	pointerConst,
 	pointerMut,
 	string_,
+	symbol,
 	void_,
 }
 bool isCharOrIntegral(BuiltinType a) {
@@ -430,6 +431,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
 		case BuiltinType.string_:
+		case BuiltinType.symbol:
 		case BuiltinType.void_:
 			return false;
 	}
@@ -696,8 +698,7 @@ immutable struct SpecInstBody {
 	SmallArray!ReturnAndParamTypes sigTypes;
 }
 
-alias EnumFunction = immutable EnumFunction_;
-private enum EnumFunction_ {
+enum EnumFunction {
 	equal,
 	intersect,
 	members,
@@ -816,6 +817,7 @@ enum JsFun {
 	jsAnyAsT,
 	jsGlobal,
 	less,
+	null_,
 	plus,
 	set,
 }
@@ -865,6 +867,7 @@ enum BuiltinUnary {
 	bitwiseNotNat32,
 	bitwiseNotNat64,
 	countOnesNat64,
+	cStringOfSymbol,
 	deref,
 	drop,
 	enumToIntegral,
@@ -873,6 +876,7 @@ enum BuiltinUnary {
 	jumpToCatch,
 	referenceFromPointer,
 	setupCatch,
+	symbolOfCString,
 	toChar8FromNat8,
 	toChar8ArrayFromString,
 	toFloat32FromFloat64,
@@ -1652,12 +1656,13 @@ immutable struct CommonTypes {
 	StructInst* float64;
 	IntegralTypes integrals;
 	StructInst* string_;
-	StructInst* symbol;
+	StructInst* symbol; // TODO: USED? ------------------------------------------------------------------------------------------
 	StructInst* symbolArray;
 	StructInst* void_;
 
 	StructDecl* array;
 	StructInst* char8Array;
+	StructInst* char8ConstPointer;
 	StructInst* char32Array;
 	StructInst* nat8Array;
 	StructDecl* list;
@@ -1692,6 +1697,8 @@ bool isString(in Type a) =>
 	isBuiltinType(a, BuiltinType.string_);
 bool isString(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.string_);
+bool isSymbol(in Type a) =>
+	isBuiltinType(a, BuiltinType.symbol);
 
 private bool isBuiltinType(in Type a, BuiltinType builtin) =>
 	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);

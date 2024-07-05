@@ -1418,8 +1418,11 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 	final switch (a.kind) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.arraySize:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toChar8ArrayFromString:
 		case BuiltinUnary.trustAsString:
+			// done in lower
 			assert(false);
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
@@ -1638,6 +1641,7 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.eqNat32:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPointer:
+		case BuiltinBinary.referenceEqual:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessFloat32:

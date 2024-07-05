@@ -1423,7 +1423,7 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst*
 			checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected)));
 		overwriteMemory(&loop.body_, body_);
 		if (!info.hasBreak)
-			addDiag2(ctx, source, Diag(Diag.LoopWithoutBreak()));
+			addDiag2(ctx, ast.keywordRange(source), Diag(Diag.LoopWithoutBreak()));
 		return Expr(source, ExprKind(castImmutable(loop)));
 	} else {
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.loop)));
@@ -1503,12 +1503,13 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Mat
 		(BuiltinType x) {
 			Opt!CharType charType = optAsCharType(x);
 			Opt!IntegralType integral = optAsIntegralType(x);
+			Opt!(LiteralStringLikeExpr.Kind) stringLike = getMatchableStringLikeFromBuiltin(x);
 			return has(charType)
 				? checkMatchChar(ctx, locals, source, ast, expected, matched, force(charType))
 				: has(integral)
 				? checkMatchIntegral(ctx, locals, source, ast, expected, matched, force(integral))
-				: x == BuiltinType.string_
-				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, LiteralStringLikeExpr.Kind.string_)
+				: has(stringLike)
+				? checkMatchStringLike(ctx, locals, source, ast, expected, matched, force(stringLike))
 				: notMatchable();
 		},
 		(ref StructBody.Enum x) =>
@@ -1864,6 +1865,16 @@ Expr checkMatchIntegral(
 		MatchIntegralExpr(MatchIntegralExpr.Kind(integralType), matched, cases, else_))));
 }
 
+Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromBuiltin(BuiltinType a) {
+	switch (a) {
+		case BuiltinType.string_:
+			return some(LiteralStringLikeExpr.Kind.string_);
+		case BuiltinType.symbol:
+			return some(LiteralStringLikeExpr.Kind.symbol);
+		default:
+			return none!(LiteralStringLikeExpr.Kind);
+	}
+}
 Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromRecord(in CommonTypes commonTypes, in StructInst* inst) =>
 	inst == commonTypes.symbol ? some(LiteralStringLikeExpr.Kind.symbol) :
 	inst == commonTypes.char32Array ? some(LiteralStringLikeExpr.Kind.char32Array) :

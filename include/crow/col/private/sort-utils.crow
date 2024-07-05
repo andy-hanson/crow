@@ -7,23 +7,19 @@ import
 	../../fun-util: subscript
 	../../json: to
 	../../misc: loop-break, new, void
-	../../number: ==, <=>, +, /
+	../../number: ==, <=>, +, -, /
 	../../option: force, is-empty, new, option
-	../../pointer: ==, <=>, +, -, *, as-const, set-deref
-	../../range: ..
+	../../range: .., iterate
 	../../test-util: is
 	../../tuple: a, b, new
-	../../private/bootstrap: nat64, todo
-	../array:
-		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice
-	../collection: .., end, for-break
-	../mut-array:
-		+, as-mut-array, begin, mut-array, mut-array-iterator, new, next-index, set-subscript,
-		temp-as-array
+	../../private/bootstrap: nat64
+	../array: ==, <=>, +, -, array, array-iterator, begin, end, iterate, next, next-index, slice
+	../collection: for-break, for-loop
+	../mut-array: +, begin, mut-array, mut-array-iterator, new, next-index, temp-as-array
 	../list: ==, list, new
 	../mut-list:
-		+, begin, begin-pointer, clear, end-pointer, is-empty, move-to, mut-list, mut-list-iterator,
-		size, swap, temp-as-array, to, unsafe-set-size
+		+, begin, clear, is-empty, move-to, mut-list, mut-list-iterator, set-subscript, size,
+		subscript, swap, temp-as-array, to, unsafe-set-size
 
 binary-search-has[t] bool(a t array, value t) t compare
 	!(a binary-search-exact value is-empty)
@@ -103,7 +99,7 @@ binary-search-exact[t] t array-iterator?(a t array, compare comparison data(elem
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t))
++binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t)) # TODO: INTERNAL ---------------------
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
 binary-search-insert[t] t mut-array-iterator(a t mut-array, compare comparison data(elem t))
@@ -169,7 +165,6 @@ assert-comparison-not-equal unique-comparison(a comparison)
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
 merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data(x t, y t))
-	guard trusted extern native : todo # -------------------------------------------------------------------------------------------------------------------
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
@@ -177,27 +172,28 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 	trusted
 		a-old-size = a size
 		a unsafe-set-size a-old-size + b.size
-		a-read mut = a.begin-pointer.as-const + a-old-size - 1
-		a-write mut = a.end-pointer - 1
-		b-begin = b.begin-pointer as-const
-		b-read mut = b.end-pointer.as-const - 1
+		a-read mut = a-old-size - 1
+		a-write mut = a.size - 1
+		b-read mut = b.size - 1
 		# Merge right-to-left so we never overwrite anything we still have to read.
-		# Invariant: a-read, a-write, b-read are all valid pointers.
+		# Invariant: a-read, a-write, b-read are all valid pointers. -----------------------------------------------------
 		loop
-			match compare[*a-read, *b-read]
+			match compare[a[a-read], b[b-read]]
 			as less
-				*a-write := *b-read
-				if b-read == b-begin
+				a[a-write] := b[b-read]
+				if b-read == 0
 					break
 				else
 					a-write -:= 1
 					b-read -:= 1
 					continue
 			as greater
-				*a-write := *a-read
-				if a-read == a.begin-pointer.as-const
-					(a.begin-pointer .. a-write).as-mut-array[0 .. end] :=
-						(b-begin .. b-read + 1).as-array
+				a[a-write] := a[a-read]
+				if a-read == 0
+					assert b-read + 1 == a-write
+					# a[0 .. a-write] := b[0 .. b-read + 1] TODO: in order to do this, subscripting b would have to be lazy (not copy)
+					for i : 0::nat64 .. a-write
+						a[i] := b[i]
 					break
 				else
 					a-read -:= 1

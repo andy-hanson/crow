@@ -1,8 +1,7 @@
 no-std
 import
 	../bits: |
-	../col/array: +, begin, slice
-	../col/collection: subscript
+	../col/array: subscript
 	../col/mut-array: begin-pointer, cast-immutable, mut-array, size, zeroed-mut-array
 	../number: ==, <=>, to
 	../pointer: null

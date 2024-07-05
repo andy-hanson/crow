@@ -103,9 +103,8 @@ Unlike in other programming languages, this isn't a numeric type.
 
 region symbol.crow
 
-# TODO: This should be a builtin type. In native builds it will use a c-string, in JS builds it will use a string. -----------------
-+symbol record by-val
-	~symbol-to-c-string c-string
+# TODO: This doesn't need to be declared here .........................................................................................
++symbol builtin
 
 region bootstrap arithmetic
 

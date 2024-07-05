@@ -781,18 +781,18 @@ BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server serve
 	string diagnostics = showDiagnostics(alloc, server, program.program);
 	bool fatal = hasFatalDiagnostics(program);
 	return BuildToJsResult(
-		fatal ? TranslateToJsResult() : translateToJs(alloc, program, getShowCtx(server), os, isNodeJs),
+		fatal ? TranslateToJsResult() : translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), os, isNodeJs),
 		diagnostics,
 		fatal);
 }
 
-ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
-	ShowDiagCtx(getShowCtx(server), program.commonTypes);
+ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program, bool forceNoColor = false) =>
+	ShowDiagCtx(getShowCtx(server, forceNoColor: forceNoColor), program.commonTypes);
 
 private:
 
-ShowCtx getShowCtx(return scope ref const Server server) =>
-	ShowCtx(server.lineAndColumnGetters, server.urisInfo, server.showOptions);
+ShowCtx getShowCtx(return scope ref const Server server, bool forceNoColor = false) =>
+	ShowCtx(server.lineAndColumnGetters, server.urisInfo, forceNoColor ? server.showOptions.withoutColor : server.showOptions);
 
 LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));

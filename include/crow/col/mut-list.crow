@@ -1,9 +1,9 @@
 no-std
 import
 	../bool: bool, not
-	../compare: <, <=, >
+	../compare: !=, <, <=, >
 	../fun-util: subscript
-	../js: as-js-any, as-t, call-property, set
+	../js: as-js-any, as-t, call-property, null, set
 	../misc: new, void
 	../number: ==, <=>, +, -, /, float64, max-value, nat64, to
 	../option: force, new, option
@@ -13,13 +13,12 @@ import
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
-	./array: +, array, begin, size, slice
-	./collection:
-		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, subscript
+	./array: array, size
+	./collection: .., -, build-options, end, for-loop, index-too-big, iterate, size-hint, subscript
 	./mut-array:
-		+, -, begin, begin-pointer, cast-immutable, cast-mutable, copy, empty-mut-array, end, mut-array,
-		mut-array-iterator, prev, new, next, next-index, set-next, set-prev, set-subscript,
-		size, slice, subscript, temp-as-array, zeroed-mut-array, zero-memory
+		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, empty-mut-array, mut-array,
+		mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev, set-subscript,
+		size, subscript, temp-as-array, zeroed-mut-array, zero-memory
 	./list: iterate, list, to
 
 ###
@@ -28,6 +27,7 @@ This is represented as a reference to a `mut-array` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
+# TODO: maybe this should be an intrinsic type, so JS can just use an array directly? ----------------------------------------------------
 +mut-list[t] record mut
 	# Fields should only be used in mut-list.crow
 	# backing.size is the capacity
@@ -134,7 +134,7 @@ Writes to the `mut-list` won't affect the `list`.
 	trusted a.move-to cast-immutable
 +move-to[t] t mut-array(a t mut[]) bare
 	trusted if extern native
-		res = a.backing[0 .. a.size]
+		res t mut-array = a.backing.begin-pointer[0 .. a.size]
 		a.backing := ()
 		a.size := 0
 		res
@@ -170,7 +170,7 @@ Converts to an `mut-array`.
 ###
 temp-as-mut-array[t] t mut-array(a t mut[]) bare, unsafe
 	if extern native
-		a.backing[0 .. a.size]
+		a.backing.begin-pointer[0 .. a.size]
 	else
 		a backing
 
@@ -193,13 +193,13 @@ Throws if `n > a.size`.
 +pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
-		res = a[0 .. n]
+		res = trusted a.backing.begin-pointer[0 .. n] cast-immutable
 		new-size = a.size - n
-		a.backing[0 .. new-size] := trusted a.temp-as-array[n .. a.size]
+		a.backing[0 .. new-size] := a.backing[n .. a.size]
 		a.size := new-size
 		res to
 	elif trusted extern js
-		todo
+		todo # ---------------------------------------------------------------------------------------------------------------------------
 	else
 		todo
 
@@ -246,6 +246,8 @@ Throws if `n > a.size`.
 		a.begin-pointer + 1 mem-move a.begin-pointer.as-const, a.size
 		*a.begin-pointer := value
 		a.size +:= 1
+	elif extern js
+		_ = a.backing.as-js-any call-property "unshift", value
 	else
 		todo # -------------------------------------------------------------------------------------------------------------
 
@@ -257,7 +259,7 @@ Throws if `n > a.size`.
 		a.begin-pointer[a size] := value
 		a.size +:= 1
 	elif extern js
-		_ = a.backing.as-js-any call-property "unshift", value
+		_ = a.backing.as-js-any call-property "push", value
 	else
 		todo
 
@@ -327,9 +329,18 @@ Unsafe because if this increases the size, it exposes uninitialized data.
 If this decreases the size, it doesn't zero out the rest of the data,
 so the garbage collector will keep it alive.
 ###
-unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe, native extern
-	a reserve new-size
-	a.size := new-size
+unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe
+	if extern native
+		a reserve new-size
+		a.size := new-size
+	elif extern js
+		if new-size < a.size
+			a reduce-size-to new-size
+		else
+			while a.size != new-size
+				a ~= null.as-t
+	else
+		todo
 
 ###
 Sets `a[index] := value`,
@@ -342,7 +353,7 @@ Throws if `index > a.size`.
 	assert index <= a.size : index index-too-big a.size
 	trusted if extern native
 		a incr-capacity
-		a.backing[index + 1 .. a.size + 1] := a.temp-as-array[index .. a.size]
+		a.backing[index + 1 .. a.size + 1] := a.backing[index .. a.size]
 		a.size +:= 1
 		assert a.size <= a.capacity
 		a[index] := value
@@ -360,7 +371,7 @@ Throws if `index >= a.size`.
 	a check-index index
 	res = a[index]
 	trusted if extern native
-		a.backing[index .. a.size - 1] := a.temp-as-array[index + 1 .. a.size]
+		a.backing[index .. a.size - 1] := a.backing[index + 1 .. a.size]
 		a.size -:= 1
 	elif extern js
 		_ = a.backing.as-js-any call-property "splice", index.to::float64, 1::float64
@@ -439,8 +450,9 @@ region spec impls (see collection.crow)
 	a.as-backing-iter set-next value
 
 +slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)
-	res = a.as-backing-iter slice b.as-backing-iter
-	res.copy, res.size
+	assert a.next-index <= b.next-index # TODO: WHAT ERROR ? --------------------------------------------------------------------
+	res t mut-slice = a.collection.backing[a.next-index .. b.next-index]
+	res.copy-to, res.size
 
 +build[t] t mut[](a build-options, f void mut(out t mut[]))
 	res t mut[] = ()

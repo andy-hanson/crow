@@ -8,12 +8,11 @@ import
 	../option: ??, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
-	../private/range-low-level: .., rangeable, iterate, range, size
+	../private/range-low-level: .., high, iterate, low, range, rangeable, size
 	../pointer: size-of
 	../tuple: a, b, new
 	./array:
-		~~, ~=, +, -, array, array-cast, as-array, begin, build, end, is-empty, iterate, new, next,
-		size, slice, subscript
+		~~, ~=, array, array-cast, as-array, begin, build, is-empty, iterate, new, next, size, subscript
 	./collection:
 		.., -, concatenate, end, for-loop, index-relative-to-end, index-too-big, is-empty, iterator-not-comparable,
 		iterator-out-of-bounds, range-relative-to-end, sequence-compare, sequence-equal,
@@ -152,6 +151,8 @@ export
 +subscript[t] t(a t[], index nat64) bare
 	assert index < a.size : index index-too-big a.size
 	(a.begin + index).next!.a
++subscript[t] t[](a t[], indices nat64 range)
+	a.begin + indices.low slice a.begin + indices.high
 
 +as-list[t] t[](a t* range) unsafe, native extern
 	a.as-array to

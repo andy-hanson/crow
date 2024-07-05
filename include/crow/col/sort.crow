@@ -16,8 +16,8 @@ import
 		.., begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
 		subscript, swap-at
 	./mut-array:
-		~=, +, -, begin, build, cast-immutable, end, iterate, mut-array, new, next, prev, set-next,
-		size, slice, to, subscript
+		~=, +, as-slice, begin, build, cast-immutable, iterate, mut-array, mut-slice, new, next,
+		prev, set-next, set-subscript, size, slice, to, subscript
 	./list: ~=, ==, build, iterate, list, new, size, to
 	./mut-list: mut-list, temp-as-mut-array
 
@@ -113,7 +113,7 @@ test
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
--set-sort-unique[t] t mut-array(a t mut-array) t compare
+-set-sort-unique[t] t mut-slice(a t mut-array) t compare
 	a set-sort
 	out mut = a begin
 	in mut = a begin
@@ -133,18 +133,18 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
-+sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
+~sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
 	mut-a t mut-array = a to
 	mut-b u mut-array = b to
-	mut-a set-sort-by-first mut-b
+	mut-a.as-slice set-sort-by-first mut-b.as-slice
 	trusted mut-a.cast-immutable.to, mut-b.cast-immutable.to
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-+set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
-	trusted a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
+~set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
+	trusted a.temp-as-mut-array.as-slice set-sort-by-first b.temp-as-mut-array.as-slice
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-+set-sort-by-first[t, u] void(a t mut-array, b u mut-array) t compare
+~set-sort-by-first[t, u] void(a t mut-slice, b u mut-slice) t compare
 	assert a.size == b.size
 	if a.size > 1
 		a swap-at 0, a.size / 2
@@ -156,8 +156,8 @@ Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j
 		a[new-pivot-index + 1 .. end] set-sort-by-first b[new-pivot-index + 1 .. end]
 
 -set-partition-by-first[t, u] nat64(
-	a t mut-array,
-	b u mut-array,
+	a t mut-slice,
+	b u mut-slice,
 	pivot t,
 	left nat64,
 	right nat64,

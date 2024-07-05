@@ -13,12 +13,11 @@ import
 	../../string: ==, <=>, hash-mix, interpolate, join, new, string, to
 	../../test-util: is
 	../array:
-		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
-		new, next-index, size, slice, subscript
+		~=, array, as-array, begin-pointer, build, end-pointer, is-empty, iterate, new, next-index, size, subscript
 	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
 	../mut-array:
-		~=, +, begin, begin-pointer, build, end-pointer, is-empty, mut-array,
-		mut-array-builder, set-subscript, size, slice, subscript, zeroed-mut-array
+		~=, as-slice, begin-pointer, build, end-pointer, is-empty, mut-array,
+		mut-array-builder, mut-slice, set-subscript, size, subscript, zeroed-mut-array
 	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
@@ -323,7 +322,7 @@ Or a combination of the two.
 region spec impls (see collection.crow)
 
 +iterate[t] bool(a t sorted-set, f bool mut(elem t)) t key
-	iters mut = a init-iters
+	iters mut t iter-part mut-slice = a.init-iters as-slice
 	loop
 		if iters is-empty
 			break false
@@ -333,7 +332,7 @@ region spec impls (see collection.crow)
 			iters[least-iter-index] := iters[least-iter-index] tail a.remove
 			if iters[least-iter-index] is-empty
 				iters[least-iter-index] := iters[end - 1]
-				iters := iters[0 .. iters.size - 1]
+				iters := iters[0 .. iters.size - 1] # TODO: use end - 1 ////////////////////////////////////////////////////////
 			if f[least-value]
 				break true
 			else
@@ -343,7 +342,7 @@ region spec impls (see collection.crow)
 	current-least t,
 	current-least-index nat64,
 	iter-index nat64,
-	iters t iter-part mut-array,
+	iters t iter-part mut-slice,
 ) t key
 	if iter-index == iters.size
 		current-least-index

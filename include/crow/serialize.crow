@@ -7,8 +7,8 @@ For JSON serialization, see the `crow/json` module.
 no-std
 import
 	./bits: &, |, <<, >>
-	./col/collection: drop-while, for-loop, subscript
-	./col/list: ==, +, begin, end, iterate, list, next, new, size, slice
+	./col/collection: drop-while, for-loop
+	./col/list: ==, begin, end, iterate, list, next, new, size, slice, subscript
 	./compare: <, <=
 	./json: to
 	./number: ==, <=>, int64, max-value, nat8, nat32, nat64, to

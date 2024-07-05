@@ -8,6 +8,7 @@ import
 	../private/bootstrap: array-size, new-array, todo
 	../private/range-low-level: ..
 	../pointer: +, subscript
+	../range: high, low, range, size
 	../tuple: new
 	./collection:
 		.., build, end, index-too-big, iterator-not-comparable, sequence-compare, sequence-equal,
@@ -35,6 +36,14 @@ export
 		a.begin-pointer[index]
 	elif extern js
 		a.as-js-any get index as-t
+	else
+		todo
++subscript[t] t array(a t array, indices nat64 range) bare
+	assert indices.high <= a.size : indices.high index-too-big a.size
+	trusted if extern native
+		indices.size new-array a.begin-pointer + indices.low
+	elif extern js
+		a.as-js-any call-property "slice", indices.low.to::float64, indices.high.to::float64 as-t
 	else
 		todo
 
@@ -151,13 +160,4 @@ region spec impls (see collection.crow)
 	(value, rest),
 
 +slice[t] t array(begin t array-iterator, end t array-iterator) bare
-	begin.collection slice begin.next-index, end.next-index
--slice[t] t array(a t array, begin nat64, end nat64) bare
-	assert begin <= end
-	assert end <= a.size : end index-too-big a.size
-	trusted if extern native
-		end - begin new-array a.begin-pointer + begin
-	elif extern js
-		a.as-js-any call-property "slice", begin.to::float64, end.to::float64 as-t
-	else
-		todo
+	begin.collection[begin.next-index .. end.next-index]

@@ -11,13 +11,11 @@ import
 	../string: ==, interpolate, join, new, string, to
 	../test-util: is
 	../tuple: ==, a, b, new
-	./array:
-		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, size,
-		slice, subscript
+	./array: ~=, ~~=, array, array-builder, build, is-empty, iterate, new, size, subscript
 	./collection: .., build, build-options, end, for-break, for-loop, subscript, swap-at, with-block
 	./mut-array:
-		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
-		next, prev, set-next, size, slice, subscript
+		~=, ~~=, as-slice, begin, build, cast-immutable, is-empty, mut-array, mut-array-builder, mut-slice,
+		next, prev, set-next, size, set-subscript, subscript
 	./list: ==, ~=, build, list, new, to
 	./sort: sort, sort=
 
@@ -238,7 +236,7 @@ This is amortized O(log n).
 region spec impls (see collection.crow)
 
 +iterate[k, v] bool(a (k, v) priority-queue, f bool mut(key k, value v)) k priority
-	a.each-arr walk f
+	a.each-arr.as-slice walk f
 
 -each-part[k, v] record(min mut (k, v), pairs mut (k, v) array) mut
 
@@ -264,7 +262,7 @@ region spec impls (see collection.crow)
 		out ~= (node.min, node.pairs)
 		cur := node next
 
--walk[k, v] bool(a (k, v) each-part mut-array, f bool mut(key k, value v)) k compare
+-walk[k, v] bool(a (k, v) each-part mut-slice, f bool mut(key k, value v)) k compare
 	guard !a.is-empty
 	head = a[0]
 	if f[head min]
@@ -277,7 +275,7 @@ region spec impls (see collection.crow)
 		a swap-sorted
 		a walk f
 
--swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
+-swap-sorted[k, v] void(a (k, v) each-part mut-slice) k compare
 	for i : 0::nat64 .. a.size - 1
 		if a[i].min.a > a[i + 1].min.a
 			a swap-at i, i + 1

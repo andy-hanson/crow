@@ -71,6 +71,7 @@ import model.model :
 	isLambdaType,
 	isNonFunctionPointer,
 	isString,
+	isSymbol,
 	isTuple,
 	Local,
 	Module,
@@ -192,6 +193,7 @@ struct ConcretizeCtx {
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _char8Type;
 	Late!ConcreteType _char8ArrayType;
+	Late!ConcreteType _char8ConstPointerType;
 	Late!ConcreteType _char32Type;
 	Late!ConcreteType _char32ArrayType;
 	Late!ConcreteType _exceptionType;
@@ -275,6 +277,9 @@ ConcreteType char8Type(ref ConcretizeCtx a) =>
 ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
+ConcreteType char8ConstPointerType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char8ConstPointerType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char8ConstPointer, emptySmallArray!ConcreteType));
 
 ConcreteType char32Type(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char32Type, () =>
@@ -361,7 +366,11 @@ private ConcreteType getConcreteType_forStructInst(
 	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
 ) {
-	if (isString(Type(inst))) return char8ArrayType(ctx); // This makes 'string' *not* a distinct type from char8 array. So 'string' won't exist in the ConcreteModel
+	if (isString(Type(inst)))
+		return char8ArrayType(ctx); // This makes 'string' *not* a distinct type from char8 array. So 'string' won't exist in the ConcreteModel
+	if (isSymbol(Type(inst)))
+		return char8ConstPointerType(ctx);	
+
 	return withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
 		StructDecl* decl = inst.decl;
 		scope ConcreteStructSource.Inst key = ConcreteStructSource.Inst(decl, small!ConcreteType(typeArgs));
@@ -899,6 +908,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.nat64:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
+		case BuiltinType.symbol:
 			return TypeSize(8, 8);
 		case BuiltinType.jsAny:
 			assert(false);

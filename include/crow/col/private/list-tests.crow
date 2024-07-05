@@ -11,7 +11,7 @@ import
 	../../string: ==, interpolate, join, string, to
 	../../test-util: is
 	../../tuple: a, b
-	../array: +, -, array, begin, end, is-empty, iterate, size, slice
+	../array: array, is-empty, iterate, size, subscript
 	../collection: .., end, for-loop, reversed, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,

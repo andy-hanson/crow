@@ -1677,6 +1677,9 @@ WriteExprResult writeSpecialUnary(
 	final switch (a.kind) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.arraySize:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
+			// Done in lower
 			assert(false);
 		case BuiltinUnary.asAnyPointer:
 			return prefix("(uint8_t*) ");

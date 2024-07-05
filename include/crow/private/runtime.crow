@@ -1,17 +1,16 @@
 no-std
 import
 	../bool: &&, ||, bool, false, true
-	../col/collection: .., -, end, subscript
 	../col/map: empty-map, map
-	../col/mut-array:
-		-, +, begin, begin-pointer, end, end-pointer, mut-array, new, size, slice, zeroed-mut-array
+	../col/mut-array: begin-pointer, end-pointer, mut-array, new, size, subscript, zeroed-mut-array
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, get-log-handler
 	../misc: new, shared, void
-	../number: ==, is-multiple-of, nat64
+	../number: ==, <=>, -, is-multiple-of, nat64
 	../option: ??, is-empty, new, option
 	../pointer: ==, *, as-const, mut-pointer, null, to
+	../range: ..
 	../string: string
 	../version: is-wasm
 	./alloc:
@@ -149,7 +148,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe, native extern
 	# WARN: 'opSwitchFiberInitial' hardcodes this size
 	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
 	# Align the stack
-	stack = stack1 is-valid-stack ? stack1 : stack1[1 .. end - 1]
+	stack = stack1 is-valid-stack ? stack1 : stack1.begin-pointer[1 .. stack1.size - 1]
 	stack.is-valid-stack hard-assert
 	res fiber = do
 		state: action queued-initial

@@ -792,8 +792,11 @@ void generateSpecialUnary(
 	final switch (a.kind) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.arraySize:
+		case BuiltinUnary.cStringOfSymbol:
+		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toChar8ArrayFromString:
 		case BuiltinUnary.trustAsString:
+			// done in lower
 			assert(false);
 		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.enumToIntegral:

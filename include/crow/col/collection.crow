@@ -1,13 +1,13 @@
 no-std
 import
 	../bool: ==, bool, false, new, not, true
-	../compare: >, compare, comparison, equal, greater, less
+	../compare: <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: ??, force, is-empty, new, option
 	../private/bootstrap: exception, string
-	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
+	../private/range-low-level: .., iterate, range, size, subtract-to-nat
 	../tuple: a, b, new
 export
 	./private/build
@@ -84,10 +84,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +at-index[col, elem] spec
 	subscript elem(a col, index nat64)
 
-+subscript[col, elem] elem(
-	a col,
-	index index-relative-to-end,
-) bare, (col, elem) at-index, col size
++subscript[col, elem] elem(a col, index index-relative-to-end) bare, (col, elem) at-index, col size
 	a[a.size - index.subtract]
 
 +set-at-index[col, elem] spec
@@ -123,17 +120,19 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +.. range-relative-to-end(low nat64, high index-relative-to-end) bare
 	low, high
 
-+subscript[col, iter] col(
-	a col,
-	indices nat64 range,
-) (iter, col) begin, iter skip-next, (col, iter) slice, bare
-	a.begin + indices.low slice a.begin + indices.high
++to-range nat64 range(a range-relative-to-end, size nat64) bare
+	assert a.low <= size : a.low index-too-big size
+	assert a.high.subtract <= size : a.high.subtract index-too-big size
+	low = a.low
+	high = size - a.high.subtract
+	assert low <= high # TODO: what kind of error? ----------------------------------------------------------------------------------
+	low .. high
 
-+subscript[col, iter] col(
-	a col,
-	indices range-relative-to-end,
-) (iter, col) begin-end, iter skip-prev-next, (col, iter) slice, bare
-	a.begin + indices.low slice a.end - indices.high.subtract
++subscript-range[col] spec
+	subscript col(a col, range nat64 range)
+
++subscript[col] col(a col, indices range-relative-to-end) col size, col subscript-range, bare
+	a[indices to-range a.size]
 
 +slice-left[col, iter] col(a iter) (col, iter) collection, (iter, col) begin, (col, iter) slice
 	a.collection.begin slice a
@@ -153,16 +152,10 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 		lo := pair0 b
 		hi := pair1 a
 
-swap-at[col, iter, elem] void(
-	a col,
-	i nat64,
-	j nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, (iter, elem) set-next
-	x = a.begin + i
-	y = a.begin + j
-	temp = x.next!.a
-	x set-next y.next!.a
-	y set-next temp
+swap-at[col, elem] void(a col, i nat64, j nat64) (col, elem) at-index, (col, elem) set-at-index
+	temp = a[i]
+	a[i] := a[j]
+	a[j] := temp
 
 region 'for' loops
 
