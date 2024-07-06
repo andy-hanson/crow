@@ -100,7 +100,7 @@ private @system Out withBuildStackArray_impure(Out, Elem)(
 	assert(!isBuildingStackArray);
 	isBuildingStackArray = true;
 	Elem* begin = cast(Elem*) stackArrayNext;
-	StackArrayBuilder!Elem builder = StackArrayBuilder!Elem(begin);
+	StackArrayBuilder!Elem builder = StackArrayBuilder!Elem(begin, begin);
 	cbBuild(builder);
 	isBuildingStackArray = false;
 	stackArrayNext = roundUpToWord(builder.cur);
@@ -112,16 +112,32 @@ private @system Out withBuildStackArray_impure(Out, Elem)(
 struct StackArrayBuilder(T) {
 	@safe @nogc pure nothrow:
 
+	private T* begin;
 	private T* cur;
-
-	@system void pop() {
-		cur--;
-	}
 
 	@trusted void opOpAssign(string op : "~")(T value) {
 		debug assert(cast(ulong*) (cur + 1) <= endPtr(stackArrayStorage));
 		initMemory(cur, value);
 		cur++;
+	}
+
+	size_t sizeSoFar() =>
+		cur - begin;
+
+	@system void pop() {
+		assert(cur > begin);
+		cur--;
+	}
+
+	@trusted T[] asTemporaryArray() =>
+		arrayOfRange(begin, cur);
+
+	@trusted void insertAt()(size_t index, T value) {
+		assert(index <= sizeSoFar);
+		cur++;
+		foreach_reverse (size_t i; index .. sizeSoFar)
+			begin[i + 1] = begin[i];
+		begin[index] = value;
 	}
 }
 

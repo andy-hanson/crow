@@ -2264,9 +2264,25 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralStringLikeExpr {
+	@safe @nogc pure nothrow:
+
 	enum Kind { char8Array, char8List, char32Array, char32List, cString, string_, symbol }
 	Kind kind;
 	SmallString value; // For char32Array, this will be decoded in concretize.
+
+	bool isList() scope {
+		final switch (kind) {
+			case LiteralStringLikeExpr.Kind.char8Array:
+			case LiteralStringLikeExpr.Kind.char32Array:
+			case LiteralStringLikeExpr.Kind.cString:
+			case LiteralStringLikeExpr.Kind.string_:
+			case LiteralStringLikeExpr.Kind.symbol:
+				return false;
+			case LiteralStringLikeExpr.Kind.char8List:
+			case LiteralStringLikeExpr.Kind.char32List:
+				return true;
+		}
+	}
 }
 
 immutable struct LocalGetExpr {

@@ -27,6 +27,11 @@ uint safeToUint(ulong a) {
 	return cast(uint) a;
 }
 
+ulong safeToUlong(long a) {
+	assert(a >= 0);
+	return cast(ulong) a;
+}
+
 size_t safeToSizeT(ulong a) {
 	assert(a <= size_t.max);
 	return cast(size_t) a;
@@ -49,6 +54,8 @@ ulong bitsOfFloat64(double value) =>
 
 double float64OfBits(ulong value) =>
 	Converter64(asUlong: value).asFloat64;
+
+extern(C) double round(double x);
 
 uint uintOfUshorts(ushort[2] a) =>
 	((cast(uint) a[0]) << 16) | a[1];

@@ -5,11 +5,19 @@ module backend.js.allUsed;
 import frontend.ide.getReferences : getCalledAtExpr;
 import frontend.ide.ideUtil : eachDirectChildExpr; // TODO: MOVE ------------------------------------------------------------------------
 import frontend.ide.position : ExprRef; // TODO: MOVE ------------------------------------------------------------------------
+import model.constant : Constant;
 import model.model :
 	asExtern,
 	AutoFun,
+	Builtin4ary,
+	BuiltinBinary,
+	BuiltinBinaryLazy,
+	BuiltinBinaryMath,
 	BuiltinFun,
+	BuiltinTernary,
 	BuiltinType,
+	BuiltinUnary,
+	BuiltinUnaryMath,
 	Called,
 	CallOptionExpr,
 	CalledSpecSig,
@@ -27,6 +35,8 @@ import model.model :
 	FunInst,
 	getModuleUri,
 	IfExpr,
+	JsFun,
+	LiteralStringLikeExpr,
 	Local,
 	MatchEnumExpr,
 	MatchUnionExpr,
@@ -143,7 +153,57 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 }
 
 bool bodyIsInlined(in FunDecl a) =>
-	!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport);
+	!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport) || (
+		a.body_.isA!BuiltinFun && !isInlinedBuiltinFun(a.body_.as!BuiltinFun));
+bool isInlinedBuiltinFun(in BuiltinFun a) =>
+	a.matchIn!bool(
+		(in BuiltinFun.AllTests) =>
+			false,
+		(in BuiltinUnary _) =>
+			true,
+		(in BuiltinUnaryMath x) {
+			switch (x) {
+				case BuiltinUnaryMath.roundFloat32:
+				case BuiltinUnaryMath.roundFloat64:
+					return false;
+				default:
+					return true;
+			}
+		},
+		(in BuiltinBinary _) =>
+			true,
+		(in BuiltinBinaryLazy _) =>
+			true,
+		(in BuiltinBinaryMath _) =>
+			true,
+		(in BuiltinTernary _) =>
+			true,
+		(in Builtin4ary _) =>
+			true,
+		(in BuiltinFun.CallLambda) =>
+			true,
+		(in BuiltinFun.CallFunPointer) =>
+			true,
+		(in Constant _) =>
+			true,
+		(in BuiltinFun.Init) =>
+			true,
+		(in JsFun _) =>
+			true,
+		(in BuiltinFun.MarkRoot) =>
+			assert(false),
+		(in BuiltinFun.MarkVisit) =>
+			assert(false),
+		(in BuiltinFun.PointerCast) =>
+			assert(false),
+		(in BuiltinFun.SizeOf) =>
+			assert(false),
+		(in BuiltinFun.StaticSymbols) =>
+			assert(false),
+		(in VersionFun _) =>
+			assert(false),
+		(in BuiltinFun.Zeroed) =>
+			true);
 
 Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExtern, in Condition a) {
 	if (a.isA!(Expr*)) {
@@ -392,7 +452,10 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 	} else {
 		if (a.expr.kind.isA!(CallOptionExpr*))
 			trackAllUsedInType(res, from, a.type);
-		else if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
+		else if (a.expr.kind.isA!LiteralStringLikeExpr) {
+			if (a.expr.kind.as!LiteralStringLikeExpr.isList)
+				trackAllUsedInFun(res, from, res.program.commonFuns.newTList, FunUse.regular);
+		} else if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchEnumExpr*).enum_);
 		else if (a.expr.kind.isA!(MatchUnionExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);

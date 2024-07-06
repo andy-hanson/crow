@@ -641,7 +641,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= 'n';
 		},
 		(in JsLiteralNumber x) {
-			writeFloatLiteral(writer, x.value);
+			writeFloatLiteral(writer, x.value, infinity: "Number.POSITIVE_INFINITY", nan: "Number.NaN");
 		},
 		(in JsLiteralString x) {
 			writeQuotedString(writer, x.value);

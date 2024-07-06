@@ -845,7 +845,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Literal of type '";
 			writeName(writer, ctx, stringOfEnum(x.type));
 			writer ~= "' will be rounded to ";
-			writeFloatLiteral(writer, x.actual);
+			writeFloatLiteral(writer, x.actual, infinity: "infinity", nan: "NaN");
 		},
 		(in Diag.LiteralMultipleMatch x) {
 			writer ~= "Multiple possible types for literal expression: ";

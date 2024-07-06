@@ -334,6 +334,8 @@ JsExpr genIntegerUnsigned(ulong value) =>
 	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
 JsExpr genIntegerLarge(string value) => // TDO: UNSUED? -------------------------------------------------------------------------------
 	JsExpr(JsLiteralIntegerLarge(value));
+JsExpr genMul(ref Alloc alloc, JsExpr left, JsExpr right) => // TODO: calling this 'genMul' but the binary expr kind 'times' is inconsistent
+	genBinary(alloc, JsBinaryExpr.Kind.times, left, right);
 JsExpr genNot(ref Alloc alloc, JsExpr arg) =>
 	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 JsExpr genNotEqEq(ref Alloc alloc, JsExpr left, JsExpr right) =>

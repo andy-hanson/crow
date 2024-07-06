@@ -29,6 +29,7 @@ import backend.js.jsAst :
 	genIntegerSigned,
 	genIntegerUnsigned,
 	genLet,
+	genMul,
 	genNew,
 	genNot,
 	genNotEqEq,
@@ -134,6 +135,7 @@ import model.model :
 	FunInst,
 	FunPointerExpr,
 	IfExpr,
+	ImportFileContent,
 	ImportOrExport,
 	isVoid,
 	JsFun,
@@ -943,7 +945,13 @@ JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 
 JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) {
 	if (fun.body_.isA!(FunBody.FileImport))
-		return todo!JsExprOrBlockStatement("FileImport body"); // -----------------------------------------------------------------------------------------------------
+		return fun.body_.as!(FunBody.FileImport).content.matchIn!JsExprOrBlockStatement(
+			(in immutable ubyte[] bytes) =>
+				todo!JsExprOrBlockStatement("For large file: Base64 encode as a string literal, then decode?"), // ------------------
+			(in string s) =>
+				JsExprOrBlockStatement(allocate(ctx.alloc, genString(s))),
+			(in ImportFileContent.Bogus) =>
+				JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [genThrowBogus(ctx)])));
 	else {
 		if (fun.body_.isA!AutoFun)
 			return translateAutoFun(ctx, fun, fun.body_.as!AutoFun);
@@ -1202,7 +1210,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ref AssertOrForbidExpr x) =>
 			translateAssertOrForbid(ctx, x, type, pos),
 		(BogusExpr x) =>
-			forceStatement(ctx, pos, genThrowError(ctx.ctx, "Reached compile error")),
+			forceStatement(ctx, pos, genThrowBogus(ctx)),
 		(CallExpr x) =>
 			translateCall(ctx, x, type, pos),
 		(ref CallOptionExpr x) =>
@@ -1226,7 +1234,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(LiteralExpr x) =>
 			forceExpr(ctx, pos, type, translateConstant(ctx, x.value, type)),
 		(LiteralStringLikeExpr x) =>
-			forceExpr(ctx, pos, type, translateLiteralStringLike(ctx.alloc, x)),
+			forceExpr(ctx, pos, type, translateLiteralStringLike(ctx, x)),
 		(LocalGetExpr x) {
 			assert(type == x.local.type);
 			return forceExpr(ctx, pos, type, translateLocalGet(x.local));
@@ -1477,12 +1485,14 @@ ExprResult translateCallBuiltin(
 			assert(nArgs == 2);
 			return translateBuiltinBinaryLazy(ctx, returnType, pos, x, getArg(0), getArg(1));
 		},
-		(in BuiltinBinaryMath x) =>
-			todo!ExprResult("BUILTIN BINARY MATH"),
+		(in BuiltinBinaryMath x) {
+			assert(nArgs == 2);
+			return expr(translateBuiltinBinaryMath(ctx, x, getArg(0), getArg(1)));
+		},
 		(in BuiltinTernary x) =>
-			todo!ExprResult("BUILTIN TERNARY"),
+			assert(false),
 		(in Builtin4ary x) =>
-			todo!ExprResult("BUILTIN 4ary"),
+			assert(false),
 		(in BuiltinFun.CallLambda) =>
 			call(),
 		(in BuiltinFun.CallFunPointer) =>
@@ -1656,6 +1666,13 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 		toFloat32(alloc, callMath(alloc, name, arg));
 	JsExpr f64(Symbol name) =>
 		callMath(alloc, name, arg);
+	JsExpr round() =>
+		// JS round gives wrong results for negative numbers, so fix by only rounding positive
+		// Math.sign(arg) * Math.round(Math.abs(arg))
+		genMul(
+			alloc,
+			callMath(alloc, symbol!"sign", arg),
+			callMath(alloc, symbol!"round", callMath(alloc, symbol!"abs", arg)));
 
 	final switch (a) { // TODO: this seems to indicate that BuiltinUnaryMath should be a pair: (function, bits) --------------------------
 		case BuiltinUnaryMath.acosFloat32:
@@ -1675,7 +1692,7 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 		case BuiltinUnaryMath.coshFloat32:
 			return f32(symbol!"cosh");
 		case BuiltinUnaryMath.roundFloat32:
-			return f32(symbol!"round");
+			return toFloat32(alloc, round());
 		case BuiltinUnaryMath.sinFloat32:
 			return f32(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat32:
@@ -1705,7 +1722,7 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 		case BuiltinUnaryMath.coshFloat64:
 			return f64(symbol!"cosh");
 		case BuiltinUnaryMath.roundFloat64:
-			return f64(symbol!"round");
+			return round();
 		case BuiltinUnaryMath.sinFloat64:
 			return f64(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat64:
@@ -1910,6 +1927,17 @@ ExprResult translateBuiltinBinaryLazy(ref TranslateExprCtx ctx, Type type, scope
 	}
 }
 
+JsExpr translateBuiltinBinaryMath(ref TranslateExprCtx ctx, BuiltinBinaryMath kind, JsExpr left, JsExpr right) {
+	JsExpr Math = JsExpr(JsName(symbol!"Math"));
+	JsExpr atan2 = genCallProperty(ctx.alloc, Math, symbol!"atan2", [left, right]);
+	final switch (kind) {
+		case BuiltinBinaryMath.atan2Float32:
+			return toFloat32(ctx.alloc, atan2);
+		case BuiltinBinaryMath.atan2Float64:
+			return atan2;
+	}
+}
+
 ExprResult translateCallJsFun(
 	ref TranslateModuleCtx ctx,
 	Type returnType,
@@ -2102,21 +2130,27 @@ JsExpr translateConstant(ref TranslateModuleCtx ctx, in Constant value, in Type 
 		}
 	}
 }
-JsExpr translateLiteralStringLike(ref Alloc alloc, ref LiteralStringLikeExpr a) {
+JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, ref LiteralStringLikeExpr a) {
+	JsExpr[] char8s() =>
+		map(ctx.alloc, a.value, (ref immutable char x) =>
+			genIntegerUnsigned(x));
+	JsExpr[] char32s() =>
+		buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
+			mustUnicodeDecode(a.value, (dchar x) {
+				out_ ~= genIntegerUnsigned(x);
+			});
+		});
+	JsExpr genList(JsExpr[] elements) =>
+		genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
 	final switch (a.kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
-			return genArray(map(alloc, a.value, (ref immutable char x) =>
-				genIntegerUnsigned(x)));
+			return genArray(char8s());
 		case LiteralStringLikeExpr.Kind.char8List:
-			return todo!JsExpr("Need to wrap as list"); // ----------------------------------------------------------------------
+			return genList(char8s());
 		case LiteralStringLikeExpr.Kind.char32Array:
-			return genArray(buildArray!JsExpr(alloc, (scope ref Builder!JsExpr out_) {
-				mustUnicodeDecode(a.value, (dchar x) {
-					out_ ~= genIntegerUnsigned(x);
-				});
-			}));
+			return genArray(char32s());
 		case LiteralStringLikeExpr.Kind.char32List:
-			return todo!JsExpr("Need to wrap as list"); // ----------------------------------------------------------------------
+			return genList(char32s());
 		case LiteralStringLikeExpr.Kind.cString:
 			assert(false);
 		case LiteralStringLikeExpr.Kind.string_:
@@ -2278,6 +2312,8 @@ ExprResult withTemp2(
 JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
 	JsName(base, some(safeToUshort(ctx.nextTempIndex++)));
 
+JsStatement genThrowBogus(ref TranslateExprCtx ctx) =>
+	genThrowError(ctx.ctx, "Reached compile error");
 JsStatement genThrowError(ref TranslateModuleCtx ctx, string message) =>
 	genThrow(ctx.alloc, genNewError(ctx, message));
 JsExpr genNewError(ref TranslateModuleCtx ctx, string message) =>

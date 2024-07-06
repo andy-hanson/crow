@@ -74,7 +74,7 @@ import util.writer :
 	makeStringWithWriter,
 	withWriter,
 	writeEscapedChar_inner,
-	writeFloatLiteral,
+	writeFloatLiteralForC,
 	writeNewline,
 	writeQuotedString,
 	Writer,
@@ -1477,7 +1477,7 @@ void writeConstantRef(
 				default:
 					assert(false);
 			}
-			writeFloatLiteral(writer, x.value);
+			writeFloatLiteralForC(writer, x.value);
 		},
 		(in Constant.FunPointer x) {
 			if (isPointerNonGc(type))

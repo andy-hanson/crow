@@ -3,12 +3,13 @@ module util.writer;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, withStackAlloc, withStackAllocImpure;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.col.arrayBuilder : Builder, finish;
-import util.col.array : zip;
-import util.conv : bitsOfFloat64;
+import util.col.array : castImmutable, reverseInPlace, zip;
+import util.conv : bitsOfFloat64, round, safeToUlong;
 import util.string : eachChar, CString, stringOfCString;
-import util.unicode : isValidUnicodeCharacter, mustUnicodeEncode;
-import util.util : abs, debugLog, isNan, max;
+import util.unicode : isValidUnicodeCharacter, mustUnicodeDecode, mustUnicodeEncode;
+import util.util : abs, debugLog, isNan, max, min;
 
 T withStackWriterImpure(T)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
@@ -51,8 +52,8 @@ struct Writer {
 	void opOpAssign(string op : "~")(dchar a) {
 		mustUnicodeEncode(res, a);
 	}
-	void opOpAssign(string op : "~")(in string a) {
-		res ~= a;
+	void opOpAssign(string op : "~")(in char[] a) {
+		res ~= castImmutable(a);
 	}
 	void opOpAssign(string op : "~")(in CString a) {
 		eachChar(a, (char c) {
@@ -148,7 +149,86 @@ void writeHex(scope ref Writer writer, long a) {
 	writeHex(writer, cast(ulong) (a < 0 ? -a : a));
 }
 
-void writeFloatLiteral(scope ref Writer writer, double a) {
+void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in string nan) { // TODO: UNIT TEST! ------------------------------------------------------------------------------
+	if (a < 0) {
+		writer ~= '-';
+		writeFloatLiteral(writer, -a, infinity, nan);
+	} else if (isNan(a))
+		writer ~= nan;
+	else if (a == double.infinity)
+		writer ~= infinity;
+	else if ((cast(double) (cast(long) a)) == a) {
+		// Being careful to handle -0
+		if (1.0 / a < 0)
+			writer ~= '-';
+		writer ~= abs(cast(long) a);
+	} else {
+		DecimalAndExponent de = toDecimalAndExponent(a);
+		ulong dec = de.decimal;
+		long exp = de.exponent;
+		withBuildStackArray!(void, char)(
+			(ref StackArrayBuilder!char out_) {
+				while (dec != 0) {
+					ulong digit = dec % 10;
+					out_ ~= digitChar(digit);
+					dec /= 10;
+					exp++;
+				}
+				if (exp <= 0) {
+					foreach (ulong i; 0 .. abs(exp))
+						out_ ~= '0';
+					out_ ~= '.';
+					out_ ~= '0';
+				}
+				reverseInPlace(out_.asTemporaryArray);
+				if (exp <= 0) {
+					// did before reverse
+				} else if (safeToUlong(exp) < out_.sizeSoFar)
+					out_.insertAt(safeToUlong(exp), '.');
+				else {
+					foreach (size_t _; out_.sizeSoFar .. safeToUlong(exp))
+						out_ ~= '0';
+				}
+			},
+			(scope char[] xs) {
+				writer ~= xs;
+			});
+	}
+}
+
+immutable struct DecimalAndExponent { ulong decimal; long exponent; }
+DecimalAndExponent toDecimalAndExponent(double a) {
+	assert(a > 0);
+	double x = a;
+	long exp = 0;
+	while (x < 1) {
+		x *= 10;
+		exp--;
+	}
+
+	ulong digits = 0;
+	while (!isNearInt(x) && digits < 15) {
+		x *= 10;
+		exp--;
+		digits++;
+	}
+
+	ulong dec = safeToUlong(cast(long) round(x));
+	while (dec % 10 == 0) {
+		dec /= 10;
+		exp++;
+	}
+	return DecimalAndExponent(dec, exp);
+}
+
+bool isNearInt(double a) {
+	double b = round(a);
+	double diff = abs(a - b);
+	double epsilon = 2.22e-16;
+	return a == b || diff <= epsilon || diff <= epsilon * min(abs(a), abs(b));
+}
+
+void writeFloatLiteralForC(scope ref Writer writer, double a) { // TODO: this should only be used from writeToC! JSON can't use it, JS can't use it
 	if (isNan(a))
 		writer ~= "NAN";
 	else if (a == double.infinity)
@@ -287,8 +367,9 @@ void writeWithSeparatorAndFilter(T)(
 
 void writeQuotedString(scope ref Writer writer, in string s) {
 	writer ~= '"';
-	foreach (char c; s)
-		writeEscapedChar_inner(writer, c);
+	mustUnicodeDecode(s, (dchar x) {
+		writeEscapedChar_inner(writer, x);
+	});
 	writer ~= '"';
 }
 void writeQuotedString(scope ref Writer writer, in CString s) {

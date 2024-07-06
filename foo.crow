@@ -1,56 +1,9 @@
 import
-	crow/col/counter: counter, new
-	crow/col/deque: deque, new
-	crow/col/experimental/compact-map: compact-map, new
-	crow/col/experimental/compact-sorted-map: compact-sorted-map, new
-	crow/col/experimental/frozen-map: frozen-map, new
-	crow/col/experimental/frozen-set: frozen-set, new
-	crow/col/experimental/hamt-set: hamt-set, new
-	crow/col/experimental/index-set: index-set, new
-	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
-	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
-	crow/col/experimental/sorted-set: new, sorted-set
-	crow/col/experimental/tree-set: new, tree-set
-	crow/col/mut-deque: mut-deque, new
-	crow/col/mut-grid: mut-grid, new
-	crow/col/mut-priority-queue: mut-priority-queue, new
-	crow/col/mut-queue: mut-queue, new
-	crow/col/mut-stack: mut-stack, new
-	crow/col/priority-queue: new, priority-queue
-	crow/col/stack: new, stack
-	crow/col/queue: new, queue
-	crow/crypto/experimental/login-cookie: generate-login-cookie
-	crow/crypto/password-hash: quality-moderate
-	crow/io/environ: get-environ
-	crow/io/file: current-directory
-	crow/io/net/http-server: http-server, new
-	crow/io/process: exited, new, process-result
-	crow/io/stdin: read-stdin
-	crow/io/terminal-color: bold
-	crow/io/time-format: gmt
-	crow/math/mat: new, mat3-32
-	crow/math/vec: new, vec2-32
-	crow/parse: grammar-skip, new
-	crow/parse-command: parse-named-args
-	crow/perf: measure-performance
-	crow/serialize: from-bytes
-	crow/test-util/test-runner: run-all-tests
-	./include/crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
-	./include/crow/col/experimental/private/index-set-tests: dummy-index-set-tests
-	./include/crow/col/private/array-tests: dummy-array-tests
-	./include/crow/col/private/map-tests: dummy-map-tests
-	./include/crow/col/private/list-tests: dummy-list-tests
-	./include/crow/col/private/set-tests: dummy-set-tests
-	./include/crow/private/tests/exclusion-queue-tests: dummy-exclusion-queue-tests
-	./include/crow/private/tests/bare-map-tests: dummy-bare-map-tests
-	./include/crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
-	./include/crow/private/tests/bits-tests: dummy-bits-tests
-	./include/crow/private/tests/json-tests: dummy-json-tests
-	./include/crow/private/tests/math-tests: dummy-math-tests
+	./editor/vscode/license.txt as license string
 
 my-exception record(message string) exception variant-member
 describe string(a my-exception)
 	a.message
 
 main void() summon, js extern
-	run-all-tests
+	info log license

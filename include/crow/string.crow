@@ -333,6 +333,7 @@ Result is only digits, no punctuation.
 
 		out reverse-in-place
 		if exp <= 0
+			# TODO: It would be smarter to do appending before the reverse-in-place! ------------------------------------------
 			for _ : 0::nat64 .. exp.abs
 				out prepend= "0"
 			out prepend= "."
@@ -354,7 +355,7 @@ Result is only digits, no punctuation.
 
 	digits mut nat64 = 0
 	loop
-		if x.is-near-int || digits == 15
+		if x.is-near-int || digits == 15 # TODO: this could be an until loop ---------------------------------------------
 			break
 		else
 			x *:= 10

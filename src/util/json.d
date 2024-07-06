@@ -186,7 +186,7 @@ private void writeJson(ref Writer writer, in Json a) =>
 			writer ~= x ? "true" : "false";
 		},
 		(in double x) {
-			writeFloatLiteral(writer, x);
+			writeFloatLiteral(writer, x, infinity: "null", nan: "null");
 		},
 		(in string x) {
 			writeQuotedString(writer, x);
