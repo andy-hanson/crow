@@ -5,11 +5,10 @@ import
 	../../misc: key, new, void
 	../../number: nat64
 	../../option: option
-	../../private/bootstrap: todo
 	../../tuple: new
 	../array: array
-	../collection: build-options
-	../list: list, list-cast, to
+	../collection: build-options, for-loop
+	../list: ~=, build, iterate, list, list-cast, size, to
 	./frozen-map:
 		~=, build, frozen-map, frozen-map-builder, in, is-empty, iterate, size, to,
 		try-get-unordered-index
@@ -24,14 +23,17 @@ import
 	if extern native
 		a.list-cast.to,
 	else
-		todo # -----------------------------------------------------------------------------------------------------------------------------
+		pairs (t, void)[] = for x : a
+			x, ()
+		pairs.to,
 
 # This is O(1).
 +to[t] t[](a t frozen-set) trusted
 	if extern native
 		a.inner.to::((t, void)[]).list-cast
 	else
-		todo # ---------------------------------------------------------------------------------------------------------------------
+		for x, _ : a inner
+			x
 
 +is-empty[t] bool(a t frozen-set)
 	a.inner is-empty

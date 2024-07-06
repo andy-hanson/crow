@@ -10,6 +10,7 @@ import backend.js.jsAst :
 	genArrowFunction,
 	genAssign,
 	genBinary,
+	genBitwiseAnd,
 	genBlockStatement,
 	genBool,
 	genBreak,
@@ -74,6 +75,7 @@ import backend.js.jsAst :
 	JsModuleAst,
 	JsName,
 	JsObjectDestructure,
+	JsObjectExpr,
 	JsParams,
 	JsPropertyAccessExpr,
 	JsReturnStatement,
@@ -89,7 +91,7 @@ import backend.js.writeJsAst : writeJsAst;
 import frontend.ide.ideUtil : eachDescendentExprIncluding;
 import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted; // ---------------------------------------------------------------------------------
 import model.ast : addExtension, ImportOrExportAstKind, PathOrRelPath;
-import model.constant : asBool, Constant;
+import model.constant : asBool, asInt64, asNat64, Constant;
 import model.model :
 	asExtern,
 	AssertOrForbidExpr,
@@ -848,16 +850,9 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 		case BuiltinType.bool_:
 			return typeof_("boolean");
 		case BuiltinType.catchPoint:
-		case BuiltinType.float32:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
-			import util.writer : debugLogWithWriter, Writer;
-			debugLogWithWriter((scope ref Writer writer) { // ------------------------------------------------------------------------------
-				writer ~= "We should not use type ";
-				writer ~= stringOfEnum(type);
-			});
-			return some(genBool(true));
-			//assert(false);
+			assert(false);
 		case BuiltinType.char8:
 		case BuiltinType.char32:
 		case BuiltinType.int8:
@@ -869,6 +864,7 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 		case BuiltinType.nat32:
 		case BuiltinType.nat64:
 			return typeof_("bigint");
+		case BuiltinType.float32:
 		case BuiltinType.float64:
 			return typeof_("number");
 		case BuiltinType.funPointer:
@@ -974,25 +970,24 @@ JsExprOrBlockStatement translateAutoFun(ref TranslateExprCtx ctx, FunDecl* fun, 
 	Destructure[] params = fun.params.as!(Destructure[]);
 	JsExpr param(size_t i) =>
 		translateLocalGet(params[i].as!(Local*));
+	StructDecl* struct_ = params[0].type.as!(StructInst*).decl;
+	StructDecl* returnStruct = fun.returnType.as!(StructInst*).decl;
 	final switch (auto_.kind) {
 		case AutoFun.Kind.compare:
 			assert(params.length == 2);
-			StructDecl* struct_ = params[0].type.as!(StructInst*).decl;
-			StructDecl* comparison = fun.returnType.as!(StructInst*).decl;
 			return struct_.body_.isA!(StructBody.Record)
-				? translateCompareRecord(ctx, auto_, comparison, struct_.body_.as!(StructBody.Record).fields, param(0), param(1))
-				: translateCompareUnion(ctx, auto_, comparison, struct_.body_.as!(StructBody.Union*).members, param(0), param(1));
+				? translateCompareRecord(ctx, auto_, returnStruct, struct_.body_.as!(StructBody.Record).fields, param(0), param(1))
+				: translateCompareUnion(ctx, auto_, returnStruct, struct_.body_.as!(StructBody.Union*).members, param(0), param(1));
 		case AutoFun.Kind.equals:
 			assert(params.length == 2);
-			StructDecl* struct_ = params[0].type.as!(StructInst*).decl;
 			return struct_.body_.isA!(StructBody.Record)
 				? translateEqualRecord(ctx, auto_, struct_.body_.as!(StructBody.Record).fields, param(0), param(1))
 				: translateEqualUnion(ctx, auto_, struct_.body_.as!(StructBody.Union*).members, param(0), param(1));
 		case AutoFun.Kind.toJson:
 			assert(params.length == 1);
-			return todo!JsExprOrBlockStatement("to json"); // --------------------------------------------------------------------------------------
-			// TODO: do I want to use the object itself as the JSON? Or still use the compiled union type?
-			//return JsExprOrBlockStatement(translateLocalGet(param(0));
+			return struct_.body_.isA!(StructBody.Record) // TODO: eery case is the same, so share code somehow -----------------------
+				? translateRecordToJson(ctx, returnStruct, auto_, struct_.body_.as!(StructBody.Record).fields, param(0))
+				: translateUnionToJson(ctx, returnStruct, auto_, struct_.body_.as!(StructBody.Union*).members, param(0));
 	}
 }
 JsExprOrBlockStatement translateCompareRecord(ref TranslateExprCtx ctx, in AutoFun auto_, StructDecl* comparison, RecordField[] fields, JsExpr p0, JsExpr p1) {
@@ -1072,19 +1067,21 @@ JsExprOrBlockStatement translateEqualUnion(ref TranslateExprCtx ctx, in AutoFun 
 					genCallCompareProperty(ctx, auto_.members[index], p0, p1, member.name))),
 				else_))]));
 JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, Symbol name) =>
+	translateCall(ctx, called, [genPropertyAccess(ctx.alloc, p0, name), genPropertyAccess(ctx.alloc, p1, name)]);
+JsExpr translateCall(ref TranslateExprCtx ctx, Called called, in JsExpr[] args) =>
 	isInlined(called)
 		? translateToExpr((scope ExprPos pos) =>
-			translateInlineCall(ctx, called.returnType, pos, called.as!(FunInst*).decl.body_, called.paramTypes, 2, (size_t i) {
-				final switch (i) {
-					case 0:
-						return p0;
-					case 1:
-						return p1;
-				}
-			}))
-		: genCall(ctx.alloc, calledExpr(ctx, called), [
-			genPropertyAccess(ctx.alloc, p0, name),
-			genPropertyAccess(ctx.alloc, p1, name)]);
+			translateInlineCall(ctx, called.returnType, pos, called.as!(FunInst*).decl.body_, called.paramTypes, args.length, (size_t i) => args[i]))
+		: genCall(ctx.alloc, calledExpr(ctx, called), args);
+
+JsExprOrBlockStatement translateRecordToJson(ref TranslateExprCtx ctx, StructDecl* json, in AutoFun auto_, RecordField[] fields, JsExpr p0) {
+	JsObjectExpr.Pair[] values = mapWithIndex!(JsObjectExpr.Pair, RecordField)(ctx.alloc, fields, (size_t i, ref RecordField field) =>
+		JsObjectExpr.Pair(field.name, translateCall(ctx, auto_.members[i], [genPropertyAccess(ctx.alloc, p0, field.name)])));
+	return JsExprOrBlockStatement(allocate(ctx.alloc, genCallProperty(ctx.alloc, translateStructReference(ctx, json), symbol!"object", [genObject(values)])));
+}
+JsExprOrBlockStatement translateUnionToJson(ref TranslateExprCtx ctx, StructDecl* json, in AutoFun auto_, UnionMember[] members, JsExpr p0) {
+	return todo!JsExprOrBlockStatement("translateUnionToJson"); // -----------------------------------------------------------------------------
+}
 
 struct ExprPos {
 	immutable struct Expression {}
@@ -1390,7 +1387,7 @@ ExprResult translateInlineCall(
 			return expr(nArgs == 0 ? member : genCall(ctx.alloc, member, [getArg(0)]));
 		},
 		(in FunBody.CreateVariant) =>
-			todo!ExprResult("CREATE VARIANT"), // This should pass the arg through unmodified
+			expr(onlyArg()),
 		(in EnumFunction x) =>
 			expr(translateEnumFunction(ctx, returnType, x, nArgs, getArg)),
 		(in Expr _) =>
@@ -1490,8 +1487,10 @@ ExprResult translateCallBuiltin(
 			call(),
 		(in BuiltinFun.CallFunPointer) =>
 			call(),
-		(in Constant x) =>
-			expr(translateConstant(ctx, x, returnType)),
+		(in Constant x) {
+			assert(nArgs == 0);
+			return expr(translateConstant(ctx, x, returnType));
+		},
 		(in BuiltinFun.Init) =>
 			assert(false),
 		(in JsFun x) =>
@@ -1506,8 +1505,14 @@ ExprResult translateCallBuiltin(
 			assert(false),
 		(in BuiltinFun.StaticSymbols) =>
 			assert(false),
-		(in VersionFun x) =>
-			expr(genBool(isVersion(ctx.version_, x))));
+		(in VersionFun x) {
+			assert(nArgs == 0);
+			return expr(genBool(isVersion(ctx.version_, x)));
+		},
+		(in BuiltinFun.Zeroed) {
+			assert(nArgs == 0);
+			return expr(genNull());
+		});
 }
 JsExpr translateEnumFunction(
 	ref TranslateExprCtx ctx,
@@ -1548,21 +1553,21 @@ JsExpr translateAllTests(ref TranslateExprCtx ctx) =>
 	}));
 
 JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
+	JsExpr Array = JsExpr(JsName(symbol!"Array"));
 	JsExpr BigInt = JsExpr(JsName(symbol!"BigInt"));
 	JsExpr Number = JsExpr(JsName(symbol!"Number"));
+	JsExpr bitwiseNot() =>
+		genUnary(alloc, JsUnaryExpr.Kind.bitwiseNot, arg);
 	final switch (a) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.cStringOfSymbol:
 		case BuiltinUnary.deref:
 		case BuiltinUnary.drop:
-		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.jumpToCatch:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.setupCatch:
 		case BuiltinUnary.symbolOfCString:
-		case BuiltinUnary.toFloat32FromFloat64:
-		case BuiltinUnary.toFloat64FromFloat32:
 		case BuiltinUnary.toNat64FromPtr:
 		case BuiltinUnary.toPtrFromNat64:
 			// These are 'native extern'
@@ -1570,14 +1575,26 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 		case BuiltinUnary.arraySize:
 			return genCall(alloc, BigInt, [genPropertyAccess(alloc, arg, symbol!"length")]);
 		case BuiltinUnary.bitwiseNotNat8:
+			return genAsNat8(alloc, bitwiseNot());
 		case BuiltinUnary.bitwiseNotNat16:
+			return genAsNat16(alloc, bitwiseNot());
 		case BuiltinUnary.bitwiseNotNat32:
+			return genAsNat32(alloc, bitwiseNot());
 		case BuiltinUnary.bitwiseNotNat64:
-			return genUnary(alloc, JsUnaryExpr.Kind.bitwiseNot, arg);
+			return genAsNat64(alloc, bitwiseNot());
 		case BuiltinUnary.countOnesNat64:
-			return todo!JsExpr("popcount");
+			// Array.from(n.toString(2))
+			JsExpr digits = genCallProperty(alloc, Array, symbol!"from", [
+				genCallProperty(alloc, arg, symbol!"toString", [genNumber(2)])]);
+			JsName x = JsName(symbol!"x");
+			// x => x === "1"
+			JsExpr fn = genArrowFunction(alloc, [JsDestructure(x)], genEqEqEq(alloc, JsExpr(x), genString("1")));
+			// BigInt(Array.from(n.toString(2)).filter(x => x === "1").length)
+			return genCall(alloc, BigInt, [
+				genPropertyAccess(alloc, genCallProperty(alloc, digits, symbol!"filter", [fn]), symbol!"length")]);
 		case BuiltinUnary.enumToIntegral:
 			return todo!JsExpr("Enum to integral value");
+		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
 			return genCallProperty(alloc, Number, symbol!"isNaN", [arg]);
 		case BuiltinUnary.toChar8FromNat8:
@@ -1600,7 +1617,9 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 		case BuiltinUnary.unsafeToNat8FromNat64:
 		case BuiltinUnary.unsafeToNat16FromNat64:
 		case BuiltinUnary.unsafeToNat32FromNat64:
-			// These are all represented as JS integers
+		case BuiltinUnary.toFloat32FromFloat64:
+		case BuiltinUnary.toFloat64FromFloat32:
+			// These are all conversions between types that are represented the same in JS
 			return arg;
 		case BuiltinUnary.toFloat64FromInt64:
 		case BuiltinUnary.toFloat64FromNat64:
@@ -1632,71 +1651,90 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 JsExpr genArrayFrom(ref Alloc alloc, JsExpr arg) =>
 	genCallProperty(alloc, JsExpr(JsName(symbol!"Array")), symbol!"from", [arg]);
 
-JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) =>
-	callMath(alloc, builtinUnaryMathName(a), arg);
-JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
-	genCallProperty(alloc, JsExpr(JsName(symbol!"Math")), name, [arg]);
-Symbol builtinUnaryMathName(BuiltinUnaryMath a) {
-	final switch (a) {
+JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) {
+	JsExpr f32(Symbol name) =>
+		toFloat32(alloc, callMath(alloc, name, arg));
+	JsExpr f64(Symbol name) =>
+		callMath(alloc, name, arg);
+
+	final switch (a) { // TODO: this seems to indicate that BuiltinUnaryMath should be a pair: (function, bits) --------------------------
 		case BuiltinUnaryMath.acosFloat32:
+			return f32(symbol!"acos");
 		case BuiltinUnaryMath.acoshFloat32:
+			return f32(symbol!"acosh");
 		case BuiltinUnaryMath.asinFloat32:
+			return f32(symbol!"asin");
 		case BuiltinUnaryMath.asinhFloat32:
+			return f32(symbol!"asinh");
 		case BuiltinUnaryMath.atanFloat32:
+			return f32(symbol!"atan");
 		case BuiltinUnaryMath.atanhFloat32:
+			return f32(symbol!"atanh");
 		case BuiltinUnaryMath.cosFloat32:
+			return f32(symbol!"cos");
 		case BuiltinUnaryMath.coshFloat32:
+			return f32(symbol!"cosh");
 		case BuiltinUnaryMath.roundFloat32:
+			return f32(symbol!"round");
 		case BuiltinUnaryMath.sinFloat32:
+			return f32(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat32:
+			return f32(symbol!"sinh");
 		case BuiltinUnaryMath.sqrtFloat32:
+			return f32(symbol!"sqrt");
 		case BuiltinUnaryMath.tanFloat32:
+			return f32(symbol!"tan");
 		case BuiltinUnaryMath.tanhFloat32:
+			return f32(symbol!"tanh");
 		case BuiltinUnaryMath.unsafeLogFloat32:
-			assert(false);
+			return f32(symbol!"log");
 		case BuiltinUnaryMath.acosFloat64:
-			return symbol!"acos";
+			return f64(symbol!"acos");
 		case BuiltinUnaryMath.acoshFloat64:
-			return symbol!"acosh";
+			return f64(symbol!"acosh");
 		case BuiltinUnaryMath.asinFloat64:
-			return symbol!"asin";
+			return f64(symbol!"asin");
 		case BuiltinUnaryMath.asinhFloat64:
-			return symbol!"asinh";
+			return f64(symbol!"asinh");
 		case BuiltinUnaryMath.atanFloat64:
-			return symbol!"atan";
+			return f64(symbol!"atan");
 		case BuiltinUnaryMath.atanhFloat64:
-			return symbol!"atanh";
+			return f64(symbol!"atanh");
 		case BuiltinUnaryMath.cosFloat64:
-			return symbol!"cos";
+			return f64(symbol!"cos");
 		case BuiltinUnaryMath.coshFloat64:
-			return symbol!"cosh";
+			return f64(symbol!"cosh");
 		case BuiltinUnaryMath.roundFloat64:
-			return symbol!"round";
+			return f64(symbol!"round");
 		case BuiltinUnaryMath.sinFloat64:
-			return symbol!"sin";
+			return f64(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat64:
-			return symbol!"sinh";
+			return f64(symbol!"sinh");
 		case BuiltinUnaryMath.sqrtFloat64:
-			return symbol!"sqrt";
+			return f64(symbol!"sqrt");
 		case BuiltinUnaryMath.tanFloat64:
-			return symbol!"tan";
+			return f64(symbol!"tan");
 		case BuiltinUnaryMath.tanhFloat64:
-			return symbol!"tanh";
+			return f64(symbol!"tanh");
 		case BuiltinUnaryMath.unsafeLogFloat64:
-			return symbol!"log";
+			return f64(symbol!"log");
 	}
 }
+JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
+	genCallProperty(alloc, JsExpr(JsName(symbol!"Math")), name, [arg]);
+JsExpr toFloat32(ref Alloc alloc, JsExpr arg) =>
+	callMath(alloc, symbol!"fround", arg);
 
-JsExpr genModulo(ref Alloc alloc, JsExpr left, JsExpr right) =>
-	genBinary(alloc, JsBinaryExpr.Kind.modulo, left, right);
-JsExpr moduloNat8(ref Alloc alloc, JsExpr arg) =>
-	genModulo(alloc, arg, genIntegerUnsigned(0x100));
-JsExpr moduloNat16(ref Alloc alloc, JsExpr arg) =>
-	genModulo(alloc, arg, genIntegerUnsigned(0x10000));
-JsExpr moduloNat32(ref Alloc alloc, JsExpr arg) =>
-	genModulo(alloc, arg, genIntegerUnsigned(0x100000000));
-JsExpr moduloNat64(ref Alloc alloc, JsExpr arg) =>
-	genModulo(alloc, arg, genIntegerLarge("0x10000000000000000"));
+JsExpr genAsNat(ref Alloc alloc, uint bits, JsExpr arg) =>
+	genCallProperty(alloc, JsExpr(JsName(symbol!"BigInt")), symbol!"asUintN", [genNumber(bits), arg]);
+JsExpr genAsNat8(ref Alloc alloc, JsExpr arg) =>
+	genAsNat(alloc, 8, arg);
+JsExpr genAsNat16(ref Alloc alloc, JsExpr arg) =>
+	genAsNat(alloc, 16, arg);
+JsExpr genAsNat32(ref Alloc alloc, JsExpr arg) =>
+	genAsNat(alloc, 32, arg);
+JsExpr genAsNat64(ref Alloc alloc, JsExpr arg) =>
+	genAsNat(alloc, 64, arg);
 
 ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, BuiltinBinary a, JsExpr left, JsExpr right) {
 	ExprResult expr(JsExpr value) =>
@@ -1705,9 +1743,15 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		genBinary(ctx.alloc, kind, left, right);
 	JsExpr add() =>
 		binary(JsBinaryExpr.Kind.plus);
+	JsExpr sub() =>
+		binary(JsBinaryExpr.Kind.minus);
 	JsExpr mul() =>
 		binary(JsBinaryExpr.Kind.times);
+	JsExpr div() =>
+		binary(JsBinaryExpr.Kind.divide);
 	final switch (a) {
+		case BuiltinBinary.addFloat32:
+			return expr(toFloat32(ctx.alloc, add()));
 		case BuiltinBinary.addFloat64:
 		case BuiltinBinary.unsafeAddInt8:
 		case BuiltinBinary.unsafeAddInt16:
@@ -1747,6 +1791,7 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 			return expr(binary(JsBinaryExpr.Kind.bitwiseXor));
 		case BuiltinBinary.eqChar8:
 		case BuiltinBinary.eqChar32:
+		case BuiltinBinary.eqFloat32:
 		case BuiltinBinary.eqFloat64:
 		case BuiltinBinary.eqInt8:
 		case BuiltinBinary.eqInt16:
@@ -1759,6 +1804,7 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.referenceEqual:
 			return expr(binary(JsBinaryExpr.Kind.eqEqEq));
 		case BuiltinBinary.lessChar8:
+		case BuiltinBinary.lessFloat32:
 		case BuiltinBinary.lessFloat64:
 		case BuiltinBinary.lessInt8:
 		case BuiltinBinary.lessInt16:
@@ -1769,6 +1815,8 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.lessNat32:
 		case BuiltinBinary.lessNat64:
 			return expr(binary(JsBinaryExpr.Kind.less));
+		case BuiltinBinary.mulFloat32:
+			return expr(toFloat32(ctx.alloc, mul()));
 		case BuiltinBinary.mulFloat64:
 		case BuiltinBinary.unsafeMulInt8:
 		case BuiltinBinary.unsafeMulInt16:
@@ -1779,6 +1827,8 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.unsafeMulNat32:
 		case BuiltinBinary.unsafeMulNat64:
 			return expr(mul());
+		case BuiltinBinary.subFloat32:
+			return expr(toFloat32(ctx.alloc, sub()));
 		case BuiltinBinary.subFloat64:
 		case BuiltinBinary.unsafeSubInt8:
 		case BuiltinBinary.unsafeSubInt16:
@@ -1788,11 +1838,13 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.unsafeSubNat16:
 		case BuiltinBinary.unsafeSubNat32:
 		case BuiltinBinary.unsafeSubNat64:
-			return expr(binary(JsBinaryExpr.Kind.minus));
+			return expr(sub());
 		case BuiltinBinary.unsafeBitShiftLeftNat64:
-			return expr(moduloNat64(ctx.alloc, binary(JsBinaryExpr.Kind.bitShiftLeft)));
+			return expr(genAsNat64(ctx.alloc, binary(JsBinaryExpr.Kind.bitShiftLeft)));
 		case BuiltinBinary.unsafeBitShiftRightNat64:
-			return expr(moduloNat64(ctx.alloc, binary(JsBinaryExpr.Kind.bitShiftRight)));
+			return expr(genAsNat64(ctx.alloc, binary(JsBinaryExpr.Kind.bitShiftRight)));
+		case BuiltinBinary.unsafeDivFloat32:
+			return expr(toFloat32(ctx.alloc, div()));
 		case BuiltinBinary.unsafeDivFloat64:
 		case BuiltinBinary.unsafeDivInt8:
 		case BuiltinBinary.unsafeDivInt16:
@@ -1802,43 +1854,40 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.unsafeDivNat16:
 		case BuiltinBinary.unsafeDivNat32:
 		case BuiltinBinary.unsafeDivNat64:
-			return expr(binary(JsBinaryExpr.Kind.divide));
+			return expr(div());
 		case BuiltinBinary.unsafeModNat64:
 			return expr(binary(JsBinaryExpr.Kind.modulo));
 		case BuiltinBinary.wrapAddNat8:
-			return expr(moduloNat8(ctx.alloc, add()));
+			return expr(genAsNat8(ctx.alloc, add()));
 		case BuiltinBinary.wrapAddNat16:
-			return expr(moduloNat16(ctx.alloc, add()));
+			return expr(genAsNat16(ctx.alloc, add()));
 		case BuiltinBinary.wrapAddNat32:
-			return expr(moduloNat32(ctx.alloc, add()));
+			return expr(genAsNat32(ctx.alloc, add()));
 		case BuiltinBinary.wrapAddNat64:
-			return expr(moduloNat64(ctx.alloc, add()));
+			return expr(genAsNat64(ctx.alloc, add()));
 		case BuiltinBinary.wrapMulNat8:
-			return expr(moduloNat8(ctx.alloc, mul()));
+			return expr(genAsNat8(ctx.alloc, mul()));
 		case BuiltinBinary.wrapMulNat16:
-			return expr(moduloNat16(ctx.alloc, mul()));
+			return expr(genAsNat16(ctx.alloc, mul()));
 		case BuiltinBinary.wrapMulNat32:
-			return expr(moduloNat32(ctx.alloc, mul()));
+			return expr(genAsNat32(ctx.alloc, mul()));
 		case BuiltinBinary.wrapMulNat64:
-			return expr(moduloNat64(ctx.alloc, mul()));
+			return expr(genAsNat64(ctx.alloc, mul()));
 		case BuiltinBinary.wrapSubNat8:
+			return expr(genAsNat8(ctx.alloc, sub()));
 		case BuiltinBinary.wrapSubNat16:
+			return expr(genAsNat16(ctx.alloc, sub()));
 		case BuiltinBinary.wrapSubNat32:
+			return expr(genAsNat32(ctx.alloc, sub()));
 		case BuiltinBinary.wrapSubNat64:
-			return todo!ExprResult("Need to wrap negative values to positive. But js '%' is not really a mod!");
-		case BuiltinBinary.addFloat32:
+			return expr(genAsNat64(ctx.alloc, sub()));
 		case BuiltinBinary.addPointerAndNat64:
-		case BuiltinBinary.eqFloat32:
 		case BuiltinBinary.eqPointer:
-		case BuiltinBinary.lessFloat32:
 		case BuiltinBinary.lessPointer:
-		case BuiltinBinary.mulFloat32:
 		case BuiltinBinary.newArray:
 		case BuiltinBinary.seq:
-		case BuiltinBinary.subFloat32:
 		case BuiltinBinary.subPointerAndNat64:
 		case BuiltinBinary.switchFiber:
-		case BuiltinBinary.unsafeDivFloat32:
 		case BuiltinBinary.writeToPointer:
 			return forceStatement(ctx.alloc, pos, genThrowError(ctx, "Called a builtin function not implemented in JS")); // this should not be possible, since thse functions are 'native extern'? ----------
 	}
@@ -2026,21 +2075,21 @@ JsExpr translateConstant(ref TranslateModuleCtx ctx, in Constant value, in Type 
 		switch (type.as!(StructInst*).decl.body_.as!BuiltinType) {
 			case BuiltinType.bool_:
 				return genBool(asBool(value));
-			case BuiltinType.float32: // TODO: we probably shouldn't allow float32 in JS -------------------------------------------
+			case BuiltinType.float32:
 			case BuiltinType.float64:
 				return genNumber(value.as!(Constant.Float).value);
 			case BuiltinType.int8:
 			case BuiltinType.int16:
 			case BuiltinType.int32:
 			case BuiltinType.int64:
-				return genIntegerSigned(value.as!IntegralValue.asSigned);
+				return genIntegerSigned(asInt64(value));
 			case BuiltinType.char8:
 			case BuiltinType.char32:
 			case BuiltinType.nat8:
 			case BuiltinType.nat16:
 			case BuiltinType.nat32:
 			case BuiltinType.nat64:
-				return genIntegerUnsigned(value.as!IntegralValue.asUnsigned);
+				return genIntegerUnsigned(asNat64(value));
 			case BuiltinType.void_:
 				return genUndefined();
 			default:

@@ -1328,9 +1328,13 @@ Opt!Constant tryEvalConstant(
 				assert(args.length == 2);
 				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[0]);
 			} else if (x.kind.isA!(BuiltinFun.SizeOf)) {
+				assert(isEmpty(args));
 				return isEmptyType(only(fn.source.as!ConcreteFunKey.typeArgs))
 					? some(constantZero())
 					: none!Constant;
+			} else if (x.kind.isA!(BuiltinFun.Zeroed)) {
+				assert(isEmpty(args));
+				return some(constantZero());
 			} else
 				return none!Constant;
 		},

@@ -851,6 +851,8 @@ immutable string[] specialSymbols = [
 	"c-string-of-symbol",
 	"symbol-of-c-string",
 	"string-of-symbol",
+	"toString",
+	"asUintN",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

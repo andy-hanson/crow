@@ -245,6 +245,19 @@ void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in
 	writeWithSeparator!T(writer, a, "\n", cb);
 }
 
+void writeWithCommasAndNewlines(T)(scope ref Writer writer, uint indent, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	bool first = true;
+	foreach (ref T x; a) {
+		if (first)
+			first = false;
+		else {
+			writer ~= ',';
+			writeNewline(writer, indent);
+		}
+		cb(x);
+	}
+}
+
 void writeWithSeparator(T)(
 	scope ref Writer writer,
 	in T[] a,

@@ -61,6 +61,7 @@ import backend.js.jsAst :
 	JsNewExpr,
 	JsNullExpr,
 	JsObjectDestructure,
+	JsObject1Expr,
 	JsObjectExpr,
 	JsParams,
 	JsPropertyAccessExpr,
@@ -85,7 +86,7 @@ import util.opt : force, has, none, Opt, some;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : Path, RelPath, Uri;
 import util.util : stringOfEnum, todo;
-import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
+import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas, writeWithCommasAndNewlines;
 
 string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a, bool isMain) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -206,6 +207,10 @@ Opt!string mangleChar(dchar a) {
 			return some("__bang");
 		case '.':
 			return some("__dot");
+		case '&':
+			return some("__amp");
+		case '|':
+			return some("__bar");
 		default:
 			return none!string;
 	}
@@ -657,12 +662,20 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		(in JsNullExpr x) {
 			writer ~= "null";
 		},
-		(in JsObjectExpr x) {
+		(in JsObject1Expr x) {
 			assert(!pos.isStartOfStatement);
 			writer ~= "{ ";
-			writeObjectKey(writer, x.name);
-			writer ~= ": ";
-			writeArg(*x.value);
+			writeObjectPair(writer, indent, x.key, *x.value);
+			writer ~= " }";
+		},
+		(in JsObjectExpr x) {
+			assert(!pos.isStartOfStatement);
+			writer ~= "{";
+			writeNewline(writer, indent + 1);
+			writeWithCommasAndNewlines!(JsObjectExpr.Pair)(writer, indent + 1, x.pairs, (in JsObjectExpr.Pair pair) {
+				writeObjectPair(writer, indent + 1, pair.key, pair.value);
+			});
+			writeNewline(writer, indent);
 			writer ~= " }";
 		},
 		(in JsPropertyAccessExpr x) {
@@ -702,4 +715,10 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writeArg(*x.arg);
 			writer ~= ')';
 		});
+}
+
+void writeObjectPair(scope ref Writer writer, uint indent, Symbol key, in JsExpr value) {
+	writeObjectKey(writer, key);
+	writer ~= ": ";
+	writeExpr(writer, indent, value);
 }

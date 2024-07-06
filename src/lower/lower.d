@@ -1461,6 +1461,9 @@ LowExpr getCallBuiltinExpr(
 			LowExpr(type, range, LowExprKind(ctx.staticSymbols)),
 		(VersionFun _) =>
 			// handled in concretize
+			assert(false),
+		(BuiltinFun.Zeroed) =>
+			// handled in concretize
 			assert(false));
 }
 

@@ -3,13 +3,13 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../js: as-js-any, as-t, call, call-property, get, js-cast, js-global, null, set
+	../js: as-js-any, as-t, call, call-property, get, js-cast, js-global, set
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
 	../option: new, option
 	../pointer:
 		==, <=>, +, *, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
-		set-subscript, size-of, subscript
+		set-subscript, size-of, subscript, zeroed
 	../private/alloc: allocate
 	../private/bootstrap: new-array, new-mut-array, mut-array-pointer, mut-array-size, todo
 	../range: .., high, is-empty, iterate, low, range, size, subscript
@@ -207,7 +207,7 @@ This is used by collections like `mut[]` that need some excess capacity that wil
 		(size.allocate::t mut*)[0 .. size]
 	elif extern js
 		# Array(size).fill(null)
-		"Array".js-global call size.to::float64 call-property "fill", null as-t
+		"Array".js-global call size.to::float64 call-property "fill", zeroed::t as-t
 	else
 		todo
 
@@ -223,7 +223,7 @@ See `zeroed-mut-array` for why this is unsafe.
 	elif extern js
 		i mut nat64 = a.range low
 		until i == a.range.high
-			a.inner[i] := null as-t
+			a.inner[i] := zeroed
 			i +:= 1
 	else
 		todo # ---------------------------------------------------------------------------------------------------------------

@@ -45,6 +45,8 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
+	TryExpr,
+	TryLetExpr,
 	Type,
 	TypeParamIndex,
 	UnionMember,
@@ -395,13 +397,19 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 		else if (a.expr.kind.isA!(MatchUnionExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);
 		else if (a.expr.kind.isA!(MatchVariantExpr*))
-			trackAllUsedInMatchVariant(res, from, *a.expr.kind.as!(MatchVariantExpr*));
+			trackAllUsedInMatchVariantCases(res, from, a.expr.kind.as!(MatchVariantExpr*).cases);
+		else if (a.expr.kind.isA!(TryExpr*))
+			trackAllUsedInMatchVariantCases(res, from, a.expr.kind.as!(TryExpr*).catches);
+		else if (a.expr.kind.isA!(TryLetExpr*))
+			trackAllUsedInMatchVariantCase(res, from, a.expr.kind.as!(TryLetExpr*).catch_);
 		trackChildren();
 	}
 }
 
-void trackAllUsedInMatchVariant(ref AllUsedBuilder res, Uri from, in MatchVariantExpr a) {
-	trackAllUsedInStruct(res, from, a.variant.decl);
-	foreach (MatchVariantExpr.Case case_; a.cases)
+void trackAllUsedInMatchVariantCases(ref AllUsedBuilder res, Uri from, in MatchVariantExpr.Case[] cases) {
+	foreach (MatchVariantExpr.Case case_; cases)
 		trackAllUsedInStruct(res, from, case_.member.decl);
+}
+void trackAllUsedInMatchVariantCase(ref AllUsedBuilder res, Uri from, in MatchVariantExpr.Case case_) {
+	trackAllUsedInStruct(res, from, case_.member.decl);
 }

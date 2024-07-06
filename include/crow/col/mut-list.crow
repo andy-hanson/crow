@@ -3,7 +3,7 @@ import
 	../bool: bool, not
 	../compare: !=, <, <=, >
 	../fun-util: subscript
-	../js: as-js-any, as-t, call-property, null, set
+	../js: as-js-any, as-t, call-property, set
 	../misc: new, void
 	../number: ==, <=>, +, -, /, float64, max-value, nat64, to
 	../option: force, new, option
@@ -338,7 +338,7 @@ unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe
 			a reduce-size-to new-size
 		else
 			while a.size != new-size
-				a ~= null.as-t
+				a ~= zeroed
 	else
 		todo
 

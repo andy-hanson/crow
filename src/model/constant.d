@@ -86,5 +86,7 @@ bool asBool(Constant a) {
 Constant constantZero() =>
 	Constant(Constant.Zero());
 
+long asInt64(Constant a) =>
+	a.isA!(Constant.Zero) ? 0 : a.as!IntegralValue.asSigned;
 ulong asNat64(Constant a) =>
 	a.isA!(Constant.Zero) ? 0 : a.as!IntegralValue.asUnsigned;

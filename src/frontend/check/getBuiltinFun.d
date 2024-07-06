@@ -376,7 +376,7 @@ FunBody inner(
 			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:
 			return constant(isVoid(rt), constantZero);
-		case symbol!"null".value:
+		case symbol!"null".value: // TODO: REMOVE (use zeroed) ------------------------------------------------------------------------------
 			return isJsAny(rt) && arity == 0
 				? FunBody(BuiltinFun(JsFun.null_))
 				: constant(isPointerConstOrMut(rt), constantZero);
@@ -576,7 +576,7 @@ FunBody inner(
 				? BuiltinBinary.wrapSubNat64
 				: failBinary);
 		case symbol!"zeroed".value:
-			return constant(true, constantZero);
+			return FunBody(BuiltinFun(BuiltinFun.Zeroed())); // constant(true, constantZero); -----------------------------------------------------------------------------------------------------
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"global-init".value:

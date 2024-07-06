@@ -172,6 +172,7 @@ Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 In a JS build, this will be 'null'.
 ###
+# TODO: maybe this should be called 'gc-safe-value' instead of 'zeroed'. In JS it is consistently null, even for numbers. -------------
 +zeroed[t] t() builtin, bare, unsafe
 
 # TODO: remove this function

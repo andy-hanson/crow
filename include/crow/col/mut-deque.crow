@@ -172,7 +172,8 @@ Callers should then push something.
 
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index
-		"{i == a.right ? "<-R "::string}{i == a.left ? "L-> "::string}{x}"
+		is-nil = trusted x == zeroed
+		"{i == a.right ? "<-R "::string}{i == a.left ? "L-> "::string}{is-nil ? "_"::string : "{x}"}"
 
 -verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is (expected.is-empty ? () : (expected[0],))
@@ -187,7 +188,7 @@ test
 	a.pop-right is ()
 	a verify (), ""
 	1::nat64 push a
-	a verify (1,), "<-R 0 L-> 1"
+	a verify (1,), "<-R _ L-> 1"
 	a push 2
 	a verify (1, 2), "2 <-R L-> 1"
 
@@ -195,18 +196,18 @@ test
 	a-copy verify (1, 2), "<-R L-> 1 2"
 
 	a.pop-right is (2,)
-	a verify (1,), "<-R 0 L-> 1"
+	a verify (1,), "<-R _ L-> 1"
 
 	a.pop-right is (1,)
 	a.left is nil
 	a.right is nil
-	a verify (), "0 0"
+	a verify (), "_ _"
 
 	a push 1
-	a verify (1,), "L-> 1 <-R 0"
+	a verify (1,), "L-> 1 <-R _"
 
 	2::nat64 push a
 	a verify (2, 1), "1 <-R L-> 2"
 
 	3::nat64 push a
-	a verify (3, 2, 1), "2 1 <-R 0 L-> 3"
+	a verify (3, 2, 1), "2 1 <-R _ L-> 3"

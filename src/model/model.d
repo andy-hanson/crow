@@ -835,6 +835,7 @@ immutable struct BuiltinFun {
 	immutable struct PointerCast {}
 	immutable struct SizeOf {}
 	immutable struct StaticSymbols {}
+	immutable struct Zeroed {}
 
 	mixin Union!(
 		AllTests,
@@ -855,7 +856,8 @@ immutable struct BuiltinFun {
 		PointerCast,
 		SizeOf,
 		StaticSymbols,
-		VersionFun);
+		VersionFun,
+		Zeroed);
 }
 
 enum BuiltinUnary {

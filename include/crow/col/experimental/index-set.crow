@@ -10,11 +10,10 @@ import
 	../../number: ==, <=>, +, -, *, /, %, max-value, nat64, new
 	../../option: ??, new, option
 	../../pointer: const-pointer
-	../../private/bootstrap: todo
 	../../private/number-low-level: wrap-sub
 	../../range: ..
 	../../string: interpolate, join, string, to-hex, to
-	../array: array, iterate, subscript
+	../array: array, iterate, new, subscript
 	../collection: build-options, for-loop
 	../list: ~=, build, iterate, list, list-builder, to
 
@@ -36,7 +35,7 @@ import
 	trusted if extern native
 		((&a.a)::nat64*)[0 .. 4]
 	else
-		todo # TODO: there isn't really a way to do this in JS. We could just alloc an array I guess. -----------------------
+		a.a, a.b, a.c, a.d
 -bits-in-leaf-node nat64()
 	# 64 * 4
 	256
@@ -355,7 +354,7 @@ intersect index-set(a index-set, b index-set)
 		new-b = i.b filter-less-recur quarter, limit, 0x40
 		new-c = i.c filter-less-recur quarter, limit, 0x80
 		new-d = i.c filter-less-recur quarter, limit, 0xc0
-		new-node = new-a, new-b, new-c, new-d
+		new-node inner-node = new-a, new-b, new-c, new-d
 		if new-node is-all-empty
 			empty
 		else

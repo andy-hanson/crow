@@ -39,8 +39,6 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 # Treat one type as another. This is a noop in JS.
 +js-cast[out, in] out(a in) builtin, bare, unsafe, js extern
 
-+null js-any() builtin, bare, unsafe, js extern
-
 region Operators
 ~js-eq-eq-eq[t] bool(a t, b t) builtin, bare, unsafe, js extern
 ~js-less[t] bool(a t, b t) builtin, bare, unsafe, js extern

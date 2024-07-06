@@ -4,7 +4,7 @@ module backend.js.jsAst;
 
 import backend.js.allUsed : AnyDecl;
 import util.alloc.alloc : Alloc;
-import util.col.array : newArray, SmallArray;
+import util.col.array : newArray, newSmallArray, SmallArray;
 import util.col.map : KeyValuePair, Map;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
@@ -179,6 +179,7 @@ immutable struct JsExpr {
 		JsName,
 		JsNewExpr,
 		JsNullExpr,
+		JsObject1Expr,
 		JsObjectExpr,
 		JsPropertyAccessExpr,
 		JsPropertyAccessComputedExpr*,
@@ -251,9 +252,16 @@ immutable struct JsNewExpr {
 	JsExpr[] arguments;
 }
 immutable struct JsNullExpr {}
-immutable struct JsObjectExpr {
-	Symbol name;
+immutable struct JsObject1Expr {
+	Symbol key;
 	JsExpr* value;
+}
+immutable struct JsObjectExpr {
+	immutable struct Pair {
+		Symbol key;
+		JsExpr value;
+	}
+	Pair[] pairs;
 }
 immutable struct JsPropertyAccessExpr {
 	JsExpr* object;
@@ -282,12 +290,16 @@ JsExpr genArray(JsExpr[] elements) =>
 	JsExpr(JsArrayExpr(elements));
 JsExpr genArrowFunction(JsParams params, JsExprOrBlockStatement body_) =>
 	JsExpr(JsArrowFunction(params, body_));
+JsExpr genArrowFunction(ref Alloc alloc, in JsDestructure[] params, JsExpr body_) =>
+	genArrowFunction(JsParams(newSmallArray(alloc, params)), JsExprOrBlockStatement(allocate(alloc, body_)));
 JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
 JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
 	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
+JsExpr genBitwiseAnd(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
+	genBinary(alloc, JsBinaryExpr.Kind.bitwiseAnd, arg0, arg1);
 JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements) =>
 	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>
@@ -320,7 +332,7 @@ JsExpr genIntegerSigned(long value) =>
 	JsExpr(JsLiteralInteger(isSigned: true, value: IntegralValue(value)));
 JsExpr genIntegerUnsigned(ulong value) =>
 	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
-JsExpr genIntegerLarge(string value) =>
+JsExpr genIntegerLarge(string value) => // TDO: UNSUED? -------------------------------------------------------------------------------
 	JsExpr(JsLiteralIntegerLarge(value));
 JsExpr genNot(ref Alloc alloc, JsExpr arg) =>
 	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
@@ -361,7 +373,9 @@ JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initiali
 JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
 	genVarDecl(alloc, JsVarDecl.Kind.let, destructure, initializer);
 JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
-	JsExpr(JsObjectExpr(name, allocate(alloc, value)));
+	JsExpr(JsObject1Expr(name, allocate(alloc, value)));
+JsExpr genObject(JsObjectExpr.Pair[] pairs) =>
+	JsExpr(JsObjectExpr(pairs));
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genString(Symbol value) =>
