@@ -1,5 +1,5 @@
 import
-	../exclusion-queue
+	../../../include/crow/private/exclusion-queue
 
 dummy-exclusion-queue-tests nat()
 	0

@@ -1,15 +1,5 @@
-no-std
 import
-	../../bool: ==, false, true
-	../../hash: hash-mix
-	../../json: to
-	../../misc: void
-	../../number: ==, <=>, nat64
-	../../option: ==, new
-	../../string: ==, string, to
-	../../test-util: is
-	../../tuple: new
-	../map: ~, ~~, dbg, is-empty, map, new, size, subscript
+	../../../../include/crow/col/map: dbg
 
 dummy-map-tests nat64()
 	0

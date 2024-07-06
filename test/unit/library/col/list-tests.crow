@@ -1,24 +1,6 @@
-no-std
 import
-	../../bool: &&, bool
-	../../compare: equal
-	../../json: json, to
-	../../misc: to, void
-	../../number: ==, <=>, +, -, nat64
-	../../option: force, is-empty
-	../../pointer: size-of
-	../../range: .., end, iterate, prev
-	../../string: ==, interpolate, join, string, to
-	../../test-util: is
-	../../tuple: a, b
-	../array: array, is-empty, iterate, size, subscript
-	../collection: .., end, for-loop, reversed, subscript, try-split-once
-	../list:
-		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
-		slice, subscript, to
-	../private/list-low-level:
+	../../../../include/crow/col/private/list-low-level:
 		array2d, array3d, arrays, down, l1, l2, l3, left, node, nodes, right, root, total-size
-	../util: groups-of
 
 dummy-list-tests nat64()
 	0

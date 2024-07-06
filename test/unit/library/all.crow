@@ -1,0 +1,35 @@
+import
+	./col/frozen-map-tests: dummy-frozen-map-tests
+	./col/index-set-tests: dummy-index-set-tests
+	./col/array-tests: dummy-array-tests
+	./col/map-tests: dummy-map-tests
+	./col/list-tests: dummy-list-tests
+	./col/set-tests: dummy-set-tests
+	./bare-map-tests: dummy-bare-map-tests
+	./bare-queue-tests: dummy-bare-queue-tests
+	./bits-tests: dummy-bits-tests
+	./exclusion-queue-tests: dummy-exclusion-queue-tests
+	./json-tests: dummy-json-tests
+	./math-tests: dummy-math-tests
+	./number-tests: dummy-number-tests
+	./shared-list-tests: dummy-shared-list-tests
+	./shared-map-tests: dummy-shared-map-tests
+	./string-tests: dummy-string-tests
+
+dummy-library-tests nat()
+	_ = dummy-array-tests
+	_ = dummy-bare-map-tests
+	_ = dummy-bare-queue-tests
+	_ = dummy-bits-tests
+	_ = dummy-exclusion-queue-tests
+	_ = dummy-frozen-map-tests
+	_ = dummy-index-set-tests
+	_ = dummy-json-tests
+	_ = dummy-list-tests
+	_ = dummy-map-tests
+	_ = dummy-math-tests
+	_ = dummy-number-tests
+	_ = dummy-set-tests
+	_ = dummy-shared-list-tests
+	_ = dummy-shared-map-tests
+	_ = dummy-string-tests

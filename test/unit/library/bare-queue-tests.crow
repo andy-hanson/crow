@@ -1,5 +1,5 @@
 import
-	../bare-queue
+	../../../include/crow/private/bare-queue
 
 dummy-bare-queue-tests nat()
 	0

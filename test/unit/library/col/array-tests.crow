@@ -1,0 +1,10 @@
+dummy-array-tests nat64()
+	0
+
+test
+	a void array = with out : build
+		out ~= ()
+		out.size is 1
+		out ~~= ((), ())
+		out.size is 3
+	a.size is 3

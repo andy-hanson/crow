@@ -1,18 +1,5 @@
-no-std
 import
-	../../../bool: ==, true
-	../../../hash: hash-mix
-	../../../json: to
-	../../../misc: void
-	../../../number: ==, <=>, nat64
-	../../../option: ==, new
-	../../../string: ==, string
-	../../../test-util: is
-	../../../tuple: new
-	../../array: ==, array, iterate, new, size
-	../../collection: for-loop
-	../../list: ==, ~=, build, list, new
-	../frozen-map: bucket-starts, frozen-map, is-empty, new, pairs, size, subscript
+	../../../../include/crow/col/experimental/frozen-map
 
 dummy-frozen-map-tests nat64()
 	0

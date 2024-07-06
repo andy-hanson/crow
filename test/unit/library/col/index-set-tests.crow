@@ -1,16 +1,5 @@
-no-std
 import
-	../../../bool: ==, false, true
-	../../../json: to
-	../../../misc: void
-	../../../number: ==, <=>, +, -, nat64
-	../../../option: ==, new
-	../../../range: .., iterate
-	../../../string: ==, string
-	../../../test-util: is
-	../../collection: for-loop
-	../../list: ==, list, new, size
-	../index-set:
+	../../../../include/crow/col/experimental/index-set:
 		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less,
 		in, index-set, iterate, new, size, to, try-add, try-remove
 
@@ -32,7 +21,7 @@ dummy-index-set-tests nat64()
 test
 	a index-set = ()
 	a verify "_", ()
-	3 in a is false
+	3::nat in a is false
 
 	b = a ~ 8
 	b verify "[100 0 0 0]", (8,)
@@ -75,3 +64,6 @@ test
 	d verify "((([0 1000000000 0 0] _ _ _) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)", (100, 5000)
 	e = c - 5000
 	e verify "([0 1000000000 0 0] _ _ [0 0 0 10000000000])", (100, 1000)
+
+-to json(a index-set)
+	a.to::nat[] to

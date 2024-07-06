@@ -1,5 +1,5 @@
 import
-	../../parse
+	crow/parse
 
 dummy-json-tests nat64()
 	0
