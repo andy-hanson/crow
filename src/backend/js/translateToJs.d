@@ -151,6 +151,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopWhileOrUntilExpr,
+	MainFun,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -256,7 +257,7 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, 
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
 		showCtx,
-		ptrTrustMe(program.program),
+		ptrTrustMe(program),
 		version_,
 		allExterns,
 		allUsed,
@@ -265,7 +266,7 @@ TranslateToJsResult translateToJs(ref Alloc alloc, ref ProgramWithMain program, 
 	
 	foreach (Module* module_; program.program.rootModules)
 		doTranslateModule(ctx, module_);
-	return TranslateToJsResult(getOutputFiles(alloc, showCtx, modulePaths, program.mainFun.fun.decl.moduleUri, ctx.done, isNodeJs: isNodeJs));
+	return TranslateToJsResult(getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
 }
 
 private:
@@ -337,7 +338,6 @@ immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 	ref Alloc alloc,
 	in ShowTypeCtx showCtx,
 	in Map!(Uri, Path) modulePaths,
-	Uri mainModuleUri,
 	in MutMap!(Module*, Opt!JsModuleAst) done,
 	bool isNodeJs,
 ) =>
@@ -348,7 +348,7 @@ immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
 			if (has(ast))
 				out_ ~= immutable KeyValuePair!(Path, string)(
 					mustGet(modulePaths, module_.uri),
-					writeJsAst(alloc, showCtx, module_.uri, force(ast), module_.uri == mainModuleUri));
+					writeJsAst(alloc, showCtx, module_.uri, force(ast)));
 	});
 
 struct TranslateProgramCtx {
@@ -356,7 +356,7 @@ struct TranslateProgramCtx {
 
 	Alloc* allocPtr;
 	ShowCtx showCtx; // ----------------------------------------------------------------------------------------------------------------
-	immutable Program* programPtr;
+	immutable ProgramWithMain* programWithMainPtr;
 	immutable VersionInfo version_;
 	immutable SymbolSet allExterns;
 	immutable AllUsed allUsed;
@@ -385,13 +385,7 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 	JsImport[] imports = translateImports(ctx, a, aliases);
 	JsImport[] reExports = translateReExports(ctx, a);
 	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
-		ctx.allocPtr,
-		ctx.showCtx,
-		ctx.programPtr,
-		ctx.version_,
-		ctx.allExterns,
-		ptrTrustMe(ctx.allUsed),
-		ptrTrustMe(ctx.exportMangledNames),
+		ptrTrustMe(ctx),
 		modulePrivateMangledNames(ctx.alloc, a, ctx.exportMangledNames, ctx.allUsed),
 		moveToMap(ctx.alloc, aliases));
 	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
@@ -401,31 +395,70 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, ref Module a) {
 			}
 		});
 	});
-	return JsModuleAst(a.uri, imports, reExports, decls);
+	JsStatement[] statements = a.uri == ctx.programWithMainPtr.mainFun.fun.decl.moduleUri
+		? callMain(moduleCtx)
+		: [];
+	return JsModuleAst(a.uri, imports, reExports, decls, statements);
+}
+
+JsStatement[] callMain(ref TranslateModuleCtx ctx) {
+	FunDecl* main = ctx.ctx.programWithMainPtr.mainFun.fun.decl;
+	JsExpr mainRef = translateFunReference(ctx, main);
+	return ctx.ctx.programWithMainPtr.mainFun.matchIn!(JsStatement[])(
+		(in MainFun.Nat64OfArgs) {
+			if (ctx.isBrowser) {
+				// const exit = main(newList())
+				// if (exit !== 0n) throw new Error("Exited with code " + exit)
+				return todo!(JsStatement[])("MAIN IN BROWSER"); // --------------------------------------------------------------------
+			} else {
+				// const exit = main(newList(process.argv.slice(1)))
+				// if (exit !== 0n) process.exit(Number(exit))
+				JsExpr process = JsExpr(JsName(symbol!"process"));
+				// process.argv.slice(2)
+				JsExpr args = genCallProperty(
+					ctx.alloc,
+					genPropertyAccess(ctx.alloc, process, symbol!"argv"),
+					symbol!"slice",
+					[genNumber(2)]);
+				JsExpr callMain = genCall(ctx.alloc, mainRef, [genArrayToList(ctx, args)]);
+				JsName exitCode = JsName(symbol!"exitCode");
+				return newArray(ctx.alloc, [
+					genConst(ctx.alloc, exitCode, callMain),
+					genIf(
+						ctx.alloc,
+						genNotEqEq(ctx.alloc, JsExpr(exitCode), genIntegerUnsigned(0)),
+						JsStatement(genCallProperty(ctx.alloc, process, symbol!"exit", [
+							genCall(ctx.alloc, JsExpr(JsName(symbol!"Number")), [JsExpr(exitCode)])])))]);
+			}
+		},
+		(in MainFun.Void) =>
+			newArray(ctx.alloc, [JsStatement(genCall(ctx.alloc, mainRef, []))]));
 }
 
 struct TranslateModuleCtx {
 	@safe @nogc pure nothrow:
-	Alloc* allocPtr;
-	ShowCtx showCtx; // ----------------------------------------------------------------------------------------------------------------
-	immutable Program* programPtr;
-	immutable VersionInfo version_;
-	immutable SymbolSet allExterns;
-	immutable AllUsed* allUsedPtr;
-	immutable ModuleExportMangledNames* exportMangledNames;
+	TranslateProgramCtx* ctx;
 	immutable Map!(AnyDecl, ushort) privateMangledNames;
 	immutable Map!(StructDecl*, StructAlias*) aliases;
 
 	ref Alloc alloc() =>
-		*allocPtr;
-	ref Program program() =>
-		*programPtr;
-	CommonTypes* commonTypes() =>
-		program.commonTypes;
-	ref AllUsed allUsed() =>
-		*allUsedPtr;
+		ctx.alloc;
+	ref ShowCtx showCtx() return scope const =>
+		ctx.showCtx;
+	ref Program program() scope const =>
+		ctx.programWithMainPtr.program;
+	ref CommonTypes commonTypes() scope const =>
+		*program.commonTypes;
+	VersionInfo version_() scope const =>
+		ctx.version_;
+	SymbolSet allExterns() scope const =>
+		ctx.allExterns;
+	AllUsed allUsed() return scope const =>
+		ctx.allUsed;
+	ModuleExportMangledNames exportMangledNames() return scope const =>
+		ctx.exportMangledNames;
 
-	bool isBrowser() =>
+	bool isBrowser() const =>
 		allExterns.has(symbol!"browser");
 }
 
@@ -435,9 +468,12 @@ struct TranslateExprCtx {
 	Opt!(FunDecl*) curFun;
 	uint nextTempIndex;
 
-	ref TranslateModuleCtx ctx() =>
+	ref inout(TranslateModuleCtx) ctx() return scope inout =>
 		*ctxPtr;
-	alias ctx this; // -------------------------------------------------------------------------------------------------------------------------------
+	ref Alloc alloc() =>
+		ctx.alloc;
+	ref CommonTypes commonTypes() =>
+		ctx.commonTypes;
 }
 
 JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
@@ -460,6 +496,8 @@ JsName structName(in TranslateModuleCtx ctx, in StructDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateStructReference(in TranslateModuleCtx ctx, in StructDecl* a) =>
 	JsExpr(structName(ctx, a));
+JsExpr translateStructReference(in TranslateExprCtx ctx, in StructDecl* a) =>
+	translateStructReference(ctx.ctx, a);
 JsName varName(in TranslateModuleCtx ctx, in VarDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateVarReference(in TranslateModuleCtx ctx, in VarDecl* a) =>
@@ -959,7 +997,7 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 			if (true) { // TODO: make type assertions optional ----------------------------------------------------------------------------
 				return JsExprOrBlockStatement(JsBlockStatement(translateToStatements(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos pos) {
 					foreach (ref Destructure param; paramsArray(fun.params))
-						genAssertTypesForDestructure(out_, ctx, param);
+						genAssertTypesForDestructure(out_, ctx.ctx, param);
 					return translateExpr(ctx, fun.body_.as!Expr, fun.returnType, pos);
 				})));
 			} else
@@ -1232,7 +1270,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ref LetExpr x) =>
 			translateLet(ctx, x, type, pos),
 		(LiteralExpr x) =>
-			forceExpr(ctx, pos, type, translateConstant(ctx, x.value, type)),
+			forceExpr(ctx, pos, type, translateConstant(ctx.ctx, x.value, type)),
 		(LiteralStringLikeExpr x) =>
 			forceExpr(ctx, pos, type, translateLiteralStringLike(ctx, x)),
 		(LocalGetExpr x) {
@@ -1292,7 +1330,7 @@ ExprResult translateAssertOrForbid(ref TranslateExprCtx ctx, ref AssertOrForbidE
 	ExprResult throw_(scope ExprPos inner) =>
 		forceStatement(ctx, inner, genThrow(ctx.alloc, has(a.thrown)
 			? translateExprToExpr(ctx, *force(a.thrown), Type(ctx.commonTypes.exception))
-			: genNewError(ctx, "Assert or forbid failed"))); // TODO: use same message that concretize uses ----------------------
+			: genNewError(ctx.ctx, "Assert or forbid failed"))); // TODO: use same message that concretize uses ----------------------
 	ExprResult after(scope ExprPos inner) =>
 		translateExpr(ctx, a.after, type, inner);
 	return translateIfCb(
@@ -1428,7 +1466,7 @@ ExprResult translateInlineCall(
 					genOptionNone(ctx, returnType)));
 			}),
 		(in FunBody.VarGet x) =>
-			expr(translateVarReference(ctx, x.var)),
+			expr(translateVarReference(ctx.ctx, x.var)),
 		(in FunBody.VariantMemberGet) =>
 			// x instanceof Foo ? some(x) : none
 			todo!ExprResult("VARIANT MEMBER GET"),
@@ -1467,7 +1505,7 @@ ExprResult translateCallBuiltin(
 	return a.matchIn!ExprResult(
 		(in BuiltinFun.AllTests) {
 			assert(nArgs == 0);
-			return expr(translateAllTests(ctx));
+			return expr(translateAllTests(ctx.ctx));
 		},
 		(in BuiltinUnary x) {
 			assert(nArgs == 1);
@@ -1499,12 +1537,12 @@ ExprResult translateCallBuiltin(
 			call(),
 		(in Constant x) {
 			assert(nArgs == 0);
-			return expr(translateConstant(ctx, x, returnType));
+			return expr(translateConstant(ctx.ctx, x, returnType));
 		},
 		(in BuiltinFun.Init) =>
 			assert(false),
 		(in JsFun x) =>
-			translateCallJsFun(ctx, returnType, pos, x, nArgs, getArg),
+			translateCallJsFun(ctx.ctx, returnType, pos, x, nArgs, getArg),
 		(in BuiltinFun.MarkRoot) =>
 			assert(false),
 		(in BuiltinFun.MarkVisit) =>
@@ -1517,7 +1555,7 @@ ExprResult translateCallBuiltin(
 			assert(false),
 		(in VersionFun x) {
 			assert(nArgs == 0);
-			return expr(genBool(isVersion(ctx.version_, x)));
+			return expr(genBool(isVersion(ctx.ctx.version_, x)));
 		},
 		(in BuiltinFun.Zeroed) {
 			assert(nArgs == 0);
@@ -1555,7 +1593,7 @@ JsExpr translateEnumFunction(
 	}
 }
 
-JsExpr translateAllTests(ref TranslateExprCtx ctx) =>
+JsExpr translateAllTests(ref TranslateModuleCtx ctx) =>
 	genArray(buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
 		eachTest(ctx.program, ctx.allExterns, (Test* test) {
 			out_ ~= translateTestReference(ctx, test);
@@ -2003,7 +2041,7 @@ ExprResult translateIf(ref TranslateExprCtx ctx, ref IfExpr a, Type type, scope 
 		(scope ExprPos inner) => translateExpr(ctx, a.falseBranch, type, inner));
 
 ExprResult translateIfCb(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, in Condition condition, in TranslateCb cbTrueBranch, in TranslateCb cbFalseBranch) {
-	Opt!bool constant = tryEvalConstantBool(ctx.version_, ctx.allExterns, condition);
+	Opt!bool constant = tryEvalConstantBool(ctx.ctx.version_, ctx.ctx.allExterns, condition);
 	if (has(constant)) // TODO: TERNARY -----------------------------------------------------------------------------------------------
 		return (force(constant) ? cbTrueBranch : cbFalseBranch)(pos);
 	else if (pos.isA!(ExprPos.Expression) && condition.isA!(Expr*))
@@ -2140,17 +2178,15 @@ JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, ref LiteralStringLik
 				out_ ~= genIntegerUnsigned(x);
 			});
 		});
-	JsExpr genList(JsExpr[] elements) =>
-		genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
 	final switch (a.kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
 			return genArray(char8s());
 		case LiteralStringLikeExpr.Kind.char8List:
-			return genList(char8s());
+			return genNewList(ctx.ctx, char8s());
 		case LiteralStringLikeExpr.Kind.char32Array:
 			return genArray(char32s());
 		case LiteralStringLikeExpr.Kind.char32List:
-			return genList(char32s());
+			return genNewList(ctx.ctx, char32s());
 		case LiteralStringLikeExpr.Kind.cString:
 			assert(false);
 		case LiteralStringLikeExpr.Kind.string_:
@@ -2158,6 +2194,10 @@ JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, ref LiteralStringLik
 			return genString(a.value);
 	}
 }
+JsExpr genNewList(ref TranslateModuleCtx ctx, JsExpr[] elements) =>
+	genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
+JsExpr genArrayToList(ref TranslateModuleCtx ctx, JsExpr array) =>
+	genCallWithSpread(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList), [], array);
 
 JsExpr translateLocalGet(in Local* local) =>
 	JsExpr(localName(*local));
@@ -2219,7 +2259,7 @@ ExprResult translateMatchEnum(ref TranslateExprCtx ctx, ref MatchEnumExpr a, Typ
 		translateExprToExpr(ctx, a.matched),
 		map(ctx.alloc, a.cases, (ref MatchEnumExpr.Case case_) =>
 			JsSwitchStatement.Case(
-				translateEnumValue(ctx, case_.member),
+				translateEnumValue(ctx.ctx, case_.member),
 				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateSwitchDefault(ctx, a.else_, type, "Invalid enum value")));
 
@@ -2306,14 +2346,16 @@ ExprResult withTemp2(
 ) =>
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 		JsName jsName = tempName(ctx, name);
-		add(ctx.alloc, out_, genConst(ctx.alloc, JsDestructure(jsName), value));
+		add(ctx.alloc, out_, genConst(ctx.alloc, jsName, value));
 		return cb(jsName, inner);
 	});
 JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
 	JsName(base, some(safeToUshort(ctx.nextTempIndex++)));
 
 JsStatement genThrowBogus(ref TranslateExprCtx ctx) =>
-	genThrowError(ctx.ctx, "Reached compile error");
+	genThrowError(ctx, "Reached compile error");
+JsStatement genThrowError(ref TranslateExprCtx ctx, string message) =>
+	genThrowError(ctx.ctx, message);
 JsStatement genThrowError(ref TranslateModuleCtx ctx, string message) =>
 	genThrow(ctx.alloc, genNewError(ctx, message));
 JsExpr genNewError(ref TranslateModuleCtx ctx, string message) =>

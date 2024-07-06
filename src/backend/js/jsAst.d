@@ -20,6 +20,7 @@ immutable struct JsModuleAst {
 	JsImport[] imports;
 	JsImport[] reExports;
 	JsDecl[] decls;
+	JsStatement[] statements;
 }
 
 // Mangle lazily
@@ -370,6 +371,8 @@ JsStatement genTryCatch(ref Alloc alloc, JsBlockStatement tryBlock, JsName excep
 	JsStatement(JsTryCatchStatement(tryBlock, exception, catchBlock));
 JsStatement genVarDecl(ref Alloc alloc, JsVarDecl.Kind kind, JsDestructure destructure, JsExpr initializer) =>
 	JsStatement(JsVarDecl(kind, destructure, allocate(alloc, initializer)));
+JsStatement genConst(ref Alloc alloc, JsName name, JsExpr initializer) =>
+	genConst(alloc, JsDestructure(name), initializer);
 JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
 	genVarDecl(alloc, JsVarDecl.Kind.const_, destructure, initializer);
 JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>

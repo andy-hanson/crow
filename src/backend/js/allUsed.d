@@ -146,6 +146,9 @@ bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.regular);
+	// Main module needs to create a new list
+	if (program.mainFun.needsArgsList)
+		trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.program.commonFuns.newTList, FunUse.regular);
 	return AllUsed(
 		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),

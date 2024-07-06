@@ -1,9 +1,0 @@
-import
-	./editor/vscode/license.txt as license string
-
-my-exception record(message string) exception variant-member
-describe string(a my-exception)
-	a.message
-
-main void() summon, js extern
-	info log license

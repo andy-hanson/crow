@@ -853,6 +853,7 @@ immutable string[] specialSymbols = [
 	"string-of-symbol",
 	"toString",
 	"asUintN",
+	"process",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

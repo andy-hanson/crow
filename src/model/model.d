@@ -1840,6 +1840,11 @@ immutable struct MainFun {
 		match!(FunInst*)(
 			(Nat64OfArgs x) => x.fun,
 			(Void x) => x.fun);
+	
+	bool needsArgsList() scope =>
+		matchIn!bool(
+			(in Nat64OfArgs _) => true,
+			(in Void _) => false);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>

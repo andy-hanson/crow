@@ -88,7 +88,7 @@ import util.uri : Path, RelPath, Uri;
 import util.util : stringOfEnum, todo;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas, writeWithCommasAndNewlines;
 
-string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a, bool isMain) =>
+string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "// ";
 		writer ~= sourceUri;
@@ -99,8 +99,10 @@ string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsM
 			writeImportOrReExport(writer, "export", x);
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x);
-		if (isMain)
-			writer ~= "\nmain()\n";
+		foreach (JsStatement x; a.statements) {
+			writeNewline(writer, 0);
+			writeStatement(writer, 0, x);
+		}
 	});
 
 private:

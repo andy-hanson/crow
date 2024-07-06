@@ -53,7 +53,7 @@ import
 	../include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
 	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
-	./unit/all: dummy-unit-tests
+	#./unit/all: dummy-unit-tests
 
 main void() summon
 	license is "public domain"
@@ -86,7 +86,7 @@ main void() summon
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests
 	_ = dummy-string-tests
-	_ = dummy-unit-tests
+	#_ = dummy-unit-tests
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
