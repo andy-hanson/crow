@@ -60,13 +60,13 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in BuiltinType _) =>
 			0,
 		(in StructBody.Enum x) =>
-			// 'to' and a constructor for each member
-			1 + x.members.length,
+			// 'enum-members', 'to', and a constructor for each member
+			2 + x.members.length,
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
 		(in StructBody.Flags x) =>
-			// 'to' and a constructor for each member
-			1 + x.members.length,
+			// 'flags-members', 'to' and a constructor for each member
+			2 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
 				1 + has(field.mutability));
@@ -236,6 +236,7 @@ void addFunsForEnum(
 	ref StructBody.Enum enum_,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
+	funsBuilder ~= enumOrFlagsMembers(ctx, commonTypes, struct_, inst, symbol!"enum-members");
 	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, inst, commonTypes);
 	foreach (ref EnumOrFlagsMember member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
@@ -249,6 +250,7 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
+	funsBuilder ~= enumOrFlagsMembers(ctx, commonTypes, struct_, inst, symbol!"flags-members");
 	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, inst, commonTypes);
 	foreach (ref EnumOrFlagsMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
@@ -263,6 +265,17 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, StructIns
 		Params([]),
 		FunFlags.generatedBare,
 		FunBody(FunBody.CreateEnumOrFlags(member)));
+
+FunDecl enumOrFlagsMembers(ref CheckCtx ctx, ref CommonTypes commonTypes, StructDecl* struct_, StructInst* enum_, Symbol name) =>
+	basicFunDecl(
+		FunDeclSource(struct_),
+		struct_.visibility,
+		name,
+		Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.array, [
+			Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.pair, [Type(commonTypes.symbol), Type(enum_)]))])),
+		Params.empty,
+		FunFlags.generatedBare,
+		FunBody(EnumFunction.members));
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,

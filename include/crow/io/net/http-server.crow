@@ -5,8 +5,8 @@ import
 	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
-		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
-		response-body, status, status-desc
+		enum-members, GET, headers, http-internal-server-error, http-method, http-request,
+		http-response, new, response-body, status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler, tcp-server
 
 # Reference to a running server.

@@ -208,12 +208,18 @@ private SmallArray!VariantAndMethodImpls checkVariantMembersInitial(
 		ctx.alloc, ast.modifiers, (ModifierAst* mod, in VariantAndMethodImpls[] soFar) {
 			Opt!VariantAndMethodImpls res = getVariantMemberTypeFromModifier(
 				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, mod);
-			if (has(res) && exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
+			if (has(res)) {
+				if (struct_.isTemplate) {
+					addDiag(ctx, mod.range, Diag(Diag.VariantMemberIsTemplate(struct_)));
+					return none!VariantAndMethodImpls;
+				}
+				if (exists!VariantAndMethodImpls(soFar, (in VariantAndMethodImpls x) =>
 					x.variant.decl == force(res).variant.decl)) {
-				addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
-				return none!VariantAndMethodImpls;
-			} else
-				return res;
+					addDiag(ctx, mod.range, Diag(Diag.VariantMemberMultiple(struct_, force(res).variant.decl)));
+					return none!VariantAndMethodImpls;
+				}
+			}
+			return res;
 		});
 
 private Opt!VariantAndMethodImpls getVariantMemberTypeFromModifier(

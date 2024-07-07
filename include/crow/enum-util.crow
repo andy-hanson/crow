@@ -4,6 +4,7 @@ import
 	./col/array: array, iterate, size
 	./col/collection: for-break, for-loop
 	./col/list: ~=, build, list
+	./compare: equal
 	./exception: exception, error
 	./json: json, to
 	./misc: loop-break, new
@@ -19,28 +20,28 @@ import
 ###
 Spec that is satisfied if 't' is an 'enum' type
 ###
-+enum[t] spec builtin
++enum[t] spec builtin # TODO: KILL --------------------------------------------------------------------------------------
 
-+==[t] bool(a t, b t) builtin, bare, t enum
++enum-like[t] spec t equal
+	enum-members (symbol, t) array()
 
-# Returns every name and value in the enum.
-+enum-members[t] (symbol, t) array() builtin, bare, t enum
++==[t] bool(a t, b t) builtin, bare, t enum # TODO: Make this generated too ------------------------------------------------------
 
-+values[t] t[]() t enum
-	for _, value : enum-members@t
++values[t] t[]() t enum-like
+	for _, value : enum-members
 		value
 
-+to[t] symbol(a t) t enum
-	for name, value : enum-members@t
++to[t] symbol(a t) t enum-like
+	for name, value : enum-members
 		if value == a
 			break name
 	else
 		throw "Invalid enum value" error
 
-+to[t] string(a t) t enum
++to[t] string(a t) t enum-like
 	a.to::symbol to
 
-+to[t] json(a t) t enum
++to[t] json(a t) t enum-like
 	a.to::symbol to
 
 ###
@@ -48,18 +49,18 @@ Converts a symbol to the enum value that was declared with that name.
 
 Returns an empty option if `a` is not the name of an enum member.
 ###
-+to[t] t?(a symbol) t enum
-	for name, value : enum-members@t
++to[t] t?(a symbol) t enum-like
+	for name, value : enum-members
 		if name == a
 			break value
 
-+to[t] t(a symbol) t enum
++to[t] t(a symbol) t enum-like
 	a.to ?? throw a.not-in-enum
 
-+to[t] t?(a string) t enum
-	for name, value : enum-members@t
++to[t] t?(a string) t enum-like
+	for name, value : enum-members
 		if name.to::string == a
 			break value
 
-+to[t] t(a string) t enum
++to[t] t(a string) t enum-like
 	a.to ?? throw a.to.not-in-enum

@@ -4,6 +4,7 @@ import
 	./col/array: array, iterate
 	./col/collection: build, for-loop, with-block
 	./col/list: ~=, build, iterate, list, size
+	./compare: equal
 	./json: json, to
 	./misc: new
 	./string: join, string
@@ -12,41 +13,43 @@ import
 ###
 Spec that is satisfied if 't' is a 'flags' type
 ###
-+flags[t] spec builtin
++flags[t] spec builtin # TODO:KILL -------------------------------------------------------------------------------------------
+
++flags-like[t] spec t equal
+	& t(a t, b t)
+	| t(a t, b t)
+	flags-members (symbol, t) array()
 
 # Value with no flags set.
 +new[t] t() builtin, bare, t flags
 # Value with all flags set.
 +all[t] t() builtin, bare, t flags
 
-+==[t] bool(a t, b t) builtin, bare, t flags
++==[t] bool(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 
 # Negation: Result contains all flags *not* in 'a'
-+ ~[t] t(a t) builtin, bare, t flags
++ ~[t] t(a t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 # Union: Result contains all flags in *either* 'a' or 'b'
-+ |[t] t(a t, b t) builtin, bare, t flags
++ |[t] t(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 # Intersection: Result contains only flags in *both* 'a' and 'b'
-+ &[t] t(a t, b t) builtin, bare, t flags
-
-# Returns every name and value in the type.
-+flags-members[t] (symbol, t) array() builtin, bare, t flags
++ &[t] t(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 
 ###
 True if every flag set in `a` is set in `b`.
 ###
-+is-in[t] bool(a t, b t) bare, t flags
++is-in[t] bool(a t, b t) bare, t flags-like
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-+to[t] symbol[](a t) t flags
++to[t] symbol[](a t) t flags-like
 	with out : build
-		for name, value : flags-members@t
+		for name, value : flags-members
 			if value is-in a
 				out ~= name
 
 # Flag names separated by `|`, like `"foo | bar"`.
-+to[t] string(a t) t flags
++to[t] string(a t) t flags-like
 	" | " join for x : a.to::symbol[]; x to
 
-+to[t] json(a t) t flags
++to[t] json(a t) t flags-like
 	a.to::symbol[] to

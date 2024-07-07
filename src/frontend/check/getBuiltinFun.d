@@ -327,9 +327,6 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.cosFloat32, BuiltinUnaryMath.cosFloat64);
 		case symbol!"cosh".value:
 			return unaryMath(BuiltinUnaryMath.coshFloat32, BuiltinUnaryMath.coshFloat64);
-		case symbol!"enum-members".value:
-		case symbol!"flags-members".value:
-			return FunBody(EnumFunction.members);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
 		case symbol!"infinity".value:

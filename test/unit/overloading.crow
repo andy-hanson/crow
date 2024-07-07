@@ -40,9 +40,9 @@ test
 	x::f.call-bar is "flags x"
 -e enum(x)
 -f flags(x)
--bar[t] string(a t) t enum
+-bar[t] string(a t) t enum-like
 	"enum {a}"
--bar[t] string(a t) t flags
+-bar[t] string(a t) t flags-like
 	"flags {a}"
 -bar[t] spec
 	bar string(a t)

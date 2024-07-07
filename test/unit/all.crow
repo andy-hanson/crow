@@ -20,7 +20,6 @@ import
 	./record-field-callers: dummy-record-field-callers
 	./templates: dummy-templates
 	./type-cyclic-reference: dummy-type-cyclic-reference
-	./variant-template: dummy-variant-template
 
 dummy-unit-tests nat()
 	_ = dummy-array
@@ -44,4 +43,3 @@ dummy-unit-tests nat()
 	_ = dummy-record-field-callers
 	_ = dummy-templates
 	_ = dummy-type-cyclic-reference
-	_ = dummy-variant-template

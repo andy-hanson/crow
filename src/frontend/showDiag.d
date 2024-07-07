@@ -1337,6 +1337,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, symbol!"array");
 			writer ~= '.';
 		},
+		(in Diag.VariantMemberIsTemplate x) {
+			writeName(writer, ctx, x.member.name);
+			writer ~= " can't be a 'variant-member' because it is a template.";
+		},
 		(in Diag.VariantMemberMissingVariant x) {
 			writer ~= "'variant-member' needs a variant.";
 		},

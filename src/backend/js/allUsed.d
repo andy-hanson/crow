@@ -359,7 +359,8 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 					eachTest(*res.program, res.allExterns, (Test* test) {
 						trackAllUsedInTest(res, from, test);
 					});
-				}
+				} else if (x.isA!(BuiltinFun.CallLambda))
+					usedTuple(res, from, a.arity.as!uint - 1);
 			},
 			(FunBody.CreateEnumOrFlags) {
 				usedReturnType();
@@ -393,7 +394,9 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			},
 			(FunBody.FileImport _) {},
 			(FlagsFunction _) {},
-			(FunBody.RecordFieldCall) {},
+			(FunBody.RecordFieldCall) {
+				usedTuple(res, from, a.arity.as!uint - 1);
+			},
 			(FunBody.RecordFieldGet) {},
 			(FunBody.RecordFieldPointer) { assert(false); },
 			(FunBody.RecordFieldSet) {},
@@ -439,6 +442,11 @@ void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Called a, FunUse fun
 				trackAllUsedInCalled(res, from, impl, FunUse.noInline);
 		},
 		(CalledSpecSig _) {});
+}
+
+void usedTuple(ref AllUsedBuilder res, Uri from, uint tupleSize) {
+	if (tupleSize >= 2)
+		trackAllUsedInStruct(res, from, force(res.commonTypes.tuple(tupleSize)));
 }
 
 void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {

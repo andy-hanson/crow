@@ -2,5 +2,22 @@ import
 	crow/test-util/test-runner: run-all-tests
 
 main void() summon
-	info log "{x::f}"
--f flags(x)
+	run-all-tests
+
+dummy-variant-template nat()
+	0
+
+-v2 variant mut
+
+test
+	"a"::string.foo.describe2 is "string a"
+
+-describe2 string(a v2)
+	match a
+	as foo x nat foo
+		"nat {x value}"
+	as foo x string foo
+		"string {x value}"
+	else
+		"other"
+-foo[t] record(value t) v2 variant-member

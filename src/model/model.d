@@ -161,6 +161,9 @@ immutable struct Params {
 
 	mixin TaggedUnion!(SmallArray!Destructure, Varargs*);
 
+	static Params empty() =>
+		Params(emptySmallArray!Destructure);
+
 	Arity arity() scope =>
 		matchIn!Arity(
 			(in Destructure[] params) =>

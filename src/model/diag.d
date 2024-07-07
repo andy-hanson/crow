@@ -621,6 +621,9 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VariantMemberIsTemplate {
+		StructDecl* member;
+	}
 	immutable struct VariantMemberMissingVariant {}
 	immutable struct VariantMemberMultiple {
 		StructDecl* member;
@@ -764,6 +767,7 @@ immutable struct Diag {
 		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VariantMemberIsTemplate,
 		VariantMemberMissingVariant,
 		VariantMemberMultiple,
 		VariantMemberOfNonVariant,

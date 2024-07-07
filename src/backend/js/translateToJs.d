@@ -138,6 +138,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
+	FunKind,
 	FunPointerExpr,
 	getAllFlagsValue,
 	IfExpr,
@@ -971,6 +972,8 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 		(in StructInst x) {
 			Opt!JsExpr notOk = x.decl.body_.isA!BuiltinType
 				? genIsNotBuiltinType(ctx.ctx, x.decl.body_.as!BuiltinType, get)
+				: x.decl.body_.isA!(StructBody.Variant)
+				? none!JsExpr
 				: some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
 				add(ctx.alloc, out_, genIf(ctx.alloc, force(notOk), genThrowJsError(ctx, "Value did not have expected type")));
@@ -1251,6 +1254,16 @@ JsExpr genNewJson(ref TranslateModuleCtx ctx, JsExpr[] pairs) =>
 	genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newJsonFromPairs.decl)), pairs);
 JsExpr genNewPair(ref TranslateModuleCtx ctx, JsExpr a, JsExpr b) =>
 	genNew(ctx.alloc, translateStructReference(ctx, ctx.commonTypes.pair), [a, b]);
+JsExpr genTuple(ref TranslateExprCtx ctx, JsExpr[] args) {
+	switch (args.length) {
+		case 0:
+			return genNull();
+		case 1:
+			return args[0]; // TODO: There was an unnecessary alloc then ------------------------------------------------------------
+		default:
+			return genNew(ctx.alloc, translateStructReference(ctx, force(ctx.commonTypes.tuple(args.length))), args);
+	}
+}
 
 struct ExprPos {
 	immutable struct Expression {}
@@ -1568,7 +1581,11 @@ ExprResult translateInlineCall(
 		(in FlagsFunction) =>
 			todo!ExprResult("FLAGS FUNCTION"), // -----------------------------------------------------------------------------------
 		(in FunBody.RecordFieldCall x) =>
-			expr(genCall(allocate(ctx.alloc, recordField(x.fieldIndex)), args(skip: 1))),
+			expr(genCall(
+				allocate(ctx.alloc, recordField(x.fieldIndex)),
+				x.funKind == FunKind.function_
+					? args(skip: 1)
+					: newArray(ctx.alloc, [genTuple(ctx, args(skip: 1))]))),
 		(in FunBody.RecordFieldGet x) =>
 			expr(recordField(x.fieldIndex)),
 		(in FunBody.RecordFieldPointer) =>
@@ -1621,8 +1638,6 @@ ExprResult translateCallBuiltin(
 ) {
 	ExprResult expr(JsExpr value) =>
 		forceExpr(ctx.alloc, pos, returnType, value);
-	ExprResult call() =>
-		expr(genCall(allocate(ctx.alloc, getArg(0)), makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
 	return a.matchIn!ExprResult(
 		(in BuiltinFun.AllTests) {
 			assert(nArgs == 0);
@@ -1653,9 +1668,10 @@ ExprResult translateCallBuiltin(
 		(in Builtin4ary x) =>
 			assert(false),
 		(in BuiltinFun.CallLambda) =>
-			call(),
+			expr(genCall(ctx.alloc, getArg(0), [
+				genTuple(ctx, makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1)))])),
 		(in BuiltinFun.CallFunPointer) =>
-			call(),
+			expr(genCall(allocate(ctx.alloc, getArg(0)), makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1)))),
 		(in Constant x) {
 			assert(nArgs == 0);
 			return expr(translateConstant(ctx.ctx, x, returnType));
