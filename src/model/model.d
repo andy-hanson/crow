@@ -3,7 +3,10 @@ module model.model;
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
+import frontend.storage : FileContentGetters;
 import model.ast :
+	AssertOrForbidAst,
+	ConditionAst,
 	DestructureAst,
 	EnumOrFlagsMemberAst,
 	ExprAst,
@@ -27,6 +30,7 @@ import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	arrayOfSingle,
+	concatenate,
 	emptySmallArray,
 	every,
 	exists,
@@ -694,8 +698,10 @@ immutable struct SpecInst {
 	Symbol name() scope =>
 		decl.name;
 }
+size_t countSigs(in SpecInst*[] a) =>
+	sum(a, (in SpecInst* x) => countSigs(*x));
 size_t countSigs(in SpecInst a) =>
-	sum(a.parents, (in SpecInst* x) => countSigs(*x)) + a.sigTypes.length;
+	countSigs(a.parents) + a.sigTypes.length;
 
 immutable struct SpecInstBody {
 	Specs parents;
@@ -703,7 +709,7 @@ immutable struct SpecInstBody {
 	SmallArray!ReturnAndParamTypes sigTypes;
 }
 
-enum EnumFunction {
+enum EnumFunction { // TODO: this is poorly named. Some of these are flags functions. --------------------------------------------
 	equal,
 	intersect,
 	members,
@@ -1261,7 +1267,7 @@ immutable struct FunDecl {
 	bool isBare() scope =>
 		flags.bare;
 	bool isGenerated() scope =>
-		todo!bool("isGenerated -- get from the FunBody"); // ------------------------------------------------
+		todo!bool("isGenerated -- get from the FunBody"); // ------------------------------------------------------------------------------------
 	bool isSummon() scope =>
 		flags.summon;
 	bool isUnsafe() scope =>
@@ -2174,6 +2180,22 @@ immutable struct AssertOrForbidExpr {
 	Condition condition;
 	Opt!(Expr*) thrown;
 	Expr after;
+}
+private immutable struct PrefixAndRange {
+	string prefix;
+	Range range;
+}
+string defaultAssertOrForbidMessage(ref Alloc alloc, Uri curUri, in Expr expr, in AssertOrForbidExpr a, in FileContentGetters content) {
+	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
+		(ref ExprAst condition) =>
+			PrefixAndRange(
+				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
+				expr.ast.kind.as!AssertOrForbidAst.condition.range),
+		(ref ConditionAst.UnpackOption unpack) =>
+			PrefixAndRange(
+				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",
+				unpack.option.range));
+	return concatenate(alloc, x.prefix, content.getSourceText(curUri, x.range));
 }
 
 immutable struct BogusExpr {}

@@ -98,6 +98,7 @@ import model.model :
 	ClosureReferenceKind,
 	ClosureSetExpr,
 	Condition,
+	defaultAssertOrForbidMessage,
 	Destructure,
 	EnumFunction,
 	Expr,
@@ -1161,7 +1162,7 @@ ConcreteExpr concretizeAssertOrForbid(
 	ref AssertOrForbidExpr a,
 ) {
 	ConcreteExpr defaultThrown() =>
-		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, expr, a));
+		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx.alloc, ctx.curUri, expr, a, ctx.concretizeCtx.fileContentGetters));
 	ConcreteExpr throwNoDestructure() =>
 		genThrow(ctx.alloc, type, range, has(a.thrown)
 			? concretizeExpr(ctx, exceptionType(ctx.concretizeCtx), locals, *force(a.thrown))
@@ -1195,24 +1196,6 @@ ConcreteExpr concretizeAssertOrForbid(
 					throwNoDestructure());
 			}
 		});
-}
-
-immutable struct PrefixAndRange {
-	string prefix;
-	Range range;
-}
-string defaultAssertOrForbidMessage(ref ConcretizeExprCtx ctx, in Expr expr, in AssertOrForbidExpr a) {
-	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
-		(ref ExprAst condition) =>
-			PrefixAndRange(
-				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
-				expr.ast.kind.as!AssertOrForbidAst.condition.range),
-		(ref ConditionAst.UnpackOption unpack) =>
-			PrefixAndRange(
-				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",
-				unpack.option.range));
-	string exprText = ctx.concretizeCtx.fileContentGetters.getSourceText(ctx.curUri, x.range);
-	return concatenate(ctx.alloc, x.prefix, exprText);
 }
 
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref ExprAndType a) =>

@@ -28,7 +28,7 @@ Spec that is satisfied if 't' is a 'flags' type
 # Intersection: Result contains only flags in *both* 'a' and 'b'
 + &[t] t(a t, b t) builtin, bare, t flags
 
-# Returns every name and value in the enum.
+# Returns every name and value in the type.
 +flags-members[t] (symbol, t) array() builtin, bare, t flags
 
 ###

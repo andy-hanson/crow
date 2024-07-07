@@ -8,6 +8,7 @@ import frontend.ide.position : ExprRef; // TODO: MOVE --------------------------
 import model.constant : Constant;
 import model.model :
 	asExtern,
+	AssertOrForbidExpr,
 	AutoFun,
 	Builtin4ary,
 	BuiltinBinary,
@@ -279,9 +280,15 @@ void trackAllUsedInStructBody(ref AllUsedBuilder res, Uri from, in StructBody a)
 	a.match!void(
 		(StructBody.Bogus) {},
 		(BuiltinType _) {},
-		(ref StructBody.Enum) {},
+		(ref StructBody.Enum) {
+			// 'members' constructs pairs
+			trackAllUsedInStruct(res, from, res.program.commonTypes.pair);
+		},
 		(StructBody.Extern) { assert(false); },
-		(StructBody.Flags) {},
+		(StructBody.Flags) {
+			// 'members' constructs pairs
+			trackAllUsedInStruct(res, from, res.program.commonTypes.pair);
+		},
 		(StructBody.Record record) {
 			foreach (RecordField field; record.fields)
 				trackAllUsedInType(res, from, field.type);
@@ -453,12 +460,16 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 		else
 			trackChildren();
 	} else {
-		if (a.expr.kind.isA!(CallOptionExpr*))
+		// TODO: use a 'match' -----------------------------------------------------------------------------------------------------
+		if (a.expr.kind.isA!(AssertOrForbidExpr*)) {
+			if (!has(a.expr.kind.as!(AssertOrForbidExpr*).thrown))
+				trackAllUsedInFun(res, from, res.program.commonFuns.createError.decl, FunUse.regular);
+		} else if (a.expr.kind.isA!(CallOptionExpr*))
 			trackAllUsedInType(res, from, a.type);
 		else if (a.expr.kind.isA!LiteralStringLikeExpr) {
 			if (a.expr.kind.as!LiteralStringLikeExpr.isList)
 				trackAllUsedInFun(res, from, res.program.commonFuns.newTList, FunUse.regular);
-		} else if (a.expr.kind.isA!(MatchEnumExpr*)) // TODO: unions and variants too! ----------------------------------------------
+		} else if (a.expr.kind.isA!(MatchEnumExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchEnumExpr*).enum_);
 		else if (a.expr.kind.isA!(MatchUnionExpr*))
 			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);

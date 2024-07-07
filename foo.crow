@@ -1,0 +1,6 @@
+import
+	crow/test-util/test-runner: run-all-tests
+
+main void() summon
+	info log "{x::f}"
+-f flags(x)

@@ -781,7 +781,9 @@ BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server serve
 	string diagnostics = showDiagnostics(alloc, server, program.program);
 	bool fatal = hasFatalDiagnostics(program);
 	return BuildToJsResult(
-		fatal ? TranslateToJsResult() : translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), os, isNodeJs),
+		fatal
+			? TranslateToJsResult()
+			: translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), FileContentGetters(&server.storage), os, isNodeJs),
 		diagnostics,
 		fatal);
 }

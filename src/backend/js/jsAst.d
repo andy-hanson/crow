@@ -330,10 +330,12 @@ JsExpr genIn(ref Alloc alloc, Symbol arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.in_, genString(arg0), arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.instanceof, arg0, arg1);
+JsExpr genInteger(bool isSigned, IntegralValue value) =>
+	JsExpr(JsLiteralInteger(isSigned, value));
 JsExpr genIntegerSigned(long value) =>
-	JsExpr(JsLiteralInteger(isSigned: true, value: IntegralValue(value)));
+	genInteger(true, IntegralValue(value));
 JsExpr genIntegerUnsigned(ulong value) =>
-	JsExpr(JsLiteralInteger(isSigned: false, value: IntegralValue(value)));
+	genInteger(false, IntegralValue(value));
 JsExpr genIntegerLarge(string value) => // TDO: UNSUED? -------------------------------------------------------------------------------
 	JsExpr(JsLiteralIntegerLarge(value));
 JsExpr genMul(ref Alloc alloc, JsExpr left, JsExpr right) => // TODO: calling this 'genMul' but the binary expr kind 'times' is inconsistent
