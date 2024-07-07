@@ -15,20 +15,28 @@ import util.memory : initMemory;
 pure:
 
 struct TempSet(T) {
-	private:
-	size_t size;
-	T[] storage;
+	@safe @nogc pure nothrow:
+	private size_t size;
+	private T[] storage;
+
+	bool has(T value) => // TODO: inconsistent to have this instance and 'tryAdd' a function ......................................
+		contains(storage[0 .. size], value);
 }
 
 bool tryAdd(T)(scope ref TempSet!T a, T value) {
-	if (contains(a.storage[0 .. a.size], value))
+	if (a.has(value))
 		return false;
 	else {
-		assert(a.size <= a.storage.length);
-		initMemory(&a.storage[a.size], value);
-		a.size++;
+		mustAdd(a, value);
 		return true;
 	}
+}
+
+void mustAdd(T)(scope ref TempSet!T a, T value) {
+	assert(!a.has(value));
+	assert(a.size <= a.storage.length);
+	initMemory(&a.storage[a.size], value);
+	a.size++;
 }
 
 @trusted Out withTempSet(Out, Elem)(

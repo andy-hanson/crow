@@ -53,7 +53,8 @@ immutable struct JsDecl {
 	JsDeclKind kind;
 }
 immutable struct JsDeclKind {
-	mixin Union!(JsClassDecl, JsExpr);
+	immutable struct Let {}
+	mixin Union!(JsClassDecl, JsExpr, Let);
 }
 immutable struct JsClassDecl {
 	Opt!(JsExpr*) extends; 
@@ -156,7 +157,7 @@ immutable struct JsVarDecl {
 	enum Kind { const_, let }
 	Kind kind;
 	JsDestructure destructure;
-	JsExpr* initializer;
+	Opt!(JsExpr*) initializer;
 }
 immutable struct JsWhileStatement {
 	Opt!JsName label;
@@ -369,17 +370,19 @@ JsExpr genEqEqEq(ref Alloc alloc, JsExpr a, JsExpr b) =>
 	genBinary(alloc, JsBinaryExpr.Kind.eqEqEq, a, b);
 JsStatement genTryCatch(ref Alloc alloc, JsBlockStatement tryBlock, JsName exception, JsBlockStatement catchBlock) =>
 	JsStatement(JsTryCatchStatement(tryBlock, exception, catchBlock));
-JsStatement genVarDecl(ref Alloc alloc, JsVarDecl.Kind kind, JsDestructure destructure, JsExpr initializer) =>
-	JsStatement(JsVarDecl(kind, destructure, allocate(alloc, initializer)));
+JsStatement genVarDecl(JsVarDecl.Kind kind, JsDestructure destructure, Opt!(JsExpr*) initializer) =>
+	JsStatement(JsVarDecl(kind, destructure, initializer));
 JsStatement genConst(ref Alloc alloc, JsName name, JsExpr initializer) =>
 	genConst(alloc, JsDestructure(name), initializer);
 JsStatement genConst(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
-	genVarDecl(alloc, JsVarDecl.Kind.const_, destructure, initializer);
+	genVarDecl(JsVarDecl.Kind.const_, destructure, some(allocate(alloc, initializer)));
+JsStatement genLet(JsName name) =>
+	genVarDecl(JsVarDecl.Kind.let, JsDestructure(name), none!(JsExpr*));
 JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
-	genVarDecl(alloc, JsVarDecl.Kind.let, destructure, initializer);
+	genVarDecl(JsVarDecl.Kind.let, destructure, some(allocate(alloc, initializer)));
 JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
 	JsExpr(JsObject1Expr(name, allocate(alloc, value)));
-JsExpr genObject(JsObjectExpr.Pair[] pairs) =>
+JsExpr genObject(JsObjectExpr.Pair[] pairs) => // TODO: is this version used? ----------------------------------------------------------
 	JsExpr(JsObjectExpr(pairs));
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));

@@ -383,7 +383,7 @@ void writeEscapedCharForC(scope ref Writer writer, dchar a) {
 		// avoid trigraphs
 		writer ~= "\\?";
 	else
-		writeEscapedChar_inner(writer, a);
+		writeEscapedChar_inner(writer, a, forC: true);
 }
 
 bool useStructThreadLocals(in Ctx ctx) =>

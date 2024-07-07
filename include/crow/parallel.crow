@@ -38,7 +38,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 	typed t future = future reference-from-pointer
 	typed try-add-awaiting-fiber fiber
 
--lock[t] lock mut*(a t future) unsafe
+-lock[t] lock mut*(a t future) unsafe, native extern
 	&a.lk
 
 # Converts a value to a future resolved with that value.

@@ -1066,6 +1066,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in ParseDiag x) {
 			writeParseDiag(writer, ctx, x);
 		},
+		(in Diag.PointerIsNative) {
+			writer ~= "Can only get a pointer in an 'extern native' context."; // TODO: It's called 'native extern' in the spec. I should fix the grammar....	
+		},
 		(in Diag.PointerIsUnsafe) {
 			writer ~= "Can only get a pointer in an 'unsafe' or 'trusted' context.";
 		},

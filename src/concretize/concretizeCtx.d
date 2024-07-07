@@ -65,6 +65,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
+	getAllFlagsValue,
 	ImportFileContent,
 	IntegralType,
 	isArrayOrMutArray,
@@ -879,11 +880,7 @@ public ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, emptySmallArray!ConcreteType))));
 
 ulong getAllFlagsValue(ConcreteStruct* a) =>
-	fold!(ulong, EnumOrFlagsMember)(
-		0,
-		a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags).members,
-		(ulong a, in EnumOrFlagsMember b) =>
-			a | b.value.asUnsigned());
+	getAllFlagsValue(a.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Flags));
 
 TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 	final switch (kind) {

@@ -31,6 +31,7 @@ import util.col.array :
 	every,
 	exists,
 	first,
+	fold,
 	isEmpty,
 	mustHaveIndexOfPointer,
 	newArray,
@@ -52,7 +53,7 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : IndexType, TaggedUnion, Union;
-import util.uri : Uri;
+import util.uri : RelPath, Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum, todo;
 import versionInfo : VersionFun;
 
@@ -379,6 +380,10 @@ Symbol nameOfEnumOrFlagsMember(in EnumOrFlagsMember* a) =>
 	a.name;
 Symbol nameOfUnionMember(in UnionMember* a) =>
 	a.name;
+
+ulong getAllFlagsValue(in StructBody.Flags body_) =>
+	fold!(ulong, EnumOrFlagsMember)(0, body_.members, (ulong a, in EnumOrFlagsMember b) =>
+		a | b.value.asUnsigned());
 
 enum BuiltinType {
 	array,
@@ -1573,6 +1578,8 @@ immutable struct ImportOrExport {
 		lateIsSet(imported_);
 	bool isStd() scope =>
 		!has(source);
+	bool isRelativeImport() scope =>
+		has(source) && force(source).path.isA!RelPath;
 }
 alias ImportedReferents = HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer);
 
@@ -1682,6 +1689,8 @@ immutable struct CommonTypes {
 	StructDecl* funPointerStruct() =>
 		funStructs[FunKind.function_];
 
+	StructDecl* pair() return scope =>
+		force(tuple(2));
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
 

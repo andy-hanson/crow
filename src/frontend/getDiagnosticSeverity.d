@@ -165,8 +165,10 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in ParseDiag x) =>
 			parseDiagSeverity(x),
-		(in Diag.PointerIsUnsafe) =>
+		(in Diag.PointerIsNative) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.PointerIsUnsafe) =>
+			DiagnosticSeverity.warning,
 		(in Diag.PointerMutToConst) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PointerUnsupported) =>

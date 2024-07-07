@@ -1092,6 +1092,10 @@ Expr checkPointerInner(
 	PointerMutability expectedMutability,
 	ref Expected expected,
 ) {
+	if (!ctx.externs.has(symbol!"native")) {
+		addDiag2(ctx, source, Diag(Diag.PointerIsNative()));
+		return bogus(expected, source);
+	}
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.PointerIsUnsafe()));
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);

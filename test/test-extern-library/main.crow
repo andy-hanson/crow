@@ -1,5 +1,5 @@
 #!/usr/bin/env crow
-main void()
+main void() (example, native) extern
 	trusted
 		&my_void_fn f_void
 		assert some-var == 42

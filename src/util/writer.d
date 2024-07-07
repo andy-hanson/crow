@@ -389,7 +389,7 @@ void writeEscapedChar(scope ref Writer writer, dchar c) {
 		writeEscapedChar_inner(writer, c);
 }
 
-void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
+void writeEscapedChar_inner(scope ref Writer writer, dchar c, bool forC = false) {
 	switch (c) {
 		case '\n':
 			writer ~= "\\n";
@@ -411,9 +411,10 @@ void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
 			break;
 		// TODO: handle other special characters like this one
 		case '\x1b':
-			// NOTE: need two adjacent concatenated strings
-			// in case the next character is a valid hex digit
-			writer ~= "\\x1b\"\"";
+			writer ~= "\\x1b";
+			if (forC)
+				// Need two adjacent concatenated strings in case the next character is a valid hex digit
+				writer ~= "\"\"";
 			break;
 		default:
 			writer ~= isValidUnicodeCharacter(c) ? c : '�';

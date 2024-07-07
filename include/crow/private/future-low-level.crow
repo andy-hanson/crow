@@ -37,7 +37,7 @@ import
 	res.lock init
 	res
 
--lock[t] lock mut*(a t future) bare, unsafe
+-lock[t] lock mut*(a t future) bare, unsafe, native extern
 	&a.lk
 
 ~resolve[t] void(a t future, value t) unsafe, native extern

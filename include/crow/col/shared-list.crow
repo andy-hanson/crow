@@ -22,7 +22,7 @@ and iterate it at your leisure.
 +shared-list[t] record force-shared, by-ref
 	-lk mut lock
 	-inner mut t mut[]
--lock[t] lock mut*(a t shared[]) bare, unsafe
+-lock[t] lock mut*(a t shared[]) bare, unsafe, native extern
 	&a.lk
 -with-lock[out, t] out(a t shared[], cb out mut(a t mut[])) unsafe
 	if extern native

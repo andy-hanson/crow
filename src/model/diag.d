@@ -467,6 +467,7 @@ immutable struct Diag {
 	}
 	immutable struct ParamMissingType {}
 	immutable struct ParamMutable {}
+	immutable struct PointerIsNative {}
 	immutable struct PointerIsUnsafe {}
 	immutable struct PointerMutToConst {
 		enum Kind { fieldOfByRef, fieldOfByVal, local }
@@ -733,6 +734,7 @@ immutable struct Diag {
 		ParamMissingType,
 		ParamMutable,
 		ParseDiag,
+		PointerIsNative,
 		PointerIsUnsafe,
 		PointerMutToConst,
 		PointerUnsupported,

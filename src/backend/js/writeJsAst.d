@@ -264,6 +264,10 @@ void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl) 
 			writeJsName(writer, decl.name);
 			writer ~= " = ";
 			writeExpr(writer, 0, x);
+		},
+		(in JsDeclKind.Let) {
+			writer ~= "let ";
+			writeJsName(writer, decl.name);
 		});
 	writer ~= "\n";
 }
@@ -498,8 +502,10 @@ void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
 	writer ~= stringOfEnum(a.kind);
 	writer ~= ' ';
 	writeDestructure(writer, a.destructure);
-	writer ~= " = ";
-	writeExpr(writer, indent, *a.initializer);
+	if (has(a.initializer)) {
+		writer ~= " = ";
+		writeExpr(writer, indent, *force(a.initializer));
+	}
 }
 pragma(inline, false)
 void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
@@ -555,7 +561,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ']';
 		},
 		(in JsArrowFunction x) {
-			assert(!pos.isStartOfStatement);
+			if (pos.isStartOfStatement)
+				writer ~= ';';
 			if (pos.isCalled)
 				writer ~= '(';
 			writeParams(writer, x.params, alwaysParens: false);

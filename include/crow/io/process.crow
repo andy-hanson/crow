@@ -220,7 +220,7 @@ The child process shares stdout and stderr with the parent process.
 
 	exit-code, stdout-builder.move-to, stderr-builder.move-to
 
--make-pipes pipes() summon, unsafe, posix extern
+-make-pipes pipes() summon, unsafe, (native, posix) extern
 	res mut pipes = 0, 0
 	(&res).pipe check-posix-error
 	res
@@ -289,7 +289,7 @@ The child process shares stdout and stderr with the parent process.
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
--wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe, posix extern
+-wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe, (native, posix) extern
 	wait-status mut status-t = 0
 	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid
