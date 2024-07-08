@@ -78,8 +78,10 @@ private @system Path rootPath_impure(Symbol name, PathInfo info) =>
 private @trusted pure Path childPathWithInfo(Path parent, Symbol name, PathInfo info) =>
 	(cast(Path function(Path, Symbol, PathInfo) @safe @nogc pure nothrow) &childPathWithInfo_impure)(
 		parent, name, info);
-private @system Path childPathWithInfo_impure(Path parent, Symbol name, PathInfo info) =>
-	getOrAddChild(pathToChildren[parent.index], some(parent), name, info);
+private @system Path childPathWithInfo_impure(Path parent, Symbol name, PathInfo info) {
+	assert(name != symbol!".." && name != symbol!".");
+	return getOrAddChild(pathToChildren[parent.index], some(parent), name, info);
+}
 
 private @trusted pure PathInfo pathInfo(Path a) =>
 	(cast(PathInfo function(Path) @safe @nogc pure nothrow) &pathInfo_impure)(a);

@@ -239,6 +239,7 @@ import util.union_ : TaggedUnion, Union;
 import util.uri :
 	alterExtension,
 	countComponents,
+	FilePath,
 	firstNComponents,
 	isAncestor,
 	parent,
@@ -254,6 +255,7 @@ import util.util : min, ptrTrustMe, stringOfEnum, todo, typeAs;
 import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
+	Path mainJs;
 	KeyValuePair!(Path, string)[] outputFiles;
 }
 TranslateToJsResult translateToJs(
@@ -283,7 +285,7 @@ TranslateToJsResult translateToJs(
 	
 	foreach (Module* module_; program.program.rootModules)
 		doTranslateModule(ctx, module_);
-	return TranslateToJsResult(getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
+	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
 }
 
 private:

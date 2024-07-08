@@ -12,7 +12,7 @@ immutable struct JitOptions {
 
 enum CVersion { c99, c11 }
 
-immutable struct CCompileOptions {
+immutable struct CCompileOptions { // TODO: I think I can get rid of 'cVersion'? test with the newer c2m. This this would just be 'CompileOptions'
 	OptimizationLevel optimizationLevel;
 	CVersion cVersion;
 }

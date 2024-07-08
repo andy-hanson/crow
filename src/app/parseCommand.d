@@ -380,6 +380,7 @@ RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in Arg
 	bool noStackTrace = false;
 	bool aot = false;
 	bool jit = false;
+	bool nodeJs = false;
 	bool optimize = false;
 	bool singleThreaded = false;
 	foreach (ArgsPart part; argParts) {
@@ -397,6 +398,10 @@ RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in Arg
 				if (jit) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				jit = true;
 				break;
+			case "--node-js":
+				if (nodeJs) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				nodeJs = true;
+				break;
 			case "--optimize":
 				if (optimize) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
@@ -410,10 +415,12 @@ RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in Arg
 		}
 	}
 
-	if (aot && jit)
-		diags ~= Diag(Diag.RunAotAndJit());
+	if ((uint(aot) + jit + nodeJs) > 1)
+		diags ~= Diag(Diag.RunAotAndJit()); // TODO: RENAME IT ------------------------------------------------------------------
 	if (!aot && !jit && optimize)
 		diags ~= Diag(Diag.RunOptimizeNeedsAotOrJit());
+	if (nodeJs && (singleThreaded || optimize || noStackTrace))
+		todo!void("DIAG: these options are not compatible with node.js"); // -------------------------------------------------
 
 	VersionOptions version_ = VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace);
 	return aot
@@ -422,6 +429,8 @@ RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in Arg
 			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11)))
 		: jit
 		? RunOptions(RunOptions.Jit(version_, optimize ? JitOptions(OptimizationLevel.o2) : JitOptions()))
+		: nodeJs
+		? RunOptions(RunOptions.NodeJs())
 		: RunOptions(RunOptions.Interpret(version_));
 }
 

@@ -1834,9 +1834,13 @@ ulong maxValue(IntegralType type) {
 }
 
 immutable struct ProgramWithMain {
+	@safe @nogc pure nothrow:
 	Config* mainConfig;
 	MainFun mainFun;
 	Program program;
+
+	Uri mainUri() scope =>
+		mainFun.fun.decl.moduleUri;
 }
 
 immutable struct MainFun {
@@ -1854,7 +1858,7 @@ immutable struct MainFun {
 
 	mixin Union!(Nat64OfArgs, Void);
 
-	FunInst* fun() =>
+	FunInst* fun() return scope =>
 		match!(FunInst*)(
 			(Nat64OfArgs x) => x.fun,
 			(Void x) => x.fun);

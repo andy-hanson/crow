@@ -91,6 +91,15 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 		ExactSizeArrayBuilder!Elem builder = ExactSizeArrayBuilder!Elem(storage, storage.ptr);
 		return cb(builder);
 	});
+@trusted Out withExactStackArray_impure(Out, Elem)(
+	size_t size,
+	in Out delegate(scope ref ExactSizeArrayBuilder!Elem) @safe @nogc nothrow cb,
+) =>
+	withStackArrayUninitialized_impure!(Out, Elem)(size, (scope Elem[] storage) @trusted {
+		ExactSizeArrayBuilder!Elem builder = ExactSizeArrayBuilder!Elem(storage, storage.ptr);
+		return cb(builder);
+	});
+
 private @system Out withBuildStackArray_impure(Out, Elem)(
 	in void delegate(ref StackArrayBuilder!Elem) @safe @nogc pure nothrow cbBuild,
 	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
@@ -236,4 +245,13 @@ pure Out withMapOrNoneToStackArray(Out, Elem, InElem)(
 				return cbFail();
 		}
 		return cbOk(finish(elems));
+	});
+
+Out withConcatImpure(Out, Elem)(in Elem[] a, in Elem[] b, in Out delegate(in Elem[]) @safe @nogc nothrow cb) =>
+	withExactStackArray_impure!(Out, Elem)(a.length + b.length, (scope ref ExactSizeArrayBuilder!Elem elems) {
+		foreach (Elem x; a)
+			elems ~= x;
+		foreach (Elem x; b)
+			elems ~= x;
+		return cb(finish(elems));
 	});

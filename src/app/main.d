@@ -28,6 +28,7 @@ import app.fileSystem :
 	readExactFromStdin,
 	readLineFromStdin,
 	runCompiler,
+	runNodeJsProgram,
 	runProgram,
 	tryReadFile,
 	withPathOrTemp,
@@ -40,6 +41,7 @@ version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
 import backend.writeToC : PathAndArgs, WriteToCParams;
+import frontend.lang : CCompileOptions;
 import frontend.showModel : ShowOptions;
 import frontend.storage : FilesState;
 import interpret.extern_ : Extern;
@@ -106,10 +108,10 @@ import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
-import util.uri : baseName, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
+import util.uri : baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog, todo;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
-import versionInfo : getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
+import versionInfo : getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions, versionOptionsForJs;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
@@ -351,6 +353,8 @@ ExitCode go(
 ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
 	return run.options.matchImpure!ExitCode(
+		(in RunOptions.Aot x) =>
+			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x),
 		(in RunOptions.Interpret x) =>
 			withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
 				buildAndInterpret(
@@ -367,8 +371,8 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath c
 				return ExitCode.error;
 			}
 		},
-		(in RunOptions.Aot x) =>
-			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x));
+		(in RunOptions.NodeJs) =>
+			buildAndRunNode(perf, alloc, server, cwd, run.mainUri, run.programArgs));
 }
 
 FilePath getCrowIncludeDir(FilePath thisExecutable) {
@@ -465,6 +469,31 @@ ExitCode buildAndRun(
 	return exitCode;
 }
 
+ExitCode buildAndRunNode( // TODO:SHARE CODE WITH buildAndRun -----------------------------------------------------------------------
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	FilePath cwd,
+	Uri main,
+	in CString[] programArgs,
+) {
+	MutOpt!int signal;
+	ExitCode exitCode = withTempPath(main, Extension.none, (FilePath dir) =>
+		withBuild(perf, alloc, server, cwd, main, BuildOptions(versionOptionsForJs, BuildOut(nodeJs: some(dir)), CCompileOptions()), (FilePath mainJs, in ExternLibraries _) =>
+			runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs)).match!ExitCode(
+				(ExitCode x) =>
+					x,
+				(Signal x) {
+					signal = someMut!int(x.signal);
+					return ExitCode.error;
+				})));
+	() @trusted { // TODO: DUP CODE -----------------------------------------------------------------------------------------------------------------
+		if (has(signal))
+			raise(force(signal));
+	}();
+	return exitCode;
+}
+
 ExitCode withBuild(
 	scope ref Perf perf,
 	ref Alloc alloc,
@@ -486,7 +515,9 @@ ExitCode withBuild(
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics
 			? ExitCode.error
-			: writeFilesToDir(out_, result.result.outputFiles);
+			: okAnd(
+				writeFilesToDir(out_, result.result.outputFiles),
+				() => cb(concatFilePathAndPath(out_, result.result.mainJs), []));
 	} else
 		return withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
 			withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>

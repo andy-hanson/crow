@@ -48,10 +48,11 @@ version (Windows) {
 		WaitForSingleObject,
 		WriteFile;
 } else {
+	import core.sys.posix.dirent : closedir, DIR, dirent, opendir, readdir;
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
-	import core.sys.posix.sys.stat : mkdir, pid_t, lstat;
-	import core.sys.posix.unistd : getcwd, read, readlink, unlink, write;
+	import core.sys.posix.sys.stat : mkdir, mode_t, lstat, pid_t, S_IFDIR, S_IFMT, S_IFREG, stat_t;
+	import core.sys.posix.unistd : getcwd, read, readlink, rmdir, sleep, unlink, write;
 }
 
 import backend.writeToC : PathAndArgs;
@@ -59,6 +60,7 @@ import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
+import util.alloc.stackAlloc : withConcatImpure;
 import util.col.array : endPtr, exists, newArray, sum;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : KeyValuePair, Map;
@@ -67,8 +69,8 @@ import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd, onError;
 import util.memory : memset;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.string : CString, cString;
-import util.symbol : alterExtension, Extension, Symbol;
+import util.string : CString, cString, stringOfCString;
+import util.symbol : alterExtension, Extension, Symbol, symbol, symbolOfString;
 import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
@@ -86,8 +88,8 @@ import util.uri :
 	Uri,
 	uriIsFile,
 	withCStringOfFilePath;
-import util.util : castImmutable, todo, typeAs;
-import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
+import util.util : castImmutable, castNonScope_ref, todo, typeAs;
+import util.writer : debugLogWithWriter, withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
 
 private enum OutPipe { stdout = 1, stderr = 2 }
 
@@ -175,6 +177,68 @@ private @system void writeLn(OutPipe pipe, in string a) {
 	flush(pipe);
 }
 
+// Equivalent to 'rm -rf path'
+private @trusted ExitCode removeFileOrDirectoryIfExists(FilePath path) {
+	stat_t statResult;
+	int err = withCStringOfFilePath(path, (in CString x) @trusted => lstat(x.ptr, &statResult));
+	if (err == 0) {
+		if (S_ISTYPE(statResult.st_mode, S_IFDIR))
+			return removeDirectoryRecursively(path);
+		else if (S_ISTYPE(statResult.st_mode, S_IFREG))
+			return removeFileIfExists(path);
+		else {
+			todo!void("Other kind of entity?"); // ---------------------------------------------------------------------------------------
+			return ExitCode.error;
+		}
+	} else if (errno == ENOENT)
+		return ExitCode.ok;
+	else
+		return printErrorCb((scope ref Writer writer) {
+			writer ~= "Error removing path ";
+			writer ~= path;
+			writer ~= ": ";
+			writeLastError(writer);
+		});
+}
+
+// Taken from core.sys.posix.sys.stat (importing it causes linker errors)
+private bool S_ISTYPE(mode_t mode, uint mask) =>
+	(mode & S_IFMT) == mask;
+
+private ExitCode removeDirectoryRecursively(FilePath dirPath) =>
+	okAnd(removeAllInDirectory(dirPath), () => removeEmptyDirectory(dirPath));
+
+private ExitCode removeEmptyDirectory(FilePath dirPath) {
+	int err = withCStringOfFilePath(dirPath, (in CString x) @trusted => rmdir(x.ptr));
+	return err == 0 ? ExitCode.ok : printErrorCb((scope ref Writer writer) {
+		writer ~= "Error removing directory ";
+		writer ~= dirPath;
+		writer ~= ": ";
+		writeLastError(writer);
+	});
+}
+
+private @trusted ExitCode removeAllInDirectory(FilePath dirPath) {
+	DIR* dir = withCStringOfFilePath(dirPath, (in CString x) @trusted => opendir(x.ptr));
+	if (dir == null) {
+		// TODO: if there was an error, not OK! -------------------------------------------------------------------------------------------
+		return ExitCode.ok;
+	} else {
+		int exit = ExitCode.ok.value;
+		while (exit == ExitCode.ok.value) {
+			dirent* dirent = readdir(dir);
+			if (dirent != null) {
+				Symbol name = symbolOfString(stringOfCString(CString(castImmutable(dirent.d_name.ptr))));
+				if (name != symbol!".." && name != symbol!".")
+					exit = removeFileOrDirectoryIfExists(dirPath / name).value; // TODO: way around 256 character limit of d_name?
+			} else
+				break;
+		}
+		closedir(dir);
+		return ExitCode(exit);
+	}
+}
+
 private ExitCode removeFileIfExists(FilePath path) =>
 	withCStringOfFilePath(path, (in CString cString) @trusted {
 		version (Windows) {
@@ -221,7 +285,7 @@ ExitCode withTempPath(Uri tempBasePath, Extension extension, in ExitCode delegat
 		ubyte[8] bytes = getRandomBytes();
 		FilePath tempPath = alterExtensionWithHex(asFilePath(tempBasePath), bytes, extension);
 		ExitCode exit = cb(tempPath);
-		ExitCode exit2 = removeFileIfExists(tempPath);
+		ExitCode exit2 = removeFileOrDirectoryIfExists(tempPath);
 		return okAnd(exit, () => exit2);
 	} else
 		return printErrorCb((scope ref Writer writer) {
@@ -436,6 +500,11 @@ ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 
 ExitCodeOrSignal runProgram(ref TempAlloc tempAlloc, in ExternLibraries externLibraries, in PathAndArgs pathAndArgs) =>
 	runCommon(tempAlloc, externLibraries, pathAndArgs, isCompile: false);
+
+ExitCodeOrSignal runNodeJsProgram(ref TempAlloc tempAlloc, in PathAndArgs pathAndArgs) =>
+	withCStringOfFilePath(pathAndArgs.path, (in CString pathCString) =>
+		withConcatImpure!(ExitCodeOrSignal, CString)([cString!"node", castNonScope_ref(pathCString)], pathAndArgs.args, (in CString[] args) =>
+			runCommon(tempAlloc, [], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false))); // TODO: this will only work on linux ...
 
 private @trusted ExitCodeOrSignal runCommon(
 	ref TempAlloc tempAlloc,

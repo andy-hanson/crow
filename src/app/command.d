@@ -58,18 +58,19 @@ immutable struct CommandKind {
 }
 
 immutable struct RunOptions {
-	immutable struct Interpret {
-		VersionOptions version_;
-	}
-	immutable struct Jit {
-		VersionOptions version_;
-		JitOptions options;
-	}
 	immutable struct Aot {
 		VersionOptions version_;
 		CCompileOptions compileOptions;
 	}
-	mixin Union!(Interpret, Jit, Aot);
+	immutable struct Interpret {
+		VersionOptions version_;
+	}
+	immutable struct NodeJs {}
+	immutable struct Jit {
+		VersionOptions version_;
+		JitOptions options;
+	}
+	mixin Union!(Aot, Interpret, Jit, NodeJs);
 }
 
 immutable struct BuildOptions {
