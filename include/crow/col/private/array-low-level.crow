@@ -1,14 +1,15 @@
 no-std
 import
 	../../bool: &&, bool, false, true
-	../../compare: >
+	../../compare: <, <=, >
+	../collection: index-too-big
 	../../fun-util: subscript
-	../../js: as-js-any, as-t, call-property, call-property-spread, js-cast, js-eq-eq-eq
+	../../js: as-js-any, as-t, call-property, call-property-spread, get, js-cast, js-eq-eq-eq
 	../../misc: new, void
-	../../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
+	../../number: ==, <=>, +, -, *, float64, nat64, round-up-to-power-of-two, to
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mem-copy, mut-pointer, null, pointer-cast, set-subscript, size-of
-	../../range: .., low, range, size
+		==, <=>, +, -, *, as-const, const-pointer, mem-copy, mut-pointer, null, pointer-cast, set-subscript, size-of, subscript
+	../../range: .., high, low, range, size
 	../../private/alloc: allocate
 	../../private/bootstrap: array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array, new-mut-array, zeroed
 	../../private/number-low-level: max-value
@@ -48,6 +49,24 @@ array-cast[out, in] out array(a in array) bare, unsafe, native extern
 	assert size-of@out == size-of@in
 	a.array-size new-array a.begin-pointer.pointer-cast
 
++subscript[t] t(a t array, index nat64) bare, trusted
+	assert index < a.array-size : index index-too-big a.array-size
+	if extern native
+		a.array-pointer[index]
+	elif extern js
+		a.as-js-any get index as-t
+	else
+		todo
+
++subscript[t] t array(a t array, indices nat64 range) bare
+	assert indices.high <= a.array-size : indices.high index-too-big a.array-size
+	trusted if extern native
+		indices.size new-array a.begin-pointer + indices.low
+	elif extern js
+		a.as-js-any call-property "slice", indices.low.to::float64, indices.high.to::float64 as-t
+	else
+		todo
+
 # Create an array from a range of pointers.
 +subscript[t] t array(a t*, r nat64 range) bare, unsafe, native extern
 	r.size new-array a + r.low
@@ -81,7 +100,15 @@ Calls `f` for each element in `a`.
 					cur +:= 1
 					continue
 	elif extern js
-		a.as-js-any call-property "some", f as-t
+		i mut nat64 = 0
+		loop
+			if i == a.array-size
+				break false
+			elif f[a[i]]
+				break true
+			else
+				i +:= 1
+				continue
 	else
 		todo
 

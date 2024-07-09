@@ -20,7 +20,7 @@ import model.model :
 	Destructure,
 	IntegralType,
 	isVoid,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	FunBody,
 	FunDecl,
@@ -275,7 +275,7 @@ FunDecl enumOrFlagsMembers(ref CheckCtx ctx, ref CommonTypes commonTypes, Struct
 			Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.pair, [Type(commonTypes.symbol), Type(enum_)]))])),
 		Params.empty,
 		FunFlags.generatedBare,
-		FunBody(EnumFunction.members));
+		FunBody(EnumOrFlagsFunction.members));
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
@@ -291,7 +291,7 @@ FunDecl enumToIntegralFunction(
 		Type(commonTypes.integrals[storageType]),
 		makeParams(alloc, [param!"a"(Type(inst))]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(EnumFunction.toIntegral));
+		FunBody(EnumOrFlagsFunction.toIntegral));
 
 void addFunsForRecord(
 	ref CheckCtx ctx,

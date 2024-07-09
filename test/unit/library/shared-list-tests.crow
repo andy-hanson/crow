@@ -1,7 +1,7 @@
 dummy-shared-list-tests nat()
 	0
 
-test native extern
+test
 	res nat shared[] = ()
 	for x : 0::nat .. 100 parallel
 		res ~= x

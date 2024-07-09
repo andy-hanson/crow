@@ -31,7 +31,7 @@ import
 	../pointer:
 		==, *, any-mut-pointer, as-const, mut-pointer, null, pointer-cast, size-of, to, zeroed
 	../version: is-single-threaded
-	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
+	./bootstrap: hard-assert, hard-forbid, hard-unreachable, new, option, todo
 export
 	./bootstrap: lock
 
@@ -56,7 +56,7 @@ export
 		todo
 
 +uninit lock() bare, unsafe
-	zeroed
+	0, 0, 0, 0, 0
 
 -as-critical-section CRITICAL_SECTION mut*(a lock mut*) bare, unsafe, (native, windows) extern
 	size-of@CRITICAL_SECTION <= size-of@lock hard-assert

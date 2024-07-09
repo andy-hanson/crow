@@ -20,8 +20,7 @@ import model.model :
 	BuiltinTernary,
 	CommonTypes,
 	Destructure,
-	EnumFunction,
-	FlagsFunction,
+	EnumOrFlagsFunction,
 	FunBody,
 	FunDecl,
 	isArray,
@@ -205,7 +204,7 @@ FunBody inner(
 					? BuiltinBinary.mulFloat64
 					: failBinary);
 		case symbol!"==".value:
-			return isEnumOrFlags(specs, p0) ? FunBody(EnumFunction.equal) : binary(
+			return isEnumOrFlags(specs, p0) ? FunBody(EnumOrFlagsFunction.equal) : binary(
 				p0 != p1 ? failBinary :
 				isChar8(p0) ? BuiltinBinary.eqChar8 :
 				isChar32(p0) ? BuiltinBinary.eqChar32 :
@@ -233,7 +232,7 @@ FunBody inner(
 		case symbol!"??".value:
 			return binaryLazy(isOptionType(commonTypes, p0) ? BuiltinBinaryLazy.optionQuestion2 : failBinaryLazy);
 		case symbol!"&".value:
-			return isFlags(specs, rt) ? FunBody(EnumFunction.intersect) : binary(isInt8(rt)
+			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.intersect) : binary(isInt8(rt)
 				? BuiltinBinary.bitwiseAndInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseAndInt16
@@ -251,7 +250,7 @@ FunBody inner(
 				? BuiltinBinary.bitwiseAndNat64
 				: failBinary);
 		case symbol!"~".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.negate) : unary(isNat8(rt)
+			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.negate) : unary(isNat8(rt)
 				? BuiltinUnary.bitwiseNotNat8
 				: isNat16(rt)
 				? BuiltinUnary.bitwiseNotNat16
@@ -261,7 +260,7 @@ FunBody inner(
 				? BuiltinUnary.bitwiseNotNat64
 				: failUnary);
 		case symbol!"|".value:
-			return isFlags(specs, rt) ? FunBody(EnumFunction.union_) : binary(isInt8(rt)
+			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.union_) : binary(isInt8(rt)
 				? BuiltinBinary.bitwiseOrInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseOrInt16
@@ -301,7 +300,7 @@ FunBody inner(
 		case symbol!"acosh".value:
 			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
 		case symbol!"all".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.all) : fail();
+			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.all) : fail();
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
 		case symbol!"asin".value:
@@ -360,7 +359,7 @@ FunBody inner(
 		case symbol!"nan".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
 		case symbol!"new".value:
-			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
+			return isFlags(specs, rt) && arity == 0 ? FunBody(EnumOrFlagsFunction.none) : fail();
 		case symbol!"new-array".value:
 			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
 				? binary(BuiltinBinary.newArray)

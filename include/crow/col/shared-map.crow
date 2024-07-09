@@ -2,10 +2,9 @@ no-std
 import
 	../bool: bool
 	../fun-util: subscript
-	../misc: key, void
+	../misc: key, new, void
 	../number: nat64
 	../option: option
-	../private/bootstrap: todo
 	../private/thread-utils: acquire, init, lock, release, uninit
 	../pointer: mut-pointer
 	./array: array
@@ -29,18 +28,16 @@ Iteration is not supported; since operations on this take a lock, they need to b
 		finally a.lock release
 		cb[a.inner]
 	else
-		todo # -----------------------------------------------------------------------------------------------------
+		cb[a inner]
 
 +new[k, v] v shared[k](...a (k, v) array) k key
 	a.to new-from-mut-map
 
--new-from-mut-map[k, v] v shared[k](inner v mut[k]) k key
-	trusted if extern native
-		res v shared[k] = uninit, inner
+-new-from-mut-map[k, v] v shared[k](inner v mut[k]) k key, trusted
+	res v shared[k] = uninit, inner
+	if extern native
 		res.lock init
-		res
-	else
-		todo # In JS, shared-map should just be a map (zero sized lock) --------------------------------------------------------
+	res
 
 +move-to[k, v] v[k](a v shared[k]) k key
 	trusted a with-lock x => x move-to

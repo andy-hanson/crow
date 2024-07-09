@@ -100,7 +100,7 @@ import model.model :
 	Condition,
 	defaultAssertOrForbidMessage,
 	Destructure,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
 	ExprAndType,
 	ExternExpr,
@@ -1321,7 +1321,7 @@ Opt!Constant tryEvalConstant(
 			} else
 				return none!Constant;
 		},
-		(in EnumFunction _) => none!Constant,
+		(in EnumOrFlagsFunction _) => none!Constant,
 		(in ConcreteFunBody.Extern) => none!Constant,
 		(in ConcreteExpr x) =>
 			x.kind.isA!Constant

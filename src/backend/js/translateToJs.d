@@ -128,14 +128,13 @@ import model.model :
 	eachLocal,
 	eachTest,
 	emptySpecs,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
 	ExprAndType,
 	ExprKind,
 	ExternExpr,
 	FinallyExpr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
@@ -1578,16 +1577,14 @@ ExprResult translateInlineCall(
 		},
 		(in FunBody.CreateVariant) =>
 			expr(onlyArg()),
-		(in EnumFunction x) =>
-			expr(translateEnumFunction(ctx, returnType, x, nArgs, getArg)),
+		(in EnumOrFlagsFunction x) =>
+			expr(translateEnumOrFlagsFunction(ctx, returnType, x, nArgs, getArg)),
 		(in Expr _) =>
 			assert(false),
 		(in FunBody.Extern) =>
 			assert(false),
 		(in FunBody.FileImport) =>
 			assert(false),
-		(in FlagsFunction) =>
-			todo!ExprResult("FLAGS FUNCTION"), // -----------------------------------------------------------------------------------
 		(in FunBody.RecordFieldCall x) =>
 			expr(genCall(
 				allocate(ctx.alloc, recordField(x.fieldIndex)),
@@ -1707,10 +1704,10 @@ ExprResult translateCallBuiltin(
 			return expr(genNull());
 		});
 }
-JsExpr translateEnumFunction(
+JsExpr translateEnumOrFlagsFunction(
 	ref TranslateExprCtx ctx,
 	Type returnType,
-	EnumFunction a,
+	EnumOrFlagsFunction a,
 	size_t nArgs,
 	in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg,
 ) {
@@ -1721,19 +1718,28 @@ JsExpr translateEnumFunction(
 		return genCallProperty(ctx.alloc, getArg(0), name, [getArg(1)]);
 	}
 	final switch (a) {
-		case EnumFunction.equal:
+		case EnumOrFlagsFunction.all:
+			// Probably do 'F.all', and remember to put it on the class
+			return todo!JsExpr("EnumOrFlagsFunction.all"); // -------------------------------------------------------------------------------------------
+		case EnumOrFlagsFunction.equal:
 			return genEqEqEq(ctx.alloc, getValue(getArg(0)), getValue(getArg(1))); // TODO: getting '.value' is unnecessary for enums (but harmless). It is necessary for flags.
-		case EnumFunction.intersect:
+		case EnumOrFlagsFunction.intersect:
 			return call(symbol!"intersect");
-		case EnumFunction.members:
+		case EnumOrFlagsFunction.members:
 			assert(nArgs == 0);
 			Type pair = arrayElementType(returnType);
 			StructDecl* enumOrFlags = only2(force(asTuple(ctx.commonTypes, pair)))[1].as!(StructInst*).decl;
 			return genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags), symbol!"members");
-		case EnumFunction.toIntegral:
+		case EnumOrFlagsFunction.negate:
+			// Probably do 'x.negate()', and remember to put it on the class
+			return todo!JsExpr("EnumOrFlagsFunction.negate"); // ----------------------------------------------------------------------
+		case EnumOrFlagsFunction.none:
+			// Probably do 'F.all', and remember to put it on the class
+			return todo!JsExpr("EnumOrFlagsFunction.none"); // -------------------------------------------------------------------------------------------
+		case EnumOrFlagsFunction.toIntegral:
 			assert(nArgs == 1);
 			return getValue(getArg(0));
-		case EnumFunction.union_:
+		case EnumOrFlagsFunction.union_:
 			return call(symbol!"union");
 	}
 }

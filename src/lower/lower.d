@@ -134,8 +134,7 @@ import model.model :
 	BuiltinUnary,
 	BuiltinUnaryMath,
 	ConfigExternUris,
-	EnumFunction,
-	FlagsFunction,
+	EnumOrFlagsFunction,
 	IntegralType,
 	JsFun,
 	Local,
@@ -541,7 +540,7 @@ AllLowFuns getAllLowFuns(
 					return none!LowFunIndex;
 				}
 			},
-			(EnumFunction _) =>
+			(EnumOrFlagsFunction _) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.Extern x) {
 				Opt!Symbol optName = name(*fun);
@@ -1246,24 +1245,24 @@ LowExpr getCallSpecial(
 	called.body_.match!LowExpr(
 		(ConcreteFunBody.Builtin x) =>
 			getCallBuiltinExpr(ctx, locals, type, range, called, args, x.kind),
-		(EnumFunction x) =>
-			genEnumFunction(ctx, locals, type, range, x, args),
+		(EnumOrFlagsFunction x) =>
+			genEnumOrFlagsFunction(ctx, locals, type, range, x, args),
 		(ConcreteFunBody.Extern) =>
 			assert(false),
 		(ConcreteExpr x) =>
 			LowExpr(type, range, LowExprKind(x.kind.as!Constant)),
 		(ConcreteFunBody.FlagsFn x) {
-			final switch (x.fn) {
-				case FlagsFunction.all:
+			switch (x.fn) {
+				case EnumOrFlagsFunction.all:
 					return genConstantIntegral(type, range, x.allValue);
-				case FlagsFunction.negate:
+				case EnumOrFlagsFunction.negate:
 					return genFlagsNegate(
 						ctx.alloc,
 						range,
 						x.allValue,
 						getLowExpr(ctx, locals, only(args), ExprPos.nonTail));
-				case FlagsFunction.new_:
-					return genConstantIntegral(type, range, 0);
+				default:
+					assert(0);
 			}
 		},
 		(ConcreteFunBody.VarGet x) =>
@@ -1296,31 +1295,34 @@ LowExpr getRecordFieldSet(
 LowExpr genFlagsNegate(ref Alloc alloc, UriAndRange range, ulong allValue, LowExpr a) =>
 	genEnumIntersect(alloc, range, genBitwiseNegate(alloc, range, a), genConstantIntegral(a.type, range, allValue));
 
-LowExpr genEnumFunction(
+LowExpr genEnumOrFlagsFunction(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	LowType type,
 	in UriAndRange range,
-	EnumFunction a,
+	EnumOrFlagsFunction a,
 	in ConcreteExpr[] args,
 ) {
 	LowExpr arg0() => getLowExpr(ctx, locals, args[0], ExprPos.nonTail);
 	LowExpr arg1() => getLowExpr(ctx, locals, args[1], ExprPos.nonTail);
 	final switch (a) {
-		case EnumFunction.equal:
+		case EnumOrFlagsFunction.equal:
 			assert(args.length == 2);
 			return genEnumEq(ctx.alloc, range, arg0(), arg1());
-		case EnumFunction.intersect:
+		case EnumOrFlagsFunction.intersect:
 			assert(args.length == 2);
 			return genEnumIntersect(ctx.alloc, range, arg0(), arg1());
-		case EnumFunction.toIntegral:
+		case EnumOrFlagsFunction.none:
+			return genConstantIntegral(type, range, 0);
+		case EnumOrFlagsFunction.toIntegral:
 			assert(args.length == 1);
 			return genEnumToIntegral(ctx.alloc, type, range, arg0());
-		case EnumFunction.union_:
+		case EnumOrFlagsFunction.union_:
 			assert(args.length == 2);
 			return genEnumUnion(ctx.alloc, range, arg0(), arg1());
-		case EnumFunction.members:
-			// In concretize, this was translated to a constant
+		case EnumOrFlagsFunction.members: // In concretize, this was translated to a constant
+		case EnumOrFlagsFunction.all: // This becomes a ConcreteFunBody.FlagsFn
+		case EnumOrFlagsFunction.negate:
 			assert(false);
 	}
 }

@@ -2,9 +2,8 @@ no-std
 import
 	../bool: bool
 	../fun-util: subscript
-	../misc: void
+	../misc: new, void
 	../number: ==, nat64
-	../private/bootstrap: todo
 	../private/thread-utils: acquire, init, lock, release, uninit
 	../pointer: mut-pointer
 	./array: array
@@ -28,19 +27,17 @@ and iterate it at your leisure.
 	if extern native
 		a.lock acquire
 		finally a.lock release
-		cb[a.inner]
+		cb[a inner]
 	else
-		todo # ------------------------------------------------------------------------------------------------------------------
+		cb[a inner]
 
 +new[t] t shared[](...a t array)
 	a.to new-from-new-mut-list
--new-from-new-mut-list[t] t shared[](inner t mut[])
-	trusted if extern native
-		res t shared[] = uninit, inner
+-new-from-new-mut-list[t] t shared[](inner t mut[]) trusted
+	res t shared[] = uninit, inner
+	if extern native
 		res.lock init
-		res
-	else
-		todo # TODO: in JS builds, 'shared-list' should just be a list with no wrapper ...........................................
+	res
 
 +size[t] nat64(a t shared[])
 	trusted a with-lock x => x size

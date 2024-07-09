@@ -58,10 +58,9 @@ import model.model :
 	CommonTypes,
 	Destructure,
 	eachTest,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
@@ -773,14 +772,20 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		(FunBody.CreateVariant x) =>
 			createUnionBody(ctx.alloc, cf, ensureVariantMember(
 				ctx, cf.returnType, isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
-		(EnumFunction x) {
+		(EnumOrFlagsFunction x) {
 			final switch (x) {
-				case EnumFunction.equal:
-				case EnumFunction.intersect:
-				case EnumFunction.toIntegral:
-				case EnumFunction.union_:
+				case EnumOrFlagsFunction.all:
+				case EnumOrFlagsFunction.negate:
+					return ConcreteFunBody(ConcreteFunBody.FlagsFn(
+						getAllFlagsValue(mustBeByVal(cf.returnType)),
+						x));
+				case EnumOrFlagsFunction.equal:
+				case EnumOrFlagsFunction.intersect:
+				case EnumOrFlagsFunction.none:
+				case EnumOrFlagsFunction.toIntegral:
+				case EnumOrFlagsFunction.union_:
 					return ConcreteFunBody(x);
-				case EnumFunction.members:
+				case EnumOrFlagsFunction.members:
 					return bodyForEnumOrFlagsMembers(ctx, cf.returnType);
 			}
 		},
@@ -790,10 +795,6 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
 		(FunBody.FileImport x) =>
 			ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
-		(FlagsFunction it) =>
-			ConcreteFunBody(ConcreteFunBody.FlagsFn(
-				getAllFlagsValue(mustBeByVal(cf.returnType)),
-				it)),
 		(FunBody.RecordFieldCall x) =>
 			genRecordFieldCall(ctx, cf, x),
 		(FunBody.RecordFieldGet x) =>

@@ -1659,7 +1659,7 @@ CaseResult checkMatchUnionOrVariantCase(Member)(
 		if (has(destructureAst))
 			return checkDestructure2(ctx, &force(destructureAst), memberType, DestructureKind.local);
 		else {
-			if (!isEmptyType(ctx.commonTypes, memberType))
+			if (!isEmptyType(memberType))
 				addDiag2(ctx, memberAst.nameRange, Diag(
 					Diag.MatchCaseShouldUseIgnore(Diag.MatchCaseShouldUseIgnore.Member(member))));
 			return Destructure(allocate(ctx.alloc, Destructure.Ignore(memberAst.nameRange.start, memberType)));

@@ -857,6 +857,7 @@ immutable string[] specialSymbols = [
 	"intersect",
 	".",
 	"describe",
+	"enum-or-flags-fun",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

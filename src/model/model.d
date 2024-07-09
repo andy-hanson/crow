@@ -125,7 +125,7 @@ immutable struct Type {
 		taggedPointerEquals(b);
 }
 
-bool isEmptyType(in CommonTypes commonTypes, in Type a) => // TODO: rm commonTypes --------------------------------------------
+bool isEmptyType(in Type a) =>
 	isVoid(a) || isEmptyRecord(*a.as!(StructInst*).decl);
 private bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
@@ -712,20 +712,15 @@ immutable struct SpecInstBody {
 	SmallArray!ReturnAndParamTypes sigTypes;
 }
 
-enum EnumFunction { // TODO: this is poorly named. Some of these are flags functions. --------------------------------------------
+enum EnumOrFlagsFunction {
+	all, // flags only
 	equal,
-	intersect,
+	intersect, // flags only
 	members,
+	negate, // flags only
+	none, // flags only
 	toIntegral,
-	union_,
-}
-
-// These are just the functions needing an 'all' value, otherwise they are in EnumFunction
-alias FlagsFunction = immutable FlagsFunction_;
-private enum FlagsFunction_ {
-	all,
-	negate,
-	new_,
+	union_, // flags only
 }
 
 enum VarKind { global, threadLocal }
@@ -803,11 +798,10 @@ immutable struct FunBody {
 		CreateRecordAndConvertToVariant,
 		CreateUnion,
 		CreateVariant,
-		EnumFunction,
+		EnumOrFlagsFunction,
 		Expr,
 		Extern,
 		FileImport,
-		FlagsFunction,
 		RecordFieldCall,
 		RecordFieldGet,
 		RecordFieldPointer,

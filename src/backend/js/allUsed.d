@@ -28,9 +28,8 @@ import model.model :
 	Destructure,
 	eachLocal,
 	eachTest,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
@@ -378,7 +377,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				usedReturnType();
 			},
 			(FunBody.CreateVariant) {},
-			(EnumFunction _) {
+			(EnumOrFlagsFunction _) {
 				usedReturnType();
 			},
 			(Expr _) {
@@ -393,7 +392,6 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				assert(false);
 			},
 			(FunBody.FileImport _) {},
-			(FlagsFunction _) {},
 			(FunBody.RecordFieldCall) {
 				usedTuple(res, from, a.arity.as!uint - 1);
 			},

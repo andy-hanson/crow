@@ -13,10 +13,9 @@ import model.model :
 	CallOptionExpr,
 	CommonTypes,
 	Destructure,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -175,8 +174,7 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 					returnTypeTarget(decl),
 				(FunBody.CreateVariant x) =>
 					Target(only(a.paramTypes).as!(StructInst*).decl),
-				(EnumFunction x) =>
-					// goto the type
+				(EnumOrFlagsFunction x) =>
 					returnTypeTarget(decl),
 				(Expr _) =>
 					Target(decl),
@@ -185,8 +183,6 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 				(FunBody.FileImport) =>
 					// TODO: Target for a file showing all imports
 					Target(decl),
-				(FlagsFunction) =>
-					returnTypeTarget(decl),
 				(FunBody.RecordFieldCall x) =>
 					recordFieldTarget(decl, x.fieldIndex),
 				(FunBody.RecordFieldGet x) =>

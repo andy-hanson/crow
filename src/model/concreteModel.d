@@ -6,9 +6,8 @@ import model.constant : Constant;
 import model.model :
 	BuiltinFun,
 	BuiltinType,
-	EnumFunction,
+	EnumOrFlagsFunction,
 	Expr,
-	FlagsFunction,
 	FunDecl,
 	IntegralType,
 	isString,
@@ -277,13 +276,13 @@ immutable struct ConcreteFunBody {
 	}
 	immutable struct FlagsFn {
 		ulong allValue;
-		FlagsFunction fn;
+		EnumOrFlagsFunction fn;
 	}
 	immutable struct VarGet { ConcreteVar* var; }
 	immutable struct VarSet { ConcreteVar* var; }
 	immutable struct Deferred {} // Should only be used temporarily
 
-	mixin Union!(Builtin, EnumFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet, Deferred);
+	mixin Union!(Builtin, EnumOrFlagsFunction, Extern, ConcreteExpr, FlagsFn, VarGet, VarSet, Deferred);
 }
 
 immutable struct ConcreteFunSource {
