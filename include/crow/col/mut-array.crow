@@ -14,8 +14,7 @@ import
 	../private/bootstrap: new-array, new-mut-array, mut-array-pointer, mut-array-size, todo
 	../range: .., high, is-empty, iterate, low, range, size, subscript
 	../tuple: new
-	./array:
-		~=, ~~=, array, array-builder, as-array, begin-pointer, build, iterate, new, size, subscript
+	./array: ~=, ~~=, array, array-builder, as-array, begin-pointer, build, iterate, size, subscript
 	./private/array-low-level: array-reference-equal
 	./collection: build-options, for-loop, index-too-big, range-relative-to-end, to-range
 export
@@ -24,9 +23,6 @@ export
 # True if they are identical.
 +==[t] bool(a t mut-array, b t mut-array) bare, trusted
 	a.cast-immutable array-reference-equal b.cast-immutable
-
-empty-mut-array[t] t mut-array() bare, trusted # TODO: Can just use 'new' now ..................................................
-	() cast-mutable
 
 ###
 Creates a new `mut-array` with the given elements.
@@ -142,10 +138,7 @@ Throws if `dest` and `source` are not the same size.
 +set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-slice) bare
 	dest[range to-range dest.size] := source
 
-# TODO: MOVE?---------------------------------------------------------------------------------------------------------------------
-# TODO: this could be a 'builtin' type. In native build it could just be mut-array.
 +mut-slice[t] record by-val
-	# TODO: in a native build, don't need begin/end ...............................................................................
 	-inner t mut-array
 	-range nat64 range
 +is-empty[t] bool(a t mut-slice) bare

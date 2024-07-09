@@ -17,7 +17,7 @@ To work on Crow, you'll need these tools:
 * [`ldc`](https://github.com/ldc-developers/ldc#installation): Used to compile `bin/crow`.
 	- Don't use the Visual D installer as it uses an older compiler.
 	Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
-* [`node`](https://nodejs.org/): Used to build the VSCode extension.
+* [`node`](https://nodejs.org/): Used to test JS builds and to build the VSCode extension.
 * Also install dependencies listed on the [download](https://crow-lang.org/download.html) page.
 * On Linux: Optionally, [GraphViz](https://graphviz.org/download/) to support `make show-dependencies`.
 * On Windows, use the "x64 Native Tools Command Prompt for VS 20__" (fill in the year) when running build commands.

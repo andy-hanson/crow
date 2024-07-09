@@ -15,6 +15,7 @@ import
 	./shared-list-tests: dummy-shared-list-tests
 	./shared-map-tests: dummy-shared-map-tests
 	./string-tests: dummy-string-tests
+	./symbol-tests: dummy-symbol-tests
 
 dummy-library-tests nat()
 	_ = dummy-array-tests
@@ -33,3 +34,4 @@ dummy-library-tests nat()
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests
 	_ = dummy-string-tests
+	_ = dummy-symbol-tests

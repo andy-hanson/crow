@@ -150,38 +150,40 @@ test
 -to string(a big-nat)
 	"{a a}"
 
-test native extern # TODO: test in JS, but then big-nat size would be 8 -----------------------------------------------------------------------------
-	trusted size-of@big-nat is 24
+test
+	js bool = trusted extern js
+	trusted if extern native
+		size-of@big-nat is 24
 	a big-nat[] = 5.big, 6.big
 	b big-nat[] = 4.big ~ a
-	b verify "([4] [] [5 6])"
+	b verify (js ? "[4 5 6]" : "([4] [] [5 6])")
 
 	b-split = (b try-split-once (5.big,))!
 	b-split.a verify "[4]"
 	b-split.b verify "[6]"
 
 	c big-nat[] = b ~ 7.big
-	c verify "([4] [[5 6]] [7])"
+	c verify (js ? "[4 5 6 7]" : "([4] [[5 6]] [7])")
 
 	c-split = (c try-split-once (5.big,))!
 	c-split.a verify "[4]"
 	c-split.b verify "[6 7]"
 
 	d big-nat[] = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
-	d verify "([4] [[5 6] [7 8] [9 10]] [11])"
+	d verify (js ? "[4 5 6 7 8 9 10 11]" : "([4] [[5 6] [7 8] [9 10]] [11])")
 
 	d-split = (d try-split-once (6.big, 7.big))!
 	d-split.a verify "[4 5]"
-	d-split.b verify "([8] [[9 10]] [11])"
+	d-split.b verify (js ? "[8 9 10 11]" : "([8] [[9 10]] [11])")
 
 	e big-nat[] = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
-	e verify "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
+	e verify (js ? "([0 1 2 3] [] [4 5 6 7 8 9 10 11])" : "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])")
 	f big-nat[] = e ~ 12.big ~ 13.big
-	f verify "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
+	f verify (js ? "([0 1 2 3] [[4 5 6 7 8 9 10 11]] [12 13])" : "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])")
 
 	f-split = (f try-split-once (4.big, 5.big))!
-	f-split.a verify "([0] [[1 2]] [3])"
-	f-split.b verify "([6] [[7 8] [9 10] [11 12]] [13])"
+	f-split.a verify (js ? "[0 1 2 3]" : "([0] [[1 2]] [3])")
+	f-split.b verify (js ? "[6 7 8 9 10 11 12 13]" : "([6] [[7 8] [9 10] [11 12]] [13])")
 
 test
 	a nat64[] = 1, 2, 3, 4, 5, 6, 7

@@ -38,6 +38,7 @@ import backend.js.jsAst :
 	JsCallExpr,
 	JsCallWithSpreadExpr,
 	JsClassDecl,
+	JsClassGetter,
 	JsClassMember,
 	JsClassMemberKind,
 	JsClassMethod,
@@ -311,8 +312,14 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 			writer ~= "static ";
 			break;
 	}
+	if (member.kind.isA!JsClassGetter)
+		writer ~= "get ";
 	writeNamePossiblyBracketQuoted(writer, member.name);
 	member.kind.matchIn!void(
+		(in JsClassGetter x) {
+			writer ~= "() ";
+			writeBlockStatement(writer, 1, x.body_);
+		},
 		(in JsClassMethod x) {
 			writeParams(writer, x.params, alwaysParens: true);
 			writeBlockStatement(writer, 1, x.body_);

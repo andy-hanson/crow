@@ -32,7 +32,11 @@ import
 -get_filelen sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe, native extern
 	(user-data-pointer.pointer-cast::user-data mut*)->content size
 
--seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) bare, unsafe, native extern
+-seek sf_count_t(
+	offset sf_count_t,
+	whence SEEK,
+	user-data-pointer any-mut-pointer,
+) bare, unsafe, native extern
 	ap user-data mut* = user-data-pointer pointer-cast
 	a = *ap
 	start = match whence

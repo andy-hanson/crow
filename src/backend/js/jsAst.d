@@ -67,7 +67,10 @@ immutable struct JsClassMember {
 	JsClassMemberKind kind;
 }
 immutable struct JsClassMemberKind {
-	mixin Union!(JsClassMethod, JsExpr);
+	mixin Union!(JsClassGetter, JsClassMethod, JsExpr);
+}
+immutable struct JsClassGetter {
+	JsBlockStatement body_;
 }
 immutable struct JsClassMethod {
 	JsParams params;

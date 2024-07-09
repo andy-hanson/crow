@@ -25,6 +25,7 @@ crow-unit-tests: bin\crow.exe
 	.\bin\crow.exe run test\crow-unit-tests.crow
 	.\bin\crow.exe run test\crow-unit-tests.crow --aot
 	.\bin\crow.exe run test\crow-unit-tests.crow --aot --optimize
+	.\bin\crow.exe run test\crow-unit-tests.crow --node-js
 
 test-extern-library: bin\crow.exe bin\example.dll bin\example.lib
 	.\bin\crow run test\test-extern-library\main.crow

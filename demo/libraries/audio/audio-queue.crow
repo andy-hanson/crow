@@ -48,7 +48,11 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe, native extern
 	a.playing.begin-pointer each-playing a.playing.end-pointer, out
 	a.lock release
 
--each-playing void(cur entry mut*, end entry mut*, out float32 mut-array) bare, unsafe, native extern
+-each-playing void(
+	cur entry mut*,
+	end entry mut*,
+	out float32 mut-array,
+) bare, unsafe, native extern
 	guard cur != end
 	*cur add-to out
 	cur + 1 each-playing end, out

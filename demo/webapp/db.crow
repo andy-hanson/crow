@@ -106,7 +106,11 @@ register-user-result union
 	user-already-exists
 == bool(a register-user-result, b register-user-result)
 
-register-user register-user-result(db db, user-name string, password string) summon, (lmdb, native, sodium) extern
+register-user register-user-result(
+	db db,
+	user-name string,
+	password string,
+) summon, (lmdb, native, sodium) extern
 	guard !(user-name.size < 4 || user-name.size > 64) :
 		"user name must be 4-64 characters" bad-user-name
 	with txn : db.env abortable-write-transaction

@@ -24,7 +24,7 @@ test: unit-test crow-unit-tests test-extern-library end-to-end-test
 unit-test: bin/crow-debug
 	./bin/crow-debug test
 
-crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
+crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot crow-unit-tests-node-js
 crow-unit-tests-interpreter: bin/crow
 	bin/crow test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
@@ -35,6 +35,8 @@ endif
 crow-unit-tests-aot: bin/crow
 	bin/crow run test/crow-unit-tests.crow --aot
 	bin/crow run test/crow-unit-tests.crow --aot --optimize
+crow-unit-tests-node-js: bin/crow
+	bin/crow run test/crow-unit-tests.crow --node-js
 
 test-extern-library: bin/crow bin/libexample.so
 	bin/crow test/test-extern-library/main.crow

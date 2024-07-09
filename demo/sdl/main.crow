@@ -64,7 +64,10 @@ main nat(_ string[]) summon, trusted, (native, SDL2) extern
 	render-thread-id run-with-thread-id () =>
 		renderer render texture
 
--render void(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, unsafe, (native, SDL2) extern
+-render void(
+	renderer SDL_Renderer mut*,
+	texture SDL_Texture mut*,
+) summon, unsafe, (native, SDL2) extern
 	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
 	x int32 = ((get-monotime-msec / 10) % window-width.to).to
 	renderer draw-image texture, x
@@ -73,7 +76,11 @@ main nat(_ string[]) summon, trusted, (native, SDL2) extern
 	renderer SDL_RenderPresent
 	()
 
--draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe, (native, SDL2) extern
+-draw-image void(
+	renderer SDL_Renderer mut*,
+	texture SDL_Texture mut*,
+	x int32,
+) summon, unsafe, (native, SDL2) extern
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
@@ -85,7 +92,7 @@ main nat(_ string[]) summon, trusted, (native, SDL2) extern
 			yield-fiber
 			continue
 
--look-for-quit-event bool() summon, SDL2 extern
+-look-for-quit-event bool() summon, (native, SDL2) extern
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0

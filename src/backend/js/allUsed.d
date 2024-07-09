@@ -209,7 +209,7 @@ bool isInlinedBuiltinFun(in BuiltinFun a) =>
 		(in BuiltinFun.Zeroed) =>
 			true);
 
-Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExtern, in Condition a) {
+Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, in Condition a) {
 	if (a.isA!(Expr*)) {
 		// TODO: PYRAMID OF DOOM! ------------------------------------------------------------------------------------------------
 		Expr* x = a.as!(Expr*);
@@ -228,7 +228,7 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExtern, in
 	}
 
 	Opt!Symbol extern_ = asExtern(a);
-	return optIf(has(extern_), () => allExtern.has(force(extern_)));
+	return optIf(has(extern_), () => allExterns.has(force(extern_)));
 }
 
 private:

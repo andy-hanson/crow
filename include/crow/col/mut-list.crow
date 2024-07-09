@@ -16,9 +16,9 @@ import
 	./array: array, size
 	./collection: .., -, build-options, end, for-loop, index-too-big, iterate, size-hint, subscript
 	./mut-array:
-		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, empty-mut-array, mut-array,
-		mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev, set-subscript,
-		size, subscript, temp-as-array, zeroed-mut-array, zero-memory
+		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, mut-array,
+		mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev,
+		set-subscript, size, subscript, temp-as-array, zeroed-mut-array, zero-memory
 	./list: iterate, list, to
 
 ###
@@ -147,7 +147,7 @@ Writes to the `mut-list` won't affect the `list`.
 		a.move-to, max-value
 	else
 		res t mut[] = a.backing, a.mut-list-size
-		a.backing := empty-mut-array
+		a.backing := ()
 		a.mut-list-size := 0
 		res
 

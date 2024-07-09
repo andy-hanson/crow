@@ -14,7 +14,8 @@ import
 	../tuple: a, b, new
 	../private/bootstrap: todo
 	./array:
-		~, ~=, ~~=, array, array-builder, build, is-empty, iterate, new, remove-at, size, subscript, update-at
+		~, ~=, ~~=, array, array-builder, build, is-empty, iterate, new, remove-at, size, subscript,
+		update-at
 	./collection:
 		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, n-of,
 		subscript, with-block, with-index

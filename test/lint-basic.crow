@@ -2,19 +2,20 @@
 import
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
-	crow/io/print: out, print
-	./failure: failure, new, print-failures
+	crow/io/print: err, out, print
+	./failure: failure, new, show-failures
 
-main nat(_ string[]) summon, libc extern
+main nat(_ string[]) summon, native extern
 	files = list-lintable-files
 	failures = for file : files parallel-concat; file lint-file
 	if failures is-empty
 		out print "linted {files size} files"
 		0
 	else
-		failures print-failures
+		err print failures.show-failures
+		failures size
 
--list-lintable-files string[]() summon
+-list-lintable-files string[]() summon, native extern
 	res string mut[] = ()
 	"." each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
@@ -35,7 +36,7 @@ main nat(_ string[]) summon, libc extern
 	"invalid-utf8.crow", "node_modules", "not-utf8.txt", "package-lock.json", "site",
 	"trailing-indent.crow"
 
--lint-file failure[](path string) summon, libc extern
+-lint-file failure[](path string) summon, native extern
 	text string = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension ?? ""

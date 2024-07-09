@@ -13,7 +13,8 @@ import
 	../../string: ==, <=>, hash-mix, interpolate, join, new, string, to
 	../../test-util: is
 	../array:
-		~=, array, as-array, begin-pointer, build, end-pointer, is-empty, iterate, new, next-index, size, subscript
+		~=, array, as-array, begin-pointer, build, end-pointer, is-empty, iterate, new, next-index,
+		size, subscript
 	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
 	../mut-array:
 		~=, as-slice, begin-pointer, build, end-pointer, is-empty, mut-array,
@@ -188,7 +189,12 @@ Or a combination of the two.
 -should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
--add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key, native extern
+-add-and-compact[t] t sorted-set(
+	a t sorted-set,
+	add-size nat64,
+	plan compact-plan,
+	value t,
+) t key, native extern
 	assert plan.compacted-size > 1
 	trusted
 		compacted t mut-array = plan.compacted-size zeroed-mut-array
@@ -198,7 +204,11 @@ Or a combination of the two.
 		new-add = compactor do-compact a.add, add-size, a.remove
 		new-add, (a.remove filter-less plan.add-size-left)
 
--remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t key, native extern
+-remove-and-compact[t] t sorted-set(
+	a t sorted-set,
+	plan compact-plan,
+	extra-removal nat64,
+) t key, native extern
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -332,7 +342,7 @@ region spec impls (see collection.crow)
 			iters[least-iter-index] := iters[least-iter-index] tail a.remove
 			if iters[least-iter-index] is-empty
 				iters[least-iter-index] := iters[end - 1]
-				iters := iters[0 .. iters.size - 1] # TODO: use end - 1 ////////////////////////////////////////////////////////
+				iters := iters[0 .. end - 1]
 			if f[least-value]
 				break true
 			else

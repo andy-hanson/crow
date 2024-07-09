@@ -12,11 +12,12 @@ import
 	../pointer: size-of
 	../tuple: a, b, new
 	./array:
-		~~, ~=, array, array-cast, as-array, begin, build, is-empty, iterate, new, next, size, subscript
+		~~, ~=, array, array-cast, as-array, begin, build, is-empty, iterate, new, next, size,
+		subscript
 	./collection:
-		.., -, concatenate, end, for-loop, index-relative-to-end, index-too-big, is-empty, iterator-not-comparable,
-		iterator-out-of-bounds, range-relative-to-end, sequence-compare, sequence-equal,
-		slice-right-to-left, subscript
+		.., -, concatenate, end, for-loop, index-relative-to-end, index-too-big, is-empty,
+		iterator-not-comparable, iterator-out-of-bounds, range-relative-to-end, sequence-compare,
+		sequence-equal, slice-right-to-left, subscript
 	./mut-array: ~=, build, mut-array, to
 	./private/array-low-level: array-reference-equal
 	./private/list-low-level:

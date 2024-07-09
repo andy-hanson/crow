@@ -856,6 +856,7 @@ immutable string[] specialSymbols = [
 	"process",
 	"intersect",
 	".",
+	"describe",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

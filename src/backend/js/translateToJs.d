@@ -59,6 +59,7 @@ import backend.js.jsAst :
 	JsBlockStatement,
 	JsCallExpr,
 	JsClassDecl,
+	JsClassGetter,
 	JsClassMember,
 	JsClassMemberKind,
 	JsClassMethod,
@@ -831,8 +832,13 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 				translateUnion(ctx, out_, needSuper, x);
 			},
 			(StructBody.Variant) {
-				if (a == ctx.commonTypes.exception.decl)
+				if (a == ctx.commonTypes.exception.decl) {
 					extends = someMut(allocate(ctx.alloc, JsExpr(JsName(symbol!"Error"))));
+					// get message() { return this.describe() }
+					out_ ~= JsClassMember(JsClassMember.Static.instance, symbol!"message", JsClassMemberKind(JsClassGetter(
+						JsBlockStatement(newArray(ctx.alloc, [
+							genReturn(ctx.alloc, genCallProperty(ctx.alloc, genThis(), symbol!"describe", []))])))));
+				}
 			});
 
 		foreach (ref VariantAndMethodImpls v; a.variants)
@@ -1396,7 +1402,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ClosureSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc,  localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
-			todo!ExprResult("EXTERN EXPR"),
+			forceExpr(ctx, pos, type, genBool(ctx.ctx.allExterns.has(x.name))),
 		(ref FinallyExpr x) =>
 			translateFinally(ctx, x, type, pos),
 		(FunPointerExpr x) =>

@@ -24,7 +24,10 @@ region env
 
 +open-lmdb-env record(db-dir string, create-if-not-exists bool) nominal
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-+with-block[t] t(options open-lmdb-env, f t mut(env lmdb-env)) summon, t shared, (lmdb, native) extern
++with-block[t] t(
+	options open-lmdb-env,
+	f t mut(env lmdb-env),
+) summon, t shared, (lmdb, native) extern
 	trusted
 		env = options open-env
 		finally env close-env
@@ -103,7 +106,9 @@ region db
 		finally a.env close-db db
 		f[db]
 
--open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize, (lmdb, native) extern
+-open-db[k, v] (k, v) lmdb-db(
+	a (k, v) database,
+) summon, unsafe, k lmdb-key, v serialize, (lmdb, native) extern
 	transaction mut MDB_txn mut* = null
 	a.env.env mdb_txn_begin null, (), &transaction check-lmdb-error
 
@@ -144,7 +149,10 @@ Aborts the transaction iff `f` throws an exception.
 +abortable-write-transaction record(env lmdb-env) mut, nominal
 # Like `write-transaction`,
 # but `f` returns a pair of the result and whether to commit the transaction.
-+with-block[t] t(a abortable-write-transaction, f (t, transaction-result) mut(txn lmdb-txn)) summon, (lmdb, native) extern
++with-block[t] t(
+	a abortable-write-transaction,
+	f (t, transaction-result) mut(txn lmdb-txn),
+) summon, (lmdb, native) extern
 	a.env with-transaction (), f
 
 -with-transaction[t] t(
@@ -172,7 +180,11 @@ region get / set
 Gets the value associated with a key.
 Returns an empty option iff `key` is not in `db`.
 ###
-+get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v serialize, (lmdb, native) extern
++get[k, v] v?(
+	txn lmdb-txn,
+	db (k, v) lmdb-db,
+	key k,
+) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
@@ -194,13 +206,23 @@ Returns an empty option iff `key` is not in `db`.
 Associates the value with the key.
 This may add the key or overwrite the value if the key is already in the database.
 ###
-+set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize, (lmdb, native) extern
++set[k, v] void(
+	txn lmdb-txn,
+	db (k, v) lmdb-db,
+	key k,
+	value v,
+) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	txn put-inner db, key, value, () check-lmdb-error
 
 ###
 Like `set`, but throws 'key-already-exists' if `key` is already in the `db`.
 ###
-+add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize, (lmdb, native) extern
++add[k, v] void(
+	txn lmdb-txn,
+	db (k, v) lmdb-db,
+	key k,
+	value v,
+) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
 	assert err == MDB_SUCCESS :
 		err == MDB_KEYEXIST ? key-already-exists : err lmdb-error
@@ -257,7 +279,10 @@ region iteration
 	a.txn count a.db
 
 # Calls `f` for each key-value pair in `db`.
-+iterate[k, v] bool(a (k, v) each, f bool mut(key k, value v)) summon, k lmdb-key, v serialize, (lmdb, native) extern
++iterate[k, v] bool(
+	a (k, v) each,
+	f bool mut(key k, value v),
+) summon, k lmdb-key, v serialize, (lmdb, native) extern
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val

@@ -2,7 +2,7 @@
 import
 	crow/io/file: each-child-recursive, read-file-or-empty, write-file
 	crow/io/path: base-name, child-path, get-extension
-	crow/io/print: out, print
+	crow/io/print: err, out, print
 	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
 	crow/parse-command: parse-named-args
 	crow/version: is-windows
@@ -50,9 +50,10 @@ options:
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		out print "Ran {tests size} crow tests"
-		()
+		0
 	else
-		failures.print-failures
+		err print failures.show-failures
+		failures size
 
 -parallel-concat-non-windows[t] record(col t[]) nominal
 -for-loop[out, in] out[](

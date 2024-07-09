@@ -67,7 +67,6 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 	elif extern js
 		a js-cast
 	else
-		# TODO: In JS, 'symbol' and 'string' will just be the same type ---------------------------------------------------
 		todo
 
 -to-malloced-c-string c-string(a string) unsafe, native extern
