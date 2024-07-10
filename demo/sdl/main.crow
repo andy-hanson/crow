@@ -6,12 +6,12 @@ import
 	crow/c-types: c-int
 	crow/private/runtime: cur-thread-id
 	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
-	SDL2/SDL_events: new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	SDL2/SDL_events: ==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard:
 		SDL_GetKeyboardState
 	SDL2/SDL_rect: new, SDL_Rect
 	SDL2/SDL_render:
-		SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface, SDL_DestroyRenderer,
+		|, SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface, SDL_DestroyRenderer,
 		SDL_RenderClear, SDL_RenderCopy, SDL_Renderer, SDL_RENDERER_ACCELERATED,
 		SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
 	SDL2/SDL_rwops: SDL_RWFromConstMem

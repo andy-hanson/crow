@@ -11,11 +11,11 @@ import
 	OpenGL/gl
 	OpenGL/headers
 	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
-	SDL2/SDL_events: new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	SDL2/SDL_events: ==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_video:
-		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
 		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_LoadLibrary,
 		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
@@ -198,7 +198,7 @@ main void() summon, trusted, (native, SDL2) extern
 			yield-fiber
 			continue
 
--look-for-quit-event bool() summon, SDL2 extern
+-look-for-quit-event bool() summon, (native, SDL2) extern
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -237,7 +237,7 @@ main void() summon, trusted, (native, SDL2) extern
 size-bytes nat(vertices vertex array) unsafe, native extern
 	vertices.size * size-of@vertex
 
--vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe
+-vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe, native extern
 	gl glDeleteBuffers 1, &vbo
 
 -gl-check-error void(gl gl-ext, desc string) summon

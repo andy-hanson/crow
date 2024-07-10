@@ -18,7 +18,7 @@ import
 	./mut-array:
 		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, mut-array,
 		mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev,
-		set-subscript, size, subscript, temp-as-array, zeroed-mut-array, zero-memory
+		set-subscript, size, subscript, temp-as-array, to, zeroed-mut-array, zero-memory
 	./list: iterate, list, to
 
 ###
@@ -193,7 +193,7 @@ Throws if `n > a.size`.
 +pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
-		res = trusted a.backing.begin-pointer[0 .. n] cast-immutable
+		res t array = trusted a.backing.begin-pointer[0 .. n] to
 		new-size = a.size - n
 		a.backing[0 .. new-size] := a.backing[n .. a.size]
 		a.size := new-size

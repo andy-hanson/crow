@@ -27,5 +27,5 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe, (native,
 	err GLenum = gl glGetError
 	assert err == GL_NO_ERROR : "Loading image (in {step})" gl-error err
 
-free-texture void(gl gl-ext, tex-name GLuint) summon, unsafe
+free-texture void(gl gl-ext, tex-name GLuint) summon, unsafe, native extern
 	gl glDeleteTextures 1, &tex-name
