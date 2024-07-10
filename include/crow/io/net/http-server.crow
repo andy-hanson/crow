@@ -5,7 +5,7 @@ import
 	../../parse: ~~, grammar, map, nat, parse, separated-by, text-not-containing-any
 	../../private/bootstrap: todo
 	./http-types:
-		enum-members, GET, headers, http-internal-server-error, http-method, http-request,
+		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
 		http-response, new, response-body, status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler, tcp-server
 

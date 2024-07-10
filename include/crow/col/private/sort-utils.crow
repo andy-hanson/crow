@@ -1,9 +1,8 @@
 no-std
 import
 	../../bool: bool, not
-	../../compare: <, >=, compare, comparison, equal
+	../../compare: ==, <, >=, compare, comparison, equal
 	../../exception: unreachable
-	../../enum-util: ==
 	../../fun-util: subscript
 	../../json: to
 	../../misc: loop-break, new, void

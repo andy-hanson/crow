@@ -774,7 +774,6 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ctx, cf.returnType, isEmpty(concreteParams) ? voidType(ctx) : only(concreteParams).type)),
 		(EnumOrFlagsFunction x) {
 			final switch (x) {
-				case EnumOrFlagsFunction.all:
 				case EnumOrFlagsFunction.negate:
 					return ConcreteFunBody(ConcreteFunBody.FlagsFn(
 						getAllFlagsValue(mustBeByVal(cf.returnType)),

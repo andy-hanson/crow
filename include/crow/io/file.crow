@@ -6,7 +6,7 @@ import
 	system/sys/types: mode_t
 	system/unistd: getcwd, readlink, rmdir, symlink, unlink
 	system/win32:
-		cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND,
+		==, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND,
 		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
 		FindFirstFileA, FindNextFileA, flags-members, _getcwd, GetFileAttributesA, GetLastError,
 		HANDLE, INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,

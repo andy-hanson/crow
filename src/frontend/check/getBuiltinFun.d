@@ -204,7 +204,7 @@ FunBody inner(
 					? BuiltinBinary.mulFloat64
 					: failBinary);
 		case symbol!"==".value:
-			return isEnumOrFlags(specs, p0) ? FunBody(EnumOrFlagsFunction.equal) : binary(
+			return binary(
 				p0 != p1 ? failBinary :
 				isChar8(p0) ? BuiltinBinary.eqChar8 :
 				isChar32(p0) ? BuiltinBinary.eqChar32 :
@@ -299,8 +299,6 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.acosFloat32, BuiltinUnaryMath.acosFloat64);
 		case symbol!"acosh".value:
 			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
-		case symbol!"all".value:
-			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.all) : fail();
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
 		case symbol!"asin".value:

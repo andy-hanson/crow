@@ -60,13 +60,13 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in BuiltinType _) =>
 			0,
 		(in StructBody.Enum x) =>
-			// 'enum-members', 'to', and a constructor for each member
-			2 + x.members.length,
+			// 'enum-members', 'to', '==', and a constructor for each member
+			3 + x.members.length,
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
 		(in StructBody.Flags x) =>
-			// 'flags-members', 'to' and a constructor for each member
-			2 + x.members.length,
+			// 'flags-members', 'to', '==', and a constructor for each member
+			3 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
 				1 + has(field.mutability));
@@ -236,8 +236,9 @@ void addFunsForEnum(
 	ref StructBody.Enum enum_,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
-	funsBuilder ~= enumOrFlagsMembers(ctx, commonTypes, struct_, inst, symbol!"enum-members");
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, inst, commonTypes);
+	funsBuilder ~= enumOrFlagsMembersFunction(ctx, commonTypes, struct_, inst, symbol!"enum-members");
+	funsBuilder ~= enumOrFlagsToIntegralFunction(ctx.alloc, commonTypes, struct_, enum_.storage, inst);
+	funsBuilder ~= enumOrFlagsEqualsFunction(ctx.alloc, commonTypes, inst);
 	foreach (ref EnumOrFlagsMember member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
@@ -250,8 +251,9 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
-	funsBuilder ~= enumOrFlagsMembers(ctx, commonTypes, struct_, inst, symbol!"flags-members");
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, inst, commonTypes);
+	funsBuilder ~= enumOrFlagsMembersFunction(ctx, commonTypes, struct_, inst, symbol!"flags-members");
+	funsBuilder ~= enumOrFlagsToIntegralFunction(ctx.alloc, commonTypes, struct_, flags.storage, inst);
+	funsBuilder ~= enumOrFlagsEqualsFunction(ctx.alloc, commonTypes, inst);
 	foreach (ref EnumOrFlagsMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
@@ -266,7 +268,7 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, StructIns
 		FunFlags.generatedBare,
 		FunBody(FunBody.CreateEnumOrFlags(member)));
 
-FunDecl enumOrFlagsMembers(ref CheckCtx ctx, ref CommonTypes commonTypes, StructDecl* struct_, StructInst* enum_, Symbol name) =>
+FunDecl enumOrFlagsMembersFunction(ref CheckCtx ctx, ref CommonTypes commonTypes, StructDecl* struct_, StructInst* enum_, Symbol name) => // TODO: struct_ is just enum_.decl
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
@@ -277,12 +279,24 @@ FunDecl enumOrFlagsMembers(ref CheckCtx ctx, ref CommonTypes commonTypes, Struct
 		FunFlags.generatedBare,
 		FunBody(EnumOrFlagsFunction.members));
 
-FunDecl enumToIntegralFunction(
+FunDecl enumOrFlagsEqualsFunction(ref Alloc alloc, ref CommonTypes commonTypes, StructInst* enum_) =>
+	basicFunDecl(
+		FunDeclSource(enum_.decl),
+		enum_.decl.visibility,
+		symbol!"==",
+		Type(commonTypes.bool_),
+		makeParams(alloc, [
+			param!"a"(Type(enum_)),
+			param!"b"(Type(enum_))]),
+		FunFlags.generatedBare,
+		FunBody(EnumOrFlagsFunction.equal));
+
+FunDecl enumOrFlagsToIntegralFunction(
 	ref Alloc alloc,
+	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	IntegralType storageType,
 	StructInst* inst,
-	ref CommonTypes commonTypes,
 ) =>
 	basicFunDecl(
 		FunDeclSource(struct_),

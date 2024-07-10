@@ -1718,9 +1718,6 @@ JsExpr translateEnumOrFlagsFunction(
 		return genCallProperty(ctx.alloc, getArg(0), name, [getArg(1)]);
 	}
 	final switch (a) {
-		case EnumOrFlagsFunction.all:
-			// Probably do 'F.all', and remember to put it on the class
-			return todo!JsExpr("EnumOrFlagsFunction.all"); // -------------------------------------------------------------------------------------------
 		case EnumOrFlagsFunction.equal:
 			return genEqEqEq(ctx.alloc, getValue(getArg(0)), getValue(getArg(1))); // TODO: getting '.value' is unnecessary for enums (but harmless). It is necessary for flags.
 		case EnumOrFlagsFunction.intersect:

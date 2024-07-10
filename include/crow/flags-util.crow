@@ -20,12 +20,8 @@ Spec that is satisfied if 't' is a 'flags' type
 	| t(a t, b t)
 	flags-members (symbol, t) array()
 
-# Value with no flags set.
+# Value with no flags set. TODO: GENERATE IT INSTEAD? ---------------------------------------------------------------------------
 +new[t] t() builtin, bare, t flags
-# Value with all flags set.
-+all[t] t() builtin, bare, t flags
-
-+==[t] bool(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 
 # Negation: Result contains all flags *not* in 'a'
 + ~[t] t(a t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------

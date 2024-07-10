@@ -1,6 +1,5 @@
 no-std
 import
-	./bool: bool
 	./col/array: array, iterate, size
 	./col/collection: for-break, for-loop
 	./col/list: ~=, build, list
@@ -24,8 +23,6 @@ Spec that is satisfied if 't' is an 'enum' type
 
 +enum-like[t] spec t equal
 	enum-members (symbol, t) array()
-
-+==[t] bool(a t, b t) builtin, bare, t enum # TODO: Make this generated too ------------------------------------------------------
 
 +values[t] t[]() t enum-like
 	for _, value : enum-members

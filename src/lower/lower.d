@@ -1253,8 +1253,6 @@ LowExpr getCallSpecial(
 			LowExpr(type, range, LowExprKind(x.kind.as!Constant)),
 		(ConcreteFunBody.FlagsFn x) {
 			switch (x.fn) {
-				case EnumOrFlagsFunction.all:
-					return genConstantIntegral(type, range, x.allValue);
 				case EnumOrFlagsFunction.negate:
 					return genFlagsNegate(
 						ctx.alloc,
@@ -1321,8 +1319,7 @@ LowExpr genEnumOrFlagsFunction(
 			assert(args.length == 2);
 			return genEnumUnion(ctx.alloc, range, arg0(), arg1());
 		case EnumOrFlagsFunction.members: // In concretize, this was translated to a constant
-		case EnumOrFlagsFunction.all: // This becomes a ConcreteFunBody.FlagsFn
-		case EnumOrFlagsFunction.negate:
+		case EnumOrFlagsFunction.negate: // This becomes a ConcreteFunBody.FlagsFn
 			assert(false);
 	}
 }

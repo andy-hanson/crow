@@ -713,7 +713,6 @@ immutable struct SpecInstBody {
 }
 
 enum EnumOrFlagsFunction {
-	all, // flags only
 	equal,
 	intersect, // flags only
 	members,
