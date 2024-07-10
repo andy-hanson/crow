@@ -394,43 +394,22 @@ bool checkBuiltinSpec(ref CheckSpecsCtx ctx, BuiltinSpec kind, Type typeArg) {
 	final switch (kind) {
 		case BuiltinSpec.data:
 			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.data);
-		case BuiltinSpec.enum_:
-			return isEnum(ctx.funsInScope.outermostFunSpecs, typeArg);
-		case BuiltinSpec.flags:
-			return isFlags(ctx.funsInScope.outermostFunSpecs, typeArg);
 		case BuiltinSpec.shared_:
 			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.shared_);
 	}
 }
-
-public bool isEnumOrFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	isEnum(outermostFunSpecs, x) || isFlags(outermostFunSpecs, x);
-public bool isEnum(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Enum*)) ||
-	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.enum_, x);
-public bool isFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Flags)) ||
-	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.flags, x);
-
-bool isBuiltinSpecInScope(in SpecInst*[] outermostFunSpecs, in BuiltinSpec kind, in Type type) =>
-	exists(outermostFunSpecs, (in SpecInst* inst) =>
-		someSpecIncludingParents(*inst, (in SpecInst x) =>
-			has(inst.decl.builtin) && force(inst.decl.builtin) == kind && only(inst.typeArgs) == type));
 
 bool someSpecIncludingParents(in SpecInst inst, in bool delegate(in SpecInst) @safe @nogc pure nothrow cb) =>
 	cb(inst) ||
 	exists(inst.parents, (in SpecInst* parent) =>
 		someSpecIncludingParents(*parent, cb));
 
-Opt!Purity purityOfBuiltinSpec(BuiltinSpec kind) {
+Purity purityOfBuiltinSpec(BuiltinSpec kind) { // TODO: replace BuiltinSpec with Purity? --------------------------------------
 	final switch (kind) {
 		case BuiltinSpec.data:
-			return some(Purity.data);
+			return Purity.data;
 		case BuiltinSpec.shared_:
-			return some(Purity.shared_);
-		case BuiltinSpec.enum_:
-		case BuiltinSpec.flags:
-			return none!Purity;
+			return Purity.shared_;
 	}
 }
 
@@ -441,10 +420,8 @@ bool specProvidesPurity(in SpecInst inst, in Type type, Purity expected) =>
 		only(x.typeArgs) == type &&
 		builtinSpecProvidesPurity(force(x.decl.builtin), expected));
 
-bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) {
-	Opt!Purity purity = purityOfBuiltinSpec(kind);
-	return has(purity) && isPurityCompatible(expected, force(purity));
-}
+bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) =>
+	isPurityCompatible(expected, purityOfBuiltinSpec(kind));
 
 Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	scope ref SpecImpls res,

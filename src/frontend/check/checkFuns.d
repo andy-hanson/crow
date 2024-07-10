@@ -625,7 +625,7 @@ FunBody checkAutoFunWithSpec(
 		: !optOrDefault!bool(returnTypeOk, () => fun.returnType == sig.returnType)
 		? diag(Diag.AutoFunError(Diag.AutoFunError.WrongReturnType(funKind)))
 		: !isRecordOrUnion(force(paramType))
-		? diag(Diag.AutoFunError(Diag.AutoFunError.WrongParamType(isEnumOrFlags(force(paramType)))))
+		? diag(Diag.AutoFunError(Diag.AutoFunError.WrongParamType()))
 		: !isFullyVisible(ctx, force(paramType))
 		? diag(Diag.AutoFunError(Diag.AutoFunError.TypeNotFullyVisible()))
 		: !allowBare && fun.flags.bare
@@ -658,10 +658,6 @@ bool isFullyVisible(in CheckCtx ctx, in Type a) {
 		every!RecordField(decl.body_.as!(StructBody.Record).fields, (in RecordField x) =>
 			x.visibility == decl.visibility);
 }
-
-bool isEnumOrFlags(in Type a) =>
-	a.isA!(StructInst*) && (
-		a.as!(StructInst*).decl.body_.isA!(StructBody.Enum*) || a.as!(StructInst*).decl.body_.isA!(StructBody.Flags));
 
 bool isJson(in CheckCtx ctx, in Type a) =>
 	a.isA!(StructInst*) &&

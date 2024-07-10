@@ -13,7 +13,7 @@ import frontend.check.checkCall.candidates :
 	testCandidateParamType,
 	typeContextForCandidate,
 	withCandidates;
-import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
+import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, checkLambda, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
@@ -654,31 +654,10 @@ bool preCheckCandidateSpec(
 	every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
 		preCheckCandidateSpec(ctx, callCandidate, called, *parent, state)
 	) &&
-	preCheckBuiltinSpec(ctx, callCandidate, called, spec) &&
 	// For a builtin spec, we'll leave it for the end.
 	(state != TypeArgsInferenceState.partial || zipEvery!(Signature, ReturnAndParamTypes)(
 		spec.decl.sigs, spec.sigTypes, (ref Signature sig, ref ReturnAndParamTypes returnAndParamTypes) =>
 			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
-
-bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in FunDecl called, in SpecInst spec) {
-	if (has(spec.decl.builtin)) {
-		bool checkTypeIfInferred(in bool delegate(in Type) @safe @nogc pure nothrow cb) {
-			Opt!Type type = tryGetNonInferringType(
-				ctx.instantiateCtx, const TypeAndContext(only(spec.typeArgs), typeContextForCandidate(callCandidate)));
-			return !has(type) || cb(force(type));
-		}
-
-		switch (force(spec.decl.builtin)) {
-			case BuiltinSpec.enum_:
-				return checkTypeIfInferred((in Type x) => isEnum(ctx.outermostFunSpecs, x));
-			case BuiltinSpec.flags:
-				return checkTypeIfInferred((in Type x) => isFlags(ctx.outermostFunSpecs, x));
-			default:
-				return true;
-		}
-	} else
-		return true;
-}
 
 bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,

@@ -639,7 +639,7 @@ immutable struct SpecDeclBody {
 	SmallArray!Signature sigs;
 }
 
-enum BuiltinSpec { data, enum_, flags, shared_ }
+enum BuiltinSpec { data, shared_ }
 
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:

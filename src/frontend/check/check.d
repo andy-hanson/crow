@@ -155,10 +155,6 @@ Opt!BuiltinSpec getBuiltinSpec(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
 		case symbol!"data".value:
 			return some(BuiltinSpec.data);
-		case symbol!"enum".value:
-			return some(BuiltinSpec.enum_);
-		case symbol!"flags".value:
-			return some(BuiltinSpec.flags);
 		case symbol!"shared".value:
 			return some(BuiltinSpec.shared_);
 		default:

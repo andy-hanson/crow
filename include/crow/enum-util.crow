@@ -16,11 +16,6 @@ import
 +describe string(a not-in-enum)
 	"The symbol '{a symbol}' is not in the enum"
 
-###
-Spec that is satisfied if 't' is an 'enum' type
-###
-+enum[t] spec builtin # TODO: KILL --------------------------------------------------------------------------------------
-
 +enum-like[t] spec t equal
 	enum-members (symbol, t) array()
 

@@ -2,7 +2,6 @@ module frontend.check.getBuiltinFun;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.checkCallSpecs : isEnumOrFlags, isFlags;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : isOptionType;
 import model.constant : Constant, constantBool, constantZero;
@@ -20,7 +19,6 @@ import model.model :
 	BuiltinTernary,
 	CommonTypes,
 	Destructure,
-	EnumOrFlagsFunction,
 	FunBody,
 	FunDecl,
 	isArray,
@@ -232,7 +230,7 @@ FunBody inner(
 		case symbol!"??".value:
 			return binaryLazy(isOptionType(commonTypes, p0) ? BuiltinBinaryLazy.optionQuestion2 : failBinaryLazy);
 		case symbol!"&".value:
-			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.intersect) : binary(isInt8(rt)
+			return binary(isInt8(rt)
 				? BuiltinBinary.bitwiseAndInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseAndInt16
@@ -250,7 +248,7 @@ FunBody inner(
 				? BuiltinBinary.bitwiseAndNat64
 				: failBinary);
 		case symbol!"~".value:
-			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.negate) : unary(isNat8(rt)
+			return unary(isNat8(rt)
 				? BuiltinUnary.bitwiseNotNat8
 				: isNat16(rt)
 				? BuiltinUnary.bitwiseNotNat16
@@ -260,7 +258,7 @@ FunBody inner(
 				? BuiltinUnary.bitwiseNotNat64
 				: failUnary);
 		case symbol!"|".value:
-			return isFlags(specs, rt) ? FunBody(EnumOrFlagsFunction.union_) : binary(isInt8(rt)
+			return binary(isInt8(rt)
 				? BuiltinBinary.bitwiseOrInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseOrInt16
@@ -356,8 +354,6 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
 		case symbol!"nan".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
-		case symbol!"new".value:
-			return isFlags(specs, rt) && arity == 0 ? FunBody(EnumOrFlagsFunction.none) : fail();
 		case symbol!"new-array".value:
 			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
 				? binary(BuiltinBinary.newArray)

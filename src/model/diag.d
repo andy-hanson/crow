@@ -126,9 +126,7 @@ immutable struct Diag {
 		immutable struct WrongParams {
 			AutoFun.Kind kind;
 		}
-		immutable struct WrongParamType {
-			bool isEnumOrFlags;
-		}
+		immutable struct WrongParamType {}
 		immutable struct WrongParamTypeEnumOrFlags {}
 		immutable struct WrongReturnType {
 			AutoFun.Kind kind;

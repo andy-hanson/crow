@@ -65,8 +65,8 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
 		(in StructBody.Flags x) =>
-			// 'flags-members', 'to', '==', and a constructor for each member
-			3 + x.members.length,
+			// 'flags-members', 'to', '==', 'new', '~', '&', '|', and a constructor for each member
+			7 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
 				1 + has(field.mutability));
@@ -254,6 +254,22 @@ void addFunsForFlags(
 	funsBuilder ~= enumOrFlagsMembersFunction(ctx, commonTypes, struct_, inst, symbol!"flags-members");
 	funsBuilder ~= enumOrFlagsToIntegralFunction(ctx.alloc, commonTypes, struct_, flags.storage, inst);
 	funsBuilder ~= enumOrFlagsEqualsFunction(ctx.alloc, commonTypes, inst);
+
+	FunDecl make(Symbol name, Type returnType, in ParamShort[] params, EnumOrFlagsFunction fun) =>
+		basicFunDecl(
+			FunDeclSource(struct_),
+			struct_.visibility,
+			name,
+			returnType,
+			makeParams(ctx.alloc, params),
+			FunFlags.generatedBare,
+			FunBody(fun));
+	Type type = Type(inst);
+	funsBuilder ~= make(symbol!"new", type, [], EnumOrFlagsFunction.none);
+	funsBuilder ~= make(symbol!"~", type, [param!"a"(type)], EnumOrFlagsFunction.negate);
+	funsBuilder ~= make(symbol!"|", type, [param!"a"(type), param!"b"(type)], EnumOrFlagsFunction.union_);
+	funsBuilder ~= make(symbol!"&", type, [param!"a"(type), param!"b"(type)], EnumOrFlagsFunction.intersect);
+
 	foreach (ref EnumOrFlagsMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }

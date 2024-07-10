@@ -471,9 +471,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					writer ~= " or ";
 					writeKeyword(writer, ctx, symbol!"union");
 					writer ~= " type.";
-					if (p.isEnumOrFlags)
-						writer ~= "\nAn 'enum' or 'flags' type doesn't need automatic functions; " ~
-							"it gets these from 'enum-util' or 'flags-util'.";
 				},
 				(in Diag.AutoFunError.WrongReturnType p) {
 					writer ~= () {

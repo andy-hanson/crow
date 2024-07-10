@@ -10,25 +10,10 @@ import
 	./string: join, string
 	./symbol: symbol, to
 
-###
-Spec that is satisfied if 't' is a 'flags' type
-###
-+flags[t] spec builtin # TODO:KILL -------------------------------------------------------------------------------------------
-
 +flags-like[t] spec t equal
 	& t(a t, b t)
 	| t(a t, b t)
 	flags-members (symbol, t) array()
-
-# Value with no flags set. TODO: GENERATE IT INSTEAD? ---------------------------------------------------------------------------
-+new[t] t() builtin, bare, t flags
-
-# Negation: Result contains all flags *not* in 'a'
-+ ~[t] t(a t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
-# Union: Result contains all flags in *either* 'a' or 'b'
-+ |[t] t(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
-# Intersection: Result contains only flags in *both* 'a' and 'b'
-+ &[t] t(a t, b t) builtin, bare, t flags # TODO: make this generated too --------------------------------------------------------
 
 ###
 True if every flag set in `a` is set in `b`.
