@@ -155,24 +155,23 @@ region hard assertions
 		new-void
 
 ###
-Zeroed data isn't safe as it would contain null pointers.
-It's GC-safe though, since the GC treats a null pointer same as any external pointer.
-In a JS build, this will be 'null'.
+Returns a value which the GC will ignore.
+This is 'null' for pointers, or an arbitrary value for non-pointer types.
+In JS, this always the JS 'null' value.
 ###
-# TODO: maybe this should be called 'gc-safe-value' instead of 'zeroed'. In JS it is consistently null, even for numbers. -------------
-+zeroed[t] t() builtin, bare, unsafe
++gc-safe-value[t] t() builtin, bare, unsafe
 
 # TODO: remove this function
 ~todo[t] t() bare
 	# this shouldn't really be trusted
 	trusted
 		abandon
-		zeroed
+		gc-safe-value
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-unreachable[t] t() bare, unsafe
 	abandon
-	zeroed
+	gc-safe-value
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 ~hard-assert void(condition bool) bare, unsafe
@@ -350,7 +349,6 @@ For example, this might write it to the console.
 	# The fiber can change its exclusion when calling into a function with a different exclusion
 	cur-exclusion mut exclusion
 	cur-catch-point mut catch-point*
-# TODO: This variable should be 'native extern' --------------------------------------------------------------------------------------
 ~cur-fiber thread-local(fiber?)
 # Represents the point to jump to in 'jump-to-catch'. Stores the state of the stack and registers.
 ~catch-point builtin
@@ -433,7 +431,6 @@ It also is efficient to split from an iterator.
 
 It does not support efficient access by an index, so iterators should be used instead.
 ###
-# TODO: NO LONGER NEEDED HERE, MOVE TO LIST.CROW -----------------------------------------------------------------------------------------
 +list[t] record by-val
 	~root t l1
 

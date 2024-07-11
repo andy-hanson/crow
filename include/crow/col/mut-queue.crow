@@ -11,7 +11,7 @@ import
 	./array: array
 	./collection: for-loop, iterate, with-index
 	./list: ~=, ==, build, iterate, list, new
-	./mut-array: is-empty, mut-array, new, set-subscript, size, subscript, to, zeroed-mut-array
+	./mut-array: gc-safe-mut-array, is-empty, mut-array, new, set-subscript, size, subscript, to
 
 +mut-queue[t] record mut
 	# Queue is empty iff 'values' is.
@@ -39,7 +39,7 @@ import
 +~=[t] void(a t mut-queue, value t)
 	if a.begin == a.end
 		old-size = a.values.size
-		new-values t mut-array = trusted (old-size == 0 ? 2 : old-size * 2) zeroed-mut-array
+		new-values t mut-array = trusted (old-size == 0 ? 2 : old-size * 2) gc-safe-mut-array
 		for i, x : a with-index
 			new-values[i] := x
 		new-values[old-size] := value

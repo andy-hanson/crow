@@ -859,6 +859,7 @@ immutable string[] specialSymbols = [
 	".",
 	"describe",
 	"enum-or-flags-fun",
+	"gc-safe-value",
 
 	"number-low-level.crow", // 0----------------------------------------------------------------------------------------------------
 ];

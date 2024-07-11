@@ -9,8 +9,9 @@ import
 	./compare: <, <=, comparison, less, equal, greater
 	./misc: new, void
 	./number: -, *, /, nat8, nat64
+	./private/bootstrap: todo
 export
-	./private/bootstrap: const-pointer, mut-pointer, todo, zeroed
+	./private/bootstrap: const-pointer, mut-pointer, gc-safe-value
 
 +any-const-pointer alias
 	nat8*

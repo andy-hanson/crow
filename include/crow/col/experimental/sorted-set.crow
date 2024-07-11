@@ -17,8 +17,8 @@ import
 		size, subscript
 	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
 	../mut-array:
-		~=, as-slice, begin-pointer, build, end-pointer, is-empty, mut-array,
-		mut-array-builder, mut-slice, set-subscript, size, subscript, zeroed-mut-array
+		~=, as-slice, begin-pointer, build, end-pointer, gc-safe-mut-array, is-empty, mut-array,
+		mut-array-builder, mut-slice, set-subscript, size, subscript
 	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
@@ -197,7 +197,7 @@ Or a combination of the two.
 ) t key, native extern
 	assert plan.compacted-size > 1
 	trusted
-		compacted t mut-array = plan.compacted-size zeroed-mut-array
+		compacted t mut-array = plan.compacted-size gc-safe-mut-array
 		begin = compacted begin-pointer
 		*begin := value
 		compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
@@ -215,7 +215,7 @@ Or a combination of the two.
 			left, new-remove
 	else
 		trusted
-			compacted t mut-array = plan.compacted-size zeroed-mut-array
+			compacted t mut-array = plan.compacted-size gc-safe-mut-array
 			begin = compacted begin-pointer
 			compactor t compactor = begin.as-const, begin, compacted.end-pointer
 			old-size = plan.add-size-left + plan.compacted-size + 1

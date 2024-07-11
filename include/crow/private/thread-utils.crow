@@ -29,7 +29,8 @@ import
 	../number: ==, <=>, nat32, nat64, to
 	./number-low-level: unsafe-to, wrap-add, wrap-sub
 	../pointer:
-		==, *, any-mut-pointer, as-const, mut-pointer, null, pointer-cast, size-of, to, zeroed
+		==, *, any-mut-pointer, as-const, gc-safe-value, mut-pointer, null, pointer-cast, size-of,
+		to
 	../version: is-single-threaded
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, new, option, todo
 export
@@ -72,7 +73,7 @@ export
 	elif extern windows
 		a.as-critical-section InitializeCriticalSection
 	elif extern pthread
-		attr pthread_mutexattr_t = zeroed
+		attr pthread_mutexattr_t = gc-safe-value
 		a.as-mutex pthread_mutex_init &attr hard-assert-posix-error
 	else
 		todo
@@ -120,8 +121,7 @@ condition record by-val, mut
 	-sequence mut sequence-id
 
 uninit condition() bare, unsafe, native extern
-	# The only thing that actually has to be 0 is 'sequence'
-	zeroed
+	gc-safe-value
 
 # Remember to 'destroy-condition'!
 init void(a condition mut*) bare, unsafe, native extern
@@ -251,7 +251,7 @@ barrier record by-val, mut
 	-windows mut SYNCHRONIZATION_BARRIER
 
 uninit barrier() bare, unsafe
-	zeroed
+	gc-safe-value
 
 init void(a barrier mut*, n-threads nat64) bare, unsafe, native extern
 	if is-single-threaded

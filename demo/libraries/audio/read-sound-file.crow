@@ -23,7 +23,7 @@ import
 	f.sf_error check-sndfile-error
 	n-channels nat64 = info.channels to
 	sample-rate nat64 = info.samplerate to
-	samples float32 mut-array = info.frames * n-channels zeroed-mut-array
+	samples float32 mut-array = info.frames * n-channels gc-safe-mut-array
 	n-read = f sf_read_float samples.begin-pointer, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size

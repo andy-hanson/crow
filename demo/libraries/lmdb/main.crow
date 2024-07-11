@@ -112,8 +112,8 @@ region db
 	transaction mut MDB_txn mut* = null
 	a.env.env mdb_txn_begin null, (), &transaction check-lmdb-error
 
-	dbi mut MDB_dbi = zeroed
-	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
+	dbi mut MDB_dbi = gc-safe-value
+	mdb-flags = MDB_CREATE | gc-safe-value::k.lmdb-key-flags
 	transaction mdb_dbi_open a.db-name.to, mdb-flags, &dbi check-lmdb-error
 
 	transaction.mdb_txn_commit check-lmdb-error

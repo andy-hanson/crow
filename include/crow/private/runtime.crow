@@ -2,7 +2,7 @@ no-std
 import
 	../bool: &&, ||, bool, false, true
 	../col/map: empty-map, map
-	../col/mut-array: begin-pointer, end-pointer, mut-array, new, size, subscript, zeroed-mut-array
+	../col/mut-array: begin-pointer, end-pointer, gc-safe-mut-array, mut-array, new, size, subscript
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, get-log-handler
@@ -146,7 +146,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe, native extern
 	a enqueue-fiber (a create-new-fiber action)
 -create-new-fiber fiber(a global-ctx mut*, action void mut()) unsafe, native extern
 	# WARN: 'opSwitchFiberInitial' hardcodes this size
-	stack1 nat64 mut-array = 0x20000 zeroed-mut-array
+	stack1 nat64 mut-array = 0x20000 gc-safe-mut-array
 	# Align the stack
 	stack = stack1 is-valid-stack ? stack1 : stack1.begin-pointer[1 .. stack1.size - 1]
 	stack.is-valid-stack hard-assert

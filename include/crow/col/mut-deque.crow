@@ -6,14 +6,14 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, -, *, max-value, nat64, new
 	../option: ==, new, option
-	../pointer: zeroed
+	../pointer: gc-safe-value
 	../range: ..
 	../string: ==, interpolate, join, new, string, to
 	../test-util: is
 	./collection: .., -, end, for-loop, subscript, with-index
 	./mut-array:
-		as-slice, cast-immutable, iterate, mut-array, mut-slice, is-empty, new,
-		set-subscript, size, subscript, zero-memory, zeroed-mut-array
+		as-slice, cast-immutable, gc-safe-mut-array, iterate, mut-array, mut-slice, is-empty, new,
+		set-subscript, size, subscript, zero-memory
 	./list: ==, ~=, build, is-empty, list, new, size, subscript, to
 
 # Mutable double-ended queue.
@@ -48,7 +48,7 @@ This is O(n).
 
 -to[t] t mut-array(a t mut-deque)
 	guard !a.is-empty
-	res t mut-array = trusted a.size zeroed-mut-array
+	res t mut-array = trusted a.size gc-safe-mut-array
 	res.as-slice copy-from-deque a
 	res
 
@@ -112,7 +112,7 @@ Returns an empty option iff `a` was empty (before calling `pop-left`).
 +pop-left[t] t?(a t mut-deque)
 	guard a.left != nil
 	res = a.inner[a.left]
-	a.inner[a.left] := trusted zeroed
+	a.inner[a.left] := trusted gc-safe-value
 	a.left := a next-index a.left
 	if a.left == a.right
 		a.left := nil
@@ -129,7 +129,7 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 	guard a.right != nil
 	a.right := a prev-index a.right
 	res = a.inner[a.right]
-	a.inner[a.right] := trusted zeroed
+	a.inner[a.right] := trusted gc-safe-value
 	if a.right == a.left
 		a.left := nil
 		a.right := nil
@@ -144,7 +144,7 @@ Callers should then push something.
 	if a.left == nil
 		assert a.right == nil
 		if a.inner is-empty
-			a.inner := 2 zeroed-mut-array
+			a.inner := 2 gc-safe-mut-array
 		a.left := 0
 		a.right := 0
 	else
@@ -154,7 +154,7 @@ Callers should then push something.
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner t mut-array = new-capacity zeroed-mut-array
+			new-inner t mut-array = new-capacity gc-safe-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] zero-memory
 			a.inner := new-inner
@@ -172,7 +172,7 @@ Callers should then push something.
 
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index
-		is-nil = trusted x == zeroed
+		is-nil = trusted x == gc-safe-value
 		is-right string = i == a.right ? "<-R "
 		is-left string = i == a.left ? "L-> "
 		"{is-right}{is-left}{is-nil ? "_"::string : "{x}"}"

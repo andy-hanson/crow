@@ -8,13 +8,13 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, float64, nat64, round-up-to-power-of-two, to
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mem-copy, null, pointer-cast, set-subscript,
+		==, <=>, +, -, *, as-const, const-pointer, gc-safe-value, mem-copy, null, pointer-cast, set-subscript,
 		size-of, subscript
 	../../range: .., high, low, range, size
 	../../private/alloc: allocate
 	../../private/bootstrap:
 		array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array,
-		new-mut-array, zeroed
+		new-mut-array
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
@@ -84,7 +84,7 @@ Calls `f` for each element in `a`.
 			loop
 				if i == a.array-size
 					break false
-				elif f[zeroed]
+				elif f[gc-safe-value]
 					break true
 				else
 					i +:= 1
@@ -119,7 +119,7 @@ Calls `f` for each element in `a`.
 	-cur-size mut nat64
 +build[t] t array(a build-options, f void mut(out t array-builder)) trusted
 	if extern native
-		builder t array-builder = a.size-hint.zeroed-mut-array, 0
+		builder t array-builder = a.size-hint.gc-safe-mut-array, 0
 		f[builder]
 		res t array = builder.cur-size new-array builder.buffer.mut-array-pointer.as-const
 		builder.buffer := 0 new-mut-array null
@@ -150,7 +150,7 @@ Calls `f` for each element in `a`.
 		capacity = a.buffer mut-array-size
 		if a.cur-size == capacity
 			new-capacity nat64 = capacity == 0 ? 4 : capacity * 2
-			new-buffer t mut-array = new-capacity zeroed-mut-array
+			new-buffer t mut-array = new-capacity gc-safe-mut-array
 			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, capacity
 			a.buffer := new-buffer
 		a.buffer.mut-array-pointer[a.cur-size] := value
@@ -167,7 +167,7 @@ Calls `f` for each element in `a`.
 		if a.cur-size + values.array-size > capacity
 			new-size = a.cur-size + values.array-size
 			new-capacity = new-size round-up-to-power-of-two
-			new-buffer t mut-array = new-capacity zeroed-mut-array
+			new-buffer t mut-array = new-capacity gc-safe-mut-array
 			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, a.cur-size
 			a.buffer := new-buffer
 		a.buffer.mut-array-pointer + a.cur-size mem-copy values.begin-pointer, values.array-size
@@ -177,5 +177,5 @@ Calls `f` for each element in `a`.
 	else
 		todo
 
--zeroed-mut-array[t] t mut-array(size nat64) unsafe, native extern
+-gc-safe-mut-array[t] t mut-array(size nat64) unsafe, native extern
 	size new-mut-array size.allocate

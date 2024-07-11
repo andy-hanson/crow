@@ -3,13 +3,13 @@ import
 	../bool: bool
 	../fun-util: subscript
 	../misc: new, void
-	../pointer: const-pointer, mut-pointer, pointer-cast, zeroed
+	../pointer: const-pointer, gc-safe-value, mut-pointer, pointer-cast
 	../result: error, ok, result
 	./alloc: gc-root, set-gc-root, try-get-cur-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap:
-		abandon, array, catch-point, cur-fiber, cur-catch-point, must-cur-fiber, new,
-		set-cur-catch-point, string
+		abandon, array, catch-point, cur-fiber, cur-catch-point, hard-unreachable, must-cur-fiber,
+		new, set-cur-catch-point, string
 export
 	./bootstrap: backtrace, describe, exception, exception-and-backtrace
 
@@ -45,15 +45,15 @@ rethrow-current-exception void() bare, unsafe
 	trusted
 		old-gc-root = gc-root
 		old-catch-point = cur-catch-point
-		store mut catch-point = zeroed
+		store mut catch-point = gc-safe-value
 		if &store setup-catch
 			# Get here if something is thrown
 			cur-catch-point := old-catch-point
 			gc-root := old-gc-root
 			thrown = cur-thrown
-			cur-thrown := zeroed
+			cur-thrown := gc-safe-value
 			backtrace = cur-backtrace
-			cur-backtrace := zeroed
+			cur-backtrace := gc-safe-value
 			(thrown, backtrace) error
 		else
 			# Get here after initial call to 'setup-catch'
@@ -92,5 +92,4 @@ Throwing an exception does not modify its backtrace.
 		cur-thrown := e exception
 		cur-backtrace := e backtrace
 		rethrow-current-exception
-		# unreachable
-		zeroed
+		hard-unreachable

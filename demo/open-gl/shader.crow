@@ -23,7 +23,7 @@ shader-prog-load GLuint(
 	else
 		log-length mut GLint = 0
 		gl glGetProgramiv shader-prog, GL_INFO_LOG_LENGTH, &log-length
-		err-log GLchar mut-array = log-length.to zeroed-mut-array
+		err-log GLchar mut-array = log-length.to gc-safe-mut-array
 		gl glGetProgramInfoLog shader-prog, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
 		throw "Loading shaders" gl-error err-log.to::(char8 array).to
@@ -46,7 +46,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	else
 		log-length mut GLint = 0
 		gl glGetShaderiv shader, GL_INFO_LOG_LENGTH, &log-length
-		err-log GLchar mut-array = log-length.to zeroed-mut-array
+		err-log GLchar mut-array = log-length.to gc-safe-mut-array
 		gl glGetShaderInfoLog shader, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteShader shader
 		throw "Compiling GLSL {name}" gl-error err-log.to::(char8 array).to

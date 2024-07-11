@@ -157,7 +157,7 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 	fd fd-t,
 	on-received-chunk void mut(socket SOCKET, chunk nat8 array),
 ) summon, unsafe, (libc, native, posix) extern
-	buf nat8 mut-array = 0x1000 zeroed-mut-array
+	buf nat8 mut-array = 0x1000 gc-safe-mut-array
 	count = fd read buf.begin-pointer, buf.size
 	if count < 0
 		err = errno

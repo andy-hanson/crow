@@ -14,7 +14,7 @@ Result will not have leading or trailing whitespace.
 +read-stdin string() summon, trusted, native extern
 	with : new-exclusion
 		# TODO: use a non-blocking API
-		buffer nat8 mut-array = 0x2000 zeroed-mut-array
+		buffer nat8 mut-array = 0x2000 gc-safe-mut-array
 		bytes-read nat = if extern windows
 			n-read mut DWORD = 0
 			ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \

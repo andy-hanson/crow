@@ -6,7 +6,7 @@ import
 	../misc: data, new, void
 	../number: ==, *, %, nat64
 	../option: force, new, option
-	../pointer: ==, +, *, as-const, as-mut, const-pointer, mut-pointer, set-deref, zeroed
+	../pointer: ==, +, *, as-const, as-mut, const-pointer, mut-pointer, null, set-deref
 	../tuple: new
 	./alloc: gc, unmanaged-alloc-uninitialized-elements, unmanaged-free-elements
 	./number-low-level: wrap-mul
@@ -151,7 +151,7 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 ) bare, unsafe, (t, k) entry, native extern
 	forbid a->half-capacity == 0
 	new-half-capacity mut = a->half-capacity
-	out mut t bare-map = zeroed
+	out mut t bare-map = null, 0
 	loop
 		new-half-capacity *:= 2
 		out := new-half-capacity,

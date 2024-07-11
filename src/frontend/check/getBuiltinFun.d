@@ -569,8 +569,8 @@ FunBody inner(
 				: isNat64(rt)
 				? BuiltinBinary.wrapSubNat64
 				: failBinary);
-		case symbol!"zeroed".value:
-			return FunBody(BuiltinFun(BuiltinFun.Zeroed())); // constant(true, constantZero); -----------------------------------------------------------------------------------------------------
+		case symbol!"gc-safe-value".value:
+			return FunBody(BuiltinFun(BuiltinFun.Zeroed())); // TODO: RENAME THAT -------------------------------------------------------
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"global-init".value:
