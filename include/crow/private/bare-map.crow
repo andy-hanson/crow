@@ -130,7 +130,11 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 	*entry := (key,)
 	true
 
--try-evict[t, k] t mut*?(a t bare-map mut*, left t mut*, right t mut*) bare, unsafe, (t, k) entry, native extern
+-try-evict[t, k] t mut*?(
+	a t bare-map mut*,
+	left t mut*,
+	right t mut*,
+) bare, unsafe, (t, k) entry, native extern
 	# left and right are both occupied. See if we can evict one.
 	evict-left-to-right = a entry-right left->key.hash
 	if evict-left-to-right->key == invalid-key

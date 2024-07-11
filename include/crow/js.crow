@@ -30,8 +30,11 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 +call js-any(a js-any) builtin, bare, unsafe, js extern
 # `a(arg)`
 +call[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
-# `a[name]()`
+# `new a()`
++call-new js-any(a js-any) builtin, bare, unsafe, js extern
+# `new a(arg)`
 +call-new[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
+# `a[name]()`
 +call-property js-any(a js-any, name string) builtin, bare, unsafe, js extern
 # `a[name](arg)`
 +call-property[p0] js-any(a js-any, name string, arg p0) builtin, bare, unsafe, js extern

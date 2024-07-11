@@ -161,7 +161,7 @@ For each element of `a`, runs `f` in parallel. Then awaits them all.
 +filter[out-col, in-col, elem, builder] out-col(
 	a in-col parallel-collection,
 	f bool shared(elem elem),
-) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared, native extern
+) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, native extern
 	bools bool[] = a for-loop f
 	with out : build
 		for i, x : a.collection with-index

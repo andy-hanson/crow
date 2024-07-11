@@ -113,7 +113,9 @@ Result entries are temporary, must copy!
 	symbol IMAGEHLP_SYMBOL64 mut*
 	line IMAGEHLP_LINE64 mut*
 
--try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe, (native, windows) extern
+-try-alloc-windows-backtrace-vars windows-backtrace-vars?(
+	gc gc-ctx,
+) bare, unsafe, (native, windows) extern
 	guard offset ?= gc.try-allocate :: nat64 mut*?
 	guard displacement ?= gc.try-allocate :: nat32 mut*?
 	symbol-max-name-length nat64 = 255

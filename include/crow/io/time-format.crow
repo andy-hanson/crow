@@ -112,7 +112,12 @@ Second from 00 to 60 inclusive.
 +second string(locale time-locale, time unix-time) summon, (native, posix) extern
 	locale format time, "%S", 2
 
--format string(locale time-locale, time unix-time, format string, max-size nat64) summon, (native, posix) extern
+-format string(
+	locale time-locale,
+	time unix-time,
+	format string,
+	max-size nat64,
+) summon, (native, posix) extern
 	forbid trusted is-windows : todo
 	seconds = time seconds-since-epoch
 	trusted

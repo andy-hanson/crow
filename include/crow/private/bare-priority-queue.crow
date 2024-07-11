@@ -45,7 +45,10 @@ dequeue-if-less-or-equal[k, v] v?(
 	a->begin mem-move a->begin.as-const + 1, a->end - a->begin
 	res,
 
-enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe, k compare, native extern
+enqueue[k, v] void(
+	a (k, v) bare-priority-queue mut*,
+	pair (k, v),
+) bare, unsafe, k compare, native extern
 	a push pair
 	cur mut = a->end - 1
 	until cur == a->begin || cur->a >= (cur - 1)->a

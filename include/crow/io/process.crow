@@ -184,7 +184,11 @@ The child process shares stdout and stderr with the parent process.
 		assert GetLastError == ERROR_BROKEN_PIPE :
 			"Error peeking {desc}: {GetLastError show-win32-error}".error
 
--read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe, (native, windows) extern
+-read-some pipe-state(
+	res nat8 mut[],
+	pipe HANDLE,
+	n-to-read nat64,
+) summon, unsafe, (native, windows) extern
 	old-size = res size
 	res unsafe-set-size old-size + n-to-read
 	old-end = res.end-pointer - n-to-read
@@ -200,7 +204,10 @@ The child process shares stdout and stderr with the parent process.
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}".error
 		closed
 
--spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe, (libc, native, posix) extern
+-spawn-and-wait-result-posix process-result(
+	exe c-string,
+	args c-string[],
+) summon, unsafe, (libc, native, posix) extern
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -260,7 +267,10 @@ The child process shares stdout and stderr with the parent process.
 -any bool(r handle-revents-result)
 	r.had-POLLIN || r.hung-up
 
--handle-revents handle-revents-result(pollfd pollfd, builder char8 mut[]) summon, (native, posix) extern
+-handle-revents handle-revents-result(
+	pollfd pollfd,
+	builder char8 mut[],
+) summon, (native, posix) extern
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN

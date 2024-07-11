@@ -11,16 +11,12 @@ Empty type, for use by functions with nothing in particular to return.
 
 new-void void() builtin, bare
 
-region option.crow
-
 ###
 Optional type. Read the tutorial to learn more.
 
 You never need to `match` on this union; use the `if x ?= y` syntax instead.
 ###
 +option[t] union(none, some t)
-
-region pointer.crow
 
 ###
 A raw pointer. Equivalent to `const a*` in C.
@@ -38,8 +34,6 @@ The pointee is not immutable; it could be modified if there are other references
 This is like `const-pointer` but supports writing to the contents.
 ###
 +mut-pointer[t] builtin extern, mut
-
-region array
 
 ###
 Array of values.
@@ -77,8 +71,6 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 ~mut-array-size[t] nat64(a t mut-array) builtin, bare
 ~mut-array-pointer[t] t mut*(a t mut-array) builtin, bare, unsafe, native extern
 
-region string
-
 # This could be any byte in a UTF-8 string.
 +char8 builtin extern
 # 32-bit Unicode character.
@@ -92,8 +84,6 @@ Thus, all operations on `c-string` are unsafe.
 +c-string alias
 	char8*
 
-region bool.crow
-
 ###
 Boolean type: either `false` or `true`.
 
@@ -101,9 +91,6 @@ Unlike in other programming languages, this isn't a numeric type.
 ###
 +bool builtin extern
 
-region symbol.crow
-
-# TODO: This doesn't need to be declared here .........................................................................................
 +symbol builtin
 
 region bootstrap arithmetic

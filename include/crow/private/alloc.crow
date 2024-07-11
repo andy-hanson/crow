@@ -39,11 +39,18 @@ import
 		cb[cur]
 		cur := cur->next
 
--to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe, native extern
+-to-word-aligned-range nat64* range(
+	a any-const-pointer,
+	size-bytes nat64,
+) bare, unsafe, native extern
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
 
 # Returns true if the range is GC-allocated memory and was not already marked
-mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) bare, summon, unsafe, native extern
+mark bool(
+	ctx mark-ctx,
+	pointer-any any-const-pointer,
+	size-bytes nat64,
+) bare, summon, unsafe, native extern
 	words = pointer-any to-word-aligned-range size-bytes
 	guard words.low >= ctx.memory-start.as-const
 	indices = words.low - ctx.memory-start.as-const .. words.high - ctx.memory-start.as-const

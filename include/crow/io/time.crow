@@ -3,8 +3,9 @@ import
 	system/time: time, time_t
 	../compare: max
 	../fun-util: subscript
+	../js: as-t, call, call-new, js-global
 	../misc: break-or-continue, new, shared, void
-	../number: ==, <=>, +, /, nat64, to
+	../number: ==, <=>, +, /, int64, nat64, to
 	../pointer: null
 	../private/bootstrap: todo
 	../private/runtime: delay-cur-fiber-until-time
@@ -19,11 +20,18 @@ export
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-+get-unix-time unix-time() summon, native extern, trusted
-	if extern posix
-		null.time,
++get-unix-time unix-time() summon, trusted
+	if extern native
+		if extern posix
+			null.time,
+		else
+			todo
+	elif extern js
+		# BigInt(new Date())
+		msec int64 = "BigInt".js-global call "Date".js-global.call-new as-t
+		msec / 1000,
 	else
-		todo # ------------------------------------------------------------------------------------------------------------------------
+		todo
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void(duration duration) summon, native extern
