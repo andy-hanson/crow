@@ -39,6 +39,7 @@ import interpret.applyFn :
 	fnLessNat64,
 	fnMulFloat32,
 	fnMulFloat64,
+	fnNot,
 	fnSubFloat32,
 	fnSubFloat64,
 	fnTruncateToInt64FromFloat64,
@@ -834,6 +835,9 @@ void generateSpecialUnary(
 		case BuiltinUnary.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case BuiltinUnary.not:
+			fn(&fnNot);
 			break;
 		case BuiltinUnary.isNanFloat32:
 			fn(&fnIsNanFloat32);

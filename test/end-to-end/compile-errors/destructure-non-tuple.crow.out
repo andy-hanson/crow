@@ -23,7 +23,7 @@ Candidates (with 1 arguments):
 	'new[t] t?(a t)' (from include/crow/option.crow line 16)
 	'new[t] t future(value t)' (from include/crow/parallel.crow line 46)
 	'new[col] col parallel-collection(collection col)' (from include/crow/parallel.crow line 118)
-	'new invalid-unicode-character(character nat32)' (from include/crow/string.crow line 427)
+	'new invalid-unicode-character(character nat32)' (from include/crow/string.crow line 415)
 	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 260)
 Uncaught exception: Reached compile error
 	at main

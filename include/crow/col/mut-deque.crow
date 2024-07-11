@@ -12,8 +12,8 @@ import
 	../test-util: is
 	./collection: .., -, end, for-loop, subscript, with-index
 	./mut-array:
-		as-slice, cast-immutable, gc-safe-mut-array, iterate, mut-array, mut-slice, is-empty, new,
-		set-subscript, size, subscript, zero-memory
+		as-slice, cast-immutable, clear-memory, gc-safe-mut-array, iterate, mut-array, mut-slice,
+		is-empty, new, set-subscript, size, subscript
 	./list: ==, ~=, build, is-empty, list, new, size, subscript, to
 
 # Mutable double-ended queue.
@@ -156,7 +156,7 @@ Callers should then push something.
 			new-capacity = old-capacity * 2
 			new-inner t mut-array = new-capacity gc-safe-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
-			new-inner[old-capacity .. new-capacity] zero-memory
+			new-inner[old-capacity .. new-capacity] clear-memory
 			a.inner := new-inner
 			a.left := 0
 			a.right := old-capacity

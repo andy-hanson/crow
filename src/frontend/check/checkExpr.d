@@ -135,6 +135,7 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
+	ExternCondition,
 	ExternExpr,
 	FinallyExpr,
 	FloatType,
@@ -423,15 +424,14 @@ Expr checkIf(
 		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
-	Opt!Symbol extern_ = asExtern(condition);
 	bool isNegated = ast.isConditionNegated;
 	Range emptyNewRange = ast.firstKeywordRange;
-	Expr firstBranch = withExternFromCondition(ctx, condition, !isNegated, () =>
+	Expr firstBranch = withExternFromCondition(ctx, condition, isNegated, () =>
 		checkExprWithOptDestructureOrEmptyNew(
 			ctx, locals, source,
 			isNegated ? none!Destructure : destructure,
 			ast.firstBranch, emptyNewRange, expected));
-	Expr secondBranch = withExternFromCondition(ctx, condition, isNegated, () =>
+	Expr secondBranch = withExternFromCondition(ctx, condition, !isNegated, () =>
 		checkExprWithOptDestructureOrEmptyNew(
 			ctx, locals, source,
 			isNegated ? destructure : none!Destructure,
@@ -535,11 +535,11 @@ Expr checkAssertOrForbid(
 				addDiag2(ctx, thrownAst.kind.as!(ThrowAst*).keywordRange(thrownAst), Diag(
 					Diag.AssertOrForbidMessageIsThrow()));
 			return allocate(ctx.alloc, withExpect(Type(ctx.commonTypes.exception), (ref Expected expectThrown) =>
-				withExternFromCondition(ctx, condition, isForbid, () =>
+				withExternFromCondition(ctx, condition, !isForbid, () =>
 					checkExprWithOptDestructure(
 						ctx, locals, ast.isForbid ? destructure : none!Destructure, thrownAst, expectThrown))));
 		}),
-		after: withExternFromCondition(ctx, condition, !isForbid, () =>
+		after: withExternFromCondition(ctx, condition, isForbid, () =>
 			checkExprWithOptDestructure(
 				ctx, locals, ast.isForbid ? none!Destructure : destructure, ast.after, expected))))));
 }
@@ -1974,18 +1974,17 @@ Expr checkExprOrEmptyNew(
 Out withExternFromCondition(Out)(
 	ref ExprCtx ctx,
 	in Condition condition,
-	bool isTrueBranch,
+	bool isNegated,
 	in Out delegate() @safe @nogc pure nothrow cb,
 ) {
-	Opt!Symbol extern_ = asExtern(condition);
-	SymbolSet originalExterns = ctx.externs;
-	if (has(extern_))
-		ctx.externs = ctx.externs.add(force(extern_));
-	scope (exit) {
-		if (has(extern_))
-			ctx.externs = originalExterns;
-	}
-	return cb();
+	Opt!ExternCondition extern_ = asExtern(condition);
+	if (has(extern_) && !(isNegated ^ force(extern_).isNegated)) {
+		SymbolSet originalExterns = ctx.externs;
+		scope (exit) ctx.externs = originalExterns;
+		ctx.externs = ctx.externs.add(force(extern_).externName);
+		return cb();
+	} else
+		return cb();
 }
 
 Expr checkExprWithOptDestructureOrEmptyNew(

@@ -883,6 +883,7 @@ enum BuiltinUnary {
 	enumToIntegral,
 	isNanFloat32,
 	isNanFloat64,
+	not,
 	jumpToCatch,
 	referenceFromPointer,
 	setupCatch,
@@ -2167,14 +2168,42 @@ immutable struct Condition {
 	}
 	mixin TaggedUnion!(Expr*, UnpackOption*);
 }
-Opt!Symbol asExtern(in Condition a) {
-	if (a.isA!(Expr*)) {
-		Expr* e = a.as!(Expr*);
-		Expr* inner = e.kind.isA!(TrustedExpr*) ? &e.kind.as!(TrustedExpr*).inner : e;
-		return optIf(inner.kind.isA!ExternExpr, () => inner.kind.as!ExternExpr.name);
-	} else
-		return none!Symbol;
+
+immutable struct ExternCondition {
+	@safe @nogc pure nothrow:
+
+	bool isNegated;
+	Symbol externName;
+
+	bool eval(in SymbolSet allExterns) scope =>
+		isNegated ^ allExterns.has(externName);
 }
+Opt!ExternCondition asExtern(in Condition a) { // TODO: I should probably do this once in the type checker, instead of lazily!
+	if (a.isA!(Expr*)) {
+		Expr e = skipTrusted(*a.as!(Expr*));
+		if (e.kind.isA!CallExpr) {
+			CallExpr call = e.kind.as!CallExpr;
+			if (isNot(call.called)) {
+				Opt!Symbol name = asExternExpr(skipTrusted(only(call.args)));
+				return optIf(has(name), () => ExternCondition(true, force(name)));
+			} else
+				return none!ExternCondition;
+		} else {
+			Opt!Symbol name = asExternExpr(e);
+			return optIf(has(name), () => ExternCondition(false, force(name)));
+		}
+	} else
+		return none!ExternCondition;
+}
+private bool isNot(in Called a) =>
+	// A BuiltinFun body is never set late
+	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isNot(a.as!(FunInst*).decl.body_);
+private bool isNot(in FunBody a) =>
+	a.isA!BuiltinFun && a.as!BuiltinFun.isA!BuiltinUnary && a.as!BuiltinFun.as!BuiltinUnary == BuiltinUnary.not;
+private Opt!Symbol asExternExpr(in Expr a) =>
+	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.name);
+private ref Expr skipTrusted(return ref Expr a) =>
+	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
 
 immutable struct AssertOrForbidExpr {
 	bool isForbid;

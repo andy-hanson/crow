@@ -19,9 +19,9 @@ import
 		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, slice-out-of-order,
 		subscript
 	./mut-array:
-		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, gc-safe-mut-array,
-		mut-array, mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev,
-		set-subscript, size, subscript, temp-as-array, to, zero-memory
+		+, begin, begin-pointer, cast-immutable, cast-mutable, clear-memory, copy-to,
+		gc-safe-mut-array, mut-array, mut-array-iterator, mut-slice, prev, new, next, next-index,
+		set-next, set-prev, set-subscript, size, subscript, temp-as-array, to
 	./list: iterate, list, to
 
 ###
@@ -102,7 +102,7 @@ Creates a new list with the given elements.
 +reduce-size-to[t] void(a t mut[], new-size nat64) bare, trusted
 	assert new-size <= a.size
 	if extern native
-		a.backing[new-size .. a.size] zero-memory
+		a.backing[new-size .. a.size] clear-memory
 		a.size := new-size
 	elif extern js
 		a.backing.as-js-any set "length", new-size.to::float64
@@ -237,7 +237,7 @@ Throws if `n > a.size`.
 	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
 		new-size = a.size - n
-		trusted a.backing[new-size .. a.size] zero-memory
+		trusted a.backing[new-size .. a.size] clear-memory
 		a.size := new-size
 	elif trusted extern js
 		trusted a.backing.as-js-any set "length", (a.size - n).to::float64
@@ -285,7 +285,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe, nativ
 	old-begin = a begin-pointer
 	a.backing := new-capacity gc-safe-mut-array
 	a.begin-pointer mem-copy old-begin.as-const, a.size
-	a.backing[a.size + 1 .. end] zero-memory
+	a.backing[a.size + 1 .. end] clear-memory
 
 ###
 For performance, hint that the list will eventually reach 'eventual-size'.

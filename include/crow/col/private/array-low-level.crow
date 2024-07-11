@@ -8,8 +8,8 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, float64, nat64, round-up-to-power-of-two, to
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, gc-safe-value, mem-copy, null, pointer-cast, set-subscript,
-		size-of, subscript
+		==, <=>, +, -, *, as-const, const-pointer, gc-safe-value, mem-copy, null, pointer-cast,
+		set-subscript, size-of, subscript
 	../../range: .., high, low, range, size
 	../../private/alloc: allocate
 	../../private/bootstrap:
@@ -46,9 +46,14 @@ UB if begin > end.
 +pointers[t] t* range(a t array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
 
-array-cast[out, in] out array(a in array) bare, unsafe, native extern
-	assert size-of@out == size-of@in
-	a.array-size new-array a.begin-pointer.pointer-cast
+array-cast[out, in] out array(a in array) bare, unsafe
+	if extern native
+		assert size-of@out == size-of@in
+		a.array-size new-array a.begin-pointer.pointer-cast
+	elif extern js
+		a js-cast
+	else
+		todo
 
 +subscript[t] t(a t array, index nat64) bare, trusted
 	assert index < a.array-size : index index-too-big a.array-size

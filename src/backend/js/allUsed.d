@@ -30,6 +30,7 @@ import model.model :
 	eachTest,
 	EnumOrFlagsFunction,
 	Expr,
+	ExternCondition,
 	FunBody,
 	FunDecl,
 	FunInst,
@@ -226,8 +227,8 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 		}
 	}
 
-	Opt!Symbol extern_ = asExtern(a);
-	return optIf(has(extern_), () => allExterns.has(force(extern_)));
+	Opt!ExternCondition extern_ = asExtern(a);
+	return optIf(has(extern_), () => force(extern_).eval(allExterns));
 }
 
 private:

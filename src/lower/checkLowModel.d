@@ -303,6 +303,8 @@ ExpectUnary unaryExpected(
 			return expect(boolType, float64Type);
 		case BuiltinUnary.jumpToCatch:
 			return expect(voidType, commonTypes.catchPointConstPointer);
+		case BuiltinUnary.not:
+			return expect(boolType, boolType);
 		case BuiltinUnary.setupCatch:
 			return expect(boolType, commonTypes.catchPointMutPointer);
 		case BuiltinUnary.toChar8FromNat8:

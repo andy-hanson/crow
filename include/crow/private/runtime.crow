@@ -101,20 +101,18 @@ This switches away from the runtime into a fiber for the first time.
 This will grow down, meaning it starts at the greatest value.
 Initializes the stack, then returns the new stack pointer. (This is a bit below 'stack-high'.)
 ###
-# TODO: this should be 'native extern' . Make that not conflict. ----------------------------------------------------------------
 -switch-fiber-initial void(
 	fiber fiber,
 	from stack-pointer mut*,
 	stack-high stack-pointer,
 	func void function(a fiber),
-) builtin, bare
+) builtin, bare, native extern
 
 ###
 Takes a pointer to the current stack pointer and updates it.
 Then resumes from the stack pointer at 'to'.
 ###
-# TODO: this should be 'native extern' . Make that not conflict. ----------------------------------------------------------------
--switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare
+-switch-fiber void(from stack-pointer mut*, to stack-pointer) builtin, bare, native extern
 
 # Stack pointer for the runtime. Regular fibers return to this when they yield.
 # TODO: This could be by-value. But we currently don't support pointer to thread-local.
@@ -191,7 +189,11 @@ enqueue-fiber void(a global-ctx mut*, fiber fiber) bare, unsafe, native extern
 delay-cur-fiber-until-time void(target-nsec nat64) summon, trusted, native extern
 	target-nsec.delay-until-time yield-this-fiber
 
--enqueue-timed-fiber void(a global-ctx mut*, time timestamp, fiber fiber) bare, unsafe, native extern
+-enqueue-timed-fiber void(
+	a global-ctx mut*,
+	time timestamp,
+	fiber fiber,
+) bare, unsafe, native extern
 	a.fiber-queue-lock acquire
 	a.fiber-queue enqueue-timed-fiber time, fiber
 	a.fiber-queue-lock release

@@ -366,6 +366,8 @@ FunBody inner(
 			return isMutArray(rt) && isNat64(p0) && isPointerMut(p1)
 				? binary(BuiltinBinary.newArray)
 				: fail();
+		case symbol!"not".value:
+			return isBool(rt) && isBool(p0) ? unary(BuiltinUnary.not) : fail();
 		case symbol!"jump-to-catch".value:
 			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:

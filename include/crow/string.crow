@@ -4,12 +4,12 @@ import
 	./bool: ||, bool, false, not, true
 	./compare: !=, <, <=, >, compare, comparison, equal, greater, less
 	./col/array:
-		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-iterator, as-array, begin, begin-pointer, build, collection,
-		end, is-empty, iterate, new, next, prev, size, slice
+		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-cast, array-iterator, as-array, begin,
+		begin-pointer, build, collection, end, is-empty, iterate, new, next, prev, size, slice
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
-	./col/list: ~=, build, iterate, list, list-cast, size, subscript, to
+	./col/list: ~=, build, iterate, list, size, subscript, to
 	./col/mut-list:
 		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
 	./col/util: split
@@ -22,7 +22,6 @@ import
 		is-nan, is-near-int, min-value, nat8, nat16, nat32, nat64, to, round, truncate-to
 	./option: ??, force, new, option
 	./pointer: ==, <=>, const-pointer
-	./private/bootstrap: todo
 	./private/exception-low-level: exception, unreachable
 	./private/number-low-level: wrap-sub
 	./range: .., in, iterate
@@ -53,7 +52,7 @@ export
 
 +interpolate string(...parts string array)
 	"" join parts.to
-+interpolate char8*(...parts string array) native extern
++interpolate char8*(...parts string array) unsafe, native extern
 	("" join parts.to) to
 
 # Same as `""`.
@@ -132,13 +131,10 @@ region conversion
 	for _ : res; ()
 	res
 # Validates that bytes are UTF-8 character codes, and returns them as a string.
-+as-string string(bytes nat8[]) trusted
-	if extern native
-		bytes.list-cast::char8[] to
-	else
-		todo # ----------------------------------------------------------------------------------------------------------
-+as-string string(bytes nat8 array) native extern
-	bytes.to::nat8[] as-string
++as-string string(bytes nat8[])
+	bytes.to::(nat8 array) as-string
++as-string string(bytes nat8 array) trusted
+	bytes.array-cast::(char8 array) to
 
 +to nat64(a char8) bare
 	a.to::nat8 to
@@ -147,18 +143,14 @@ region conversion
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-+to-bytes nat8[](a string) trusted
-	if extern native
-		a.to::char8[] list-cast
-	else
-		todo # -----------------------------------------------------------------------------------------------------------------
-+to-bytes nat8 array(a string)
-	a.to-bytes to
++to-bytes nat8[](a string)
+	a.to-bytes::(nat8 array) to
++to-bytes nat8 array(a string) trusted
+	a.to::(char8 array) array-cast
 
 +to nat8 array(a string)
 	a to-bytes
 
-# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string -------------------------------------------
 ###
 Converts a string to a c-string by appending "\0".
 This is O(n).
@@ -166,9 +158,8 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-+to c-string(a string) native extern
-	# TODO: not trusted ---------------------------------------------------------------------------------------------------------
-	trusted (a.to::(char8 array) ~ "\0") begin-pointer
++to c-string(a string) unsafe, native extern
+	(a.to::(char8 array) ~ "\0") begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.
@@ -312,38 +303,35 @@ Result is only digits, no punctuation.
 	a.to::float64 to
 
 +to string(a float64) trusted
-	# TODO: guard !(extern js) : a js-to-string --------------------------------------------------------------------------------------
-	if extern js
-		a js-to-string
-	else
-		guard !a.is-nan : "NaN"
-		guard a != infinity : "Infinity"
-		guard a != -infinity : "-Infinity"
-		guard a != a.truncate-to::int64.to : a.truncate-to to
-		guard a > 0 : a == 0 ? "0" : "-{-a}"
+	guard !(extern js) : a js-to-string
+	guard !a.is-nan : "NaN"
+	guard a != infinity : "Infinity"
+	guard a != -infinity : "-Infinity"
+	guard a != a.truncate-to::int64.to : a.truncate-to to
+	guard a > 0 : a == 0 ? "0" : "-{-a}"
 
-		dec mut, exp mut = a to-decimal-and-exponent
-		# Ouptut in reverse
-		out char32 mut[] = ()
-		while dec != 0
-			digit = dec % 10
-			out ~= digit digit-to-char
-			dec /:= 10
-			exp +:= 1
+	dec mut, exp mut = a to-decimal-and-exponent
+	# Ouptut in reverse
+	out char32 mut[] = ()
+	while dec != 0
+		digit = dec % 10
+		out ~= digit digit-to-char
+		dec /:= 10
+		exp +:= 1
 
-		out reverse-in-place
-		if exp <= 0
-			# TODO: It would be smarter to do appending before the reverse-in-place! ------------------------------------------
-			for _ : 0::nat64 .. exp.abs
-				out prepend= "0"
-			out prepend= "."
+	out reverse-in-place
+	if exp <= 0
+		# TODO: It would be smarter to do appending before the reverse-in-place! ------------------------------------------
+		for _ : 0::nat64 .. exp.abs
 			out prepend= "0"
-		elif exp.to::nat64 < out.size
-			out insert-at exp.to, "."
-		else
-			for _ : out.size .. exp.to
-				out ~= "0"
-		out.move-to::(char32 array) to
+		out prepend= "."
+		out prepend= "0"
+	elif exp.to::nat64 < out.size
+		out insert-at exp.to, "."
+	else
+		for _ : out.size .. exp.to
+			out ~= "0"
+	out.move-to::(char32 array) to
 
 -to-decimal-and-exponent (nat64, int64)(a float64)
 	assert a > 0

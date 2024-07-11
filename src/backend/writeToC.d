@@ -1727,6 +1727,8 @@ WriteExprResult writeSpecialUnary(
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
 			return specialCall(ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl");
+		case BuiltinUnary.not:
+			return prefix("!");
 		case BuiltinUnary.jumpToCatch:
 			return specialCall("jump_to_catch");
 		case BuiltinUnary.setupCatch:

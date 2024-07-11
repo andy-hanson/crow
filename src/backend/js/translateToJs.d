@@ -1793,6 +1793,8 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
 			return genCallProperty(alloc, Number, symbol!"isNaN", [arg]);
+		case BuiltinUnary.not:
+			return genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toInt64FromInt8:
 		case BuiltinUnary.toInt64FromInt16:

@@ -89,6 +89,7 @@ import model.model :
 	BuiltinBinary,
 	BuiltinBinaryLazy,
 	BuiltinFun,
+	BuiltinUnary,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -1309,7 +1310,9 @@ Opt!Constant tryEvalConstant(
 				return some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)));
 			} else if (x.kind.isA!BuiltinBinary) {
 				assert(args.length == 2);
-				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[0]);
+				return tryEvalConstantBinary(x.kind.as!BuiltinBinary, args[0], args[1]);
+			} else if (x.kind.isA!BuiltinUnary) {
+				return tryEvalConstantUnary(x.kind.as!BuiltinUnary, only(args));
 			} else if (x.kind.isA!(BuiltinFun.SizeOf)) {
 				assert(isEmpty(args));
 				return isEmptyType(only(fn.source.as!ConcreteFunKey.typeArgs))
@@ -1336,6 +1339,14 @@ Opt!Constant tryEvalConstantBinary(BuiltinBinary fn, Constant arg0, Constant arg
 	switch (fn) {
 		case BuiltinBinary.eqNat64:
 			return some(constantBool(asNat64(arg0) == asNat64(arg1)));
+		default:
+			return none!Constant;
+	}
+}
+Opt!Constant tryEvalConstantUnary(BuiltinUnary fn, Constant arg) {
+	switch (fn) {
+		case BuiltinUnary.not:
+			return some(constantBool(!asBool(arg)));
 		default:
 			return none!Constant;
 	}

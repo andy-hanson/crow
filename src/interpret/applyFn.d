@@ -97,6 +97,7 @@ Operation.Fn fnForBinaryMath(BuiltinBinaryMath a) {
 alias fnAddFloat32 = binaryFloat32s!((float a, float b) => a + b);
 alias fnAddFloat64 = binaryFloat64s!((double a, double b) => a + b);
 alias fnBitwiseNot = opFnUnary!((ulong a) => ~a);
+alias fnNot = opFnUnary!((ulong a) => !a);
 alias fnBitwiseAnd = opFnBinary!((ulong a, ulong b) => a & b);
 alias fnBitwiseOr = opFnBinary!((ulong a, ulong b) => a | b);
 alias fnBitwiseXor = opFnBinary!((ulong a, ulong b) => a ^ b);

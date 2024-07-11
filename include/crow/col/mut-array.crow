@@ -212,9 +212,9 @@ This is used by collections like `mut[]` that need some excess capacity that wil
 Sets every element to `gc-safe-value`.
 See `gc-safe-mut-array` for why this is unsafe.
 ###
-+zero-memory[t] void(a t mut-array) bare, unsafe # TODO: RENAME? ---------------------------------------------------------------
-	a.as-slice zero-memory
-+zero-memory[t] void(a t mut-slice) bare, unsafe # TODO: RENAME? ---------------------------------------------------------------
++clear-memory[t] void(a t mut-array) bare, unsafe
+	a.as-slice clear-memory
++clear-memory[t] void(a t mut-slice) bare, unsafe
 	if extern native
 		a.begin-pointer mem-clear a.size
 	elif extern js

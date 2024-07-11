@@ -1414,6 +1414,13 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 		callBuiltinUnaryAndCast(ctx, locals, emit, a.arg, x, getGccType(ctx.types, type));
 	ExprResult callFn(const gcc_jit_function* func, bool noSideEffects = false) =>
 		makeCall(ctx, emit, type, func, [emitToRValue(ctx, locals, a.arg)], noSideEffects: noSideEffects);
+	ExprResult unaryOp(gcc_jit_unary_op op) =>
+		emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_unary_op(
+				ctx.gcc,
+				null,
+				op,
+				getGccType(ctx.types, type),
+				emitToRValue(ctx, locals, a.arg)));
 
 	final switch (a.kind) {
 		case BuiltinUnary.arrayPointer:
@@ -1428,12 +1435,7 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
 		case BuiltinUnary.bitwiseNotNat64:
-			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_unary_op(
-				ctx.gcc,
-				null,
-				gcc_jit_unary_op.GCC_JIT_UNARY_OP_BITWISE_NEGATE,
-				getGccType(ctx.types, type),
-				emitToRValue(ctx, locals, a.arg)));
+			return unaryOp(gcc_jit_unary_op.GCC_JIT_UNARY_OP_BITWISE_NEGATE);
 		case BuiltinUnary.countOnesNat64:
 			return builtinAndCast(BuiltinFunction.__builtin_popcountl);
 		case BuiltinUnary.deref:
@@ -1480,6 +1482,8 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 			return builtinAndCast(BuiltinFunction.__builtin_isnan);
 		case BuiltinUnary.jumpToCatch:
 			return callFn(ctx.jumpToCatchFunction);
+		case BuiltinUnary.not:
+			return unaryOp(gcc_jit_unary_op.GCC_JIT_UNARY_OP_LOGICAL_NEGATE);
 		case BuiltinUnary.setupCatch:
 			return callFn(ctx.setupCatchFunction);
 		case BuiltinUnary.toNat64FromPtr:
