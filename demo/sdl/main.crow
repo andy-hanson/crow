@@ -11,9 +11,9 @@ import
 		SDL_GetKeyboardState
 	SDL2/SDL_rect: new, SDL_Rect
 	SDL2/SDL_render:
-		|, SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface, SDL_DestroyRenderer,
-		SDL_RenderClear, SDL_RenderCopy, SDL_Renderer, SDL_RENDERER_ACCELERATED,
-		SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
+		|, SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface,
+		SDL_DestroyRenderer, SDL_RenderClear, SDL_RenderCopy, SDL_Renderer,
+		SDL_RENDERER_ACCELERATED, SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
 	SDL2/SDL_rwops: SDL_RWFromConstMem
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP_RW

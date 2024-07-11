@@ -1,10 +1,5 @@
 import
-	./col/frozen-map-tests: dummy-frozen-map-tests
-	./col/index-set-tests: dummy-index-set-tests
-	./col/array-tests: dummy-array-tests
-	./col/map-tests: dummy-map-tests
-	./col/list-tests: dummy-list-tests
-	./col/set-tests: dummy-set-tests
+	./col/all: dummy-col-tests
 	./bare-map-tests: dummy-bare-map-tests
 	./bare-queue-tests: dummy-bare-queue-tests
 	./bits-tests: dummy-bits-tests
@@ -18,19 +13,14 @@ import
 	./symbol-tests: dummy-symbol-tests
 
 dummy-library-tests nat()
-	_ = dummy-array-tests
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
+	_ = dummy-col-tests
 	_ = dummy-exclusion-queue-tests
-	_ = dummy-frozen-map-tests
-	_ = dummy-index-set-tests
 	_ = dummy-json-tests
-	_ = dummy-list-tests
-	_ = dummy-map-tests
 	_ = dummy-math-tests
 	_ = dummy-number-tests
-	_ = dummy-set-tests
 	_ = dummy-shared-list-tests
 	_ = dummy-shared-map-tests
 	_ = dummy-string-tests

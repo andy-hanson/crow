@@ -6,6 +6,7 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
+	./js: as-js-any, as-t, call, call-property, js-global
 	./log: error, log
 	./number: nat64
 	./misc: shared, new, void
@@ -42,39 +43,45 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 	&a.lk
 
 # Converts a value to a future resolved with that value.
-+new[t] t future(value t)
-	if trusted extern native
-		res t future = trusted uninit, value.resolved
-		trusted res.lock init
++new[t] t future(value t) trusted
+	if extern native
+		res t future = uninit, value.resolved
+		res.lock init
 		res
+	elif extern js
+		"Promise".js-global call-property "resolved", value as-t
 	else
-		todo # Promise.resolved(x) -----------------------------------------------------------------------------------------------------------------
+		todo
 
 # Future resolved with an exception.
-+rejected[t] t future(err exception-and-backtrace)
-	if trusted extern native
-		res t future = trusted uninit, err.rejected
-		trusted res.lock init
++rejected[t] t future(err exception-and-backtrace) trusted
+	if extern native
+		res t future = uninit, err.rejected
+		res.lock init
 		res
+	elif extern js
+		"Promise".js-global call-property "rejected", err as-t
 	else
-		todo # Promise.rejected(x) -----------------------------------------------------------------------------------------
+		todo
 
 +parallel record nominal
 ###
 Run `f` in a new fiber with a new exclusion and return a future for its result.
 ###
-+with-block[t] t future(_ parallel, f t shared())
-	if trusted extern native
-		res t future = trusted unresolved
-		trusted get-global-ctx add-new-fiber () =>
++with-block[t] t future(_ parallel, f t shared()) trusted
+	if extern native
+		res t future = unresolved
+		get-global-ctx add-new-fiber () =>
 			match (() => f[]) catch-all
 			as ok x
 				res resolve x
 			as error e
 				res reject e
 		res
+	elif extern js
+		f.as-js-any.call as-t
 	else
-		todo # -----------------------------------------------------------------------------------------------------------
+		todo
 
 ###
 This is like running something with `parallel` and then waiting on it.
@@ -89,11 +96,8 @@ The purpose is to allow other fibers with the current exclusion to run while wai
 Run `f` in a new fiber with the current exclusion. So it can't run until the current fiber yields.
 ###
 +with-block[t] t future(_ later, f t mut()) t shared
-	if trusted extern native
-		fs t shared() = shared () => f[]
-		parallel with-block fs
-	else
-		todo
+	f-shared t shared() = shared () => f[]
+	parallel with-block f-shared
 
 # Does not await the future, but will log any exceptions from the future once it is done.
 +forget[t] void(a t future) native extern

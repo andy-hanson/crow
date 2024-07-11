@@ -8,13 +8,16 @@ import
 	../number: ==, <=>, +, -, /, float64, max-value, nat64, to
 	../option: force, new, option
 	../pointer:
-		+, as-const, mem-copy, mem-move, mut-pointer, reference-equal, set-deref, set-subscript, zeroed
+		+, as-const, mem-copy, mem-move, mut-pointer, reference-equal, set-deref, set-subscript,
+		zeroed
 	../private/bootstrap: todo
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
 	./array: array, size
-	./collection: .., -, build-options, end, for-loop, index-too-big, iterate, size-hint, subscript
+	./collection:
+		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, slice-out-of-order,
+		subscript
 	./mut-array:
 		+, begin, begin-pointer, cast-immutable, cast-mutable, copy-to, mut-array,
 		mut-array-iterator, mut-slice, prev, new, next, next-index, set-next, set-prev,
@@ -27,7 +30,6 @@ This is represented as a reference to a `mut-array` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
-# TODO: maybe this should be an intrinsic type, so JS can just use an array directly? ----------------------------------------------------
 +mut-list[t] record mut
 	# Fields should only be used in mut-list.crow
 	# backing.size is the capacity
@@ -193,13 +195,15 @@ Throws if `n > a.size`.
 +pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
-		res t array = trusted a.backing.begin-pointer[0 .. n] to
+		res t array = a.backing[0 .. n] to
 		new-size = a.size - n
 		a.backing[0 .. new-size] := a.backing[n .. a.size]
 		a.size := new-size
 		res to
 	elif trusted extern js
-		todo # ---------------------------------------------------------------------------------------------------------------------------
+		res t array = trusted do
+			a.backing.as-js-any call-property "splice", 0::float64, n.to::float64 as-t
+		res to
 	else
 		todo
 
@@ -221,7 +225,7 @@ Returns `none` if `a` is empty.
 		a.size := new-size
 		res,
 	elif trusted extern js
-		(trusted a.backing.as-js-any call-property "pop" as-t),		
+		(trusted a.backing.as-js-any call-property "pop" as-t),
 	else
 		todo
 
@@ -230,13 +234,13 @@ Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
 +pop-n[t] void(a t mut[], n nat64)
+	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
-		assert n <= a.size : n index-too-big a.size
 		new-size = a.size - n
 		trusted a.backing[new-size .. a.size] zero-memory
 		a.size := new-size
 	elif trusted extern js
-		todo # Set length --------------------------------------------------------------------------------------------------------------
+		trusted a.backing.as-js-any set "length", (a.size - n).to::float64
 	else
 		todo
 
@@ -249,7 +253,7 @@ Throws if `n > a.size`.
 	elif extern js
 		_ = a.backing.as-js-any call-property "unshift", value
 	else
-		todo # -------------------------------------------------------------------------------------------------------------
+		todo
 
 # Push a value onto the end of the list.
 +~=[t] void(a t mut[], value t) trusted
@@ -357,8 +361,10 @@ Throws if `index > a.size`.
 		a.size +:= 1
 		assert a.size <= a.capacity
 		a[index] := value
+	elif extern js
+		_ = a.backing.as-js-any call-property "splice", index.to::float64, 0::float64, value
 	else
-		todo # --------------------------------------------------------------------------------------------------------------
+		todo
 
 ###
 Removes `a[index]`, and shifts all values from `index` onwards to the left to fill the hole.
@@ -450,7 +456,7 @@ region spec impls (see collection.crow)
 	a.as-backing-iter set-next value
 
 +slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)
-	assert a.next-index <= b.next-index # TODO: WHAT ERROR ? --------------------------------------------------------------------
+	assert a.next-index <= b.next-index : slice-out-of-order
 	res t mut-slice = a.collection.backing[a.next-index .. b.next-index]
 	res.copy-to, res.size
 

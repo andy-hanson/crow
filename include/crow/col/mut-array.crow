@@ -8,15 +8,17 @@ import
 	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
 	../option: new, option
 	../pointer:
-		==, <=>, +, *, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
+		==, <=>, +, -, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
 		set-subscript, size-of, subscript, zeroed
 	../private/alloc: allocate
 	../private/bootstrap: new-array, new-mut-array, mut-array-pointer, mut-array-size, todo
 	../range: .., high, is-empty, iterate, low, range, size, subscript
 	../tuple: new
-	./array: ~=, ~~=, array, array-builder, as-array, begin-pointer, build, iterate, size, subscript
+	./array: ~=, ~~=, array, array-builder, begin-pointer, build, iterate, size, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, index-too-big, range-relative-to-end, to-range
+	./collection:
+		build-options, for-loop, index-too-big, iterator-not-comparable, range-relative-to-end,
+		slice-out-of-order, to-range
 export
 	../private/bootstrap: mut-array
 
@@ -55,11 +57,13 @@ There is no `move-to` for `mut-array` since there might be slices that still ref
 ###
 +to[t] t array(a t mut-array) trusted
 	a.copy cast-immutable
++to[t] t array(a t mut-slice) trusted
+	for x : a; x
 
 # Creates a `mut-array` from a range of pointers.
 +as-mut-array[t] t mut-array(a t mut* range) bare, unsafe, native extern
 	assert a.low <= a.high
-	(a.low .. a.high).as-array cast-mutable
+	(a.high - a.low) new-mut-array a.low
 
 +pointers[t] t mut* range(a t mut-array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
@@ -164,7 +168,9 @@ Throws if `dest` and `source` are not the same size.
 	if extern native
 		a.begin-pointer[0 .. a.size] temp-as-array
 	elif extern js
-		a.inner.as-js-any call-property "slice", a.range.low.to::float64, a.range.high.to::float64 as-t
+		i float64 = a.range.low to
+		j float64 = a.range.high to
+		a.inner.as-js-any call-property "slice", i, j as-t
 	else
 		todo
 +iterate[t] bool(a t mut-slice, f bool mut(x t))
@@ -219,22 +225,18 @@ See `zeroed-mut-array` for why this is unsafe.
 			a.inner[i] := zeroed
 			i +:= 1
 	else
-		todo # ---------------------------------------------------------------------------------------------------------------
+		todo
 
 +in[t] bool(value t, a t mut-array) bare, t equal, trusted
-	if extern native
-		cur mut = a.begin-pointer as-const
-		end = a.end-pointer as-const
-		loop
-			if cur == end
-				break false
-			elif *cur == value
-				break true
-			else
-				cur +:= 1
-				continue
-	else
-		todo # -----------------------------------------------------------------------------------------------------------
+	cur mut nat64 = 0
+	loop
+		if cur == a.size
+			break false
+		elif a[cur] == value
+			break true
+		else
+			cur +:= 1
+			continue
 
 ###
 Unsafe cast a mut-array to an array.
@@ -335,8 +337,8 @@ region spec impls (see collection.crow)
 
 # JS can't slice a 'mut-array', so this is only available in native code.
 +slice[t] t mut-slice(begin t mut-array-iterator, end t mut-array-iterator) bare, trusted
-	assert begin.collection == end.collection # TODO: WHAT ERROR? -------------------------------------------------------------------
-	assert begin.next-index <= end.next-index # TODO: WHAT ERROR? -------------------------------------------------------------------
+	assert begin.collection == end.collection : iterator-not-comparable
+	assert begin.next-index <= end.next-index : slice-out-of-order
 	begin.collection[begin.next-index .. end.next-index]
 
 +mut-array-builder[t] record mut

@@ -2147,6 +2147,10 @@ ExprResult translateCallJsFun(
 			return expr(genCall(
 				allocate(ctx.alloc, getArg(0)),
 				makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
+		case JsFun.callNew:
+			return expr(genNew(
+				allocate(ctx.alloc, getArg(0)),
+				makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
 		case JsFun.cast_:
 			assert(nArgs == 1);
 			return expr(getArg(0));

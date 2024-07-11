@@ -816,6 +816,7 @@ static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 enum JsFun {
 	asJsAny,
 	call,
+	callNew,
 	callProperty,
 	callPropertySpread,
 	cast_,

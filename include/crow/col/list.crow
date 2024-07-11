@@ -18,7 +18,7 @@ import
 		.., -, concatenate, end, for-loop, index-relative-to-end, index-too-big, is-empty,
 		iterator-not-comparable, iterator-out-of-bounds, range-relative-to-end, sequence-compare,
 		sequence-equal, slice-right-to-left, subscript
-	./mut-array: ~=, build, mut-array, to
+	./mut-array: ~=, as-mut-array, build, cast-immutable, mut-array, to
 	./private/array-low-level: array-reference-equal
 	./private/list-low-level:
 		array2d, array3d, arrays, branch, down, iterate-chunks, l1, l2, l3, leaf, left,
@@ -158,7 +158,7 @@ export
 +as-list[t] t[](a t* range) unsafe, native extern
 	a.as-array to
 +as-list[t] t[](a t mut* range) unsafe, native extern
-	a.as-array to
+	a.as-mut-array.cast-immutable to
 
 ###
 Convert an array to a list.

@@ -60,6 +60,9 @@ export
 
 +slice[col, iter] spec
 	slice col(begin iter, end iter)
++slice-out-of-order record exception variant-member
++describe string(_ slice-out-of-order)
+	"Tried to slice from a later iterator to an earlier one."
 
 +skip-prev[iter] spec
 	- iter(a iter, n nat64)

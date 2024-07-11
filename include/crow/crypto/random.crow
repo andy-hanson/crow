@@ -5,11 +5,11 @@ Functions for generating cryptographically random numbers.
 import
 	system/sodium: randombytes_random
 	../bits: bits-cat
+	../js: as-t, call-new, call-property, get, js-global
 	./private/sodium: ensure-sodium-initialized
 	../private/bootstrap: todo
 
 +random nat32() summon, trusted
-	# TODO: This should actually `assert extern sodium`, but that doesn't work right now ------------------------------------------------------
 	if extern native
 		if extern sodium
 			ensure-sodium-initialized
@@ -17,8 +17,9 @@ import
 		else
 			todo
 	elif extern js
-		# Use crypto.getRandomValues()
-		todo
+		xs = "Uint32Array".js-global call-new 1::float64
+		_ = "crypto".js-global call-property "getRandomValues", xs
+		(xs get 0).as-t::float64 to
 	else
 		todo
 

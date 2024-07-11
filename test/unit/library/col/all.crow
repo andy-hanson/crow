@@ -1,0 +1,17 @@
+import
+	./frozen-map-tests: dummy-frozen-map-tests
+	./index-set-tests: dummy-index-set-tests
+	./array-tests: dummy-array-tests
+	./map-tests: dummy-map-tests
+	./mut-list-tests: dummy-mut-list-tests
+	./list-tests: dummy-list-tests
+	./set-tests: dummy-set-tests
+
+dummy-col-tests nat()
+	_ = dummy-array-tests
+	_ = dummy-frozen-map-tests
+	_ = dummy-index-set-tests
+	_ = dummy-list-tests
+	_ = dummy-map-tests
+	_ = dummy-mut-list-tests
+	_ = dummy-set-tests

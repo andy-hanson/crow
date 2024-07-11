@@ -36,7 +36,10 @@ Result will not have leading or trailing whitespace.
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-+read-stdin-until-parse[t] t(error-message string, parse t? mut(input string)) summon, t shared, native extern
++read-stdin-until-parse[t] t(
+	error-message string,
+	parse t? mut(input string),
+) summon, t shared, native extern
 	until res ?= parse[read-stdin]
 		out print error-message
 	res

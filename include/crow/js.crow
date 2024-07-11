@@ -1,8 +1,8 @@
 ###
 Contains functions for JavaScript primitive operations.
 
-Functions here are marked 'bare' even if they may allocate;
-'bare' doesn't matter in JS, but many functions that need to be 'bare' for native code need to use these functions.
+Functions here are marked 'bare' even if they may allocate; 'bare' doesn't matter in JS,
+but many functions that need to be 'bare' for native code need to use these functions.
 ###
 
 no-std
@@ -24,18 +24,38 @@ import
 # `a[index] = value`
 +set[t] void(a js-any, index nat64, value t) builtin, bare, unsafe, js extern
 ###
-`a(arg)`
+`a()`
 WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 ###
++call js-any(a js-any) builtin, bare, unsafe, js extern
+# `a(arg)`
 +call[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
 # `a[name]()`
++call-new[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
 +call-property js-any(a js-any, name string) builtin, bare, unsafe, js extern
 # `a[name](arg)`
 +call-property[p0] js-any(a js-any, name string, arg p0) builtin, bare, unsafe, js extern
 # `a[name](arg0, arg1)`
-+call-property[p0, p1] js-any(a js-any, name string, arg0 p0, arg1 p1) builtin, bare, unsafe, js extern
++call-property[p0, p1] js-any(
+	a js-any,
+	name string,
+	arg0 p0,
+	arg1 p1,
+) builtin, bare, unsafe, js extern
+# `a[name](arg0, arg1, arg2)`
++call-property[p0, p1, p2] js-any(
+	a js-any,
+	name string,
+	arg0 p0,
+	arg1 p1,
+	arg2 p2,
+) builtin, bare, unsafe, js extern
 # `a[name](...args)`
-+call-property-spread[p] js-any(a js-any, name string, args p array) builtin, bare, unsafe, js extern
++call-property-spread[p] js-any(
+	a js-any,
+	name string,
+	args p array,
+) builtin, bare, unsafe, js extern
 # Treat one type as another. This is a noop in JS.
 +js-cast[out, in] out(a in) builtin, bare, unsafe, js extern
 

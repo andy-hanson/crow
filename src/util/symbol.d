@@ -604,6 +604,7 @@ immutable string[] specialSymbols = [
 	"built-on",
 	"byAlloc",
 	"byMeasure",
+	"call-new",
 	"call-property",
 	"call-property-spread",
 	"capabilities",

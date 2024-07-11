@@ -133,7 +133,7 @@ Use `paths-in-dir` if you want full paths.
 -close-dir void(dirp DIR mut*, path string) summon, unsafe, (native, posix) extern
 	assert dirp.closedir == 0 : path exception-for-last
 
--names-in-dir-windows string[](dir-path string, file HANDLE) summon, unsafe, (native, windows) extern
+-names-in-dir-windows string[](dir string, file HANDLE) summon, unsafe, (native, windows) extern
 	with out : build
 		loop
 			file-data mut WIN32_FIND_DATAA = ()
@@ -145,7 +145,7 @@ Use `paths-in-dir` if you want full paths.
 				continue
 			else
 				err = GetLastError
-				assert err == ERROR_NO_MORE_FILES : dir-path exception-for-last
+				assert err == ERROR_NO_MORE_FILES : dir exception-for-last
 				break
 
 -names-in-dir-posix string[](dirp DIR mut*) summon, unsafe, (native, posix) extern

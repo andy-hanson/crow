@@ -14,7 +14,9 @@ import
 	./array: array, iterate, size
 	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
-	./mut-array: ~=, begin, build, iterate, mut-array, is-empty, new, next, set-next, set-subscript, size, subscript
+	./mut-array:
+		~=, begin, build, iterate, mut-array, is-empty, new, next, set-next, set-subscript, size,
+		subscript
 	./list: ==, ~=, build, iterate, list, new, size
 	./mut-list:
 		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
@@ -309,7 +311,7 @@ region spec impls (see collection.crow)
 
 region test
 
-~dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to # TODO: PRIVATE --------------------------------------------------
+-dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to
 	parts string[] = for entry : a entries
 		match entry
 		as none

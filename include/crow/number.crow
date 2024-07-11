@@ -338,6 +338,8 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 +to nat64(a float64) bare
 	a.to::int64 to
++to nat32(a float64) bare
+	a.to::nat64 to
 
 # Throws if the result would overflow.
 +to int64(a nat64) bare

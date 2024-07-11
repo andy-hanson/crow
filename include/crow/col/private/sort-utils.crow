@@ -98,7 +98,7 @@ binary-search-exact[t] t array-iterator?(a t array, compare comparison data(elem
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-+binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t)) # TODO: INTERNAL ---------------------
+binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
 binary-search-insert[t] t mut-array-iterator(a t mut-array, compare comparison data(elem t))
@@ -175,7 +175,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 		a-write mut = a.size - 1
 		b-read mut = b.size - 1
 		# Merge right-to-left so we never overwrite anything we still have to read.
-		# Invariant: a-read, a-write, b-read are all valid pointers. -----------------------------------------------------
+		# Invariant: a-read, a-write, b-read are all valid indices.
 		loop
 			match compare[a[a-read], b[b-read]]
 			as less
@@ -190,7 +190,6 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 				a[a-write] := a[a-read]
 				if a-read == 0
 					assert b-read + 1 == a-write
-					# a[0 .. a-write] := b[0 .. b-read + 1] TODO: in order to do this, subscripting b would have to be lazy (not copy)
 					for i : 0::nat64 .. a-write
 						a[i] := b[i]
 					break

@@ -173,7 +173,9 @@ Callers should then push something.
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index
 		is-nil = trusted x == zeroed
-		"{i == a.right ? "<-R "::string}{i == a.left ? "L-> "::string}{is-nil ? "_"::string : "{x}"}"
+		is-right string = i == a.right ? "<-R "
+		is-left string = i == a.left ? "L-> "
+		"{is-right}{is-left}{is-nil ? "_"::string : "{x}"}"
 
 -verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is (expected.is-empty ? () : (expected[0],))

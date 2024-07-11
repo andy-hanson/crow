@@ -8,10 +8,13 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, float64, nat64, round-up-to-power-of-two, to
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mem-copy, mut-pointer, null, pointer-cast, set-subscript, size-of, subscript
+		==, <=>, +, -, *, as-const, const-pointer, mem-copy, null, pointer-cast, set-subscript,
+		size-of, subscript
 	../../range: .., high, low, range, size
 	../../private/alloc: allocate
-	../../private/bootstrap: array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array, new-mut-array, zeroed
+	../../private/bootstrap:
+		array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array,
+		new-mut-array, zeroed
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
@@ -39,8 +42,6 @@ UB if begin > end.
 ###
 +as-array[t] t array(pointers t* range) bare, unsafe, native extern
 	pointers.size new-array pointers.low
-+as-array[t] t array(pointers t mut* range) bare, unsafe, native extern # TODO: why does this return array and not mut-array?
-	pointers.size new-array pointers.low.as-const
 
 +pointers[t] t* range(a t array) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
@@ -157,7 +158,7 @@ Calls `f` for each element in `a`.
 	elif extern js
 		a.buffer.as-js-any call-property "push", value as-t
 	else
-		todo # ----------------------------------------------------------------------------------------------------------
+		todo
 
 +~~=[t] void(a t array-builder, values t array) trusted
 	if extern native
@@ -174,7 +175,7 @@ Calls `f` for each element in `a`.
 	elif extern js
 		a.buffer.as-js-any call-property-spread "push", values as-t
 	else
-		todo # ----------------------------------------------------------------------------------------------------------
+		todo
 
 -zeroed-mut-array[t] t mut-array(size nat64) unsafe, native extern
 	size new-mut-array size.allocate

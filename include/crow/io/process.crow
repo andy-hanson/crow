@@ -98,7 +98,10 @@ The child process shares stdout and stderr with the parent process.
 -convert-args c-string[](exe-c-string c-string, args string[]) unsafe, native extern
 	exe-c-string ~ (for x : args; x to) ~ null
 
--spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe, (native, windows) extern
+-spawn-and-wait-result-windows process-result(
+	exe c-string,
+	args string[],
+) summon, unsafe, (native, windows) extern
 	all-args c-string = " " join (exe.to::string ~ args) to
 
 	stdout-read mut HANDLE = ()
@@ -136,7 +139,10 @@ The child process shares stdout and stderr with the parent process.
 
 # We need to read from stdout and stderr together,
 # or else the process may block when writing too much to stderr while this is waiting on stdout
--read-from-pipes-windows (string, string)(stdout HANDLE, stderr HANDLE) summon, unsafe, (native, windows) extern
+-read-from-pipes-windows (string, string)(
+	stdout HANDLE,
+	stderr HANDLE,
+) summon, unsafe, (native, windows) extern
 	res-out nat8 mut[] = ()
 	res-err nat8 mut[] = ()
 	sleep mut nat32 = 1
@@ -154,7 +160,11 @@ The child process shares stdout and stderr with the parent process.
 	res-out.move-to::nat8[].as-string, res-err.move-to::nat8[].as-string
 
 -pipe-state enum(available, awaiting, closed)
--read-some-if-available pipe-state(res nat8 mut[], pipe HANDLE, pipe-desc string) summon, unsafe, (native, windows) extern
+-read-some-if-available pipe-state(
+	res nat8 mut[],
+	pipe HANDLE,
+	pipe-desc string,
+) summon, unsafe, (native, windows) extern
 	if x ?= pipe peek-available pipe-desc
 		x == 0 ? awaiting : res read-some pipe, x
 	else

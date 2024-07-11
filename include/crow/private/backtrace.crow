@@ -8,7 +8,8 @@ import
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: &&, true
-	../col/array: as-array, new
+	../col/array: new
+	../col/mut-array: as-mut-array, cast-immutable
 	../compare: !=, >
 	../misc: new, void
 	../option: new, option
@@ -40,7 +41,7 @@ get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe, native extern
 	if is-interpreted
 		end = entries interpreter-backtrace max-entries, skip
 		gc copy-strings entries, end
-		(entries .. end).as-array,
+		(entries .. end).as-mut-array.cast-immutable,
 	elif extern windows
 		if extern DbgHelp
 			gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
@@ -58,7 +59,11 @@ Result entries are temporary, must copy!
 	skip nat64,
 ) builtin, bare, unsafe
 
--copy-strings void(gc gc-ctx, begin backtrace-entry mut*, end backtrace-entry mut*) bare, unsafe, native extern
+-copy-strings void(
+	gc gc-ctx,
+	begin backtrace-entry mut*,
+	end backtrace-entry mut*,
+) bare, unsafe, native extern
 	cur mut = begin
 	until cur == end
 		*cur := gc copy-c-strings *cur
@@ -100,7 +105,7 @@ Result entries are temporary, must copy!
 			max-end, skip, process, thread, &context, &frame, vars
 		ok = process SymCleanup
 		ok hard-assert
-		(entries .. end).as-array,
+		(entries .. end).as-mut-array.cast-immutable,
 
 -windows-backtrace-vars record by-val, mut
 	offset nat64 mut*
@@ -182,7 +187,7 @@ Result entries are temporary, must copy!
 	# omit 'get-native-backtrace' in addition to other skipped
 	&cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind entries, entries + max-entries, &cursor
-	(entries .. end).as-array,
+	(entries .. end).as-mut-array.cast-immutable,
 
 -unwind-skip void(cursor unw_cursor_t mut*, skip nat64) bare, unsafe, unwind extern
 	unless skip == 0

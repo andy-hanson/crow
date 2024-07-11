@@ -670,7 +670,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		},
 		(in JsNewExpr x) {
 			writer ~= "new ";
+			writer ~= '(';
 			writeArg(*x.class_);
+			writer ~= ')';
 			writer ~= '(';
 			writeArgs(x.arguments);
 			writer ~= ')';

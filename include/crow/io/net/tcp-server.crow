@@ -36,7 +36,10 @@ tcp-handler record mut
 Starts running a TCP server on the given port.
 Once the function returns, it is already serving requests.
 ###
-start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe, (libc, native, posix) extern
+start-tcp-server tcp-server(
+	port nat16,
+	handler tcp-handler,
+) summon, unsafe, (libc, native, posix) extern
 	sock = port bind-to-port
 	max-connections int32 = 1000
 	sock listen max-connections check-posix-error
@@ -47,7 +50,10 @@ start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe, (li
 	else
 		todo
 
--start-tcp-server-linux tcp-server(port-fd fd-t, handler tcp-handler) summon, unsafe, (libc, linux, native, posix) extern
+-start-tcp-server-linux tcp-server(
+	port-fd fd-t,
+	handler tcp-handler,
+) summon, unsafe, (libc, linux, native, posix) extern
 	port-fd set-non-blocking
 
 	epoll-fd = 0 epoll_create1
@@ -95,7 +101,9 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 	pad-2 nat32
 	handler tcp-handler
 
--tcp-server-loop-linux void(state tcp-server-state) summon, unsafe, (libc, linux, native, posix) extern
+-tcp-server-loop-linux void(
+	state tcp-server-state,
+) summon, unsafe, (libc, linux, native, posix) extern
 	unless state should-stop
 		event mut epoll_event = ()
 		timeout c-int = 0

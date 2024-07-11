@@ -352,7 +352,9 @@ JsExpr genNull() =>
 JsExpr genNumber(double value) =>
 	JsExpr(JsLiteralNumber(value));
 JsExpr genNew(ref Alloc alloc, JsExpr class_, in JsExpr[] args) =>
-	JsExpr(JsNewExpr(allocate(alloc, class_), newArray(alloc, args)));
+	genNew(allocate(alloc, class_), newArray(alloc, args));
+JsExpr genNew(JsExpr* class_, JsExpr[] args) =>
+	JsExpr(JsNewExpr(class_, args));
 JsExpr genOr(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.or, arg0, arg1);
 JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, Symbol propertyName) =>

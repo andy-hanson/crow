@@ -134,6 +134,10 @@ FunBody inner(
 			return isJsAny(rt)
 				? FunBody(BuiltinFun(JsFun.call))
 				: fail();
+		case symbol!"call-new".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.callNew))
+				: fail();
 		case symbol!"call-property".value:
 			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
 				? FunBody(BuiltinFun(JsFun.callProperty))

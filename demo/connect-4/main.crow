@@ -4,8 +4,8 @@ import
 	crow/io/stdin: read-stdin-until-parse
 	crow/version: is-interpreted
 	./board:
-		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
-		place, red, set-subscript, show, subscript, width
+		==, board, board-cache, can-place, color, empty-board, enum-members, has-empty, just-won,
+		new, opposite, place, red, set-subscript, show, subscript, width
 
 main void() summon, native extern
 	settings = ask-settings

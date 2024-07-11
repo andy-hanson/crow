@@ -3,7 +3,7 @@ import
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 
-main void() summon
+main void() summon, native extern
 	out print "What's your name?"
 	name = read-stdin
 	out print "Hello, {name}"
