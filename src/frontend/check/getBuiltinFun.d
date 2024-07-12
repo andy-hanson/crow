@@ -741,8 +741,6 @@ Opt!VersionFun versionFunFromSymbol(Symbol name) {
 			return some(VersionFun.isStackTraceEnabled);
 		case symbol!"is-wasm".value:
 			return some(VersionFun.isWasm);
-		case symbol!"is-windows".value:
-			return some(VersionFun.isWindows);
 		default:
 			return none!VersionFun;
 	}

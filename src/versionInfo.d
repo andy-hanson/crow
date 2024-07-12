@@ -59,7 +59,6 @@ enum VersionFun {
 	isSingleThreaded,
 	isStackTraceEnabled,
 	isWasm,
-	isWindows,
 }
 
 bool isVersion(in VersionInfo a, VersionFun fun) {
@@ -78,20 +77,8 @@ bool isVersion(in VersionInfo a, VersionFun fun) {
 			return isWasm || a.options.isSingleThreaded;
 		case VersionFun.isWasm:
 			return isWasm;
-		case VersionFun.isWindows:
-			return isWindows(a);
 		case VersionFun.isStackTraceEnabled:
 			return a.options.stackTraceEnabled;
-	}
-}
-
-bool isWindows(in VersionInfo a) {
-	final switch (a.os) {
-		case OS.linux:
-		case OS.web:
-			return false;
-		case OS.windows:
-			return true;
 	}
 }
 

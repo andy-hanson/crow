@@ -1,7 +1,6 @@
 import
 	crow/io/process: has-error, spawn-and-wait-result, stderr, stdout
 	crow/parse: ~~, force, parse, spaces
-	crow/version: is-windows
 	./module
 
 get-modules module[](paths string[], remove-prefix string) summon
@@ -10,7 +9,7 @@ get-modules module[](paths string[], remove-prefix string) summon
 	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
 
 -crow-path string()
-	if trusted is-windows
+	if trusted extern windows
 		"bin\\crow.exe"
 	else
 		"bin/crow"

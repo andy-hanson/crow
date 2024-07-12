@@ -3,13 +3,12 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/test-util/test-runner: run-all-tests
-	crow/version: is-windows
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
 	./search-dir-recursive: search-dir-recursive
 
-main void() summon
+main void() summon, native extern
 	run-all-tests
 	all-content = documentation ~~ pages ~~ include-all
 	for content : all-content parallel
@@ -18,14 +17,14 @@ main void() summon
 	for x : all-to-link parallel
 		x ensure-link cwd
 
--ensure-up-to-date void(a path-and-content) summon
+-ensure-up-to-date void(a path-and-content) summon, native extern
 	full-out-path = "site" child-path a.out-path
 	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
 		full-out-path write-file a.content
 		()
 
--ensure-link void(a link, cwd string) summon
+-ensure-link void(a link, cwd string) summon, native extern
 	full-out-path = "site" child-path a.link-path
 	# TODO: check that link target is up to date
 	unless full-out-path path-exists
@@ -35,10 +34,10 @@ main void() summon
 		full-out-path make-symlink-to full-target
 		()
 
--is-up-to-date bool(path string, content string) summon
+-is-up-to-date bool(path string, content string) summon, native extern
 	path.read-file-or-empty == content
 
--ensure-directory-recursive void(path string) summon
+-ensure-directory-recursive void(path string) summon, native extern
 	unless path == "" || path.path-exists
 		path.parent-path ensure-directory-recursive
 		path ensure-directory
@@ -60,7 +59,7 @@ same link(a string)
 
 other-links link[]()
 	with out : build
-		if trusted is-windows
+		if trusted extern windows
 			out ~= "bin/crow-windows-x64.tar.xz" same
 			out ~= "bin/crow-demo-windows.tar.xz" same
 		else

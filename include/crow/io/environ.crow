@@ -1,14 +1,13 @@
 import
 	system/unistd: __environ
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
-	../version: is-windows
 
 get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
 +get-environ string[string]() summon, native extern
-	forbid trusted is-windows : todo
+	forbid trusted extern windows : todo
 	with out : build
 		trusted
 			env mut = get-environ-raw

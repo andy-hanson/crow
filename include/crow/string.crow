@@ -10,8 +10,7 @@ import
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
 	./col/list: ~=, build, iterate, list, size, subscript, to
-	./col/mut-list:
-		~=, copy, insert-at, move-to, mut-list, new, prepend=, reverse-in-place, size, to
+	./col/mut-list: ~=, copy, insert-at, move-to, mut-list, new, reverse-in-place, size, to
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
@@ -319,18 +318,18 @@ Result is only digits, no punctuation.
 		dec /:= 10
 		exp +:= 1
 
-	out reverse-in-place
 	if exp <= 0
-		# TODO: It would be smarter to do appending before the reverse-in-place! ------------------------------------------
 		for _ : 0::nat64 .. exp.abs
-			out prepend= "0"
-		out prepend= "."
-		out prepend= "0"
-	elif exp.to::nat64 < out.size
-		out insert-at exp.to, "."
-	else
-		for _ : out.size .. exp.to
 			out ~= "0"
+		out ~= "."
+		out ~= "0"
+	out reverse-in-place
+	if exp > 0
+		if exp.to::nat64 < out.size
+			out insert-at exp.to, "."
+		else
+			for _ : out.size .. exp.to
+				out ~= "0"
 	out.move-to::(char32 array) to
 
 -to-decimal-and-exponent (nat64, int64)(a float64)
@@ -342,14 +341,10 @@ Result is only digits, no punctuation.
 		exp -:= 1
 
 	digits mut nat64 = 0
-	loop
-		if x.is-near-int || digits == 15 # TODO: this could be an until loop ---------------------------------------------
-			break
-		else
-			x *:= 10
-			exp -:= 1
-			digits +:= 1
-			continue
+	until x.is-near-int || digits == 15
+		x *:= 10
+		exp -:= 1
+		digits +:= 1
 
 	dec mut nat64 = x.round.to
 	while dec % 10 == 0

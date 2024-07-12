@@ -1,7 +1,6 @@
 import
 	crow/io/file: current-directory, read-file
 	crow/io/path: change-extension, child-path, remove-extension
-	crow/version: is-windows
 	./document-content: all-exports, module-content
 	./get-modules: get-modules
 	./module: module-path, path
@@ -13,7 +12,7 @@ documentation path-and-content[]() summon
 	include = current-directory ~~ "/include"
 	all-module-paths = "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
 		(x => x != "std.crow")
-	include-uri string = if trusted is-windows
+	include-uri string = if trusted extern windows
 		"file:///{include.to-lower-case uri-encode}/"
 	else
 		"file://{include uri-encode}/"

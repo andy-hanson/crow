@@ -699,7 +699,6 @@ immutable string[] specialSymbols = [
 	"is-less",
 	"is-signed",
 	"is-wasm",
-	"is-windows",
 	"jump-to-catch",
 	"js-cast",
 	"js-eq-eq-eq",

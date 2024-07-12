@@ -81,7 +81,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithSpaces;
-import versionInfo : isWindows;
+import versionInfo : OS;
 
 private immutable string boilerplatePosix = import("writeToC_boilerplate_posix.c");
 private immutable string boilerplateMsvc = import("writeToC_boilerplate_msvc.c");
@@ -104,7 +104,7 @@ immutable struct WriteToCParams {
 }
 
 WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram program, in WriteToCParams params) {
-	bool isMSVC = isWindows(program.version_);
+	bool isMSVC = program.version_.os == OS.windows;
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeCommandComment(writer, params.cCompiler, args);

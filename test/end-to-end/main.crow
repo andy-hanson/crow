@@ -5,7 +5,6 @@ import
 	crow/io/print: err, out, print
 	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
 	crow/parse-command: parse-named-args
-	crow/version: is-windows
 	../failure
 
 main nat(args string[]) summon, native extern
@@ -60,14 +59,14 @@ options:
 	a in parallel-concat-non-windows,
 	f out[] shared(x in),
 ) out shared, in shared
-	if trusted is-windows
+	if trusted extern windows
 		for x : a.col and-concat
 			f[x]
 	else
 		a.col.parallel-concat for-loop f
 
 -crow-path string(crow-dir string)
-	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")
+	crow-dir child-path "bin" child-path "crow" ~~ (trusted extern windows ? ".exe" : "")
 
 -list-tests string[](path string, match-test string) summon, native extern
 	res string mut[] = ()
@@ -78,7 +77,7 @@ options:
 
 # Some tests have different output on Windows
 -is-excluded bool(a string)
-	if trusted is-windows
+	if trusted extern windows
 		a ends-with "/fail.crow"
 
 -ext-is-crow bool(a string)

@@ -1,7 +1,7 @@
 ###
 Results of functions in this module are known at compile-time.
 
-For example, given a conditional `if is-windows`, functions in the unused branch
+For example, given a conditional `if is-single-threaded`, functions in the unused branch
 (the `false` branch on Windows, and the `true` branch on other OSes)
 will not be included in the compiled executable.
 
@@ -40,13 +40,6 @@ External libraries can still launch their own threads.
 
 # True if the code is run in the WASM interpreter.
 +is-wasm bool() builtin, bare, unsafe
-
-###
-True if the code is run on Windows.
-Always false if run in a browser (even on Windows).
-###
-# TODO: remove, this should always use 'extern windows' instead -----------------------------------------------------------------------------
-+is-windows bool() builtin, bare, unsafe
 
 # True if integers on this machine are big-endian.
 +is-big-endian bool() builtin, bare, unsafe
