@@ -108,7 +108,8 @@ import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
-import util.uri : baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
+import util.uri :
+	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog, todo;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions, versionOptionsForJs;
@@ -447,7 +448,9 @@ ExitCode buildAndRun(
 ) {
 	MutOpt!int signal;
 	ExitCode exitCode = withTempPath(main, defaultExecutableExtension(getOS()), (FilePath exePath) {
-		BuildOptions buildOptions = BuildOptions(options.version_, BuildOut(outExecutable: some(exePath)), options.compileOptions);
+		BuildOptions buildOptions = BuildOptions(
+			options.version_,
+			BuildOut(outExecutable: some(exePath)), options.compileOptions);
 		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
 			ExitCodeOrSignal res = runProgram(alloc, libs, PathAndArgs(exePath, programArgs));
 			// Doing this after 'runProgram' since that may use the '.pdb' file

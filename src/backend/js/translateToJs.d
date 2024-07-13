@@ -245,6 +245,7 @@ import util.uri :
 	parent,
 	parsePath,
 	Path,
+	PathAndContent,
 	pathFromAncestor,
 	prefixPathComponent,
 	RelPath,
@@ -256,7 +257,7 @@ import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuild
 
 immutable struct TranslateToJsResult {
 	Path mainJs;
-	KeyValuePair!(Path, string)[] outputFiles;
+	PathAndContent[] outputFiles;
 }
 TranslateToJsResult translateToJs(
 	ref Alloc alloc,
@@ -373,19 +374,19 @@ SymbolSet allExternsForJs(bool isNodeJs) { // TODO: we'll eventually want to hav
 		: res.add(symbol!"browser");
 }
 
-immutable(KeyValuePair!(Path, string)[]) getOutputFiles(
+PathAndContent[] getOutputFiles(
 	ref Alloc alloc,
 	in ShowTypeCtx showCtx,
 	in Map!(Uri, Path) modulePaths,
 	in MutMap!(Module*, Opt!JsModuleAst) done,
 	bool isNodeJs,
 ) =>
-	buildArray!(immutable KeyValuePair!(Path, string))(alloc, (scope ref Builder!(immutable KeyValuePair!(Path, string)) out_) {
+	buildArray!PathAndContent(alloc, (scope ref Builder!PathAndContent out_) {
 		if (isNodeJs)
-			out_ ~= immutable KeyValuePair!(Path, string)(parsePath("package.json"), "{\"type\":\"module\"}");
+			out_ ~= PathAndContent(parsePath("package.json"), "{\"type\":\"module\"}");
 		foreach (const Module* module_, ref Opt!JsModuleAst ast; done)
 			if (has(ast))
-				out_ ~= immutable KeyValuePair!(Path, string)(
+				out_ ~= PathAndContent(
 					mustGet(modulePaths, module_.uri),
 					writeJsAst(alloc, showCtx, module_.uri, force(ast)));
 	});

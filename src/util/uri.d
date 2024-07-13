@@ -682,3 +682,8 @@ public void writeUriPreferRelative(ref Writer writer, in UrisInfo urisInfo, Uri 
 
 public size_t relPathLength(in RelPath a) =>
 	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(a.path);
+
+public immutable struct PathAndContent {
+	Path path;
+	string content;
+}

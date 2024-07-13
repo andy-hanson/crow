@@ -283,7 +283,10 @@ import
 	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
 
-+new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) bare, unsafe, (native, windows) extern
++new SECURITY_ATTRIBUTES(
+	lpSecurityDescriptor any-mut-pointer,
+	bInheritHandle bool,
+) bare, unsafe, (native, windows) extern
 	# TODO: shouldn't need parens
 	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 

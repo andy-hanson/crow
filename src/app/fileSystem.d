@@ -63,7 +63,7 @@ import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.alloc.stackAlloc : withConcatImpure;
 import util.col.array : endPtr, exists, newArray, sum;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.col.map : KeyValuePair, Map;
+import util.col.map : Map;
 import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd, onError;
@@ -85,6 +85,7 @@ import util.uri :
 	parent,
 	parseFilePath,
 	Path,
+	PathAndContent,
 	Uri,
 	uriIsFile,
 	withCStringOfFilePath;
@@ -181,16 +182,16 @@ private @system void writeLn(OutPipe pipe, in string a) {
 private @trusted ExitCode removeFileOrDirectoryIfExists(FilePath path) {
 	stat_t statResult;
 	int err = withCStringOfFilePath(path, (in CString x) @trusted => lstat(x.ptr, &statResult));
-	if (err == 0) {
-		if (S_ISTYPE(statResult.st_mode, S_IFDIR))
-			return removeDirectoryRecursively(path);
-		else if (S_ISTYPE(statResult.st_mode, S_IFREG))
-			return removeFileIfExists(path);
-		else {
-			todo!void("Other kind of entity?"); // ---------------------------------------------------------------------------------------
-			return ExitCode.error;
-		}
-	} else if (errno == ENOENT)
+	if (err == 0)
+		return S_ISTYPE(statResult.st_mode, S_IFDIR)
+			? removeDirectoryRecursively(path)
+			: S_ISTYPE(statResult.st_mode, S_IFREG)
+			? removeFileIfExists(path)
+			: printErrorCb((scope ref Writer writer) {
+				writer ~= "Don't know how to delete unusual entitty ";
+				writer ~= path;
+			});
+	else if (errno == ENOENT)
 		return ExitCode.ok;
 	else
 		return printErrorCb((scope ref Writer writer) {
@@ -221,8 +222,15 @@ private ExitCode removeEmptyDirectory(FilePath dirPath) {
 private @trusted ExitCode removeAllInDirectory(FilePath dirPath) {
 	DIR* dir = withCStringOfFilePath(dirPath, (in CString x) @trusted => opendir(x.ptr));
 	if (dir == null) {
-		// TODO: if there was an error, not OK! -------------------------------------------------------------------------------------------
-		return ExitCode.ok;
+		if (errno == ENOENT)
+			return ExitCode.ok;
+		else
+			return printErrorCb((scope ref Writer writer) {
+				writer ~= "Error listing directory ";
+				writer ~= dirPath;
+				writer ~= ": ";
+				writeLastError(writer);
+			});
 	} else {
 		int exit = ExitCode.ok.value;
 		while (exit == ExitCode.ok.value) {
@@ -230,7 +238,7 @@ private @trusted ExitCode removeAllInDirectory(FilePath dirPath) {
 			if (dirent != null) {
 				Symbol name = symbolOfString(stringOfCString(CString(castImmutable(dirent.d_name.ptr))));
 				if (name != symbol!".." && name != symbol!".")
-					exit = removeFileOrDirectoryIfExists(dirPath / name).value; // TODO: way around 256 character limit of d_name?
+					exit = removeFileOrDirectoryIfExists(dirPath / name).value;
 			} else
 				break;
 		}
@@ -502,9 +510,17 @@ ExitCodeOrSignal runProgram(ref TempAlloc tempAlloc, in ExternLibraries externLi
 	runCommon(tempAlloc, externLibraries, pathAndArgs, isCompile: false);
 
 ExitCodeOrSignal runNodeJsProgram(ref TempAlloc tempAlloc, in PathAndArgs pathAndArgs) =>
-	withCStringOfFilePath(pathAndArgs.path, (in CString pathCString) =>
-		withConcatImpure!(ExitCodeOrSignal, CString)([cString!"node", castNonScope_ref(pathCString)], pathAndArgs.args, (in CString[] args) =>
-			runCommon(tempAlloc, [], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false))); // TODO: this will only work on linux ...
+	withCStringOfFilePath(pathAndArgs.path, (in CString pathCString) {
+		version (Windows) {
+			return todo!ExitCodeOrSignal("runNodeJsProgram");
+		} else {
+			return withConcatImpure!(ExitCodeOrSignal, CString)(
+				[cString!"node", castNonScope_ref(pathCString)],
+				pathAndArgs.args,
+				(in CString[] args) =>
+					runCommon(tempAlloc, [], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false));
+		}
+	});
 
 private @trusted ExitCodeOrSignal runCommon(
 	ref TempAlloc tempAlloc,
@@ -638,12 +654,12 @@ private @trusted ExitCodeOrSignal runCommon(
 	}
 }
 
-ExitCode writeFilesToDir(FilePath baseDir, in KeyValuePair!(Path, string)[] files) =>
+ExitCode writeFilesToDir(FilePath baseDir, in PathAndContent[] files) =>
 	// First, build the directories we need.
 	// Make sure to build from the bottom up.
 	okAnd(buildDirectoriesForFiles(baseDir, files), () {
-		foreach (KeyValuePair!(Path, string) file; files) {
-			ExitCode ok = writeFile(concatFilePathAndPath(baseDir, file.key), file.value);
+		foreach (PathAndContent file; files) {
+			ExitCode ok = writeFile(concatFilePathAndPath(baseDir, file.path), file.content);
 			if (ok != ExitCode.ok) // TODO: NEATER ---------------------------------------------------------------------------------------
 				return ok;
 		}
@@ -652,9 +668,9 @@ ExitCode writeFilesToDir(FilePath baseDir, in KeyValuePair!(Path, string)[] file
 
 private:
 
-ExitCode buildDirectoriesForFiles(FilePath baseDir, in KeyValuePair!(Path, string)[] files) =>
+ExitCode buildDirectoriesForFiles(FilePath baseDir, in PathAndContent[] files) =>
 	okAnd(makeDirectory(baseDir), () {
-		size_t maxPaths = sum!(KeyValuePair!(Path, string))(files, (in KeyValuePair!(Path, string) x) => countComponents(x.key)); // TODO: I should use an actual type and not KeyValuePair
+		size_t maxPaths = sum!PathAndContent(files, (in PathAndContent x) => countComponents(x.path));
 		return withTempSetImpure!(ExitCode, Path)(maxPaths, (scope ref TempSet!Path done) {
 			ExitCode ensureDir(Path a) {
 				if (tryAdd(done, a)) {
@@ -665,8 +681,8 @@ ExitCode buildDirectoriesForFiles(FilePath baseDir, in KeyValuePair!(Path, strin
 					return ExitCode.ok;
 			}
 
-			foreach (KeyValuePair!(Path, string) file; files) {
-				Opt!Path par = parent(file.key);
+			foreach (PathAndContent file; files) {
+				Opt!Path par = parent(file.path);
 				if (has(par)) {
 					ExitCode x = ensureDir(force(par));
 					if (x != ExitCode.ok) // TODO: neater --------------------------------------------------------------------------
