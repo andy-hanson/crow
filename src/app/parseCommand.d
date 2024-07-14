@@ -2,18 +2,18 @@ module app.parseCommand;
 
 @safe @nogc pure nothrow:
 
-import app.command : BuildOptions, BuildOut, Command, CommandKind, CommandOptions, RunOptions;
+import app.command : BuildOptions, Command, CommandKind, CommandOptions, RunOptions, SingleBuildOutput;
 import frontend.lang : CCompileOptions, CVersion, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : copyArray, findIndex, isEmpty, map, only;
+import util.col.array : copyArray, findIndex, isEmpty, map, newArray, only;
 import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string :
 	CString,
@@ -22,9 +22,11 @@ import util.string :
 	endsWith,
 	isDecimalDigit,
 	MutCString,
+	PrefixAndRest,
 	startsWith,
 	stringOfCString,
 	stringOfRange,
+	trySplit,
 	tryTakeChar;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
@@ -106,7 +108,6 @@ enum CommandName {
 
 // We always combine this with the commandName, so no need to include it here
 immutable struct Diag {
-	immutable struct BuildOutDuplicate {}
 	immutable struct BuildOutBadFileExtension {
 		Extension executableExtension;
 	}
@@ -130,7 +131,6 @@ immutable struct Diag {
 	immutable struct RunOptimizeNeedsAotOrJit {}
 
 	mixin Union!(
-		BuildOutDuplicate,
 		BuildOutBadFileExtension,
 		DuplicatePart,
 		ExpectedCrowUri,
@@ -149,9 +149,6 @@ alias Diags = Builder!Diag;
 
 void writeDiag(scope ref Writer writer, in Diag a) {
 	a.matchIn!void(
-		(in Diag.BuildOutDuplicate) {
-			writer ~= "Crow does not support building to multiple files (except to both C and executable).";
-		},
 		(in Diag.BuildOutBadFileExtension x) {
 			writer ~= "Build output must be a '.c' or ";
 			writeExtension(writer, x.executableExtension);
@@ -485,7 +482,7 @@ BuildOptions parseBuildOptions(
 	in ArgsPart[] argParts,
 	Uri mainUri,
 ) {
-	Cell!(Opt!BuildOut) out_;
+	SingleBuildOutput[] out_;
 	bool optimize = false;
 	bool c99 = false;
 	bool noStackTrace = false;
@@ -502,10 +499,10 @@ BuildOptions parseBuildOptions(
 				noStackTrace = true;
 				break;
 			case "--out":
-				if (has(cellGet(out_))) // TODO: this should combine with '--out-js' instead of overwriting it ---------------------
+				if (!isEmpty(out_))
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
-					cellSet(out_, some(parseBuildOut(alloc, cwd, os, diags, part)));
+					out_, some(parseBuildOut(alloc, cwd, os, diags, part));
 				break;
 			case "--optimize":
 				expectFlag(diags, part);
@@ -527,11 +524,12 @@ BuildOptions parseBuildOptions(
 		}
 	}
 
-	BuildOut resOut = has(cellGet(out_))
-		? force(cellGet(out_))
-		: BuildOut(outExecutable: some(defaultExecutablePath(
-			uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
-			os)));
+	SingleBuildOutput[] resOut = !isEmpty(out_)
+		? out_
+		: newArray(alloc, [
+			SingleBuildOutput(SingleBuildOutput.Kind.executable, defaultExecutablePath(
+				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
+				os))]);
 	return BuildOptions(
 		VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace),
 		resOut,
@@ -540,67 +538,59 @@ BuildOptions parseBuildOptions(
 			c99 ? CVersion.c99 : CVersion.c11));
 }
 
-BuildOut parseBuildOut(ref Alloc alloc, FilePath cwd, OS os, scope ref Diags diags, ArgsPart part) {
+SingleBuildOutput[] parseBuildOut(ref Alloc alloc, FilePath cwd, OS os, scope ref Diags diags, ArgsPart part) {
 	if (isEmpty(part.args))
 		diags ~= Diag(Diag.ExpectedPaths(some(part.tag)));
+	return buildArray!SingleBuildOutput(alloc, (scope ref Builder!SingleBuildOutput out_) {
+		foreach (CString arg; part.args) {
+			Opt!SingleBuildOutput output = parseSingleBuildOut(cwd, os, diags, arg);
+			if (has(output))
+				out_ ~= force(output);
+		}
+	});
+}
 
-	Cell!(Opt!FilePath) outC;
-	Cell!(Opt!FilePath) outExe;
-	Cell!(Opt!FilePath) js;
-	Cell!(Opt!FilePath) nodeJs;
-	foreach (CString arg; part.args) {
-		Opt!PrefixAndRest optPrefix = tryRemoveColonPrefix(arg);
-		if (has(optPrefix)) {
-			PrefixAndRest pr = force(optPrefix);
-			switch (pr.prefix) {
-				case "js":
-					if (has(cellGet(js)))
-						diags ~= Diag(Diag.BuildOutDuplicate());
-					cellSet(js, parseFilePathWithCwd(cwd, pr.rest));
-					break;
-				case "node-js":
-					if (has(cellGet(nodeJs)))
-						diags ~= Diag(Diag.BuildOutDuplicate());
-					cellSet(nodeJs, parseFilePathWithCwd(cwd, pr.rest));
-					break;
-				default:
-					todo!void("DIAG: invalid prefix"); // ---------------------------------------------------------------------
-			}
-		} else {
-			FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, arg);
-			Extension extension = getExtension(path);
-			if (extension == Extension.c) {
-				if (has(cellGet(outC)))
-					diags ~= Diag(Diag.BuildOutDuplicate());
-				cellSet(outC, some(path));
-			} else {
-				if (has(cellGet(outExe)))
-					diags ~= Diag(Diag.BuildOutDuplicate());
-				if (extension != defaultExecutableExtension(os))
-					diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExecutableExtension(os)));
-				cellSet(outExe, some(path));
-			}
+Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags diags, in CString arg) {
+	Opt!PrefixAndRest optPrefix = trySplit(arg, ':');
+	if (has(optPrefix)) {
+		PrefixAndRest pr = force(optPrefix);
+		Opt!(SingleBuildOutput.Kind) kind = buildKindFromPrefix(pr.prefix);
+		if (has(kind))
+			return some(SingleBuildOutput(force(kind), parseFilePathWithCwdOrDiag(diags, cwd, pr.rest)));
+		else {
+			todo!void("DIAG: invalid prefix"); // -----------------------------------------------------------------------------------
+			return none!SingleBuildOutput;
+		}
+	} else {
+		FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, arg);
+		Extension extension = getExtension(path);
+		Opt!(SingleBuildOutput.Kind) kind = buildKindFromExtension(getExtension(path), os);
+		if (has(kind))
+			return some(SingleBuildOutput(force(kind), path));
+		else {
+			diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExecutableExtension(os)));
+			return none!SingleBuildOutput;
 		}
 	}
-	return BuildOut(outC: cellGet(outC), outExecutable: cellGet(outExe), js: cellGet(js), nodeJs: cellGet(nodeJs));
 }
-immutable struct PrefixAndRest {
-	string prefix; // Will not end in ':'
-	CString rest;
-}
-// TODO: this is just trySplitOnce ----------------------------------------------------------------------------------------------------
-Opt!PrefixAndRest tryRemoveColonPrefix(CString a) {
-	MutCString cur = a;
-	while (!cStringIsEmpty(cur)) {
-		if (*cur == ':') {
-			string prefix = stringOfRange(a, cur);
-			cur++;
-			return some(PrefixAndRest(prefix, cur));
-		}
-		cur++;
+
+Opt!(SingleBuildOutput.Kind) buildKindFromPrefix(in string prefix) {
+	switch (prefix) {
+		case "js":
+			return some(SingleBuildOutput.Kind.js);
+		case "node-js":
+			return some(SingleBuildOutput.Kind.nodeJs);
+		default:
+			return none!(SingleBuildOutput.Kind);
 	}
-	return none!PrefixAndRest;
 }
+Opt!(SingleBuildOutput.Kind) buildKindFromExtension(Extension extension, OS os) =>
+	extension == Extension.c
+	? some(SingleBuildOutput.Kind.c)
+	: extension == defaultExecutableExtension(os)
+	? some(SingleBuildOutput.Kind.executable)
+	: none!(SingleBuildOutput.Kind);
+
 
 FilePath parseFilePathWithCwdOrDiag(scope ref Diags diags, FilePath cwd, in CString arg) =>
 	optOrDefault!FilePath(parseFilePathWithCwd(cwd, arg), () {

@@ -330,6 +330,8 @@ immutable struct RelPath {
 	}
 
 	void writeTo(scope ref Writer writer) {
+		if (nParents == 0)
+			writer ~= "./";
 		foreach (ushort i; 0 .. nParents)
 			writer ~= "../";
 		writer ~= path;

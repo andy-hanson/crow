@@ -26,11 +26,10 @@ import backend.js.jsAst :
 	genIn,
 	genInstanceof,
 	genInteger,
-	genIntegerLarge,
 	genIntegerSigned,
 	genIntegerUnsigned,
 	genLet,
-	genMul,
+	genTimes,
 	genNew,
 	genNot,
 	genNotEqEq,
@@ -78,7 +77,6 @@ import backend.js.jsAst :
 	JsModuleAst,
 	JsName,
 	JsObjectDestructure,
-	JsObjectExpr,
 	JsParams,
 	JsPropertyAccessExpr,
 	JsReturnStatement,
@@ -266,8 +264,6 @@ TranslateToJsResult translateToJs(
 	OS os,
 	bool isNodeJs,
 ) {
-	// TODO: Start with the 'main' function to determine everything that is actually used. ------------------------------------------------
-	// We need to start with the modules with no dependencies and work down...
 	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
 	SymbolSet allExterns = allExternsForJs(isNodeJs: isNodeJs);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
@@ -282,7 +278,7 @@ TranslateToJsResult translateToJs(
 		allUsed,
 		modulePaths,
 		moduleExportMangledNames(alloc, program.program, allUsed));
-	
+
 	foreach (Module* module_; program.program.rootModules)
 		doTranslateModule(ctx, module_);
 	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
@@ -1857,7 +1853,7 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 	JsExpr round() =>
 		// JS round gives wrong results for negative numbers, so fix by only rounding positive
 		// Math.sign(arg) * Math.round(Math.abs(arg))
-		genMul(
+		genTimes(
 			alloc,
 			callMath(alloc, symbol!"sign", arg),
 			callMath(alloc, symbol!"round", callMath(alloc, symbol!"abs", arg)));

@@ -168,7 +168,6 @@ immutable struct JsExpr {
 		JsCallWithSpreadExpr,
 		JsLiteralBool,
 		JsLiteralInteger,
-		JsLiteralIntegerLarge,
 		JsLiteralNumber,
 		JsLiteralString,
 		JsLiteralStringFromSymbol,
@@ -176,7 +175,6 @@ immutable struct JsExpr {
 		JsNewExpr,
 		JsNullExpr,
 		JsObject1Expr,
-		JsObjectExpr,
 		JsPropertyAccessExpr,
 		JsPropertyAccessComputedExpr*,
 		JsTernaryExpr*,
@@ -231,9 +229,6 @@ immutable struct JsLiteralInteger {
 	bool isSigned;
 	IntegralValue value;
 }
-immutable struct JsLiteralIntegerLarge {
-	string value;
-}
 immutable struct JsLiteralNumber {
 	double value;
 }
@@ -251,13 +246,6 @@ immutable struct JsNullExpr {}
 immutable struct JsObject1Expr {
 	Symbol key;
 	JsExpr* value;
-}
-immutable struct JsObjectExpr {
-	immutable struct Pair {
-		Symbol key;
-		JsExpr value;
-	}
-	Pair[] pairs;
 }
 immutable struct JsPropertyAccessExpr {
 	JsExpr* object;
@@ -330,9 +318,7 @@ JsExpr genIntegerSigned(long value) =>
 	genInteger(true, IntegralValue(value));
 JsExpr genIntegerUnsigned(ulong value) =>
 	genInteger(false, IntegralValue(value));
-JsExpr genIntegerLarge(string value) => // TDO: UNSUED? -------------------------------------------------------------------------------
-	JsExpr(JsLiteralIntegerLarge(value));
-JsExpr genMul(ref Alloc alloc, JsExpr left, JsExpr right) => // TODO: calling this 'genMul' but the binary expr kind 'times' is inconsistent
+JsExpr genTimes(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	genBinary(alloc, JsBinaryExpr.Kind.times, left, right);
 JsExpr genNot(ref Alloc alloc, JsExpr arg) =>
 	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
@@ -380,8 +366,6 @@ JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initialize
 	genVarDecl(JsVarDecl.Kind.let, destructure, some(allocate(alloc, initializer)));
 JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
 	JsExpr(JsObject1Expr(name, allocate(alloc, value)));
-JsExpr genObject(JsObjectExpr.Pair[] pairs) => // TODO: is this version used? ----------------------------------------------------------
-	JsExpr(JsObjectExpr(pairs));
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
 JsExpr genString(Symbol value) =>

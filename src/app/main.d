@@ -12,7 +12,7 @@ version (Windows) {
 }
 
 import app.backtrace : writeBacktrace;
-import app.command : BuildOptions, BuildOut, Command, CommandKind, RunOptions;
+import app.command : BuildOptions, Command, CommandKind, RunOptions, SingleBuildOutput;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	cleanupCompile,
@@ -94,12 +94,12 @@ version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
-import util.col.array : isEmpty, prepend;
+import util.col.array : find, isEmpty, newArray, prepend;
 import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : ExitCode, exitCodeCombine, ExitCodeOrSignal, okAnd, Signal;
 import util.json : Json, jsonToString, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
-import util.opt : force, has, none, MutOpt, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, none, MutOpt, Opt, optIf, optOrDefault, some, someMut;
 import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
@@ -110,7 +110,8 @@ import util.uri :
 	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog, todo;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
-import versionInfo : getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions, versionOptionsForJs;
+import versionInfo :
+	getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionInfo, VersionOptions, versionOptionsForJs;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
@@ -451,9 +452,8 @@ ExitCodeOrSignal buildAndRun(
 	in RunOptions.Aot options,
 ) =>
 	withTempPath(main, defaultExecutableExtension(getOS()), (FilePath exePath) {
-		BuildOptions buildOptions = BuildOptions(
-			options.version_,
-			BuildOut(outExecutable: some(exePath)), options.compileOptions);
+		scope SingleBuildOutput[] outputs = [SingleBuildOutput(SingleBuildOutput.Kind.executable, exePath)];
+		scope BuildOptions buildOptions = BuildOptions(options.version_, outputs, options.compileOptions);
 		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
 			ExitCodeOrSignal res = runProgram(alloc, libs, PathAndArgs(exePath, programArgs));
 			// Doing this after 'runProgram' since that may use the '.pdb' file
@@ -471,12 +471,12 @@ ExitCodeOrSignal buildAndRunNode(
 	Uri main,
 	in CString[] programArgs,
 ) =>
-	withTempPath(main, Extension.none, (FilePath dir) =>
-		withBuild(
-			perf, alloc, server, cwd, main,
-			BuildOptions(versionOptionsForJs, BuildOut(nodeJs: some(dir)), CCompileOptions()),
-			(FilePath mainJs, in ExternLibraries _) =>
-				runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs))));
+	withTempPath(main, Extension.none, (FilePath dir) {
+		scope SingleBuildOutput[] outputs = [SingleBuildOutput(SingleBuildOutput.Kind.nodeJs, dir)];
+		scope BuildOptions buildOptions = BuildOptions(versionOptionsForJs, outputs, CCompileOptions());
+		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath mainJs, in ExternLibraries _) =>
+			runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs)));
+	});
 
 ExitCodeOrSignal withBuild(
 	scope ref Perf perf,
@@ -488,13 +488,24 @@ ExitCodeOrSignal withBuild(
 	// WARN: the C file will be deleted by the time this is called
 	in ExitCodeOrSignal delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
 ) {
-	if (has(options.out_.js) || has(options.out_.nodeJs)) {
-		if (has(options.out_.outC) || has(options.out_.outExecutable))
+	Opt!FilePath findPath(SingleBuildOutput.Kind kind) {
+		Opt!SingleBuildOutput s = find!SingleBuildOutput(options.out_, (in SingleBuildOutput x) => x.kind == kind);
+		return optIf(has(s), () => force(s).path);
+	}
+
+	// TODO: we should support building multiple things (while only doing frontend once!) -------------------------------------------------------------------
+	Opt!FilePath c = findPath(SingleBuildOutput.Kind.c);
+	Opt!FilePath exe = findPath(SingleBuildOutput.Kind.executable);
+	Opt!FilePath js = findPath(SingleBuildOutput.Kind.js);
+	Opt!FilePath nodeJs = findPath(SingleBuildOutput.Kind.nodeJs);
+
+	if (has(js) || has(nodeJs)) {
+		if (has(c) || has(exe))
 			todo!void("TODO: support both JS and other build"); // ----------------------------------------------------------------
-		if (has(options.out_.js) && has(options.out_.nodeJs))
+		if (has(js) && has(nodeJs))
 			todo!void("Support both JS output"); // -------------------------------------------------------------------------------
-		FilePath out_ = optOrDefault!FilePath(options.out_.js, () => force(options.out_.nodeJs));
-		BuildToJsResult result = buildToJs(perf, alloc, server, getOS(), main, isNodeJs: has(options.out_.nodeJs));
+		FilePath out_ = optOrDefault!FilePath(js, () => force(nodeJs));
+		BuildToJsResult result = buildToJs(perf, alloc, server, getOS(), main, isNodeJs: has(nodeJs));
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics
@@ -503,16 +514,18 @@ ExitCodeOrSignal withBuild(
 				ExitCodeOrSignal(writeFilesToDir(out_, result.result.outputFiles)),
 				() => cb(concatFilePathAndPath(out_, result.result.mainJs), []));
 	} else
-		return withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
-			withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
-				okAnd(
-					ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource)),
-					() => ExitCodeOrSignal(has(options.out_.outExecutable)
-						? withMeasure!(ExitCode, () =>
-							runCompiler(alloc, result.writeToCResult.compileCommand)
-						)(perf, alloc, PerfMeasure.invokeCCompiler)
-						: ExitCode.ok),
-					() => cb(cPath, result.externLibraries))));
+		return withPathOrTemp(c, main, Extension.c, (FilePath cPath) =>
+			withBuildToC(
+				perf, alloc, server, main, exe, cPath, options.cCompileOptions, options.version_,
+				(in BuildToCResult result) =>
+					okAnd(
+						ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource)),
+						() => ExitCodeOrSignal(has(exe)
+							? withMeasure!(ExitCode, () =>
+								runCompiler(alloc, result.writeToCResult.compileCommand)
+							)(perf, alloc, PerfMeasure.invokeCCompiler)
+							: ExitCode.ok),
+						() => cb(cPath, result.externLibraries))));
 }
 
 ExitCodeOrSignal withBuildToC(
@@ -520,8 +533,10 @@ ExitCodeOrSignal withBuildToC(
 	ref Alloc alloc,
 	ref Server server,
 	Uri main,
-	in BuildOptions options,
+	Opt!FilePath exe,
 	FilePath cPath,
+	in CCompileOptions cCompileOptions,
+	in VersionOptions version_,
 	in ExitCodeOrSignal delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
 	Opt!FilePath cCompiler = findPathToCCompiler();
@@ -529,9 +544,9 @@ ExitCodeOrSignal withBuildToC(
 		OS os = getOS();
 		WriteToCParams params = WriteToCParams(
 			force(cCompiler), cPath,
-			optOrDefault!FilePath(options.out_.outExecutable, () => defaultExecutablePath(cPath, os)),
-			options.cCompileOptions);
-		BuildToCResult result = buildToC(perf, alloc, server, os, main, options.version_, params);
+			optOrDefault!FilePath(exe, () => defaultExecutablePath(cPath, os)),
+			cCompileOptions);
+		BuildToCResult result = buildToC(perf, alloc, server, os, main, version_, params);
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics ? ExitCodeOrSignal.error : cb(result);

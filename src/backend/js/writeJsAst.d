@@ -53,7 +53,6 @@ import backend.js.jsAst :
 	JsImport,
 	JsLiteralBool,
 	JsLiteralInteger,
-	JsLiteralIntegerLarge,
 	JsLiteralNumber,
 	JsLiteralString,
 	JsLiteralStringFromSymbol,
@@ -63,7 +62,6 @@ import backend.js.jsAst :
 	JsNullExpr,
 	JsObjectDestructure,
 	JsObject1Expr,
-	JsObjectExpr,
 	JsParams,
 	JsPropertyAccessExpr,
 	JsPropertyAccessComputedExpr,
@@ -163,7 +161,7 @@ bool needsMangle(Symbol a) {
 			return true;
 	return isJsKeyword(a);
 }
-bool isJsKeyword(Symbol a) {	
+bool isJsKeyword(Symbol a) {
 	switch (a.value) {
 		case symbol!"await".value:
 		case symbol!"case".value:
@@ -241,15 +239,9 @@ void writeImportOrReExport(scope ref Writer writer, in string importOrExport, in
 	writer ~= "\n";
 }
 
-//TODO:MOVE? --------------------------------------------------------------------------------------------------------------------------
 void writeQuotedRelPath(scope ref Writer writer, RelPath path) {
 	writer ~= '"';
-	if (path.nParents == 0)
-		writer ~= "./";
-	else
-		foreach (uint i; 0 .. path.nParents)
-			writer ~= "../";
-	writer ~= path.path;
+	writer ~= path;
 	writer ~= '"';
 }
 
@@ -358,11 +350,13 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 		},
 		(in JsObjectDestructure x) {
 			writer ~= "{ ";
-			writeWithCommas!(KeyValuePair!(Symbol, JsDestructure))(writer, x.fields, (in KeyValuePair!(Symbol, JsDestructure) pair) {
-				writeObjectKey(writer, pair.key);
-				writer ~= ": ";
-				writeDestructure(writer, pair.value);
-			});
+			writeWithCommas!(KeyValuePair!(Symbol, JsDestructure))(
+				writer, x.fields,
+				(in KeyValuePair!(Symbol, JsDestructure) pair) {
+					writeObjectKey(writer, pair.key);
+					writer ~= ": ";
+					writeDestructure(writer, pair.value);
+				});
 			writer ~= " }";
 		});
 }
@@ -659,10 +653,6 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 				writer ~= x.value.asUnsigned;
 			writer ~= 'n';
 		},
-		(in JsLiteralIntegerLarge x) {
-			writer ~= x.value;
-			writer ~= 'n';
-		},
 		(in JsLiteralNumber x) {
 			writeFloatLiteral(writer, x.value, infinity: "Number.POSITIVE_INFINITY", nan: "Number.NaN");
 		},
@@ -691,16 +681,6 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			assert(!pos.isStartOfStatement);
 			writer ~= "{ ";
 			writeObjectPair(writer, indent, x.key, *x.value);
-			writer ~= " }";
-		},
-		(in JsObjectExpr x) {
-			assert(!pos.isStartOfStatement);
-			writer ~= "{";
-			writeNewline(writer, indent + 1);
-			writeWithCommasAndNewlines!(JsObjectExpr.Pair)(writer, indent + 1, x.pairs, (in JsObjectExpr.Pair pair) {
-				writeObjectPair(writer, indent + 1, pair.key, pair.value);
-			});
-			writeNewline(writer, indent);
 			writer ~= " }";
 		},
 		(in JsPropertyAccessExpr x) {

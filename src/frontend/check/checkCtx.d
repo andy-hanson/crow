@@ -114,7 +114,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
 		if (import_.isStd) {
-			import_.imported = collectImported(ctx, import_); // TODO: What's the performance effect? Maybe this should only be done for a JS build?
+			import_.imported = collectImported(ctx, import_);
 			continue;
 		}
 

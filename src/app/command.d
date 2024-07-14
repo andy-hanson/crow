@@ -75,13 +75,12 @@ immutable struct RunOptions {
 
 immutable struct BuildOptions {
 	VersionOptions version_;
-	BuildOut out_;
+	SingleBuildOutput[] out_;
 	CCompileOptions cCompileOptions;
 }
 
-immutable struct BuildOut {
-	Opt!FilePath outC; // If this is 'none', use a temporary file
-	Opt!FilePath outExecutable;
-	Opt!FilePath js;
-	Opt!FilePath nodeJs;
+immutable struct SingleBuildOutput {
+	enum Kind { c, executable, js, nodeJs }
+	Kind kind;
+	FilePath path;
 }
