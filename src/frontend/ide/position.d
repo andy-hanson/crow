@@ -2,6 +2,7 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
+import frontend.frontendUtil : ExprRef;
 import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
@@ -226,11 +227,6 @@ immutable struct ExpressionPosition {
 	ExprContainer container;
 	ExprRef expr;
 	ExpressionPositionKind kind;
-}
-
-immutable struct ExprRef {
-	Expr* expr;
-	Type type;
 }
 
 immutable struct ExpressionPositionKind {

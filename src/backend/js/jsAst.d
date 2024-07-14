@@ -27,16 +27,6 @@ immutable struct JsModuleAst {
 immutable struct JsName {
 	Symbol crowName;
 	Opt!ushort mangleIndex;
-
-	@safe @nogc pure nothrow:
-	this(Symbol cn, Opt!ushort mi = none!ushort) { // RM --------------------------------------------------------------------------------------------------
-		crowName = cn;
-		mangleIndex = mi;
-		// Test for iteration errors
-		foreach (dchar x; crowName) {
-			assert(true);
-		}
-	}
 }
 static assert(JsName.sizeof == ulong.sizeof);
 
@@ -57,7 +47,7 @@ immutable struct JsDeclKind {
 	mixin Union!(JsClassDecl, JsExpr, Let);
 }
 immutable struct JsClassDecl {
-	Opt!(JsExpr*) extends; 
+	Opt!(JsExpr*) extends;
 	JsClassMember[] members;
 }
 immutable struct JsClassMember {
@@ -136,7 +126,8 @@ immutable struct JsReturnStatement {
 immutable struct JsSwitchStatement {
 	immutable struct Case {
 		JsExpr value;
-		// Technically un-blocked statements are allowed, but it's safer to force braces around them so they have a scope
+		// Technically un-blocked statements are allowed,
+		// but it's safer to force braces around them so they have a scope
 		JsBlockStatement then;
 	}
 

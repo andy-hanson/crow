@@ -7,6 +7,7 @@ import frontend.lang : CCompileOptions, CVersion, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
 import util.alloc.alloc : Alloc;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : copyArray, findIndex, isEmpty, map, only;
 import util.col.arrayBuilder : buildArray, Builder, finish;
@@ -14,7 +15,17 @@ import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : CString, cString, cStringIsEmpty, endsWith, isDecimalDigit, MutCString, startsWith, stringOfCString, stringOfRange, tryTakeChar;
+import util.string :
+	CString,
+	cString,
+	cStringIsEmpty,
+	endsWith,
+	isDecimalDigit,
+	MutCString,
+	startsWith,
+	stringOfCString,
+	stringOfRange,
+	tryTakeChar;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :
@@ -28,7 +39,7 @@ import util.uri :
 	Uri,
 	uriIsFile;
 import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, todo, typeAs;
-import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
+import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer, writeWithCommasAndAnd;
 import versionInfo : OS, VersionOptions;
 
 Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
@@ -108,7 +119,14 @@ immutable struct Diag {
 	immutable struct UnexpectedPart { CString tag; }
 	immutable struct UnexpectedPartArgs { ArgsPart part; }
 	immutable struct UnexpectedBefore { CString arg; }
-	immutable struct RunAotAndJit {}
+	immutable struct RunArgNotSupportedInNodeJs {
+		string arg;
+	}
+	immutable struct RunKindIncompatible {
+		bool aot;
+		bool jit;
+		bool nodeJs;
+	}
 	immutable struct RunOptimizeNeedsAotOrJit {}
 
 	mixin Union!(
@@ -123,7 +141,8 @@ immutable struct Diag {
 		UnexpectedPart,
 		UnexpectedPartArgs,
 		UnexpectedBefore,
-		RunAotAndJit,
+		RunArgNotSupportedInNodeJs,
+		RunKindIncompatible,
 		RunOptimizeNeedsAotOrJit);
 }
 alias Diags = Builder!Diag;
@@ -190,8 +209,26 @@ void writeDiag(scope ref Writer writer, in Diag a) {
 			writeQuotedString(writer, x.arg);
 			writer ~= '.';
 		},
-		(in Diag.RunAotAndJit) {
-			writer ~= "Can't specify both '--aot' and '--jit'.";
+		(in Diag.RunArgNotSupportedInNodeJs x) {
+			writer ~= "Running with node.js does not support the '";
+			writer ~= x.arg;
+			writer ~= "' option.";
+		},
+		(in Diag.RunKindIncompatible x) {
+			writer ~= "Can not specify both ";
+			withBuildStackArray!(void, string)(
+				(ref StackArrayBuilder!string out_) {
+					if (x.aot) out_ ~= "aot";
+					if (x.jit) out_ ~= "jit";
+					if (x.nodeJs) out_ ~= "nodeJs";
+				},
+				(scope string[] kinds) {
+					writeWithCommasAndAnd!string(writer, kinds, (in string kind) {
+						writer ~= "'--";
+						writer ~= kind;
+						writer ~= "'";
+					});
+				});
 		},
 		(in Diag.RunOptimizeNeedsAotOrJit) {
 			writer ~= "'--optimize' must be combined with '--aot' or '--jit'.";
@@ -416,11 +453,12 @@ RunOptions parseRunOptions(ref Alloc alloc, OS os, scope ref Diags diags, in Arg
 	}
 
 	if ((uint(aot) + jit + nodeJs) > 1)
-		diags ~= Diag(Diag.RunAotAndJit()); // TODO: RENAME IT ------------------------------------------------------------------
+		diags ~= Diag(Diag.RunKindIncompatible(aot: aot, jit: jit, nodeJs: nodeJs));
 	if (!aot && !jit && optimize)
 		diags ~= Diag(Diag.RunOptimizeNeedsAotOrJit());
 	if (nodeJs && (singleThreaded || optimize || noStackTrace))
-		todo!void("DIAG: these options are not compatible with node.js"); // -------------------------------------------------
+		diags ~= Diag(Diag.RunArgNotSupportedInNodeJs(
+			singleThreaded ? "--single-threaded" : optimize ? "--optimize" : "--no-stack-trace"));
 
 	VersionOptions version_ = VersionOptions(isSingleThreaded: singleThreaded, stackTraceEnabled: !noStackTrace);
 	return aot

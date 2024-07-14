@@ -2,7 +2,8 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, Position, PositionKind;
+import frontend.frontendUtil : ExprRef;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, Position, PositionKind;
 import frontend.showModel :
 	ShowModelCtx,
 	writeCalled,

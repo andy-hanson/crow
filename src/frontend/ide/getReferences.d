@@ -2,20 +2,12 @@ module frontend.ide.getReferences;
 
 @safe @nogc pure nothrow:
 
+import frontend.frontendUtil :
+	eachDescendentExprExcluding, eachDescendentExprIncluding, ExprRef, funBodyExprRef, testBodyExprRef;
 import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : Target, targetForPosition;
-import frontend.ide.ideUtil :
-	eachFunSpec,
-	eachSpecParent,
-	eachTypeComponent,
-	eachDescendentExprExcluding,
-	eachDescendentExprIncluding,
-	eachPackedTypeArg,
-	funBodyExprRef,
-	ReferenceCb,
-	testBodyExprRef,
-	TypeCb;
-import frontend.ide.position : ExprContainer, ExprRef, Position, PositionKind;
+import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, ReferenceCb, TypeCb;
+import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
 	AssertOrForbidAst,
 	AssignmentAst,

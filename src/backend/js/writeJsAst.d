@@ -87,7 +87,14 @@ import util.opt : force, has, none, Opt, some;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : Path, RelPath, Uri;
 import util.util : stringOfEnum, todo;
-import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas, writeWithCommasAndNewlines;
+import util.writer :
+	makeStringWithWriter,
+	writeFloatLiteral,
+	writeNewline,
+	writeQuotedString,
+	Writer,
+	writeWithCommas,
+	writeWithCommasAndNewlines;
 
 string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {

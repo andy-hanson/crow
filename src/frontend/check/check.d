@@ -105,7 +105,7 @@ import util.util : enumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
 	Uri uri;
-	Config* config; // TODO: rename UriAndAst then? -----------------------------------------------------------------------------------
+	Config* config;
 	FileAst* ast;
 }
 

@@ -109,7 +109,9 @@ Called checkSpecSingleSigIgnoreParents2(
 				LocalsInfo locals;
 				bool ok = checkCalled(ctx, diagRange, res, callerFlags, callerExterns, locals, ArgsKind.nonEmpty, () =>
 					allowsUnsafe(callerFlags.safety));
-				return ok ? res : Called(allocate(ctx.alloc, Called.Bogus(toCalledDecl(res), res.returnType, res.paramTypes)));
+				return ok
+					? res
+					: Called(allocate(ctx.alloc, Called.Bogus(toCalledDecl(res), res.returnType, res.paramTypes)));
 			}
 		}));
 }

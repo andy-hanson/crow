@@ -276,6 +276,23 @@ void writeWithCommas(T)(scope ref Writer writer, in T[] a, in void delegate(in T
 	writeWithSeparator!T(writer, a, ", ", cb);
 }
 
+void writeWithCommasAndAnd(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	if (a.length == 2) {
+		cb(a[0]);
+		writer ~= " and ";
+		cb(a[1]);
+	} else {
+		foreach (size_t i; 0 .. a.length) {
+			if (i != 0) {
+				writer ~= ", ";
+				if (i == a.length - 1)
+					writer ~= "and ";
+			}
+			cb(a[i]);
+		}
+	}
+}
+
 void writeWithCommasCompact(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ",", cb);
 }

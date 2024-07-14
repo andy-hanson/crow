@@ -2,14 +2,13 @@ module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.ideUtil :
-	findInPackedTypeArgs, eachTypeComponent, findDirectChildExpr, funBodyExprRef, specsMatch, testBodyExprRef;
+import frontend.frontendUtil : ExprRef, findDirectChildExpr, funBodyExprRef, testBodyExprRef;
+import frontend.ide.ideUtil : findInPackedTypeArgs, eachTypeComponent, specsMatch;
 import frontend.ide.position :
 	ExpressionPosition,
 	ExpressionPositionKind,
 	ExprContainer,
 	ExprKeyword,
-	ExprRef,
 	LocalContainer,
 	Position,
 	PositionKind,

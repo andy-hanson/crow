@@ -16,7 +16,6 @@ import app.command : BuildOptions, BuildOut, Command, CommandKind, RunOptions;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	cleanupCompile,
-	ExitCodeOrSignal,
 	findPathToCCompiler,
 	getCwd,
 	getPathToThisExecutable,
@@ -24,7 +23,6 @@ import app.fileSystem :
 	printCb,
 	printError,
 	printErrorCb,
-	Signal,
 	readExactFromStdin,
 	readLineFromStdin,
 	runCompiler,
@@ -98,7 +96,7 @@ version (Test) {
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.array : isEmpty, prepend;
 import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
-import util.exitCode : ExitCode, exitCodeCombine, okAnd;
+import util.exitCode : ExitCode, exitCodeCombine, ExitCodeOrSignal, okAnd, Signal;
 import util.json : Json, jsonToString, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.opt : force, has, none, MutOpt, Opt, optOrDefault, some, someMut;
@@ -130,14 +128,18 @@ import versionInfo : getOS, OS, versionInfoForInterpret, versionInfoForJIT, Vers
 	Command command = parseCommand(*alloc, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
-	int res = go(perf, *alloc, *server, cwd, thisExecutable, command.kind).value;
+	ExitCodeOrSignal res = go(perf, *alloc, *server, cwd, thisExecutable, command.kind);
 	if (isEnabled(perf)) {
 		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, *server));
 			print(jsonToString(alloc, report));
 		});
 	}
-	return res;
+	return res.matchImpure!int(
+		(in ExitCode x) =>
+			x.value,
+		(in Signal x) @trusted =>
+			raise(x.signal));
 }
 
 private:
@@ -306,7 +308,7 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	}
 }
 
-ExitCode go(
+ExitCodeOrSignal go(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -314,62 +316,64 @@ ExitCode go(
 	FilePath thisExecutable,
 	in CommandKind command,
 ) =>
-	command.matchImpure!ExitCode(
+	command.matchImpure!ExitCodeOrSignal(
 		(in CommandKind.Build x) {
 			loadAllFiles(perf, server, [x.mainUri]);
 			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FilePath _, in ExternLibraries _2) =>
-				ExitCode.ok);
+				ExitCodeOrSignal.ok);
 		},
 		(in CommandKind.Check x) {
 			loadAllFiles(perf, server, x.rootUris);
 			string diags = check(perf, alloc, server, x.rootUris);
-			return isEmpty(diags) ? print("OK") : printError(diags);
+			return ExitCodeOrSignal(isEmpty(diags) ? print("OK") : printError(diags));
 		},
 		(in CommandKind.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
 			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
-			return isEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
+			return ExitCodeOrSignal(isEmpty(result.diagnostics)
+				? print(result.document)
+				: printError(result.diagnostics));
 		},
 		(in CommandKind.Help x) {
 			print(x.helpText);
-			return x.exitCode;
+			return ExitCodeOrSignal(x.exitCode);
 		},
 		(in CommandKind.Lsp) =>
-			runLsp(server, thisExecutable),
+			ExitCodeOrSignal(runLsp(server, thisExecutable)),
 		(in CommandKind.Print x) =>
-			doPrint(perf, alloc, server, x),
+			ExitCodeOrSignal(doPrint(perf, alloc, server, x)),
 		(in CommandKind.Run x) =>
 			run(perf, alloc, server, cwd, x),
 		(in CommandKind.Test x) {
 			version (Test)
-				return test(server.metaAlloc, x.names);
+				return ExitCodeOrSignal(test(server.metaAlloc, x.names));
 			else
-				return printError("Did not compile with tests");
+				return ExitCodeOrSignal(printError("Did not compile with tests"));
 		},
 		(in CommandKind.Version) =>
-			printCb((scope ref Writer writer) {
+			ExitCodeOrSignal(printCb((scope ref Writer writer) {
 				writeJsonPretty(writer, version_(alloc, server, thisExecutable), 0);
-			}));
+			})));
 
-ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
+ExitCodeOrSignal run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
-	return run.options.matchImpure!ExitCode(
+	return run.options.matchImpure!ExitCodeOrSignal(
 		(in RunOptions.Aot x) =>
 			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x),
 		(in RunOptions.Interpret x) =>
-			withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
+			ExitCodeOrSignal(withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
 				buildAndInterpret(
 					perf, server, extern_,
 					(in string x) { printError(x); },
 					run.mainUri, x.version_, none!(Uri[]),
-					getAllArgs(alloc, server, run))),
+					getAllArgs(alloc, server, run)))),
 		(in RunOptions.Jit x) {
 			version (GccJitAvailable) {
 				CString[] args = getAllArgs(alloc, server, run);
-				return buildAndJit(perf, alloc, server, x, run.mainUri, args);
+				return ExitCodeOrSignal(buildAndJit(perf, alloc, server, x, run.mainUri, args));
 			} else {
 				printError("This build does not support '--jit'");
-				return ExitCode.error;
+				return ExitCodeOrSignal(ExitCode.error);
 			}
 		},
 		(in RunOptions.NodeJs) =>
@@ -437,7 +441,7 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 	return isEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
-ExitCode buildAndRun(
+ExitCodeOrSignal buildAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -445,9 +449,8 @@ ExitCode buildAndRun(
 	Uri main,
 	in CString[] programArgs,
 	in RunOptions.Aot options,
-) {
-	MutOpt!int signal;
-	ExitCode exitCode = withTempPath(main, defaultExecutableExtension(getOS()), (FilePath exePath) {
+) =>
+	withTempPath(main, defaultExecutableExtension(getOS()), (FilePath exePath) {
 		BuildOptions buildOptions = BuildOptions(
 			options.version_,
 			BuildOut(outExecutable: some(exePath)), options.compileOptions);
@@ -456,48 +459,26 @@ ExitCode buildAndRun(
 			// Doing this after 'runProgram' since that may use the '.pdb' file
 			ExitCode cleanup = cleanupCompile(cwd, cPath, exePath);
 			// Delay aborting with the signal so we can clean up temp files
-			return res.match!ExitCode(
-				(ExitCode x) =>
-					exitCodeCombine(x, cleanup),
-				(Signal x) {
-					signal = someMut!int(x.signal);
-					return ExitCode.error;
-				});
+			return exitCodeCombine(res, cleanup);
 		});
 	});
-	() @trusted {
-		if (has(signal))
-			raise(force(signal));
-	}();
-	return exitCode;
-}
 
-ExitCode buildAndRunNode( // TODO:SHARE CODE WITH buildAndRun -----------------------------------------------------------------------
+ExitCodeOrSignal buildAndRunNode(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	FilePath cwd,
 	Uri main,
 	in CString[] programArgs,
-) {
-	MutOpt!int signal;
-	ExitCode exitCode = withTempPath(main, Extension.none, (FilePath dir) =>
-		withBuild(perf, alloc, server, cwd, main, BuildOptions(versionOptionsForJs, BuildOut(nodeJs: some(dir)), CCompileOptions()), (FilePath mainJs, in ExternLibraries _) =>
-			runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs)).match!ExitCode(
-				(ExitCode x) =>
-					x,
-				(Signal x) {
-					signal = someMut!int(x.signal);
-					return ExitCode.error;
-				})));
-	() @trusted { // TODO: DUP CODE -----------------------------------------------------------------------------------------------------------------
-		if (has(signal))
-			raise(force(signal));
-	}();
-	return exitCode;
-}
+) =>
+	withTempPath(main, Extension.none, (FilePath dir) =>
+		withBuild(
+			perf, alloc, server, cwd, main,
+			BuildOptions(versionOptionsForJs, BuildOut(nodeJs: some(dir)), CCompileOptions()),
+			(FilePath mainJs, in ExternLibraries _) =>
+				runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs))));
 
-ExitCode withBuild(
+ExitCodeOrSignal withBuild(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -505,7 +486,7 @@ ExitCode withBuild(
 	Uri main,
 	in BuildOptions options,
 	// WARN: the C file will be deleted by the time this is called
-	in ExitCode delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
+	in ExitCodeOrSignal delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
 ) {
 	if (has(options.out_.js) || has(options.out_.nodeJs)) {
 		if (has(options.out_.outC) || has(options.out_.outExecutable))
@@ -517,31 +498,31 @@ ExitCode withBuild(
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics
-			? ExitCode.error
+			? ExitCodeOrSignal.error
 			: okAnd(
-				writeFilesToDir(out_, result.result.outputFiles),
+				ExitCodeOrSignal(writeFilesToDir(out_, result.result.outputFiles)),
 				() => cb(concatFilePathAndPath(out_, result.result.mainJs), []));
 	} else
 		return withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
 			withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
-				okAnd(writeFile(cPath, result.writeToCResult.cSource), () =>
-					okAnd(
-						has(options.out_.outExecutable)
-							? withMeasure!(ExitCode, () =>
-								runCompiler(alloc, result.writeToCResult.compileCommand)
-							)(perf, alloc, PerfMeasure.invokeCCompiler)
-							: ExitCode.ok,
-						() => cb(cPath, result.externLibraries)))));
+				okAnd(
+					ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource)),
+					() => ExitCodeOrSignal(has(options.out_.outExecutable)
+						? withMeasure!(ExitCode, () =>
+							runCompiler(alloc, result.writeToCResult.compileCommand)
+						)(perf, alloc, PerfMeasure.invokeCCompiler)
+						: ExitCode.ok),
+					() => cb(cPath, result.externLibraries))));
 }
 
-ExitCode withBuildToC(
+ExitCodeOrSignal withBuildToC(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	Uri main,
 	in BuildOptions options,
 	FilePath cPath,
-	in ExitCode delegate(in BuildToCResult) @safe @nogc nothrow cb,
+	in ExitCodeOrSignal delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
 	Opt!FilePath cCompiler = findPathToCCompiler();
 	if (has(cCompiler)) {
@@ -553,9 +534,9 @@ ExitCode withBuildToC(
 		BuildToCResult result = buildToC(perf, alloc, server, os, main, options.version_, params);
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);
-		return result.hasFatalDiagnostics ? ExitCode.error : cb(result);
+		return result.hasFatalDiagnostics ? ExitCodeOrSignal.error : cb(result);
 	} else
-		return ExitCode.error;
+		return ExitCodeOrSignal.error;
 }
 
 version (GccJitAvailable) ExitCode buildAndJit(

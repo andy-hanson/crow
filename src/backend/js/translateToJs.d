@@ -91,8 +91,7 @@ import backend.js.jsAst :
 	JsVarDecl,
 	JsWhileStatement;
 import backend.js.writeJsAst : writeJsAst;
-import frontend.ide.ideUtil : eachDescendentExprIncluding;
-import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted; // ---------------------------------------------------------------------------------
+import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted;
 import frontend.storage : FileContentGetters;
 import model.ast : addExtension, ImportOrExportAstKind, PathOrRelPath;
 import model.constant : asBool, asInt64, asNat64, Constant;

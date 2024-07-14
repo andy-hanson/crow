@@ -2,9 +2,8 @@ module backend.js.allUsed;
 
 @safe @nogc pure nothrow:
 
+import frontend.frontendUtil : eachDirectChildExpr, ExprRef, funBodyExprRef, testBodyExprRef;
 import frontend.ide.getReferences : getCalledAtExpr;
-import frontend.ide.ideUtil : eachDirectChildExpr; // TODO: MOVE ------------------------------------------------------------------------
-import frontend.ide.position : ExprRef; // TODO: MOVE ------------------------------------------------------------------------
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -382,7 +381,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				usedReturnType();
 			},
 			(Expr _) {
-				trackAllUsedInExprRef(res, a.moduleUri, ExprRef(&a.body_.as!Expr(), a.returnType));
+				trackAllUsedInExprRef(res, a.moduleUri, funBodyExprRef(a));
 			},
 			(FunBody.Extern _) {
 				import util.writer : debugLogWithWriter, Writer; // --------------------------------------------------------------------------
@@ -412,7 +411,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 }
 void trackAllUsedInTest(ref AllUsedBuilder res, Uri from, Test* test) {
 	if (addDecl(res, from, AnyDecl(test)))
-		trackAllUsedInExprRef(res, test.moduleUri, ExprRef(&test.body_, Type(res.commonTypes.void_)));
+		trackAllUsedInExprRef(res, test.moduleUri, testBodyExprRef(res.commonTypes, test));
 }
 void trackAllUsedInDestructures(ref AllUsedBuilder res, Uri from, in Destructure[] a) {
 	foreach (Destructure x; a)

@@ -2,7 +2,8 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, PositionKind;
+import frontend.frontendUtil : ExprRef;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
 	AutoFun,

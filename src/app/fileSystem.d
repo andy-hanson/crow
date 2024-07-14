@@ -66,7 +66,7 @@ import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : Map;
 import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
-import util.exitCode : ExitCode, okAnd, onError;
+import util.exitCode : eachUntilError, ExitCode, ExitCodeOrSignal, okAnd, onError, Signal;
 import util.memory : memset;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString, stringOfCString;
@@ -278,29 +278,33 @@ private ExitCode removeFileIfExists(FilePath path) =>
 This doesn't create the path, 'cb' should do that.
 But if it is a temp path, this deletes it after the callback finishes.
 */
-ExitCode withPathOrTemp(
+ExitCodeOrSignal withPathOrTemp(
 	Opt!FilePath path,
 	Uri tempBasePath,
 	Extension extension,
-	in ExitCode delegate(FilePath) @safe @nogc nothrow cb,
+	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
 ) =>
 	has(path)
 		? cb(force(path))
 		: withTempPath(tempBasePath, extension, cb);
 
-ExitCode withTempPath(Uri tempBasePath, Extension extension, in ExitCode delegate(FilePath) @safe @nogc nothrow cb) {
+ExitCodeOrSignal withTempPath(
+	Uri tempBasePath,
+	Extension extension,
+	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
+) {
 	if (uriIsFile(tempBasePath)) {
 		ubyte[8] bytes = getRandomBytes();
 		FilePath tempPath = alterExtensionWithHex(asFilePath(tempBasePath), bytes, extension);
-		ExitCode exit = cb(tempPath);
-		ExitCode exit2 = removeFileOrDirectoryIfExists(tempPath);
+		ExitCodeOrSignal exit = cb(tempPath);
+		ExitCodeOrSignal exit2 = ExitCodeOrSignal(removeFileOrDirectoryIfExists(tempPath));
 		return okAnd(exit, () => exit2);
 	} else
-		return printErrorCb((scope ref Writer writer) {
+		return ExitCodeOrSignal(printErrorCb((scope ref Writer writer) {
 			writer ~= "Don't know where to put temporary file near ";
 			writer ~= tempBasePath;
 			writer ~= " (since it is not a file path)";
-		});
+		}));
 }
 
 private @trusted ubyte[8] getRandomBytes() {
@@ -465,21 +469,6 @@ private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path) {
 	assert(size > 0 && size < res.length);
 	res[size] = '\0';
 	return parseFilePath(CString(cast(immutable) res.ptr));
-}
-
-immutable struct Signal {
-	@safe @nogc pure nothrow:
-
-	int signal;
-
-	uint asUintForTaggedUnion() =>
-		cast(uint) signal;
-	static Signal fromUintForTaggedUnion(uint a) =>
-		Signal(cast(int) a);
-}
-
-immutable struct ExitCodeOrSignal {
-	mixin TaggedUnion!(ExitCode, Signal);
 }
 
 private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
@@ -657,14 +646,9 @@ private @trusted ExitCodeOrSignal runCommon(
 ExitCode writeFilesToDir(FilePath baseDir, in PathAndContent[] files) =>
 	// First, build the directories we need.
 	// Make sure to build from the bottom up.
-	okAnd(buildDirectoriesForFiles(baseDir, files), () {
-		foreach (PathAndContent file; files) {
-			ExitCode ok = writeFile(concatFilePathAndPath(baseDir, file.path), file.content);
-			if (ok != ExitCode.ok) // TODO: NEATER ---------------------------------------------------------------------------------------
-				return ok;
-		}
-		return ExitCode.ok;
-	});
+	okAnd(buildDirectoriesForFiles(baseDir, files), () =>
+		eachUntilError!PathAndContent(files, (ref PathAndContent file) =>
+			writeFile(concatFilePathAndPath(baseDir, file.path), file.content)));
 
 private:
 
@@ -681,15 +665,10 @@ ExitCode buildDirectoriesForFiles(FilePath baseDir, in PathAndContent[] files) =
 					return ExitCode.ok;
 			}
 
-			foreach (PathAndContent file; files) {
+			return eachUntilError!PathAndContent(files, (ref PathAndContent file) {
 				Opt!Path par = parent(file.path);
-				if (has(par)) {
-					ExitCode x = ensureDir(force(par));
-					if (x != ExitCode.ok) // TODO: neater --------------------------------------------------------------------------
-						return x;
-				}
-			}
-			return ExitCode.ok;
+				return has(par) ? ensureDir(force(par)) : ExitCode.ok;
+			});
 		});
 	});
 

@@ -46,7 +46,7 @@ struct LambdaInfo {
 }
 
 struct LocalsInfo {
-	size_t countAllAccessibleLocals; // all locals in outer lambdas, even those not yet closed over (TODO: this is never used????)
+	size_t countAllAccessibleLocals; // all locals in outer lambdas, even those not yet closed over
 	MutOpt!(LambdaInfo*) lambda;
 	MutOpt!(LocalNode*) locals;
 }
