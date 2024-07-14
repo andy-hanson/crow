@@ -13,20 +13,21 @@ import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newSmallArray, only, small;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push;
-import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
+import util.col.mutMap : getOrAdd, mapToArray, MutMap, size, values;
+import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : copyToCString, CString;
-import util.symbol : stringOfSymbol, Symbol;
+import util.symbol : stringOfSymbol, Symbol, withStringOfSymbol;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
 	MutMap!(immutable string, Constant.CString) cStrings;
-	MutMap!(Symbol, Constant) symbols;
+	MutMap!(Symbol, Constant.CString) symbols;
 	MutArr!CString cStringValues;
 	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
 	MutMap!(ConcreteStruct*, PointerTypeAndConstants) pointers;
@@ -49,7 +50,8 @@ AllConstantsConcrete finishAllConstants(
 	scope ref AllConstantsBuilder a,
 	ConcreteStruct* symbolArrayStruct,
 ) {
-	Constant staticSymbols = getConstantArray(alloc, a, symbolArrayStruct, valuesArray(alloc, a.symbols));
+	Constant staticSymbols = getConstantArray(alloc, a, symbolArrayStruct, mapToArray!(Constant, Symbol, Constant.CString)(alloc, a.symbols, (Symbol _, ref Constant.CString v) =>
+		Constant(v)));
 
 	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
 		alloc, size(a.arrs), ArrTypeAndConstantsConcrete(null));
@@ -114,12 +116,11 @@ private Constant constantEmptyArr() {
 	return Constant(Constant.Record(small!Constant(fields)));
 }
 
-private Constant getConstantCStringForSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
-	// TODO: PERF avoid alloc when the symbol is in allConstants.cStrings
-	getConstantCString(alloc, allConstants, stringOfSymbol(alloc, value));
-
 Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, string value) =>
-	Constant(getOrAdd!(immutable string, Constant.CString)(
+	Constant(getConstantCStringInner(alloc, allConstants, value));
+
+private Constant.CString getConstantCStringInner(ref Alloc alloc, ref AllConstantsBuilder allConstants, string value) =>
+	getOrAdd!(immutable string, Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -128,11 +129,11 @@ Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstant
 			assert(size(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, copyToCString(alloc, value));
 			return Constant.CString(index);
-		}));
+		});
 
 Constant getConstantSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
-	getOrAdd!(Symbol, Constant)(alloc, allConstants.symbols, value, () =>
-		getConstantCStringForSymbol(alloc, allConstants, value)); // This used to make a record, but that's not needed any more........
+	Constant(getOrAdd!(Symbol, Constant.CString)(alloc, allConstants.symbols, value, () =>
+		getConstantCStringInner(alloc, allConstants, stringOfSymbol(alloc, value))));
 
 private:
 
