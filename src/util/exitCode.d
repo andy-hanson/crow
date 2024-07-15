@@ -52,6 +52,14 @@ ExitCode eachUntilError(T)(in T[] xs, in ExitCode delegate(ref T) @safe @nogc no
 	}
 	return ExitCode.ok;
 }
+ExitCodeOrSignal eachUntilError(T)(in T[] xs, in ExitCodeOrSignal delegate(ref T) @safe @nogc nothrow cb) { // TODO: given Result, I could combine this with the above
+	foreach (ref T x; xs) {
+		ExitCodeOrSignal res = cb(x);
+		if (res != ExitCodeOrSignal.ok)
+			return res;
+	}
+	return ExitCodeOrSignal.ok;
+}
 
 immutable struct ExitCodeOrSignal {
 	@safe @nogc nothrow:

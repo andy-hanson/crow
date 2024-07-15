@@ -690,7 +690,7 @@ LowProgram buildToLowProgram(
 
 immutable struct BuildToCResult {
 	WriteToCResult writeToCResult;
-	ExternLibraries externLibraries;
+	ExternLibraries externLibraries; // Used? ------------------------------------------------------------------------------------
 }
 BuildToCResult buildToC(
 	scope ref Perf perf,

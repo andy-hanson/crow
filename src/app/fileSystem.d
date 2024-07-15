@@ -292,19 +292,25 @@ ExitCodeOrSignal withTempPath(
 	Uri tempBasePath,
 	Extension extension,
 	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
-) {
-	if (uriIsFile(tempBasePath)) {
-		ubyte[8] bytes = getRandomBytes();
-		FilePath tempPath = alterExtensionWithHex(asFilePath(tempBasePath), bytes, extension);
-		ExitCodeOrSignal exit = cb(tempPath);
-		ExitCodeOrSignal exit2 = ExitCodeOrSignal(removeFileOrDirectoryIfExists(tempPath));
-		return okAnd(exit, () => exit2);
-	} else
-		return ExitCodeOrSignal(printErrorCb((scope ref Writer writer) {
+) =>
+	uriIsFile(tempBasePath)
+		? withTempPath(asFilePath(tempBasePath), extension, cb)
+		: ExitCodeOrSignal(printErrorCb((scope ref Writer writer) {
 			writer ~= "Don't know where to put temporary file near ";
 			writer ~= tempBasePath;
 			writer ~= " (since it is not a file path)";
 		}));
+
+ExitCodeOrSignal withTempPath(
+	FilePath tempBasePath,
+	Extension extension,
+	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
+) {
+	ubyte[8] bytes = getRandomBytes();
+	FilePath tempPath = alterExtensionWithHex(tempBasePath, bytes, extension);
+	ExitCodeOrSignal exit = cb(tempPath);
+	ExitCodeOrSignal exit2 = ExitCodeOrSignal(removeFileOrDirectoryIfExists(tempPath));
+	return okAnd(exit, () => exit2);
 }
 
 private @trusted ubyte[8] getRandomBytes() {
@@ -512,7 +518,7 @@ ExitCodeOrSignal runNodeJsProgram(ref TempAlloc tempAlloc, in PathAndArgs pathAn
 	});
 
 private @trusted ExitCodeOrSignal runCommon(
-	ref TempAlloc tempAlloc,
+	ref TempAlloc tempAlloc, // TODO: should not be needed ----------------------------------------------------------------------------
 	in ExternLibraries externLibraries,
 	in PathAndArgs pathAndArgs,
 	bool isCompile,
