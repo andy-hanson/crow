@@ -5,7 +5,6 @@ module lib.server;
 import backend.js.translateToJs : translateToJs, TranslateToJsResult;
 import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
-import document.document : documentJSON;
 import frontend.frontendCompile :
 	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
@@ -100,14 +99,15 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
+import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.hashTable : mustGet;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
-import util.exitCode : ExitCode;
+import util.exitCode : ExitCode, ExitCodeOrSignal, Signal;
 import util.integralValues : initIntegralValues;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
@@ -123,41 +123,32 @@ import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret, VersionOptions;
 
-ExitCode buildAndInterpret(
+ExitCodeOrSignal buildAndInterpret(
 	scope ref Perf perf,
 	ref Server server,
 	in Extern extern_,
 	in WriteError writeError,
-	Uri main,
+	ref ProgramWithMain program,
 	VersionOptions version_,
 	in Opt!(Uri[]) diagnosticsOnlyForUris,
 	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
-	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
-		Programs programs = buildToLowProgram(
-			perf, buildAlloc, server, versionInfoForInterpret(getOS(), version_), main);
-		string diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
-		if (!isEmpty(diags))
-			writeError(diags);
-		if (!has(programs.lowProgram))
-			return ExitCode.error;
+	return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
+		LowProgram lowProgram = buildToLowProgram(
+			perf, buildAlloc, server, versionInfoForInterpret(getOS(), version_), program);
+		Opt!ExternPointersForAllLibraries externPointers =
+			extern_.loadExternPointers(lowProgram.externLibraries, writeError);
+		if (has(externPointers))
+			return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
+				ByteCode byteCode = generateBytecode(
+					perf, bytecodeAlloc, program.program, lowProgram,
+					force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
+				return ExitCodeOrSignal(runBytecode(perf, getShowDiagCtx(server, program.program), extern_.doDynCall, lowProgram, byteCode, allArgs));
+			});
 		else {
-			LowProgram lowProgram = force(programs.lowProgram);
-			Opt!ExternPointersForAllLibraries externPointers =
-				extern_.loadExternPointers(lowProgram.externLibraries, writeError);
-			if (has(externPointers))
-				return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
-					ByteCode byteCode = generateBytecode(
-						perf, bytecodeAlloc, programs.program, lowProgram,
-						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
-					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
-					return runBytecode(perf, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs);
-				});
-			else {
-				writeError("Failed to load external libraries\n");
-				return ExitCode.error;
-			}
+			writeError("Failed to load external libraries\n");
+			return ExitCodeOrSignal.error;
 		}
 	});
 }
@@ -313,12 +304,15 @@ private LspOutResult handleLspRequestWithProgram(
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
 			// TODO: this redundantly builds a program...
-			ExitCode exitCode = runFromLsp(
+			ExitCodeOrSignal exitCode = runFromLsp(
 				perf, alloc, server, x.uri, x.diagnosticsOnlyForUris,
 				(Pipe pipe, in string x) {
 					add(alloc, writes, Write(pipe, copyString(alloc, x)));
 				});
-			return LspOutResult(RunResult(exitCode, finish(alloc, writes)));
+			ExitCode asExitCode = exitCode.match!ExitCode(
+				(ExitCode x) => x,
+				(Signal _) => ExitCode.error); // TODO: RunResult should take ExitCodeOrSignal ----------------------------------------
+			return LspOutResult(RunResult(asExitCode, finish(alloc, writes)));
 		},
 		(in SemanticTokensParams _) =>
 			assert(false),
@@ -329,7 +323,7 @@ private LspOutResult handleLspRequestWithProgram(
 		(in UnloadedUrisParams _) =>
 			assert(false));
 
-private ExitCode runFromLsp(
+private ExitCodeOrSignal runFromLsp(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -340,11 +334,15 @@ private ExitCode runFromLsp(
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	CString[1] allArgs = [cString!"/usr/bin/fakeExecutable"];
-	return withFakeExtern(alloc, writeCb, (scope ref Extern extern_) =>
-		buildAndInterpret(
+	return withFakeExtern(alloc, writeCb, (scope ref Extern extern_) {
+		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
+		if (hasAnyDiagnostics(program))
+			writeCb(Pipe.stderr, showDiagnostics(alloc, server, program.program, diagnosticsOnlyForUris));
+		return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : buildAndInterpret(
 			perf, server, extern_,
 			(in string x) { writeCb(Pipe.stderr, x); },
-			main, VersionOptions(isSingleThreaded: true, stackTraceEnabled: true), diagnosticsOnlyForUris, allArgs));
+			program, VersionOptions(isSingleThreaded: true, stackTraceEnabled: true), diagnosticsOnlyForUris, allArgs);
+	});
 }
 
 private __gshared Server serverStorage = void;
@@ -516,16 +514,6 @@ immutable struct DocumentResult {
 	string diagnostics;
 }
 
-string check(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
-	Program program = getProgram(perf, alloc, server, rootUris);
-	return showDiagnostics(alloc, server, program);
-}
-
-DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
-	Program program = getProgram(perf, alloc, server, uris);
-	return DocumentResult(documentJSON(alloc, program), showDiagnostics(alloc, server, program));
-}
-
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
 	in Server server,
@@ -574,6 +562,9 @@ private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server serv
 ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
 	makeProgramForMain(perf, alloc, server.frontend, mainUri);
 
+Program getProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
+	getProgram(perf, alloc, server, roots);
+
 Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
 	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
@@ -588,14 +579,6 @@ struct DiagsAndResultJson {
 	string diagnostics;
 	Json result;
 }
-
-private DiagsAndResultJson printForProgram(
-	ref Alloc alloc,
-	in Server server,
-	in Program program,
-	Json result,
-) =>
-	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
 private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast, Json result) =>
 	DiagsAndResultJson(
@@ -622,48 +605,34 @@ private CrowFileInfo* getCrowFileForTokens(ref Alloc alloc, ref Server server, U
 				TextFileContent.empty,
 				fileAstForDiag(alloc, ParseDiag(x)))));
 
-DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	Program program = getProgram(perf, alloc, server, [uri]);
-	Json json = jsonOfModule(alloc, server.lineAndColumnGetters[uri], *only(program.rootModules));
-	return printForProgram(alloc, server, program, json);
-}
+Json jsonOfModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Program program, Uri uri) =>
+	jsonOfModule(alloc, server.lineAndColumnGetters[uri], *mustGet(program.allModules, uri));
 
-DiagsAndResultJson printConcreteModel(
+Json jsonOfConcreteModel(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	in LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
-	Uri uri,
-) {
-	ProgramWithMain program = getProgramForMain(perf, alloc, server, uri);
-	Json json = hasFatalDiagnostics(program)
-		? jsonNull
-		: jsonOfConcreteProgram(
-			alloc, lineAndColumnGetters,
-			concretize(
-				perf, alloc,
-				getShowDiagCtx(server, program.program),
-				versionInfo, program,
-				FileContentGetters(&server.storage)));
-	return printForProgram(alloc, server, program.program, json);
-}
+	ref ProgramWithMain program,
+) =>
+	jsonOfConcreteProgram(
+		alloc, lineAndColumnGetters,
+		concretize(
+			perf, alloc,
+			getShowDiagCtx(server, program.program),
+			versionInfo, program,
+			FileContentGetters(&server.storage)));
 
-DiagsAndResultJson printLowModel(
+Json jsonOfLowModel(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	in LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
-	Uri uri,
-) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfo, uri);
-	return printForProgram(
-		alloc, server, programs.program,
-		has(programs.lowProgram)
-			? jsonOfLowProgram(alloc, lineAndColumnGetters, force(programs.lowProgram))
-			: jsonNull);
-}
+	ref ProgramWithMain program,
+) =>
+	jsonOfLowProgram(alloc, lineAndColumnGetters, buildToLowProgram(perf, alloc, server, versionInfo, program));
 
 immutable struct PrintKind {
 	immutable struct Tokens {}
@@ -680,27 +649,17 @@ immutable struct PrintKind {
 	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Ide);
 }
 
-DiagsAndResultJson printIde(
+Json jsonForPrintIde(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
+	ref Program program,
 	in UriLineAndColumn where,
 	PrintKind.Ide.Kind kind,
 ) {
-	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
 	TextDocumentPositionParams params = TextDocumentPositionParams(
 		TextDocumentIdentifier(where.uri),
 		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.pos));
-	return printForProgram(alloc, server, program, getPrinted(alloc, server, program, params, kind));
-}
-
-private Json getPrinted(
-	ref Alloc alloc,
-	ref Server server,
-	in Program program,
-	in TextDocumentPositionParams params,
-	PrintKind.Ide.Kind kind,
-) {
 	Json locations(UriAndRange[] xs) => jsonOfReferences(alloc, server.lineAndCharacterGetters, xs);
 	final switch (kind) {
 		case PrintKind.Ide.Kind.definition:
@@ -715,40 +674,22 @@ private Json getPrinted(
 	}
 }
 
-immutable struct Programs {
-	@safe @nogc pure nothrow:
-
-	ProgramWithMain programWithMain;
-	Opt!ConcreteProgram concreteProgram;
-	Opt!LowProgram lowProgram;
-
-	ref Program program() return =>
-		programWithMain.program;
-}
-
-Programs buildToLowProgram(
+LowProgram buildToLowProgram(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	in VersionInfo versionInfo,
-	Uri main,
+	ref ProgramWithMain program,
 ) {
-	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
-	if (hasFatalDiagnostics(program))
-		return Programs(program, none!ConcreteProgram, none!LowProgram);
-	else {
-		ShowCtx ctx = getShowDiagCtx(server, program.program);
-		ConcreteProgram concreteProgram = concretize(
-			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
-		LowProgram lowProgram = lower(perf, alloc, ctx, program.mainConfig.extern_, program.program, concreteProgram);
-		return Programs(program, some(concreteProgram), some(lowProgram));
-	}
+	assert(!hasFatalDiagnostics(program));
+	ShowCtx ctx = getShowDiagCtx(server, program.program);
+	ConcreteProgram concreteProgram = concretize(
+		perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
+	return lower(perf, alloc, ctx, program.mainConfig.extern_, program.program, concreteProgram);
 }
 
 immutable struct BuildToCResult {
 	WriteToCResult writeToCResult;
-	string diagnostics;
-	bool hasFatalDiagnostics;
 	ExternLibraries externLibraries;
 }
 BuildToCResult buildToC(
@@ -756,37 +697,19 @@ BuildToCResult buildToC(
 	ref Alloc alloc,
 	ref Server server,
 	OS os,
-	Uri main,
 	VersionOptions version_,
 	in WriteToCParams params,
+	ref ProgramWithMain program,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC(os, version_,), main);
-	ShowCtx ctx = getShowDiagCtx(server, programs.program);
+	LowProgram lowProgram = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC(os, version_,), program);
 	return BuildToCResult(
-		has(programs.lowProgram)
-			? writeToC(alloc, ctx, force(programs.lowProgram), params)
-			: WriteToCResult(PathAndArgs(params.cCompiler), ""),
-		showDiagnostics(alloc, server, programs.program),
-		hasFatalDiagnostics(programs.programWithMain),
-		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
+		writeToC(alloc, getShowDiagCtx(server, program.program), lowProgram, params),
+		lowProgram.externLibraries);
 }
 
-immutable struct BuildToJsResult {
-	TranslateToJsResult result;
-	string diagnostics;
-	bool hasFatalDiagnostics;
-}
-BuildToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, OS os, Uri main, bool isNodeJs) {
-	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
-	string diagnostics = showDiagnostics(alloc, server, program.program);
-	bool fatal = hasFatalDiagnostics(program);
-	return BuildToJsResult(
-		fatal
-			? TranslateToJsResult()
-			: translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), FileContentGetters(&server.storage), os, isNodeJs),
-		diagnostics,
-		fatal);
-}
+
+TranslateToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, ref ProgramWithMain program, OS os, bool isNodeJs) =>
+	translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), FileContentGetters(&server.storage), os, isNodeJs);
 
 ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program, bool forceNoColor = false) =>
 	ShowDiagCtx(getShowCtx(server, forceNoColor: forceNoColor), program.commonTypes);

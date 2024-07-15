@@ -651,7 +651,7 @@ ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, bool isForbid) {
 		allocate(lexer.alloc, AssertOrForbidAst.Thrown(colonPos, parseExprNoBlock(lexer))));
 	ExprAst* after = allocate(lexer.alloc, parseNextLinesOrEmpty(lexer));
 	return ExprAst(range(lexer, start), ExprAstKind(
-		AssertOrForbidAst(isForbid, condition, thrown, after)));
+		allocate(lexer.alloc, AssertOrForbidAst(isForbid, condition, thrown, after))));
 }
 
 ExprAst parseFinally(ref Lexer lexer, Pos start) {

@@ -45,7 +45,7 @@ import util.col.array :
 	SmallArray,
 	sum;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.col.hashTable : existsInHashTable, HashTable;
+import util.col.hashTable : existsInHashTable, HashTable, mustGet;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
@@ -749,6 +749,7 @@ immutable struct AutoFun {
 }
 
 immutable struct FunBody {
+	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
 	immutable struct CreateEnumOrFlags {
 		EnumOrFlagsMember* member;
@@ -810,6 +811,9 @@ immutable struct FunBody {
 		VariantMemberGet,
 		VariantMethod,
 		VarSet);
+	
+	bool isGenerated() scope =>
+		!isA!Bogus && !isA!AutoFun && !isA!BuiltinFun && !isA!Expr && !isA!Extern && !isA!FileImport;
 }
 static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
@@ -1265,7 +1269,7 @@ immutable struct FunDecl {
 	bool isBare() scope =>
 		flags.bare;
 	bool isGenerated() scope =>
-		todo!bool("isGenerated -- get from the FunBody"); // ------------------------------------------------------------------------------------
+		body_.isGenerated;
 	bool isSummon() scope =>
 		flags.summon;
 	bool isUnsafe() scope =>
@@ -1836,6 +1840,8 @@ immutable struct ProgramWithMain {
 
 	Uri mainUri() scope =>
 		mainFun.fun.decl.moduleUri;
+	Module* mainModule() return scope =>
+		mustGet(program.allModules, mainUri);
 }
 
 immutable struct MainFun {
@@ -1866,15 +1872,12 @@ immutable struct MainFun {
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
 	hasAnyDiagnostics(a.program);
-
 bool hasFatalDiagnostics(in ProgramWithMain a) =>
-	existsDiagnostic(a.program, (in UriAndDiagnostic x) =>
-		isFatal(getDiagnosticSeverity(x.kind)));
+	hasFatalDiagnostics(a.program);
 
 immutable struct Program {
 	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
-	Module*[] rootModules;
 	SmallArray!UriAndDiagnostic commonFunsDiagnostics;
 	CommonFuns commonFuns;
 	CommonTypes* commonTypes;
@@ -1882,6 +1885,9 @@ immutable struct Program {
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
+bool hasFatalDiagnostics(in Program a) =>
+	existsDiagnostic(a, (in UriAndDiagnostic x) =>
+		isFatal(getDiagnosticSeverity(x.kind)));
 
 // Iterates in no particular order
 void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
@@ -2216,11 +2222,11 @@ private immutable struct PrefixAndRange {
 	Range range;
 }
 string defaultAssertOrForbidMessage(ref Alloc alloc, Uri curUri, in Expr expr, in AssertOrForbidExpr a, in FileContentGetters content) {
-	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
+	PrefixAndRange x = expr.ast.kind.as!(AssertOrForbidAst*).condition.match!PrefixAndRange(
 		(ref ExprAst condition) =>
 			PrefixAndRange(
 				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
-				expr.ast.kind.as!AssertOrForbidAst.condition.range),
+				expr.ast.kind.as!(AssertOrForbidAst*).condition.range),
 		(ref ConditionAst.UnpackOption unpack) =>
 			PrefixAndRange(
 				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",

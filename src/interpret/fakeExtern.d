@@ -145,12 +145,9 @@ ExternPointersForLibrary fakeExternFunsForLibrary(
 			optOrDefault!FunPointer(res, () => FunPointer(null)).asExternPointer());
 	});
 
-Opt!FunPointer getFakeExternFun(Symbol libraryName, Symbol name) =>
-	libraryName == symbol!"c"
-		? getFakeExternFunC(name)
-		: none!FunPointer;
-
-Opt!FunPointer getFakeExternFunC(Symbol name) {
+Opt!FunPointer getFakeExternFun(Symbol libraryName, Symbol name) {
+	if (libraryName != symbol!"posix" && libraryName != symbol!"libc")
+		return none!FunPointer;
 	switch (name.value) {
 		case symbol!"abort".value:
 			return some(FunPointer(&abort));

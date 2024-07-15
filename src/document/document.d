@@ -31,10 +31,12 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariantAndMethodImpls,
+	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
 import util.col.arrayBuilder : arrayBuilderSort, buildArray, Builder;
+import util.col.hashTable : mustGet;
 import util.json :
 	field,
 	Json,
@@ -51,18 +53,15 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : SmallString;
 import util.symbol : Symbol, symbol;
-import util.uri : stringOfUri;
+import util.uri : stringOfUri, Uri;
 import util.util : stringOfEnum;
 
-string documentJSON(ref Alloc alloc, in Program program) =>
-	jsonToString(alloc, documentRootModules(alloc, program));
+Json documentModules(ref Alloc alloc, in Program program, in Uri[] moduleUris) =>
+	jsonObject(alloc, [
+		field!"modules"(jsonList!Uri(alloc, moduleUris, (in Uri x) =>
+			documentModule(alloc, program, *mustGet(program.allModules, x))))]);
 
 private:
-
-Json documentRootModules(ref Alloc alloc, in Program program) =>
-	jsonObject(alloc, [
-		field!"modules"(jsonList!(Module*)(alloc, program.rootModules, (in Module* x) =>
-			documentModule(alloc, program, *x)))]);
 
 Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 	DocExport[] exports = buildArray!DocExport(alloc, (scope ref Builder!DocExport res) {
@@ -227,8 +226,17 @@ Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in Signature
 
 DocExport documentVarDecl(ref Alloc alloc, in VarDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
-		kindField(stringOfEnum(a.kind)),
+		kindField(stringOfVarDeclKind(a.kind)),
 		field!"type"(documentTypeRef(alloc, a.typeParams, a.type))]));
+
+string stringOfVarDeclKind(VarKind kind) {
+	final switch (kind) {
+		case VarKind.global:
+			return "global";
+		case VarKind.threadLocal:
+			return "thread-local";
+	}
+}
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [

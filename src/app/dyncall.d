@@ -28,7 +28,7 @@ import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfInt, bitsOfLong, float32OfBits, float64OfBits;
-import util.exitCode : ExitCode;
+import util.exitCode : ExitCodeOrSignal;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
@@ -37,7 +37,7 @@ import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, sym
 import util.uri : asFilePath, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
-@trusted ExitCode withRealExtern(ref Alloc alloc, in ExitCode delegate(in Extern) @safe @nogc nothrow cb) {
+@trusted ExitCodeOrSignal withRealExtern(ref Alloc alloc, in ExitCodeOrSignal delegate(in Extern) @safe @nogc nothrow cb) {
 	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) {

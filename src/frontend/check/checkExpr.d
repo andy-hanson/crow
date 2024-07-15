@@ -291,8 +291,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 	ast.kind.matchWithPointers!Expr(
 		(ArrowAccessAst a) =>
 			checkArrowAccess(ctx, locals, ast, a, expected),
-		(AssertOrForbidAst a) =>
-			checkAssertOrForbid(ctx, locals, ast, a, expected),
+		(AssertOrForbidAst* a) =>
+			checkAssertOrForbid(ctx, locals, ast, *a, expected),
 		(AssignmentAst* a) =>
 			checkAssignment(ctx, locals, ast, a.left, a.keywordRange, expected, (ref Expected rightExpected) =>
 				checkExpr(ctx, locals, &a.right, rightExpected)),

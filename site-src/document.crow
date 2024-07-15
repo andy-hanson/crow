@@ -8,10 +8,11 @@ import
 	./path-and-content: path-and-content
 	./search-dir-recursive: search-dir-recursive
 
-documentation path-and-content[]() summon
+documentation path-and-content[]() summon, native extern
 	include = current-directory ~~ "/include"
 	all-module-paths = "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
 		(x => x != "std.crow")
+	info log "ALL PATHS: {"\n" join all-module-paths}"
 	include-uri string = if trusted extern windows
 		"file:///{include.to-lower-case uri-encode}/"
 	else

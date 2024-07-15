@@ -38,7 +38,9 @@ import app.parseCommand : defaultExecutableExtension, defaultExecutablePath, par
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
+import backend.js.translateToJs : TranslateToJsResult;
 import backend.writeToC : PathAndArgs, WriteToCParams;
+import document.document : documentModules;
 import frontend.lang : CCompileOptions;
 import frontend.showModel : ShowOptions;
 import frontend.storage : FilesState;
@@ -62,23 +64,21 @@ import lib.server :
 	buildToC,
 	BuildToCResult,
 	buildToJs,
-	BuildToJsResult,
 	buildToLowProgram,
-	check,
 	DiagsAndResultJson,
 	DocumentResult,
 	filesState,
-	getDocumentation,
+	getProgramForMain,
+	getProgramForRoots,
 	handleLspMessage,
+	jsonForPrintIde,
+	jsonOfConcreteModel,
+	jsonOfLowModel,
+	jsonOfModel,
 	perfStats,
 	printAst,
-	printConcreteModel,
-	printIde,
 	PrintKind,
-	printLowModel,
-	printModel,
 	printTokens,
-	Programs,
 	Server,
 	ServerSettings,
 	setFile,
@@ -88,8 +88,8 @@ import lib.server :
 	showDiagnostics,
 	version_;
 import model.diag : ReadFileDiag;
-import model.model : hasAnyDiagnostics;
-import model.lowModel : ExternLibraries;
+import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Program, ProgramWithMain;
+import model.lowModel : ExternLibraries, LowProgram;
 version (Test) {
 	import test.test : test;
 }
@@ -132,8 +132,7 @@ import versionInfo :
 	ExitCodeOrSignal res = go(perf, *alloc, *server, cwd, thisExecutable, command.kind);
 	if (isEnabled(perf)) {
 		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
-			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, *server));
-			print(jsonToString(alloc, report));
+			printJson(alloc, perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, *server)));
 		});
 	}
 	return res.matchImpure!int(
@@ -320,20 +319,19 @@ ExitCodeOrSignal go(
 	command.matchImpure!ExitCodeOrSignal(
 		(in CommandKind.Build x) {
 			loadAllFiles(perf, server, [x.mainUri]);
-			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FilePath _, in ExternLibraries _2) =>
-				ExitCodeOrSignal.ok);
+			return withProgramForMain(perf, alloc, server, x.mainUri, (ref ProgramWithMain program) =>
+				withBuild(perf, alloc, server, cwd, x.options, program, (FilePath _, in ExternLibraries _2) =>
+					ExitCodeOrSignal.ok));
 		},
 		(in CommandKind.Check x) {
 			loadAllFiles(perf, server, x.rootUris);
-			string diags = check(perf, alloc, server, x.rootUris);
-			return ExitCodeOrSignal(isEmpty(diags) ? print("OK") : printError(diags));
+			return withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program _) =>
+				ExitCodeOrSignal(print("OK")));
 		},
 		(in CommandKind.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
-			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
-			return ExitCodeOrSignal(isEmpty(result.diagnostics)
-				? print(result.document)
-				: printError(result.diagnostics));
+			return withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program program) =>
+				printJson(alloc, documentModules(alloc, program, x.rootUris)));
 		},
 		(in CommandKind.Help x) {
 			print(x.helpText);
@@ -342,7 +340,7 @@ ExitCodeOrSignal go(
 		(in CommandKind.Lsp) =>
 			ExitCodeOrSignal(runLsp(server, thisExecutable)),
 		(in CommandKind.Print x) =>
-			ExitCodeOrSignal(doPrint(perf, alloc, server, x)),
+			doPrint(perf, alloc, server, x),
 		(in CommandKind.Run x) =>
 			run(perf, alloc, server, cwd, x),
 		(in CommandKind.Test x) {
@@ -358,27 +356,25 @@ ExitCodeOrSignal go(
 
 ExitCodeOrSignal run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
-	return run.options.matchImpure!ExitCodeOrSignal(
-		(in RunOptions.Aot x) =>
-			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x),
-		(in RunOptions.Interpret x) =>
-			ExitCodeOrSignal(withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
-				buildAndInterpret(
-					perf, server, extern_,
-					(in string x) { printError(x); },
-					run.mainUri, x.version_, none!(Uri[]),
-					getAllArgs(alloc, server, run)))),
-		(in RunOptions.Jit x) {
-			version (GccJitAvailable) {
-				CString[] args = getAllArgs(alloc, server, run);
-				return ExitCodeOrSignal(buildAndJit(perf, alloc, server, x, run.mainUri, args));
-			} else {
-				printError("This build does not support '--jit'");
-				return ExitCodeOrSignal(ExitCode.error);
-			}
-		},
-		(in RunOptions.NodeJs) =>
-			buildAndRunNode(perf, alloc, server, cwd, run.mainUri, run.programArgs));
+	return withProgramForMain(perf, alloc, server, run.mainUri, (ref ProgramWithMain program) =>
+		run.options.matchImpure!ExitCodeOrSignal( // TODO: all branches should be using 'withProgramForMain', so extract that to here!
+			(in RunOptions.Aot x) =>
+				buildAndRun(perf, alloc, server, cwd, program, run.programArgs, x),
+			(in RunOptions.Interpret x) =>
+				withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
+					buildAndInterpret(
+						perf, server, extern_,
+						(in string x) { printError(x); },
+						program, x.version_, none!(Uri[]),
+						getAllArgs(alloc, server, run))),
+			(in RunOptions.Jit x) {
+				version (GccJitAvailable)
+					return ExitCodeOrSignal(buildAndJit(perf, alloc, server, x, program, getAllArgs(alloc, server, run)));
+				else
+					return ExitCodeOrSignal(printError("This build does not support '--jit'"));
+			},
+			(in RunOptions.NodeJs) =>
+				buildAndRunNode(perf, alloc, server, cwd, program, run.programArgs))); // TODO: 'buildAndRunNode' could be part of 'buildAndRun'?
 }
 
 FilePath getCrowIncludeDir(FilePath thisExecutable) {
@@ -403,43 +399,43 @@ FilePath getCrowIncludeDir(FilePath thisExecutable) {
 CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>
 	prepend!CString(alloc, cStringOfUriPreferRelative(alloc, server.urisInfo, run.mainUri), run.programArgs);
 
-ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
+ExitCodeOrSignal doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;
-	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
+	return command.kind.matchImpure!ExitCodeOrSignal(
 		(in PrintKind.Tokens) {
 			loadSingleFile(perf, server, mainUri);
-			return printTokens(alloc, server, SemanticTokensParams(TextDocumentIdentifier(mainUri)));
+			return printDiagsAndJson(alloc, printTokens(alloc, server, SemanticTokensParams(TextDocumentIdentifier(mainUri))));
 		},
 		(in PrintKind.Ast) {
 			loadSingleFile(perf, server, mainUri);
-			return printAst(perf, alloc, server, mainUri);
+			return printDiagsAndJson(alloc, printAst(perf, alloc, server, mainUri));
 		},
 		(in PrintKind.Model) {
-			loadAllFiles(perf, server, [mainUri]);
-			return printModel(perf, alloc, server, mainUri);
+			loadAllFiles(perf, server, [mainUri]); // TODO: maybe the withProgram functions should do the loadAllFiles ...................................
+			return withProgramForRoots(perf, alloc, server, [mainUri], (ref Program program) =>
+				printJson(alloc, jsonOfModel(perf, alloc, server, program, mainUri)));
 		},
 		(in PrintKind.ConcreteModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printConcreteModel(
-				perf, alloc, server, server.lineAndColumnGetters,
-				versionInfoForInterpret(getOS(), VersionOptions()),
-				mainUri);
+			return withProgramForMain(perf, alloc, server, mainUri, (ref ProgramWithMain program) =>
+				printJson(alloc, jsonOfConcreteModel(
+					perf, alloc, server, server.lineAndColumnGetters,
+					versionInfoForInterpret(getOS(), VersionOptions()),
+					program)));
 		},
 		(in PrintKind.LowModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printLowModel(
-				perf, alloc, server, server.lineAndColumnGetters,
-				versionInfoForInterpret(getOS(), VersionOptions()),
-				mainUri);
+			return withProgramForMain(perf, alloc, server, mainUri, (ref ProgramWithMain program) =>
+				printJson(alloc, jsonOfLowModel(
+					perf, alloc, server, server.lineAndColumnGetters,
+					versionInfoForInterpret(getOS(), VersionOptions()),
+					program)));
 		},
 		(in PrintKind.Ide x) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printIde(perf, alloc, server, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind);
+			return withProgramForRoots(perf, alloc, server, [mainUri], (ref Program program) =>
+				printJson(alloc, jsonForPrintIde(perf, alloc, server, program, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind)));
 		});
-	if (!isEmpty(printed.diagnostics))
-		printError(printed.diagnostics);
-	print(jsonToString(alloc, printed.result));
-	return isEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
 ExitCodeOrSignal buildAndRun(
@@ -447,14 +443,14 @@ ExitCodeOrSignal buildAndRun(
 	ref Alloc alloc,
 	ref Server server,
 	FilePath cwd,
-	Uri main,
+	ref ProgramWithMain program,
 	in CString[] programArgs,
 	in RunOptions.Aot options,
 ) =>
-	withTempPath(main, defaultExecutableExtension(getOS()), (FilePath exePath) {
+	withTempPath(program.mainUri, defaultExecutableExtension(getOS()), (FilePath exePath) {
 		scope SingleBuildOutput[] outputs = [SingleBuildOutput(SingleBuildOutput.Kind.executable, exePath)];
 		scope BuildOptions buildOptions = BuildOptions(options.version_, outputs, options.compileOptions);
-		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
+		return withBuild(perf, alloc, server, cwd, buildOptions, program, (FilePath cPath, in ExternLibraries libs) {
 			ExitCodeOrSignal res = runProgram(alloc, libs, PathAndArgs(exePath, programArgs));
 			// Doing this after 'runProgram' since that may use the '.pdb' file
 			ExitCode cleanup = cleanupCompile(cwd, cPath, exePath);
@@ -468,13 +464,13 @@ ExitCodeOrSignal buildAndRunNode(
 	ref Alloc alloc,
 	ref Server server,
 	FilePath cwd,
-	Uri main,
+	ref ProgramWithMain program,
 	in CString[] programArgs,
 ) =>
-	withTempPath(main, Extension.none, (FilePath dir) {
+	withTempPath(program.mainUri, Extension.none, (FilePath dir) {
 		scope SingleBuildOutput[] outputs = [SingleBuildOutput(SingleBuildOutput.Kind.nodeJs, dir)];
 		scope BuildOptions buildOptions = BuildOptions(versionOptionsForJs, outputs, CCompileOptions());
-		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath mainJs, in ExternLibraries _) =>
+		return withBuild(perf, alloc, server, cwd, buildOptions, program, (FilePath mainJs, in ExternLibraries _) =>
 			runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs)));
 	});
 
@@ -483,8 +479,8 @@ ExitCodeOrSignal withBuild(
 	ref Alloc alloc,
 	ref Server server,
 	FilePath cwd,
-	Uri main,
 	in BuildOptions options,
+	ref ProgramWithMain program,
 	// WARN: the C file will be deleted by the time this is called
 	in ExitCodeOrSignal delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
 ) {
@@ -505,18 +501,14 @@ ExitCodeOrSignal withBuild(
 		if (has(js) && has(nodeJs))
 			todo!void("Support both JS output"); // -------------------------------------------------------------------------------
 		FilePath out_ = optOrDefault!FilePath(js, () => force(nodeJs));
-		BuildToJsResult result = buildToJs(perf, alloc, server, getOS(), main, isNodeJs: has(nodeJs));
-		if (!isEmpty(result.diagnostics))
-			printError(result.diagnostics);
-		return result.hasFatalDiagnostics
-			? ExitCodeOrSignal.error
-			: okAnd(
-				ExitCodeOrSignal(writeFilesToDir(out_, result.result.outputFiles)),
-				() => cb(concatFilePathAndPath(out_, result.result.mainJs), []));
+		TranslateToJsResult result = buildToJs(perf, alloc, server, program, getOS(), isNodeJs: has(nodeJs));
+		return okAnd(
+			ExitCodeOrSignal(writeFilesToDir(out_, result.outputFiles)),
+			() => cb(concatFilePathAndPath(out_, result.mainJs), []));
 	} else
-		return withPathOrTemp(c, main, Extension.c, (FilePath cPath) =>
+		return withPathOrTemp(c, program.mainUri, Extension.c, (FilePath cPath) =>
 			withBuildToC(
-				perf, alloc, server, main, exe, cPath, options.cCompileOptions, options.version_,
+				perf, alloc, server, exe, cPath, options.cCompileOptions, options.version_, program,
 				(in BuildToCResult result) =>
 					okAnd(
 						ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource)),
@@ -528,15 +520,40 @@ ExitCodeOrSignal withBuild(
 						() => cb(cPath, result.externLibraries))));
 }
 
-ExitCodeOrSignal withBuildToC(
+ExitCodeOrSignal withProgramForMain(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	Uri main,
+	in ExitCodeOrSignal delegate(ref ProgramWithMain) @safe @nogc nothrow cb,
+) {
+	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
+	if (hasAnyDiagnostics(program))
+		printError(showDiagnostics(alloc, server, program.program));
+	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
+}
+ExitCodeOrSignal withProgramForRoots(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in Uri[] roots,
+	in ExitCodeOrSignal delegate(ref Program) @safe @nogc nothrow cb,
+) {
+	Program program = getProgramForRoots(perf, alloc, server, roots);
+	if (hasAnyDiagnostics(program))
+		printError(showDiagnostics(alloc, server, program));
+	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
+}
+
+ExitCodeOrSignal withBuildToC(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
 	Opt!FilePath exe,
 	FilePath cPath,
 	in CCompileOptions cCompileOptions,
 	in VersionOptions version_,
+	ref ProgramWithMain program,
 	in ExitCodeOrSignal delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
 	Opt!FilePath cCompiler = findPathToCCompiler();
@@ -546,26 +563,30 @@ ExitCodeOrSignal withBuildToC(
 			force(cCompiler), cPath,
 			optOrDefault!FilePath(exe, () => defaultExecutablePath(cPath, os)),
 			cCompileOptions);
-		BuildToCResult result = buildToC(perf, alloc, server, os, main, version_, params);
-		if (!isEmpty(result.diagnostics))
-			printError(result.diagnostics);
-		return result.hasFatalDiagnostics ? ExitCodeOrSignal.error : cb(result);
+		BuildToCResult result = buildToC(perf, alloc, server, os, version_, params, program);
+		return cb(result);
 	} else
 		return ExitCodeOrSignal.error;
 }
 
-version (GccJitAvailable) ExitCode buildAndJit(
+version (GccJitAvailable) ExitCode buildAndJit( // TODO: should I move this to server.d? _-------------------------------------------------------------
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	in RunOptions.Jit options,
-	Uri main,
+	ref ProgramWithMain program,
 	in CString[] programArgs,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS(), options.version_), main);
-	if (hasAnyDiagnostics(programs.program))
-		printError(showDiagnostics(alloc, server, programs.program));
-	return has(programs.lowProgram)
-		? jitAndRun(perf, alloc, force(programs.lowProgram), options.options, programArgs)
-		: ExitCode.error;
+	assert(!hasFatalDiagnostics(program));
+	LowProgram lowProgram = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS(), options.version_), program);
+	return jitAndRun(perf, alloc, lowProgram, options.options, programArgs);
 }
+
+ExitCodeOrSignal printDiagsAndJson(ref Alloc alloc, in DiagsAndResultJson a) {
+	if (!isEmpty(a.diagnostics))
+		printError(a.diagnostics);
+	return printJson(alloc, a.result);
+}
+
+ExitCodeOrSignal printJson(ref Alloc alloc, in Json json) =>
+	ExitCodeOrSignal(print(jsonToString(alloc, json)));

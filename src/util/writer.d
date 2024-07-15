@@ -5,11 +5,11 @@ module util.writer;
 import util.alloc.alloc : Alloc, withStackAlloc, withStackAllocImpure;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.col.arrayBuilder : Builder, finish;
-import util.col.array : castImmutable, reverseInPlace, zip;
-import util.conv : bitsOfFloat64, round, safeToUlong;
+import util.col.array : reverseInPlace, zip;
+import util.conv : bitsOfFloat64, round, safeToSizeT, safeToUlong;
 import util.string : eachChar, CString, stringOfCString;
 import util.unicode : isValidUnicodeCharacter, mustUnicodeDecode, mustUnicodeEncode;
-import util.util : abs, debugLog, isNan, max, min;
+import util.util : abs, castImmutable, debugLog, isNan, max, min;
 
 T withStackWriterImpure(T)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
@@ -183,10 +183,10 @@ void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in
 				reverseInPlace(out_.asTemporaryArray);
 				if (exp <= 0) {
 					// did before reverse
-				} else if (safeToUlong(exp) < out_.sizeSoFar)
-					out_.insertAt(safeToUlong(exp), '.');
+				} else if (safeToSizeT(exp) < out_.sizeSoFar)
+					out_.insertAt(safeToSizeT(exp), '.');
 				else {
-					foreach (size_t _; out_.sizeSoFar .. safeToUlong(exp))
+					foreach (size_t _; out_.sizeSoFar .. safeToSizeT(exp))
 						out_ ~= '0';
 				}
 			},

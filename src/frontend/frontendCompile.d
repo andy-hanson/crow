@@ -179,8 +179,6 @@ private Common makeProgramCommon(
 		allConfigs: getAllConfigs(alloc, a),
 		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
-		rootModules: map!(immutable Module*, Uri)(alloc, roots, (ref Uri uri) =>
-			mustGet(a.crowFiles, uri).mustHaveModule),
 		commonFunsDiagnostics: commonFuns.diagnostics,
 		commonFuns: commonFuns.commonFuns,
 		commonTypes: force(a.commonTypes));

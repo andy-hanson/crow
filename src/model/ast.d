@@ -861,7 +861,7 @@ immutable struct WithAst {
 immutable struct ExprAstKind {
 	mixin Union!(
 		ArrowAccessAst,
-		AssertOrForbidAst,
+		AssertOrForbidAst*, // TODO: should not need to be a pointer! But wasm build has issues ..............................
 		AssignmentAst*,
 		AssignmentCallAst,
 		BogusAst,

@@ -3,7 +3,7 @@ import
 	crow/parse: ~~, force, parse, spaces
 	./module
 
-get-modules module[](paths string[], remove-prefix string) summon
+get-modules module[](paths string[], remove-prefix string) summon, native extern
 	result = crow-path spawn-and-wait-result "document" ~ paths
 	forbid result has-error : "Could not get documentation. stderr: {result stderr}" error
 	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
@@ -48,14 +48,18 @@ get-modules module[](paths string[], remove-prefix string) summon
 		a.to-enum-decl enum-decl
 	as "extern"
 		extern-decl
+	as "global"
+		(var-global, a.get-type) var-decl
 	as "flags"
 		a.to-flags-decl flags-decl
 	as "fun"
 		a.to-fun-decl fun-decl
-	as "spec"
-		a.to-spec-decl spec-decl
 	as "record"
 		a.to-record-decl record-decl
+	as "spec"
+		a.to-spec-decl spec-decl
+	as "thread-local"
+		(var-thread-local, a.get-type) var-decl
 	as "union"
 		a.to-union-decl union-decl
 	as "variant"

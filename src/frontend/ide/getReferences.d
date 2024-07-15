@@ -440,7 +440,7 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		a.expr.ast.kind;
 	a.expr.kind.matchIn!void(
 		(in AssertOrForbidExpr x) {
-			eachTypeInCondition(x.condition, astKind.as!AssertOrForbidAst.condition, cb);
+			eachTypeInCondition(x.condition, astKind.as!(AssertOrForbidAst*).condition, cb);
 		},
 		(in BogusExpr _) {},
 		(in CallExpr x) {

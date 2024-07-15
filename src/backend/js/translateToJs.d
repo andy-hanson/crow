@@ -138,6 +138,7 @@ import model.model :
 	FunKind,
 	FunPointerExpr,
 	getAllFlagsValue,
+	hasFatalDiagnostics,
 	IfExpr,
 	ImportFileContent,
 	ImportOrExport,
@@ -264,6 +265,7 @@ TranslateToJsResult translateToJs(
 	OS os,
 	bool isNodeJs,
 ) {
+	assert(!hasFatalDiagnostics(program));
 	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
 	SymbolSet allExterns = allExternsForJs(isNodeJs: isNodeJs);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
@@ -279,15 +281,14 @@ TranslateToJsResult translateToJs(
 		modulePaths,
 		moduleExportMangledNames(alloc, program.program, allUsed));
 
-	foreach (Module* module_; program.program.rootModules)
-		doTranslateModule(ctx, module_);
+	doTranslateModule(ctx, program.mainModule);
 	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
 }
 
 private:
 
 Map!(Uri, Path) modulePaths(ref Alloc alloc, in ProgramWithMain program) {
-	Module* main = only(program.program.rootModules);
+	Module* main = program.mainModule;
 	Uri mainCommon = findCommonMainDirectory(main);
 	MutMap!(Uri, Path) res;
 	void recur(in Module x, Opt!Path fromPath, PathOrRelPath pr) @safe @nogc nothrow {

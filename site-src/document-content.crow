@@ -18,6 +18,8 @@ all-exports all-exports(modules module[])
 				specs add-or-warn x.name, module.path
 			as export-fun
 				()
+			as export-var
+				()
 	types.move-to, specs.move-to
 
 -add-or-warn void(map module-path mut[symbol], key symbol, value module-path)
@@ -26,7 +28,7 @@ all-exports all-exports(modules module[])
 	else
 		map[key] := value
 
--export-kind enum(export-type, export-spec, export-fun)
+-export-kind enum(export-type, export-spec, export-fun, export-var)
 
 -export-kind export-kind(a module-export-value)
 	match a
@@ -48,6 +50,8 @@ all-exports all-exports(modules module[])
 		export-spec
 	as union-decl _
 		export-type
+	as var-decl _
+		export-var
 	as variant-decl _
 		export-type
 
@@ -121,6 +125,8 @@ module-content string(a module, all-exports all-exports)
 		"spec"
 	as union-decl _
 		"union"
+	as var-decl _
+		"variable"
 	as variant-decl _
 		"variant"
 
@@ -144,6 +150,8 @@ module-content string(a module, all-exports all-exports)
 		"interface"
 	as union-decl _
 		"type"
+	as var-decl _
+		"variable"
 	as variant-decl _
 		"type"
 
@@ -188,6 +196,13 @@ module-content string(a module, all-exports all-exports)
 		"{(s.is-builtin ? "spec builtin" : "spec") keyword}{s.parents spec-refs-content ctx}"
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
+	as var-decl x
+		kw string = match x kind
+		as var-global
+			"global"
+		as var-thread-local
+			"thread-local"
+		"{kw keyword}({x.type type-ref-content ctx})"
 	as variant-decl x
 		"{"variant" keyword}{x.purity purity-content}"
 
@@ -228,7 +243,10 @@ module-content string(a module, all-exports all-exports)
 		members = "" join for x : u members
 			x union-member-content ctx
 		"""<ul class="members">{members}</ul>"""
+	as var-decl _
+		""
 	as variant-decl _
+		# TODO: SIGNATURES ---------------------------------------------------------------------------------------------------------
 		""
 
 -enum-flags-members-content string(a symbol[])
