@@ -194,6 +194,7 @@ import model.model :
 	VariableRef,
 	VariantAndMethodImpls;
 import util.alloc.stackAlloc : MaxStackArray, withMapToStackArray, withMaxStackArray, withStackArray;
+import util.cell : Cell;
 import util.col.array :
 	arrayOfSingle,
 	contains,
@@ -253,7 +254,7 @@ Expr checkFunctionBody(
 		specs,
 		typeParams,
 		flags,
-		funExterns);
+		Cell!SymbolSet(funExterns));
 	Expr res = checkWithParamDestructures(
 		castNonScope_ref(exprCtx), ast, params,
 		(ref LocalsInfo innerLocals) =>
@@ -282,7 +283,7 @@ Expr checkTestBody(
 		emptySpecs,
 		emptyTypeParams,
 		flags,
-		externs);
+		Cell!SymbolSet(externs));
 	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
 }

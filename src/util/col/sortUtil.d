@@ -2,10 +2,53 @@ module util.col.sortUtil;
 
 @safe @nogc pure nothrow:
 
+import std.range : iota;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, map;
+import util.col.array : contains, every, insert, isEmpty, map;
 import util.comparison : Comparer, Comparison;
 import util.memory : overwriteMemory;
+
+bool sortedArrayContains(T, alias compare)(in T[] a, T value) {
+	assertSortedAndUnique!(T, compare)(a);
+	bool res = binarySearch!(T, compare)(a, value);
+	assert(res == contains(a, value)); // TODO: RM ------------------------------------------------------------------------------------------
+	return res;
+}
+private bool binarySearch(T, alias compare)(in T[] a, T value) {
+	size_t left = 0; // inclusive
+	size_t right = a.length; // exclusive
+	while (right - left > 8) {
+		size_t mid = left + (right - left) / 2;
+		final switch (compare(value, a[mid])) {
+			case Comparison.less:
+				right = mid;
+				break;
+			case Comparison.equal:
+				return true;
+			case Comparison.greater:
+				left = mid + 1;
+				break;
+		}
+	}
+	return contains(a[left .. right], value);
+}
+
+bool sortedArrayIsSuperset(T, alias compare)(in T[] a, in T[] b) {
+	assertSortedAndUnique!(T, compare)(a);
+	assertSortedAndUnique!(T, compare)(b);
+	size_t ai = 0;
+	size_t bi = 0;
+	while (ai != a.length && bi != b.length) {
+		if (a[ai] == b[bi]) {
+			ai++;
+			bi++;
+		} else
+			ai++;
+	}
+	bool res = bi == b.length;
+	assert(res == every!T(b, (in T x) => sortedArrayContains!(T, compare)(a, x)));
+	return res;
+}
 
 T[] sorted(T)(ref Alloc alloc, in T[] a, in Comparer!T compare) {
 	T[] res = map(alloc, a, (ref T x) => x);
@@ -90,7 +133,7 @@ private void assertSorted(T, K, alias getComparable)(in T[] xs) {
 		assert(getComparable(xs[i - 1]) <= getComparable(xs[i]));
 }
 
-void assertSortedAndUnique(T, K)(in T[] xs, in K delegate(in T) @safe @nogc pure nothrow getComparable) {
+void assertSortedAndUnique(T, alias compare)(in T[] xs) {
 	foreach (size_t i; 1 .. xs.length)
-		assert(getComparable(xs[i - 1]) < getComparable(xs[i]));
+		assert(compare(xs[i - 1], xs[i]) == Comparison.less);
 }

@@ -231,7 +231,7 @@ import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, optOrDefault, some, someMut;
 import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
-import util.symbolSet : MutSymbolSet, SymbolSet, symbolSet;
+import util.symbolSet : SymbolSet, symbolSet;
 import util.unicode : mustUnicodeDecode;
 import util.union_ : TaggedUnion, Union;
 import util.uri :

@@ -9,7 +9,7 @@ import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.col.array : lastIndexOf, only, small;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.comparison : Comparison;
+import util.comparison : compareUint, Comparison;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
@@ -26,6 +26,9 @@ immutable struct Symbol {
 	uint value; // Public for 'switch'
 	@disable this();
 	private this(uint v) { value = v; }
+
+	static Symbol fromValue(uint x) =>
+		Symbol(x);
 
 	uint asUintForTaggedUnion() =>
 		value;
@@ -103,6 +106,9 @@ private @system string asLongSymbol_impure(Symbol a) {
 }
 
 pure:
+
+Comparison compareSymbolsArbitrary(in Symbol a, in Symbol b) =>
+	compareUint(a.value, b.value);
 
 Comparison compareSymbolsAlphabetically(in Symbol a, in Symbol b) =>
 	withStringOfSymbol(a, (in string sa) =>

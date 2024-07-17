@@ -1,58 +1,64 @@
 module util.symbolSet;
 
-@safe @nogc nothrow:
+@safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
-import util.col.array : append, contains, emptySmallArray, every, fold, isEmpty, MutSmallArray, only, SmallArray;
+import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
+import util.col.array : append, arraysIdentical, emptySmallArray, every, fold, isEmpty, MutSmallArray, only, SmallArray;
+import util.conv : safeToUint;
+import util.integralValues :
+	emptyIntegralValues, IntegralValue, IntegralValues, mapToIntegralValues, only, singleIntegralValue;
 import util.opt : Opt, optIf;
-import util.symbol : Symbol;
+import util.symbol : compareSymbolsArbitrary, Symbol;
 
-struct MutSymbolSet {
+immutable struct SymbolSet {
 	@safe @nogc pure nothrow:
 
-	MutSmallArray!Symbol symbols;
+	// Since a Symbol is represented with an integer, just use IntegralValues
+	private IntegralValues inner;
 
 	Opt!Symbol asSingle() scope const =>
-		optIf(symbols.length == 1, () => only(symbols));
+		optIf(inner.length == 1, () => toSymbol(only(inner)));
 	bool isEmpty() scope const =>
-		.isEmpty(symbols);
-	
+		inner.isEmpty;
+
 	bool opBinaryRight(string op)(Symbol x) const if (op == "in") =>
-		contains(symbols, x);
+		toIntegral(x) in inner;
 	bool opBinaryRight(string op)(SymbolSet b) const if (op == "in") =>
-		// TODO:PERF: Use the fact that they are both sorted! --------------------------------------------------------------------------
-		every!Symbol(b.symbols, (in Symbol x) =>
-			x in this);
+		b.inner in inner;
 	SymbolSet opBinary(string op)(Symbol x) const if (op == "|") =>
-		addSymbol(this, x);
-	SymbolSet opBinary(string op)(in Symbol[] x) const if (op == "|") =>
-		addSymbols(this, x);
+		SymbolSet(inner | toIntegral(x));
+	SymbolSet opBinary(string op)(SymbolSet x) const if (op == "|") =>
+		SymbolSet(inner | x.inner);
+	SymbolSet opBinary(string op)(in Symbol[] xs) const if (op == "|") =>
+		fold!(SymbolSet, Symbol)(this, xs, (SymbolSet acc, in Symbol x) =>
+			acc | x);
+
+	int opApply(in int delegate(Symbol) @safe @nogc pure nothrow cb) {
+		foreach (IntegralValue x; inner) {
+			int res = cb(toSymbol(x));
+			if (res != 0)
+				return res;
+		}
+		return 0;
+	}
 }
-alias SymbolSet = immutable MutSymbolSet;
 
-private __gshared Alloc* symbolSetAlloc;
-// private __gshared MutSet!SymbolSet cache; -----------------------------------------------------------------------------------------
+SymbolSet emptySymbolSet() =>
+	SymbolSet(emptyIntegralValues);
 
-@trusted void initSymbolSets(MetaAlloc* metaAlloc) {
-	symbolSetAlloc = newAlloc(AllocKind.symbolSet, metaAlloc);
-}
+SymbolSet symbolSet(Symbol a) =>
+	SymbolSet(singleIntegralValue(toIntegral(a)));
 
-pure SymbolSet emptySymbolSet() =>
-	SymbolSet(emptySmallArray!Symbol);
+alias SymbolSetBuilder = StackArrayBuilder!Symbol;
+SymbolSet buildSymbolSet(in void delegate(scope ref SymbolSetBuilder) @safe @nogc pure nothrow cb) =>
+	withBuildStackArray!(SymbolSet, Symbol)(cb, (scope Symbol[] symbols) =>
+		SymbolSet(mapToIntegralValues!Symbol(symbols, (ref const Symbol x) => toIntegral(x))));
 
-pure SymbolSet symbolSet(Symbol a) =>
-	addSymbol(emptySymbolSet, a);
+private:
 
-private pure SymbolSet addSymbols(SymbolSet a, in Symbol[] xs) =>
-	fold!(SymbolSet, Symbol)(a, xs, (SymbolSet acc, in Symbol x) =>
-		addSymbol(acc, x));
+Symbol toSymbol(IntegralValue a) =>
+	Symbol.fromValue(safeToUint(a.asUnsigned));
 
-private @trusted pure SymbolSet addSymbol(SymbolSet a, Symbol b) {
-	assert(b !in a);
-	return (cast(SymbolSet function(SymbolSet, Symbol) @safe @nogc pure nothrow) &addSymbolImpure)(a, b);
-}
-private @system SymbolSet addSymbolImpure(SymbolSet a, Symbol b) =>
-	// TODO: MEMOIZE ------------------------------------------------------------------------------------------------------------------
-	SymbolSet(append!Symbol(*symbolSetAlloc, a.symbols, b));
-
-// TODO: unit test this module ------------------------------------------------------------------------------------------------
+IntegralValue toIntegral(Symbol a) =>
+	IntegralValue(a.value);

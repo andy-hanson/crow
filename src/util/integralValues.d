@@ -3,11 +3,12 @@ module util.integralValues;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
-import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
-import util.comparison : compareUlong;
-import util.col.array : arraysEqual, copyArray, isEmpty, only, SmallArray;
+import util.alloc.stackAlloc : withExactStackArray, withMapToStackArray, withStackArray;
+import util.comparison : compareUlong, Comparison;
+import util.col.array : arraysEqual, arraysIdentical, copyArray, every, fold, isEmpty, only, small, SmallArray;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
 import util.col.mutSet : getOrAddLazyAlloc, MutSet;
-import util.col.sortUtil : assertSortedAndUnique, sortInPlace;
+import util.col.sortUtil : assertSortedAndUnique, sortedArrayContains, sortedArrayIsSuperset, sortInPlace;
 import util.conv : safeToUint;
 import util.hash : HashCode, Hasher;
 import util.memory : initMemory;
@@ -25,12 +26,10 @@ immutable struct IntegralValue {
 		value;
 }
 
-/*
-Integral values, in sorted order with no repeats.
-This is used to store the values used by a 'match'.
-*/
+// Set of IntegralValue, in sorted order with no repeats.
 immutable struct IntegralValues {
 	@safe @nogc pure nothrow:
+	// These are sorted by the unsigned value
 	SmallArray!IntegralValue values;
 
 	private this(IntegralValue[] v) {
@@ -42,25 +41,62 @@ immutable struct IntegralValues {
 	bool isRange0ToN() scope =>
 		isEmpty(values) || values[$ - 1].asUnsigned == values.length - 1;
 
+	bool opEquals(in IntegralValues rhs) scope {
+		bool res = arraysIdentical(this, rhs);
+		assert(res == arraysEqual(this, rhs)); // TODO: RM -----------------------------------------------------------------
+		return res;
+	}
+
+	IntegralValue opIndex(size_t i) scope const =>
+		values[i];
+
+	bool opBinaryRight(string op)(IntegralValue x) const if (op == "in") =>
+		sortedArrayContains!(IntegralValue, compareIntegralValue)(values, x);
+	bool opBinaryRight(string op)(IntegralValues xs) const if (op == "in") =>
+		sortedArrayIsSuperset!(IntegralValue, compareIntegralValue)(values, xs.values);
+
+	IntegralValues opBinary(string op)(IntegralValue x) const if (op == "|") =>
+		x in this ? this : add(this, x);
+	IntegralValues opBinary(string op)(IntegralValues xs) const if (op == "|") =>
+		fold!(IntegralValues, IntegralValue)(this, xs, (IntegralValues acc, in IntegralValue x) =>
+			acc | x);
+}
+
+pure IntegralValues emptyIntegralValues() =>
+	integralValuesRange(0);
+
+pure IntegralValue only(in IntegralValues a) =>
+	only(a.values);
+
+@trusted void initIntegralValues(MetaAlloc* metaAlloc) {
+	integralValuesAlloc = newAlloc(AllocKind.integralValues, metaAlloc);
+	foreach (size_t i; 0 .. linear.length)
+		initMemory(&linear[i], IntegralValue(i));
+	// Make sure single and linear IntegralValues are in the map
+	foreach (size_t i; 0 .. linear.length) {
+		getOrAddIntegralValues(singleIntegralValue(IntegralValue(i)).values);
+		getOrAddIntegralValues(linear[0 .. i]);
+	}
+}
+
+// This is different from IntegralValues so it can do 'opEquals' by content
+immutable struct CacheEntry {
+	@safe @nogc pure nothrow:
+	SmallArray!IntegralValue values;
+
+	bool opEquals(in CacheEntry b) scope =>
+		arraysEqual(values, b.values);
+
 	HashCode hash() scope {
 		Hasher hasher;
 		foreach (IntegralValue value; values)
 			hasher ~= value.asUnsigned;
 		return hasher.finish();
 	}
-
-	bool opEquals(in IntegralValues rhs) scope =>
-		arraysEqual(this, rhs);
-}
-
-@trusted void initIntegralValues(MetaAlloc* metaAlloc) {
-	integralValuesAlloc = newAlloc(AllocKind.integralValues, metaAlloc);
-	foreach (size_t i; 0 .. linear.length)
-		initMemory(&linear[i], IntegralValue(i));
 }
 
 private __gshared Alloc* integralValuesAlloc;
-private __gshared MutSet!IntegralValues cache;
+private __gshared MutSet!CacheEntry cache;
 private immutable IntegralValue[0x100] linear;
 
 @trusted pure IntegralValues integralValuesRange(size_t n) {
@@ -88,14 +124,13 @@ pure IntegralValues singleIntegralValue(in IntegralValue a) {
 ) {
 	switch (xs.length) {
 		case 0:
-			return integralValuesRange(0);
+			return emptyIntegralValues;
 		case 1:
 			return singleIntegralValue(cb(only(xs)));
 		default:
 			return withMapToStackArray!(IntegralValues, IntegralValue, const T)(xs, cb, (scope IntegralValue[] values) {
-				sortInPlace!IntegralValue(values, (in IntegralValue x, in IntegralValue y) =>
-					compareUlong(x.asUnsigned, y.asUnsigned));
-				assertSortedAndUnique!(IntegralValue, ulong)(values, (in IntegralValue x) => x.asUnsigned);
+				sortInPlace!(IntegralValue)(values, (in IntegralValue x, in IntegralValue y) => compareIntegralValue(x, y));
+				assertSortedAndUnique!(IntegralValue, compareIntegralValue)(values);
 				return values[$ - 1].asUnsigned == values.length - 1
 					? integralValuesRange(xs.length)
 					: getOrAddIntegralValues(values);
@@ -103,13 +138,42 @@ pure IntegralValues singleIntegralValue(in IntegralValue a) {
 	}
 }
 
-private @trusted pure IntegralValues getOrAddIntegralValues(in IntegralValue[] values) =>
+private:
+
+pure IntegralValues add(IntegralValues a, IntegralValue value) {
+	assert(value !in a);
+	return withExactStackArray!(IntegralValues, IntegralValue)(
+		a.length + 1,
+		(scope ref ExactSizeArrayBuilder!IntegralValue out_) {
+			bool didAdd = false;
+			foreach (IntegralValue x; a.values) {
+				if (didAdd || x.value < value.value)
+					out_ ~= x;
+				else {
+					out_ ~= value;
+					out_ ~= x;
+					didAdd = true;
+				}
+			}
+			if (!didAdd)
+				out_ ~= value;
+			return getOrAddIntegralValues(finish(out_));
+		});
+}
+
+@trusted pure IntegralValues getOrAddIntegralValues(in IntegralValue[] values) =>
 	(cast(IntegralValues function(in IntegralValue[]) @safe @nogc pure nothrow) &getOrAddIntegralValues_impure)(values);
 
-private @system IntegralValues getOrAddIntegralValues_impure(
+@system IntegralValues getOrAddIntegralValues_impure(
 	in IntegralValue[] values,
-) =>
-	getOrAddLazyAlloc!IntegralValues(
-		*integralValuesAlloc, cache, IntegralValues(values),
-		cast(IntegralValues delegate() @safe @nogc pure nothrow) () =>
-			IntegralValues(copyArray(*integralValuesAlloc, values)));
+) {
+	assertSortedAndUnique!(IntegralValue, compareIntegralValue)(values);
+	CacheEntry res = getOrAddLazyAlloc!CacheEntry(
+		*integralValuesAlloc, cache, CacheEntry(small!IntegralValue(values)),
+		cast(CacheEntry delegate() @safe @nogc pure nothrow) () =>
+			CacheEntry(small!IntegralValue(copyArray(*integralValuesAlloc, values))));
+	return IntegralValues(res.values);
+}
+
+private pure Comparison compareIntegralValue(in IntegralValue a, in IntegralValue b) =>
+	compareUlong(a.value, b.value);

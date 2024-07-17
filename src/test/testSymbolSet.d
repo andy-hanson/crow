@@ -17,10 +17,17 @@ void testSymbolSet(ref Test test) {
 	assert(a in setA);
 	assert(b !in setA); 
 
+	SymbolSet setB = symbolSet(b);
+	assert(b in setB);
+	assert(a !in setB);
+
 	SymbolSet setAB = setA | b;
 	assert(a in setAB);
 	assert(b in setAB);
 	assert(c !in setAB);
 	assert(setA in setAB);
 	assert(setAB !in setA);
+
+	assert((setB | a) == setAB);
+	assert((setB | setA) == setAB);
 }

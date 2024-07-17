@@ -155,7 +155,7 @@ private:
 bool checkCallExterns(ref CheckCtx ctx, Range diagRange, FunDecl* called, SymbolSet externs) {
 	bool ok = called.externs in externs;
 	if (!ok) {
-		foreach (Symbol x; called.externs.symbols)
+		foreach (Symbol x; called.externs)
 			if (x !in externs)
 				addDiag(ctx, diagRange, Diag(Diag.CallMissingExtern(called, x)));
 	}

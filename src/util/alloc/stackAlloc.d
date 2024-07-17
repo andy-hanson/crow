@@ -129,6 +129,10 @@ struct StackArrayBuilder(T) {
 		initMemory(cur, value);
 		cur++;
 	}
+	@trusted void opOpAssign(string op : "~")(in T[] values) {
+		foreach (T value; values)
+			this ~= value;
+	}
 
 	size_t sizeSoFar() =>
 		cur - begin;

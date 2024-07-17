@@ -49,7 +49,7 @@ import util.col.mutMap : mustAdd, mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Symbol, symbol;
-import util.symbolSet : MutSymbolSet, SymbolSet;
+import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
@@ -178,15 +178,13 @@ void finishVariants(ref ConcretizeCtx ctx) {
 
 private:
 
-SymbolSet allExterns(in Config mainConfig) {
-	MutSymbolSet res;
-	version (Windows)
-		res = res | [symbol!"DbgHelp" | symbol!"windows"];
-	else
-		res = res | [symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"];
-	res = res | [symbol!"libc", symbol!"native"];
-	foreach (Symbol name; keys(mainConfig.extern_))
-		res = res | name; // TODO: this should only be if there is a path set for it ---------------------------------------------------
-
-	return res;
-}
+SymbolSet allExterns(in Config mainConfig) =>
+	buildSymbolSet((scope ref SymbolSetBuilder out_) {
+		version (Windows)
+			out_ ~= [symbol!"DbgHelp", symbol!"windows"];
+		else
+			out_ ~= [symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"];
+		out_ ~= [symbol!"libc", symbol!"native"];
+		foreach (Symbol name; keys(mainConfig.extern_))
+			out_ ~= name; // TODO: this should only be if there is a path set for it ---------------------------------------------------
+	});

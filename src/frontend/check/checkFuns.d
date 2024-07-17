@@ -64,6 +64,7 @@ import model.model :
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	allSame,
 	every,
@@ -86,7 +87,7 @@ import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
 import util.string : CStringAndLength;
 import util.symbol : Symbol, symbol;
-import util.symbolSet : emptySymbolSet, MutSymbolSet, SymbolSet, symbolSet;
+import util.symbolSet : buildSymbolSet, emptySymbolSet, SymbolSet, symbolSet, SymbolSetBuilder;
 import util.unicode : unicodeValidate;
 import util.util : optEnumConvert, todo;
 
@@ -150,14 +151,16 @@ Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(in TypeAst arg) {
 	if (arg.isA!NameAndRange)
 		return some(symbolSet(arg.as!NameAndRange.name));
 	else if (arg.isA!(TypeAst.Tuple*)) {
-		MutSymbolSet res;
-		foreach (TypeAst member; arg.as!(TypeAst.Tuple*).members) {
-			if (member.isA!NameAndRange)
-				res = res | member.as!NameAndRange.name;
-			else
-				return none!SymbolSet;
-		}
-		return some!SymbolSet(res);
+		bool ok = true;
+		SymbolSet res = buildSymbolSet((scope ref SymbolSetBuilder out_) {
+			foreach (TypeAst member; arg.as!(TypeAst.Tuple*).members) {
+				if (member.isA!NameAndRange)
+					out_ ~= member.as!NameAndRange.name;
+				else
+					ok = false;
+			}
+		});
+		return optIf(ok, () => res);
 	} else
 		return none!SymbolSet;
 }
@@ -384,14 +387,14 @@ FunFlagsAndSpecs checkFunModifiers(
 	in ModifierAst[] asts,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	MutSymbolSet externs;
+	Cell!SymbolSet externs;
 	SmallArray!(immutable SpecInst*) specs =
 		small!(immutable SpecInst*)(mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) => // OTDO: have mapOP return small?
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
 					if (x.keyword == ModifierKeyword.extern_) {
-						if (externs.isEmpty)
-							externs = getExternLibraryName(ctx, x);
+						if (cellGet(externs).isEmpty)
+							cellSet(externs, getExternLibraryName(ctx, x));
 						else
 							addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
 					} else {
@@ -409,9 +412,9 @@ FunFlagsAndSpecs checkFunModifiers(
 					specFromAst(
 						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts))));
 	return FunFlagsAndSpecs(
-		checkFunFlags(ctx, range, allFlags, isExternBody: !hasBody && !externs.isEmpty, isTest: false),
+		checkFunFlags(ctx, range, allFlags, isExternBody: !hasBody && !cellGet(externs).isEmpty, isTest: false),
 		(allFlags & CollectedFunFlags.builtin) != 0,
-		externs, specs);
+		cellGet(externs), specs);
 }
 
 @trusted SmallArray!Test checkTests(
@@ -437,7 +440,7 @@ immutable struct TestModifiers {
 }
 TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	MutSymbolSet externs;
+	Cell!SymbolSet externs;
 	foreach (ModifierAst modifier; ast.modifiers) {
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
@@ -446,8 +449,8 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 					modifierTypeArgInvalid(ctx, x);
 					allFlags |= flag;
 				} else if (x.keyword == ModifierKeyword.extern_) {
-					if (externs.isEmpty)
-						externs = getExternLibraryName(ctx, x);
+					if (cellGet(externs).isEmpty) // TODO: dup code ..............................................................................
+						cellSet(externs, getExternLibraryName(ctx, x));
 					else
 						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
 				} else
@@ -457,7 +460,7 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.test)));
 			});
 	}
-	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExternBody: false, isTest: true), externs);
+	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExternBody: false, isTest: true), cellGet(externs));
 }
 
 bool isAllowedTestFlag(CollectedFunFlags flag) {
