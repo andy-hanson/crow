@@ -76,7 +76,12 @@ ConcreteProgram concretizeInner(
 ) {
 	ref Alloc alloc() =>
 		*allocPtr;
-	ConcretizeCtx ctx = ConcretizeCtx(allocPtr, versionInfo, ptrTrustMe(program.program), castNonScope_ref(fileContentGetters), allExterns(*program.mainConfig));
+	ConcretizeCtx ctx = ConcretizeCtx(
+		allocPtr,
+		versionInfo,
+		ptrTrustMe(program.program),
+		castNonScope_ref(fileContentGetters),
+		allExterns(*program.mainConfig));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
 	lateSet(ctx.char8ArrayTrustAsString_, getNonTemplateConcreteFun(ctx, commonFuns.char8ArrayTrustAsString));
@@ -175,15 +180,13 @@ private:
 
 SymbolSet allExterns(in Config mainConfig) {
 	MutSymbolSet res;
-	version (Windows) {
-		res = res.addAll([symbol!"DbgHelp", symbol!"windows"]);
-	} else {
-		res = res.addAll([symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"]);
-	}
-	res = res.addAll([symbol!"libc", symbol!"native"]);
+	version (Windows)
+		res = res | [symbol!"DbgHelp" | symbol!"windows"];
+	else
+		res = res | [symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"];
+	res = res | [symbol!"libc", symbol!"native"];
 	foreach (Symbol name; keys(mainConfig.extern_))
-		res = res.add(name); // TODO: this should only be if there is a path set for it ---------------------------------------------------
+		res = res | name; // TODO: this should only be if there is a path set for it ---------------------------------------------------
 
-	assert(res.has(symbol!"libc")); // sanity check ------------------------------------------------------------------------------------------
 	return res;
 }

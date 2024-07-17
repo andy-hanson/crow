@@ -160,7 +160,6 @@ immutable struct PrefixAndRest {
 	string prefix;
 	CString rest;
 }
-// TODO: this is just trySplitOnce ----------------------------------------------------------------------------------------------------
 Opt!PrefixAndRest trySplit(CString a, char splitter) {
 	MutCString cur = a;
 	while (!cStringIsEmpty(cur)) {

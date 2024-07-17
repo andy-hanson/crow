@@ -15,7 +15,6 @@ import concretize.concretizeCtx :
 	getConcreteFun,
 	getReferencedType,
 	nat64Type,
-	stringType,
 	symbolType,
 	voidType;
 import concretize.concretizeExpr : concretizeBogus, ConcretizeExprCtx, getConcreteFunFromCalled, getConcreteType;
@@ -290,11 +289,10 @@ ConcreteExprKind genThrowStringKind(ref ConcretizeCtx ctx, UriAndRange range, st
 	genThrowKind(ctx.alloc, genError(ctx, range, message));
 
 ConcreteExpr genStringLiteral(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
-	ConcreteExpr(stringType(ctx), range, genStringLiteralKind(ctx, range, value));
+	ConcreteExpr(char8ArrayType(ctx), range, genStringLiteralKind(ctx, range, value));
 
 ConcreteExprKind genStringLiteralKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
-	ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayTrustAsString, newSmallArray(ctx.alloc, [
-		genChar8Array(ctx, range, value)])));
+	genChar8Array(ctx, range, value).kind;
 
 ConcreteExpr genChar8Array(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
 	ConcreteType type = char8ArrayType(ctx);

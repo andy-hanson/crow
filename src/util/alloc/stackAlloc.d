@@ -81,7 +81,7 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 	(cast(Out function(
 		in void delegate(ref StackArrayBuilder!Elem) @safe @nogc pure nothrow,
 		in Out delegate(scope Elem[]) @safe @nogc pure nothrow,
-	) @safe @nogc pure nothrow) &withBuildStackArray_impure!(Out, Elem))(cbBuild, cb);
+	) @safe @nogc pure nothrow) &withBuildStackArrayImpure!(Out, Elem))(cbBuild, cb);
 
 @trusted Out withExactStackArray(Out, Elem)(
 	size_t size,
@@ -91,7 +91,7 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 		ExactSizeArrayBuilder!Elem builder = ExactSizeArrayBuilder!Elem(storage, storage.ptr);
 		return cb(builder);
 	});
-@trusted Out withExactStackArray_impure(Out, Elem)(
+@trusted Out withExactStackArrayImpure(Out, Elem)(
 	size_t size,
 	in Out delegate(scope ref ExactSizeArrayBuilder!Elem) @safe @nogc nothrow cb,
 ) =>
@@ -100,9 +100,9 @@ private Out withRestoreStack_impure(Out)(in Out delegate() @safe @nogc pure noth
 		return cb(builder);
 	});
 
-private @system Out withBuildStackArray_impure(Out, Elem)(
+@trusted Out withBuildStackArrayImpure(Out, Elem)(
 	in void delegate(ref StackArrayBuilder!Elem) @safe @nogc pure nothrow cbBuild,
-	in Out delegate(scope Elem[]) @safe @nogc pure nothrow cb,
+	in Out delegate(scope Elem[]) @safe @nogc nothrow cb,
 ) {
 	assert((cast(ulong) stackArrayNext) % ulong.sizeof == 0);
 
@@ -248,7 +248,7 @@ pure Out withMapOrNoneToStackArray(Out, Elem, InElem)(
 	});
 
 Out withConcatImpure(Out, Elem)(in Elem[] a, in Elem[] b, in Out delegate(in Elem[]) @safe @nogc nothrow cb) =>
-	withExactStackArray_impure!(Out, Elem)(a.length + b.length, (scope ref ExactSizeArrayBuilder!Elem elems) {
+	withExactStackArrayImpure!(Out, Elem)(a.length + b.length, (scope ref ExactSizeArrayBuilder!Elem elems) {
 		foreach (Elem x; a)
 			elems ~= x;
 		foreach (Elem x; b)

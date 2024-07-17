@@ -153,12 +153,11 @@ enum ArgsKind { empty, nonEmpty }
 private:
 
 bool checkCallExterns(ref CheckCtx ctx, Range diagRange, FunDecl* called, SymbolSet externs) {
-	bool ok = externs.containsAll(called.externs);
+	bool ok = called.externs in externs;
 	if (!ok) {
-		foreach (Symbol x; called.externs.symbols) {
-			if (!externs.has(x))
+		foreach (Symbol x; called.externs.symbols)
+			if (x !in externs)
 				addDiag(ctx, diagRange, Diag(Diag.CallMissingExtern(called, x)));
-		}
 	}
 	return ok;
 }

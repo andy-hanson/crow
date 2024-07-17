@@ -200,7 +200,6 @@ struct ConcretizeCtx {
 	Late!ConcreteType _voidType;
 	Late!ConcreteType _nat64Type;
 	Late!ConcreteType _ctxType;
-	Late!ConcreteType _stringType;
 	Late!ConcreteType _symbolType;
 
 	ref Alloc alloc() return scope =>
@@ -296,9 +295,6 @@ ConcreteType nat64Type(ref ConcretizeCtx a) =>
 ConcreteType exceptionType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._exceptionType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.exception, emptySmallArray!ConcreteType));
-ConcreteType stringType(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._stringType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.string_, emptySmallArray!ConcreteType));
 
 ConcreteType symbolType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._symbolType, () =>

@@ -84,7 +84,11 @@ options:
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
--run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon, native extern
+-run-single-crow-test failure[](
+	path-to-crow string,
+	path string,
+	options test-options,
+) summon, native extern
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"

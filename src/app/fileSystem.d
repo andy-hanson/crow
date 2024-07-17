@@ -60,9 +60,11 @@ import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.alloc.stackAlloc : withConcatImpure;
+import util.alloc.stackAlloc :
+	StackArrayBuilder, withBuildStackArrayImpure, withConcatImpure, withExactStackArrayImpure;
 import util.col.array : endPtr, exists, newArray, sum;
 import util.col.arrayBuilder : buildArray, Builder;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
 import util.col.map : Map;
 import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
@@ -90,7 +92,7 @@ import util.uri :
 	uriIsFile,
 	withCStringOfFilePath;
 import util.util : castImmutable, castNonScope_ref, todo, typeAs;
-import util.writer : debugLogWithWriter, withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
+import util.writer : withStackWriterImpure, withStackWriterImpureCString, Writer, writeWithSeparatorAndFilter;
 
 private enum OutPipe { stdout = 1, stderr = 2 }
 
@@ -487,9 +489,9 @@ private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 				writer ~= x.signal;
 			}));
 
-ExitCode runCompiler(ref TempAlloc tempAlloc, in PathAndArgs pathAndArgs) =>
+ExitCode runCompiler(in PathAndArgs pathAndArgs) =>
 	// Extern library linker arguments are already in args
-	printSignalAndExit(runCommon(tempAlloc, [], pathAndArgs, isCompile: true));
+	printSignalAndExit(runCommon([], pathAndArgs, isCompile: true));
 
 ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 	version (Windows) {
@@ -501,10 +503,10 @@ ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 		return ExitCode.ok;
 }
 
-ExitCodeOrSignal runProgram(ref TempAlloc tempAlloc, in ExternLibraries externLibraries, in PathAndArgs pathAndArgs) =>
-	runCommon(tempAlloc, externLibraries, pathAndArgs, isCompile: false);
+ExitCodeOrSignal runProgram(in ExternLibraries externLibraries, in PathAndArgs pathAndArgs) =>
+	runCommon(externLibraries, pathAndArgs, isCompile: false);
 
-ExitCodeOrSignal runNodeJsProgram(ref TempAlloc tempAlloc, in PathAndArgs pathAndArgs) =>
+ExitCodeOrSignal runNodeJsProgram(in PathAndArgs pathAndArgs) =>
 	withCStringOfFilePath(pathAndArgs.path, (in CString pathCString) {
 		version (Windows) {
 			return todo!ExitCodeOrSignal("runNodeJsProgram");
@@ -513,19 +515,17 @@ ExitCodeOrSignal runNodeJsProgram(ref TempAlloc tempAlloc, in PathAndArgs pathAn
 				[cString!"node", castNonScope_ref(pathCString)],
 				pathAndArgs.args,
 				(in CString[] args) =>
-					runCommon(tempAlloc, [], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false));
+					runCommon([], PathAndArgs(parseFilePath("/usr/bin/env"), args), isCompile: false));
 		}
 	});
 
 private @trusted ExitCodeOrSignal runCommon(
-	ref TempAlloc tempAlloc, // TODO: should not be needed ----------------------------------------------------------------------------
 	in ExternLibraries externLibraries,
 	in PathAndArgs pathAndArgs,
 	bool isCompile,
 ) {
-	CString executablePath = cStringOfFilePath(tempAlloc, pathAndArgs.path);
 	version (Windows) {
-		CString argsCString = windowsArgsCString(tempAlloc, executablePath, pathAndArgs.args);
+		CString argsCString = withWindowsArgsCString(pathAndArgs);
 
 		foreach (ExternLibrary x; externLibraries) {
 			if (has(x.configuredDir)) {
@@ -626,14 +626,9 @@ private @trusted ExitCodeOrSignal runCommon(
 		return ExitCodeOrSignal(ExitCode(exitCode));
 	} else {
 		pid_t pid;
-		int spawnStatus = posix_spawn(
-			&pid,
-			executablePath.ptr,
-			null,
-			null,
-			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
-			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
-			getEnvironForChildProcess(tempAlloc, externLibraries));
+		int spawnStatus = withConvertArgs!int(pathAndArgs, (in char* executablePath, in char** args) =>
+			withEnvironForChildProcess!int(externLibraries, (in char** environ) @trusted =>
+				posix_spawn(&pid, executablePath, null, null, cast(char**) args, environ)));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -696,31 +691,43 @@ version (Windows) {
 }
 
 version (Windows) {} else {
-	@system pure immutable(char**) getEnvironForChildProcess(ref Alloc alloc, in ExternLibraries externLibraries) =>
+	Out withEnvironForChildProcess(Out)(
+		in ExternLibraries externLibraries,
+		in Out delegate(in immutable char**) @safe @nogc nothrow cb,
+	) =>
 		exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))
-			? buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) @trusted {
-				immutable(char*)* cur = __environ;
-				while (*cur != null) {
-					res ~= *cur;
-					cur++;
-				}
+			? withLdLibraryPath(externLibraries, (in immutable char* ldLibraryPath) =>
+				withBuildStackArrayImpure!(Out, immutable char*)(
+					(scope ref StackArrayBuilder!(immutable char*) out_) @trusted {
+						immutable(char*)* cur = __environ;
+						while (*cur != null) {
+							out_ ~= *cur;
+							cur++;
+						}
+						out_ ~= ldLibraryPath;
+						out_ ~= typeAs!(immutable char*)(null);
+					},
+					(scope immutable char*[] environ) @trusted => cb(environ.ptr)))
+			: cb(__environ);
 
-				res ~= withWriter(alloc, (scope ref Writer writer) {
-					writer ~= "LD_LIBRARY_PATH=";
-					writeWithSeparatorAndFilter!ExternLibrary(
-						writer,
-						externLibraries,
-						";",
-						(in ExternLibrary x) => has(x.configuredDir),
-						(in ExternLibrary x) {
-							writer ~= '/';
-							writer ~= asFilePath(force(x.configuredDir));
-						});
-				}).ptr;
-
-				res ~= typeAs!(immutable char*)(null);
-			}).ptr
-			: __environ;
+	Out withLdLibraryPath(Out)(
+		in ExternLibraries externLibraries,
+		in Out delegate(in immutable char*) @safe @nogc nothrow cb,
+	) =>
+		withStackWriterImpureCString!(Out, 0x1000)(
+			(scope ref Writer writer) {
+				writer ~= "LD_LIBRARY_PATH=";
+				writeWithSeparatorAndFilter!ExternLibrary(
+					writer,
+					externLibraries,
+					";",
+					(in ExternLibrary x) => has(x.configuredDir),
+					(in ExternLibrary x) {
+						writer ~= '/';
+						writer ~= asFilePath(force(x.configuredDir));
+					});
+			},
+			(in CString x) => cb(x.ptr));
 }
 
 version (Windows) {
@@ -755,8 +762,11 @@ ExitCode makeDirectoryNoPrintErrors(FilePath dir) =>
 		mkdir(x.ptr, octal!"700") == 0 ? ExitCode.ok : ExitCode.error);
 
 version (Windows) {
-	CString windowsArgsCString(ref Alloc alloc, in CString executablePath, in CString[] args) =>
-		withWriter(alloc, (scope ref Writer writer) {
+	ExitCodeOrSignal withWindowsArgsCString(
+		in PathAndArgs a,
+		in ExitCodeOrSignal delegate(in CString) @safe @nogc nothrow cb,
+	) =>
+		withStackWriterImpureCString(alloc, (scope ref Writer writer) {
 			writer ~= '"';
 			writer ~= executablePath;
 			writer ~= '"';
@@ -764,7 +774,7 @@ version (Windows) {
 				writer ~= ' ';
 				writer ~= arg;
 			}
-		});
+		}, cb);
 }
 
 void verifyOk(int ok) {
@@ -794,13 +804,20 @@ version (Windows) {
 	}
 }
 
-@system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) =>
-	buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) {
-		res ~= executable.ptr;
-		foreach (CString arg; args)
-			res ~= arg.ptr;
-		res ~= typeAs!(immutable char*)(null);
-	}).ptr;
+@system Out withConvertArgs(Out)(
+	in PathAndArgs a,
+	in Out delegate(in char*, in char**) @safe @nogc nothrow cb,
+) =>
+	withCStringOfFilePath!Out(a.path, (in CString path) =>
+		withExactStackArrayImpure!(Out, const char*)(
+			a.args.length + 2,
+			(scope ref ExactSizeArrayBuilder!(const char*) out_) @trusted {
+				out_ ~= path.ptr;
+				foreach (CString arg; a.args)
+					out_ ~= arg.ptr;
+				out_ ~= null;
+				return cb(path.ptr, finish(out_).ptr);
+			}));
 
 extern(C) immutable char** __environ;
 

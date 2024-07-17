@@ -111,6 +111,7 @@ immutable struct Diag {
 	immutable struct BuildOutBadFileExtension {
 		Extension executableExtension;
 	}
+	immutable struct BuildOutBadPrefix { string prefix; }
 	immutable struct DuplicatePart { CString tag; }
 	immutable struct ExpectedCrowUri { string actual; }
 	immutable struct ExpectedPaths { Opt!CString tag; }
@@ -132,6 +133,7 @@ immutable struct Diag {
 
 	mixin Union!(
 		BuildOutBadFileExtension,
+		BuildOutBadPrefix,
 		DuplicatePart,
 		ExpectedCrowUri,
 		ExpectedPaths,
@@ -153,6 +155,11 @@ void writeDiag(scope ref Writer writer, in Diag a) {
 			writer ~= "Build output must be a '.c' or ";
 			writeExtension(writer, x.executableExtension);
 			writer ~= " file.";
+		},
+		(in Diag.BuildOutBadPrefix x) {
+			writer ~= "Unrecognized output prefix ";
+			writeQuotedString(writer, x.prefix);
+			writer ~= ". An output can start with 'js:' or 'node-js:'.";
 		},
 		(in Diag.DuplicatePart x) {
 			writer ~= "Argument ";
@@ -510,9 +517,6 @@ BuildOptions parseBuildOptions(
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
 				break;
-			case "--overwrite":
-				todo!void("HANDLE OVERWRITE FLAG"); // ---------------------------------------------------------------------
-				break;
 			case "--single-threaded":
 				expectFlag(diags, part);
 				if (singleThreaded)
@@ -558,7 +562,7 @@ Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags d
 		if (has(kind))
 			return some(SingleBuildOutput(force(kind), parseFilePathWithCwdOrDiag(diags, cwd, pr.rest)));
 		else {
-			todo!void("DIAG: invalid prefix"); // -----------------------------------------------------------------------------------
+			diags ~= Diag(Diag.BuildOutBadPrefix(pr.prefix));
 			return none!SingleBuildOutput;
 		}
 	} else {

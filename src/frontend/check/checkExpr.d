@@ -490,7 +490,7 @@ Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Extern
 	if (!checkExternName(ctx, name)) {
 		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(ast.name.name)));
 		return bogus(expected, source);
-	} else if (ctx.externs.has(name)) {
+	} else if (name in ctx.externs) {
 		addDiag2(ctx, ast.name.range, Diag(Diag.ExternRedundant(ast.name.name)));
 		return bogus(expected, source);
 	} else
@@ -1092,7 +1092,7 @@ Expr checkPointerInner(
 	PointerMutability expectedMutability,
 	ref Expected expected,
 ) {
-	if (!ctx.externs.has(symbol!"native")) {
+	if (symbol!"native" !in ctx.externs) {
 		addDiag2(ctx, source, Diag(Diag.PointerIsNative()));
 		return bogus(expected, source);
 	}
@@ -1981,7 +1981,7 @@ Out withExternFromCondition(Out)(
 	if (has(extern_) && !(isNegated ^ force(extern_).isNegated)) {
 		SymbolSet originalExterns = ctx.externs;
 		scope (exit) ctx.externs = originalExterns;
-		ctx.externs = ctx.externs.add(force(extern_).externName);
+		ctx.externs = ctx.externs | force(extern_).externName;
 		return cb();
 	} else
 		return cb();

@@ -89,7 +89,10 @@ other-links link[]()
 		target, target try-remove-start remove-prefix ??
 			throw "{target} didn't start with {remove-prefix}" error
 
--to-paths-and-contents path-and-content[](paths string[], remove-prefix string) summon, native extern
+-to-paths-and-contents path-and-content[](
+	paths string[],
+	remove-prefix string,
+) summon, native extern
 	for path : paths parallel
 		assert rel-path ?= path try-remove-start remove-prefix :
 			"{path} didn't start with {remove-prefix}".error

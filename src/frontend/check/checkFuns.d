@@ -153,7 +153,7 @@ Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(in TypeAst arg) {
 		MutSymbolSet res;
 		foreach (TypeAst member; arg.as!(TypeAst.Tuple*).members) {
 			if (member.isA!NameAndRange)
-				res = res.add(member.as!NameAndRange.name);
+				res = res | member.as!NameAndRange.name;
 			else
 				return none!SymbolSet;
 		}

@@ -37,7 +37,10 @@ import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, sym
 import util.uri : asFilePath, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
-@trusted ExitCodeOrSignal withRealExtern(ref Alloc alloc, in ExitCodeOrSignal delegate(in Extern) @safe @nogc nothrow cb) {
+@trusted ExitCodeOrSignal withRealExtern(
+	ref Alloc alloc,
+	in ExitCodeOrSignal delegate(in Extern) @safe @nogc nothrow cb,
+) {
 	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) {

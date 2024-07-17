@@ -362,13 +362,8 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 	});
 }
 
-SymbolSet allExternsForJs(bool isNodeJs) { // TODO: we'll eventually want to have 'browser' exclusive functions? ---------------------------------
-	MutSymbolSet res = symbolSet(symbol!"js");
-	return isNodeJs
-		// TODO: I don't know about adding e.g. 'windows' here. node.js is supposed to be cross-platform... ---------------------
-		? res.add(symbol!"node-js")
-		: res.add(symbol!"browser");
-}
+SymbolSet allExternsForJs(bool isNodeJs) =>
+	symbolSet(symbol!"js") | (isNodeJs ? symbol!"node-js" : symbol!"browser");
 
 PathAndContent[] getOutputFiles(
 	ref Alloc alloc,
@@ -498,7 +493,7 @@ struct TranslateModuleCtx {
 		ctx.exportMangledNames;
 
 	bool isBrowser() const =>
-		allExterns.has(symbol!"browser");
+		symbol!"browser" in allExterns;
 }
 
 struct TranslateExprCtx {
@@ -1398,7 +1393,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ClosureSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc,  localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
-			forceExpr(ctx, pos, type, genBool(ctx.ctx.allExterns.has(x.name))),
+			forceExpr(ctx, pos, type, genBool(x.name in ctx.ctx.allExterns)),
 		(ref FinallyExpr x) =>
 			translateFinally(ctx, x, type, pos),
 		(FunPointerExpr x) =>

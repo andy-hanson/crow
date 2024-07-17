@@ -6,7 +6,10 @@ import util.alloc.stackAlloc : withStackArrayUninitialized, withStackArrayUninit
 import util.col.array : contains;
 import util.memory : initMemory;
 
-@trusted Out withTempSetImpure(Out, Elem)(size_t maxSize, in Out delegate(scope ref TempSet!Elem) @safe @nogc nothrow cb) =>
+@trusted Out withTempSetImpure(Out, Elem)(
+	size_t maxSize,
+	in Out delegate(scope ref TempSet!Elem) @safe @nogc nothrow cb,
+) =>
 	withStackArrayUninitialized_impure!(Out, Elem)(maxSize, (scope Elem[] storage) {
 		TempSet!Elem set = TempSet!Elem(0, storage);
 		return cb(set);
@@ -19,7 +22,7 @@ struct TempSet(T) {
 	private size_t size;
 	private T[] storage;
 
-	bool has(T value) => // TODO: inconsistent to have this instance and 'tryAdd' a function ......................................
+	bool has(T value) =>
 		contains(storage[0 .. size], value);
 }
 

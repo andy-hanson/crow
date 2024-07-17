@@ -101,7 +101,7 @@ import util.json : Json, jsonToString, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.opt : force, has, none, MutOpt, Opt, optIf, optOrDefault, some, someMut;
-import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
+import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasureNoAlloc, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
@@ -153,16 +153,20 @@ version (Windows) {
 		assertFailed(asserted, file, lineNumber);
 }
 
+bool inAssert;
 @trusted noreturn assertFailed(immutable char* asserted, immutable char* file, uint lineNumber) {
-	printErrorCb((scope ref Writer writer) @trusted {
-		writer ~= "Assert failed: ";
-		writer ~= CString(asserted);
-		writer ~= " at ";
-		writer ~= CString(file);
-		writer ~= " line ";
-		writer ~= lineNumber;
-		writeBacktrace(writer);
-	});
+	if (!inAssert) {
+		inAssert = true;
+		printErrorCb((scope ref Writer writer) @trusted {
+			writer ~= "Assert failed: ";
+			writer ~= CString(asserted);
+			writer ~= " at ";
+			writer ~= CString(file);
+			writer ~= " line ";
+			writer ~= lineNumber;
+			writeBacktrace(writer);
+		});
+	}
 	abort();
 }
 
@@ -360,10 +364,14 @@ ExitCodeOrSignal run(scope ref Perf perf, ref Alloc alloc, ref Server server, Fi
 						(in string x) { printError(x); },
 						program, x.version_, none!(Uri[]),
 						getAllArgs(alloc, server, run))),
-			(in RunOptions.Jit x) {
+			(in RunOptions.Jit options) {
 				version (GccJitAvailable)
-					return ExitCodeOrSignal(
-						buildAndJit(perf, alloc, server, x, program, getAllArgs(alloc, server, run)));
+					return ExitCodeOrSignal(jitAndRun(
+						perf,
+						alloc,
+						buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS(), options.version_), program),
+						options.options,
+						getAllArgs(alloc, server, run)));
 				else
 					return ExitCodeOrSignal(printError("This build does not support '--jit'"));
 			},
@@ -421,9 +429,8 @@ ExitCodeOrSignal doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server
 					program))),
 		(in PrintKind.Ide x) =>
 			withProgramForRoots(perf, alloc, server, [mainUri], (ref Program program) =>
-				printJson(
-					alloc,
-					jsonForPrintIde(perf, alloc, server, program, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind))));
+				printJson(alloc, jsonForPrintIde(
+					perf, alloc, server, program, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind))));
 }
 
 ExitCodeOrSignal buildAndRun(
@@ -440,7 +447,7 @@ ExitCodeOrSignal buildAndRun(
 			withBuildToCAndExe(
 				perf, alloc, server, cPath, exePath, options.version_, options.compileOptions, program,
 				(in ExternLibraries libs) {
-					ExitCodeOrSignal res = runProgram(alloc, libs, PathAndArgs(exePath, programArgs));
+					ExitCodeOrSignal res = runProgram(libs, PathAndArgs(exePath, programArgs));
 					// Doing this after 'runProgram' since that may use the '.pdb' file
 					ExitCode cleanup = cleanupCompile(cwd, cPath, exePath);
 					// Delay aborting with the signal so we can clean up temp files
@@ -457,7 +464,7 @@ ExitCodeOrSignal buildAndRunNode(
 ) =>
 	withTempPath(program.mainUri, Extension.none, (FilePath dir) =>
 		withWriteToJs(perf, alloc, server, program, dir, isNodeJs: true, cb: (FilePath mainJs) =>
-			runNodeJsProgram(alloc, PathAndArgs(mainJs, programArgs))));
+			runNodeJsProgram(PathAndArgs(mainJs, programArgs))));
 
 
 ExitCodeOrSignal buildAllOutputs(
@@ -475,12 +482,14 @@ ExitCodeOrSignal buildAllOutputs(
 	// 'exe' build must be done after 'c' build.
 	Opt!FilePath exe = findPath(SingleBuildOutput.Kind.executable);
 	Late!PathAndArgs exeCompileCommand = late!PathAndArgs();
-	
+
 	ExitCodeOrSignal doC(FilePath cPath) =>
-		withWriteToC(perf, alloc, server, cPath, exe, options.version_, options.cCompileOptions, program, (PathAndArgs compileCommand, in ExternLibraries _) {
-			lateSet(exeCompileCommand, compileCommand); 
-			return ExitCodeOrSignal.ok;
-		});
+		withWriteToC(
+			perf, alloc, server, cPath, exe, options.version_, options.cCompileOptions, program,
+			(PathAndArgs compileCommand, in ExternLibraries _) {
+				lateSet(exeCompileCommand, compileCommand);
+				return ExitCodeOrSignal.ok;
+			});
 
 	ExitCodeOrSignal res = eachUntilError!SingleBuildOutput(options.out_, (ref SingleBuildOutput out_) {
 		final switch (out_.kind) {
@@ -490,16 +499,18 @@ ExitCodeOrSignal buildAllOutputs(
 				return ExitCodeOrSignal.ok; // do this last
 			case SingleBuildOutput.Kind.js:
 			case SingleBuildOutput.Kind.nodeJs:
-				return withWriteToJs(perf, alloc, server, program, out_.path, isNodeJs: out_.kind == SingleBuildOutput.Kind.nodeJs, (FilePath _) =>
-					ExitCodeOrSignal.ok);
+				return withWriteToJs(
+					perf, alloc, server, program, out_.path,
+					isNodeJs: out_.kind == SingleBuildOutput.Kind.nodeJs,
+					(FilePath _) => ExitCodeOrSignal.ok);
 		}
 	});
 	return okAnd(res, () {
 		if (has(exe))
 			return lateIsSet(exeCompileCommand)
-				? buildToExeFromC(perf, alloc, lateGet(exeCompileCommand))
+				? buildToExeFromC(perf, lateGet(exeCompileCommand))
 				: withTempPath(force(exe), Extension.c, (FilePath cPath) =>
-					okAnd(doC(cPath), () => buildToExeFromC(perf, alloc, lateGet(exeCompileCommand))));
+					okAnd(doC(cPath), () => buildToExeFromC(perf, lateGet(exeCompileCommand))));
 		else
 			return ExitCodeOrSignal.ok;
 	});
@@ -547,7 +558,7 @@ ExitCodeOrSignal withProgramForRoots(
 	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
 }
 
-ExitCodeOrSignal withWriteToC( // TODO: instead of all these 'with' functions, return a 'result' ?? ???????????????????????????????????????
+ExitCodeOrSignal withWriteToC(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -584,28 +595,17 @@ ExitCodeOrSignal withBuildToCAndExe(
 	ref ProgramWithMain program,
 	in ExitCodeOrSignal delegate(in ExternLibraries) @safe @nogc nothrow cb,
 ) =>
-	withWriteToC(perf, alloc, server, cPath, some(exePath), version_, cCompileOptions, program, (PathAndArgs compileCommand, in ExternLibraries externLibraries) =>
-		okAnd(
-			buildToExeFromC(perf, alloc, compileCommand),
-			() => cb(externLibraries)));
+	withWriteToC(
+		perf, alloc, server, cPath, some(exePath), version_, cCompileOptions, program,
+		(PathAndArgs compileCommand, in ExternLibraries externLibraries) =>
+			okAnd(
+				buildToExeFromC(perf, compileCommand),
+				() => cb(externLibraries)));
 
-ExitCodeOrSignal buildToExeFromC(scope ref Perf perf, ref Alloc alloc, PathAndArgs compileCommand) =>
-	ExitCodeOrSignal(withMeasure!(ExitCode, () =>
-		runCompiler(alloc, compileCommand)
-	)(perf, alloc, PerfMeasure.invokeCCompiler));
-
-version (GccJitAvailable) ExitCode buildAndJit( // TODO: should I move this to server.d? _-------------------------------------------------------------
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in RunOptions.Jit options,
-	ref ProgramWithMain program,
-	in CString[] programArgs,
-) {
-	assert(!hasFatalDiagnostics(program));
-	LowProgram lowProgram = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS(), options.version_), program);
-	return jitAndRun(perf, alloc, lowProgram, options.options, programArgs);
-}
+ExitCodeOrSignal buildToExeFromC(scope ref Perf perf, PathAndArgs compileCommand) =>
+	ExitCodeOrSignal(withMeasureNoAlloc!(ExitCode, () =>
+		runCompiler(compileCommand)
+	)(perf, PerfMeasure.invokeCCompiler));
 
 ExitCodeOrSignal printDiagsAndJson(ref Alloc alloc, in DiagsAndResultJson a) {
 	if (!isEmpty(a.diagnostics))

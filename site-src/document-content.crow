@@ -246,7 +246,6 @@ module-content string(a module, all-exports all-exports)
 	as var-decl _
 		""
 	as variant-decl _
-		# TODO: SIGNATURES ---------------------------------------------------------------------------------------------------------
 		""
 
 -enum-flags-members-content string(a symbol[])

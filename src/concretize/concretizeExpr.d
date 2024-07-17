@@ -1220,7 +1220,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
 		(ExternExpr x) =>
-			ConcreteExpr(type, range, ConcreteExprKind(constantBool(ctx.concretizeCtx.allExterns.has(x.name)))),
+			ConcreteExpr(type, range, ConcreteExprKind(constantBool(x.name in ctx.concretizeCtx.allExterns))),
 		(FinallyExpr* x) =>
 			concretizeFinally(ctx, type, range, locals, *x),
 		(FunPointerExpr x) =>

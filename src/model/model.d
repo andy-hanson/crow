@@ -1912,7 +1912,7 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 void eachTest(ref Program program, in SymbolSet allExterns, in void delegate(Test*) @safe @nogc pure nothrow cb) {
 	foreach (immutable Module* m; program.allModules) {
 		foreach (ref Test x; m.tests)
-			if (allExterns.containsAll(x.externs))
+			if (x.externs in allExterns)
 				cb(&x);
 	}
 }
@@ -2182,7 +2182,7 @@ immutable struct ExternCondition {
 	Symbol externName;
 
 	bool eval(in SymbolSet allExterns) scope =>
-		isNegated ^ allExterns.has(externName);
+		isNegated ^ (externName in allExterns);
 }
 Opt!ExternCondition asExtern(in Condition a) { // TODO: I should probably do this once in the type checker, instead of lazily!
 	if (a.isA!(Expr*)) {

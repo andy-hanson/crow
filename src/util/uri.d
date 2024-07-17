@@ -32,7 +32,7 @@ import util.util : todo, typeAs;
 import util.writer : digitChar, makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
 
 T withCStringOfFilePath(T)(FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
-	withStackWriterImpureCString!T((scope ref Writer writer) {
+	withStackWriterImpureCString!(T, 0x1000)((scope ref Writer writer) {
 		writer ~= path;
 	}, cb);
 
@@ -360,15 +360,18 @@ Uri concatUriAndPath(Uri a, Path b) =>
 Path concatPaths(Path a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		descendentPath(a, components));
-FilePath concatFilePathAndPath(FilePath a, Path b) => // TODO: come up with a better name -------------------------------------------------
+FilePath concatFilePathAndPath(FilePath a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		FilePath(descendentPath(a.path, components)));
 
 size_t countComponents(Uri a) =>
 	countComponents(a.path);
 size_t countComponents(Path a) =>
-	// TODO: PERF ------------------------------------------------------------------------------------------------------------------
-	withComponents!size_t(a, (in Symbol[] xs) => xs.length);
+	countComponentsRecur(0, a);
+size_t countComponentsRecur(size_t acc, Path a) {
+	Opt!Path parent = parent(a);
+	return has(parent) ? countComponentsRecur(acc + 1, force(parent)) : acc + 1;
+}
 
 T withComponents(T)(Path a, in T delegate(in Symbol[]) @safe @nogc pure nothrow cb) =>
 	withComponentsPreferRelative!T(none!Path, a, (bool isRelative, in Symbol[] components) {

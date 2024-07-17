@@ -50,8 +50,10 @@ AllConstantsConcrete finishAllConstants(
 	scope ref AllConstantsBuilder a,
 	ConcreteStruct* symbolArrayStruct,
 ) {
-	Constant staticSymbols = getConstantArray(alloc, a, symbolArrayStruct, mapToArray!(Constant, Symbol, Constant.CString)(alloc, a.symbols, (Symbol _, ref Constant.CString v) =>
-		Constant(v)));
+	Constant staticSymbols = getConstantArray(
+		alloc, a, symbolArrayStruct,
+		mapToArray!(Constant, Symbol, Constant.CString)(alloc, a.symbols, (Symbol _, ref Constant.CString v) =>
+			Constant(v)));
 
 	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
 		alloc, size(a.arrs), ArrTypeAndConstantsConcrete(null));

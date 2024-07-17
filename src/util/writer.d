@@ -21,11 +21,11 @@ T withStackWriterImpure(T)(
 		return cbRes(finish(writer.res));
 	});
 
-T withStackWriterImpureCString(T)(
+T withStackWriterImpureCString(T, size_t maxSize = 0x10000)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
 	in T delegate(in CString) @safe @nogc nothrow cbRes,
 ) =>
-	withStackAllocImpure!(0x10000, T)((scope ref Alloc alloc) {
+	withStackAllocImpure!(maxSize, T)((scope ref Alloc alloc) {
 		scope Writer writer = Writer(&alloc);
 		cb(writer);
 		return cbRes(finishCString(writer));
@@ -149,7 +149,7 @@ void writeHex(scope ref Writer writer, long a) {
 	writeHex(writer, cast(ulong) (a < 0 ? -a : a));
 }
 
-void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in string nan) { // TODO: UNIT TEST! ------------------------------------------------------------------------------
+void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in string nan) {
 	if (a < 0) {
 		writer ~= '-';
 		writeFloatLiteral(writer, -a, infinity, nan);
@@ -228,7 +228,7 @@ bool isNearInt(double a) {
 	return a == b || diff <= epsilon || diff <= epsilon * min(abs(a), abs(b));
 }
 
-void writeFloatLiteralForC(scope ref Writer writer, double a) { // TODO: this should only be used from writeToC! JSON can't use it, JS can't use it
+void writeFloatLiteralForC(scope ref Writer writer, double a) {
 	if (isNan(a))
 		writer ~= "NAN";
 	else if (a == double.infinity)
@@ -342,7 +342,12 @@ void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in
 	writeWithSeparator!T(writer, a, "\n", cb);
 }
 
-void writeWithCommasAndNewlines(T)(scope ref Writer writer, uint indent, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+void writeWithCommasAndNewlines(T)(
+	scope ref Writer writer,
+	uint indent,
+	in T[] a,
+	in void delegate(in T) @safe @nogc pure nothrow cb,
+) {
 	bool first = true;
 	foreach (ref T x; a) {
 		if (first)

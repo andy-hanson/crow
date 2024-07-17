@@ -16,19 +16,17 @@ struct MutSymbolSet {
 		optIf(symbols.length == 1, () => only(symbols));
 	bool isEmpty() scope const =>
 		.isEmpty(symbols);
-	bool has(Symbol x) scope const =>
+	
+	bool opBinaryRight(string op)(Symbol x) const if (op == "in") =>
 		contains(symbols, x);
-
-	bool containsAll(in SymbolSet b) scope const =>
+	bool opBinaryRight(string op)(SymbolSet b) const if (op == "in") =>
 		// TODO:PERF: Use the fact that they are both sorted! --------------------------------------------------------------------------
 		every!Symbol(b.symbols, (in Symbol x) =>
-			has(x));
-
-	SymbolSet add(Symbol x) const =>
+			x in this);
+	SymbolSet opBinary(string op)(Symbol x) const if (op == "|") =>
 		addSymbol(this, x);
-	SymbolSet addAll(in Symbol[] xs) const =>
-		fold!(SymbolSet, Symbol)(this, xs, (SymbolSet acc, in Symbol x) =>
-			acc.add(x));
+	SymbolSet opBinary(string op)(in Symbol[] x) const if (op == "|") =>
+		addSymbols(this, x);
 }
 alias SymbolSet = immutable MutSymbolSet;
 
@@ -43,13 +41,16 @@ pure SymbolSet emptySymbolSet() =>
 	SymbolSet(emptySmallArray!Symbol);
 
 pure SymbolSet symbolSet(Symbol a) =>
-	emptySymbolSet.add(a);
+	addSymbol(emptySymbolSet, a);
+
+private pure SymbolSet addSymbols(SymbolSet a, in Symbol[] xs) =>
+	fold!(SymbolSet, Symbol)(a, xs, (SymbolSet acc, in Symbol x) =>
+		addSymbol(acc, x));
 
 private @trusted pure SymbolSet addSymbol(SymbolSet a, Symbol b) {
-	assert(!a.has(b));
+	assert(b !in a);
 	return (cast(SymbolSet function(SymbolSet, Symbol) @safe @nogc pure nothrow) &addSymbolImpure)(a, b);
 }
-
 private @system SymbolSet addSymbolImpure(SymbolSet a, Symbol b) =>
 	// TODO: MEMOIZE ------------------------------------------------------------------------------------------------------------------
 	SymbolSet(append!Symbol(*symbolSetAlloc, a.symbols, b));
