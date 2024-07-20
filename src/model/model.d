@@ -811,7 +811,7 @@ immutable struct FunBody {
 		VariantMemberGet,
 		VariantMethod,
 		VarSet);
-	
+
 	bool isGenerated() scope =>
 		!isA!Bogus && !isA!AutoFun && !isA!BuiltinFun && !isA!Expr && !isA!Extern && !isA!FileImport;
 }
@@ -1093,28 +1093,27 @@ immutable struct FunFlags {
 	bool summon;
 	enum Safety : ubyte { safe, trusted, unsafe }
 	Safety safety;
-	bool preferred;
 	bool okIfUnused;
 	bool forceCtx;
 
 	FunFlags withOkIfUnused() =>
-		FunFlags(bare, summon, safety, preferred, true, forceCtx);
+		FunFlags(bare, summon, safety, true, forceCtx);
 	FunFlags withSummon() =>
-		FunFlags(bare, true, safety, preferred, okIfUnused, forceCtx);
+		FunFlags(bare, true, safety, okIfUnused, forceCtx);
 
 	static FunFlags regular(bool bare, bool summon, Safety safety, bool forceCtx) =>
-		FunFlags(bare, summon, safety, false, false, forceCtx);
+		FunFlags(bare, summon, safety, false, forceCtx);
 
 	static FunFlags none() =>
-		FunFlags(false, false, Safety.safe, false, false/*, SpecialBody.none*/); // ----------------------------------------------------------
+		FunFlags(safety: Safety.safe);
 	static FunFlags generatedBare() =>
-		FunFlags(true, false, Safety.safe, false, true/*, SpecialBody.generated*/); // TODO: No longer need special 'generated' versions of these functions
+		FunFlags(bare: true, safety: Safety.safe, okIfUnused: true);
 	static FunFlags generatedBareUnsafe() =>
-		FunFlags(true, false, Safety.unsafe, false, true/*, SpecialBody.generated*/); // ---------------------------------------------------------------
+		FunFlags(bare: true, safety: Safety.unsafe, okIfUnused: true);
 	static FunFlags generated() =>
-		FunFlags(false, false, Safety.safe, false, true/*, SpecialBody.generated*/); // ---------------------------------------------------------------------------------------------
+		FunFlags(safety: Safety.safe, okIfUnused: true);
 }
-static assert(FunFlags.sizeof == 6);
+static assert(FunFlags.sizeof == 5);
 
 immutable struct FunDeclSource {
 	@safe @nogc pure nothrow:
@@ -1673,7 +1672,7 @@ immutable struct CommonTypes {
 	StructInst* float64;
 	IntegralTypes integrals;
 	StructInst* string_;
-	StructInst* symbol; // TODO: USED? ------------------------------------------------------------------------------------------
+	StructInst* symbol;
 	StructInst* symbolArray;
 	StructInst* void_;
 
@@ -1734,7 +1733,7 @@ Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
 	return only(a.as!(StructInst*).typeArgs);
 }
 
-bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) => 
+bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
 	a == commonTypes.option;
 
 bool isLambdaType(in StructDecl a) =>
@@ -1863,7 +1862,7 @@ immutable struct MainFun {
 		match!(FunInst*)(
 			(Nat64OfArgs x) => x.fun,
 			(Void x) => x.fun);
-	
+
 	bool needsArgsList() scope =>
 		matchIn!bool(
 			(in Nat64OfArgs _) => true,
@@ -2176,15 +2175,12 @@ immutable struct Condition {
 }
 
 immutable struct ExternCondition {
-	@safe @nogc pure nothrow:
-
 	bool isNegated;
 	Symbol externName;
-
-	bool eval(in SymbolSet allExterns) scope =>
-		isNegated ^ (externName in allExterns);
 }
-Opt!ExternCondition asExtern(in Condition a) { // TODO: I should probably do this once in the type checker, instead of lazily!
+bool evalExternCondition(in ExternCondition a, in SymbolSet allExterns) =>
+	a.isNegated ^ (a.externName in allExterns);
+Opt!ExternCondition asExtern(in Condition a) {
 	if (a.isA!(Expr*)) {
 		Expr e = skipTrusted(*a.as!(Expr*));
 		if (e.kind.isA!CallExpr) {
@@ -2221,7 +2217,13 @@ private immutable struct PrefixAndRange {
 	string prefix;
 	Range range;
 }
-string defaultAssertOrForbidMessage(ref Alloc alloc, Uri curUri, in Expr expr, in AssertOrForbidExpr a, in FileContentGetters content) {
+string defaultAssertOrForbidMessage(
+	ref Alloc alloc,
+	Uri curUri,
+	in Expr expr,
+	in AssertOrForbidExpr a,
+	in FileContentGetters content,
+) {
 	PrefixAndRange x = expr.ast.kind.as!(AssertOrForbidAst*).condition.match!PrefixAndRange(
 		(ref ExprAst condition) =>
 			PrefixAndRange(

@@ -24,7 +24,7 @@ struct MutSet(T) {
 
 private ref T getKey(T)(ref T x) => x;
 
-bool mutSetHas(T)(in MutSet!T a, in T value) =>
+bool mutSetHas(T)(in MutSet!T a, in T value) => // TODO: use 'in' operator ------------------------------------------------------
 	hasKey(a.inner, value);
 
 bool mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) =>

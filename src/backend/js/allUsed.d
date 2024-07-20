@@ -28,6 +28,7 @@ import model.model :
 	eachLocal,
 	eachTest,
 	EnumOrFlagsFunction,
+	evalExternCondition,
 	Expr,
 	ExternCondition,
 	FunBody,
@@ -127,7 +128,7 @@ immutable struct AllUsed {
 	Set!AnyDecl usedDecls;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
-	a.usedDecls.has(x);
+	x in a.usedDecls;
 bool isModuleUsed(in AllUsed a, Uri module_) {
 	// TODO: PERF ------------------------------------------------------------------------------------------------------------
 	foreach (AnyDecl x; a.usedDecls) {
@@ -140,7 +141,7 @@ bool isModuleUsed(in AllUsed a, Uri module_) {
 bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
 	// TODO: could we ensure usedByModule is initialized so that this uses mustGet? ---------------------------------------------------
 	Opt!(Set!AnyDecl) set = a.usedByModule[module_];
-	return has(set) && force(set).has(x);
+	return has(set) && x in force(set);
 }
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
@@ -227,7 +228,7 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 	}
 
 	Opt!ExternCondition extern_ = asExtern(a);
-	return optIf(has(extern_), () => force(extern_).eval(allExterns));
+	return optIf(has(extern_), () => evalExternCondition(force(extern_), allExterns));
 }
 
 private:

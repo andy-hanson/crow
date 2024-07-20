@@ -801,7 +801,7 @@ LowFunBody getLowFunBody(
 			castNonScope_ref(varIndices),
 			a.params,
 			params,
-			curFunIsYielding: concreteProgram.yieldingFuns.has(a),
+			curFunIsYielding: a in concreteProgram.yieldingFuns,
 			hasSetupCatch: false,
 			hasTailRecur: false,
 			tempLocalIndex: a.params.length);
@@ -1228,7 +1228,7 @@ LowExpr getCallRegular(
 		}
 	} else
 		return withPushAllGcRoots(
-			ctx, locals, range, exprPos, ctx.curFunIsYielding && ctx.concreteProgram.yieldingFuns.has(concreteCalled),
+			ctx, locals, range, exprPos, ctx.curFunIsYielding && concreteCalled in ctx.concreteProgram.yieldingFuns,
 			args,
 			(ExprPos inner, LowExpr[] args) =>
 				handleExprPos(ctx, inner, genCallNoGcRoots(type, range, called, args)));
@@ -1585,8 +1585,7 @@ bool expressionMayYield(in GetLowExprCtx ctx, in ConcreteExpr a) =>
 		isYieldingCall(ctx, a) || existsDirectChildExpr(a, (ref ConcreteExpr child) => expressionMayYield(ctx, child)));
 
 bool isYieldingCall(in GetLowExprCtx ctx, in ConcreteExpr a) =>
-	a.kind.isA!(ConcreteExprKind.Call) &&
-		ctx.concreteProgram.yieldingFuns.has(a.kind.as!(ConcreteExprKind.Call).called);
+	a.kind.isA!(ConcreteExprKind.Call) && a.kind.as!(ConcreteExprKind.Call).called in ctx.concreteProgram.yieldingFuns;
 
 LowExpr getMatchIntegralExpr(
 	ref GetLowExprCtx ctx,
