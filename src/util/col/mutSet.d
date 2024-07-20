@@ -16,6 +16,9 @@ struct MutSet(T) {
 		return res;
 	}
 
+	bool opBinaryRight(string op)(in T x) scope const if (op == "in") =>
+		hasKey(inner, x);
+
 	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply(cb);
 	int opApply(in int delegate(ref const T) @safe @nogc pure nothrow cb) scope const =>
@@ -23,9 +26,6 @@ struct MutSet(T) {
 }
 
 private ref T getKey(T)(ref T x) => x;
-
-bool mutSetHas(T)(in MutSet!T a, in T value) => // TODO: use 'in' operator ------------------------------------------------------
-	hasKey(a.inner, value);
 
 bool mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) =>
 	mayAdd(alloc, a.inner, value);

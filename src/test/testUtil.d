@@ -104,7 +104,11 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 
 pure:
 
-void assertEqual(T)(in T actual, in T expected, in void delegate(scope ref Writer, in T) @safe @nogc pure nothrow cbShow) {
+void assertEqual(T)(
+	in T actual,
+	in T expected,
+	in void delegate(scope ref Writer, in T) @safe @nogc pure nothrow cbShow,
+) {
 	if (actual != expected) {
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Actual: ";

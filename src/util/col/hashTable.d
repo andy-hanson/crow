@@ -24,7 +24,7 @@ struct MutHashTable(T, K, alias getKey) {
 	size_t size_;
 	MutOpt!T[] values;
 
-	// TODO: @disable this(); -----------------------------------------------------------------------------------------------------------------
+	// TODO: @disable this(ref const MutHashTable);
 
 	public:
 	Opt!T opIndex(in K key) immutable {

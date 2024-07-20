@@ -1013,7 +1013,7 @@ enum BuiltinBinary {
 	mulFloat64,
 	newArray, // Also works for mut-array
 	referenceEqual,
-	seq, // TODO: this is only used for low-model ..........................................................................
+	seq,
 	subFloat32,
 	subFloat64,
 	subPointerAndNat64, // RHS is multiplied by size of pointee first

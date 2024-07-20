@@ -215,7 +215,7 @@ import util.col.arrayBuilder : buildArray, Builder;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
 import util.col.map : hasKey;
-import util.col.mutSet : mustAddToMutSet, mutSetHas, mutSetMustDelete;
+import util.col.mutSet : mustAddToMutSet, mutSetMustDelete;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;

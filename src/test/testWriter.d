@@ -39,7 +39,7 @@ void testFloatLiteralForC() {
 }
 
 void testQuotedString() {
-	void writes(string value, string expected) { // TODO: DUP CODE ----------------------------------------------------------------
+	void writes(string value, string expected) {
 		withStackWriter!0x1000(
 			(scope ref Writer writer) {
 				writeQuotedString(writer, value);

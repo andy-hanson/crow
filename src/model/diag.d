@@ -141,6 +141,7 @@ immutable struct Diag {
 			WrongReturnType);
 	}
 
+	immutable struct BuiltinFunCantHaveBody {}
 	immutable struct BuiltinUnsupported {
 		enum Kind { function_, spec, type }
 		Kind kind;
@@ -274,7 +275,7 @@ immutable struct Diag {
 	}
 	immutable struct ExternIsUnsafe {}
 	immutable struct ExternRedundant {
-		Symbol name;	
+		Symbol name;
 	}
 	immutable struct ExternFunVariadic {}
 	immutable struct ExternHasUnnecessaryLibraryName {}
@@ -287,10 +288,6 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct ExternUnion {}
-	immutable struct FunCantHaveBody {
-		enum Reason { builtin } // TODO: only one reason, so maybe just have 'BuiltinFunCantHaveBody' diag .........................
-		Reason reason;
-	}
 	immutable struct FunctionWithSignatureNotFound {
 		Symbol name;
 		TypeContainer typeContainer;
@@ -660,6 +657,7 @@ immutable struct Diag {
 		AssertOrForbidMessageIsThrow,
 		AssignmentNotAllowed,
 		AutoFunError,
+		BuiltinFunCantHaveBody,
 		BuiltinUnsupported,
 		CallMissingExtern,
 		CallMultipleMatches,
@@ -689,7 +687,6 @@ immutable struct Diag {
 		ExternRecordImplicitlyByVal,
 		ExternTypeError,
 		ExternUnion,
-		FunCantHaveBody,
 		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
 		IfThrow,

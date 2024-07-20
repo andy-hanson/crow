@@ -15,6 +15,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.AutoFunError) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.BuiltinFunCantHaveBody) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.BuiltinUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CallMissingExtern) =>
@@ -72,8 +74,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.ExternTypeError) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.FunCantHaveBody) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunctionWithSignatureNotFound) =>
 			DiagnosticSeverity.checkError,

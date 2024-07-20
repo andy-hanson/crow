@@ -59,7 +59,6 @@ immutable struct LowRecord {
 	void fields(SmallArray!LowField x) =>
 		lateSet(fields_, x);
 
-	//TODO:MOVE --------------------------------------------------------------------------------------------------------------------------------------
 	bool isPacked() scope =>
 		source.source.matchIn!bool(
 			(in ConcreteStructSource.Bogus) =>
@@ -515,7 +514,7 @@ immutable struct LowExprKind {
 		ref LowExpr arg() return scope =>
 			*argPtr;
 
-		this(BuiltinUnary k, LowExpr* a) { // OTDO: still needed? -------------------------------------------------------------
+		this(BuiltinUnary k, LowExpr* a) {
 			kind = k;
 			argPtr = a;
 			switch (k) {
@@ -547,15 +546,10 @@ immutable struct LowExprKind {
 		ref LowExpr[2] args() return scope =>
 			*argsPtr;
 
-		this(BuiltinBinary k, LowExpr[2]* a) { // TODO: still needed? ----------------------------------------------------------------
+		this(BuiltinBinary k, LowExpr[2]* a) {
 			kind = k;
 			argsPtr = a;
-			switch (k) {
-				case BuiltinBinary.newArray:
-					assert(false); // This should be lowered to CreateRecord
-				default:
-					break;
-			}
+			assert(k != BuiltinBinary.newArray); // This should be lowered to CreateRecord
 		}
 	}
 

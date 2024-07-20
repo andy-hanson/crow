@@ -15,7 +15,7 @@ void testSymbolSet(ref Test test) {
 
 	SymbolSet setA = symbolSet(a);
 	assert(a in setA);
-	assert(b !in setA); 
+	assert(b !in setA);
 
 	SymbolSet setB = symbolSet(b);
 	assert(b in setB);

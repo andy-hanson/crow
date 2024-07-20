@@ -487,6 +487,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					}();
 				});
 		},
+		(in Diag.BuiltinFunCantHaveBody x) {
+			writer ~= "A 'builtin' function can't have a body.";
+		},
 		(in Diag.BuiltinUnsupported x) {
 			writer ~= "Crow does not implement a builtin ";
 			writer ~= stringOfEnum(x.kind);
@@ -713,11 +716,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
-		},
-		(in Diag.FunCantHaveBody x) {
-			writer ~= "A '";
-			writer ~= stringOfEnum(x.reason);
-			writer ~= "' function can't have a body.";
 		},
 		(in Diag.FunctionWithSignatureNotFound x) {
 			writer ~= "Could not find a function '";

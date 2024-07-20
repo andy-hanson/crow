@@ -1259,12 +1259,6 @@ immutable struct ImportOrExportAst {
 immutable struct PathOrRelPath {
 	mixin TaggedUnion!(Path, RelPath);
 }
-PathOrRelPath addExtension(PathOrRelPath a, Extension ext) => // TODO: NOT USED -----------------------------------------------
-	a.match!PathOrRelPath(
-		(Path x) =>
-			PathOrRelPath(addExtension(x, ext)),
-		(RelPath x) =>
-			PathOrRelPath(RelPath(x.nParents, addExtension(x.path, ext))));
 private size_t pathOrRelPathLength(in PathOrRelPath a) =>
 	a.matchIn!size_t(
 		(in Path x) =>

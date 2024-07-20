@@ -2086,7 +2086,7 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 		case BuiltinBinary.subPointerAndNat64:
 		case BuiltinBinary.switchFiber:
 		case BuiltinBinary.writeToPointer:
-			return forceStatement(ctx.alloc, pos, genThrowJsError(ctx, "Called a builtin function not implemented in JS")); // this should not be possible, since thse functions are 'native extern'? ----------
+			assert(false);
 	}
 }
 ExprResult translateBuiltinBinaryLazy(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, BuiltinBinaryLazy kind, JsExpr left, JsExpr right) {

@@ -4,7 +4,7 @@ module lower.lowExprHelpers;
 
 import model.concreteModel : ConcreteFun;
 import model.constant : Constant, constantZero;
-import model.model : BuiltinUnary, BuiltinBinary;
+import model.model : Builtin4ary, BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary;
 import model.lowModel :
 	asPointee,
 	AllLowTypes,
@@ -74,10 +74,39 @@ LowExpr genUnionMatch(
 
 LowExpr genUnary(ref Alloc alloc, LowType type, UriAndRange range, BuiltinUnary kind, LowExpr arg) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.SpecialUnary(kind, allocate(alloc, arg))));
-private LowExpr genBinary(
+LowExpr genUnaryMath(ref Alloc alloc, LowType type, UriAndRange range, BuiltinUnaryMath kind, LowExpr arg) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.SpecialUnaryMath(kind, allocate(alloc, arg))));
+LowExpr genBinary(
 	ref Alloc alloc, LowType type, UriAndRange range, BuiltinBinary kind, LowExpr arg0, LowExpr arg1,
 ) =>
 	LowExpr(type, range, LowExprKind(LowExprKind.SpecialBinary(kind, allocate!(LowExpr[2])(alloc, [arg0, arg1]))));
+LowExpr genBinaryMath(
+	ref Alloc alloc, LowType type, UriAndRange range, BuiltinBinaryMath kind, LowExpr arg0, LowExpr arg1,
+) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.SpecialBinaryMath(kind, allocate!(LowExpr[2])(alloc, [arg0, arg1]))));
+LowExpr genTernary(
+	ref Alloc alloc,
+	LowType type,
+	UriAndRange range,
+	BuiltinTernary kind,
+	LowExpr arg0,
+	LowExpr arg1,
+	LowExpr arg2,
+) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.SpecialTernary(
+		kind, allocate!(LowExpr[3])(alloc, [arg0, arg1, arg2]))));
+LowExpr gen4ary(
+	ref Alloc alloc,
+	LowType type,
+	UriAndRange range,
+	Builtin4ary kind,
+	LowExpr arg0,
+	LowExpr arg1,
+	LowExpr arg2,
+	LowExpr arg3,
+) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.Special4ary(
+		kind, allocate!(LowExpr[4])(alloc, [arg0, arg1, arg2, arg3]))));
 
 LowExpr genAddPointer(ref Alloc alloc, LowType.PointerConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	genBinary(alloc, LowType(ptrType), range, BuiltinBinary.addPointerAndNat64, ptr, added);

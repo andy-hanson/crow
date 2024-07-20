@@ -707,15 +707,28 @@ BuildToCResult buildToC(
 
 
 TranslateToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, ref ProgramWithMain program, OS os, bool isNodeJs) =>
-	translateToJs(alloc, program, getShowDiagCtx(server, program.program, forceNoColor: true), FileContentGetters(&server.storage), os, isNodeJs);
+	translateToJs(
+		alloc,
+		program,
+		getShowDiagCtx(server, program.program, forceNoColor: true),
+		FileContentGetters(&server.storage),
+		os,
+		isNodeJs);
 
-ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program, bool forceNoColor = false) =>
+ShowDiagCtx getShowDiagCtx(
+	return scope ref const Server server,
+	return scope ref Program program,
+	bool forceNoColor = false,
+) =>
 	ShowDiagCtx(getShowCtx(server, forceNoColor: forceNoColor), program.commonTypes);
 
 private:
 
 ShowCtx getShowCtx(return scope ref const Server server, bool forceNoColor = false) =>
-	ShowCtx(server.lineAndColumnGetters, server.urisInfo, forceNoColor ? server.showOptions.withoutColor : server.showOptions);
+	ShowCtx(
+		server.lineAndColumnGetters,
+		server.urisInfo,
+		forceNoColor ? server.showOptions.withoutColor : server.showOptions);
 
 LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));

@@ -213,7 +213,7 @@ FunDecl[] checkFunsInitial(
 					flagsAndSpecs.specs));
 				if (flagsAndSpecs.isBuiltin) {
 					if (hasBody)
-						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
+						addDiag(ctx, funAst.nameRange, Diag(Diag.BuiltinFunCantHaveBody()));
 					fun.body_ = getBuiltinFun(ctx, commonTypes, fun);
 				}
 				else if (!hasBody && !flagsAndSpecs.externs.isEmpty)

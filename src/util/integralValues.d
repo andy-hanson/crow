@@ -41,11 +41,8 @@ immutable struct IntegralValues {
 	bool isRange0ToN() scope =>
 		isEmpty(values) || values[$ - 1].asUnsigned == values.length - 1;
 
-	bool opEquals(in IntegralValues rhs) scope {
-		bool res = arraysIdentical(this, rhs);
-		assert(res == arraysEqual(this, rhs)); // TODO: RM -----------------------------------------------------------------
-		return res;
-	}
+	bool opEquals(in IntegralValues rhs) scope =>
+		arraysIdentical(this, rhs);
 
 	IntegralValue opIndex(size_t i) scope const =>
 		values[i];

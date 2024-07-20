@@ -25,7 +25,7 @@ import util.col.array : exists, isEmpty, mustFind, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
 import util.col.hashTable : getPointer, HashTable, isEmpty, moveToImmutable, mustAdd, MutHashTable;
-import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
+import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
@@ -81,7 +81,7 @@ private struct UsedSet {
 }
 
 private bool isUsed(in UsedSet a, in immutable void* value) =>
-	mutSetHas(a.used, value);
+	value in a.used;
 
 private void markUsed(ref Alloc alloc, scope ref UsedSet a, immutable void* value) {
 	mayAddToMutSet(alloc, a.used, value);

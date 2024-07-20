@@ -683,7 +683,11 @@ T foldReverseWithIndex(T, U)(T start, in U[] arr, in T delegate(T, size_t, ref U
 		? start
 		: foldReverseWithIndex!(T, U)(cb(start, arr.length - 1, arr[$ - 1]), arr[0 .. $ - 1], cb);
 
-Out mapReduce(Out, In)(in In[] in_, in Out delegate(ref In) @safe @nogc pure nothrow cbMap, in Out delegate(Out, Out) @safe @nogc pure nothrow cbReduce) {
+Out mapReduce(Out, In)(
+	in In[] in_,
+	in Out delegate(ref In) @safe @nogc pure nothrow cbMap,
+	in Out delegate(Out, Out) @safe @nogc pure nothrow cbReduce,
+) {
 	Out recur(Out acc, size_t i) =>
 		i == in_.length ? acc : recur(cbReduce(acc, cbMap(in_[i])), i + 1);
 	return recur(cbMap(in_[0]), 1);
