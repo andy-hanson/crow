@@ -5,6 +5,7 @@ module backend.js.translateToJs;
 import backend.js.allUsed :
 	AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
 import backend.js.jsAst :
+	compareJsName,
 	genAnd,
 	genArray,
 	genArrowFunction,
@@ -671,8 +672,7 @@ JsImport[] translateImports(
 					foreach (ref const AnyDecl decl; decls)
 						out_ ~= JsName(decl.name, ctx.exportMangledNames.mangledNames[decl]);
 				});
-				sortInPlace!JsName(names, (in JsName x, in JsName y) =>
-					compareSymbolsAlphabetically(x.crowName, y.crowName)); // TODO: also compare by mangleIndex --------------------
+				sortInPlace!(JsName, compareJsName)(names);
 				outImports ~= JsImport(some(names), relativePath(importerPath, mustGet(ctx.modulePaths, importedUri)));
 			}
 		});

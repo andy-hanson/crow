@@ -1043,12 +1043,12 @@ WriteExprResult writeExpr(
 			inlineableSimple(() {
 				writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it);
 			}),
-		(in LowExprKind.SpecialUnary it) =>
-			writeSpecialUnary(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.SpecialUnary x) =>
+			writeSpecialUnary(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.SpecialUnaryMath x) =>
 			specialCallUnary(writer, indent, ctx, writeKind, type, x.arg, stringOfEnum(builtinForUnaryMath(x.kind))),
-		(in LowExprKind.SpecialBinary it) =>
-			writeSpecialBinary(writer, indent, ctx, writeKind, type, it),
+		(in LowExprKind.SpecialBinary x) =>
+			writeSpecialBinary(writer, indent, ctx, writeKind, type, x),
 		(in LowExprKind.SpecialBinaryMath x) =>
 			specialCallBinary(writer, indent, ctx, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary x) {
@@ -1062,8 +1062,7 @@ WriteExprResult writeExpr(
 			final switch (x.kind) {
 				case Builtin4ary.switchFiberInitial:
 					// defined in writeToC_boilerplace.c
-					return specialCallNary(
-						writer, indent, ctx, writeKind, type, castNonScope_ref(x.args), "switch_fiber_initial");
+					return specialCallNary(writer, indent, ctx, writeKind, type, x.args, "switch_fiber_initial");
 			}
 		},
 		(in LowExprKind.Switch x) =>
@@ -1648,28 +1647,24 @@ WriteExprResult writeSpecialUnary(
 	in LowExprKind.SpecialUnary a,
 ) {
 	WriteExprResult prefix(string prefix) =>
-		writeInlineableSingleArg(
-			writer, indent, ctx, writeKind, type, a.arg,
-			(in WriteExprResult temp) {
-				writer ~= '(';
-				writer ~= prefix;
-				writeTempOrInline(writer, ctx, a.arg, temp);
-				writer ~= ')';
-			});
+		writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.arg, (in WriteExprResult temp) {
+			writer ~= '(';
+			writer ~= prefix;
+			writeTempOrInline(writer, ctx, a.arg, temp);
+			writer ~= ')';
+		});
 
 	WriteExprResult writeCast() =>
-		writeInlineableSingleArg(
-			writer, indent, ctx, writeKind, type, a.arg,
-			(in WriteExprResult temp) {
-				if (isEmptyType(ctx, a.arg.type))
-					writeTempOrInline(writer, ctx, a.arg, temp);
-				else {
-					writer ~= '(';
-					writeCastToType(writer, ctx.ctx, type);
-					writeTempOrInline(writer, ctx, a.arg, temp);
-					writer ~= ')';
-				}
-			});
+		writeInlineableSingleArg(writer, indent, ctx, writeKind, type, a.arg, (in WriteExprResult temp) {
+			if (isEmptyType(ctx, a.arg.type))
+				writeTempOrInline(writer, ctx, a.arg, temp);
+			else {
+				writer ~= '(';
+				writeCastToType(writer, ctx.ctx, type);
+				writeTempOrInline(writer, ctx, a.arg, temp);
+				writer ~= ')';
+			}
+		});
 
 	WriteExprResult specialCall(in string name) =>
 		specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);

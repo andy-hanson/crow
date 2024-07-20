@@ -510,11 +510,14 @@ immutable struct LowExprKind {
 		@safe @nogc pure nothrow:
 
 		BuiltinUnary kind;
-		LowExpr arg; // TODO: this should probably be a pointer, and don't make the SpecialUnary a pointer ----------------------------
+		LowExpr* argPtr;
 
-		this(BuiltinUnary k, LowExpr a) {
+		ref LowExpr arg() return scope =>
+			*argPtr;
+
+		this(BuiltinUnary k, LowExpr* a) { // OTDO: still needed? -------------------------------------------------------------
 			kind = k;
-			arg = a;
+			argPtr = a;
 			switch (k) {
 				case BuiltinUnary.arrayPointer:
 				case BuiltinUnary.arraySize:
@@ -527,19 +530,26 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct SpecialUnaryMath {
+		@safe @nogc pure nothrow:
 		BuiltinUnaryMath kind;
-		LowExpr arg;
+		LowExpr* argPtr;
+
+		ref LowExpr arg() return scope =>
+			*argPtr;
 	}
 
 	immutable struct SpecialBinary {
 		@safe @nogc pure nothrow:
 
 		BuiltinBinary kind;
-		LowExpr[2] args; // TODO: this should probably be a pointer, and don't make the SpecialBinary a pointer ----------------------------
+		LowExpr[2]* argsPtr;
 
-		this(BuiltinBinary k, LowExpr[2] a) {
+		ref LowExpr[2] args() return scope =>
+			*argsPtr;
+
+		this(BuiltinBinary k, LowExpr[2]* a) { // TODO: still needed? ----------------------------------------------------------------
 			kind = k;
-			args = a;
+			argsPtr = a;
 			switch (k) {
 				case BuiltinBinary.newArray:
 					assert(false); // This should be lowered to CreateRecord
@@ -550,18 +560,30 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct SpecialBinaryMath {
+		@safe @nogc pure nothrow:
 		BuiltinBinaryMath kind;
-		LowExpr[2] args;
+		LowExpr[2]* argsPtr;
+
+		ref LowExpr[2] args() return scope =>
+			*argsPtr;
 	}
 
 	immutable struct SpecialTernary {
+		@safe @nogc pure nothrow:
 		BuiltinTernary kind;
-		LowExpr[3] args;
+		LowExpr[3]* argsPtr;
+
+		ref LowExpr[3] args() return scope =>
+			*argsPtr;
 	}
 
 	immutable struct Special4ary {
+		@safe @nogc pure nothrow:
 		Builtin4ary kind;
-		LowExpr[4] args;
+		LowExpr[4]* argsPtr;
+
+		ref LowExpr[4] args() return scope =>
+			*argsPtr;
 	}
 
 	immutable struct Switch {
@@ -618,12 +640,12 @@ immutable struct LowExprKind {
 		RecordFieldPointer,
 		RecordFieldSet*,
 		Constant,
-		SpecialUnary*,
-		SpecialUnaryMath*,
-		SpecialBinary*,
-		SpecialBinaryMath*,
-		SpecialTernary*,
-		Special4ary*,
+		SpecialUnary,
+		SpecialUnaryMath,
+		SpecialBinary,
+		SpecialBinaryMath,
+		SpecialTernary,
+		Special4ary,
 		Switch*,
 		TailRecur,
 		UnionAs,

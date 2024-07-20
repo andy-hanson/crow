@@ -129,7 +129,7 @@ pure IntegralValues singleIntegralValue(in IntegralValue a) {
 			return singleIntegralValue(cb(only(xs)));
 		default:
 			return withMapToStackArray!(IntegralValues, IntegralValue, const T)(xs, cb, (scope IntegralValue[] values) {
-				sortInPlace!(IntegralValue)(values, (in IntegralValue x, in IntegralValue y) => compareIntegralValue(x, y));
+				sortInPlace!(IntegralValue, compareIntegralValue)(values);
 				assertSortedAndUnique!(IntegralValue, compareIntegralValue)(values);
 				return values[$ - 1].asUnsigned == values.length - 1
 					? integralValuesRange(xs.length)

@@ -936,17 +936,17 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, ref LowE
 			recordFieldSetToGcc(ctx, locals, emit, it),
 		(Constant x) =>
 			constantToGcc(ctx, emit, a.type, x),
-		(ref LowExprKind.SpecialUnary x) =>
+		(LowExprKind.SpecialUnary x) =>
 			unaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.SpecialUnaryMath x) =>
+		(LowExprKind.SpecialUnaryMath x) =>
 			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
-		(ref LowExprKind.SpecialBinary x) =>
+		(LowExprKind.SpecialBinary x) =>
 			binaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.SpecialBinaryMath x) =>
+		(LowExprKind.SpecialBinaryMath x) =>
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
-		(ref LowExprKind.SpecialTernary x) =>
+		(LowExprKind.SpecialTernary x) =>
 			ternaryToGcc(ctx, locals, emit, a.type, x),
-		(ref LowExprKind.Special4ary x) =>
+		(LowExprKind.Special4ary x) =>
 			fouraryToGcc(ctx, locals, emit, a.type, x),
 		(ref LowExprKind.Switch x) =>
 			switchToGcc(ctx, locals, emit, a.type, x),

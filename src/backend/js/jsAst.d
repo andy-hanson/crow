@@ -6,10 +6,11 @@ import backend.js.allUsed : AnyDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, newSmallArray, SmallArray;
 import util.col.map : KeyValuePair, Map;
+import util.comparison : Comparison, compareOptions, compareOr, compareUint;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : none, Opt, some;
-import util.symbol : Symbol, symbol, symbolOfString;
+import util.symbol : compareSymbolsAlphabetically, Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
 
@@ -29,6 +30,9 @@ immutable struct JsName {
 	Opt!ushort mangleIndex;
 }
 static assert(JsName.sizeof == ulong.sizeof);
+Comparison compareJsName(JsName a, JsName b) =>
+	compareOr(compareSymbolsAlphabetically(a.crowName, b.crowName), () =>
+		compareOptions!ushort(a.mangleIndex, b.mangleIndex, (in ushort x, in ushort y) => compareUint(x, y)));
 
 immutable struct JsImport {
 	Opt!(JsName[]) importedNames; // Otherwise this is 'import *'

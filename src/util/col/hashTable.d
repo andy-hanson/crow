@@ -355,7 +355,7 @@ Out withSortedKeys(Out, T, K, alias getKey)(
 		foreach (ref immutable T value; a)
 			builder ~= getKey(value);
 		K[] keys = finish(builder);
-		sortInPlace!K(keys, cbCompare);
+		sortInPlace!(K, cbCompare)(keys);
 		return cb(keys);
 	});
 

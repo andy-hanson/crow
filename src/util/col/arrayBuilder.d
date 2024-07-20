@@ -75,11 +75,11 @@ const(T[]) asTemporaryArray(T)(ref const ArrayBuilder!T a) =>
 const(T[]) asTemporaryArray(T)(ref const Builder!T a) =>
 	.asTemporaryArray(a.inner);
 
-void arrayBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
-	sortInPlace!(immutable T)(asTemporaryArray(a), compare);
+void arrayBuilderSort(T, alias compare)(scope ref ArrayBuilder!T a) {
+	sortInPlace!(immutable T, compare)(asTemporaryArray(a));
 }
-void arrayBuilderSort(T)(scope ref Builder!T a, in Comparer!T compare) {
-	arrayBuilderSort!T(a.inner, compare);
+void arrayBuilderSort(T, alias compare)(scope ref Builder!T a) {
+	arrayBuilderSort!(T, compare)(a.inner);
 }
 
 immutable(SmallArray!T) smallFinish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>

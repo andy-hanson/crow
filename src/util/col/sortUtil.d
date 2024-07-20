@@ -10,9 +10,7 @@ import util.memory : overwriteMemory;
 
 bool sortedArrayContains(T, alias compare)(in T[] a, T value) {
 	assertSortedAndUnique!(T, compare)(a);
-	bool res = binarySearch!(T, compare)(a, value);
-	assert(res == contains(a, value)); // TODO: RM ------------------------------------------------------------------------------------------
-	return res;
+	return binarySearch!(T, compare)(a, value);
 }
 private bool binarySearch(T, alias compare)(in T[] a, T value) {
 	size_t left = 0; // inclusive
@@ -52,12 +50,12 @@ bool sortedArrayIsSuperset(T, alias compare)(in T[] a, in T[] b) {
 
 T[] sorted(T)(ref Alloc alloc, in T[] a, in Comparer!T compare) {
 	T[] res = map(alloc, a, (ref T x) => x);
-	sortInPlace!T(res, compare);
+	sortInPlace!(T, compare)(res);
 	return res;
 }
 
 //TODO:PERF More efficient than bubble sort..
-void sortInPlace(T)(scope T[] a, in Comparer!T compare) {
+void sortInPlace(T, alias compare)(scope T[] a) {
 	size_t n = a.length; // avoiding dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
 	if (n > 1) {
 		size_t lastNonSorted = 0;
@@ -72,7 +70,7 @@ void sortInPlace(T)(scope T[] a, in Comparer!T compare) {
 					break;
 			}
 		}
-		sortInPlace!T(a[0 .. lastNonSorted], compare);
+		sortInPlace!(T, compare)(a[0 .. lastNonSorted]);
 	}
 }
 

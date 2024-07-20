@@ -37,6 +37,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
 import util.col.arrayBuilder : arrayBuilderSort, buildArray, Builder;
 import util.col.hashTable : mustGet;
+import util.comparison : Comparison;
 import util.json :
 	field,
 	Json,
@@ -80,8 +81,7 @@ Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 						res ~= documentFun(alloc, *fun);
 				}
 		}
-		arrayBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
-			compareUriAndRange(x.range, y.range));
+		arrayBuilderSort!(DocExport, compareDocExport)(res);
 	});
 	return jsonObject(alloc, [
 		field!"uri"(stringOfUri(alloc, a.uri)),
@@ -93,6 +93,8 @@ immutable struct DocExport {
 	UriAndRange range;
 	Json json;
 }
+Comparison compareDocExport(in DocExport a, in DocExport b) =>
+	compareUriAndRange(a.range, b.range);
 
 DocExport documentExport(
 	ref Alloc alloc,

@@ -130,12 +130,14 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
 				compareDiagnostic(x, y));
 			res ~= UriAndDiagnostics(uri, sortedDiags);
 		}
-		arrayBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
-			compareUriAlphabetically(x.uri, y.uri));
+		arrayBuilderSort!(UriAndDiagnostics, compareUriAndDiagnosticsByUri)(res);
 	});
 }
 
 private:
+
+Comparison compareUriAndDiagnosticsByUri(in UriAndDiagnostics a, in UriAndDiagnostics b) =>
+	compareUriAlphabetically(a.uri, b.uri);
 
 Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b) =>
 	compareRange(a.range, b.range);

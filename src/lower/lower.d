@@ -1166,9 +1166,9 @@ bool neverHasSideEffects(in LowExpr a) =>
 	a.kind.isA!(LowExprKind.LocalGet) ||
 	(a.kind.isA!(LowExprKind.CreateRecord) &&
 		every!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => neverHasSideEffects(x))) ||
-	(a.kind.isA!(LowExprKind.SpecialUnary*) &&
-		a.kind.as!(LowExprKind.SpecialUnary*).kind == BuiltinUnary.deref &&
-		neverHasSideEffects(a.kind.as!(LowExprKind.SpecialUnary*).arg));
+	(a.kind.isA!(LowExprKind.SpecialUnary) &&
+		a.kind.as!(LowExprKind.SpecialUnary).kind == BuiltinUnary.deref &&
+		neverHasSideEffects(a.kind.as!(LowExprKind.SpecialUnary).arg));
 
 LowExpr getCallExpr(
 	ref GetLowExprCtx ctx,
@@ -1195,8 +1195,9 @@ LowExpr getCallEquals(
 	Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, called);
 	return has(opCalled)
 		? genCallNoGcRoots(ctx.alloc, boolType, range, force(opCalled), [arg0, arg1])
-		: LowExpr(boolType, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(
-			called.body_.as!(ConcreteFunBody.Builtin).kind.as!(BuiltinBinary), [arg0, arg1]))));
+		: LowExpr(boolType, range, LowExprKind(LowExprKind.SpecialBinary(
+			called.body_.as!(ConcreteFunBody.Builtin).kind.as!(BuiltinBinary),
+			allocate!(LowExpr[2])(ctx.alloc, [arg0, arg1])))); // TOOD: genSpecialbinary? ----------------------------------------------
 }
 
 LowExpr getCallRegular(
@@ -1403,12 +1404,12 @@ LowExpr getCallBuiltinExpr(
 					assert(arg.type == type);
 					return arg;
 				default:
-					return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, arg))));
+					return LowExpr(type, range, LowExprKind(LowExprKind.SpecialUnary(kind, allocate(ctx.alloc,arg)))); // TODO: genSpecialUnary?
 			}
 		},
 		(BuiltinUnaryMath kind) {
 			assert(args.length == 1);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnaryMath(kind, getArg0))));
+			return LowExpr(type, range, LowExprKind(LowExprKind.SpecialUnaryMath(kind, allocate(ctx.alloc, getArg0)))); // TODO: genSpecialUnaryMath?
 		},
 		(BuiltinBinary kind) {
 			assert(args.length == 2);
@@ -1418,18 +1419,18 @@ LowExpr getCallBuiltinExpr(
 			assert(false), // handled in concretize
 		(BuiltinBinaryMath kind) {
 			assert(args.length == 2);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(
-				kind, [getArg0, getArg1]))));
+			return LowExpr(type, range, LowExprKind(LowExprKind.SpecialBinaryMath(
+				kind, allocate!(LowExpr[2])(ctx.alloc, [getArg0, getArg1])))); // TODO: genSpecialBinaryMath? -----------------------------------
 		},
 		(BuiltinTernary kind) {
 			assert(args.length == 3);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(
-				kind, [getArg0, getArg1, getArg2]))));
+			return LowExpr(type, range, LowExprKind(LowExprKind.SpecialTernary(
+				kind, allocate!(LowExpr[3])(ctx.alloc, [getArg0, getArg1, getArg2])))); // TODO: genSpecialTernary? ----------
 		},
 		(Builtin4ary kind) {
 			assert(args.length == 4);
-			return LowExpr(type, range, LowExprKind(allocate(ctx.alloc, LowExprKind.Special4ary(
-				kind, [getArg0, getArg1, getArg2, getArg3]))));
+			return LowExpr(type, range, LowExprKind(LowExprKind.Special4ary(
+				kind, allocate!(LowExpr[4])(ctx.alloc, [getArg0, getArg1, getArg2, getArg3])))); // TODO: genSpecial4ary? ----------
 		},
 		(BuiltinFun.CallLambda) =>
 			assert(false), // handled in concretize
@@ -1475,7 +1476,7 @@ LowExpr maybeOptimizeSpecialBinary(
 	LowExpr arg1,
 ) {
 	LowExpr unopt() =>
-		LowExpr(type, range, LowExprKind(allocate(ctx. alloc, LowExprKind.SpecialBinary(kind, [arg0, arg1]))));
+		LowExpr(type, range, LowExprKind(LowExprKind.SpecialBinary(kind, allocate!(LowExpr[2])(ctx. alloc, [arg0, arg1])))); // TODO: genSpecialBinary?
 
 	switch (kind) {
 		case BuiltinBinary.newArray:
