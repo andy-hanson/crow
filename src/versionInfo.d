@@ -7,6 +7,7 @@ enum OS {
 	web,
 	windows,
 }
+enum JsTarget { browser, node }
 
 OS getOS() {
 	version (linux) {
@@ -47,8 +48,18 @@ VersionInfo versionInfoForJIT(OS os, VersionOptions options) =>
 VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
 	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
 
-VersionInfo versionInfoForBuildToJS(OS os, bool isNodeJs) =>
-	VersionInfo(isNodeJs ? os : OS.web, versionOptionsForJs(), isInterpreted: false, isJit: false);
+VersionInfo versionInfoForBuildToJS(OS os, JsTarget target) {
+	OS jsOs = () {
+		final switch (target) {
+			case JsTarget.browser:
+				return OS.web;
+			case JsTarget.node:
+				return os;
+		}
+	}();
+	return VersionInfo(jsOs, versionOptionsForJs(), isInterpreted: false, isJit: false);
+}
+
 VersionOptions versionOptionsForJs() =>
 	VersionOptions(isSingleThreaded: true, stackTraceEnabled: true);
 

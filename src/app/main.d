@@ -112,7 +112,7 @@ import util.uri :
 import util.util : debugLog, todo;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo :
-	getOS, OS, versionInfoForInterpret, versionInfoForJIT, VersionInfo, VersionOptions, versionOptionsForJs;
+	getOS, JsTarget, OS, versionInfoForInterpret, versionInfoForJIT, VersionInfo, VersionOptions, versionOptionsForJs;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
@@ -463,9 +463,8 @@ ExitCodeOrSignal buildAndRunNode(
 	in CString[] programArgs,
 ) =>
 	withTempPath(program.mainUri, Extension.none, (FilePath dir) =>
-		withWriteToJs(perf, alloc, server, program, dir, isNodeJs: true, cb: (FilePath mainJs) =>
+		withWriteToJs(perf, alloc, server, program, dir, JsTarget.node, cb: (FilePath mainJs) =>
 			runNodeJsProgram(PathAndArgs(mainJs, programArgs))));
-
 
 ExitCodeOrSignal buildAllOutputs(
 	scope ref Perf perf,
@@ -501,7 +500,7 @@ ExitCodeOrSignal buildAllOutputs(
 			case SingleBuildOutput.Kind.nodeJs:
 				return withWriteToJs(
 					perf, alloc, server, program, out_.path,
-					isNodeJs: out_.kind == SingleBuildOutput.Kind.nodeJs,
+					out_.kind == SingleBuildOutput.Kind.nodeJs ? JsTarget.node : JsTarget.browser,
 					(FilePath _) => ExitCodeOrSignal.ok);
 		}
 	});
@@ -522,10 +521,10 @@ ExitCodeOrSignal withWriteToJs(
 	ref Server server,
 	ref ProgramWithMain program,
 	FilePath outDir,
-	bool isNodeJs,
+	JsTarget target,
 	in ExitCodeOrSignal delegate(FilePath mainJs) @safe @nogc nothrow cb,
 ) {
-	TranslateToJsResult result = buildToJs(perf, alloc, server, program, getOS(), isNodeJs: isNodeJs);
+	TranslateToJsResult result = buildToJs(perf, alloc, server, program, getOS(), target);
 	return okAnd(
 		ExitCodeOrSignal(writeFilesToDir(outDir, result.outputFiles)),
 		() => cb(concatFilePathAndPath(outDir, result.mainJs)));

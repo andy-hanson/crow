@@ -120,7 +120,7 @@ import util.symbol : initSymbols;
 import util.uri : FilePath, initUris, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
-import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret, VersionOptions;
+import versionInfo : getOS, JsTarget, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret, VersionOptions;
 
 ExitCodeOrSignal buildAndInterpret(
 	scope ref Perf perf,
@@ -705,15 +705,21 @@ BuildToCResult buildToC(
 		lowProgram.externLibraries);
 }
 
-
-TranslateToJsResult buildToJs(scope ref Perf perf, ref Alloc alloc, ref Server server, ref ProgramWithMain program, OS os, bool isNodeJs) =>
+TranslateToJsResult buildToJs(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	ref ProgramWithMain program,
+	OS os,
+	JsTarget target,
+) =>
 	translateToJs(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
 		FileContentGetters(&server.storage),
 		os,
-		isNodeJs);
+		target);
 
 ShowDiagCtx getShowDiagCtx(
 	return scope ref const Server server,

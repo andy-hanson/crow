@@ -252,7 +252,7 @@ import util.uri :
 	resolvePath,
 	Uri;
 import util.util : min, ptrTrustMe, stringOfEnum, todo, typeAs;
-import versionInfo : isVersion, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
+import versionInfo : isVersion, JsTarget, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
 	Path mainJs;
@@ -264,11 +264,11 @@ TranslateToJsResult translateToJs(
 	in ShowTypeCtx showCtx,
 	in FileContentGetters fileContentGetters,
 	OS os,
-	bool isNodeJs,
+	JsTarget jsTarget,
 ) {
 	assert(!hasFatalDiagnostics(program));
-	VersionInfo version_ = versionInfoForBuildToJS(os, isNodeJs);
-	SymbolSet allExterns = allExternsForJs(isNodeJs: isNodeJs);
+	VersionInfo version_ = versionInfoForBuildToJS(os, jsTarget);
+	SymbolSet allExterns = allExternsForJs(jsTarget);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
@@ -283,7 +283,7 @@ TranslateToJsResult translateToJs(
 		moduleExportMangledNames(alloc, program.program, allUsed));
 
 	doTranslateModule(ctx, program.mainModule);
-	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, isNodeJs: isNodeJs));
+	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, jsTarget));
 }
 
 private:
@@ -363,18 +363,25 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 	});
 }
 
-SymbolSet allExternsForJs(bool isNodeJs) =>
-	symbolSet(symbol!"js") | (isNodeJs ? symbol!"node-js" : symbol!"browser");
+SymbolSet allExternsForJs(JsTarget target) =>
+	symbolSet(symbol!"js") | () {
+		final switch (target) {
+			case JsTarget.browser:
+				return symbol!"browser";
+			case JsTarget.node:
+				return symbol!"node-js";
+		}
+	}();
 
 PathAndContent[] getOutputFiles(
 	ref Alloc alloc,
 	in ShowTypeCtx showCtx,
 	in Map!(Uri, Path) modulePaths,
 	in MutMap!(Module*, Opt!JsModuleAst) done,
-	bool isNodeJs,
+	JsTarget target,
 ) =>
 	buildArray!PathAndContent(alloc, (scope ref Builder!PathAndContent out_) {
-		if (isNodeJs)
+		if (target == JsTarget.node)
 			out_ ~= PathAndContent(parsePath("package.json"), "{\"type\":\"module\"}");
 		foreach (const Module* module_, ref Opt!JsModuleAst ast; done)
 			if (has(ast))
