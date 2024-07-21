@@ -231,24 +231,24 @@ immutable struct ArrowAccessAst {
 
 immutable struct AssertOrForbidAst {
 	@safe @nogc pure nothrow:
-	immutable struct Thrown {
-		@safe @nogc pure nothrow:
-		Pos colonPos;
-		ExprAst expr;
-
-		Range colonRange() scope =>
-			rangeOfStartAndLength(colonPos, ":".length);
-	}
 
 	bool isForbid;
 	ConditionAst condition;
-	Opt!(Thrown*) thrown;
+	Opt!(AssertOrForbidThrownAst*) thrown;
 	ExprAst* after;
 
 	Range keywordRange(in ExprAst* ast) scope {
 		static assert("assert".length == "forbid".length);
 		return ast.range[0 .. "assert".length];
 	}
+}
+immutable struct AssertOrForbidThrownAst {
+	@safe @nogc pure nothrow:
+	Pos colonPos;
+	ExprAst expr;
+
+	Range colonRange() scope =>
+		rangeOfStartAndLength(colonPos, ":".length);
 }
 
 // `left := right`
@@ -861,7 +861,7 @@ immutable struct WithAst {
 immutable struct ExprAstKind {
 	mixin Union!(
 		ArrowAccessAst,
-		AssertOrForbidAst*, // TODO: should not need to be a pointer! But wasm build has issues ..............................
+		AssertOrForbidAst,
 		AssignmentAst*,
 		AssignmentCallAst,
 		BogusAst,

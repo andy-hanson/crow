@@ -5,6 +5,7 @@ module model.jsonOfAst;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssertOrForbidThrownAst,
 	AssignmentAst,
 	AssignmentCallAst,
 	BogusAst,
@@ -413,7 +414,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField(e.isForbid ? "forbid" : "assert"),
 				field!"condition"(jsonOfConditionAst(alloc, ctx, e.condition)),
-				optionalField!("thrown", AssertOrForbidAst.Thrown*)(e.thrown, (in AssertOrForbidAst.Thrown* thrown) =>
+				optionalField!("thrown", AssertOrForbidThrownAst*)(e.thrown, (in AssertOrForbidThrownAst* thrown) =>
 					jsonObject(alloc, [
 						field!"colon"(thrown.colonPos),
 						field!"expr"(jsonOfExprAst(alloc, ctx, thrown.expr))])),

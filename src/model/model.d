@@ -2207,7 +2207,7 @@ private Opt!Symbol asExternExpr(in Expr a) =>
 private ref Expr skipTrusted(return ref Expr a) =>
 	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
 
-immutable struct AssertOrForbidExpr {
+immutable struct AssertOrForbidExpr { // TODO: should not be by pointer, just make 'after' by pointer ------------------------
 	bool isForbid;
 	Condition condition;
 	Opt!(Expr*) thrown;
@@ -2224,11 +2224,11 @@ string defaultAssertOrForbidMessage(
 	in AssertOrForbidExpr a,
 	in FileContentGetters content,
 ) {
-	PrefixAndRange x = expr.ast.kind.as!(AssertOrForbidAst*).condition.match!PrefixAndRange(
+	PrefixAndRange x = expr.ast.kind.as!AssertOrForbidAst.condition.match!PrefixAndRange(
 		(ref ExprAst condition) =>
 			PrefixAndRange(
 				a.isForbid ? "Forbidden expression is true: " : "Asserted expression is false: ",
-				expr.ast.kind.as!(AssertOrForbidAst*).condition.range),
+				expr.ast.kind.as!AssertOrForbidAst.condition.range),
 		(ref ConditionAst.UnpackOption unpack) =>
 			PrefixAndRange(
 				a.isForbid ? "Forbidden option is non-empty: " : "Asserted option is empty: ",

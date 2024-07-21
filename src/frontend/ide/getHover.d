@@ -426,7 +426,7 @@ void getExprKeywordHover(
 			break;
 		case ExprKeyword.colonInAssertOrForbid:
 			writer ~= "If the condition is '";
-			writer ~= astKind.as!(AssertOrForbidAst*).isForbid ? "true" : "false";
+			writer ~= astKind.as!AssertOrForbidAst.isForbid ? "true" : "false";
 			writer ~= "', throws an exception with the message to the right of the ':'.";
 			break;
 		case ExprKeyword.colonInFor:

@@ -50,6 +50,7 @@ import frontend.parse.parseUtil :
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssertOrForbidThrownAst,
 	AssignmentAst,
 	AssignmentCallAst,
 	BogusAst,
@@ -647,11 +648,10 @@ ExprAst parsePrefixKeyword(
 ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, bool isForbid) {
 	ConditionAst condition = parseCondition(lexer, AllowedBlock.no);
 	Pos colonPos = curPos(lexer);
-	Opt!(AssertOrForbidAst.Thrown*) thrown = optIf(tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colon), () =>
-		allocate(lexer.alloc, AssertOrForbidAst.Thrown(colonPos, parseExprNoBlock(lexer))));
+	Opt!(AssertOrForbidThrownAst*) thrown = optIf(tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colon), () =>
+		allocate(lexer.alloc, AssertOrForbidThrownAst(colonPos, parseExprNoBlock(lexer))));
 	ExprAst* after = allocate(lexer.alloc, parseNextLinesOrEmpty(lexer));
-	return ExprAst(range(lexer, start), ExprAstKind(
-		allocate(lexer.alloc, AssertOrForbidAst(isForbid, condition, thrown, after))));
+	return ExprAst(range(lexer, start), ExprAstKind(AssertOrForbidAst(isForbid, condition, thrown, after)));
 }
 
 ExprAst parseFinally(ref Lexer lexer, Pos start) {

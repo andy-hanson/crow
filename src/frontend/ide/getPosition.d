@@ -609,7 +609,7 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos
 			ExpressionPositionKind.LoopKeyword(kind, stackMapMustGet(loops, loop))));
 	return a.expr.kind.match!(Opt!PositionKind)(
 		(ref AssertOrForbidExpr x) {
-			AssertOrForbidAst assert_ = *ast.kind.as!(AssertOrForbidAst*);
+			AssertOrForbidAst assert_ = ast.kind.as!AssertOrForbidAst;
 			return optOr!PositionKind(
 				keywordAt(assert_.keywordRange(ast), x.isForbid ? ExprKeyword.forbid : ExprKeyword.assert_),
 				() => positionAtCondition(ctx, x.condition, a, assert_.condition, pos),
