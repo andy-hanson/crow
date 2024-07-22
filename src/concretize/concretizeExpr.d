@@ -1318,7 +1318,7 @@ Opt!Constant tryEvalConstant(
 				return isEmptyType(only(fn.source.as!ConcreteFunKey.typeArgs))
 					? some(constantZero())
 					: none!Constant;
-			} else if (x.kind.isA!(BuiltinFun.Zeroed)) {
+			} else if (x.kind.isA!(BuiltinFun.GcSafeValue)) {
 				assert(isEmpty(args));
 				return some(constantZero());
 			} else

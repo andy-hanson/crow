@@ -1680,6 +1680,10 @@ ExprResult translateCallBuiltin(
 			assert(nArgs == 0);
 			return expr(translateConstant(ctx.ctx, x, returnType));
 		},
+		(in BuiltinFun.GcSafeValue) {
+			assert(nArgs == 0);
+			return expr(genNull());
+		},
 		(in BuiltinFun.Init) =>
 			assert(false),
 		(in JsFun x) =>
@@ -1697,10 +1701,6 @@ ExprResult translateCallBuiltin(
 		(in VersionFun x) {
 			assert(nArgs == 0);
 			return expr(genBool(isVersion(ctx.ctx.version_, x)));
-		},
-		(in BuiltinFun.Zeroed) {
-			assert(nArgs == 0);
-			return expr(genNull());
 		});
 }
 JsExpr translateEnumOrFlagsFunction(

@@ -590,7 +590,7 @@ FunBody inner(
 				? BuiltinBinary.wrapSubNat64
 				: failBinary);
 		case symbol!"gc-safe-value".value:
-			return FunBody(BuiltinFun(BuiltinFun.Zeroed())); // TODO: RENAME THAT -------------------------------------------------------
+			return FunBody(BuiltinFun(BuiltinFun.GcSafeValue()));
 		case symbol!"as-any-mut-pointer".value:
 			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"global-init".value:
@@ -668,7 +668,7 @@ FunBody inner(
 }
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
-	isNat64(a) || isString(a); // TODO: wait, this shouldbe float64, not nat64 --------------------------------------------------------
+	isNat64(a) || isString(a);
 
 bool isBuiltin(in Type a, BuiltinType b) =>
 	a.isA!(StructInst*) &&

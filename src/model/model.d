@@ -920,6 +920,7 @@ immutable struct BuiltinFun {
 	immutable struct AllTests {}
 	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
+	immutable struct GcSafeValue {}
 	immutable struct Init {
 		enum Kind { global, perThread }
 		Kind kind;
@@ -929,7 +930,6 @@ immutable struct BuiltinFun {
 	immutable struct PointerCast {}
 	immutable struct SizeOf {}
 	immutable struct StaticSymbols {}
-	immutable struct Zeroed {}
 
 	mixin Union!(
 		AllTests,
@@ -943,6 +943,7 @@ immutable struct BuiltinFun {
 		CallLambda,
 		CallFunPointer,
 		Constant,
+		GcSafeValue,
 		Init,
 		JsFun,
 		MarkRoot,
@@ -950,8 +951,7 @@ immutable struct BuiltinFun {
 		PointerCast,
 		SizeOf,
 		StaticSymbols,
-		VersionFun,
-		Zeroed);
+		VersionFun);
 }
 
 enum BuiltinUnary {

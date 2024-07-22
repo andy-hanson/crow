@@ -1443,6 +1443,9 @@ LowExpr getCallBuiltinExpr(
 			callFunPointer(ctx, ExprPos.nonTail, locals, range, type, only2(args)),
 		(Constant x) =>
 			LowExpr(type, range, LowExprKind(x)),
+		(BuiltinFun.GcSafeValue) =>
+			// handled in concretize
+			assert(false),
 		(BuiltinFun.Init x) =>
 			LowExpr(type, range, LowExprKind(LowExprKind.Init(x.kind))),
 		(JsFun _) =>
@@ -1465,9 +1468,6 @@ LowExpr getCallBuiltinExpr(
 		(BuiltinFun.StaticSymbols) =>
 			LowExpr(type, range, LowExprKind(ctx.staticSymbols)),
 		(VersionFun _) =>
-			// handled in concretize
-			assert(false),
-		(BuiltinFun.Zeroed) =>
 			// handled in concretize
 			assert(false));
 }

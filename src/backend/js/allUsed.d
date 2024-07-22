@@ -193,6 +193,8 @@ bool isInlinedBuiltinFun(in BuiltinFun a) =>
 			true,
 		(in Constant _) =>
 			true,
+		(in BuiltinFun.GcSafeValue) =>
+			true,
 		(in BuiltinFun.Init) =>
 			true,
 		(in JsFun _) =>
@@ -208,9 +210,7 @@ bool isInlinedBuiltinFun(in BuiltinFun a) =>
 		(in BuiltinFun.StaticSymbols) =>
 			assert(false),
 		(in VersionFun _) =>
-			assert(false),
-		(in BuiltinFun.Zeroed) =>
-			true);
+			assert(false));
 
 Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, in Condition a) {
 	if (a.isA!(Expr*)) {

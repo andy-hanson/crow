@@ -17,11 +17,11 @@ import
 	js-global get name
 # `a[name]`
 +get js-any(a js-any, name string) builtin, bare, unsafe, js extern
-# `a[index]`
+# `a[index]` (This converts 'index' to a string.)
 +get js-any(a js-any, index nat64) builtin, bare, unsafe, js extern
 # `a[name] = value`
 +set[t] void(a js-any, name string, value t) builtin, bare, unsafe, js extern
-# `a[index] = value`
+# `a[index] = value` (This converts 'index' to a string.)
 +set[t] void(a js-any, index nat64, value t) builtin, bare, unsafe, js extern
 ###
 `a()`
