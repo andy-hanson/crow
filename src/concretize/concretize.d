@@ -39,7 +39,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain;
+import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
@@ -48,7 +48,7 @@ import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustAdd, mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
@@ -181,10 +181,16 @@ private:
 SymbolSet allExterns(in Config mainConfig) =>
 	buildSymbolSet((scope ref SymbolSetBuilder out_) {
 		version (Windows)
-			out_ ~= [symbol!"DbgHelp", symbol!"windows"];
+			out_ ~= [symbolOfEnum(BuiltinExtern.DbgHelp), symbolOfEnum(BuiltinExtern.windows)];
 		else
-			out_ ~= [symbol!"linux", symbol!"posix", symbol!"pthread", symbol!"sodium", symbol!"unwind"];
-		out_ ~= [symbol!"libc", symbol!"native"];
+			out_ ~= [
+				symbolOfEnum(BuiltinExtern.linux),
+				symbolOfEnum(BuiltinExtern.posix),
+				symbolOfEnum(BuiltinExtern.pthread),
+				symbolOfEnum(BuiltinExtern.sodium),
+				symbolOfEnum(BuiltinExtern.unwind),
+			];
+		out_ ~= [symbolOfEnum(BuiltinExtern.libc), symbolOfEnum(BuiltinExtern.native)];
 		foreach (Symbol name; keys(mainConfig.extern_))
 			out_ ~= name; // TODO: this should only be if there is a path set for it ---------------------------------------------------
 	});

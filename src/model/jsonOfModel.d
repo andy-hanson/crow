@@ -371,7 +371,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in ExternExpr x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
-				field!"name"(x.name)]),
+				field!"name"(x.name.asSymbol)]),
 		(in FinallyExpr x) =>
 			jsonObject(alloc, [
 				kindField!"finally",

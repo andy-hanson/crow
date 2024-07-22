@@ -58,7 +58,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
-import util.symbol : Symbol, symbol;
+import util.symbol : enumOfSymbol, Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : RelPath, Uri;
@@ -2181,22 +2181,22 @@ immutable struct Condition {
 
 immutable struct ExternCondition {
 	bool isNegated;
-	Symbol externName;
+	ExternName externName;
 }
 bool evalExternCondition(in ExternCondition a, in SymbolSet allExterns) =>
-	a.isNegated ^ (a.externName in allExterns);
+	a.isNegated ^ (a.externName.asSymbol in allExterns);
 Opt!ExternCondition asExtern(in Condition a) {
 	if (a.isA!(Expr*)) {
 		Expr e = skipTrusted(*a.as!(Expr*));
 		if (e.kind.isA!CallExpr) {
 			CallExpr call = e.kind.as!CallExpr;
 			if (isNot(call.called)) {
-				Opt!Symbol name = asExternExpr(skipTrusted(only(call.args)));
+				Opt!ExternName name = asExternExpr(skipTrusted(only(call.args)));
 				return optIf(has(name), () => ExternCondition(true, force(name)));
 			} else
 				return none!ExternCondition;
 		} else {
-			Opt!Symbol name = asExternExpr(e);
+			Opt!ExternName name = asExternExpr(e);
 			return optIf(has(name), () => ExternCondition(false, force(name)));
 		}
 	} else
@@ -2207,7 +2207,7 @@ private bool isNot(in Called a) =>
 	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isNot(a.as!(FunInst*).decl.body_);
 private bool isNot(in FunBody a) =>
 	a.isA!BuiltinFun && a.as!BuiltinFun.isA!BuiltinUnary && a.as!BuiltinFun.as!BuiltinUnary == BuiltinUnary.not;
-private Opt!Symbol asExternExpr(in Expr a) =>
+private Opt!ExternName asExternExpr(in Expr a) =>
 	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.name);
 private ref Expr skipTrusted(return ref Expr a) =>
 	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
@@ -2276,7 +2276,34 @@ immutable struct ClosureSetExpr {
 }
 
 immutable struct ExternExpr {
-	Symbol name;
+	ExternName name;
+}
+// This type exists as a reminder to check for BuiltinExtern
+immutable struct ExternName {
+	@safe @nogc pure nothrow:
+	Symbol asSymbol;
+
+	bool isBuiltin() =>
+		has(asBuiltin);
+	Opt!BuiltinExtern asBuiltin() =>
+		enumOfSymbol!BuiltinExtern(asSymbol);
+	Symbol asNonBuiltin() {
+		assert(!has(asBuiltin));
+		return asSymbol;
+	}
+}
+immutable enum BuiltinExtern {
+	browser,
+	DbgHelp, // TODO: this does not belong -----------------------------------------------------------------------------------------------
+	js,
+	libc,
+	linux,
+	native,
+	posix,
+	pthread,
+	sodium, // TODO: this does not belong -----------------------------------------------------------------------------------------------
+	unwind, // TODO: this does not belong -----------------------------------------------------------------------------------------------
+	windows,
 }
 
 immutable struct FinallyExpr {

@@ -1400,7 +1400,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ClosureSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc,  localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
-			forceExpr(ctx, pos, type, genBool(x.name in ctx.ctx.allExterns)),
+			forceExpr(ctx, pos, type, genBool(x.name.asSymbol in ctx.ctx.allExterns)),
 		(ref FinallyExpr x) =>
 			translateFinally(ctx, x, type, pos),
 		(FunPointerExpr x) =>

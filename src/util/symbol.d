@@ -296,6 +296,17 @@ Symbol symbolOfEnum(E)(E a) {
 	return symbols[a];
 }
 
+Opt!E enumOfSymbol(E)(Symbol a) {
+	assertNormalEnum!E();
+	switch (a.value) {
+		static foreach (size_t index, string member; __traits(allMembers, E))
+			case symbol!(stripUnderscore!member).value:
+				return some(cast(E) index);
+		default:
+			return none!E;
+	}
+}
+
 Symbol toLowerCase(Symbol a) =>
 	makeSymbol((scope ref Writer writer) {
 		foreach (char x; a)

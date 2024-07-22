@@ -117,6 +117,7 @@ import model.model :
 	asExtern,
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinExtern,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
@@ -137,6 +138,7 @@ import model.model :
 	ExprKind,
 	ExternCondition,
 	ExternExpr,
+	ExternName,
 	FinallyExpr,
 	FloatType,
 	FunBody,
@@ -223,7 +225,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, someMut, some;
 import util.sourceRange : Range;
 import util.string : smallString;
-import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
+import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol, symbolOfEnum;
 import util.symbolSet : SymbolSet;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
@@ -487,33 +489,14 @@ Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Trust
 Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.ExternIsUnsafe()));
-	Symbol name = ast.name.name;
-	if (!checkExternName(ctx, name)) {
-		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(ast.name.name)));
-		return bogus(expected, source);
-	} else if (name in ctx.externs) {
-		addDiag2(ctx, ast.name.range, Diag(Diag.ExternRedundant(ast.name.name)));
-		return bogus(expected, source);
-	} else
+	ExternName name = ExternName(ast.name.name);
+	if (name.isBuiltin || hasKey(ctx.checkCtx.config.extern_, name.asSymbol)) {
+		if (name.asSymbol in ctx.externs)
+			addDiag2(ctx, ast.name.range, Diag(Diag.ExternRedundant(name))); // TODO: unit test -----------------------------------------
 		return check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(name)));
-}
-
-bool checkExternName(in ExprCtx ctx, Symbol name) {
-	switch (name.value) {
-		// TODO: this is the same set as in 'hasExtern' in 'concretizeExpr.d', share code! --------------------------------------------
-		case symbol!"DbgHelp".value:
-		case symbol!"js".value:
-		case symbol!"libc".value:
-		case symbol!"linux".value:
-		case symbol!"posix".value:
-		case symbol!"pthread".value:
-		case symbol!"native".value:
-		case symbol!"sodium".value:
-		case symbol!"unwind".value:
-		case symbol!"windows".value:
-			return true;
-		default:
-			return hasKey(ctx.checkCtx.config.extern_, name);
+	} else {
+		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(name.asSymbol)));
+		return bogus(expected, source);
 	}
 }
 
@@ -1982,7 +1965,7 @@ Out withExternFromCondition(Out)(
 	if (has(extern_) && !(isNegated ^ force(extern_).isNegated)) {
 		SymbolSet originalExterns = ctx.externs;
 		scope (exit) ctx.externs = originalExterns;
-		ctx.externs = ctx.externs | force(extern_).externName;
+		ctx.externs = ctx.externs | force(extern_).externName.asSymbol;
 		return cb();
 	} else
 		return cb();

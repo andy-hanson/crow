@@ -19,6 +19,7 @@ import model.ast :
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
+	BuiltinExtern,
 	BuiltinType,
 	CallExpr,
 	CallOptionExpr,
@@ -59,7 +60,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.hashTable : withSortedKeys;
 import util.conv : safeToUint;
-import util.opt : force, has;
+import util.opt : force, has, Opt;
 import util.sourceRange : PosKind;
 import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
 import util.uri : Uri;
@@ -622,26 +623,37 @@ void getExprHover(
 			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);
 		},
 		(in ExternExpr x) {
-			// TODO: this list of symbols is probably duplicated elsewhere? I think I should distinguish between builtin or library externs.
-			writer ~= "The expression will be 'true' ";
-			switch (x.name.value) {
-				case symbol!"native".value:
-					writer ~= "unless running in a web browser or in node.js. (The interpreter is still considered native.)";
-					break;
-				case symbol!"browser".value:
-					writer ~= "when running in a web browser.";
-					break;
-				case symbol!"posix".value:
-					writer ~= "The expression will be 'true' on Posix-compliant operating systems.";
-					break;
-				case symbol!"js".value:
-					writer ~= "in a JavaScript or Node.js build.";
-					break;
-				default:
-					writer ~= " if the '";
-					writer ~= x.name;
-					writer ~= "' library is present.";
-					break;
+			writer ~= "";
+			Opt!BuiltinExtern builtin = x.name.asBuiltin;
+			if (has(builtin)) {
+				writer ~= () {
+					final switch (force(builtin)) {
+						case BuiltinExtern.browser:
+							return "The expression will be 'true' when running in a web browser.";
+						case BuiltinExtern.DbgHelp:
+							return "The expression will be 'true' on Windows.";
+						case BuiltinExtern.js:
+							return "The expression will be 'true' in a JavaScript or Node.js build.";
+						case BuiltinExtern.libc:
+							return "Currently equivalent to 'extern native'.";
+						case BuiltinExtern.linux:
+							return "The expression will be 'true' on Linux.";
+						case BuiltinExtern.native:
+							return "The expression will be 'false' if in a web browser or in node.js. (The interpreter is still considered native.)";
+						case BuiltinExtern.posix:
+							return "The expression will be 'true' on Posix-compliant operating systems.";
+						case BuiltinExtern.pthread:
+						case BuiltinExtern.sodium:
+						case BuiltinExtern.unwind:
+							return "Currently equivalent to 'extern posix'.";
+						case BuiltinExtern.windows:
+							return "The expression will be 'true' on Windows.";
+					}
+				}();
+			} else {
+				writer ~= "'true' if the '";
+				writer ~= x.name.asNonBuiltin;
+				writer ~= "' library is present.";
 			}
 		},
 		(in FunPointerExpr x) {

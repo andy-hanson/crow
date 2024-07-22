@@ -19,6 +19,7 @@ import interpret.extern_ :
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
+import model.model : BuiltinExtern;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withExactStackArray;
 import util.col.array : isEmpty, map, mapImpure;
@@ -33,7 +34,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbol;
+import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbol, symbolOfEnum;
 import util.uri : asFilePath, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
@@ -92,16 +93,16 @@ LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteEr
 		return LibraryAndError(force(fromUri), false);
 	else {
 		switch (libraryName.value) {
-			case symbol!"libc".value:
-			case symbol!"linux".value:
-			case symbol!"m".value:
-			case symbol!"posix".value:
+			case symbolOfEnum(BuiltinExtern.libc).value:
+			case symbolOfEnum(BuiltinExtern.linux).value:
+			case symbolOfEnum(BuiltinExtern.posix).value:
+			case symbol!"m".value: // TODO: I think this is no longer needed ----------------------------------------------------------
 				version (Windows) {
 					return loadLibraryFromName(cString!"ucrtbase.dll", writeError);
 				} else {
 					return LibraryAndError(null, false);
 				}
-			case symbol!"pthread".value:
+			case symbolOfEnum(BuiltinExtern.pthread).value:
 				// TODO: understand why this is different
 				return loadLibraryFromName(cString!"libpthread.so.0", writeError);
 			default:
