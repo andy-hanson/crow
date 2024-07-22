@@ -2,8 +2,6 @@ module backend.js.allUsed;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : eachDirectChildExpr, ExprRef, funBodyExprRef, testBodyExprRef;
-import frontend.ide.getReferences : getCalledAtExpr;
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -25,15 +23,19 @@ import model.model :
 	CommonTypes,
 	Condition,
 	Destructure,
+	eachDirectChildExpr,
 	eachLocal,
 	eachTest,
 	EnumOrFlagsFunction,
 	evalExternCondition,
 	Expr,
+	ExprRef,
 	ExternCondition,
 	FunBody,
+	funBodyExprRef,
 	FunDecl,
 	FunInst,
+	getCalledAtExpr,
 	getModuleUri,
 	IfExpr,
 	JsFun,
@@ -56,6 +58,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
+	testBodyExprRef,
 	TryExpr,
 	TryLetExpr,
 	Type,

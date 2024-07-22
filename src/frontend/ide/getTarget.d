@@ -2,7 +2,6 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : ExprRef;
 import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
@@ -17,6 +16,8 @@ import model.model :
 	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
+	ExprRef,
+	ExternExpr,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -137,6 +138,8 @@ Opt!Target exprTarget(in CommonTypes commonTypes, ExpressionPosition a) =>
 		(CallOptionExpr x) =>
 			calledTarget(commonTypes, x.called),
 		(ExprKeyword x) =>
+			none!Target,
+		(ExternExpr _) =>
 			none!Target,
 		(FunPointerExpr x) =>
 			calledTarget(commonTypes, x.called),

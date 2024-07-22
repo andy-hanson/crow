@@ -2,14 +2,12 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : ExprRef;
 import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, Position, PositionKind;
 import frontend.showModel :
 	ShowModelCtx,
 	writeCalled,
 	writeFile,
 	writeFunDecl,
-	writeLineAndColumn,
 	writeName,
 	writeSpecInst,
 	writeTypeQuoted,
@@ -29,6 +27,8 @@ import model.model :
 	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
+	ExprRef,
+	ExternExpr,
 	FunDecl,
 	FunPointerExpr,
 	IntegralType,
@@ -61,7 +61,7 @@ import util.col.hashTable : withSortedKeys;
 import util.conv : safeToUint;
 import util.opt : force, has;
 import util.sourceRange : PosKind;
-import util.symbol : compareSymbolsAlphabetically, Symbol;
+import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
 import util.uri : Uri;
 import util.util : stringOfEnum;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedChar, writeQuotedString, Writer, writeWithCommas;
@@ -621,6 +621,29 @@ void getExprHover(
 		(in ExprKeyword x) {
 			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);
 		},
+		(in ExternExpr x) {
+			// TODO: this list of symbols is probably duplicated elsewhere? I think I should distinguish between builtin or library externs.
+			writer ~= "The expression will be 'true' ";
+			switch (x.name.value) {
+				case symbol!"native".value:
+					writer ~= "unless running in a web browser or in node.js. (The interpreter is still considered native.)";
+					break;
+				case symbol!"browser".value:
+					writer ~= "when running in a web browser.";
+					break;
+				case symbol!"posix".value:
+					writer ~= "The expression will be 'true' on Posix-compliant operating systems.";
+					break;
+				case symbol!"js".value:
+					writer ~= "in a JavaScript or Node.js build.";
+					break;
+				default:
+					writer ~= " if the '";
+					writer ~= x.name;
+					writer ~= "' library is present.";
+					break;
+			}
+		},
 		(in FunPointerExpr x) {
 			writer ~= "Pointer to function ";
 			writeCalled(writer, ctx, typeContainer, x.called);
@@ -681,5 +704,5 @@ void getExprHover(
 
 void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in ExprRef a) {
 	writer ~= "the loop at ";
-	writeLineAndColumn(writer, ctx.lineAndColumnGetters[curUri][a.expr.range.start, PosKind.startOfRange]);
+	writer ~= ctx.lineAndColumnGetters[curUri][a.expr.range.start, PosKind.startOfRange];
 }

@@ -2,7 +2,6 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : ExprRef;
 import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
@@ -10,6 +9,8 @@ import model.model :
 	CallOptionExpr,
 	EnumOrFlagsMember,
 	Expr,
+	ExprRef,
+	ExternExpr,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
@@ -241,7 +242,7 @@ immutable struct ExpressionPositionKind {
 		Kind kind;
 		ExprRef loop;
 	}
-	mixin Union!(CallExpr, CallOptionExpr, ExprKeyword, FunPointerExpr, Literal, LocalRef, LoopKeyword);
+	mixin Union!(CallExpr, CallOptionExpr, ExprKeyword, ExternExpr, FunPointerExpr, Literal, LocalRef, LoopKeyword);
 }
 
 enum ExprKeyword {

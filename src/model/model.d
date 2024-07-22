@@ -1,5 +1,7 @@
 module model.model;
 
+// See also frontendUtil.d
+
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
@@ -35,6 +37,8 @@ import util.col.array :
 	every,
 	exists,
 	first,
+	firstPointer,
+	firstZipPointerFirst,
 	fold,
 	isEmpty,
 	mustHaveIndexOfPointer,
@@ -51,7 +55,7 @@ import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : force, has, none, Opt, optEqual, optIf, some;
+import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
@@ -129,6 +133,62 @@ bool isEmptyType(in Type a) =>
 	isVoid(a) || isEmptyRecord(*a.as!(StructInst*).decl);
 private bool isEmptyRecord(in StructDecl a) =>
 	a.body_.isA!(StructBody.Record) && isEmpty(a.body_.as!(StructBody.Record).fields);
+
+bool isArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.array);
+bool isMutArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
+bool isArrayOrMutArray(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutArray);
+
+bool isTuple(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
+bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
+	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
+	return has(actual) && force(actual) == a;
+}
+Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
+	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
+
+bool isString(in Type a) =>
+	isBuiltinType(a, BuiltinType.string_);
+bool isString(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.string_);
+bool isSymbol(in Type a) =>
+	isBuiltinType(a, BuiltinType.symbol);
+
+private bool isBuiltinType(in Type a, BuiltinType builtin) =>
+	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);
+private bool isBuiltinType(in StructDecl a, BuiltinType builtin) =>
+	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == builtin;
+
+Type arrayElementType(Type type) {
+	assert(isArray(type));
+	return only(type.as!(StructInst*).typeArgs);
+}
+
+Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
+	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
+	return only(a.as!(StructInst*).typeArgs);
+}
+
+bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
+	a == commonTypes.option;
+
+bool isLambdaType(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.lambda);
+
+bool isNonFunctionPointer(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+bool isNonFunctionPointer(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+Type pointeeType(in Type a) {
+	assert(isNonFunctionPointer(a));
+	return only(a.as!(StructInst*).typeArgs);
+}
+
+bool isVoid(in Type a) =>
+	isBuiltinType(a, BuiltinType.void_);
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -623,15 +683,6 @@ bool isDefinitelyByRef(in StructInst a) {
 	return body_.isA!(StructBody.Record) &&
 		optEqual!ByValOrRef(body_.as!(StructBody.Record).flags.forcedByValOrRef, some(ByValOrRef.byRef));
 }
-
-bool isTuple(in CommonTypes commonTypes, in Type a) =>
-	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
-bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
-	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
-	return has(actual) && force(actual) == a;
-}
-Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
-	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
 
 immutable struct SpecDeclBody {
 	Opt!BuiltinSpec builtin;
@@ -1705,52 +1756,6 @@ immutable struct CommonTypes {
 		9;
 }
 
-bool isArray(in Type a) =>
-	isBuiltinType(a, BuiltinType.array);
-bool isMutArray(in Type a) =>
-	isBuiltinType(a, BuiltinType.mutArray);
-bool isArrayOrMutArray(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutArray);
-bool isString(in Type a) =>
-	isBuiltinType(a, BuiltinType.string_);
-bool isString(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.string_);
-bool isSymbol(in Type a) =>
-	isBuiltinType(a, BuiltinType.symbol);
-
-private bool isBuiltinType(in Type a, BuiltinType builtin) =>
-	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);
-private bool isBuiltinType(in StructDecl a, BuiltinType builtin) =>
-	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == builtin;
-
-Type arrayElementType(Type type) {
-	assert(isArray(type));
-	return only(type.as!(StructInst*).typeArgs);
-}
-
-Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
-	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
-	return only(a.as!(StructInst*).typeArgs);
-}
-
-bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
-	a == commonTypes.option;
-
-bool isLambdaType(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.lambda);
-
-bool isNonFunctionPointer(in Type a) =>
-	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
-bool isNonFunctionPointer(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
-Type pointeeType(in Type a) {
-	assert(isNonFunctionPointer(a));
-	return only(a.as!(StructInst*).typeArgs);
-}
-
-bool isVoid(in Type a) =>
-	isBuiltinType(a, BuiltinType.void_);
-
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
 	EnumMap!(IntegralType, StructInst*) map;
@@ -2207,7 +2212,7 @@ private Opt!Symbol asExternExpr(in Expr a) =>
 private ref Expr skipTrusted(return ref Expr a) =>
 	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
 
-immutable struct AssertOrForbidExpr { // TODO: should not be by pointer, just make 'after' by pointer ------------------------
+immutable struct AssertOrForbidExpr {
 	bool isForbid;
 	Condition condition;
 	Opt!(Expr*) thrown;
@@ -2554,3 +2559,195 @@ Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);
 Visibility greatestVisibility(Visibility a, Visibility b) =>
 	max(a, b);
+
+Opt!Called getCalledAtExpr(in ExprKind x) =>
+	x.isA!CallExpr
+		? some(x.as!CallExpr.called)
+		: x.isA!(CallOptionExpr*)
+		? some(x.as!(CallOptionExpr*).called)
+		: x.isA!FunPointerExpr
+		? some(x.as!FunPointerExpr.called)
+		: none!Called;
+
+immutable struct ExprRef {
+	Expr* expr;
+	Type type;
+}
+
+ExprRef funBodyExprRef(FunDecl* a) =>
+	ExprRef(&a.body_.as!Expr(), a.returnType);
+ExprRef testBodyExprRef(ref CommonTypes commonTypes, Test* a) =>
+	ExprRef(&a.body_, Type(commonTypes.void_));
+
+void eachDescendentExprIncluding(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	cb(a);
+	eachDescendentExprExcluding(commonTypes, a, cb);
+}
+
+void eachDescendentExprExcluding(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	eachDirectChildExpr(commonTypes, a, (ExprRef x) {
+		eachDescendentExprIncluding(commonTypes, x, cb);
+	});
+}
+
+void eachDirectChildExpr(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in void delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	Opt!bool res = findDirectChildExpr!bool(commonTypes, a, (ExprRef x) {
+		cb(x);
+		return none!bool;
+	});
+	assert(!has(res));
+}
+
+Opt!T findDirectChildExpr(T)(
+	ref CommonTypes commonTypes,
+	ExprRef a,
+	in Opt!T delegate(ExprRef) @safe @nogc pure nothrow cb,
+) {
+	Type boolType = Type(commonTypes.bool_);
+	Type exceptionType = Type(commonTypes.exception);
+	Type voidType = Type(commonTypes.void_);
+	ExprRef sameType(Expr* x) =>
+		ExprRef(x, a.type);
+	ExprRef toRef(ExprAndType* x) =>
+		ExprRef(&x.expr, x.type);
+
+	ExprRef directChildInCondition(Condition cond) =>
+		cond.matchWithPointers!ExprRef(
+			(Expr* x) =>
+				ExprRef(x, boolType),
+			(Condition.UnpackOption* x) =>
+				toRef(&x.option));
+	Opt!T directChildInMatchVariantCases(MatchVariantExpr.Case[] cases) =>
+		firstPointer!(T, MatchVariantExpr.Case)(cases, (MatchVariantExpr.Case* x) =>
+			cb(sameType(&x.then)));
+
+	return a.expr.kind.matchWithPointers!(Opt!T)(
+		(AssertOrForbidExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => has(x.thrown) ? cb(ExprRef(force(x.thrown), exceptionType)) : none!T,
+				() => cb(sameType(&x.after))),
+		(BogusExpr _) =>
+			none!T,
+		(CallExpr x) {
+			assert(a.type == x.called.returnType);
+			if (x.called.isVariadic) {
+				Type argType = arrayElementType(only(x.called.paramTypes));
+				return firstPointer!(T, Expr)(x.args, (Expr* e) => cb(ExprRef(e, argType)));
+			} else
+				return firstZipPointerFirst!(T, Expr, Type)(x.args, x.called.paramTypes, (Expr* e, Type t) =>
+					cb(ExprRef(e, t)));
+		},
+		(CallOptionExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.firstArg)),
+				() => firstZipPointerFirst!(T, Expr, Type)(x.restArgs, x.called.paramTypes[1 .. $], (Expr* e, Type t) =>
+					cb(ExprRef(e, t)))),
+		(ClosureGetExpr x) {
+			assert(a.type == x.local.type);
+			return none!T;
+		},
+		(ClosureSetExpr x) {
+			assert(a.type == voidType);
+			return cb(ExprRef(x.value, x.local.type));
+		},
+		(ExternExpr x) =>
+			none!T,
+		(FinallyExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.right, voidType)),
+				() => cb(sameType(&x.below))),
+		(FunPointerExpr _) =>
+			none!T,
+		(IfExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(sameType(&x.firstBranch(a.expr.ast))),
+				() => cb(sameType(&x.secondBranch(a.expr.ast)))),
+		(LambdaExpr* x) =>
+			cb(ExprRef(&x.body_(), x.returnType)),
+		(LetExpr* x) =>
+			optOr!T(cb(ExprRef(&x.value, x.destructure.type)), () => cb(sameType(&x.then))),
+		(LiteralExpr _) =>
+			none!T,
+		(LiteralStringLikeExpr _) =>
+			none!T,
+		(LocalGetExpr x) {
+			assert(a.type == x.local.type);
+			return none!T;
+		},
+		(LocalPointerExpr _) =>
+			none!T,
+		(LocalSetExpr x) {
+			assert(a.type == voidType);
+			return cb(ExprRef(x.value, x.local.type));
+		},
+		(LoopExpr* x) =>
+			cb(sameType(&x.body_)),
+		(LoopBreakExpr* x) =>
+			cb(sameType(&x.value)),
+		(LoopContinueExpr _) =>
+			none!T,
+		(LoopWhileOrUntilExpr* x) =>
+			optOr!T(
+				cb(directChildInCondition(x.condition)),
+				() => cb(ExprRef(&x.body_, voidType)),
+				() => cb(sameType(&x.after))),
+		(MatchEnumExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchEnumExpr.Case)(x.cases, (MatchEnumExpr.Case* y) => cb(sameType(&y.then))),
+				() => has(x.else_) ? cb(sameType(&force(x.else_))) : none!T),
+		(MatchIntegralExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchIntegralExpr.Case)(x.cases, (MatchIntegralExpr.Case* y) =>
+					cb(sameType(&y.then))),
+				() => cb(sameType(&x.else_))),
+		(MatchStringLikeExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchStringLikeExpr.Case)(x.cases, (MatchStringLikeExpr.Case* y) =>
+					cb(sameType(&y.then))),
+				() => cb(sameType(&x.else_))),
+		(MatchUnionExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => firstPointer!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case* case_) =>
+					cb(sameType(&case_.then))),
+				() => has(x.else_) ? cb(sameType(force(x.else_))) : none!T),
+		(MatchVariantExpr* x) =>
+			optOr!T(
+				cb(toRef(&x.matched)),
+				() => directChildInMatchVariantCases(x.cases),
+				() => cb(sameType(&x.else_))),
+		(RecordFieldPointerExpr* x) =>
+			cb(toRef(&x.target)),
+		(SeqExpr* x) =>
+			optOr!T(cb(ExprRef(&x.first, voidType)), () => cb(sameType(&x.then))),
+		(ThrowExpr* x) =>
+			cb(ExprRef(&x.thrown, exceptionType)),
+		(TrustedExpr* x) =>
+			cb(sameType(&x.inner)),
+		(TryExpr* x) =>
+			optOr!T(cb(sameType(&x.tried)), () => directChildInMatchVariantCases(x.catches)),
+		(TryLetExpr* x) =>
+			optOr!T(
+				cb(ExprRef(&x.value, x.destructure.type)),
+				() => cb(sameType(&x.catch_.then)),
+				() => cb(sameType(&x.then))),
+		(TypedExpr* x) =>
+			cb(sameType(&x.inner)));
+}

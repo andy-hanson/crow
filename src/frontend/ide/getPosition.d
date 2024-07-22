@@ -2,7 +2,6 @@ module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : ExprRef, findDirectChildExpr, funBodyExprRef, testBodyExprRef;
 import frontend.ide.ideUtil : findInPackedTypeArgs, eachTypeComponent, specsMatch;
 import frontend.ide.position :
 	ExpressionPosition,
@@ -72,9 +71,12 @@ import model.model :
 	Destructure,
 	EnumOrFlagsMember,
 	Expr,
+	ExprRef,
 	ExternExpr,
 	FinallyExpr,
+	findDirectChildExpr,
 	FunBody,
+	funBodyExprRef,
 	FunDecl,
 	FunDeclSource,
 	FunPointerExpr,
@@ -113,6 +115,7 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	Test,
+	testBodyExprRef,
 	ThrowExpr,
 	TrustedExpr,
 	TryExpr,
@@ -633,7 +636,7 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, ref Loops loops, ExprRef a, Pos
 			optIf(isAtAssignment(ast, pos), () =>
 				local(ExpressionPositionKind.LocalRef.Kind.closureSet, x.local)),
 		(ExternExpr x) =>
-			none!PositionKind, // TODO ----------------------------------------------------------------------------------------------------
+			some(expressionPosition(ExpressionPositionKind(x))),
 		(ref FinallyExpr x) =>
 			keywordAt(ast.kind.as!(FinallyAst*).finallyKeywordRange(ast), ExprKeyword.finally_),
 		(FunPointerExpr x) =>

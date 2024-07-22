@@ -73,18 +73,6 @@ struct ShowOptions {
 		ShowOptions(false);
 }
 
-void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) { // TODO: just make this the 'writeTo' implementation?
-	writeLineAndColumn(writer, a.start);
-	writer ~= '-';
-	writeLineAndColumn(writer, a.end);
-}
-
-void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
-	writer ~= lc.line1Indexed;
-	writer ~= ':';
-	writer ~= lc.column1Indexed;
-}
-
 void writeCalled(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in Called a) {
 	a.matchIn!void(
 		(in Called.Bogus x) {
@@ -501,7 +489,7 @@ void writeSpecInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer
 void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[where].range);
+		writer ~= ctx.lineAndColumnGetters[where].range;
 	if (ctx.options.color)
 		writeReset(writer);
 }
@@ -509,7 +497,7 @@ void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange wh
 void writeUriAndPos(scope ref Writer writer, in ShowCtx ctx, in UriAndPos where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumn(writer, ctx.lineAndColumnGetters[where, PosKind.startOfRange].pos);
+		writer ~= ctx.lineAndColumnGetters[where, PosKind.startOfRange].pos;
 	if (ctx.options.color)
 		writeReset(writer);
 }

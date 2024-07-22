@@ -367,7 +367,13 @@ LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, size_t
 LowExpr genGetArrayOrMutArraySize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
 	genRecordFieldGet(alloc, nat64Type, range, arr, 0);
 
-LowExpr genGetArrayOrMutArrayConstPointer(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType elementPointerType, LowType constPointerType) {
+LowExpr genGetArrayOrMutArrayConstPointer(
+	ref Alloc alloc,
+	UriAndRange range,
+	LowExpr arr,
+	LowType elementPointerType,
+	LowType constPointerType,
+) {
 	LowExpr value = genRecordFieldGet(alloc, elementPointerType, range, arr, 1);
 	return constPointerType == elementPointerType ? value : genPointerCast(alloc, constPointerType, range, value);
 }

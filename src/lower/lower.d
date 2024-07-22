@@ -373,7 +373,9 @@ SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRec
 			LowField(
 				LowFieldSource(LowFieldSource.ArrayField.pointer),
 				8,
-				builtin.kind == BuiltinType.mutArray ? getPointerMut(getLowTypeCtx, elementType) : getPointerConst(getLowTypeCtx, elementType))]);
+				builtin.kind == BuiltinType.mutArray
+					? getPointerMut(getLowTypeCtx, elementType)
+					: getPointerConst(getLowTypeCtx, elementType))]);
 	} else
 		return mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
 			getLowTypeCtx.alloc,
@@ -1201,7 +1203,7 @@ LowExpr getCallEquals(
 	return has(opCalled)
 		? genCallNoGcRoots(ctx.alloc, boolType, range, force(opCalled), [arg0, arg1])
 		: genBinary(
-			ctx.alloc, boolType, range, 
+			ctx.alloc, boolType, range,
 			called.body_.as!(ConcreteFunBody.Builtin).kind.as!BuiltinBinary,
 			arg0, arg1);
 }

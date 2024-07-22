@@ -2,7 +2,6 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendUtil : ExprRef;
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
 import model.model :
 	arrayElementType,
@@ -16,6 +15,7 @@ import model.model :
 	Condition,
 	Expr,
 	ExprAndType,
+	ExprRef,
 	ExternExpr,
 	FinallyExpr,
 	FunDecl,

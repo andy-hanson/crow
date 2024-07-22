@@ -600,7 +600,9 @@ ExprAst parseIf(ref Lexer lexer, Pos start, bool isElseOfParent) {
 	}();
 
 	ExprAstKind exprKind = ExprAstKind(createIfAst(
-		lexer.alloc, kind, isElseOfParent, start, condition, some(then), optIf(has(elifOrElse), () => force(elifOrElse).pos), else_));
+		lexer.alloc, kind, isElseOfParent, start, condition, some(then),
+		optIf(has(elifOrElse), () => force(elifOrElse).pos),
+		else_));
 	return ExprAst(range(lexer, start), exprKind);
 }
 

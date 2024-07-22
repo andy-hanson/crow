@@ -13,7 +13,6 @@ import frontend.showModel :
 	writeFunDeclAndTypeArgs,
 	writeFunInst,
 	writeKeyword,
-	writeLineAndColumnRange,
 	writeName,
 	writePurity,
 	writeSig,
@@ -107,7 +106,7 @@ string stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
 string stringOfParseDiagnostics(ref Alloc alloc, in ShowCtx ctx, Uri uri, in ParseDiagnostic[] diagnostics) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
-			writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[uri][x.range]);
+			writer ~= ctx.lineAndColumnGetters[uri][x.range];
 			writer ~= ' ';
 			writeParseDiag(writer, ctx, x.kind);
 		});
@@ -1064,7 +1063,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PointerIsNative) {
-			writer ~= "Can only get a pointer in an 'extern native' context."; // TODO: It's called 'native extern' in the spec. I should fix the grammar....	
+			writer ~= "Can only get a pointer in an 'extern native' context.";
 		},
 		(in Diag.PointerIsUnsafe) {
 			writer ~= "Can only get a pointer in an 'unsafe' or 'trusted' context.";

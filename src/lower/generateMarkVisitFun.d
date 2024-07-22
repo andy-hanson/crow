@@ -351,7 +351,8 @@ LowExpr generateMarkVisitArray(
 		: asPointerConst(elementPointerType.as!(LowType.PointerMut));
 	LowType elementType = asPointee(elementPointerType);
 	UriAndRange range = UriAndRange.empty;
-	LowExpr getData = genGetArrayOrMutArrayConstPointer(alloc, range, getA, elementPointerType, LowType(constPointerType));
+	LowExpr getData = genGetArrayOrMutArrayConstPointer(
+		alloc, range, getA, elementPointerType, LowType(constPointerType));
 	LowExpr getSize = genGetArrayOrMutArraySize(alloc, range, getA);
 	// mark-ctx mark a.data.pointer-cast, a.size * size-of@<a>
 	LowExpr callMark = genCallNoGcRoots(alloc, boolType, range, markFun, [

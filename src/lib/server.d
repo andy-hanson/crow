@@ -139,12 +139,15 @@ ExitCodeOrSignal buildAndInterpret(
 		Opt!ExternPointersForAllLibraries externPointers =
 			extern_.loadExternPointers(lowProgram.externLibraries, writeError);
 		if (has(externPointers))
-			return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
-				ByteCode byteCode = generateBytecode(
-					perf, bytecodeAlloc, program.program, lowProgram,
-					force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
-				return ExitCodeOrSignal(runBytecode(perf, getShowDiagCtx(server, program.program), extern_.doDynCall, lowProgram, byteCode, allArgs));
-			});
+			return withTempAllocImpure!ExitCodeOrSignal(
+				server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
+					ByteCode byteCode = generateBytecode(
+						perf, bytecodeAlloc, program.program, lowProgram,
+						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
+					return ExitCodeOrSignal(runBytecode(
+						perf, getShowDiagCtx(server, program.program),
+						extern_.doDynCall, lowProgram, byteCode, allArgs));
+				});
 		else {
 			writeError("Failed to load external libraries\n");
 			return ExitCodeOrSignal.error;
@@ -310,7 +313,7 @@ private LspOutResult handleLspRequestWithProgram(
 				});
 			ExitCode asExitCode = exitCode.match!ExitCode(
 				(ExitCode x) => x,
-				(Signal _) => ExitCode.error); // TODO: RunResult should take ExitCodeOrSignal ----------------------------------------
+				(Signal _) => ExitCode.error);
 			return LspOutResult(RunResult(asExitCode, finish(alloc, writes)));
 		},
 		(in SemanticTokensParams _) =>
@@ -688,7 +691,7 @@ LowProgram buildToLowProgram(
 
 immutable struct BuildToCResult {
 	WriteToCResult writeToCResult;
-	ExternLibraries externLibraries; // Used? ------------------------------------------------------------------------------------
+	ExternLibraries externLibraries;
 }
 BuildToCResult buildToC(
 	scope ref Perf perf,

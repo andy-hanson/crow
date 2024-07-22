@@ -76,7 +76,7 @@ import backend.js.jsAst :
 	JsUnaryExpr,
 	JsVarDecl,
 	JsWhileStatement;
-import frontend.showModel : ShowTypeCtx, writeFunDecl, writeLineAndColumnRange;
+import frontend.showModel : ShowTypeCtx, writeFunDecl;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, only;
@@ -274,7 +274,7 @@ void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl) 
 
 void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDecl a) {
 	writer ~= "// ";
-	writeLineAndColumnRange(writer, showCtx.lineAndColumnGetters[a.range].range);
+	writer ~= showCtx.lineAndColumnGetters[a.range].range;
 	a.matchWithPointers!void(
 		(FunDecl* x) {
 			writer ~= ' ';

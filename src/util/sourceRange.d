@@ -10,6 +10,7 @@ import util.json : field, Json, jsonObject;
 import util.string : CString, MutCString, stringOfRange;
 import util.unicode : byteIndexOfCharacterIndex, characterIndexOfByteIndex;
 import util.uri : compareUriAlphabetically, stringOfUri, Uri;
+import util.writer : Writer;
 
 // This is a byte offset into a file. (It should generally point to the *start* of a UTF8 character.)
 alias Pos = uint;
@@ -92,8 +93,16 @@ immutable struct LineAndCharacter {
 }
 
 immutable struct LineAndColumnRange {
+	@safe @nogc pure nothrow:
+
 	LineAndColumn start;
 	LineAndColumn end;
+
+	void writeTo(scope ref Writer writer) {
+		writer ~= start;
+		writer ~= '-';
+		writer ~= end;
+	}
 }
 
 immutable struct UriLineAndColumn {
@@ -117,6 +126,12 @@ immutable struct LineAndColumn {
 		line0Indexed + 1;
 	uint column1Indexed() =>
 		column0Indexed + 1;
+
+	void writeTo(scope ref Writer writer) {
+		writer ~= line1Indexed;
+		writer ~= ':';
+		writer ~= column1Indexed;
+	}
 }
 
 immutable struct LineAndCharacterRange {
