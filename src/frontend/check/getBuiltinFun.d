@@ -22,9 +22,27 @@ import model.model :
 	FunBody,
 	FunDecl,
 	isArray,
+	isBool,
+	isChar8,
+	isChar32,
+	isFloat32,
+	isFloat64,
+	isInt8,
+	isInt16,
+	isInt32,
+	isInt64,
+	isJsAny,
 	isMutArray,
+	isNat8,
+	isNat16,
+	isNat32,
+	isNat64,
+	isPointerConst,
+	isPointerConstOrMut,
+	isPointerMut,
 	isString,
 	isSymbol,
+	isVoid,
 	JsFun,
 	paramsArray,
 	pointeeType,
@@ -650,57 +668,15 @@ FunBody inner(
 }
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
-	isNat64(a) || isString(a);
+	isNat64(a) || isString(a); // TODO: wait, this shouldbe float64, not nat64 --------------------------------------------------------
 
 bool isBuiltin(in Type a, BuiltinType b) =>
 	a.isA!(StructInst*) &&
 	a.as!(StructInst*).decl.body_.isA!BuiltinType &&
 	a.as!(StructInst*).decl.body_.as!BuiltinType == b;
 
-bool isBool(in Type a) =>
-	isBuiltin(a, BuiltinType.bool_);
-
-bool isChar8(in Type a) =>
-	isBuiltin(a, BuiltinType.char8);
-
-bool isChar32(in Type a) =>
-	isBuiltin(a, BuiltinType.char32);
-
-bool isInt8(in Type a) =>
-	isBuiltin(a, BuiltinType.int8);
-
-bool isInt16(in Type a) =>
-	isBuiltin(a, BuiltinType.int16);
-
-bool isInt32(in Type a) =>
-	isBuiltin(a, BuiltinType.int32);
-
-bool isInt64(in Type a) =>
-	isBuiltin(a, BuiltinType.int64);
-
-bool isNat8(in Type a) =>
-	isBuiltin(a, BuiltinType.nat8);
-
-bool isNat16(in Type a) =>
-	isBuiltin(a, BuiltinType.nat16);
-
-bool isNat32(in Type a) =>
-	isBuiltin(a, BuiltinType.nat32);
-
-bool isNat64(in Type a) =>
-	isBuiltin(a, BuiltinType.nat64);
-
 bool isFloat32Or64(in Type a) =>
 	isFloat32(a) || isFloat64(a);
-
-bool isFloat32(in Type a) =>
-	isBuiltin(a, BuiltinType.float32);
-
-bool isFloat64(in Type a) =>
-	isBuiltin(a, BuiltinType.float64);
-
-bool isJsAny(in Type a) =>
-	isBuiltin(a, BuiltinType.jsAny);
 
 bool isChar8Array(in Type a) =>
 	isArray(a) && isChar8(arrayElementType(a));
@@ -709,13 +685,6 @@ bool isTypeParam0Array(in Type a) =>
 bool isJsAnyArray(in Type a) =>
 	isArray(a) && isJsAny(arrayElementType(a));
 
-bool isPointerConstOrMut(in Type a) =>
-	isBuiltin(a, BuiltinType.pointerConst) || isBuiltin(a, BuiltinType.pointerMut);
-bool isPointerConst(in Type a) =>
-	isBuiltin(a, BuiltinType.pointerConst); // TODO: this should be in model.d ----------------------------------------------------
-bool isPointerMut(in Type a) =>
-	isBuiltin(a, BuiltinType.pointerMut); // TODO: this should be in model.d ----------------------------------------------------
-
 bool isCString(in Type a) =>
 	isPointerConst(a) && isChar8(pointeeType(a));
 
@@ -723,9 +692,6 @@ bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
 bool isTypeParam1(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 1;
-
-bool isVoid(in Type a) => // TODO: this should be in model.d -----------------------------------------------------------------------
-	isBuiltin(a, BuiltinType.void_);
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
 	switch (name.value) {

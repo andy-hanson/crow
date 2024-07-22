@@ -69,7 +69,7 @@ import model.model :
 	IntegralType,
 	isArrayOrMutArray,
 	isLambdaType,
-	isNonFunctionPointer,
+	isPointerConstOrMut,
 	isString,
 	isSymbol,
 	isTuple,
@@ -382,7 +382,7 @@ private ConcreteType getConcreteType_forStructInst(
 						? ConcreteStruct.SpecialKind.catchPoint
 						: inst == ctx.commonTypes.fiber
 						? ConcreteStruct.SpecialKind.fiber
-						: isNonFunctionPointer(*decl)
+						: isPointerConstOrMut(*decl)
 						? ConcreteStruct.SpecialKind.pointer
 						: isTuple(ctx.commonTypes, decl)
 						? ConcreteStruct.SpecialKind.tuple

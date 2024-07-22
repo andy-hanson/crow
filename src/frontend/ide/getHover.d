@@ -639,7 +639,8 @@ void getExprHover(
 						case BuiltinExtern.linux:
 							return "The expression will be 'true' on Linux.";
 						case BuiltinExtern.native:
-							return "The expression will be 'false' if in a web browser or in node.js. (The interpreter is still considered native.)";
+							return "The expression will be 'false' if in a web browser or in node.js. " ~
+								"(The interpreter is still considered native.)";
 						case BuiltinExtern.posix:
 							return "The expression will be 'true' on Posix-compliant operating systems.";
 						case BuiltinExtern.pthread:

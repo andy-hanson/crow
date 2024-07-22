@@ -150,12 +150,42 @@ bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
 Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
 
+bool isBool(in Type a) =>
+	isBuiltinType(a, BuiltinType.bool_);
+bool isChar8(in Type a) =>
+	isBuiltinType(a, BuiltinType.char8);
+bool isChar32(in Type a) =>
+	isBuiltinType(a, BuiltinType.char32);
+bool isFloat32(in Type a) =>
+	isBuiltinType(a, BuiltinType.float32);
+bool isFloat64(in Type a) =>
+	isBuiltinType(a, BuiltinType.float64);
+bool isInt8(in Type a) =>
+	isBuiltinType(a, BuiltinType.int8);
+bool isInt16(in Type a) =>
+	isBuiltinType(a, BuiltinType.int16);
+bool isInt32(in Type a) =>
+	isBuiltinType(a, BuiltinType.int32);
+bool isInt64(in Type a) =>
+	isBuiltinType(a, BuiltinType.int64);
+bool isJsAny(in Type a) =>
+	isBuiltinType(a, BuiltinType.jsAny);
+bool isNat8(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat8);
+bool isNat16(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat16);
+bool isNat32(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat32);
+bool isNat64(in Type a) =>
+	isBuiltinType(a, BuiltinType.nat64);
 bool isString(in Type a) =>
 	isBuiltinType(a, BuiltinType.string_);
 bool isString(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.string_);
 bool isSymbol(in Type a) =>
 	isBuiltinType(a, BuiltinType.symbol);
+bool isVoid(in Type a) =>
+	isBuiltinType(a, BuiltinType.void_);
 
 private bool isBuiltinType(in Type a, BuiltinType builtin) =>
 	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);
@@ -178,17 +208,18 @@ bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
 bool isLambdaType(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.lambda);
 
-bool isNonFunctionPointer(in Type a) =>
+bool isPointerConstOrMut(in Type a) =>
+	isPointerConst(a) || isPointerMut(a);
+bool isPointerConstOrMut(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
-bool isNonFunctionPointer(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.pointerConst) || isBuiltinType(a, BuiltinType.pointerMut);
+bool isPointerConst(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerConst);
+bool isPointerMut(in Type a) =>
+	isBuiltinType(a, BuiltinType.pointerMut);
 Type pointeeType(in Type a) {
-	assert(isNonFunctionPointer(a));
+	assert(isPointerConstOrMut(a));
 	return only(a.as!(StructInst*).typeArgs);
 }
-
-bool isVoid(in Type a) =>
-	isBuiltinType(a, BuiltinType.void_);
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -2528,7 +2559,7 @@ immutable struct RecordFieldPointerExpr {
 	size_t fieldIndex;
 
 	StructDecl* recordDecl() scope =>
-		isNonFunctionPointer(target.type)
+		isPointerConstOrMut(target.type)
 			? pointeeType(target.type).as!(StructInst*).decl
 			: target.type.as!(StructInst*).decl;
 
