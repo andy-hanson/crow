@@ -12,9 +12,9 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
-import util.symbol : Extension, Symbol, symbol, symbolSize;
+import util.symbol : Symbol, symbol, symbolSize;
 import util.union_ : TaggedUnion, Union;
-import util.uri : addExtension, Path, pathLength, RelPath, relPathLength;
+import util.uri : Path, pathLength, RelPath, relPathLength;
 import util.util : roundUp, stringOfEnum;
 
 immutable struct NameAndRange {

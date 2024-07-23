@@ -1,0 +1,3 @@
+main void() foo extern
+	if extern bar
+		()

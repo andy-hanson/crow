@@ -160,8 +160,8 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 }
 
 bool bodyIsInlined(in FunDecl a) =>
-	!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport) || (
-		a.body_.isA!BuiltinFun && !isInlinedBuiltinFun(a.body_.as!BuiltinFun));
+	(!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport)) ||
+	(a.body_.isA!BuiltinFun && !isInlinedBuiltinFun(a.body_.as!BuiltinFun));
 bool isInlinedBuiltinFun(in BuiltinFun a) =>
 	a.matchIn!bool(
 		(in BuiltinFun.AllTests) =>
@@ -404,12 +404,12 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			(FunBody.RecordFieldSet) {},
 			(FunBody.UnionMemberGet) {},
 			(FunBody.VarGet x) {
-				addDecl(res, from, AnyDecl(x.var));
+				cast(void) addDecl(res, from, AnyDecl(x.var));
 			},
 			(FunBody.VariantMemberGet) {},
 			(FunBody.VariantMethod) {},
 			(FunBody.VarSet x) {
-				addDecl(res, from, AnyDecl(x.var));
+				cast(void) addDecl(res, from, AnyDecl(x.var));
 			});
 	}
 }

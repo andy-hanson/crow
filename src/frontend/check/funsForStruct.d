@@ -305,7 +305,8 @@ FunDecl enumOrFlagsMembersFunction(ref CheckCtx ctx, ref CommonTypes commonTypes
 		enum_.decl,
 		name,
 		Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.array, [
-			Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.pair, [Type(commonTypes.symbol), Type(enum_)]))])),
+			Type(instantiateStructNeverDelay(ctx.instantiateCtx, commonTypes.pair, [
+				Type(commonTypes.symbol), Type(enum_)]))])),
 		Params.empty,
 		FunFlags.generatedBare,
 		FunBody(EnumOrFlagsFunction.members));

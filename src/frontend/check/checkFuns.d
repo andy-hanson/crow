@@ -10,7 +10,7 @@ import frontend.check.checkCtx :
 	checkNoTypeParams,
 	CommonModule,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkExpr : checkFunctionBody, checkTestBody;
+import frontend.check.checkExpr : checkExternNameOrBogus, checkFunctionBody, checkTestBody;
 import frontend.check.checkStructBodies : checkVariantMethodImpls, modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.maps :
@@ -39,6 +39,7 @@ import model.model :
 	Destructure,
 	emptySpecs,
 	Expr,
+	ExternName,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -82,6 +83,7 @@ import util.col.array :
 import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
 import util.col.hashTable : insertOrUpdate, mapAndMovePreservingKeys, MutHashTable;
+import util.col.map : hasKey;
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
@@ -137,7 +139,9 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 
 SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 	assert(modifier.keyword == ModifierKeyword.extern_);
-	Opt!SymbolSet arg = has(modifier.typeArg) ? tryGetExternLibraryNameFromTypeArg(force(modifier.typeArg)) : none!SymbolSet;
+	Opt!SymbolSet arg = has(modifier.typeArg)
+		? tryGetExternLibraryNameFromTypeArg(ctx, force(modifier.typeArg))
+		: none!SymbolSet;
 	if (has(arg)) {
 		// TODO: this should assert that it's a valid name too (just like we do at 'extern' expressions) ---------------------------------------------------------------\--
 		return force(arg);
@@ -147,15 +151,15 @@ SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier
 	}
 }
 
-Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(in TypeAst arg) {
-	if (arg.isA!NameAndRange)
-		return some(symbolSet(arg.as!NameAndRange.name));
-	else if (arg.isA!(TypeAst.Tuple*)) {
+Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(ref CheckCtx ctx, in TypeAst arg) {
+	if (arg.isA!NameAndRange) {
+		return some(symbolSet(checkExternNameOrBogus(ctx, arg.as!NameAndRange, emptySymbolSet)));
+	} else if (arg.isA!(TypeAst.Tuple*)) {
 		bool ok = true;
 		SymbolSet res = buildSymbolSet((scope ref SymbolSetBuilder out_) {
 			foreach (TypeAst member; arg.as!(TypeAst.Tuple*).members) {
 				if (member.isA!NameAndRange)
-					out_ ~= member.as!NameAndRange.name;
+					out_ ~= checkExternNameOrBogus(ctx, member.as!NameAndRange, emptySymbolSet);
 				else
 					ok = false;
 			}
@@ -199,7 +203,7 @@ FunDecl[] checkFunsInitial(
 					structsAndAliasesMap,
 					noDelayStructInsts);
 				bool hasBody = !funAst.body_.kind.isA!EmptyAst;
-				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
+				FunModifiers flagsAndSpecs = checkFunModifiers(
 					ctx, commonTypes, structsAndAliasesMap, specsMap,
 					funAst.typeParams, funAst.nameRange, hasBody, funAst.modifiers);
 				initMemory(fun, FunDecl(
@@ -318,7 +322,10 @@ FunBody checkExternBody(ref CheckCtx ctx, FunDecl* fun) {
 
 	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
 	if (!isEmpty(fun.specs)) {
-		Range range = mustFind!ModifierAst(fun.source.as!(FunDeclSource.Ast).ast.modifiers, (ref ModifierAst x) => x.isA!SpecUseAst).range;
+		Range range = mustFind!ModifierAst(
+			fun.source.as!(FunDeclSource.Ast).ast.modifiers,
+			(ref ModifierAst x) => x.isA!SpecUseAst,
+		).range;
 		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
 	}
 
@@ -334,7 +341,7 @@ FunBody checkExternBody(ref CheckCtx ctx, FunDecl* fun) {
 		(ref Params.Varargs x) {
 			addDiag(ctx, x.param.range, Diag(Diag.ExternFunVariadic()));
 		});
-	
+
 	Opt!Symbol single = fun.externs.asSingle;
 	if (has(single))
 		return FunBody(FunBody.Extern(force(single)));
@@ -369,14 +376,14 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 	asTemporaryArray(a)[0].name;
 
-immutable struct FunFlagsAndSpecs { // TODO: rename? ----------------------------------------------------------------------------------------------------------
+immutable struct FunModifiers {
 	FunFlags flags;
 	bool isBuiltin;
 	SymbolSet externs;
 	SmallArray!(immutable SpecInst*) specs;
 }
 
-FunFlagsAndSpecs checkFunModifiers(
+FunModifiers checkFunModifiers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
@@ -384,12 +391,12 @@ FunFlagsAndSpecs checkFunModifiers(
 	TypeParams typeParamsScope,
 	in Range range,
 	bool hasBody,
-	in ModifierAst[] asts,
+	in SmallArray!ModifierAst asts,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
 	Cell!SymbolSet externs;
 	SmallArray!(immutable SpecInst*) specs =
-		small!(immutable SpecInst*)(mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) => // OTDO: have mapOP return small?
+		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
 					if (x.keyword == ModifierKeyword.extern_) {
@@ -410,8 +417,8 @@ FunFlagsAndSpecs checkFunModifiers(
 				},
 				(in SpecUseAst x) =>
 					specFromAst(
-						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts))));
-	return FunFlagsAndSpecs(
+						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts)));
+	return FunModifiers(
 		checkFunFlags(ctx, range, allFlags, isExternBody: !hasBody && !cellGet(externs).isEmpty, isTest: false),
 		(allFlags & CollectedFunFlags.builtin) != 0,
 		cellGet(externs), specs);
@@ -430,7 +437,8 @@ FunFlagsAndSpecs checkFunModifiers(
 		if (ast.body_.kind.isA!EmptyAst)
 			addDiag(ctx, ast.range, Diag(Diag.TestMissingBody()));
 		Expr body_ = checkTestBody(
-			ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), modifiers.flags, modifiers.externs, &ast.body_);
+			ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap,
+			TypeContainer(out_), modifiers.flags, modifiers.externs, &ast.body_);
 		return Test(ast, ctx.curUri, modifiers.flags, modifiers.externs, body_);
 	}));
 
@@ -449,7 +457,7 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 					modifierTypeArgInvalid(ctx, x);
 					allFlags |= flag;
 				} else if (x.keyword == ModifierKeyword.extern_) {
-					if (cellGet(externs).isEmpty) // TODO: dup code ..............................................................................
+					if (cellGet(externs).isEmpty)
 						cellSet(externs, getExternLibraryName(ctx, x));
 					else
 						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
@@ -460,7 +468,9 @@ TestModifiers checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.test)));
 			});
 	}
-	return TestModifiers(checkFunFlags(ctx, ast.keywordRange, allFlags, isExternBody: false, isTest: true), cellGet(externs));
+	return TestModifiers(
+		checkFunFlags(ctx, ast.keywordRange, allFlags, isExternBody: false, isTest: true),
+		cellGet(externs));
 }
 
 bool isAllowedTestFlag(CollectedFunFlags flag) {
@@ -478,12 +488,11 @@ enum CollectedFunFlags {
 	none = 0,
 	bare = 1,
 	builtin = 0b10,
-	// extern_ = 0b100, // TODO: ADJUST OTHER FLAGS DOWN... ------------------------------------------------------------------------------------------------
-	forceCtx = 0b1000,
-	pure_ = 0b10000,
-	summon = 0b100000,
-	trusted = 0b1000000,
-	unsafe = 0b10000000,
+	forceCtx = 0b100,
+	pure_ = 0b1000,
+	summon = 0b1_0000,
+	trusted = 0b10_0000,
+	unsafe = 0b100_0000,
 }
 
 CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
@@ -551,19 +560,7 @@ void checkFunsWithAsts(
 			fun.body_ = funAst.body_.kind.isA!EmptyAst
 				? checkAutoFun(ctx, specsMap, funsMap, fun)
 				: FunBody(checkFunctionBody(
-					ctx,
-					structsAndAliasesMap,
-					commonTypes,
-					specsMap,
-					funsMap,
-					TypeContainer(fun),
-					fun.returnType,
-					fun.typeParams,
-					paramsArray(fun.params),
-					fun.specs,
-					fun.flags,
-					fun.externs, // TODO: just pass 'fun' in as a param! --------------------------------------------------------
-					&funAst.body_));
+					ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, fun, &funAst.body_));
 	});
 }
 

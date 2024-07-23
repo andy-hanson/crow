@@ -5,7 +5,7 @@ module util.integralValues;
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.alloc.stackAlloc : withExactStackArray, withMapToStackArray, withStackArray;
 import util.comparison : compareUlong, Comparison;
-import util.col.array : arraysEqual, arraysIdentical, copyArray, every, fold, isEmpty, only, small, SmallArray;
+import util.col.array : arraysEqual, arraysIdentical, copyArray, fold, isEmpty, only, small, SmallArray;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
 import util.col.mutSet : getOrAddLazyAlloc, MutSet;
 import util.col.sortUtil : assertSortedAndUnique, sortedArrayContains, sortedArrayIsSuperset, sortInPlace;
@@ -71,8 +71,8 @@ pure IntegralValue only(in IntegralValues a) =>
 		initMemory(&linear[i], IntegralValue(i));
 	// Make sure single and linear IntegralValues are in the map
 	foreach (size_t i; 0 .. linear.length) {
-		getOrAddIntegralValues(singleIntegralValue(IntegralValue(i)).values);
-		getOrAddIntegralValues(linear[0 .. i]);
+		cast(void) getOrAddIntegralValues(singleIntegralValue(IntegralValue(i)).values);
+		cast(void) getOrAddIntegralValues(linear[0 .. i]);
 	}
 }
 
@@ -172,5 +172,5 @@ pure IntegralValues add(IntegralValues a, IntegralValue value) {
 	return IntegralValues(res.values);
 }
 
-private pure Comparison compareIntegralValue(in IntegralValue a, in IntegralValue b) =>
+pure Comparison compareIntegralValue(in IntegralValue a, in IntegralValue b) =>
 	compareUlong(a.value, b.value);

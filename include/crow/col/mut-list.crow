@@ -319,7 +319,9 @@ Throws if `index >= a.size`.
 ###
 remove-unordered-at[t] t(a t mut[], index nat64) bare
 	res = a[index]
-	a[index] := a.pop!
+	replacement = a.pop!
+	unless index == a.size
+		a[index] := replacement
 	res
 
 uninitialized-mut-list[t] t mut[](size nat64) unsafe, native extern

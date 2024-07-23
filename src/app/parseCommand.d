@@ -567,7 +567,6 @@ Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags d
 		}
 	} else {
 		FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, arg);
-		Extension extension = getExtension(path);
 		Opt!(SingleBuildOutput.Kind) kind = buildKindFromExtension(getExtension(path), os);
 		if (has(kind))
 			return some(SingleBuildOutput(force(kind), path));

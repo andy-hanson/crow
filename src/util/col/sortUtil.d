@@ -2,9 +2,8 @@ module util.col.sortUtil;
 
 @safe @nogc pure nothrow:
 
-import std.range : iota;
 import util.alloc.alloc : Alloc;
-import util.col.array : contains, every, insert, isEmpty, map;
+import util.col.array : contains, every, isEmpty, map;
 import util.comparison : Comparer, Comparison;
 import util.memory : overwriteMemory;
 

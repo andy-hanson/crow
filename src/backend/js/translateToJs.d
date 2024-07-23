@@ -92,7 +92,7 @@ import backend.js.jsAst :
 import backend.js.writeJsAst : writeJsAst;
 import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted;
 import frontend.storage : FileContentGetters;
-import model.ast : addExtension, ImportOrExportAstKind, PathOrRelPath;
+import model.ast : ImportOrExportAstKind, PathOrRelPath;
 import model.constant : asBool, asInt64, asNat64, Constant;
 import model.model :
 	arrayElementType,
@@ -236,6 +236,7 @@ import util.symbolSet : SymbolSet, symbolSet;
 import util.unicode : mustUnicodeDecode;
 import util.union_ : TaggedUnion, Union;
 import util.uri :
+	addExtension,
 	alterExtension,
 	countComponents,
 	FilePath,
@@ -2177,8 +2178,6 @@ ExprResult translateCallJsFun(
 			return expr(JsExpr(JsName(ctx.isBrowser ? symbol!"window" : symbol!"global")));
 		case JsFun.less:
 			return binary(JsBinaryExpr.Kind.less);
-		case JsFun.null_:
-			return expr(genNull());
 		case JsFun.plus:
 			return binary(JsBinaryExpr.Kind.plus);
 		case JsFun.set:
@@ -2543,7 +2542,6 @@ ExprResult translateFinally(ref TranslateExprCtx ctx, ref FinallyExpr a, Type ty
 
 ExprResult translateTry(ref TranslateExprCtx ctx, ref TryExpr a, Type type, scope ExprPos pos) {
 	JsName exceptionName = JsName(symbol!"exception");
-	JsExpr exn = JsExpr(exceptionName);
 	return forceStatement(ctx, pos, genTryCatch(
 		ctx.alloc,
 		translateExprToBlockStatement(ctx, a.tried, type),

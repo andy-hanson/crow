@@ -28,7 +28,6 @@ import model.model :
 	LiteralStringLikeExpr,
 	LocalGetExpr,
 	LocalPointerExpr,
-	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,

@@ -176,8 +176,6 @@ void finishVariants(ref ConcretizeCtx ctx) {
 	}
 }
 
-private:
-
 SymbolSet allExterns(in Config mainConfig) =>
 	buildSymbolSet((scope ref SymbolSetBuilder out_) {
 		version (Windows)

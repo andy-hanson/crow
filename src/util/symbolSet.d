@@ -2,14 +2,13 @@ module util.symbolSet;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
-import util.col.array : append, arraysIdentical, emptySmallArray, every, fold, isEmpty, MutSmallArray, only, SmallArray;
+import util.col.array : fold, isEmpty, only;
 import util.conv : safeToUint;
 import util.integralValues :
 	emptyIntegralValues, IntegralValue, IntegralValues, mapToIntegralValues, only, singleIntegralValue;
 import util.opt : Opt, optIf;
-import util.symbol : compareSymbolsArbitrary, Symbol;
+import util.symbol : Symbol;
 
 immutable struct SymbolSet {
 	@safe @nogc pure nothrow:

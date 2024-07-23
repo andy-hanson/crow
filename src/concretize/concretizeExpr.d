@@ -1163,7 +1163,10 @@ ConcreteExpr concretizeAssertOrForbid(
 	ref AssertOrForbidExpr a,
 ) {
 	ConcreteExpr defaultThrown() =>
-		genError(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx.alloc, ctx.curUri, expr, a, ctx.concretizeCtx.fileContentGetters));
+		genError(
+			ctx.concretizeCtx,
+			range,
+			defaultAssertOrForbidMessage(ctx.alloc, ctx.curUri, expr, a, ctx.concretizeCtx.fileContentGetters));
 	ConcreteExpr throwNoDestructure() =>
 		genThrow(ctx.alloc, type, range, has(a.thrown)
 			? concretizeExpr(ctx, exceptionType(ctx.concretizeCtx), locals, *force(a.thrown))

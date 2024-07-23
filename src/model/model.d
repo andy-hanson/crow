@@ -48,7 +48,6 @@ import util.col.array :
 	small,
 	SmallArray,
 	sum;
-import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : existsInHashTable, HashTable, mustGet;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
@@ -62,7 +61,7 @@ import util.symbol : enumOfSymbol, Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : RelPath, Uri;
-import util.util : enumConvertOrAssert, max, min, stringOfEnum, todo;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum;
 import versionInfo : VersionFun;
 
 alias Purity = immutable Purity_;
@@ -911,7 +910,6 @@ enum JsFun {
 	jsAnyAsT,
 	jsGlobal,
 	less,
-	null_,
 	plus,
 	set,
 }

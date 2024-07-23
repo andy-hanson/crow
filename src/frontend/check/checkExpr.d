@@ -16,7 +16,7 @@ import frontend.check.checkCall.checkCall :
 	findFunctionForReturnAndParamTypes;
 import frontend.check.checkCall.checkCallSpecs :
 	checkSpecSingleSigIgnoreParents2, isPurityAlwaysCompatibleConsideringSpecs, isShared;
-import frontend.check.checkCtx : CheckCtx, CommonModule;
+import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule;
 import frontend.check.checkStructBodies : checkLiteralIntegral;
 import frontend.check.exprCtx :
 	addDiag2,
@@ -142,6 +142,7 @@ import model.model :
 	FinallyExpr,
 	FloatType,
 	FunBody,
+	FunDecl,
 	FunFlags,
 	FunInst,
 	FunKind,
@@ -172,9 +173,10 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Mutability,
-	RecordFieldPointerExpr,
+	paramsArray,
 	Purity,
 	purityRange,
+	RecordFieldPointerExpr,
 	ReturnAndParamTypes,
 	SeqExpr,
 	SpecDecl,
@@ -237,13 +239,7 @@ Expr checkFunctionBody(
 	in CommonTypes commonTypes,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
-	TypeContainer typeContainer,
-	Type returnType,
-	TypeParams typeParams,
-	Destructure[] params,
-	in Specs specs,
-	in FunFlags flags,
-	SymbolSet funExterns,
+	FunDecl* fun,
 	ExprAst* ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
@@ -252,15 +248,15 @@ Expr checkFunctionBody(
 		specsMap,
 		funsMap,
 		ptrTrustMe(commonTypes),
-		typeContainer,
-		specs,
-		typeParams,
-		flags,
-		Cell!SymbolSet(funExterns));
+		TypeContainer(fun),
+		fun.specs,
+		fun.typeParams,
+		fun.flags,
+		Cell!SymbolSet(fun.externs));
 	Expr res = checkWithParamDestructures(
-		castNonScope_ref(exprCtx), ast, params,
+		castNonScope_ref(exprCtx), ast, paramsArray(fun.params),
 		(ref LocalsInfo innerLocals) =>
-			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, returnType));
+			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, fun.returnType));
 	return res;
 }
 
@@ -288,6 +284,22 @@ Expr checkTestBody(
 		Cell!SymbolSet(externs));
 	LocalsInfo locals = LocalsInfo(0, noneMut!(LambdaInfo*), noneMut!(LocalNode*));
 	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
+}
+
+Symbol checkExternNameOrBogus(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
+	Opt!ExternName res = checkExternName(ctx, name, enclosingExterns);
+	return has(res) ? force(res).asSymbol : symbol!"bogus";
+}
+Opt!ExternName checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
+	ExternName res = ExternName(name.name);
+	if (res.isBuiltin || hasKey(ctx.config.extern_, res.asSymbol)) {
+		if (res.asSymbol in enclosingExterns)
+			addDiag(ctx, name.range, Diag(Diag.ExternRedundant(res)));
+		return some(res);
+	} else {
+		addDiag(ctx, name.range, Diag(Diag.ExternInvalidName(res.asSymbol)));
+		return none!ExternName;
+	}
 }
 
 Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expected expected) =>
@@ -423,7 +435,7 @@ Expr checkIf(
 	IfAst ast,
 	ref Expected expected,
 ) {
-	if ((isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && !ast.isElseOfParent)))
+	if (isThrow(ast.firstBranch) || (isThrow(ast.secondBranch) && !ast.isElseOfParent))
 		addDiag2(ctx, ast.firstKeywordRange, Diag(Diag.IfThrow()));
 	Condition condition = checkCondition(ctx, locals, source, ast.condition);
 	Opt!Destructure destructure = optDestructure(condition);
@@ -489,15 +501,10 @@ Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Trust
 Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.ExternIsUnsafe()));
-	ExternName name = ExternName(ast.name.name);
-	if (name.isBuiltin || hasKey(ctx.checkCtx.config.extern_, name.asSymbol)) {
-		if (name.asSymbol in ctx.externs)
-			addDiag2(ctx, ast.name.range, Diag(Diag.ExternRedundant(name))); // TODO: unit test -----------------------------------------
-		return check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(name)));
-	} else {
-		addDiag2(ctx, ast.name.range, Diag(Diag.ExternInvalidName(name.asSymbol)));
-		return bogus(expected, source);
-	}
+	Opt!ExternName name = checkExternName(ctx.checkCtx, ast.name, ctx.externs);
+	return has(name)
+		? check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(force(name))))
+		: bogus(expected, source);
 }
 
 Expr checkAssertOrForbid(

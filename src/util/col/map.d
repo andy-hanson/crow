@@ -26,7 +26,7 @@ immutable(MutMapValues!(K, V)) values(K, V)(ref Map!(K, V) a) =>
 size_t size(K, V)(in Map!(K, V) a) =>
 	.size(a.inner);
 
-bool hasKey(K, V)(in Map!(K, V) a, immutable K key) =>
+bool hasKey(K, V)(in Map!(K, V) a, immutable K key) => // TOOD: use 'in' operator -------------------------------------------------
 	.hasKey(a.inner, key);
 
 Map!(immutable K, immutable V) zipToMap(K, V, X, Y)(

@@ -6,7 +6,6 @@ import util.alloc.alloc : Alloc;
 import util.col.array : small, SmallArray;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
-import util.comparison : Comparer;
 import util.conv : safeToUint;
 
 struct ArrayBuilder(T) {

@@ -131,74 +131,6 @@ FunBody inner(
 		arity == 2 && kind != failBinaryLazy ? FunBody(BuiltinFun(kind)) : fail();
 
 	switch (name.value) {
-		case symbol!"as-js-any".value:
-			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
-				? FunBody(BuiltinFun(JsFun.asJsAny))
-				: fail();
-		// TODO: MOVE STUFF _----------------------------------------------------------------------------------------------------------
-		case symbol!"as-t".value:
-			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
-				? FunBody(BuiltinFun(JsFun.jsAnyAsT))
-				: fail();
-		case symbol!"js-global".value:
-			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
-		case symbol!"get".value:
-			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) ? FunBody(BuiltinFun(JsFun.get)) : fail();
-		case symbol!"set".value:
-			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isTypeParam0(p2)
-				? FunBody(BuiltinFun(JsFun.set))
-				: fail();
-		case symbol!"call".value:
-			return isJsAny(rt)
-				? FunBody(BuiltinFun(JsFun.call))
-				: fail();
-		case symbol!"call-new".value:
-			return isJsAny(rt)
-				? FunBody(BuiltinFun(JsFun.callNew))
-				: fail();
-		case symbol!"call-property".value:
-			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) /*&& isJsAny(commonTypes, p2)*/ // TODO: assert that all other args are jsAny
-				? FunBody(BuiltinFun(JsFun.callProperty))
-				: fail();
-		case symbol!"call-property-spread".value:
-			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0Array(p2)
-				? FunBody(BuiltinFun(JsFun.callPropertySpread))
-				: fail();
-		case symbol!"js-cast".value:
-			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
-				? FunBody(BuiltinFun(JsFun.cast_))
-				: fail();
-		case symbol!"js-eq-eq-eq".value:
-			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.eqEqEq))
-				: fail();
-		case symbol!"js-less".value:
-			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.less))
-				: fail();
-		case symbol!"js-plus".value:
-			return isTypeParam0(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.plus))
-				: fail();
-		case symbol!"c-string-of-symbol".value:
-			return unary(isCString(rt) && isSymbol(p0)
-				? BuiltinUnary.cStringOfSymbol
-				: failUnary);
-		case symbol!"symbol-of-c-string".value:
-			return unary(isSymbol(rt) && isCString(p0)
-				? BuiltinUnary.symbolOfCString
-				: failUnary);
-		// TODO: MOVE STUFF ABOVE ----------------------------------------------------------------------------------------------------------
-
-
-		case symbol!"array-size".value:
-			return arity == 1 && isNat64(rt) && isArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
-		case symbol!"mut-array-size".value:
-			return arity == 1 && isNat64(rt) && isMutArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
-		case symbol!"array-pointer".value:
-			return arity == 1 && isPointerConst(rt) && isArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
-		case symbol!"mut-array-pointer".value:
-			return arity == 1 && isPointerMut(rt) && isMutArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
 		case symbol!"+".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.addFloat32
@@ -321,10 +253,22 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
+		case symbol!"array-pointer".value:
+			return arity == 1 && isPointerConst(rt) && isArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"array-size".value:
+			return arity == 1 && isNat64(rt) && isArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
 		case symbol!"asin".value:
 			return unaryMath(BuiltinUnaryMath.asinFloat32, BuiltinUnaryMath.asinFloat64);
 		case symbol!"asinh".value:
 			return unaryMath(BuiltinUnaryMath.asinhFloat32, BuiltinUnaryMath.asinhFloat64);
+		case symbol!"as-js-any".value:
+			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
+				? FunBody(BuiltinFun(JsFun.asJsAny))
+				: fail();
+		case symbol!"as-t".value:
+			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.jsAnyAsT))
+				: fail();
 		case symbol!"atan".value:
 			return unaryMath(BuiltinUnaryMath.atanFloat32, BuiltinUnaryMath.atanFloat64);
 		case symbol!"atan2".value:
@@ -336,6 +280,22 @@ FunBody inner(
 		case symbol!"as-mut".value:
 		case symbol!"pointer-cast".value:
 			return FunBody(BuiltinFun(BuiltinFun.PointerCast()));
+		case symbol!"call".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.call))
+				: fail();
+		case symbol!"call-new".value:
+			return isJsAny(rt)
+				? FunBody(BuiltinFun(JsFun.callNew))
+				: fail();
+		case symbol!"call-property".value:
+			return isJsAny(rt) && arity >= 2 && isJsAny(p0) && isString(p1) // other args are type params
+				? FunBody(BuiltinFun(JsFun.callProperty))
+				: fail();
+		case symbol!"call-property-spread".value:
+			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0Array(p2)
+				? FunBody(BuiltinFun(JsFun.callPropertySpread))
+				: fail();
 		case symbol!"count-ones".value:
 			return unary(isNat64(p0)
 				? BuiltinUnary.countOnesNat64
@@ -344,8 +304,16 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.cosFloat32, BuiltinUnaryMath.cosFloat64);
 		case symbol!"cosh".value:
 			return unaryMath(BuiltinUnaryMath.coshFloat32, BuiltinUnaryMath.coshFloat64);
+		case symbol!"c-string-of-symbol".value:
+			return unary(isCString(rt) && isSymbol(p0)
+				? BuiltinUnary.cStringOfSymbol
+				: failUnary);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
+		case symbol!"get".value:
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1)
+				? FunBody(BuiltinFun(JsFun.get))
+				: fail();
 		case symbol!"infinity".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.infinity)));
 		case symbol!"interpreter-backtrace".value:
@@ -369,11 +337,35 @@ FunBody inner(
 				isBool(rt) && isFloat32(p0) ? BuiltinUnary.isNanFloat32 :
 				isBool(rt) && isFloat64(p0) ? BuiltinUnary.isNanFloat64 :
 				failUnary());
+		case symbol!"js-cast".value:
+			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
+				? FunBody(BuiltinFun(JsFun.cast_))
+				: fail();
+		case symbol!"js-eq-eq-eq".value:
+			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.eqEqEq))
+				: fail();
+		case symbol!"js-global".value:
+			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
+		case symbol!"js-less".value:
+			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.less))
+				: fail();
+		case symbol!"js-plus".value:
+			return isTypeParam0(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
+				? FunBody(BuiltinFun(JsFun.plus))
+				: fail();
+		case symbol!"jump-to-catch".value:
+			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"mark-root".value:
 			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
+		case symbol!"mut-array-pointer".value:
+			return arity == 1 && isPointerMut(rt) && isMutArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"mut-array-size".value:
+			return arity == 1 && isNat64(rt) && isMutArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
 		case symbol!"nan".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
 		case symbol!"new-array".value:
@@ -386,18 +378,18 @@ FunBody inner(
 				: fail();
 		case symbol!"not".value:
 			return isBool(rt) && isBool(p0) ? unary(BuiltinUnary.not) : fail();
-		case symbol!"jump-to-catch".value:
-			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"new-void".value:
 			return constant(isVoid(rt), constantZero);
-		case symbol!"null".value: // TODO: REMOVE (use zeroed) ------------------------------------------------------------------------------
-			return isJsAny(rt) && arity == 0
-				? FunBody(BuiltinFun(JsFun.null_))
-				: constant(isPointerConstOrMut(rt), constantZero);
+		case symbol!"null".value:
+			return constant(isPointerConstOrMut(rt), constantZero);
 		case symbol!"reference-equal".value:
 			return binary(BuiltinBinary.referenceEqual);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
+		case symbol!"set".value:
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isTypeParam0(p2)
+				? FunBody(BuiltinFun(JsFun.set))
+				: fail();
 		case symbol!"set-deref".value:
 			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
 		case symbol!"setup-catch".value:
@@ -417,6 +409,10 @@ FunBody inner(
 				: fail();
 		case symbol!"sqrt".value:
 			return unaryMath(BuiltinUnaryMath.sqrtFloat32, BuiltinUnaryMath.sqrtFloat64);
+		case symbol!"symbol-of-c-string".value:
+			return unary(isSymbol(rt) && isCString(p0)
+				? BuiltinUnary.symbolOfCString
+				: failUnary);
 		case symbol!"tan".value:
 			return unaryMath(BuiltinUnaryMath.tanFloat32, BuiltinUnaryMath.tanFloat64);
 		case symbol!"tanh".value:

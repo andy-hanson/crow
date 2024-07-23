@@ -468,7 +468,7 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 			writer ~= ' ';
 			writeStatement(writer, indent, else_);
 		} else
-			writeStatementIndented(writer, indent, else_);
+			cast(void) writeStatementIndented(writer, indent, else_);
 	}
 }
 pragma(inline, false)

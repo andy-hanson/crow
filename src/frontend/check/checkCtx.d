@@ -140,7 +140,10 @@ SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	}
 	return ctx.importsAndReExports.imports;
 }
-HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(ref CheckCtx ctx, ref ImportOrExport import_) {
+HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(
+	ref CheckCtx ctx,
+	ref ImportOrExport import_,
+) {
 	MutHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) res;
 	foreach (ref NameReferents nr; import_.module_.exports) {
 		if (containsUsed(nr, import_.importVisibility, ctx.used))

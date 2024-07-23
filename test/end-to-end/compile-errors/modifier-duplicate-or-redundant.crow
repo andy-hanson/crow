@@ -1,7 +1,7 @@
 main void()
 	()
 
-f void() bare, bare, libc extern, d extern
+f void() bare, bare, libc extern, native extern
 
 nat64 builtin data
 
@@ -29,6 +29,6 @@ rr record by-ref, by-ref
 
 vv record by-val, by-val
 
-g global(nat) libc extern, d extern
+g global(nat) libc extern, native extern
 
 data spec builtin, builtin

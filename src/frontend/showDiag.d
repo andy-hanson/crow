@@ -677,7 +677,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.ExternInvalidName x) {
 			writeName(writer, ctx, x.name);
-			writer ~= " is not an intrinsic extern name and is not configured in 'crow-config.json'";
+			writer ~= " is not a builtin extern name and is not configured in 'crow-config.json'";
 		},
 		(in Diag.ExternIsUnsafe x) {
 			writer ~= "An 'extern' expression can only appear in an 'unsafe' or 'trusted' context.";

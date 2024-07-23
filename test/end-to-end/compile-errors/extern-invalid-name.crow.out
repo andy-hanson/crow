@@ -1,0 +1,6 @@
+exit code: 1
+stderr:
+test/end-to-end/compile-errors/extern-invalid-name.crow 1:13-1:16 'foo' is not a builtin extern name and is not configured in 'crow-config.json'
+test/end-to-end/compile-errors/extern-invalid-name.crow 2:15-2:18 'bar' is not a builtin extern name and is not configured in 'crow-config.json'
+Uncaught exception: Reached compile error
+	at main
