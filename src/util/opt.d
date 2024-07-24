@@ -181,3 +181,8 @@ bool optEqual(T)(in ConstOpt!T a, in ConstOpt!T b) =>
 	has(a)
 		? has(b) && force(a) == force(b)
 		: !has(b);
+
+Opt!T flattenOption(T)(Opt!(Opt!T) a) =>
+	has(a)
+		? force(a)
+		: none!T;

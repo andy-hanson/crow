@@ -177,11 +177,12 @@ import util.conv : safeToUint;
 import util.integralValues : IntegralValue, IntegralValues, singleIntegralValue;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optIf, some;
+import util.opt : flattenOption, force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.union_ : Union;
+import util.uri : Uri;
 import util.util : castNonScope_ref, enumConvert, ptrTrustMe;
 import versionInfo : isVersion, VersionFun;
 
@@ -646,7 +647,7 @@ ExternLibraries getExternLibraries(
 					res ~= x;
 				});
 			});
-			libraries ~= ExternLibrary(library, configExtern[library], names);
+			libraries ~= ExternLibrary(library, flattenOption!Uri(configExtern[library]), names);
 		});
 	});
 

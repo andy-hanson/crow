@@ -1963,7 +1963,7 @@ Config configForDiag(ref Alloc alloc, Uri uri, Diag diag) =>
 	Config(some(uri), newArray(alloc, [Diagnostic(Range.empty, diag)]));
 
 alias ConfigImportUris = Map!(Symbol, Uri);
-alias ConfigExternUris = Map!(Symbol, Uri);
+alias ConfigExternUris = Map!(Symbol, Opt!Uri);
 
 immutable struct LocalSource {
 	immutable struct Generated { Symbol name; }

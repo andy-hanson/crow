@@ -138,10 +138,9 @@ SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier
 	Opt!SymbolSet arg = has(modifier.typeArg)
 		? tryGetExternLibraryNameFromTypeArg(ctx, force(modifier.typeArg))
 		: none!SymbolSet;
-	if (has(arg)) {
-		// TODO: this should assert that it's a valid name too (just like we do at 'extern' expressions) ---------------------------------------------------------------\--
+	if (has(arg))
 		return force(arg);
-	} else {
+	else {
 		addDiag(ctx, modifier.keywordRange, Diag(Diag.ExternMissingLibraryName()));
 		return symbolSet(symbol!"bogus");
 	}

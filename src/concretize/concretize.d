@@ -45,9 +45,11 @@ import util.col.map : keys;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
+import util.opt : has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
+import util.uri : Uri;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
@@ -187,6 +189,7 @@ SymbolSet allExterns(in Config mainConfig) =>
 				symbolOfEnum(BuiltinExtern.unwind),
 			];
 		out_ ~= [symbolOfEnum(BuiltinExtern.libc), symbolOfEnum(BuiltinExtern.native)];
-		foreach (Symbol name; keys(mainConfig.extern_))
-			out_ ~= name; // TODO: this should only be if there is a path set for it ---------------------------------------------------
+		foreach (Symbol name, Opt!Uri uri; mainConfig.extern_)
+			if (has(uri))
+				out_ ~= name;
 	});
