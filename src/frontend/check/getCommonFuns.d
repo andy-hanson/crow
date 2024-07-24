@@ -184,11 +184,6 @@ CommonFunsAndMain getCommonFuns(
 			symbol!"throw-impl",
 			voidType,
 			[param!"a"(Type(commonTypes.exception))]),
-		char8ArrayTrustAsString: getFun(
-			CommonModule.string_,
-			symbol!"trust-as-string",
-			stringType,
-			[param!"a"(char8ArrayType)]),
 		equalNat64: getFun(
 			CommonModule.numberLowLevel,
 			symbol!"==",

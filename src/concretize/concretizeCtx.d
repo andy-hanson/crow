@@ -166,7 +166,6 @@ struct ConcretizeCtx {
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
 	SymbolSet allExterns;
 	Late!(ConcreteFun*) createErrorFunction_;
-	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
 	Late!(ConcreteFun*) newChar8ListFunction_;
@@ -204,8 +203,6 @@ struct ConcretizeCtx {
 		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*program.commonTypes;
-	ConcreteFun* char8ArrayTrustAsString() return scope const => // TODO: Since this is now the identity function, we probably don't need it here?
-		lateGet(char8ArrayTrustAsString_);
 	ConcreteFun* equalNat64Function() return scope const =>
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>
@@ -358,9 +355,9 @@ private ConcreteType getConcreteType_forStructInst(
 	in TypeArgsScope typeArgsScope,
 ) {
 	if (isString(Type(inst)))
-		return char8ArrayType(ctx); // This makes 'string' *not* a distinct type from char8 array. So 'string' won't exist in the ConcreteModel
+		return char8ArrayType(ctx);
 	if (isSymbol(Type(inst)))
-		return char8ConstPointerType(ctx);	
+		return char8ConstPointerType(ctx);
 
 	return withConcreteTypes(ctx, inst.typeArgs, typeArgsScope, (scope ConcreteType[] typeArgs) {
 		StructDecl* decl = inst.decl;
@@ -905,7 +902,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.string_:
 			return TypeSize(16, 8);
 		case BuiltinType.lambda:
-			return TypeSize(16, 8); // TODO: I think this is no longer used? -----------------------------------------------------------------------
+			assert(false);
 		case BuiltinType.catchPoint:
 			if (version_.isInterpreted)
 				// Keep in sync with 'struct CatchPoint' in 'runBytecode.d'
@@ -921,6 +918,6 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 					case OS.windows:
 						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_msvc.c
 						return TypeSize(0x100, 16);
-				}			
+				}
 	}
 }

@@ -117,9 +117,7 @@ region conversion
 			out ~= x
 
 # Assumes its input is valid UTF-8 without validation.
-+trust-as-string string(a char8 array) builtin, bare, unsafe
-+trust-as-string string(a char8[]) unsafe
-	a.to::(char8 array) trust-as-string
+-trust-as-string string(a char8 array) builtin, bare, unsafe
 
 # Treats UTF-8 character codes as a string. O(n) due to validation.
 +to string(a char8[])

@@ -1724,7 +1724,6 @@ immutable struct CommonFuns {
 	FunInst* runFiber;
 	FunInst* rtMain;
 	FunInst* throwImpl;
-	FunInst* char8ArrayTrustAsString;
 	FunInst* equalNat64;
 	FunInst* lessNat64;
 	FunInst* rethrowCurrentException;

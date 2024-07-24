@@ -404,7 +404,7 @@ bool someSpecIncludingParents(in SpecInst inst, in bool delegate(in SpecInst) @s
 	exists(inst.parents, (in SpecInst* parent) =>
 		someSpecIncludingParents(*parent, cb));
 
-Purity purityOfBuiltinSpec(BuiltinSpec kind) { // TODO: replace BuiltinSpec with Purity? --------------------------------------
+Purity purityOfBuiltinSpec(BuiltinSpec kind) {
 	final switch (kind) {
 		case BuiltinSpec.data:
 			return Purity.data;
