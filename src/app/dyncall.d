@@ -96,7 +96,6 @@ LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteEr
 			case symbolOfEnum(BuiltinExtern.libc).value:
 			case symbolOfEnum(BuiltinExtern.linux).value:
 			case symbolOfEnum(BuiltinExtern.posix).value:
-			case symbol!"m".value: // TODO: I think this is no longer needed ----------------------------------------------------------
 				version (Windows) {
 					return loadLibraryFromName(cString!"ucrtbase.dll", writeError);
 				} else {
