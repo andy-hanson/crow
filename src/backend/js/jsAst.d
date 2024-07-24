@@ -5,12 +5,12 @@ module backend.js.jsAst;
 import backend.js.allUsed : AnyDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, newSmallArray, SmallArray;
-import util.col.map : KeyValuePair, Map;
+import util.col.map : KeyValuePair;
 import util.comparison : Comparison, compareOptions, compareOr, compareUint;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : none, Opt, some;
-import util.symbol : compareSymbolsAlphabetically, Symbol, symbol, symbolOfString;
+import util.symbol : compareSymbolsAlphabetically, Symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
 
@@ -222,10 +222,6 @@ immutable struct JsCallWithSpreadExpr {
 	JsExpr[] args;
 	JsExpr* spreadArg;
 }
-immutable struct JsInstanceofExpr {
-	JsExpr value;
-	JsExpr type;
-}
 immutable struct JsLiteralBool {
 	bool value;
 }
@@ -286,8 +282,6 @@ JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
 JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
 	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
-JsExpr genBitwiseAnd(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
-	genBinary(alloc, JsBinaryExpr.Kind.bitwiseAnd, arg0, arg1);
 JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements) =>
 	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>
@@ -378,7 +372,7 @@ JsExpr genThis() =>
 	JsExpr(JsThisExpr());
 JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
 	JsExpr(JsUnaryExpr(kind, allocate(alloc, arg)));
-JsExpr number0 = genNumber(0);
+private JsExpr number0 = genNumber(0);
 JsExpr genUndefined() =>
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
 JsStatement genWhile(ref Alloc alloc, Opt!JsName label, JsExpr condition, JsBlockStatement body_) =>

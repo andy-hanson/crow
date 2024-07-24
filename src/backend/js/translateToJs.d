@@ -11,7 +11,6 @@ import backend.js.jsAst :
 	genArrowFunction,
 	genAssign,
 	genBinary,
-	genBitwiseAnd,
 	genBlockStatement,
 	genBool,
 	genBreak,
@@ -54,10 +53,8 @@ import backend.js.jsAst :
 	genWhile,
 	genWhileTrue,
 	JsArrowFunction,
-	JsAssignStatement,
 	JsBinaryExpr,
 	JsBlockStatement,
-	JsCallExpr,
 	JsClassDecl,
 	JsClassGetter,
 	JsClassMember,
@@ -67,36 +64,25 @@ import backend.js.jsAst :
 	JsDecl,
 	JsDeclKind,
 	JsDestructure,
-	JsEmptyStatement,
 	JsExpr,
 	JsExprOrBlockStatement,
-	JsIfStatement,
 	JsImport,
-	JsLiteralBool,
-	JsLiteralNumber,
-	JsLiteralString,
 	JsModuleAst,
 	JsName,
 	JsObjectDestructure,
 	JsParams,
-	JsPropertyAccessExpr,
-	JsReturnStatement,
 	JsStatement,
 	JsSwitchStatement,
-	JsTernaryExpr,
-	JsThrowStatement,
 	JsTryFinallyStatement,
 	JsUnaryExpr,
-	JsVarDecl,
-	JsWhileStatement;
+	JsVarDecl;
 import backend.js.writeJsAst : writeJsAst;
-import frontend.showModel : ShowCtx, ShowTypeCtx, writeCalled, writeTypeUnquoted;
+import frontend.showModel : ShowCtx, ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
 import model.constant : asBool, asInt64, asNat64, Constant;
 import model.model :
 	arrayElementType,
-	asExtern,
 	AssertOrForbidExpr,
 	asTuple,
 	AutoFun,
@@ -118,19 +104,16 @@ import model.model :
 	ClosureSetExpr,
 	CommonTypes,
 	Condition,
-	Config,
 	countSigs,
 	defaultAssertOrForbidMessage,
 	Destructure,
 	eachImportOrReExport,
 	eachLocal,
 	eachTest,
-	emptySpecs,
 	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
 	Expr,
 	ExprAndType,
-	ExprKind,
 	ExternExpr,
 	FinallyExpr,
 	FunBody,
@@ -178,7 +161,6 @@ import model.model :
 	Signature,
 	SpecDecl,
 	SpecInst,
-	Specs,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -196,9 +178,7 @@ import model.model :
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
-	concatenate,
 	emptySmallArray,
 	exists,
 	foldRange,
@@ -215,31 +195,27 @@ import util.col.array :
 	newSmallArray,
 	only,
 	only2,
-	prepend,
 	small,
 	SmallArray;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, buildSmallArray, finish, sizeSoFar;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : KeyValuePair, Map, mustGet;
 import util.col.mutArr : MutArr, push;
-import util.col.mutMap : addOrChange, getOrAdd, hasKey, mapToArray, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
-import util.col.mutMultiMap : add, MutMultiMap;
+import util.col.mutMap : addOrChange, getOrAdd, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
 import util.col.set : Set;
 import util.col.sortUtil : sortInPlace;
 import util.col.tempSet : mustAdd, TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
-import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, optOrDefault, some, someMut;
-import util.symbol : compareSymbolsAlphabetically, Extension, stringOfSymbol, Symbol, symbol;
+import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, some, someMut;
+import util.symbol : compareSymbolsAlphabetically, Extension, Symbol, symbol;
 import util.symbolSet : SymbolSet, symbolSet;
 import util.unicode : mustUnicodeDecode;
 import util.union_ : TaggedUnion, Union;
 import util.uri :
-	addExtension,
 	alterExtension,
 	countComponents,
-	FilePath,
 	firstNComponents,
 	isAncestor,
 	parent,
@@ -252,7 +228,7 @@ import util.uri :
 	relativePath,
 	resolvePath,
 	Uri;
-import util.util : min, ptrTrustMe, stringOfEnum, todo, typeAs;
+import util.util : min, ptrTrustMe, todo, typeAs;
 import versionInfo : isVersion, JsTarget, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
@@ -294,7 +270,7 @@ Map!(Uri, Path) modulePaths(ref Alloc alloc, in ProgramWithMain program) {
 	Uri mainCommon = findCommonMainDirectory(main);
 	MutMap!(Uri, Path) res;
 	void recur(in Module x, Opt!Path fromPath, PathOrRelPath pr) @safe @nogc nothrow {
-		if (!hasKey(res, x.uri)) {
+		if (x.uri !in res) {
 			Path path = pr.match!Path(
 				(Path x) => x,
 				(RelPath x) => force(resolvePath(force(parent(force(fromPath))), x)));
@@ -326,11 +302,6 @@ Uri findCommonMainDirectory(Module* main) =>
 		});
 		return res;
 	});
-
-Opt!Path optPath(PathOrRelPath a) =>
-	a.match!(Opt!Path)(
-		(Path x) => some(x),
-		(RelPath _) => none!Path);
 
 void fillGlobalImportModules(scope ref TempSet!(Module*) res, Module* main) {
 	withTempSet!(void, Module*)(0x100, (scope ref TempSet!(Module*) seen) {
@@ -411,7 +382,7 @@ struct TranslateProgramCtx {
 }
 
 void doTranslateModule(ref TranslateProgramCtx ctx, Module* a) {
-	if (hasKey(ctx.done, a)) return;
+	if (a in ctx.done) return;
 	foreach (ImportOrExport x; a.imports)
 		doTranslateModule(ctx, x.modulePtr);
 	foreach (ImportOrExport x; a.reExports)
@@ -1316,8 +1287,6 @@ JsStatement[] translateToStatements(ref Alloc alloc, in StatementsCb cb) {
 	return statements;
 }
 
-JsStatement translateExprToStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
-	translateToStatement(ctx.alloc, (scope ExprPos pos) => translateExpr(ctx, a, type, pos));
 JsBlockStatement translateExprToBlockStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
 	translateToBlockStatement(ctx.alloc, (scope ExprPos pos) => translateExpr(ctx, a, type, pos));
 JsExprOrBlockStatement translateExprToExprOrBlockStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
@@ -1483,8 +1452,6 @@ ExprResult translateAssertOrForbid(ref TranslateExprCtx ctx, ref Expr expr, ref 
 }
 
 ExprResult translateCall(ref TranslateExprCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) {
-	import model.diag : TypeContainer, TypeWithContainer;
-	import util.writer : debugLogWithWriter, Writer;
 	assert(type == a.called.returnType);
 	return isInlined(a.called)
 		? translateInlineCall(ctx, type, pos, a.called.as!(FunInst*).decl.body_, a.called.as!(FunInst*).paramTypes, a.args.length, (size_t argIndex) =>
@@ -2310,11 +2277,6 @@ JsExpr translateConstant(ref TranslateModuleCtx ctx, in Constant value, in Type 
 			case BuiltinType.void_:
 				return genUndefined();
 			default:
-				import util.writer : debugLogWithWriter, Writer; // ---------------------------------------------------------------------------------------
-				debugLogWithWriter((scope ref Writer writer) {
-					writer ~= "THE CONSTANT BUILTIN TYPE IS ";
-					writer ~= stringOfEnum(type.as!(StructInst*).decl.body_.as!BuiltinType);
-				});
 				assert(false);
 		}
 	}

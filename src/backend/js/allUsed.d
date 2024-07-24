@@ -36,7 +36,6 @@ import model.model :
 	FunDecl,
 	FunInst,
 	getCalledAtExpr,
-	getModuleUri,
 	IfExpr,
 	JsFun,
 	LiteralStringLikeExpr,
@@ -44,7 +43,6 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
-	Module,
 	paramsArray,
 	Program,
 	ProgramWithMain,
@@ -68,17 +66,17 @@ import model.model :
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.map : hasKey, Map, mustGet;
+import util.col.map : Map, mustGet;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
-import util.opt : force, has, none, Opt, optIf, some;
-import util.sourceRange : Range, UriAndRange;
+import util.opt : force, has, Opt, optIf, some;
+import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : TaggedUnion;
 import util.uri : Uri;
-import util.util : ptrTrustMe, todo;
+import util.util : ptrTrustMe;
 import versionInfo : isVersion, VersionInfo, VersionFun;
 
 immutable struct AnyDecl {
@@ -162,7 +160,7 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 bool bodyIsInlined(in FunDecl a) =>
 	(!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport)) ||
 	(a.body_.isA!BuiltinFun && !isInlinedBuiltinFun(a.body_.as!BuiltinFun));
-bool isInlinedBuiltinFun(in BuiltinFun a) =>
+private bool isInlinedBuiltinFun(in BuiltinFun a) =>
 	a.matchIn!bool(
 		(in BuiltinFun.AllTests) =>
 			false,

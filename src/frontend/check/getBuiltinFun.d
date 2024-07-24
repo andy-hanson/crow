@@ -678,8 +678,6 @@ bool isChar8Array(in Type a) =>
 	isArray(a) && isChar8(arrayElementType(a));
 bool isTypeParam0Array(in Type a) =>
 	isArray(a) && isTypeParam0(arrayElementType(a));
-bool isJsAnyArray(in Type a) =>
-	isArray(a) && isJsAny(arrayElementType(a));
 
 bool isCString(in Type a) =>
 	isPointerConst(a) && isChar8(pointeeType(a));

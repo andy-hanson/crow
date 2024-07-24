@@ -3,54 +3,8 @@ module frontend.ide.ideUtil;
 @safe @nogc pure nothrow:
 
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
-import model.model :
-	arrayElementType,
-	AssertOrForbidExpr,
-	BogusExpr,
-	CallExpr,
-	CallOptionExpr,
-	ClosureGetExpr,
-	ClosureSetExpr,
-	CommonTypes,
-	Condition,
-	Expr,
-	ExprAndType,
-	ExprRef,
-	ExternExpr,
-	FinallyExpr,
-	FunDecl,
-	FunDeclSource,
-	FunPointerExpr,
-	IfExpr,
-	LambdaExpr,
-	LetExpr,
-	LiteralExpr,
-	LiteralStringLikeExpr,
-	LocalGetExpr,
-	LocalPointerExpr,
-	LoopBreakExpr,
-	LoopContinueExpr,
-	LoopExpr,
-	LoopWhileOrUntilExpr,
-	MatchEnumExpr,
-	MatchIntegralExpr,
-	MatchStringLikeExpr,
-	MatchUnionExpr,
-	MatchVariantExpr,
-	RecordFieldPointerExpr,
-	SeqExpr,
-	SpecInst,
-	SpecDecl,
-	StructInst,
-	Test,
-	ThrowExpr,
-	TrustedExpr,
-	TryExpr,
-	TryLetExpr,
-	Type,
-	TypedExpr,
-	TypeParamIndex;
-import util.col.array : arrayOfSingle, count, first, firstPointer, firstZip, firstZipPointerFirst, isEmpty, only, only2;
+import model.model : FunDecl, FunDeclSource, SpecInst, SpecDecl, StructInst, Type, TypeParamIndex;
+import util.col.array : arrayOfSingle, count, firstZip, isEmpty, only, only2;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
 import util.util : ptrTrustMe;

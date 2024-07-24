@@ -554,14 +554,6 @@ T[] concatenate(T)(ref Alloc alloc, T[] a, T[] b) =>
 	return castImmutable(res);
 }
 
-@trusted T[] insert(T)(ref Alloc alloc, in T[] a, size_t index, T value) {
-	T[] res = allocateElements!T(alloc, a.length + 1);
-	copyToFrom!T(res[0 .. index], a[0 .. index]);
-	initMemory(&a[index], value);
-	copyToFrom!T(res[index + 1 .. $], a[index .. $]);
-	return res;
-}
-
 SmallArray!T append(T)(scope ref Alloc alloc, in T[] a, T b) =>
 	small!T(concatenateIn!T(alloc, a, [b]));
 

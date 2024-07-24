@@ -32,7 +32,6 @@ import model.model :
 	Signature,
 	SpecInst,
 	Specs,
-	StructBody,
 	StructInst,
 	Type,
 	TypeArgs;
@@ -48,7 +47,7 @@ import util.sourceRange : Range;
 import util.symbol : Symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : Union;
-import util.util : castNonScope_ref, todo;
+import util.util : castNonScope_ref;
 
 bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 	isPurityAlwaysCompatibleConsideringSpecs(funSpecs, type, Purity.shared_);
@@ -115,7 +114,7 @@ Called checkSpecSingleSigIgnoreParents2(
 			}
 		}));
 }
-CalledDecl toCalledDecl(Called a) =>
+private CalledDecl toCalledDecl(Called a) =>
 	a.match!CalledDecl(
 		(ref Called.Bogus x) =>
 			x.decl,

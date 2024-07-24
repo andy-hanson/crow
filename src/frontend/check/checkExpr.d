@@ -117,7 +117,6 @@ import model.model :
 	asExtern,
 	AssertOrForbidExpr,
 	BogusExpr,
-	BuiltinExtern,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
@@ -180,7 +179,6 @@ import model.model :
 	ReturnAndParamTypes,
 	SeqExpr,
 	SpecDecl,
-	Specs,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -193,7 +191,6 @@ import model.model :
 	toMutability,
 	Type,
 	TypedExpr,
-	TypeParams,
 	UnionMember,
 	VariableRef,
 	VariantAndMethodImpls;
@@ -218,8 +215,6 @@ import util.col.array :
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, newExactSizeArrayBuilder, smallFinish;
-import util.col.map : hasKey;
-import util.col.mutSet : mustAddToMutSet, mutSetMustDelete;
 import util.col.tempSet : TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.integralValues : IntegralValue;
@@ -227,11 +222,11 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, someMut, some;
 import util.sourceRange : Range;
 import util.string : smallString;
-import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol, symbolOfEnum;
+import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -290,9 +285,9 @@ Symbol checkExternNameOrBogus(ref CheckCtx ctx, NameAndRange name, SymbolSet enc
 	Opt!ExternName res = checkExternName(ctx, name, enclosingExterns);
 	return has(res) ? force(res).asSymbol : symbol!"bogus";
 }
-Opt!ExternName checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
+private Opt!ExternName checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
 	ExternName res = ExternName(name.name);
-	if (res.isBuiltin || hasKey(ctx.config.extern_, res.asSymbol)) {
+	if (res.isBuiltin || res.asSymbol in ctx.config.extern_) {
 		if (res.asSymbol in enclosingExterns)
 			addDiag(ctx, name.range, Diag(Diag.ExternRedundant(res)));
 		return some(res);

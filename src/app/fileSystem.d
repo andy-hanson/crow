@@ -52,20 +52,18 @@ version (Windows) {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
 	import core.sys.posix.sys.stat : mkdir, mode_t, lstat, pid_t, S_IFDIR, S_IFMT, S_IFREG, stat_t;
-	import core.sys.posix.unistd : getcwd, read, readlink, rmdir, sleep, unlink, write;
+	import core.sys.posix.unistd : getcwd, read, readlink, rmdir, unlink, write;
 }
 
 import backend.writeToC : PathAndArgs;
 import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
-import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
+import util.alloc.alloc : Alloc, allocateElements;
 import util.alloc.stackAlloc :
 	StackArrayBuilder, withBuildStackArrayImpure, withConcatImpure, withExactStackArrayImpure;
 import util.col.array : endPtr, exists, newArray, sum;
-import util.col.arrayBuilder : buildArray, Builder;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder, finish;
-import util.col.map : Map;
 import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : eachUntilError, ExitCode, ExitCodeOrSignal, okAnd, onError, Signal;
@@ -74,7 +72,6 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString, stringOfCString;
 import util.symbol : alterExtension, Extension, Symbol, symbol, symbolOfString;
 import util.unicode : FileContent;
-import util.union_ : TaggedUnion;
 import util.uri :
 	alterExtension,
 	alterExtensionWithHex,
@@ -82,7 +79,6 @@ import util.uri :
 	baseName,
 	concatFilePathAndPath,
 	countComponents,
-	cStringOfFilePath,
 	FilePath,
 	parent,
 	parseFilePath,
@@ -275,20 +271,6 @@ private ExitCode removeFileIfExists(FilePath path) =>
 			writeLastError(writer);
 		});
 	});
-
-/**
-This doesn't create the path, 'cb' should do that.
-But if it is a temp path, this deletes it after the callback finishes.
-*/
-ExitCodeOrSignal withPathOrTemp(
-	Opt!FilePath path,
-	Uri tempBasePath,
-	Extension extension,
-	in ExitCodeOrSignal delegate(FilePath) @safe @nogc nothrow cb,
-) =>
-	has(path)
-		? cb(force(path))
-		: withTempPath(tempBasePath, extension, cb);
 
 ExitCodeOrSignal withTempPath(
 	Uri tempBasePath,

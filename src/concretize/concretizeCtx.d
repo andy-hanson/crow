@@ -59,7 +59,6 @@ import model.model :
 	Destructure,
 	eachTest,
 	EnumOrFlagsFunction,
-	EnumOrFlagsMember,
 	Expr,
 	FunBody,
 	FunDecl,
@@ -74,10 +73,8 @@ import model.model :
 	isSymbol,
 	isTuple,
 	Local,
-	Module,
 	paramsArray,
 	Program,
-	ProgramWithMain,
 	Purity,
 	RecordField,
 	SpecInst,
@@ -100,8 +97,6 @@ import util.col.array :
 	isEmpty,
 	map,
 	mapPointers,
-	mapPointersWithIndex,
-	mapWithIndex,
 	mapZip,
 	maxBy,
 	newSmallArray,
@@ -276,7 +271,7 @@ ConcreteType char8Type(ref ConcretizeCtx a) =>
 ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
-ConcreteType char8ConstPointerType(ref ConcretizeCtx a) =>
+private ConcreteType char8ConstPointerType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ConstPointerType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8ConstPointer, emptySmallArray!ConcreteType));
 

@@ -4,7 +4,7 @@ module util.col.map;
 
 import util.alloc.alloc : Alloc;
 import util.col.array : zip;
-import util.col.mutMap : hasKey, mapToArray, moveToMap, mustAdd, mustGet, MutMap, MutMapValues, size, values;
+import util.col.mutMap : mapToArray, moveToMap, mustAdd, mustGet, MutMap, MutMapValues, size, values;
 public import util.col.mutMap : KeyValuePair;
 import util.opt : force, has, Opt;
 import util.util : ptrTrustMe;
@@ -17,6 +17,9 @@ immutable struct Map(K, V) {
 	@trusted Opt!V opIndex(in K key) scope =>
 		inner[key];
 
+	bool opBinaryRight(string op)(in K key) scope const if (op == "in") =>
+		key in inner;
+
 	int opApply(in int delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply(cb);
 }
@@ -25,9 +28,6 @@ immutable(MutMapValues!(K, V)) values(K, V)(ref Map!(K, V) a) =>
 
 size_t size(K, V)(in Map!(K, V) a) =>
 	.size(a.inner);
-
-bool hasKey(K, V)(in Map!(K, V) a, immutable K key) => // TOOD: use 'in' operator -------------------------------------------------
-	.hasKey(a.inner, key);
 
 Map!(immutable K, immutable V) zipToMap(K, V, X, Y)(
 	ref Alloc alloc,

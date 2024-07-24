@@ -29,7 +29,6 @@ import app.fileSystem :
 	runNodeJsProgram,
 	runProgram,
 	tryReadFile,
-	withPathOrTemp,
 	withTempPath,
 	writeFile,
 	writeFilesToDir,
@@ -66,7 +65,6 @@ import lib.server :
 	buildToJs,
 	buildToLowProgram,
 	DiagsAndResultJson,
-	DocumentResult,
 	filesState,
 	getProgramForMain,
 	getProgramForRoots,
@@ -89,18 +87,18 @@ import lib.server :
 	version_;
 import model.diag : ReadFileDiag;
 import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Program, ProgramWithMain;
-import model.lowModel : ExternLibraries, LowProgram;
+import model.lowModel : ExternLibraries;
 version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
-import util.col.array : find, isEmpty, newArray, prepend;
+import util.col.array : find, isEmpty, prepend;
 import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : eachUntilError, ExitCode, exitCodeCombine, ExitCodeOrSignal, okAnd, Signal;
 import util.json : Json, jsonToString, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
-import util.opt : force, has, none, MutOpt, Opt, optIf, optOrDefault, some, someMut;
+import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasureNoAlloc, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
@@ -109,10 +107,9 @@ import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
 import util.uri :
 	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
-import util.util : debugLog, todo;
+import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
-import versionInfo :
-	getOS, JsTarget, OS, versionInfoForInterpret, versionInfoForJIT, VersionInfo, VersionOptions, versionOptionsForJs;
+import versionInfo : getOS, JsTarget, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =

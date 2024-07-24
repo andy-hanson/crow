@@ -40,6 +40,9 @@ struct MutHashTable(T, K, alias getKey) {
 		return has(i) ? someMut!T(force(values[force(i)])) : noneMut!T;
 	}
 
+	bool opBinaryRight(string op)(in K key) scope const if (op == "in") =>
+		has(getIndex(this, key));
+
 	int opApply(in int delegate(ref immutable T) @safe @nogc pure nothrow cb) scope immutable {
 		foreach (ref immutable MutOpt!T value; values)
 			if (has(value)) {
@@ -91,9 +94,6 @@ bool isEmpty(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 
 size_t size(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	a.size_;
-
-bool hasKey(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) =>
-	has(getIndex(a, key));
 
 ref inout(T) mustGet(T, K, alias getKey)(ref inout MutHashTable!(T, K, getKey) a, in K key) =>
 	force(a.values[mustGetIndex(a, key)]);
@@ -337,14 +337,6 @@ bool existsInHashTable(T, K, alias getKey)(
 			return true;
 	return false;
 }
-
-K[] sortedKeys(T, K, alias getKey)(
-	ref Alloc alloc,
-	in HashTable!(T, K, getKey) a,
-	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
-) =>
-	withSortedKeys!(K[], T, K, getKey)(a, cbCompare, (in K[] x) =>
-		copyArray(alloc, x));
 
 Out withSortedKeys(Out, T, K, alias getKey)(
 	in HashTable!(T, K, getKey) a,

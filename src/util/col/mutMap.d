@@ -8,7 +8,6 @@ import util.col.hashTable :
 	getOrAdd,
 	getOrAddAndDidAdd,
 	hashTableMapToArray,
-	hasKey,
 	HashTable,
 	insertOrUpdate,
 	isEmpty,
@@ -42,6 +41,9 @@ struct MutMap(K, V) {
 		MutOpt!(KeyValuePair!(K, V)) res = inner[key];
 		return has(res) ? someMut!V(force(res).value) : noneMut!V;
 	}
+
+	bool opBinaryRight(string op)(in K key) scope const if (op == "in") =>
+		key in inner;
 
 	int opApply(in int delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb) scope immutable =>
 		inner.opApply((ref immutable KeyValuePair!(K, V) pair) =>
@@ -93,9 +95,6 @@ bool isEmpty(K, V)(in MutMap!(K, V) a) =>
 
 size_t size(K, V)(in MutMap!(K, V) a) =>
 	.size(a.inner);
-
-bool hasKey(K, V)(in MutMap!(K, V) a, in K key) =>
-	.hasKey(a.inner, key);
 
 ref inout(V) mustGet(K, V)(ref inout MutMap!(K, V) a, in K key) =>
 	.mustGet(a.inner, key).value;
@@ -200,19 +199,3 @@ private @trusted Out[] mapToArray(Out, K, V)(
 			(ref KeyValuePair!(K, VIn) x) => KeyValuePair!(K, VOut)(x.key, cb(x.value)));
 	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
 }
-
-@trusted Map!(KOut, VOut) mapToMap2(KOut, VOut, KIn, VIn)(
-	ref Alloc alloc,
-	in MutMap!(KIn, VIn) a,
-	in immutable(KeyValuePair!(KOut, VOut)) delegate(KIn, ref const VIn) @safe @nogc pure nothrow cb,
-) {
-	MutMap!(KOut, VOut) res;
-	foreach (const KIn key, ref const VIn value; a) {
-		KeyValuePair!(KOut, VOut) pair = cb(key, value);
-		mustAdd(alloc, res, pair.key, pair.value);
-	}
-	return moveToMap(alloc, res);
-}
-
-V[] valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
-	mapToArray!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);

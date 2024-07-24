@@ -7,7 +7,6 @@ import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes
 import concretize.concretizeCtx :
 	boolType,
 	char8Type,
-	char8ArrayType,
 	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
@@ -36,7 +35,6 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
-	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
 import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain;
@@ -45,7 +43,7 @@ import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
 import util.col.map : keys;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
-import util.col.mutMap : mustAdd, mustGet;
+import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Symbol, symbol, symbolOfEnum;

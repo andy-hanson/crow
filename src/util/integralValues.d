@@ -77,7 +77,7 @@ pure IntegralValue only(in IntegralValues a) =>
 }
 
 // This is different from IntegralValues so it can do 'opEquals' by content
-immutable struct CacheEntry {
+private immutable struct CacheEntry {
 	@safe @nogc pure nothrow:
 	SmallArray!IntegralValue values;
 

@@ -196,8 +196,11 @@ void writeFloatLiteral(scope ref Writer writer, double a, in string infinity, in
 	}
 }
 
-immutable struct DecimalAndExponent { ulong decimal; long exponent; }
-DecimalAndExponent toDecimalAndExponent(double a) {
+private immutable struct DecimalAndExponent {
+	ulong decimal;
+	long exponent;
+}
+private DecimalAndExponent toDecimalAndExponent(double a) {
 	assert(a > 0);
 	double x = a;
 	long exp = 0;
@@ -220,8 +223,7 @@ DecimalAndExponent toDecimalAndExponent(double a) {
 	}
 	return DecimalAndExponent(dec, exp);
 }
-
-bool isNearInt(double a) {
+private bool isNearInt(double a) {
 	double b = round(a);
 	double diff = abs(a - b);
 	double epsilon = 2.22e-16;
@@ -340,24 +342,6 @@ void writeWithSpaces(T)(scope ref Writer writer, in T[] a, in void delegate(in T
 
 void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, "\n", cb);
-}
-
-void writeWithCommasAndNewlines(T)(
-	scope ref Writer writer,
-	uint indent,
-	in T[] a,
-	in void delegate(in T) @safe @nogc pure nothrow cb,
-) {
-	bool first = true;
-	foreach (ref T x; a) {
-		if (first)
-			first = false;
-		else {
-			writer ~= ',';
-			writeNewline(writer, indent);
-		}
-		cb(x);
-	}
 }
 
 void writeWithSeparator(T)(

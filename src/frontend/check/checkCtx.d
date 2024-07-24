@@ -140,7 +140,7 @@ SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {
 	}
 	return ctx.importsAndReExports.imports;
 }
-HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(
+private HashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer) collectImported(
 	ref CheckCtx ctx,
 	ref ImportOrExport import_,
 ) {

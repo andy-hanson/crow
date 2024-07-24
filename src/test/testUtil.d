@@ -16,7 +16,7 @@ import util.col.array : arraysEqual, arrayOfRange, arraysCorrespond, endPtr, ind
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, CStringAndLength, stringOfCString;
-import util.symbol : Extension, Symbol;
+import util.symbol : Extension;
 import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
 import util.util : ptrTrustMe;

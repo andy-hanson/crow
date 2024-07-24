@@ -8,24 +8,21 @@ import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array : copyArray, findIndex, isEmpty, map, newArray, only;
 import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string :
 	CString,
 	cString,
-	cStringIsEmpty,
 	endsWith,
 	isDecimalDigit,
 	MutCString,
 	PrefixAndRest,
 	startsWith,
 	stringOfCString,
-	stringOfRange,
 	trySplit,
 	tryTakeChar;
 import util.symbol : Extension, symbol;
@@ -40,7 +37,7 @@ import util.uri :
 	toUri,
 	Uri,
 	uriIsFile;
-import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, todo, typeAs;
+import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer, writeWithCommasAndAnd;
 import versionInfo : OS, VersionOptions;
 

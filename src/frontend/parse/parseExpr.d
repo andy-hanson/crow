@@ -38,7 +38,6 @@ import frontend.parse.parseUtil :
 	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
-	takeName,
 	takeNameAndRange,
 	takeOrAddDiagExpectedToken,
 	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine,

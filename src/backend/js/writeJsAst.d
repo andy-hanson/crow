@@ -4,31 +4,6 @@ module backend.js.writeJsAst;
 
 import backend.js.allUsed : AnyDecl;
 import backend.js.jsAst :
-	genAssign,
-	genBool,
-	genCall,
-	genCallWithSpread,
-	genConst,
-	genEmptyStatement,
-	genIf,
-	genIn,
-	genInstanceof,
-	genIntegerSigned,
-	genIntegerUnsigned,
-	genLet,
-	genNew,
-	genNot,
-	genNumber,
-	genOr,
-	genPropertyAccess,
-	genReturn,
-	genString,
-	genSwitch,
-	genThis,
-	genThrow,
-	genTryCatch,
-	genVarDecl,
-	genWhile,
 	JsArrayExpr,
 	JsArrowFunction,
 	JsAssignStatement,
@@ -40,7 +15,6 @@ import backend.js.jsAst :
 	JsClassDecl,
 	JsClassGetter,
 	JsClassMember,
-	JsClassMemberKind,
 	JsClassMethod,
 	JsContinueStatement,
 	JsDecl,
@@ -83,16 +57,9 @@ import util.col.array : isEmpty, only;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
-import util.uri : Path, RelPath, Uri;
-import util.util : stringOfEnum, todo;
-import util.writer :
-	makeStringWithWriter,
-	writeFloatLiteral,
-	writeNewline,
-	writeQuotedString,
-	Writer,
-	writeWithCommas,
-	writeWithCommasAndNewlines;
+import util.uri : RelPath, Uri;
+import util.util : stringOfEnum;
+import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
 
 string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -371,15 +338,6 @@ void writeBlockStatement(scope ref Writer writer, uint indent, in JsBlockStateme
 	writer ~= '}';
 }
 
-void writeExprOrBlockStatement(scope ref Writer writer, uint indent, in JsExprOrBlockStatement a) {
-	a.matchIn!void(
-		(in JsExpr x) {
-			writeExpr(writer, indent + 1, x);
-		},
-		(in JsBlockStatement x) {
-			writeBlockStatement(writer, indent, x);
-		});
-}
 void writeExprOrBlockStatementIndented(scope ref Writer writer, uint indent, in JsExprOrBlockStatement a) {
 	a.matchIn!void(
 		(in JsExpr x) {

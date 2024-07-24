@@ -357,7 +357,7 @@ Opt!Path resolvePath(Path base, RelPath relPath) {
 Uri concatUriAndPath(Uri a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		Uri(descendentPath(a.path, components)));
-Path concatPaths(Path a, Path b) =>
+private Path concatPaths(Path a, Path b) =>
 	withComponents(b, (in Symbol[] components) =>
 		descendentPath(a, components));
 FilePath concatFilePathAndPath(FilePath a, Path b) =>
@@ -368,7 +368,7 @@ size_t countComponents(Uri a) =>
 	countComponents(a.path);
 size_t countComponents(Path a) =>
 	countComponentsRecur(0, a);
-size_t countComponentsRecur(size_t acc, Path a) {
+private size_t countComponentsRecur(size_t acc, Path a) {
 	Opt!Path parent = parent(a);
 	return has(parent) ? countComponentsRecur(acc + 1, force(parent)) : acc + 1;
 }

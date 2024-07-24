@@ -62,7 +62,7 @@ import util.col.hashTable : withSortedKeys;
 import util.conv : safeToUint;
 import util.opt : force, has, Opt;
 import util.sourceRange : PosKind;
-import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
+import util.symbol : compareSymbolsAlphabetically, Symbol;
 import util.uri : Uri;
 import util.util : stringOfEnum;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedChar, writeQuotedString, Writer, writeWithCommas;

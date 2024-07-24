@@ -39,7 +39,6 @@ import model.model :
 	Destructure,
 	emptySpecs,
 	Expr,
-	ExternName,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -49,7 +48,6 @@ import model.model :
 	Linkage,
 	linkageRange,
 	Params,
-	paramsArray,
 	RecordField,
 	SpecDecl,
 	Signature,
@@ -69,7 +67,6 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	allSame,
 	every,
-	first,
 	isEmpty,
 	map,
 	mapOp,
@@ -83,7 +80,6 @@ import util.col.array :
 import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
 import util.col.hashTable : insertOrUpdate, mapAndMovePreservingKeys, MutHashTable;
-import util.col.map : hasKey;
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
@@ -91,7 +87,7 @@ import util.string : CStringAndLength;
 import util.symbol : Symbol, symbol;
 import util.symbolSet : buildSymbolSet, emptySymbolSet, SymbolSet, symbolSet, SymbolSetBuilder;
 import util.unicode : unicodeValidate;
-import util.util : optEnumConvert, todo;
+import util.util : optEnumConvert;
 
 FunsAndMap checkFuns(
 	ref CheckCtx ctx,
@@ -151,6 +147,8 @@ SymbolSet getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier
 	}
 }
 
+private:
+
 Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(ref CheckCtx ctx, in TypeAst arg) {
 	if (arg.isA!NameAndRange) {
 		return some(symbolSet(checkExternNameOrBogus(ctx, arg.as!NameAndRange, emptySymbolSet)));
@@ -168,8 +166,6 @@ Opt!SymbolSet tryGetExternLibraryNameFromTypeArg(ref CheckCtx ctx, in TypeAst ar
 	} else
 		return none!SymbolSet;
 }
-
-private:
 
 FunDecl[] checkFunsInitial(
 	ref CheckCtx ctx,

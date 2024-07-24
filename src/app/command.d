@@ -4,9 +4,7 @@ module app.command;
 
 import frontend.lang : CCompileOptions, JitOptions;
 import lib.server : PrintKind;
-import util.opt : Opt;
 import util.string : CString;
-import util.symbol : Extension;
 import util.exitCode : ExitCode;
 import util.union_ : Union;
 import util.uri : FilePath, Uri;

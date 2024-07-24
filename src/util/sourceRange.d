@@ -92,7 +92,7 @@ immutable struct LineAndCharacter {
 	uint character;
 }
 
-immutable struct LineAndColumnRange {
+private immutable struct LineAndColumnRange {
 	@safe @nogc pure nothrow:
 
 	LineAndColumn start;

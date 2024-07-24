@@ -3,7 +3,7 @@ module lib.server;
 @safe @nogc nothrow: // not pure
 
 import backend.js.translateToJs : translateToJs, TranslateToJsResult;
-import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
+import backend.writeToC : writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import frontend.frontendCompile :
 	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
@@ -103,13 +103,13 @@ import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Module, Program, Pr
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
-import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, only;
+import util.col.array : concatenate, contains, map, mapOp, newArray;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : mustGet;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode, ExitCodeOrSignal, Signal;
 import util.integralValues : initIntegralValues;
-import util.json : field, Json, jsonNull, jsonObject;
+import util.json : field, Json, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
@@ -509,11 +509,6 @@ string showDiagnostics(
 	in Opt!(Uri[]) onlyForUris = none!(Uri[]),
 ) =>
 	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program, onlyForUris);
-
-immutable struct DocumentResult {
-	string document;
-	string diagnostics;
-}
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,

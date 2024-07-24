@@ -58,7 +58,6 @@ import concretize.generate :
 	genThrowStringKind,
 	genVoid,
 	unwrapOptionType;
-import model.ast : AssertOrForbidAst, ConditionAst, ExprAst;
 import model.concreteModel :
 	arrayElementType,
 	ConcreteExpr,
@@ -143,7 +142,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : withMapOrNoneToStackArray;
 import util.col.array :
-	concatenate,
 	isEmpty,
 	map,
 	mapWithFirst,
@@ -158,7 +156,6 @@ import util.col.array :
 	sizeEq,
 	small,
 	SmallArray;
-import util.col.map : hasKey;
 import util.col.mutArr : findIndexOrPush, MutArr, mutArrSize, push;
 import util.col.mutMap : mustGet;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -166,10 +163,10 @@ import util.integralValues : IntegralValue, IntegralValues, integralValuesRange,
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : Symbol, symbol, symbolOfString;
+import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope_ref, ptrTrustMe, todo;
+import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf, in Destructure[] params, ref Expr e) =>

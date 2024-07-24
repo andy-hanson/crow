@@ -3,7 +3,7 @@ module util.col.mutSet;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.hashTable : getOrAdd, hasKey, mayAdd, mayDelete, mustAdd, mustDelete, MutHashTable;
+import util.col.hashTable : getOrAdd, mayAdd, mayDelete, MutHashTable;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {
@@ -17,7 +17,7 @@ struct MutSet(T) {
 	}
 
 	bool opBinaryRight(string op)(in T x) scope const if (op == "in") =>
-		hasKey(inner, x);
+		x in inner;
 
 	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply(cb);
@@ -29,10 +29,6 @@ private ref T getKey(T)(ref T x) => x;
 
 bool mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) =>
 	mayAdd(alloc, a.inner, value);
-
-void mustAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
-	mustAdd(alloc, a.inner, value);
-}
 
 T getOrAddLazyAlloc(T)(
 	ref Alloc alloc,
@@ -49,8 +45,4 @@ T getOrAddLazyAlloc(T)(
 bool mutSetMayDelete(T)(scope ref MutSet!T a, T value) {
 	MutOpt!T deleted = mayDelete(a.inner, value);
 	return has(deleted);
-}
-
-void mutSetMustDelete(T)(scope ref MutSet!T a, T value) {
-	mustDelete(a.inner, value);
 }

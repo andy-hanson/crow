@@ -30,7 +30,6 @@ import frontend.check.inferringType :
 	nonInferring,
 	SingleInferringType,
 	tryGetInferred,
-	tryGetNonInferringType,
 	TypeAndContext,
 	TypeContext,
 	withExpectCandidates;
@@ -39,7 +38,6 @@ import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, tryUnpackOptionTy
 import model.ast : CallAst, CallNamedAst, DestructureAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag, TypeContainer;
 import model.model :
-	BuiltinSpec,
 	Called,
 	CalledDecl,
 	CalledSpecSig,

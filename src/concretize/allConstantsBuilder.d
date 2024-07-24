@@ -11,16 +11,15 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newSmallArray, only, small;
+import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, only, small;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, mapToArray, MutMap, size, values;
-import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : copyToCString, CString;
-import util.symbol : stringOfSymbol, Symbol, withStringOfSymbol;
+import util.symbol : stringOfSymbol, Symbol;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {

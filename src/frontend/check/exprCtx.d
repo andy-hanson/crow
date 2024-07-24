@@ -14,12 +14,11 @@ import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.enumMap : EnumMap;
-import util.col.mutSet : MutSet;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, rangeOfStartAndLength;
 import util.symbol : Symbol;
-import util.symbolSet : emptySymbolSet, SymbolSet;
+import util.symbolSet : SymbolSet;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:

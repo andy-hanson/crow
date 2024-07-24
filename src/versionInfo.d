@@ -59,8 +59,7 @@ VersionInfo versionInfoForBuildToJS(OS os, JsTarget target) {
 	}();
 	return VersionInfo(jsOs, versionOptionsForJs(), isInterpreted: false, isJit: false);
 }
-
-VersionOptions versionOptionsForJs() =>
+private VersionOptions versionOptionsForJs() =>
 	VersionOptions(isSingleThreaded: true, stackTraceEnabled: true);
 
 enum VersionFun {
