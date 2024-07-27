@@ -1850,7 +1850,7 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 			callMath(alloc, symbol!"sign", arg),
 			callMath(alloc, symbol!"round", callMath(alloc, symbol!"abs", arg)));
 
-	final switch (a) { // TODO: this seems to indicate that BuiltinUnaryMath should be a pair: (function, bits) --------------------------
+	final switch (a) {
 		case BuiltinUnaryMath.acosFloat32:
 			return f32(symbol!"acos");
 		case BuiltinUnaryMath.acoshFloat32:
@@ -1929,7 +1929,14 @@ JsExpr genAsNat32(ref Alloc alloc, JsExpr arg) =>
 JsExpr genAsNat64(ref Alloc alloc, JsExpr arg) =>
 	genAsNat(alloc, 64, arg);
 
-ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, BuiltinBinary a, JsExpr left, JsExpr right) {
+ExprResult translateBuiltinBinary(
+	ref TranslateExprCtx ctx,
+	Type type,
+	scope ExprPos pos,
+	BuiltinBinary a,
+	JsExpr left,
+	JsExpr right,
+) {
 	ExprResult expr(JsExpr value) =>
 		forceExpr(ctx.alloc, pos, type, value);
 	JsExpr binary(JsBinaryExpr.Kind kind) =>
@@ -2085,7 +2092,14 @@ ExprResult translateBuiltinBinary(ref TranslateExprCtx ctx, Type type, scope Exp
 			assert(false);
 	}
 }
-ExprResult translateBuiltinBinaryLazy(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, BuiltinBinaryLazy kind, JsExpr left, JsExpr right) {
+ExprResult translateBuiltinBinaryLazy(
+	ref TranslateExprCtx ctx,
+	Type type,
+	scope ExprPos pos,
+	BuiltinBinaryLazy kind,
+	JsExpr left,
+	JsExpr right,
+) {
 	final switch (kind) {
 		case BuiltinBinaryLazy.boolAnd:
 			return forceExpr(ctx.alloc, pos, type, genBinary(ctx.alloc, JsBinaryExpr.Kind.and, left, right));
@@ -2170,7 +2184,10 @@ ExprResult translateCallJsFun(
 			return binary(JsBinaryExpr.Kind.plus);
 		case JsFun.set:
 			assert(nArgs == 3);
-			return forceStatement(ctx.alloc, pos, genAssign(ctx.alloc, genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)), getArg(2)));
+			return forceStatement(ctx.alloc, pos, genAssign(
+				ctx.alloc,
+				genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)),
+				getArg(2)));
 	}
 }
 
@@ -2179,19 +2196,24 @@ ExprResult translateIf(ref TranslateExprCtx ctx, ref IfExpr a, Type type, scope 
 		ctx, type, pos, a.condition,
 		(scope ExprPos inner) => translateExpr(ctx, a.trueBranch, type, inner),
 		(scope ExprPos inner) => translateExpr(ctx, a.falseBranch, type, inner));
-
-ExprResult translateIfCb(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, in Condition condition, in TranslateCb cbTrueBranch, in TranslateCb cbFalseBranch) {
+ExprResult translateIfCb(
+	ref TranslateExprCtx ctx,
+	Type type,
+	scope ExprPos pos,
+	in Condition condition,
+	in TranslateCb cbTrueBranch,
+	in TranslateCb cbFalseBranch,
+) {
 	Opt!bool constant = tryEvalConstantBool(ctx.ctx.version_, ctx.ctx.allExterns, condition);
-	if (has(constant)) // TODO: TERNARY -----------------------------------------------------------------------------------------------
-		return (force(constant) ? cbTrueBranch : cbFalseBranch)(pos);
-	else if (pos.isA!(ExprPos.Expression) && condition.isA!(Expr*))
-		return ExprResult(genTernary(
+	return has(constant)
+		? (force(constant) ? cbTrueBranch : cbFalseBranch)(pos)
+		: pos.isA!(ExprPos.Expression) && condition.isA!(Expr*)
+		? ExprResult(genTernary(
 			ctx.alloc,
 			translateExprToExpr(ctx, *condition.as!(Expr*), Type(ctx.commonTypes.bool_)),
 			translateToExpr(cbTrueBranch),
-			translateToExpr(cbFalseBranch)));
-	else
-		return condition.match!ExprResult(
+			translateToExpr(cbFalseBranch)))
+		: condition.match!ExprResult(
 			(ref Expr cond) =>
 				forceStatement(ctx, pos, genIf(
 					ctx.alloc,
@@ -2201,7 +2223,14 @@ ExprResult translateIfCb(ref TranslateExprCtx ctx, Type type, scope ExprPos pos,
 			(ref Condition.UnpackOption x) =>
 				translateUnpackOption(ctx, type, pos, x, cbTrueBranch, cbFalseBranch));
 }
-ExprResult translateUnpackOption(ref TranslateExprCtx ctx, Type type, scope ExprPos pos, ref Condition.UnpackOption unpack, in TranslateCb cbTrueBranch, in TranslateCb cbFalseBranch) =>
+ExprResult translateUnpackOption(
+	ref TranslateExprCtx ctx,
+	Type type,
+	scope ExprPos pos,
+	ref Condition.UnpackOption unpack,
+	in TranslateCb cbTrueBranch,
+	in TranslateCb cbFalseBranch,
+) =>
 	/*
 	const option = <<option>>
 	if ('some' in option) {
@@ -2222,7 +2251,6 @@ ExprResult translateUnpackOption(ref TranslateExprCtx ctx, Type type, scope Expr
 						cbTrueBranch(inner3))),
 			translateToStatement(ctx.alloc, cbFalseBranch))));
 
-//TODO:MOVE --------------------------------------------------------------------------------------------------------------------------------
 JsExpr genOptionHas(ref Alloc alloc, JsExpr option) =>
 	genIn(alloc, symbol!"some", option);
 JsExpr genOptionForce(ref Alloc alloc, JsExpr option) =>
@@ -2336,13 +2364,21 @@ JsExpr genArrayToList(ref TranslateModuleCtx ctx, JsExpr array) =>
 JsExpr translateLocalGet(in Local* local) =>
 	JsExpr(localName(*local));
 
-ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUntilExpr a, Type type, scope ExprPos pos) =>
+ExprResult translateLoopWhileOrUntil(
+	ref TranslateExprCtx ctx,
+	ref LoopWhileOrUntilExpr a,
+	Type type,
+	scope ExprPos pos,
+) =>
 	a.condition.match!ExprResult(
 		(ref Expr cond) {
 			JsExpr condition = translateExprToExpr(ctx, cond, Type(ctx.commonTypes.bool_));
 			JsExpr condition2 = a.isUntil ? genNot(ctx.alloc, condition) : condition;
 			return forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement res, scope ExprPos inner) {
-				add(ctx.alloc, res, genWhile(ctx.alloc, none!JsName, condition2, translateExprToBlockStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
+				add(ctx.alloc, res, genWhile(
+					ctx.alloc,
+					condition2,
+					translateExprToBlockStatement(ctx, a.body_, Type(ctx.commonTypes.void_))));
 				return translateExpr(ctx, a.after, type, inner);
 			});
 		},
@@ -2361,13 +2397,19 @@ ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUn
 					*/
 					JsName option = tempName(ctx, symbol!"option");
 					add(ctx.alloc, outerOut, genLet(option));
-					JsBlockStatement body_ = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos bodyPos) {
-						add(ctx.alloc, out_, genAssign(ctx.alloc, option, translateExprToExpr(ctx, unpack.option)));
-						add(ctx.alloc, out_, genIf(ctx.alloc, genOptionHas(ctx.alloc, JsExpr(option)), genBreakNoLabel()));
-						return translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), bodyPos);
-					});
-					add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, none!JsName, body_));
-					return translateLetLike(ctx, unpack.destructure, genOptionForce(ctx.alloc, JsExpr(option)), a.after, type, outerPos);
+					JsBlockStatement body_ = translateToBlockStatement(
+						ctx.alloc,
+						(scope ref ArrayBuilder!JsStatement out_, scope ExprPos bodyPos) {
+							add(ctx.alloc, out_, genAssign(ctx.alloc, option, translateExprToExpr(ctx, unpack.option)));
+							add(ctx.alloc, out_, genIf(
+								ctx.alloc,
+								genOptionHas(ctx.alloc, JsExpr(option)),
+								genBreakNoLabel()));
+							return translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), bodyPos);
+						});
+					add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, body_));
+					return translateLetLike(
+						ctx, unpack.destructure, genOptionForce(ctx.alloc, JsExpr(option)), a.after, type, outerPos);
 				} else {
 					/*
 					while (true) {
@@ -2380,14 +2422,16 @@ ExprResult translateLoopWhileOrUntil(ref TranslateExprCtx ctx, ref LoopWhileOrUn
 					}
 					<<after>>
 					*/
-					JsBlockStatement body_ = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos bodyPos) =>
-						translateUnpackOption(
-							ctx, Type(ctx.commonTypes.void_), bodyPos, unpack,
-							(scope ExprPos thenPos) =>
-								translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), thenPos),
-							(scope ExprPos elsePos) =>
-								forceStatement(ctx, elsePos, genBreakNoLabel())));
-					add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, none!JsName, body_));
+					JsBlockStatement body_ = translateToBlockStatement(
+						ctx.alloc,
+						(scope ref ArrayBuilder!JsStatement out_, scope ExprPos bodyPos) =>
+							translateUnpackOption(
+								ctx, Type(ctx.commonTypes.void_), bodyPos, unpack,
+								(scope ExprPos thenPos) =>
+									translateExpr(ctx, a.body_, Type(ctx.commonTypes.void_), thenPos),
+								(scope ExprPos elsePos) =>
+									forceStatement(ctx, elsePos, genBreakNoLabel())));
+					add(ctx.alloc, outerOut, genWhileTrue(ctx.alloc, body_));
 					return translateExpr(ctx, a.after, type, outerPos);
 				}
 			}));
@@ -2412,7 +2456,12 @@ ExprResult translateMatchIntegral(ref TranslateExprCtx ctx, ref MatchIntegralExp
 				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateExprToSwitchBlockStatement(ctx, a.else_, type)));
 
-ExprResult translateMatchStringLike(ref TranslateExprCtx ctx, ref MatchStringLikeExpr a, Type type, scope ExprPos pos) =>
+ExprResult translateMatchStringLike(
+	ref TranslateExprCtx ctx,
+	ref MatchStringLikeExpr a,
+	Type type,
+	scope ExprPos pos,
+) =>
 	forceStatement(ctx, pos, genSwitch(
 		ctx.alloc,
 		translateExprToExpr(ctx, a.matched),
@@ -2441,10 +2490,12 @@ ExprResult translateMatchVariant(
 	Type type,
 	scope ExprPos pos,
 ) =>
-	translateMatchUnionOrVariant!(MatchVariantExpr.Case)(ctx, matched, cases, type, pos, else_, (ref MatchVariantExpr.Case case_) =>
-		MatchUnionOrVariantCase(
-			genInstanceof(ctx.alloc, JsExpr(matched), translateStructReference(ctx, case_.member.decl)),
-			JsExpr(matched)));
+	translateMatchUnionOrVariant!(MatchVariantExpr.Case)(
+		ctx, matched, cases, type, pos, else_,
+		(ref MatchVariantExpr.Case case_) =>
+			MatchUnionOrVariantCase(
+				genInstanceof(ctx.alloc, JsExpr(matched), translateStructReference(ctx, case_.member.decl)),
+				JsExpr(matched)));
 
 immutable struct MatchUnionOrVariantCase {
 	JsExpr isMatch;
@@ -2459,14 +2510,16 @@ ExprResult translateMatchUnionOrVariant(Case)(
 	JsBlockStatement default_,
 	in MatchUnionOrVariantCase delegate(ref Case) @safe @nogc pure nothrow cbCase,
 ) =>
-	forceStatement(ctx, pos, foldReverse!(JsStatement, Case)(JsStatement(default_), cases, (JsStatement else_, ref Case case_) {
-		MatchUnionOrVariantCase x = cbCase(case_);
-		return genIf(ctx.alloc,
-			x.isMatch,
-			translateToStatement(ctx.alloc, (scope ExprPos pos) =>
-				translateLetLike(ctx, case_.destructure, x.destructured, case_.then, type, pos)),
-			else_);
-	}));
+	forceStatement(
+		ctx, pos,
+		foldReverse!(JsStatement, Case)(JsStatement(default_), cases, (JsStatement else_, ref Case case_) {
+			MatchUnionOrVariantCase x = cbCase(case_);
+			return genIf(ctx.alloc,
+				x.isMatch,
+				translateToStatement(ctx.alloc, (scope ExprPos pos) =>
+					translateLetLike(ctx, case_.destructure, x.destructured, case_.then, type, pos)),
+				else_);
+		}));
 
 ExprResult withTemp(
 	ref TranslateExprCtx ctx,
@@ -2575,7 +2628,8 @@ ExprResult translateTryLet(ref TranslateExprCtx ctx, ref TryLetExpr a, Type type
 						genInstanceof(ctx.alloc, JsExpr(exceptionName),
 						translateStructReference(ctx, a.catch_.member.decl))));
 				add(ctx.alloc, catchOut, genIf(ctx.alloc, cond, genThrow(ctx.alloc, JsExpr(exceptionName))));
-				return translateLetLike(ctx, a.catch_.destructure, JsExpr(exceptionName), a.catch_.then, type, catchPos);
+				return translateLetLike(
+					ctx, a.catch_.destructure, JsExpr(exceptionName), a.catch_.then, type, catchPos);
 			});
 		add(ctx.alloc, out_, genTryCatch(ctx.alloc, tryBlock, exceptionName, catchBlock));
 		return ExprResult.done;

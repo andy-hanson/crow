@@ -388,7 +388,11 @@ JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
 private JsExpr number0 = genNumber(0);
 JsExpr genUndefined() =>
 	JsExpr(JsUnaryExpr(JsUnaryExpr.Kind.void_, &number0));
+JsStatement genWhile(ref Alloc alloc, JsExpr condition, JsBlockStatement body_) =>
+	genWhile(alloc, none!JsName, condition, body_);
 JsStatement genWhile(ref Alloc alloc, Opt!JsName label, JsExpr condition, JsBlockStatement body_) =>
 	JsStatement(JsWhileStatement(label, allocate(alloc, condition), body_));
+JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
+	genWhileTrue(alloc, none!JsName, body_);
 JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement body_) =>
 	genWhile(alloc, label, genBool(true), body_);
