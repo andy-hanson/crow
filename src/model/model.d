@@ -159,6 +159,12 @@ bool isFloat32(in Type a) =>
 	isBuiltinType(a, BuiltinType.float32);
 bool isFloat64(in Type a) =>
 	isBuiltinType(a, BuiltinType.float64);
+bool isFuture(in Type a) =>
+	isBuiltinType(a, BuiltinType.future);
+bool isFuture(in StructInst a) =>
+	isBuiltinType(a, BuiltinType.future);
+bool isFutureImpl(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.futureImpl;
 bool isInt8(in Type a) =>
 	isBuiltinType(a, BuiltinType.int8);
 bool isInt16(in Type a) =>
@@ -187,7 +193,9 @@ bool isVoid(in Type a) =>
 	isBuiltinType(a, BuiltinType.void_);
 
 private bool isBuiltinType(in Type a, BuiltinType builtin) =>
-	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*).decl, builtin);
+	a.isA!(StructInst*) && isBuiltinType(*a.as!(StructInst*), builtin);
+private bool isBuiltinType(in StructInst a, BuiltinType builtin) =>
+	isBuiltinType(*a.decl, builtin);
 private bool isBuiltinType(in StructDecl a, BuiltinType builtin) =>
 	a.body_.isA!BuiltinType && a.body_.as!BuiltinType == builtin;
 
@@ -491,6 +499,7 @@ enum BuiltinType {
 	float32,
 	float64,
 	funPointer,
+	future,
 	int8,
 	int16,
 	int32,
@@ -526,6 +535,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.catchPoint:
 		case BuiltinType.float32:
 		case BuiltinType.float64:
+		case BuiltinType.future:
 		case BuiltinType.funPointer:
 		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
@@ -906,6 +916,7 @@ static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
 enum JsFun {
 	asJsAny,
+	await,
 	call,
 	callNew,
 	callProperty,
@@ -962,6 +973,8 @@ enum BuiltinUnary {
 	arrayPointer, // works on mut-array too
 	arraySize, // works on mut-array too
 	asAnyPointer,
+	asFuture,
+	asFutureImpl,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
 	bitwiseNotNat32,
@@ -1768,6 +1781,7 @@ immutable struct CommonTypes {
 	StructInst* fiber;
 	StructInst* float32;
 	StructInst* float64;
+	StructDecl* futureImpl; // TODO: This doesn't need to be in CommonTypes. THen I can get it out of bootstrap..................
 	IntegralTypes integrals;
 	StructInst* string_;
 	StructInst* symbol;
@@ -1801,6 +1815,9 @@ immutable struct CommonTypes {
 
 	size_t maxTupleSize() scope =>
 		9;
+}
+immutable struct OtherTypes {
+	Map!(StructInst*, StructInst*) futureToFutureImpl;
 }
 
 immutable struct IntegralTypes {
@@ -1932,6 +1949,7 @@ immutable struct Program {
 	SmallArray!UriAndDiagnostic commonFunsDiagnostics;
 	CommonFuns commonFuns;
 	CommonTypes* commonTypes;
+	OtherTypes otherTypes;
 }
 Module* moduleOf(in Program program, Uri uri) => // TODO: rename? -------------------------------------------------------------------------
 	mustGet(program.allModules, uri);

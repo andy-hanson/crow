@@ -397,11 +397,15 @@ stack-pointer alias
 	marks bool mut*
 	memory-start nat64 mut*
 
-+future[t] record by-ref, force-shared
+# In a native build, this is 'future-impl'.
+# In a JS build, this is a 'Promise'.
++future[t] builtin
+
+# TODO: I think this can be outside of bootstrap now! Which means 'lock' too! -------------------------------------------------------------------------
+~future-impl[t] record by-ref, force-shared
 	lk mut lock
 	state mut t future-state
-
-future-state[t] union mut
+~future-state[t] union mut
 	# The future is not resolved and nothing is awaiting it yet.
 	empty
 	# The future is not resolved, and fibers are waiting on it.

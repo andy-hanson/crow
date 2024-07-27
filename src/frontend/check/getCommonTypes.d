@@ -67,6 +67,7 @@ CommonTypes* getCommonTypes(
 		fiber: nonTemplate(ctx, symbol!"fiber"),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),
+		futureImpl: getDecl(ctx, symbol!"future-impl", 1),
 		integrals: integrals,
 		string_: nonTemplate(ctx, symbol!"string"),
 		symbol: symbolType,

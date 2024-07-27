@@ -63,6 +63,7 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 +js-cast[out, in] out(a in) builtin, bare, unsafe, js extern
 
 region Operators
+~js-await[t] js-any(a t) builtin, bare, unsafe, js extern
 ~js-eq-eq-eq[t] bool(a t, b t) builtin, bare, unsafe, js extern
 ~js-less[t] bool(a t, b t) builtin, bare, unsafe, js extern
 ~js-plus[t] t(a t, b t) builtin, bare, unsafe, js extern

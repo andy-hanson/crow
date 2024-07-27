@@ -27,6 +27,8 @@ import model.model :
 	isChar32,
 	isFloat32,
 	isFloat64,
+	isFuture,
+	isFutureImpl,
 	isInt8,
 	isInt16,
 	isInt32,
@@ -261,6 +263,10 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.asinFloat32, BuiltinUnaryMath.asinFloat64);
 		case symbol!"asinh".value:
 			return unaryMath(BuiltinUnaryMath.asinhFloat32, BuiltinUnaryMath.asinhFloat64);
+		case symbol!"as-future".value:
+			return unary(isFuture(rt) && isFutureImpl(commonTypes, p0) ? BuiltinUnary.asFuture : failUnary);
+		case symbol!"as-future-impl".value:
+			return unary(isFutureImpl(commonTypes, rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
 		case symbol!"as-js-any".value:
 			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
 				? FunBody(BuiltinFun(JsFun.asJsAny))
@@ -337,6 +343,10 @@ FunBody inner(
 				isBool(rt) && isFloat32(p0) ? BuiltinUnary.isNanFloat32 :
 				isBool(rt) && isFloat64(p0) ? BuiltinUnary.isNanFloat64 :
 				failUnary());
+		case symbol!"js-await".value:
+			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
+				? FunBody(BuiltinFun(JsFun.await))
+				: fail();
 		case symbol!"js-cast".value:
 			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
 				? FunBody(BuiltinFun(JsFun.cast_))
@@ -587,7 +597,7 @@ FunBody inner(
 				: failBinary);
 		case symbol!"gc-safe-value".value:
 			return FunBody(BuiltinFun(BuiltinFun.GcSafeValue()));
-		case symbol!"as-any-mut-pointer".value:
+		case symbol!"as-any-mut-pointer".value: // TODO: alphabetize this better ------------------------------------------------------
 			return unary(BuiltinUnary.asAnyPointer);
 		case symbol!"global-init".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();

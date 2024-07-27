@@ -1670,6 +1670,8 @@ WriteExprResult writeSpecialUnary(
 		specialCallUnary(writer, indent, ctx, writeKind, type, a.arg, name);
 
 	final switch (a.kind) {
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.arraySize:
 		case BuiltinUnary.cStringOfSymbol:

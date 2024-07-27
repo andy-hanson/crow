@@ -276,7 +276,7 @@ immutable struct JsTernaryExpr {
 }
 immutable struct JsThisExpr {}
 immutable struct JsUnaryExpr {
-	enum Kind { bitwiseNot, not, typeof_, void_ }
+	enum Kind { await, bitwiseNot, not, typeof_, void_ }
 	Kind kind;
 	JsExpr* arg;
 }
@@ -293,6 +293,8 @@ JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
+JsExpr genAwait(ref Alloc alloc, JsExpr arg) =>
+	genUnary(alloc, JsUnaryExpr.Kind.await, arg);
 JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
 	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
 JsExpr genBitwiseAnd(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>

@@ -67,6 +67,7 @@ import model.model :
 	ImportFileContent,
 	IntegralType,
 	isArrayOrMutArray,
+	isFuture,
 	isLambdaType,
 	isPointerConstOrMut,
 	isString,
@@ -106,6 +107,7 @@ import util.col.array :
 	SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
+import util.col.map : mustGet;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAddAndDidAdd, mustAdd, MutMap, ValueAndDidAdd;
 import util.integralValues : IntegralValue;
@@ -354,6 +356,8 @@ private ConcreteType getConcreteType_forStructInst(
 	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
 ) {
+	if (isFuture(*inst))
+		return getConcreteType_forStructInst(ctx, mustGet(ctx.program.otherTypes.futureToFutureImpl, inst), typeArgsScope);
 	if (isString(Type(inst)))
 		return char8ArrayType(ctx);
 	if (isSymbol(Type(inst)))
@@ -895,14 +899,14 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.pointerMut:
 		case BuiltinType.symbol:
 			return TypeSize(8, 8);
-		case BuiltinType.jsAny:
+		case BuiltinType.future: // Replaced by 'future-impl'
+		case BuiltinType.jsAny: // JS builds don't use concretize
+		case BuiltinType.lambda: // Replaced by variants
 			assert(false);
 		case BuiltinType.array:
 		case BuiltinType.mutArray:
 		case BuiltinType.string_:
 			return TypeSize(16, 8);
-		case BuiltinType.lambda:
-			assert(false);
 		case BuiltinType.catchPoint:
 			if (version_.isInterpreted)
 				// Keep in sync with 'struct CatchPoint' in 'runBytecode.d'

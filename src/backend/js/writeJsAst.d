@@ -680,6 +680,8 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		(in JsUnaryExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
+					case JsUnaryExpr.Kind.await:
+						return "await ";
 					case JsUnaryExpr.Kind.bitwiseNot:
 						return "~";
 					case JsUnaryExpr.Kind.not:

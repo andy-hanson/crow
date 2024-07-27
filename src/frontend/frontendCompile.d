@@ -5,7 +5,7 @@ module frontend.frontendCompile;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.checkCtx : CommonModule, CommonUris;
 import frontend.check.getCommonFuns : CommonFunsAndMain, getCommonFuns;
-import frontend.check.instantiate : InstantiateCtx;
+import frontend.check.instantiate : getAllFutureImpls, InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
@@ -24,7 +24,7 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
-	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
+	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, OtherTypes, Program, ProgramWithMain;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
@@ -181,7 +181,8 @@ private Common makeProgramCommon(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
 		commonFunsDiagnostics: commonFuns.diagnostics,
 		commonFuns: commonFuns.commonFuns,
-		commonTypes: force(a.commonTypes));
+		commonTypes: force(a.commonTypes),
+		otherTypes: OtherTypes(getAllFutureImpls(alloc, ctx, force(a.commonTypes).futureImpl)));
 	return Common(program, commonFuns.mainFun);
 }
 

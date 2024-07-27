@@ -6,48 +6,47 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
-	./js: as-js-any, as-t, call, call-property, js-global
+	./js: as-js-any, as-t, call, call-property, js-await, js-global
 	./log: error, log
 	./number: nat64
 	./misc: shared, new, void
-	./pointer: any-mut-pointer, as-any-mut-pointer, mut-pointer, reference-from-pointer
-	./private/bootstrap: add-to-queue, await-future, fiber, lk, new, rejected, resolved, todo
-	./private/future-low-level: get-result, reject, resolve, try-add-awaiting-fiber, unresolved
+	./pointer: any-mut-pointer, as-any-mut-pointer, reference-from-pointer
+	./private/bootstrap: add-to-queue, await-future, fiber, new, todo
+	./private/future-low-level: as-future, as-future-impl, future-impl, get-result, reject, rejected, resolve, resolved, try-add-awaiting-fiber, unresolved
 	./private/runtime: add-new-fiber, get-global-ctx, yield-this-fiber
-	./private/thread-utils: init, lock, uninit
 	./result: result
 	./string: interpolate
 export
 	./private/bootstrap: future
 
-+await[t] t(a t future) trusted, native extern
-	match a await-result
-	as ok x
-		x
-	as error x
-		x rethrow
++await[t] t(a t future) trusted
+	if extern native
+		match a await-result
+		as ok x
+			x
+		as error x
+			x rethrow
+	elif extern js
+		a.js-await as-t
+	else
+		todo
 
 +await-result[t] (t, exception-and-backtrace) result(a t future) trusted, native extern
 	(a.as-any-mut-pointer, &add-awaiting-fiber-for-t@t).await-future yield-this-fiber
-	a get-result
+	a.as-future-impl get-result
 
 # Just yields the fiber temporarily. It may be restarted immediately.
 +yield-fiber void() trusted, native extern
 	add-to-queue yield-this-fiber
 
 add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe, native extern
-	typed t future = future reference-from-pointer
+	typed t future-impl = future reference-from-pointer
 	typed try-add-awaiting-fiber fiber
-
--lock[t] lock mut*(a t future) unsafe, native extern
-	&a.lk
 
 # Converts a value to a future resolved with that value.
 +new[t] t future(value t) trusted
 	if extern native
-		res t future = uninit, value.resolved
-		res.lock init
-		res
+		value.resolved as-future
 	elif extern js
 		"Promise".js-global call-property "resolved", value as-t
 	else
@@ -56,9 +55,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 # Future resolved with an exception.
 +rejected[t] t future(err exception-and-backtrace) trusted
 	if extern native
-		res t future = uninit, err.rejected
-		res.lock init
-		res
+		err.rejected as-future
 	elif extern js
 		"Promise".js-global call-property "rejected", err as-t
 	else
@@ -70,14 +67,14 @@ Run `f` in a new fiber with a new exclusion and return a future for its result.
 ###
 +with-block[t] t future(_ parallel, f t shared()) trusted
 	if extern native
-		res t future = unresolved
+		res t future-impl = unresolved
 		get-global-ctx add-new-fiber () =>
 			match (() => f[]) catch-all
 			as ok x
 				res resolve x
 			as error e
 				res reject e
-		res
+		res as-future
 	elif extern js
 		f.as-js-any.call as-t
 	else

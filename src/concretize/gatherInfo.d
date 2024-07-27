@@ -22,6 +22,7 @@ Set!(immutable ConcreteFun*) getYieldingFuns(
 		const CalledBy calledBy = buildCalledBy(tempAlloc, allConcreteFuns);
 
 		// There is just 1 intrinsically yielding function: 'switch-fiber'
+		// TODO: this could be faster, using commonFuns -----------------------------------------------------------------------
 		ConcreteFun* switchFiberSuspension =
 			mustFind!(immutable ConcreteFun*)(allConcreteFuns, (ref immutable ConcreteFun* x) => isSwitchFiber(*x));
 

@@ -11,6 +11,7 @@ import model.model :
 	combinePurityRange,
 	FunDecl,
 	FunInst,
+	isFuture,
 	Linkage,
 	LinkageRange,
 	linkageRange,
@@ -37,7 +38,9 @@ import util.alloc.stackAlloc : withMapToStackArray, withStackArray;
 import util.col.array : emptySmallArray, fold, map, small, SmallArray, sum;
 import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : ValueAndDidAdd;
+import util.col.map : Map;
 import util.col.mutArr : MutArrWithAlloc, push;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, keys, moveToMap, mustAdd, mustGet, MutMap;
 import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -186,7 +189,7 @@ StructInst* makeOptionType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type
 Type makeOptionIfNotAlready(InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
 	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
 
-bool isOptionType(in CommonTypes commonTypes, in Type a) =>
+bool isOptionType(in CommonTypes commonTypes, in Type a) => // TODO: this should be in model.d --------------------------------------
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
@@ -233,6 +236,16 @@ SpecInst* instantiateSpecInst(
 		specInst.typeArgs,
 		(ref Type x) => instantiateType(ctx, x, typeArgs, noDelayStructInsts),
 		(scope Type[] itsTypeArgs) => instantiateSpec(ctx, specInst.decl, small!Type(itsTypeArgs), delaySpecInsts));
+
+Map!(StructInst*, StructInst*) getAllFutureImpls(ref Alloc alloc, ref InstantiateCtx ctx, StructDecl* futureImpl) {
+	MutMap!(StructInst*, StructInst*) res;
+	foreach (StructInst* x; ctx.allInsts.structInsts)
+		if (isFuture(*x))
+			mustAdd(alloc, res, x, null);
+	foreach (ref const StructInst* key; keys(res))
+		mustGet(res, key) = instantiateStructNeverDelay(ctx, futureImpl, key.typeArgs);
+	return moveToMap(alloc, res);
+}
 
 private:
 

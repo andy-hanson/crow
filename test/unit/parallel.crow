@@ -1,5 +1,5 @@
 import
-	../../include/crow/private/future-low-level: is-completed, resolve, unresolved
+	../../include/crow/private/future-low-level: as-future, as-future-impl, future-impl, is-completed, resolve, unresolved
 
 dummy-parallel nat()
 	0
@@ -27,12 +27,12 @@ test
 	()
 
 test trusted, native extern # TODO: get working in JS -----------------------------------------------------------------------------------------------------------------
-	a nat future = unresolved
-	b nat future = unresolved
+	a nat future-impl = unresolved
+	b nat future-impl = unresolved
 	both (nat, nat) future = with : parallel
-		a.await, b.await
+		a.as-future.await, b.as-future.await
 	a resolve 1
-	forbid both is-completed
+	forbid both.as-future-impl is-completed
 	b resolve 2
 	both.await is (1, 2)
 	()

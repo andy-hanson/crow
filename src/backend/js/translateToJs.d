@@ -10,6 +10,7 @@ import backend.js.jsAst :
 	genArray,
 	genArrowFunction,
 	genAssign,
+	genAwait,
 	genBinary,
 	genBitwiseAnd,
 	genBitwiseNot,
@@ -989,12 +990,14 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 		});
 }
 Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsExpr get) {
+	Opt!JsExpr instanceof(Symbol expected) =>
+		some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, genGlobal(expected))));
 	Opt!JsExpr typeof_(string expected) =>
 		some(genNotEqEq(ctx.alloc, genTypeof(ctx.alloc, get), genString(expected)));
 	final switch (type) {
 		case BuiltinType.array:
 		case BuiltinType.mutArray:
-			return some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, genGlobal(symbol!"Array"))));
+			return instanceof(symbol!"Array");
 		case BuiltinType.bool_:
 			return typeof_("boolean");
 		case BuiltinType.catchPoint:
@@ -1017,6 +1020,8 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 			return typeof_("number");
 		case BuiltinType.funPointer:
 			return typeof_("function");
+		case BuiltinType.future:
+			return instanceof(symbol!"Promise");
 		case BuiltinType.jsAny:
 			return none!JsExpr;
 		case BuiltinType.lambda:
@@ -1762,6 +1767,8 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 	JsExpr Number = genGlobal(symbol!"Number");
 	JsExpr bitwiseNot() => genBitwiseNot(alloc, arg);
 	final switch (a) {
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.cStringOfSymbol:
@@ -2166,6 +2173,9 @@ ExprResult translateCallJsFun(
 		case JsFun.jsAnyAsT:
 			assert(nArgs == 1);
 			return expr(getArg(0));
+		case JsFun.await:
+			assert(nArgs == 1);
+			return expr(genAwait(ctx.alloc, getArg(0)));
 		case JsFun.call:
 			return expr(genCall(
 				allocate(ctx.alloc, getArg(0)),

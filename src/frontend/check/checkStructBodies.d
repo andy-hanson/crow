@@ -1055,6 +1055,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.lambda;
 		case symbol!"fun-pointer".value:
 			return BuiltinType.funPointer;
+		case symbol!"future".value:
+			return BuiltinType.future;
 		case symbol!"int8".value:
 			return BuiltinType.int8;
 		case symbol!"int16".value:

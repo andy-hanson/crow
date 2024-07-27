@@ -7,6 +7,7 @@ import model.model :
 	CalledSpecSig,
 	FunDecl,
 	FunInst,
+	isFuture,
 	LinkageRange,
 	Module,
 	PurityRange,
@@ -22,7 +23,8 @@ import util.alloc.alloc : Alloc, free;
 import util.col.array : arraysEqual, copyArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
-import util.col.mutMap : getOrAdd, getOrAddAndDidAdd;
+import util.col.map : Map;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, keys, moveToMap, mustAdd, mustGet, MutMap;
 import util.col.mutMaxSet : has, mayAdd, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutMultiMap : add, countKeys, countPairs, mayDeleteKey, mayDeletePair, MutMultiMap;
 import util.hash : HashCode, hashTaggedPointer, hashPointerAndTaggedPointers, hashPointerAndTaggedPointersX2;
@@ -36,7 +38,7 @@ struct AllInsts {
 	private:
 	Alloc* allocPtr;
 
-	MutHashTable!(StructInst*, StructArgs, getStructArgs) structInsts;
+	public MutHashTable!(StructInst*, StructArgs, getStructArgs) structInsts; // TODO: NOT PUBLIC ---------------------------
 	MutHashTable!(SpecInst*, SpecArgs, getSpecArgs) specInsts;
 	MutHashTable!(FunInst*, FunArgs, getFunArgs) funInsts;
 	MutMultiMap!(AnyDeclOrInst, AnyInst) referencedBy;

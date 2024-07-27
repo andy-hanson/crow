@@ -270,6 +270,8 @@ ExpectUnary unaryExpected(
 	return scope LowType argType,
 ) {
 	final switch (kind) {
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
 		case BuiltinUnary.arraySize:
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.cStringOfSymbol:

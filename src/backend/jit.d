@@ -1425,6 +1425,8 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 	final switch (a.kind) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.arraySize:
+		case BuiltinUnary.asFuture:
+		case BuiltinUnary.asFutureImpl:
 		case BuiltinUnary.cStringOfSymbol:
 		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toChar8ArrayFromString:
