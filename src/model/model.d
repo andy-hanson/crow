@@ -1742,6 +1742,7 @@ enum FunKind {
 
 immutable struct CommonFuns {
 	@safe @nogc pure nothrow:
+	FunDecl* await;
 	FunInst* curCatchPoint;
 	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
@@ -1781,6 +1782,7 @@ immutable struct CommonTypes {
 	StructInst* fiber;
 	StructInst* float32;
 	StructInst* float64;
+	StructDecl* future;
 	StructDecl* futureImpl; // TODO: This doesn't need to be in CommonTypes. THen I can get it out of bootstrap..................
 	IntegralTypes integrals;
 	StructInst* string_;

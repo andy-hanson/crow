@@ -115,6 +115,7 @@ CommonFunsAndMain getCommonFuns(
 
 	Type tList = instantiateType(commonTypes.list, [typeParam0]);
 	Type tArray = instantiateType(commonTypes.array, [typeParam0]);
+	Type tFuture = instantiateType(commonTypes.future, [typeParam0]);
 
 	Type rSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [typeParam0, typeParam1]);
 	Type rMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [typeParam0, typeParam1]);
@@ -137,6 +138,13 @@ CommonFunsAndMain getCommonFuns(
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
+		await: getFunDeclInner(
+			*modules[CommonModule.parallel],
+			symbol!"await",
+			singleTypeParams,
+			typeParam0,
+			[param!"a"(tFuture)],
+			countSpecs: 0),
 		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
 		setCurCatchPoint: getFun(
 			CommonModule.exceptionLowLevel, symbol!"set-cur-catch-point",

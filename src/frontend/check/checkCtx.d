@@ -68,6 +68,7 @@ enum CommonModule {
 	list,
 	misc,
 	numberLowLevel,
+	parallel,
 	std,
 	string_,
 	symbolLowLevel,

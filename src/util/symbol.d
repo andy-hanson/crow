@@ -537,6 +537,7 @@ immutable string[] specialSymbols = [
 	"mut-array-pointer",
 	"mut-array-size",
 	"number-low-level",
+	"parallel",
 	"parseDiagnostics",
 	"per-thread-init",
 	"pointer-cast-from-extern",
