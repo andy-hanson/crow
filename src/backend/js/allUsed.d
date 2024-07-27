@@ -301,22 +301,6 @@ void trackAllUsedInStructBody(ref AllUsedBuilder res, Uri from, in StructBody a)
 		(StructBody.Variant) {});
 }
 
-void trackAllUsedInSpec(ref AllUsedBuilder res, Uri from, SpecDecl* a) {
-	if (addDecl(res, from, AnyDecl(a))) {
-		trackAllUsedInSpecs(res, a.moduleUri, a.parents);
-		foreach (Signature x; a.sigs)
-			trackAllUsedInSignature(res, a.moduleUri, x);
-	}
-}
-void trackAllUsedInSignature(ref AllUsedBuilder res, Uri from, Signature a) {
-	trackAllUsedInType(res, from, a.returnType);
-	trackAllUsedInDestructures(res, from, a.params);
-}
-void trackAllUsedInSpecs(ref AllUsedBuilder res, Uri from, Specs a) {
-	foreach (SpecInst* x; a)
-		trackAllUsedInSpec(res, from, x.decl);
-}
-
 enum FunUse { regular, noInline }
 void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use) {
 	// An inlined function isn't considered 'used', but its type is
@@ -337,7 +321,6 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			}
 		}
 
-		trackAllUsedInSpecs(res, from, a.specs);
 		void usedReturnType(Uri where = from) {
 			trackAllUsedInType(res, where, a.returnType);
 		}

@@ -85,6 +85,22 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 		writer ~= '_';
 		writer ~= name.crowName;
 	} else {
+		writer ~= () {
+			final switch (name.kind) {
+				case JsName.Kind.none:
+					return "";
+				case JsName.Kind.function_:
+					return "f_";
+				case JsName.Kind.local:
+					return "l_";
+				case JsName.Kind.specSig:
+					return "s_";
+				case JsName.Kind.temp:
+					return "x_";
+				case JsName.Kind.type:
+					return "t_";
+			}
+		}();
 		foreach (dchar x; name.crowName) {
 			Opt!string out_ = mangleChar(x);
 			if (has(out_))

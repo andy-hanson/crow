@@ -506,7 +506,7 @@ BuildOptions parseBuildOptions(
 				if (!isEmpty(out_))
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
-					out_, some(parseBuildOut(alloc, cwd, os, diags, part));
+					out_ = parseBuildOut(alloc, cwd, os, diags, part);
 				break;
 			case "--optimize":
 				expectFlag(diags, part);

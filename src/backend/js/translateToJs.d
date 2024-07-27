@@ -21,6 +21,7 @@ import backend.js.jsAst :
 	genConst,
 	genEmptyStatement,
 	genEqEqEq,
+	genGlobal,
 	genIf,
 	genIife,
 	genIn,
@@ -69,6 +70,7 @@ import backend.js.jsAst :
 	JsImport,
 	JsModuleAst,
 	JsName,
+	jsNameNoPrefix,
 	JsObjectDestructure,
 	JsParams,
 	JsStatement,
@@ -424,9 +426,10 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 				// if (exit !== 0n) throw new Error("Exited with code " + exit)
 				return todo!(JsStatement[])("MAIN IN BROWSER"); // --------------------------------------------------------------------
 			} else {
+				// TODO: this needs to 'await' ----------------------------------------------------------------------------------------
 				// const exit = main(newList(process.argv.slice(1)))
 				// if (exit !== 0n) process.exit(Number(exit))
-				JsExpr process = JsExpr(JsName(symbol!"process"));
+				JsExpr process = genGlobal(symbol!"process");
 				// process.argv.slice(2)
 				JsExpr args = genCallProperty(
 					ctx.alloc,
@@ -434,14 +437,14 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 					symbol!"slice",
 					[genNumber(2)]);
 				JsExpr callMain = genCall(ctx.alloc, mainRef, [genArrayToList(ctx, args)]);
-				JsName exitCode = JsName(symbol!"exitCode");
+				JsName exitCode = jsNameNoPrefix(symbol!"exitCode");
 				return newArray(ctx.alloc, [
 					genConst(ctx.alloc, exitCode, callMain),
 					genIf(
 						ctx.alloc,
 						genNotEqEq(ctx.alloc, JsExpr(exitCode), genIntegerUnsigned(0)),
 						JsStatement(genCallProperty(ctx.alloc, process, symbol!"exit", [
-							genCall(ctx.alloc, JsExpr(JsName(symbol!"Number")), [JsExpr(exitCode)])])))]);
+							genCall(ctx.alloc, JsExpr(jsNameNoPrefix(symbol!"Number")), [JsExpr(exitCode)])])))]);
 			}
 		},
 		(in MainFun.Void) =>
@@ -492,9 +495,27 @@ struct TranslateExprCtx {
 		*ctx.ctx.fileContentGetters;
 }
 
+JsName jsNameForDecl(in AnyDecl a, Opt!ushort index) {
+	JsName.Kind kind = a.matchIn!(JsName.Kind)(
+		(in FunDecl _) =>
+			JsName.Kind.function_,
+		(in SpecDecl _) =>
+			// Specs don't compile to named entities; their sigs become function parameters
+			assert(false),
+		(in StructAlias _) =>
+			JsName.Kind.type,
+		(in StructDecl _) =>
+			JsName.Kind.type,
+		(in Test _) =>
+			JsName.Kind.function_,
+		(in VarDecl _) =>
+			JsName.Kind.function_);
+	return JsName(kind, a.name, index);
+}
+
 JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
-	JsName(
-		a.name,
+	jsNameForDecl(
+		a,
 		(a.visibility == Visibility.private_ ? ctx.privateMangledNames : ctx.exportMangledNames.mangledNames)[a]);
 JsName aliasName(in TranslateModuleCtx ctx, in StructAlias* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
@@ -570,7 +591,7 @@ Map!(AnyDecl, ushort) modulePrivateMangledNames(ref Alloc alloc, in Module modul
 JsName localName(in Local a) =>
 	localName(a.name);
 JsName localName(Symbol a) =>
-	JsName(a, some!ushort(99));
+	JsName(JsName.Kind.local, a, none!ushort);
 
 void eachExportOrTestInProgram(ref Program a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
 	foreach (ref immutable Module* x; a.allModules)
@@ -649,7 +670,7 @@ JsImport[] translateImports(
 			foreach (Uri importedUri, ref MutArr!AnyDecl decls; byModule) {
 				JsName[] names = buildArray!JsName(ctx.alloc, (scope ref Builder!JsName out_) {
 					foreach (ref const AnyDecl decl; decls)
-						out_ ~= JsName(decl.name, ctx.exportMangledNames.mangledNames[decl]);
+						out_ ~= jsNameForDecl(decl, ctx.exportMangledNames.mangledNames[decl]);
 				});
 				sortInPlace!(JsName, compareJsName)(names);
 				outImports ~= JsImport(some(names), relativePath(importerPath, mustGet(ctx.modulePaths, importedUri)));
@@ -674,14 +695,8 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in Module module_) {
 					(in Symbol[] names) {
 						foreach (Symbol name; names) {
 							eachNameReferent(*mustGet(x.imported, name), (AnyDecl decl) {
-								if (isUsedAnywhere(ctx.allUsed, decl))
-									out_ ~= JsName(name, ctx.exportMangledNames.mangledNames[decl]);
-								else if (decl.isA!(StructAlias*)) {
-									StructAlias* alias_ = decl.as!(StructAlias*);
-									StructDecl* target = alias_.target.decl;
-									if (isUsedAnywhere(ctx.allUsed, AnyDecl(target)))
-										out_ ~= JsName(name, ctx.exportMangledNames.mangledNames[decl]);
-								}
+								if (isItUsed(ctx.allUsed, decl))
+									out_ ~= jsNameForDecl(decl, ctx.exportMangledNames.mangledNames[decl]);
 							});
 						}
 					});
@@ -690,6 +705,8 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in Module module_) {
 		}
 	});
 }
+bool isItUsed(in AllUsed allUsed, in AnyDecl decl) => // TODO: MOVE -----------------------------------------------------------------------------------------------
+	isUsedAnywhere(allUsed, decl) || (decl.isA!(StructAlias*) && isUsedAnywhere(allUsed, AnyDecl(decl.as!(StructAlias*).target.decl)));
 bool isImportModuleWhole(in ImportOrExport x) =>
 	!has(x.source) || force(x.source).kind.isA!(ImportOrExportAstKind.ModuleWhole);
 
@@ -698,7 +715,7 @@ JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 		(FunDecl* x) =>
 			translateFunDecl(ctx, x),
 		(SpecDecl* x) =>
-			translateSpecDecl(ctx, x),
+			assert(false),
 		(StructAlias* x) =>
 			translateStructAlias(ctx, x),
 		(StructDecl* x) =>
@@ -730,18 +747,15 @@ SmallArray!JsDestructure specParams(ref Alloc alloc, in FunDecl a) =>
 	buildSmallArray!JsDestructure(alloc, (scope ref Builder!JsDestructure out_) {
 		eachSpecInFunIncludingParents(a, (SpecInst* spec) {
 			foreach (ref Signature x; spec.decl.sigs)
-				out_ ~= JsDestructure(JsName(x.name, some(specMangleIndex(sizeSoFar(out_)))));
+				out_ ~= JsDestructure(JsName(JsName.Kind.specSig, x.name, some(specMangleIndex(sizeSoFar(out_)))));
+			return false;
 		});
 	});
-void eachSpecInFunIncludingParents(in FunDecl a, in void delegate(SpecInst*) @safe @nogc pure nothrow cb) {
-	foreach (SpecInst* spec; a.specs)
-		eachSpecIncludingParents(spec, cb);
-}
-void eachSpecIncludingParents(SpecInst* a, in void delegate(SpecInst*) @safe @nogc pure nothrow cb) { // todo: move ?-----------------
-	foreach (SpecInst* parent; a.parents)
-		eachSpecIncludingParents(parent, cb);
-	cb(a);
-}
+bool eachSpecInFunIncludingParents(in FunDecl a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.specs, (ref const SpecInst* spec) =>
+		eachSpecIncludingParents(spec, cb));
+bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.parents, (ref const SpecInst* parent) => eachSpecIncludingParents(parent, cb)) || cb(a);
 
 JsParams translateFunParams(ref TranslateExprCtx ctx, in Params a) =>
 	a.match!JsParams(
@@ -765,11 +779,9 @@ JsDestructure translateDestructureSplit(ref TranslateExprCtx ctx, in Destructure
 			immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
 }
 
-JsDecl translateSpecDecl(ref TranslateModuleCtx ctx, SpecDecl* a) =>
-	makeDecl(AnyDecl(a), a.visibility, specName(ctx, a), JsDeclKind(genNull())); // TODO: remove, we don't use these anywhere .-----------------
-
 JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
-	makeDecl(AnyDecl(a), a.visibility, aliasName(ctx, a), JsDeclKind(JsExpr(JsName(a.target.decl.name))));
+	makeDecl(AnyDecl(a), a.visibility, aliasName(ctx, a), JsDeclKind(
+		translateStructReference(ctx, a.target.decl)));
 
 JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 	if (a.body_.isA!BuiltinType)
@@ -803,7 +815,7 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 			},
 			(StructBody.Variant) {
 				if (a == ctx.commonTypes.exception.decl) {
-					extends = someMut(allocate(ctx.alloc, JsExpr(JsName(symbol!"Error"))));
+					extends = someMut(allocate(ctx.alloc, genGlobal(symbol!"Error")));
 					// get message() { return this.describe() }
 					out_ ~= JsClassMember(JsClassMember.Static.instance, symbol!"message", JsClassMemberKind(JsClassGetter(
 						JsBlockStatement(newArray(ctx.alloc, [
@@ -831,7 +843,7 @@ JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
 						JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
 		} else {
 			// foo(...args) { return foo(this, ...args) }
-			JsName args = JsName(symbol!"args");
+			JsName args = localName(symbol!"args");
 			JsParams params = JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args)));
 			JsBlockStatement body_ = genBlockStatement(ctx.alloc, [
 				genReturn(ctx.alloc, genCallWithSpread(ctx.alloc, calledExpr(ctx, none!(FunDecl*), a), [genThis()], JsExpr(args)))]);
@@ -853,8 +865,8 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 		static members = [new_pair("x", this.x)]
 	}
 	*/
-	JsName name = JsName(symbol!"name");
-	JsName value = JsName(symbol!"value");
+	JsName name = localName(symbol!"name");
+	JsName value = localName(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(name), JsDestructure(value)], needSuper, [
 		genAssignToThis(ctx.alloc, symbol!"name", JsExpr(name)),
 		genAssignToThis(ctx.alloc, symbol!"value", JsExpr(value))]);
@@ -889,7 +901,7 @@ void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMem
 		}
 	}
 	*/
-	JsName value = JsName(symbol!"value");
+	JsName value = localName(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
 		genAssignToThis(ctx.alloc, symbol!"value", JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
@@ -903,7 +915,7 @@ void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMem
 	out_ ~= intersectOrUnion(ctx, struct_, symbol!"union", JsBinaryExpr.Kind.bitwiseOr);
 }
 JsClassMember intersectOrUnion(ref TranslateModuleCtx ctx, StructDecl* struct_, Symbol name, JsBinaryExpr.Kind kind) {
-	JsName b = JsName(symbol!"b");
+	JsName b = localName(symbol!"b");
 	JsExpr getValue(JsExpr arg) =>
 		genPropertyAccess(ctx.alloc, arg, symbol!"value");
 	return JsClassMember(JsClassMember.Static.instance, name, JsClassMemberKind(
@@ -963,7 +975,7 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 	final switch (type) {
 		case BuiltinType.array:
 		case BuiltinType.mutArray:
-			return some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, JsExpr(JsName(symbol!"Array")))));
+			return some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, genGlobal(symbol!"Array"))));
 		case BuiltinType.bool_:
 			return typeof_("boolean");
 		case BuiltinType.catchPoint:
@@ -1010,14 +1022,14 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 		}
 	}
 	*/
-	JsName arg = JsName(symbol!"arg");
+	JsName arg = localName(symbol!"arg");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], needSuper, [
-		JsStatement(genCallProperty(ctx.alloc, JsExpr(JsName(symbol!"Object")), symbol!"assign", [genThis(), JsExpr(arg)]))]);
+		JsStatement(genCallProperty(ctx.alloc, genGlobal(symbol!"Object"), symbol!"assign", [genThis(), JsExpr(arg)]))]);
 	
 	foreach (ref UnionMember member; a.members) {
 		JsClassMemberKind kind = () {
 			if (member.hasValue) {
-				JsName value = JsName(symbol!"value");
+				JsName value = localName(symbol!"value");
 				JsParams params = JsParams(newSmallArray!JsDestructure(ctx.alloc, [JsDestructure(value)]));
 				ArrayBuilder!JsStatement out_;
 				TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx));
@@ -1053,7 +1065,7 @@ JsClassMember genConstructor(
 		JsClassMemberKind(JsClassMethod(JsParams(params), body_)));
 }
 
-JsExpr super_ = JsExpr(JsName(symbol!"super"));
+JsExpr super_ = genGlobal(symbol!"super");
 JsStatement genSuper() => JsStatement(genCall(&super_, []));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
@@ -1368,7 +1380,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ClosureGetExpr x) =>
 			forceExpr(ctx, pos, type, JsExpr(localName(*x.local))),
 		(ClosureSetExpr x) =>
-			forceStatement(ctx, pos, genAssign(ctx.alloc,  localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
+			forceStatement(ctx, pos, genAssign(ctx.alloc, localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
 			forceExpr(ctx, pos, type, genBool(x.name.asSymbol in ctx.ctx.allExterns)),
 		(ref FinallyExpr x) =>
@@ -1394,13 +1406,13 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(LocalSetExpr x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc, localName(*x.local), translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ref LoopExpr x) =>
-			forceStatement(ctx, pos, genWhileTrue(ctx.alloc, some(JsName(symbol!"loop")), translateExprToBlockStatement(ctx, x.body_, type))),
+			forceStatement(ctx, pos, genWhileTrue(ctx.alloc, some(jsNameNoPrefix(symbol!"loop")), translateExprToBlockStatement(ctx, x.body_, type))),
 		(ref LoopBreakExpr x) {
 			assert(pos.isA!(ExprPos.Statements*));
 			ExprResult res = translateExpr(ctx, x.value, type, pos);
 			assert(res.isA!(ExprResult.Done));
 			if (isVoid(type))
-				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, genBreak(JsName(symbol!"loop")));
+				add(ctx.alloc, pos.as!(ExprPos.Statements*).statements, genBreak(jsNameNoPrefix(symbol!"loop")));
 			return res;
 		},
 		(LoopContinueExpr x) {
@@ -1716,9 +1728,9 @@ JsExpr translateAllTests(ref TranslateModuleCtx ctx) =>
 	}));
 
 JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
-	JsExpr Array = JsExpr(JsName(symbol!"Array"));
-	JsExpr BigInt = JsExpr(JsName(symbol!"BigInt"));
-	JsExpr Number = JsExpr(JsName(symbol!"Number"));
+	JsExpr Array = genGlobal(symbol!"Array");
+	JsExpr BigInt = genGlobal(symbol!"BigInt");
+	JsExpr Number = genGlobal(symbol!"Number");
 	JsExpr bitwiseNot() =>
 		genUnary(alloc, JsUnaryExpr.Kind.bitwiseNot, arg);
 	final switch (a) {
@@ -1749,7 +1761,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			// Array.from(n.toString(2))
 			JsExpr digits = genCallProperty(alloc, Array, symbol!"from", [
 				genCallProperty(alloc, arg, symbol!"toString", [genNumber(2)])]);
-			JsName x = JsName(symbol!"x");
+			JsName x = localName(symbol!"x");
 			// x => x === "1"
 			JsExpr fn = genArrowFunction(alloc, [JsDestructure(x)], genEqEqEq(alloc, JsExpr(x), genString("1")));
 			// BigInt(Array.from(n.toString(2)).filter(x => x === "1").length)
@@ -1797,7 +1809,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 					alloc,
 					genCallProperty(
 						alloc,
-						genNew(alloc, JsExpr(JsName(symbol!"TextEncoder")), []),
+						genNew(alloc, genGlobal(symbol!"TextEncoder"), []),
 						symbol!"encode",
 						[arg])),
 				symbol!"map",
@@ -1808,13 +1820,13 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			// new TextDecoder().decode(new Uint8Array(arg.map(Number)))
 			return genCallProperty(
 				alloc,
-				genNew(alloc, JsExpr(JsName(symbol!"TextDecoder")), []),
+				genNew(alloc, genGlobal(symbol!"TextDecoder"), []),
 				symbol!"decode",
-				[genNew(alloc, JsExpr(JsName(symbol!"Uint8Array")), [genCallProperty(alloc, arg, symbol!"map", [Number])])]);
+				[genNew(alloc, genGlobal(symbol!"Uint8Array"), [genCallProperty(alloc, arg, symbol!"map", [Number])])]);
 	}
 }
 JsExpr genArrayFrom(ref Alloc alloc, JsExpr arg) =>
-	genCallProperty(alloc, JsExpr(JsName(symbol!"Array")), symbol!"from", [arg]);
+	genCallProperty(alloc, genGlobal(symbol!"Array"), symbol!"from", [arg]);
 
 JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) {
 	JsExpr f32(Symbol name) =>
@@ -1893,12 +1905,12 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 	}
 }
 JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
-	genCallProperty(alloc, JsExpr(JsName(symbol!"Math")), name, [arg]);
+	genCallProperty(alloc, genGlobal(symbol!"Math"), name, [arg]);
 JsExpr toFloat32(ref Alloc alloc, JsExpr arg) =>
 	callMath(alloc, symbol!"fround", arg);
 
 JsExpr genAsNat(ref Alloc alloc, uint bits, JsExpr arg) =>
-	genCallProperty(alloc, JsExpr(JsName(symbol!"BigInt")), symbol!"asUintN", [genNumber(bits), arg]);
+	genCallProperty(alloc, genGlobal(symbol!"BigInt"), symbol!"asUintN", [genNumber(bits), arg]);
 JsExpr genAsNat8(ref Alloc alloc, JsExpr arg) =>
 	genAsNat(alloc, 8, arg);
 JsExpr genAsNat16(ref Alloc alloc, JsExpr arg) =>
@@ -2083,7 +2095,7 @@ ExprResult translateBuiltinBinaryLazy(ref TranslateExprCtx ctx, Type type, scope
 }
 
 JsExpr translateBuiltinBinaryMath(ref TranslateExprCtx ctx, BuiltinBinaryMath kind, JsExpr left, JsExpr right) {
-	JsExpr Math = JsExpr(JsName(symbol!"Math"));
+	JsExpr Math = genGlobal(symbol!"Math");
 	JsExpr atan2 = genCallProperty(ctx.alloc, Math, symbol!"atan2", [left, right]);
 	final switch (kind) {
 		case BuiltinBinaryMath.atan2Float32:
@@ -2142,7 +2154,7 @@ ExprResult translateCallJsFun(
 			return expr(genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)));
 		case JsFun.jsGlobal:
 			assert(nArgs == 0);
-			return expr(JsExpr(JsName(ctx.isBrowser ? symbol!"window" : symbol!"global")));
+			return expr(genGlobal(ctx.isBrowser ? symbol!"window" : symbol!"global"));
 		case JsFun.less:
 			return binary(JsBinaryExpr.Kind.less);
 		case JsFun.plus:
@@ -2468,12 +2480,12 @@ ExprResult withTemp2(
 		return cb(jsName, inner);
 	});
 JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
-	JsName(base, some(safeToUshort(ctx.nextTempIndex++)));
+	JsName(JsName.Kind.temp, base, some(safeToUshort(ctx.nextTempIndex++)));
 
 JsStatement genThrowBogus(ref TranslateExprCtx ctx) =>
 	genThrowJsError(ctx, "Reached compile error");
 JsStatement genThrowJsError(ref TranslateExprCtx ctx, string message) =>
-	genThrow(ctx.alloc, genNew(ctx.alloc, JsExpr(JsName(symbol!"Error")), [genString(message)]));
+	genThrow(ctx.alloc, genNew(ctx.alloc, genGlobal(symbol!"Error"), [genString(message)]));
 JsExpr genNewError(ref TranslateExprCtx ctx, string message) =>
 	translateCall(ctx, Called(ctx.ctx.program.commonFuns.createError), [genString(message)]);
 
@@ -2503,7 +2515,7 @@ ExprResult translateFinally(ref TranslateExprCtx ctx, ref FinallyExpr a, Type ty
 		translateExprToBlockStatement(ctx, a.right, Type(ctx.commonTypes.void_)))));
 
 ExprResult translateTry(ref TranslateExprCtx ctx, ref TryExpr a, Type type, scope ExprPos pos) {
-	JsName exceptionName = JsName(symbol!"exception");
+	JsName exceptionName = localName(symbol!"exception");
 	return forceStatement(ctx, pos, genTryCatch(
 		ctx.alloc,
 		translateExprToBlockStatement(ctx, a.tried, type),
@@ -2532,14 +2544,14 @@ ExprResult translateTryLet(ref TranslateExprCtx ctx, ref TryLetExpr a, Type type
 	}
 	*/
 	forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
-		JsName catching = JsName(symbol!"catching"); // TODO: make sure to increment temp index...
+		JsName catching = tempName(ctx, symbol!"catching");
 		add(ctx.alloc, out_, genLet(ctx.alloc, JsDestructure(catching), genBool(true)));
 		JsBlockStatement tryBlock = translateToBlockStatement(ctx.alloc, (scope ExprPos tryPos) =>
 			translateLetLikeCb(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), tryPos, (scope ref ArrayBuilder!JsStatement tryOut, scope ExprPos tryInner) {
 				add(ctx.alloc, tryOut, genAssign(ctx.alloc, catching, genBool(false)));
 				return translateExpr(ctx, a.then, type, tryInner);
 			}));
-		JsName exceptionName = JsName(symbol!"exception");
+		JsName exceptionName = tempName(ctx, symbol!"exception");
 		JsBlockStatement catchBlock = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement catchOut, scope ExprPos catchPos) {
 			JsExpr cond = genOr(
 				ctx.alloc,
@@ -2580,22 +2592,22 @@ JsExpr calledExpr(ref TranslateModuleCtx ctx, Opt!(FunDecl*) curFun, in Called a
 				: genCall(allocate(ctx.alloc, fun), map(ctx.alloc, x.specImpls, (ref Called x) => calledExpr(ctx, curFun, x)));
 		},
 		(CalledSpecSig x) =>
-			JsExpr(JsName(x.nonInstantiatedSig.name, some(specMangleIndex(findSigIndex(*force(curFun), x))))));
+			JsExpr(JsName(JsName.Kind.specSig, x.nonInstantiatedSig.name, some(specMangleIndex(findSigIndex(*force(curFun), x))))));
 
 ushort specMangleIndex(size_t sigIndex) => // TODO: maybe mangling should take the 'kind' into account. Could store in 2 bits and leave rest for index.
 	safeToUshort(1000 + sigIndex);
 
 size_t findSigIndex(in FunDecl curFun, in CalledSpecSig called) {
 	size_t res = 0;
-	bool done = false;
-	eachSpecInFunIncludingParents(curFun, (SpecInst* spec) { // TODO: this could return the first output...-------------------------
-		if (done) return;
+	bool foundIt = eachSpecInFunIncludingParents(curFun, (SpecInst* spec) {
 		if (spec == called.specInst) {
 			res += called.sigIndex;
-			done = true;
-		} else
+			return true;
+		} else {
 			res += spec.sigTypes.length;
+			return false;
+		}
 	});
-	assert(done);
+	assert(foundIt);
 	return res;
 }
