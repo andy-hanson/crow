@@ -747,7 +747,7 @@ SmallArray!JsDestructure specParams(ref Alloc alloc, in FunDecl a) =>
 	buildSmallArray!JsDestructure(alloc, (scope ref Builder!JsDestructure out_) {
 		eachSpecInFunIncludingParents(a, (SpecInst* spec) {
 			foreach (ref Signature x; spec.decl.sigs)
-				out_ ~= JsDestructure(JsName(JsName.Kind.specSig, x.name, some(specMangleIndex(sizeSoFar(out_)))));
+				out_ ~= JsDestructure(JsName(JsName.Kind.specSig, x.name, some(safeToUshort(sizeSoFar(out_)))));
 			return false;
 		});
 	});
@@ -966,7 +966,7 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 				? none!JsExpr
 				: some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
-				add(ctx.alloc, out_, genIf(ctx.alloc, force(notOk), genThrowJsError(ctx, "Value did not have expected type")));
+				add(ctx.alloc, out_, genIf(ctx.alloc, force(notOk), genThrowJsError(ctx.alloc, "Value did not have expected type")));
 		});
 }
 Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsExpr get) {
@@ -1079,7 +1079,7 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 			(in string s) =>
 				JsExprOrBlockStatement(allocate(ctx.alloc, genString(s))),
 			(in ImportFileContent.Bogus) =>
-				JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [genThrowBogus(ctx)])));
+				JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [genThrowBogus(ctx.alloc)])));
 	else {
 		if (fun.body_.isA!AutoFun)
 			return translateAutoFun(ctx, fun, fun.body_.as!AutoFun);
@@ -1168,12 +1168,15 @@ JsExprOrBlockStatement translateCompareUnion(ref TranslateExprCtx ctx, in AutoFu
 	*/
 	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
 		// TODO: share code with translateEqualUnion ----------------------------------------------------------------------------
-		foldReverseWithIndex!(JsStatement, UnionMember)(genThrowJsError(ctx, "Invalid union value"), members, (JsStatement else_, size_t index, ref UnionMember member) =>
-			genIf(
-				ctx.alloc,
-				genIn(ctx.alloc, member.name, p0),
-				genReturn(ctx.alloc, translateCompareUnionPart(ctx, auto_, comparison, members, index, member, p0, p1)),
-				else_))]));
+		foldReverseWithIndex!(JsStatement, UnionMember)(
+			genThrowJsError(ctx.alloc, "Invalid union value"),
+			members,
+			(JsStatement else_, size_t index, ref UnionMember member) =>
+				genIf(
+					ctx.alloc,
+					genIn(ctx.alloc, member.name, p0),
+					genReturn(ctx.alloc, translateCompareUnionPart(ctx, auto_, comparison, members, index, member, p0, p1)),
+					else_))]));
 JsExpr translateCompareUnionPart(ref TranslateExprCtx ctx, in AutoFun auto_, StructDecl* comparison, UnionMember[] members, size_t memberIndex, ref UnionMember member, JsExpr p0, JsExpr p1) {
 	JsExpr comparisonRef = translateStructReference(ctx, comparison);
 	JsExpr greater = genPropertyAccess(ctx.alloc, comparisonRef, symbol!"greater");
@@ -1200,16 +1203,19 @@ JsExprOrBlockStatement translateEqualRecord(ref TranslateExprCtx ctx, in AutoFun
 			(JsExpr x, JsExpr y) => genAnd(ctx.alloc, x, y))));
 JsExprOrBlockStatement translateEqualUnion(ref TranslateExprCtx ctx, in AutoFun auto_, UnionMember[] members, JsExpr p0, JsExpr p1) =>
 	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
-		foldReverseWithIndex!(JsStatement, UnionMember)(genThrowJsError(ctx, "Invalid union value"), members, (JsStatement else_, size_t index, ref UnionMember member) =>
-			// if ("foo" in a) return "foo" in b && eq(a.foo, b.foo) else <<else>>
-			genIf(
-				ctx.alloc,
-				genIn(ctx.alloc, member.name, p0),
-				genReturn(ctx.alloc, genAnd(
+		foldReverseWithIndex!(JsStatement, UnionMember)(
+			genThrowJsError(ctx.alloc, "Invalid union value"),
+			members,
+			(JsStatement else_, size_t index, ref UnionMember member) =>
+				// if ("foo" in a) return "foo" in b && eq(a.foo, b.foo) else <<else>>
+				genIf(
 					ctx.alloc,
-					genIn(ctx.alloc, member.name, p1),
-					genCallCompareProperty(ctx, auto_.members[index], p0, p1, member.name))),
-				else_))]));
+					genIn(ctx.alloc, member.name, p0),
+					genReturn(ctx.alloc, genAnd(
+						ctx.alloc,
+						genIn(ctx.alloc, member.name, p1),
+						genCallCompareProperty(ctx, auto_.members[index], p0, p1, member.name))),
+					else_))]));
 JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, Symbol name) =>
 	translateCall(ctx, called, [genPropertyAccess(ctx.alloc, p0, name), genPropertyAccess(ctx.alloc, p1, name)]);
 JsExpr translateCall(ref TranslateExprCtx ctx, Called called, in JsExpr[] args) =>
@@ -1230,16 +1236,19 @@ JsExprOrBlockStatement translateUnionToJson(ref TranslateExprCtx ctx, StructDecl
 	*/
 	// TODO: share code with translateCompareUNion --------------------------------------------------------------------------------
 	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
-		foldReverseWithIndex!(JsStatement, UnionMember)(genThrowJsError(ctx, "Invalid union value"), members, (JsStatement else_, size_t index, ref UnionMember member) =>
-			// if ("foo" in a) return new_json(new_pair("foo", toJson(a.foo))) else <<else>>
-			genIf(
-				ctx.alloc,
-				genIn(ctx.alloc, member.name, p0),
-				genReturn(ctx.alloc,
-					genNewJson(ctx.ctx, newArray(ctx.alloc, [
-						genNewPair(ctx.ctx, genString(member.name),
-							translateCall(ctx, auto_.members[index], [genPropertyAccess(ctx.alloc, p0, member.name)]))]))),
-				else_))]));
+		foldReverseWithIndex!(JsStatement, UnionMember)(
+			genThrowJsError(ctx.alloc, "Invalid union value"),
+			members,
+			(JsStatement else_, size_t index, ref UnionMember member) =>
+				// if ("foo" in a) return new_json(new_pair("foo", toJson(a.foo))) else <<else>>
+				genIf(
+					ctx.alloc,
+					genIn(ctx.alloc, member.name, p0),
+					genReturn(ctx.alloc,
+						genNewJson(ctx.ctx, newArray(ctx.alloc, [
+							genNewPair(ctx.ctx, genString(member.name),
+								translateCall(ctx, auto_.members[index], [genPropertyAccess(ctx.alloc, p0, member.name)]))]))),
+					else_))]));
 JsExpr genNewJson(ref TranslateModuleCtx ctx, JsExpr[] pairs) =>
 	genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newJsonFromPairs.decl)), pairs);
 JsExpr genNewPair(ref TranslateModuleCtx ctx, JsExpr a, JsExpr b) =>
@@ -1372,7 +1381,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ref AssertOrForbidExpr x) =>
 			translateAssertOrForbid(ctx, a, x, type, pos),
 		(BogusExpr x) =>
-			forceStatement(ctx, pos, genThrowBogus(ctx)),
+			forceStatement(ctx, pos, genThrowBogus(ctx.alloc)),
 		(CallExpr x) =>
 			translateCall(ctx, x, type, pos),
 		(ref CallOptionExpr x) =>
@@ -2399,7 +2408,7 @@ ExprResult translateMatchIntegral(ref TranslateExprCtx ctx, ref MatchIntegralExp
 		translateExprToExpr(ctx, a.matched),
 		map(ctx.alloc, a.cases, (ref MatchIntegralExpr.Case case_) =>
 			JsSwitchStatement.Case(
-				translateIntegralValue(a.kind, case_.value),
+				a.kind.isSigned ? genIntegerSigned(case_.value.asSigned) : genIntegerUnsigned(case_.value.asUnsigned),
 				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateExprToSwitchBlockStatement(ctx, a.else_, type)));
 
@@ -2482,22 +2491,20 @@ ExprResult withTemp2(
 JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
 	JsName(JsName.Kind.temp, base, some(safeToUshort(ctx.nextTempIndex++)));
 
-JsStatement genThrowBogus(ref TranslateExprCtx ctx) =>
-	genThrowJsError(ctx, "Reached compile error");
-JsStatement genThrowJsError(ref TranslateExprCtx ctx, string message) =>
-	genThrow(ctx.alloc, genNew(ctx.alloc, genGlobal(symbol!"Error"), [genString(message)]));
+JsStatement genThrowBogus(ref Alloc alloc) =>
+	genThrowJsError(alloc, "Reached compile error");
+JsStatement genThrowJsError(ref Alloc alloc, string message) =>
+	genThrow(alloc, genNew(alloc, genGlobal(symbol!"Error"), [genString(message)]));
 JsExpr genNewError(ref TranslateExprCtx ctx, string message) =>
 	translateCall(ctx, Called(ctx.ctx.program.commonFuns.createError), [genString(message)]);
 
 JsBlockStatement translateSwitchDefault(ref TranslateExprCtx ctx, Opt!Expr else_, Type type, string error) =>
 	has(else_)
 		? translateExprToSwitchBlockStatement(ctx, force(else_), type)
-		: genBlockStatement(ctx.alloc, [genThrowJsError(ctx, error)]);
+		: genBlockStatement(ctx.alloc, [genThrowJsError(ctx.alloc, error)]);
 
 JsExpr translateEnumValue(ref TranslateModuleCtx ctx, EnumOrFlagsMember* a) =>
 	genPropertyAccess(ctx.alloc, translateStructReference(ctx, a.containingEnum), a.name);
-JsExpr translateIntegralValue(MatchIntegralExpr.Kind kind, IntegralValue value) => // TODO: maybe rename this to 'genInteger' and move to jsAst.d
-	kind.isSigned ? genIntegerSigned(value.asSigned) : genIntegerUnsigned(value.asUnsigned);
 
 ExprResult translateFinally(ref TranslateExprCtx ctx, ref FinallyExpr a, Type type, scope ExprPos pos) =>
 	/*
@@ -2547,22 +2554,29 @@ ExprResult translateTryLet(ref TranslateExprCtx ctx, ref TryLetExpr a, Type type
 		JsName catching = tempName(ctx, symbol!"catching");
 		add(ctx.alloc, out_, genLet(ctx.alloc, JsDestructure(catching), genBool(true)));
 		JsBlockStatement tryBlock = translateToBlockStatement(ctx.alloc, (scope ExprPos tryPos) =>
-			translateLetLikeCb(ctx, a.destructure, translateExprToExpr(ctx, a.value, a.destructure.type), tryPos, (scope ref ArrayBuilder!JsStatement tryOut, scope ExprPos tryInner) {
-				add(ctx.alloc, tryOut, genAssign(ctx.alloc, catching, genBool(false)));
-				return translateExpr(ctx, a.then, type, tryInner);
-			}));
+			translateLetLikeCb(
+				ctx,
+				a.destructure,
+				translateExprToExpr(ctx, a.value, a.destructure.type),
+				tryPos,
+				(scope ref ArrayBuilder!JsStatement tryOut, scope ExprPos tryInner) {
+					add(ctx.alloc, tryOut, genAssign(ctx.alloc, catching, genBool(false)));
+					return translateExpr(ctx, a.then, type, tryInner);
+				}));
 		JsName exceptionName = tempName(ctx, symbol!"exception");
-		JsBlockStatement catchBlock = translateToBlockStatement(ctx.alloc, (scope ref ArrayBuilder!JsStatement catchOut, scope ExprPos catchPos) {
-			JsExpr cond = genOr(
-				ctx.alloc,
-				genNot(ctx.alloc, JsExpr(catching)),
-				genNot(
+		JsBlockStatement catchBlock = translateToBlockStatement(
+			ctx.alloc,
+			(scope ref ArrayBuilder!JsStatement catchOut, scope ExprPos catchPos) {
+				JsExpr cond = genOr(
 					ctx.alloc,
-					genInstanceof(ctx.alloc, JsExpr(exceptionName),
-					translateStructReference(ctx, a.catch_.member.decl))));
-			add(ctx.alloc, catchOut, genIf(ctx.alloc, cond, genThrow(ctx.alloc, JsExpr(exceptionName)), genEmptyStatement()));
-			return translateLetLike(ctx, a.catch_.destructure, JsExpr(exceptionName), a.catch_.then, type, catchPos);
-		});
+					genNot(ctx.alloc, JsExpr(catching)),
+					genNot(
+						ctx.alloc,
+						genInstanceof(ctx.alloc, JsExpr(exceptionName),
+						translateStructReference(ctx, a.catch_.member.decl))));
+				add(ctx.alloc, catchOut, genIf(ctx.alloc, cond, genThrow(ctx.alloc, JsExpr(exceptionName))));
+				return translateLetLike(ctx, a.catch_.destructure, JsExpr(exceptionName), a.catch_.then, type, catchPos);
+			});
 		add(ctx.alloc, out_, genTryCatch(ctx.alloc, tryBlock, exceptionName, catchBlock));
 		return ExprResult.done;
 	});
@@ -2584,18 +2598,20 @@ JsExpr calledExpr(ref TranslateExprCtx ctx, in Called a) =>
 JsExpr calledExpr(ref TranslateModuleCtx ctx, Opt!(FunDecl*) curFun, in Called a) =>
 	a.match!JsExpr(
 		(ref Called.Bogus x) =>
-			todo!JsExpr("BOGUS"), // ------------------------------------------------------------------------------------------------------------
+			genIife(ctx.alloc, genBlockStatement(ctx.alloc, [genThrowBogus(ctx.alloc)])),
 		(ref FunInst x) {
 			JsExpr fun = translateFunReference(ctx, x.decl);
 			return isEmpty(x.specImpls)
 				? fun
-				: genCall(allocate(ctx.alloc, fun), map(ctx.alloc, x.specImpls, (ref Called x) => calledExpr(ctx, curFun, x)));
+				: genCall(
+					allocate(ctx.alloc, fun),
+					map(ctx.alloc, x.specImpls, (ref Called x) => calledExpr(ctx, curFun, x)));
 		},
 		(CalledSpecSig x) =>
-			JsExpr(JsName(JsName.Kind.specSig, x.nonInstantiatedSig.name, some(specMangleIndex(findSigIndex(*force(curFun), x))))));
-
-ushort specMangleIndex(size_t sigIndex) => // TODO: maybe mangling should take the 'kind' into account. Could store in 2 bits and leave rest for index.
-	safeToUshort(1000 + sigIndex);
+			JsExpr(JsName(
+				JsName.Kind.specSig,
+				x.nonInstantiatedSig.name,
+				some(safeToUshort(findSigIndex(*force(curFun), x))))));
 
 size_t findSigIndex(in FunDecl curFun, in CalledSpecSig called) {
 	size_t res = 0;
