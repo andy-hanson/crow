@@ -295,6 +295,10 @@ JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
 JsExpr genBinary(ref Alloc alloc, JsBinaryExpr.Kind kind, JsExpr arg0, JsExpr arg1) =>
 	JsExpr(JsBinaryExpr(kind, allocate(alloc, arg0), allocate(alloc, arg1)));
+JsExpr genBitwiseAnd(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
+	genBinary(alloc, JsBinaryExpr.Kind.bitwiseAnd, arg0, arg1);
+JsExpr genBitwiseNot(ref Alloc alloc, JsExpr arg) =>
+	genUnary(alloc, JsUnaryExpr.Kind.bitwiseNot, arg);
 JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements) =>
 	JsBlockStatement(newArray(alloc, statements));
 JsExpr genBool(bool value) =>

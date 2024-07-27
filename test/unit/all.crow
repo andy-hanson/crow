@@ -8,6 +8,7 @@ import
 	./crow-parser/all: dummy-crow-parser
 	./exceptions: dummy-exceptions
 	./extern-alignment: dummy-extern-alignment
+	./flags-tests: dummy-flags
 	./function-pointers: dummy-function-pointers
 	./gc-roots: dummy-gc-roots
 	./globals: dummy-globals
@@ -31,6 +32,7 @@ dummy-unit-tests nat()
 	_ = dummy-closures
 	_ = dummy-exceptions
 	_ = dummy-extern-alignment
+	_ = dummy-flags
 	_ = dummy-function-pointers
 	_ = dummy-gc-roots
 	_ = dummy-globals

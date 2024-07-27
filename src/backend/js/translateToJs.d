@@ -11,6 +11,8 @@ import backend.js.jsAst :
 	genArrowFunction,
 	genAssign,
 	genBinary,
+	genBitwiseAnd,
+	genBitwiseNot,
 	genBlockStatement,
 	genBool,
 	genBreak,
@@ -862,7 +864,7 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 			this.value = value
 		}
 		static x = new this("x", 0n)
-		static members = [new_pair("x", this.x)]
+		static _members = [new_pair("x", this.x)]
 	}
 	*/
 	JsName name = localName(symbol!"name");
@@ -880,7 +882,7 @@ void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMemb
 JsStatement genAssignToThis(ref Alloc alloc, Symbol name, JsExpr value) =>
 	genAssign(alloc, genPropertyAccess(alloc, genThis(), name), value);
 JsClassMember enumOrFlagsMembers(ref TranslateModuleCtx ctx, EnumOrFlagsMember[] members) =>
-	JsClassMember(JsClassMember.Static.static_, symbol!"members", JsClassMemberKind(
+	JsClassMember(JsClassMember.Static.static_, symbol!"_members", JsClassMemberKind(
 		genArray(map(ctx.alloc, members, (ref EnumOrFlagsMember member) =>
 			genNewPair(ctx, genString(member.name), genPropertyAccess(ctx.alloc, genThis(), member.name))))));
 
@@ -890,14 +892,19 @@ void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMem
 		constructor(value) {
 			this.value = value
 		}
-		static x = new this("x", 1n)
-		static members = [new_pair("x", this.x)]
+		static x = new this(1n)
+		static y = new this(2n)
+		static _none = new this(0n)
+		static _members = [new_pair("x", this.x), new_pair("y", this.y)]
 
-		intersect(b) {
+		_intersect(b) {
 			return new F(this.value & b.value)
 		}
-		union(b) {
+		_union(b) {
 			return new F(this.value | b.value)
+		}
+		_negate() {
+			return new F(~this.value & 3n)
 		}
 	}
 	*/
@@ -908,23 +915,35 @@ void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMem
 		out_ ~= JsClassMember(JsClassMember.Static.static_, member.name, JsClassMemberKind(
 			genNew(ctx.alloc, genThis(), [genIntegerUnsigned(member.value.asUnsigned())]))); // TOOD: flags can only have unsigned backing type, right?
 	}
-	out_ ~= JsClassMember(JsClassMember.Static.static_, symbol!"_all", JsClassMemberKind(
-		genNew(ctx.alloc, genThis(), [genIntegerUnsigned(getAllFlagsValue(a))]))); // TOOD: flags can only have unsigned backing type, right?
+	out_ ~= JsClassMember(JsClassMember.Static.static_, symbol!"_none", JsClassMemberKind(
+		genNew(ctx.alloc, genThis(), [genIntegerUnsigned(0)])));
 	out_ ~= enumOrFlagsMembers(ctx, a.members);
-	out_ ~= intersectOrUnion(ctx, struct_, symbol!"intersect", JsBinaryExpr.Kind.bitwiseAnd);
-	out_ ~= intersectOrUnion(ctx, struct_, symbol!"union", JsBinaryExpr.Kind.bitwiseOr);
+	out_ ~= intersectOrUnion(ctx, struct_, symbol!"_intersect", JsBinaryExpr.Kind.bitwiseAnd);
+	out_ ~= intersectOrUnion(ctx, struct_, symbol!"_union", JsBinaryExpr.Kind.bitwiseOr);
+	out_ ~= negate(ctx, struct_, getAllFlagsValue(a));
 }
 JsClassMember intersectOrUnion(ref TranslateModuleCtx ctx, StructDecl* struct_, Symbol name, JsBinaryExpr.Kind kind) {
 	JsName b = localName(symbol!"b");
-	JsExpr getValue(JsExpr arg) =>
-		genPropertyAccess(ctx.alloc, arg, symbol!"value");
 	return JsClassMember(JsClassMember.Static.instance, name, JsClassMemberKind(
 		JsClassMethod(
 			JsParams(newSmallArray(ctx.alloc, [JsDestructure(b)])),
 			genBlockStatement(ctx.alloc, [
 				genReturn(ctx.alloc, genNew(ctx.alloc, translateStructReference(ctx, struct_), [
-					genBinary(ctx.alloc, kind, getValue(genThis()), getValue(JsExpr(b)))]))]))));
+					genBinary(ctx.alloc, kind, getValue(ctx.alloc, genThis()), getValue(ctx.alloc, JsExpr(b)))]))]))));
 }
+JsClassMember negate(ref TranslateModuleCtx ctx, StructDecl* struct_, ulong allFlagsValue) =>
+	// TODO: use a helper function to simplify creating methods -----------------------------------------------------------------------
+	JsClassMember(JsClassMember.Static.instance, symbol!"_negate", JsClassMemberKind(
+		JsClassMethod(
+			JsParams(),
+			genBlockStatement(ctx.alloc, [
+				genReturn(ctx.alloc, genNew(ctx.alloc, translateStructReference(ctx, struct_), [
+					genBitwiseAnd(
+						ctx.alloc,
+						genBitwiseNot(ctx.alloc, getValue(ctx.alloc, genThis())),
+						genIntegerUnsigned(allFlagsValue))]))]))));
+JsExpr getValue(ref Alloc alloc, JsExpr arg) =>
+	genPropertyAccess(alloc, arg, symbol!"value");
 
 void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Record a) {
 	/*
@@ -1702,30 +1721,31 @@ JsExpr translateEnumOrFlagsFunction(
 	JsExpr getValue(JsExpr arg) =>
 		genPropertyAccess(ctx.alloc, arg, symbol!"value");
 	JsExpr call(Symbol name) {
-		assert(nArgs == 2);
-		return genCallProperty(ctx.alloc, getArg(0), name, [getArg(1)]);
+		assert(nArgs == 1 || nArgs == 2);
+		return nArgs == 1
+			? genCallProperty(ctx.alloc, getArg(0), name, [])
+			: genCallProperty(ctx.alloc, getArg(0), name, [getArg(1)]);
 	}
+	JsExpr staticProperty(Type enumOrFlags, Symbol name) =>
+		genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags.as!(StructInst*).decl), name);
 	final switch (a) {
 		case EnumOrFlagsFunction.equal:
 			return genEqEqEq(ctx.alloc, getValue(getArg(0)), getValue(getArg(1))); // TODO: getting '.value' is unnecessary for enums (but harmless). It is necessary for flags.
 		case EnumOrFlagsFunction.intersect:
-			return call(symbol!"intersect");
+			return call(symbol!"_intersect");
 		case EnumOrFlagsFunction.members:
 			assert(nArgs == 0);
 			Type pair = arrayElementType(returnType);
-			StructDecl* enumOrFlags = only2(force(asTuple(ctx.commonTypes, pair)))[1].as!(StructInst*).decl;
-			return genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags), symbol!"members");
+			return staticProperty(only2(force(asTuple(ctx.commonTypes, pair)))[1], symbol!"_members");
 		case EnumOrFlagsFunction.negate:
-			// Probably do 'x.negate()', and remember to put it on the class
-			return todo!JsExpr("EnumOrFlagsFunction.negate"); // ----------------------------------------------------------------------
+			return call(symbol!"_negate");
 		case EnumOrFlagsFunction.none:
-			// Probably do 'F.all', and remember to put it on the class
-			return todo!JsExpr("EnumOrFlagsFunction.none"); // -------------------------------------------------------------------------------------------
+			return staticProperty(returnType, symbol!"_none");
 		case EnumOrFlagsFunction.toIntegral:
 			assert(nArgs == 1);
 			return getValue(getArg(0));
 		case EnumOrFlagsFunction.union_:
-			return call(symbol!"union");
+			return call(symbol!"_union");
 	}
 }
 
@@ -1740,8 +1760,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 	JsExpr Array = genGlobal(symbol!"Array");
 	JsExpr BigInt = genGlobal(symbol!"BigInt");
 	JsExpr Number = genGlobal(symbol!"Number");
-	JsExpr bitwiseNot() =>
-		genUnary(alloc, JsUnaryExpr.Kind.bitwiseNot, arg);
+	JsExpr bitwiseNot() => genBitwiseNot(alloc, arg);
 	final switch (a) {
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.asAnyPointer:
