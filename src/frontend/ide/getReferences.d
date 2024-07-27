@@ -4,7 +4,7 @@ module frontend.ide.getReferences;
 
 import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : Target, targetForPosition;
-import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, ReferenceCb, TypeCb;
+import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, mustFindFunNamed, ReferenceCb, TypeCb, variantMethodCaller;
 import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
 	AssertOrForbidAst,
@@ -91,6 +91,7 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Module,
+	moduleOf,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -190,10 +191,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForVarDecl(program, x, cb);
 		},
 		(PositionKind.VariantMethod x) {
-			FunDecl* fun = mustFindFunNamed(moduleOf(program, x.variant.moduleUri), x.method.name, (in FunDecl fun) =>
-				fun.source.isA!(FunDeclSource.VariantMethod) &&
-				fun.source.as!(FunDeclSource.VariantMethod).method == x.method);
-			referencesForFunDecl(program, fun, cb);
+			referencesForFunDecl(program, variantMethodCaller(program, x), cb);
 			// TODO: Also find all structs that implement the variant and their implementations for this sig.
 		});
 
@@ -686,8 +684,6 @@ FunDecl*[2] mustFindFunsNamed(
 	return res;
 }
 
-FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
-	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));
 void eachFunNamed(in Module* module_, Symbol name, in void delegate(FunDecl*) @safe @nogc pure nothrow cb) {
 	foreach (ref FunDecl fun; module_.funs)
 		if (fun.name == name)
@@ -739,9 +735,6 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 	});
 	assert(!has(res));
 }
-
-Module* moduleOf(in Program program, Uri uri) =>
-	mustGet(program.allModules, uri);
 
 void referencesForModule(in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {

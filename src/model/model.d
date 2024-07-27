@@ -782,6 +782,12 @@ immutable struct SpecInst {
 	Symbol name() scope =>
 		decl.name;
 }
+private void eachSpecSig(in SpecInst a, in void delegate(Signature*) @safe @nogc pure nothrow cb) {
+	foreach (SpecInst* parent; a.parents)
+		eachSpecSig(*parent, cb);
+	foreach (ref Signature sig; a.decl.sigs)
+		cb(&sig);
+}
 size_t countSigs(in SpecInst*[] a) =>
 	sum(a, (in SpecInst* x) => countSigs(*x));
 size_t countSigs(in SpecInst a) =>
@@ -1365,6 +1371,19 @@ immutable struct FunDecl {
 	Arity arity() scope =>
 		params.arity;
 }
+void eachSpecSigAndImpl(
+	in FunDecl a,
+	in SpecImpls impls,
+	in void delegate(SpecInst*, Signature*, Called) @safe @nogc pure nothrow cb,
+) {
+	assert(impls.length == countSigs(a.specs));
+	size_t implIndex = 0;
+	foreach (SpecInst* spec; a.specs)
+		eachSpecSig(*spec, (Signature* sig) {
+			cb(spec, sig, impls[implIndex++]);
+		});
+	assert(implIndex == impls.length);
+}
 
 immutable struct Test {
 	@safe @nogc pure nothrow:
@@ -1390,7 +1409,7 @@ immutable struct FunInst {
 
 	FunDecl* decl;
 	TypeArgs typeArgs;
-	SpecImpls specImpls;
+	SpecImpls specImpls; // zip with ???????????????????????????????????????????????????????????????????????????????????????????
 	ReturnAndParamTypes instantiatedSig;
 
 	Symbol name() scope =>
@@ -1914,6 +1933,8 @@ immutable struct Program {
 	CommonFuns commonFuns;
 	CommonTypes* commonTypes;
 }
+Module* moduleOf(in Program program, Uri uri) => // TODO: rename? -------------------------------------------------------------------------
+	mustGet(program.allModules, uri);
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);

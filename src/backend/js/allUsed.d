@@ -2,6 +2,7 @@ module backend.js.allUsed;
 
 @safe @nogc pure nothrow:
 
+import frontend.ide.ideUtil : variantMethodCaller;
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -24,6 +25,7 @@ import model.model :
 	Condition,
 	Destructure,
 	eachDirectChildExpr,
+	eachSpecSigAndImpl,
 	eachLocal,
 	eachTest,
 	EnumOrFlagsFunction,
@@ -34,6 +36,7 @@ import model.model :
 	FunBody,
 	funBodyExprRef,
 	FunDecl,
+	FunDeclSource,
 	FunInst,
 	getCalledAtExpr,
 	IfExpr,
@@ -66,10 +69,13 @@ import model.model :
 	VariantAndMethodImpls,
 	Visibility;
 import util.alloc.alloc : Alloc;
+import util.col.array : zipPointers;
 import util.col.map : Map, mustGet;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
+import util.col.mutMultiMap : add, MutMultiMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
+import util.hash : HashCode, hashPointers;
 import util.opt : force, has, Opt, optIf, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
@@ -143,6 +149,18 @@ bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
 	// TODO: could we ensure usedByModule is initialized so that this uses mustGet? ---------------------------------------------------
 	Opt!(Set!AnyDecl) set = a.usedByModule[module_];
 	return has(set) && x in force(set);
+}
+
+immutable struct FunOrTest {
+	@safe @nogc pure nothrow:
+	mixin TaggedUnion!(FunDecl*, Test*);
+
+	Uri moduleUri() scope =>
+		matchIn!Uri(
+			(in FunDecl x) =>
+				x.moduleUri,
+			(in Test x) =>
+				x.moduleUri);
 }
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
@@ -243,11 +261,28 @@ struct AllUsedBuilder {
 	immutable SymbolSet allExterns;
 	MutMap!(Uri, MutSet!AnyDecl) usedByModule;
 	MutSet!AnyDecl usedDecls;
+	MutMultiMap!(StructDecl*, StructDecl*) variantMembers;
+
+	// Map from each function to all functions that directly call it.
+	MutMultiMap!(FunDecl*, FunOrTest) funToCallers;
+	// Maps a function to where it is used as a spec implementation.
+	MutMultiMap!(FunDecl*, FunAndSpecSig) funToUsedAsSpecImpl;
+	// Maps a spec signature in a function to spec signagures in other functions that are used to implement it.
+	MutMultiMap!(FunAndSpecSig, FunAndSpecSig) specSigToUsedAsSpecImpl;
 
 	ref Alloc alloc() =>
 		*allocPtr;
 	ref CommonTypes commonTypes() =>
 		*program.commonTypes;
+}
+immutable struct FunAndSpecSig {
+	@safe @nogc pure nothrow:
+
+	FunDecl* fun;
+	Signature* specSig;
+
+	HashCode hash() scope =>
+		hashPointers(fun, specSig);
 }
 
 bool addDecl(ref AllUsedBuilder res, Uri from, AnyDecl used) {
@@ -270,9 +305,14 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 		trackAllUsedInStructBody(res, a.moduleUri, a.body_);
 		foreach (VariantAndMethodImpls x; a.variants) {
 			trackAllUsedInStruct(res, a.moduleUri, x.variant.decl);
-			foreach (Opt!Called impl; x.methodImpls)
-				if (has(impl))
-					trackAllUsedInCalled(res, a.moduleUri, force(impl), FunUse.regular);
+			add(res.alloc, res.variantMembers, x.variant.decl, a);
+			zipPointers(x.variantDeclMethods, x.methodImpls, (Signature* method, Opt!Called* impl) {
+				if (has(*impl))
+					trackAllUsedInCalled(
+						res, a.moduleUri,
+						FunOrTest(variantMethodCaller(*res.program, FunDeclSource.VariantMethod(x.variant.decl, method))),
+						force(*impl), FunUse.regular);
+			});
 		}
 	}
 }
@@ -336,7 +376,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 						break;
 				}
 				foreach (Called called; x.members)
-					trackAllUsedInCalled(res, a.moduleUri, called, FunUse.regular);
+					trackAllUsedInCalled(res, a.moduleUri, FunOrTest(a), called, FunUse.regular);
 			},
 			(BuiltinFun x) {
 				if (x.isA!(BuiltinFun.AllTests)) {
@@ -366,7 +406,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				usedReturnType();
 			},
 			(Expr _) {
-				trackAllUsedInExprRef(res, a.moduleUri, funBodyExprRef(a));
+				trackAllUsedInExprRef(res, FunOrTest(a), funBodyExprRef(a));
 			},
 			(FunBody.Extern _) {
 				import util.writer : debugLogWithWriter, Writer; // --------------------------------------------------------------------------
@@ -396,7 +436,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 }
 void trackAllUsedInTest(ref AllUsedBuilder res, Uri from, Test* test) {
 	if (addDecl(res, from, AnyDecl(test)))
-		trackAllUsedInExprRef(res, test.moduleUri, testBodyExprRef(res.commonTypes, test));
+		trackAllUsedInExprRef(res, FunOrTest(test), testBodyExprRef(res.commonTypes, test));
 }
 void trackAllUsedInDestructures(ref AllUsedBuilder res, Uri from, in Destructure[] a) {
 	foreach (Destructure x; a)
@@ -416,15 +456,30 @@ void trackAllUsedInDestructure(ref AllUsedBuilder res, Uri from, Destructure a) 
 				trackAllUsedInDestructure(res, from, part);
 		});
 }
-void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Called a, FunUse funUse) {
-	a.match!void(
+
+// 'from' may differ from 'caller' for a variant method. 'called' is used from the variant member, but the caller is the variant method.
+void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, FunOrTest caller, Called called, FunUse funUse) {
+	called.match!void(
 		(ref Called.Bogus) {},
-		(ref FunInst x) {
-			trackAllUsedInFun(res, from, x.decl, funUse);
-			foreach (Called impl; x.specImpls)
-				trackAllUsedInCalled(res, from, impl, FunUse.noInline);
+		(ref FunInst calledInst) {
+			FunDecl* calledDecl = calledInst.decl;
+			add(res.alloc, res.funToCallers, calledDecl, caller);
+			trackAllUsedInFun(res, from, calledDecl, funUse);
+			eachSpecSigAndImpl(*calledDecl, calledInst.specImpls, (SpecInst* spec, Signature* sig, Called impl) {
+				impl.match!void(
+					(ref Called.Bogus) {},
+					(ref FunInst x) {
+						add(res.alloc, res.funToUsedAsSpecImpl, x.decl, FunAndSpecSig(calledDecl, sig));
+					},
+					(CalledSpecSig x) {
+						add(res.alloc, res.specSigToUsedAsSpecImpl, FunAndSpecSig(calledDecl, sig), FunAndSpecSig(caller.as!(FunDecl*), x.nonInstantiatedSig));
+					});
+				trackAllUsedInCalled(res, from, caller, impl, FunUse.noInline);
+			});
 		},
-		(CalledSpecSig _) {});
+		(CalledSpecSig x) {
+			// Functions are presumed to call their specs, so nothing to do here.
+		});
 }
 
 void usedTuple(ref AllUsedBuilder res, Uri from, uint tupleSize) {
@@ -432,14 +487,15 @@ void usedTuple(ref AllUsedBuilder res, Uri from, uint tupleSize) {
 		trackAllUsedInStruct(res, from, force(res.commonTypes.tuple(tupleSize)));
 }
 
-void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
+void trackAllUsedInExprRef(ref AllUsedBuilder res, FunOrTest curFunc, ExprRef a) {
+	Uri from = curFunc.moduleUri;
 	Opt!Called called = getCalledAtExpr(a.expr.kind);
 	if (has(called))
-		trackAllUsedInCalled(res, from, force(called), FunUse.regular); // TODO: for a function pointer, this should not be regular, should be noInline
+		trackAllUsedInCalled(res, from, curFunc, force(called), FunUse.regular); // TODO: for a function pointer, this should not be regular, should be noInline
 
 	void trackChildren() {
 		eachDirectChildExpr(res.commonTypes, a, (ExprRef x) {
-			trackAllUsedInExprRef(res, from, x);
+			trackAllUsedInExprRef(res, curFunc, x);
 		});
 	}
 
@@ -447,7 +503,7 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 		IfExpr* if_ = a.expr.kind.as!(IfExpr*);
 		Opt!bool constant = tryEvalConstantBool(res.version_, res.allExterns, if_.condition);
 		if (has(constant))
-			trackAllUsedInExprRef(res, from, ExprRef(force(constant) ? &if_.trueBranch : &if_.falseBranch, a.type));
+			trackAllUsedInExprRef(res, curFunc, ExprRef(force(constant) ? &if_.trueBranch : &if_.falseBranch, a.type));
 		else
 			trackChildren();
 	} else {
@@ -476,7 +532,7 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, Uri from, ExprRef a) {
 
 void trackAllUsedInMatchVariantCases(ref AllUsedBuilder res, Uri from, in MatchVariantExpr.Case[] cases) {
 	foreach (MatchVariantExpr.Case case_; cases)
-		trackAllUsedInStruct(res, from, case_.member.decl);
+		trackAllUsedInMatchVariantCase(res, from, case_);
 }
 void trackAllUsedInMatchVariantCase(ref AllUsedBuilder res, Uri from, in MatchVariantExpr.Case case_) {
 	trackAllUsedInStruct(res, from, case_.member.decl);

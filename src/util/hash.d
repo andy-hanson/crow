@@ -65,6 +65,12 @@ HashCode hashPointerAndTaggedPointer(T, U)(in T a, in U b) {
 	static assert(is(T == P*, P));
 	return hashUlongs([cast(ulong) a, b.taggedPointerValueForHash]);
 }
+HashCode hashTaggedPointerAndPointer(T, U)(in T a, in U b) {
+	static assert(is(U == P*, P));
+	return hashUlongs([a.taggedPointerValueForHash, cast(ulong) b]);
+}
+HashCode hashTaggedPointerAndTaggedPointer(T, U)(in T a, in U b) =>
+	hashUlongs([a.taggedPointerValueForHash, b.taggedPointerValueForHash]);
 
 HashCode hashPointerAndTaggedPointers(T, U)(in T* pointer, in U[] taggedPointers) {
 	Hasher hasher;
