@@ -3,7 +3,7 @@ module backend.js.translateToJs;
 @safe @nogc pure nothrow:
 
 import backend.js.allUsed :
-	AllUsed, allUsed, AnyDecl, bodyIsInlined, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
+	AllUsed, allUsed, AnyDecl, bodyIsInlined, isAsyncCall, isAsyncFun, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
 import backend.js.jsAst :
 	compareJsName,
 	genAnd,
@@ -19,7 +19,9 @@ import backend.js.jsAst :
 	genBreak,
 	genBreakNoLabel,
 	genCall,
-	genCallProperty,
+	genCallAwait,
+	genCallPropertySync,
+	genCallSync,
 	genCallWithSpread,
 	genConst,
 	genEmptyStatement,
@@ -80,8 +82,10 @@ import backend.js.jsAst :
 	JsSwitchStatement,
 	JsTryFinallyStatement,
 	JsUnaryExpr,
-	JsVarDecl;
+	JsVarDecl,
+	SyncOrAsync;
 import backend.js.writeJsAst : writeJsAst;
+import frontend.ide.ideUtil : variantMethodCaller;
 import frontend.showModel : ShowCtx, ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
@@ -123,6 +127,7 @@ import model.model :
 	FinallyExpr,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	FunInst,
 	FunKind,
 	FunPointerExpr,
@@ -201,7 +206,8 @@ import util.col.array :
 	only,
 	only2,
 	small,
-	SmallArray;
+	SmallArray,
+	zipPointers;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, buildSmallArray, finish, sizeSoFar;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : KeyValuePair, Map, mustGet;
@@ -251,7 +257,7 @@ TranslateToJsResult translateToJs(
 	assert(!hasFatalDiagnostics(program));
 	VersionInfo version_ = versionInfoForBuildToJS(os, jsTarget);
 	SymbolSet allExterns = allExternsForJs(jsTarget);
-	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
+	AllUsed allUsed = allUsed(alloc, showCtx, program, version_, allExterns);
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
@@ -425,33 +431,37 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 	return ctx.ctx.programWithMainPtr.mainFun.matchIn!(JsStatement[])(
 		(in MainFun.Nat64OfArgs) {
 			if (ctx.isBrowser) {
-				// const exit = main(newList())
+				// const exit = await main(newList())
 				// if (exit !== 0n) throw new Error("Exited with code " + exit)
 				return todo!(JsStatement[])("MAIN IN BROWSER"); // --------------------------------------------------------------------
 			} else {
-				// TODO: this needs to 'await' ----------------------------------------------------------------------------------------
-				// const exit = main(newList(process.argv.slice(1)))
+				// const exit = await main(newList(process.argv.slice(1)))
 				// if (exit !== 0n) process.exit(Number(exit))
 				JsExpr process = genGlobal(symbol!"process");
 				// process.argv.slice(2)
-				JsExpr args = genCallProperty(
+				JsExpr args = genCallPropertySync(
 					ctx.alloc,
 					genPropertyAccess(ctx.alloc, process, symbol!"argv"),
 					symbol!"slice",
 					[genNumber(2)]);
-				JsExpr callMain = genCall(ctx.alloc, mainRef, [genArrayToList(ctx, args)]);
+				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, args)]);
 				JsName exitCode = jsNameNoPrefix(symbol!"exitCode");
 				return newArray(ctx.alloc, [
 					genConst(ctx.alloc, exitCode, callMain),
 					genIf(
 						ctx.alloc,
 						genNotEqEq(ctx.alloc, JsExpr(exitCode), genIntegerUnsigned(0)),
-						JsStatement(genCallProperty(ctx.alloc, process, symbol!"exit", [
-							genCall(ctx.alloc, JsExpr(jsNameNoPrefix(symbol!"Number")), [JsExpr(exitCode)])])))]);
+						JsStatement(genCallPropertySync(ctx.alloc, process, symbol!"exit", [
+							genCallSync(ctx.alloc, JsExpr(jsNameNoPrefix(symbol!"Number")), [JsExpr(exitCode)])])))]);
 			}
 		},
 		(in MainFun.Void) =>
-			newArray(ctx.alloc, [JsStatement(genCall(ctx.alloc, mainRef, []))]));
+			// main().catch(console.error)
+			newArray(ctx.alloc, [JsStatement(genCallPropertySync(
+				ctx.alloc,
+				genCallSync(ctx.alloc, mainRef, []),
+				symbol!"catch",
+				[genPropertyAccess(ctx.alloc, genGlobal(symbol!"console"), symbol!"error")]))]));
 }
 
 struct TranslateModuleCtx {
@@ -734,16 +744,17 @@ JsDecl makeDecl(AnyDecl source, Visibility visibility, JsName name, JsDeclKind v
 JsDecl translateTest(ref TranslateModuleCtx ctx, Test* a) {
 	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
 	return makeDecl(AnyDecl(a), Visibility.public_, testName(ctx, a), JsDeclKind(genArrowFunction(
+		SyncOrAsync.async,
 		JsParams(),
 		translateExprToExprOrBlockStatement(exprCtx, a.body_, Type(ctx.commonTypes.void_)))));
 }
 JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), some(a));
 	JsParams params = translateFunParams(exprCtx, a.params);
-	JsExpr fun = genArrowFunction(params, translateFunBody(exprCtx, a));
+	JsExpr fun = genArrowFunction(isAsyncFun(ctx.allUsed, a), params, translateFunBody(exprCtx, a));
 	JsExpr funWithSpecs = countSigs(a.specs) == 0
 		? fun
-		: genArrowFunction(JsParams(specParams(ctx.alloc, *a)), JsExprOrBlockStatement(allocate(ctx.alloc, fun)));
+		: genArrowFunction(SyncOrAsync.sync, JsParams(specParams(ctx.alloc, *a)), JsExprOrBlockStatement(allocate(ctx.alloc, fun)));
 	return makeDecl(AnyDecl(a), a.visibility, funName(ctx, a), JsDeclKind(funWithSpecs));
 }
 SmallArray!JsDestructure specParams(ref Alloc alloc, in FunDecl a) =>
@@ -822,35 +833,39 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 					// get message() { return this.describe() }
 					out_ ~= JsClassMember(JsClassMember.Static.instance, symbol!"message", JsClassMemberKind(JsClassGetter(
 						JsBlockStatement(newArray(ctx.alloc, [
-							genReturn(ctx.alloc, genCallProperty(ctx.alloc, genThis(), symbol!"describe", []))])))));
+							genReturn(ctx.alloc, genCallPropertySync(ctx.alloc, genThis(), symbol!"describe", []))])))));
 				}
 			});
 
 		foreach (ref VariantAndMethodImpls v; a.variants)
-			foreach (Opt!Called impl; v.methodImpls)
-				if (has(impl))
-					out_ ~= variantMethodImpl(ctx, force(impl));
+			zipPointers(v.variantDeclMethods, v.methodImpls, (Signature* sig, Opt!Called* impl) {
+				if (has(*impl))
+					out_ ~= variantMethodImpl(ctx, FunDeclSource.VariantMethod(v.variant.decl, sig), force(*impl));
+			});
 	});
 	return makeDecl(AnyDecl(a), a.visibility, structName(ctx, a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
 }
 
-JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, Called a) {
+JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, FunDeclSource.VariantMethod variantMethod, Called a) {
 	JsClassMethod method = () {
+		FunDecl* caller = variantMethodCaller(ctx.program, variantMethod);
+		SyncOrAsync async = isAsyncCall(ctx.allUsed, caller, a);
 		if (isInlined(a)) {
 			FunDecl* decl = a.as!(FunInst*).decl;
 			TranslateExprCtx exprCtx = TranslateExprCtx(&ctx, none!(FunDecl*));
 			return JsClassMethod(
+				async,
 				translateFunParams(exprCtx, decl.params),
 				translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-					translateInlineCall(exprCtx, a.returnType, pos, decl.body_, a.paramTypes, a.arity.as!uint, (size_t i) =>
+					translateInlineCall(exprCtx, a.returnType, pos, decl, a.paramTypes, a.arity.as!uint, (size_t i) =>
 						JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
 		} else {
 			// foo(...args) { return foo(this, ...args) }
 			JsName args = localName(symbol!"args");
 			JsParams params = JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args)));
 			JsBlockStatement body_ = genBlockStatement(ctx.alloc, [
-				genReturn(ctx.alloc, genCallWithSpread(ctx.alloc, calledExpr(ctx, none!(FunDecl*), a), [genThis()], JsExpr(args)))]);
-			return JsClassMethod(params, body_);
+				genReturn(ctx.alloc, genCallWithSpread(ctx.alloc, async, calledExpr(ctx, none!(FunDecl*), a), [genThis()], JsExpr(args)))]);
+			return JsClassMethod(async, params, body_);
 		}
 	}();
 	return JsClassMember(JsClassMember.Static.instance, a.name, JsClassMemberKind(method));
@@ -927,6 +942,7 @@ JsClassMember intersectOrUnion(ref TranslateModuleCtx ctx, StructDecl* struct_, 
 	JsName b = localName(symbol!"b");
 	return JsClassMember(JsClassMember.Static.instance, name, JsClassMemberKind(
 		JsClassMethod(
+			SyncOrAsync.sync,
 			JsParams(newSmallArray(ctx.alloc, [JsDestructure(b)])),
 			genBlockStatement(ctx.alloc, [
 				genReturn(ctx.alloc, genNew(ctx.alloc, translateStructReference(ctx, struct_), [
@@ -936,6 +952,7 @@ JsClassMember negate(ref TranslateModuleCtx ctx, StructDecl* struct_, ulong allF
 	// TODO: use a helper function to simplify creating methods -----------------------------------------------------------------------
 	JsClassMember(JsClassMember.Static.instance, symbol!"_negate", JsClassMemberKind(
 		JsClassMethod(
+			SyncOrAsync.sync,
 			JsParams(),
 			genBlockStatement(ctx.alloc, [
 				genReturn(ctx.alloc, genNew(ctx.alloc, translateStructReference(ctx, struct_), [
@@ -1048,7 +1065,7 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 	*/
 	JsName arg = localName(symbol!"arg");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], needSuper, [
-		JsStatement(genCallProperty(ctx.alloc, genGlobal(symbol!"Object"), symbol!"assign", [genThis(), JsExpr(arg)]))]);
+		JsStatement(genCallPropertySync(ctx.alloc, genGlobal(symbol!"Object"), symbol!"assign", [genThis(), JsExpr(arg)]))]);
 	
 	foreach (ref UnionMember member; a.members) {
 		JsClassMemberKind kind = () {
@@ -1060,7 +1077,7 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 				genAssertType(out_, exprCtx, member.type, JsExpr(value));
 				add(ctx.alloc, out_, genReturn(ctx.alloc, genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, JsExpr(value))])));
 				// TODO: use a 'gen...' helper ---------------------------------------------------------------------------------------
-				return JsClassMemberKind(JsClassMethod(params, genBlockStatement(ctx.alloc, finish(ctx.alloc, out_))));
+				return JsClassMemberKind(JsClassMethod(SyncOrAsync.sync, params, genBlockStatement(ctx.alloc, finish(ctx.alloc, out_))));
 			} else
 				return JsClassMemberKind(genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, genNull())]));
 		}();
@@ -1086,11 +1103,11 @@ JsClassMember genConstructor(
 	return JsClassMember(
 		JsClassMember.Static.instance,
 		symbol!"constructor",
-		JsClassMemberKind(JsClassMethod(JsParams(params), body_)));
+		JsClassMemberKind(JsClassMethod(SyncOrAsync.sync, JsParams(params), body_)));
 }
 
 JsExpr super_ = genGlobal(symbol!"super");
-JsStatement genSuper() => JsStatement(genCall(&super_, []));
+JsStatement genSuper() => JsStatement(genCallSync(&super_, []));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 	makeDecl(AnyDecl(a), a.visibility, varName(ctx, a), JsDeclKind(JsDeclKind.Let()));
@@ -1120,7 +1137,7 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 			Destructure[] params = fun.params.as!(Destructure[]);
 			Type[] paramTypes = map(ctx.alloc, params, (ref Destructure x) => x.type); // TODO: NO ALLOC ---------------------------
 			return translateToExprOrBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-				translateInlineCall(ctx, fun.returnType, pos, fun.body_, paramTypes, params.length, (size_t i) =>
+				translateInlineCall(ctx, fun.returnType, pos, fun, paramTypes, params.length, (size_t i) =>
 					translateLocalGet(params[i].as!(Local*))));
 		}
 	}
@@ -1245,8 +1262,13 @@ JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0
 JsExpr translateCall(ref TranslateExprCtx ctx, Called called, in JsExpr[] args) =>
 	isInlined(called)
 		? translateToExpr((scope ExprPos pos) =>
-			translateInlineCall(ctx, called.returnType, pos, called.as!(FunInst*).decl.body_, called.paramTypes, args.length, (size_t i) => args[i]))
-		: genCall(ctx.alloc, calledExpr(ctx, called), args);
+			translateInlineCall(ctx, called.returnType, pos, called.as!(FunInst*).decl, called.paramTypes, args.length, (size_t i) => args[i]))
+		: genCall(ctx.alloc, isAsyncCall(ctx, called), calledExpr(ctx, called), args);
+
+SyncOrAsync isCurFunAsync(in TranslateExprCtx ctx) =>
+	has(ctx.curFun) ? isAsyncFun(ctx.ctx.allUsed, force(ctx.curFun)) : SyncOrAsync.async;
+SyncOrAsync isAsyncCall(in TranslateExprCtx ctx, in Called called) =>
+	isAsyncCall(ctx.ctx.allUsed, ctx.curFun, called);
 
 JsExprOrBlockStatement translateRecordToJson(ref TranslateExprCtx ctx, StructDecl* json, in AutoFun auto_, RecordField[] fields, JsExpr p0) =>
 	JsExprOrBlockStatement(allocate(ctx.alloc, genNewJson(ctx.ctx, mapWithIndex!(JsExpr, RecordField)(ctx.alloc, fields, (size_t i, ref RecordField field) =>
@@ -1274,7 +1296,7 @@ JsExprOrBlockStatement translateUnionToJson(ref TranslateExprCtx ctx, StructDecl
 								translateCall(ctx, auto_.members[index], [genPropertyAccess(ctx.alloc, p0, member.name)]))]))),
 					else_))]));
 JsExpr genNewJson(ref TranslateModuleCtx ctx, JsExpr[] pairs) =>
-	genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newJsonFromPairs.decl)), pairs);
+	genCallAwait(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newJsonFromPairs.decl)), pairs);
 JsExpr genNewPair(ref TranslateModuleCtx ctx, JsExpr a, JsExpr b) =>
 	genNew(ctx.alloc, translateStructReference(ctx, ctx.commonTypes.pair), [a, b]);
 JsExpr genTuple(ref TranslateExprCtx ctx, JsExpr[] args) {
@@ -1350,7 +1372,7 @@ JsExprOrBlockStatement toExprOrBlockStatement(ref Alloc alloc, ExprResult result
 JsBlockStatement translateExprToSwitchBlockStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
 	isVoid(type)
 		? translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-			forceStatements(ctx.alloc, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
+			forceStatements(ctx, pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 				ExprResult result = translateExpr(ctx, a, type, inner);
 				assert(result.isA!(ExprResult.Done));
 				add(ctx.alloc, out_, genBreakNoLabel());
@@ -1371,13 +1393,11 @@ ExprResult forceExpr(ref Alloc alloc, scope ExprPos pos, Type type, JsExpr expr)
 			return ExprResult.done;
 		});
 ExprResult forceStatements(ref TranslateExprCtx ctx, scope ExprPos pos, in StatementsCb cb) =>
-	forceStatements(ctx.alloc, pos, cb);
-ExprResult forceStatements(ref Alloc alloc, scope ExprPos pos, in StatementsCb cb) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
-			ExprResult(genIife(alloc, makeBlockStatement(alloc, cb))),
+			ExprResult(genIife(ctx.alloc, isCurFunAsync(ctx), makeBlockStatement(ctx.alloc, cb))),
 		(ExprPos.ExpressionOrBlockStatement) =>
-			ExprResult(makeBlockStatement(alloc, cb)),
+			ExprResult(makeBlockStatement(ctx.alloc, cb)),
 		(ref ExprPos.Statements x) =>
 			cb(x.statements, pos));
 JsBlockStatement makeBlockStatement(ref Alloc alloc, in ExprResult delegate(scope ref ArrayBuilder!JsStatement, scope ExprPos) @safe @nogc pure nothrow cb) {
@@ -1388,11 +1408,11 @@ JsBlockStatement makeBlockStatement(ref Alloc alloc, in ExprResult delegate(scop
 }
 
 ExprResult forceStatement(ref TranslateExprCtx ctx, scope ExprPos pos, JsStatement statement) =>
-	forceStatement(ctx.alloc, pos, statement);
-ExprResult forceStatement(ref Alloc alloc, scope ExprPos pos, JsStatement statement) =>
+	forceStatement(ctx.alloc, isCurFunAsync(ctx), pos, statement);
+ExprResult forceStatement(ref Alloc alloc, SyncOrAsync curFunAsync, scope ExprPos pos, JsStatement statement) =>
 	pos.match!ExprResult(
 		(ExprPos.Expression) =>
-			ExprResult(genIife(alloc, genBlockStatement(alloc, [statement]))),
+			ExprResult(genIife(alloc, curFunAsync, genBlockStatement(alloc, [statement]))),
 		(ExprPos.ExpressionOrBlockStatement) =>
 			ExprResult(genBlockStatement(alloc, [statement])),
 		(ref ExprPos.Statements x) {
@@ -1499,9 +1519,10 @@ ExprResult translateAssertOrForbid(ref TranslateExprCtx ctx, ref Expr expr, ref 
 ExprResult translateCall(ref TranslateExprCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) {
 	assert(type == a.called.returnType);
 	return isInlined(a.called)
-		? translateInlineCall(ctx, type, pos, a.called.as!(FunInst*).decl.body_, a.called.as!(FunInst*).paramTypes, a.args.length, (size_t argIndex) =>
+		? translateInlineCall(ctx, type, pos, a.called.as!(FunInst*).decl, a.called.as!(FunInst*).paramTypes, a.args.length, (size_t argIndex) =>
 			translateExprToExpr(ctx, a.args[argIndex], paramTypeAt(a.called, argIndex)))
 		: forceExpr(ctx, pos, type, genCall(
+			isAsyncCall(ctx, a.called),
 			allocate(ctx.alloc, calledExpr(ctx, a.called)),
 			mapWithIndex!(JsExpr, Expr)(ctx.alloc, a.args, (size_t argIndex, ref Expr arg) =>
 				translateExprToExpr(ctx, arg, paramTypeAt(a.called, argIndex)))));
@@ -1521,9 +1542,9 @@ ExprResult translateCallOption(ref TranslateExprCtx ctx, ref CallOptionExpr a, T
 		JsExpr call = isInlined(a.called)
 			// TODO: share code with translateCall? -----------------------------------------------------------------------------------
 			? translateToExpr((scope ExprPos callPos) =>
-				translateInlineCall(ctx, a.called.returnType, callPos, a.called.as!(FunInst*).decl.body_, a.called.as!(FunInst*).paramTypes, 1 + a.restArgs.length, (size_t argIndex) =>
+				translateInlineCall(ctx, a.called.returnType, callPos, a.called.as!(FunInst*).decl, a.called.as!(FunInst*).paramTypes, 1 + a.restArgs.length, (size_t argIndex) =>
 					argIndex == 0 ? forceIt : translateExprToExpr(ctx, a.restArgs[argIndex - 1], paramTypeAt(a.called, argIndex))))
-			: genCall(allocate(ctx.alloc, calledExpr(ctx, a.called)),
+			: genCall(isAsyncCall(ctx, a.called), allocate(ctx.alloc, calledExpr(ctx, a.called)),
 				buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
 					out_ ~= forceIt;
 					foreach (size_t index, ref Expr arg; a.restArgs)
@@ -1546,7 +1567,7 @@ ExprResult translateInlineCall(
 	ref TranslateExprCtx ctx,
 	Type returnType,
 	scope ExprPos pos,
-	in FunBody body_,
+	in FunDecl* called,
 	Type[] paramTypes,
 	size_t nArgs,
 	in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg,
@@ -1567,7 +1588,7 @@ ExprResult translateInlineCall(
 		translateStructReference(ctx, returnType.as!(StructInst*).decl);
 	JsExpr recordField(size_t fieldIndex) =>
 		genPropertyAccess(ctx.alloc, getArg(0), recordFieldName(paramTypes[0], fieldIndex));
-	return body_.matchIn!ExprResult(
+	return called.body_.matchIn!ExprResult(
 		(in FunBody.Bogus) =>
 			todo!ExprResult("BOGUS"),
 		(in AutoFun x) =>
@@ -1585,7 +1606,7 @@ ExprResult translateInlineCall(
 		(in FunBody.CreateUnion x) {
 			JsExpr member = genPropertyAccess(ctx.alloc, returnTypeRef, x.member.name);
 			assert(nArgs == 0 || nArgs == 1);
-			return expr(nArgs == 0 ? member : genCall(ctx.alloc, member, [getArg(0)]));
+			return expr(nArgs == 0 ? member : genCallSync(ctx.alloc, member, [getArg(0)]));
 		},
 		(in FunBody.CreateVariant) =>
 			expr(onlyArg()),
@@ -1598,7 +1619,7 @@ ExprResult translateInlineCall(
 		(in FunBody.FileImport) =>
 			assert(false),
 		(in FunBody.RecordFieldCall x) =>
-			expr(genCall(
+			expr(genCallAwait(
 				allocate(ctx.alloc, recordField(x.fieldIndex)),
 				x.funKind == FunKind.function_
 					? args(skip: 1)
@@ -1627,6 +1648,7 @@ ExprResult translateInlineCall(
 			todo!ExprResult("VARIANT MEMBER GET"), // ------------------------------------------------------------------------------
 		(in FunBody.VariantMethod x) =>
 			expr(genCall(
+				isAsyncFun(ctx.ctx.allUsed, called),
 				allocate(ctx.alloc, genPropertyAccess(
 					ctx.alloc,
 					getArg(0),
@@ -1685,10 +1707,10 @@ ExprResult translateCallBuiltin(
 		(in Builtin4ary x) =>
 			assert(false),
 		(in BuiltinFun.CallLambda) =>
-			expr(genCall(ctx.alloc, getArg(0), [
+			expr(genCallAwait(ctx.alloc, getArg(0), [
 				genTuple(ctx, makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1)))])),
 		(in BuiltinFun.CallFunPointer) =>
-			expr(genCall(allocate(ctx.alloc, getArg(0)), makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1)))),
+			expr(genCallAwait(allocate(ctx.alloc, getArg(0)), makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1)))),
 		(in Constant x) {
 			assert(nArgs == 0);
 			return expr(translateConstant(ctx.ctx, x, returnType));
@@ -1728,8 +1750,8 @@ JsExpr translateEnumOrFlagsFunction(
 	JsExpr call(Symbol name) {
 		assert(nArgs == 1 || nArgs == 2);
 		return nArgs == 1
-			? genCallProperty(ctx.alloc, getArg(0), name, [])
-			: genCallProperty(ctx.alloc, getArg(0), name, [getArg(1)]);
+			? genCallPropertySync(ctx.alloc, getArg(0), name, [])
+			: genCallPropertySync(ctx.alloc, getArg(0), name, [getArg(1)]);
 	}
 	JsExpr staticProperty(Type enumOrFlags, Symbol name) =>
 		genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags.as!(StructInst*).decl), name);
@@ -1783,7 +1805,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			// These are 'native extern'
 			assert(false);
 		case BuiltinUnary.arraySize:
-			return genCall(alloc, BigInt, [genPropertyAccess(alloc, arg, symbol!"length")]);
+			return genCallSync(alloc, BigInt, [genPropertyAccess(alloc, arg, symbol!"length")]);
 		case BuiltinUnary.bitwiseNotNat8:
 			return genAsNat8(alloc, bitwiseNot());
 		case BuiltinUnary.bitwiseNotNat16:
@@ -1794,19 +1816,19 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			return genAsNat64(alloc, bitwiseNot());
 		case BuiltinUnary.countOnesNat64:
 			// Array.from(n.toString(2))
-			JsExpr digits = genCallProperty(alloc, Array, symbol!"from", [
-				genCallProperty(alloc, arg, symbol!"toString", [genNumber(2)])]);
+			JsExpr digits = genCallPropertySync(alloc, Array, symbol!"from", [
+				genCallPropertySync(alloc, arg, symbol!"toString", [genNumber(2)])]);
 			JsName x = localName(symbol!"x");
 			// x => x === "1"
-			JsExpr fn = genArrowFunction(alloc, [JsDestructure(x)], genEqEqEq(alloc, JsExpr(x), genString("1")));
+			JsExpr fn = genArrowFunction(alloc, SyncOrAsync.sync, [JsDestructure(x)], genEqEqEq(alloc, JsExpr(x), genString("1")));
 			// BigInt(Array.from(n.toString(2)).filter(x => x === "1").length)
-			return genCall(alloc, BigInt, [
-				genPropertyAccess(alloc, genCallProperty(alloc, digits, symbol!"filter", [fn]), symbol!"length")]);
+			return genCallSync(alloc, BigInt, [
+				genPropertyAccess(alloc, genCallPropertySync(alloc, digits, symbol!"filter", [fn]), symbol!"length")]);
 		case BuiltinUnary.enumToIntegral:
 			return todo!JsExpr("Enum to integral value");
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
-			return genCallProperty(alloc, Number, symbol!"isNaN", [arg]);
+			return genCallPropertySync(alloc, Number, symbol!"isNaN", [arg]);
 		case BuiltinUnary.not:
 			return genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 		case BuiltinUnary.toChar8FromNat8:
@@ -1835,14 +1857,14 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			return arg;
 		case BuiltinUnary.toFloat64FromInt64:
 		case BuiltinUnary.toFloat64FromNat64:
-			return genCall(alloc, Number, [arg]);
+			return genCallSync(alloc, Number, [arg]);
 		case BuiltinUnary.toChar8ArrayFromString:
 			// Array.from(new TextEncoder().encode(arg)).map(BigInt)
-			return genCallProperty(
+			return genCallPropertySync(
 				alloc,
 				genArrayFrom(
 					alloc,
-					genCallProperty(
+					genCallPropertySync(
 						alloc,
 						genNew(alloc, genGlobal(symbol!"TextEncoder"), []),
 						symbol!"encode",
@@ -1850,18 +1872,18 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 				symbol!"map",
 				[BigInt]);
 		case BuiltinUnary.truncateToInt64FromFloat64:
-			return genCall(alloc, BigInt, [callMath(alloc, symbol!"trunc", arg)]);
+			return genCallSync(alloc, BigInt, [callMath(alloc, symbol!"trunc", arg)]);
 		case BuiltinUnary.trustAsString:
 			// new TextDecoder().decode(new Uint8Array(arg.map(Number)))
-			return genCallProperty(
+			return genCallPropertySync(
 				alloc,
 				genNew(alloc, genGlobal(symbol!"TextDecoder"), []),
 				symbol!"decode",
-				[genNew(alloc, genGlobal(symbol!"Uint8Array"), [genCallProperty(alloc, arg, symbol!"map", [Number])])]);
+				[genNew(alloc, genGlobal(symbol!"Uint8Array"), [genCallPropertySync(alloc, arg, symbol!"map", [Number])])]);
 	}
 }
 JsExpr genArrayFrom(ref Alloc alloc, JsExpr arg) =>
-	genCallProperty(alloc, genGlobal(symbol!"Array"), symbol!"from", [arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"Array"), symbol!"from", [arg]);
 
 JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) {
 	JsExpr f32(Symbol name) =>
@@ -1940,12 +1962,12 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 	}
 }
 JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
-	genCallProperty(alloc, genGlobal(symbol!"Math"), name, [arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"Math"), name, [arg]);
 JsExpr toFloat32(ref Alloc alloc, JsExpr arg) =>
 	callMath(alloc, symbol!"fround", arg);
 
 JsExpr genAsNat(ref Alloc alloc, uint bits, JsExpr arg) =>
-	genCallProperty(alloc, genGlobal(symbol!"BigInt"), symbol!"asUintN", [genNumber(bits), arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"BigInt"), symbol!"asUintN", [genNumber(bits), arg]);
 JsExpr genAsNat8(ref Alloc alloc, JsExpr arg) =>
 	genAsNat(alloc, 8, arg);
 JsExpr genAsNat16(ref Alloc alloc, JsExpr arg) =>
@@ -2145,7 +2167,7 @@ ExprResult translateBuiltinBinaryLazy(
 
 JsExpr translateBuiltinBinaryMath(ref TranslateExprCtx ctx, BuiltinBinaryMath kind, JsExpr left, JsExpr right) {
 	JsExpr Math = genGlobal(symbol!"Math");
-	JsExpr atan2 = genCallProperty(ctx.alloc, Math, symbol!"atan2", [left, right]);
+	JsExpr atan2 = genCallPropertySync(ctx.alloc, Math, symbol!"atan2", [left, right]);
 	final switch (kind) {
 		case BuiltinBinaryMath.atan2Float32:
 			return toFloat32(ctx.alloc, atan2);
@@ -2177,7 +2199,7 @@ ExprResult translateCallJsFun(
 			assert(nArgs == 1);
 			return expr(genAwait(ctx.alloc, getArg(0)));
 		case JsFun.call:
-			return expr(genCall(
+			return expr(genCallSync(
 				allocate(ctx.alloc, getArg(0)),
 				makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
 		case JsFun.callNew:
@@ -2189,13 +2211,14 @@ ExprResult translateCallJsFun(
 			return expr(getArg(0));
 		case JsFun.callProperty:
 			assert(nArgs >= 2);
-			return expr(genCall(
+			return expr(genCallSync(
 				allocate(ctx.alloc, genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1))),
 				makeArray(ctx.alloc, nArgs - 2, (size_t i) => getArg(i + 2))));
 		case JsFun.callPropertySpread:
 			assert(nArgs == 3);
 			return expr(genCallWithSpread(
 				ctx.alloc,
+				SyncOrAsync.sync,
 				genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)),
 				[],
 				getArg(2)));
@@ -2213,7 +2236,7 @@ ExprResult translateCallJsFun(
 			return binary(JsBinaryExpr.Kind.plus);
 		case JsFun.set:
 			assert(nArgs == 3);
-			return forceStatement(ctx.alloc, pos, genAssign(
+			return forceStatement(ctx.alloc, SyncOrAsync.sync, pos, genAssign(
 				ctx.alloc,
 				genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)),
 				getArg(2)));
@@ -2285,7 +2308,7 @@ JsExpr genOptionHas(ref Alloc alloc, JsExpr option) =>
 JsExpr genOptionForce(ref Alloc alloc, JsExpr option) =>
 	genPropertyAccess(alloc, option, symbol!"some");
 JsExpr genOptionSome(ref TranslateExprCtx ctx, Type option, JsExpr arg) =>
-	genCallProperty(
+	genCallPropertySync(
 		ctx.alloc,
 		translateStructReference(ctx, option.as!(StructInst*).decl),
 		symbol!"some",
@@ -2295,6 +2318,7 @@ JsExpr genOptionNone(ref TranslateExprCtx ctx, Type option) =>
 
 ExprResult translateLambda(ref TranslateExprCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(
+		SyncOrAsync.async,
 		JsParams(newSmallArray(ctx.alloc, [translateDestructure(ctx, a.param)])),
 		translateExprToExprOrBlockStatement(ctx, a.body_, a.returnType))));
 
@@ -2386,9 +2410,9 @@ JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, ref LiteralStringLik
 	}
 }
 JsExpr genNewList(ref TranslateModuleCtx ctx, JsExpr[] elements) =>
-	genCall(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
+	genCallSync(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
 JsExpr genArrayToList(ref TranslateModuleCtx ctx, JsExpr array) =>
-	genCallWithSpread(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList), [], array);
+	genCallWithSpread(ctx.alloc, SyncOrAsync.sync, translateFunReference(ctx, ctx.program.commonFuns.newTList), [], array);
 
 JsExpr translateLocalGet(in Local* local) =>
 	JsExpr(localName(*local));
@@ -2681,12 +2705,12 @@ JsExpr calledExpr(ref TranslateExprCtx ctx, in Called a) =>
 JsExpr calledExpr(ref TranslateModuleCtx ctx, Opt!(FunDecl*) curFun, in Called a) =>
 	a.match!JsExpr(
 		(ref Called.Bogus x) =>
-			genIife(ctx.alloc, genBlockStatement(ctx.alloc, [genThrowBogus(ctx.alloc)])),
+			genIife(ctx.alloc, SyncOrAsync.sync, genBlockStatement(ctx.alloc, [genThrowBogus(ctx.alloc)])),
 		(ref FunInst x) {
 			JsExpr fun = translateFunReference(ctx, x.decl);
 			return isEmpty(x.specImpls)
 				? fun
-				: genCall(
+				: genCallSync(
 					allocate(ctx.alloc, fun),
 					map(ctx.alloc, x.specImpls, (ref Called x) => calledExpr(ctx, curFun, x)));
 		},

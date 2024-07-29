@@ -142,6 +142,11 @@ Throws if `dest` and `source` are not the same size.
 +set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-slice) bare
 	dest[range to-range dest.size] := source
 
++swap[t] void(a t mut-slice, i nat64, j nat64) bare
+	temp = a[i]
+	a[i] := a[j]
+	a[j] := temp
+
 +mut-slice[t] record by-val
 	-inner t mut-array
 	-range nat64 range

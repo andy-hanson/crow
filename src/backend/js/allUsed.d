@@ -2,7 +2,9 @@ module backend.js.allUsed;
 
 @safe @nogc pure nothrow:
 
+import backend.js.jsAst : SyncOrAsync;
 import frontend.ide.ideUtil : variantMethodCaller;
+import frontend.showModel : ShowCtx, ShowTypeCtx, writeFunDecl;
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -38,6 +40,7 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunInst,
+	FunKind,
 	getCalledAtExpr,
 	IfExpr,
 	JsFun,
@@ -73,7 +76,7 @@ import util.col.array : zipPointers;
 import util.col.map : Map, mustGet;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
-import util.col.mutMultiMap : add, eachValueForKey, MutMultiMap;
+import util.col.mutMultiMap : add, countKeys, countPairs, eachValueForKey, MutMultiMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
 import util.hash : HashCode, hashPointers;
@@ -84,6 +87,7 @@ import util.symbolSet : SymbolSet;
 import util.union_ : TaggedUnion;
 import util.uri : Uri;
 import util.util : ptrTrustMe, todo;
+import util.writer : debugLogWithWriter, Writer; // -------------------------------------------------------------------------
 import versionInfo : isVersion, VersionInfo, VersionFun;
 
 immutable struct AnyDecl {
@@ -132,9 +136,10 @@ immutable struct AnyDecl {
 }
 // This does not include FunDecl if the body would be inlined
 immutable struct AllUsed {
-	Map!(Uri, Set!AnyDecl) usedByModule; // This will let us know exactly what each module needs to import.
+	private:
+	public Map!(Uri, Set!AnyDecl) usedByModule; // This will let us know exactly what each module needs to import. TODO: PRIVATE
 	Set!AnyDecl usedDecls;
-	Set!(FunDecl*) asyncFuns;
+	AsyncSets async;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
 	x in a.usedDecls;
@@ -153,6 +158,23 @@ bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
 	return has(set) && x in force(set);
 }
 
+private immutable struct AsyncSets {
+	Set!(FunDecl*) asyncFuns;
+	Set!(FunAndSpecSig) asyncSpecSigs;
+}
+SyncOrAsync isAsyncFun(in AllUsed a, FunDecl* fun) =>
+	fun in a.async.asyncFuns ? SyncOrAsync.async : SyncOrAsync.sync;
+SyncOrAsync isAsyncCall(in AllUsed a, in FunDecl* caller, in Called called) =>
+	isAsyncCall(a, some(caller), called);
+SyncOrAsync isAsyncCall(in AllUsed a, in Opt!(FunDecl*) caller, in Called called) =>
+	called.matchIn!SyncOrAsync(
+		(in Called.Bogus) =>
+			SyncOrAsync.sync,
+		(in FunInst x) =>
+			isAsyncFun(a, x.decl),
+		(in CalledSpecSig x) =>
+			FunAndSpecSig(force(caller), x.nonInstantiatedSig) in a.async.asyncSpecSigs ? SyncOrAsync.async : SyncOrAsync.sync);
+
 immutable struct FunOrTest {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(FunDecl*, Test*);
@@ -169,7 +191,7 @@ Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 		(FunDecl* x) => some(x),
 		(Test* _) => none!(FunDecl*));
 
-AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
+AllUsed allUsed(ref Alloc alloc, in ShowCtx showCtx, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) { // TODO: showCtx unused
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.regular);
 	// Main module needs to create a new list
@@ -179,7 +201,7 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),
 		moveToSet(res.usedDecls),
-		allAsyncFuns(res));
+		allAsyncFuns(res, showCtx));
 }
 
 bool bodyIsInlined(in FunDecl a) =>
@@ -259,34 +281,91 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 
 private:
 
-Set!(FunDecl*) allAsyncFuns(ref AllUsedBuilder builder) {
-	MutSet!(FunDecl*) res;
-	MutArr!(FunDecl*) toProcess;
-	push(builder.alloc, toProcess, builder.program.commonFuns.await);
-	
-	void addFun(FunDecl* x) {
-		if (mayAddToMutSet(builder.alloc, res, x))
-			push(builder.alloc, toProcess, x);
+AsyncSets allAsyncFuns(ref AllUsedBuilder builder, in ShowCtx showCtx) {
+	MutSet!(FunDecl*) asyncFuns;
+	MutSet!(FunAndSpecSig) asyncSpecSigs;
+	MutArr!(FunDecl*) funsToProcess;
+
+	scope ShowTypeCtx showTypeCtx = ShowTypeCtx(showCtx, builder.program.commonTypes);
+
+	debugLogWithWriter((scope ref Writer writer) { // --------------------------------------------------------------------------
+		writer ~= "Top of allAsyncFuns:\n";
+		writer ~= "countKeys(funToCallers) is ";
+		writer ~= countKeys(builder.funToCallers);
+		writer ~= " ";
+		writer ~= countPairs(builder.funToCallers);
+		writer ~= "\nfunToUsedAsSpecImpl: ";
+		writer ~= countKeys(builder.funToUsedAsSpecImpl);
+		writer ~= " ";
+		writer ~= countPairs(builder.funToUsedAsSpecImpl);
+		writer ~= "\nspecSigToUsedAsSpecImpl: ";
+		writer ~= countKeys(builder.specSigToUsedAsSpecImpl);
+		writer ~= " ";
+		writer ~= countPairs(builder.specSigToUsedAsSpecImpl);
+	});
+
+	bool addFun(FunDecl* x) {
+		bool res = mayAddToMutSet(builder.alloc, asyncFuns, x);
+		if (res)
+			push(builder.alloc, funsToProcess, x);
+		return res;
 	}
+
+	addFun(builder.program.commonFuns.await);
+	foreach (FunKind _, ref immutable FunDecl* f; builder.program.commonFuns.lambdaSubscript)
+		addFun(f);
 
 	void recurFunAndSpecSig(FunAndSpecSig x) @safe @nogc nothrow {
 		addFun(x.fun);
-		eachValueForKey(builder.specSigToUsedAsSpecImpl, x, (FunAndSpecSig y) {
-			recurFunAndSpecSig(y);
-		});
+		bool addedIt = mayAddToMutSet(builder.alloc, asyncSpecSigs, x); // TODO: INLINE ----------------------------------------------------
+		if (addedIt) {
+			if (x.fun.name == symbol!"size" || x.specSig.name == symbol!"size") {
+				debugLogWithWriter((scope ref Writer writer) { // ------------------------------------------------------------------------
+					writer ~= "Added an async spec sig ";
+					writeFunAndSpecSig(writer, showTypeCtx, x);
+				});
+			}
+
+			eachValueForKey(builder.specSigToUsedAsSpecImpl, x, (FunAndSpecSig y) {
+				if (x.fun.name == symbol!"size" || x.specSig.name == symbol!"size" || y.fun.name == symbol!"size" || y.specSig.name == symbol!"size") {
+					debugLogWithWriter((scope ref Writer writer) {
+						writer ~= "The spec sig is also used as a spec impl: ";
+						writeFunAndSpecSig(writer, showTypeCtx, y);						
+					});
+				}
+				recurFunAndSpecSig(y);
+			});
+		}
 	}
 
-	while (!mutArrIsEmpty(toProcess)) {
-		FunDecl* decl = mustPop(toProcess);
-		eachValueForKey(builder.funToCallers, decl, (FunDecl* caller) {
+	while (!mutArrIsEmpty(funsToProcess)) {
+		FunDecl* fun = mustPop(funsToProcess);
+		eachValueForKey(builder.funToCallers, fun, (FunDecl* caller) {
 			addFun(caller);
 		});
-		eachValueForKey(builder.funToUsedAsSpecImpl, decl, (FunAndSpecSig x) {
+		eachValueForKey(builder.funToUsedAsSpecImpl, fun, (FunAndSpecSig x) {
+			if (fun.name == symbol!"size") {
+				debugLogWithWriter((scope ref Writer writer) { // ------------------------------------------------------------------------
+					writer ~= "This function is used as a spec impl: ";
+					writeFunDecl(writer, showTypeCtx, fun);
+					writer ~= "   used by ";
+					writeFunAndSpecSig(writer, showTypeCtx, x);
+				});
+			}
+
 			recurFunAndSpecSig(x);
 		});
 	}
 
-	return moveToSet(res);
+	return AsyncSets(moveToSet(asyncFuns), moveToSet(asyncSpecSigs));
+}
+
+void writeFunAndSpecSig(scope ref Writer writer, in ShowTypeCtx showTypeCtx, in FunAndSpecSig a) {
+	writer ~= "{fun:";
+	writeFunDecl(writer, showTypeCtx, a.fun);
+	writer ~= ", sig:";
+	writer ~= a.specSig.name;
+	writer ~= "}";
 }
 
 struct AllUsedBuilder {
@@ -342,7 +421,7 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 		trackAllUsedInStructBody(res, a.moduleUri, a.body_);
 		foreach (VariantAndMethodImpls x; a.variants) {
 			trackAllUsedInStruct(res, a.moduleUri, x.variant.decl);
-			add(res.alloc, res.variantMembers, x.variant.decl, a);
+			add(res.alloc, res.variantMembers, x.variant.decl, a); // TODO: I think we should just add to callers directly -------------------------
 			zipPointers(x.variantDeclMethods, x.methodImpls, (Signature* method, Opt!Called* impl) {
 				if (has(*impl))
 					trackAllUsedInCalled(
@@ -408,8 +487,11 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 					case AutoFun.Kind.equals:
 						break;
 					case AutoFun.Kind.compare:
+						usedReturnType(a.moduleUri);
+						break;
 					case AutoFun.Kind.toJson:
 						usedReturnType(a.moduleUri);
+						trackAllUsedInCalled(res, a.moduleUri, some(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
 						break;
 				}
 				foreach (Called called; x.members)
@@ -499,28 +581,38 @@ void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) calle
 	called.match!void(
 		(ref Called.Bogus) {},
 		(ref FunInst calledInst) {
-			FunDecl* calledDecl = calledInst.decl;
-			trackAllUsedInFun(res, from, calledDecl, funUse);
-			if (has(caller)) add(res.alloc, res.funToCallers, calledDecl, force(caller));
-			eachSpecSigAndImpl(*calledDecl, calledInst.specImpls, (SpecInst* spec, Signature* sig, Called impl) {
-				impl.match!void(
-					(ref Called.Bogus) {},
-					(ref FunInst x) {
-						add(res.alloc, res.funToUsedAsSpecImpl, x.decl, FunAndSpecSig(calledDecl, sig));
-					},
-					(CalledSpecSig x) {
-						if (has(caller))
-							add(
-								res.alloc,
-								res.specSigToUsedAsSpecImpl,
-								FunAndSpecSig(calledDecl, sig),
-								FunAndSpecSig(force(caller), x.nonInstantiatedSig));
-					});
-				trackAllUsedInCalled(res, from, caller, impl, FunUse.noInline);
-			});
+			trackAllUsedInCalledFunInst(res, from, caller, calledInst, funUse);
 		},
 		(CalledSpecSig x) {
 			// Functions are presumed to call their specs, so nothing to do here.
+		});
+}
+void trackAllUsedInCalledFunInst(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) caller, ref FunInst calledInst, FunUse funUse) {
+	FunDecl* calledDecl = calledInst.decl;
+	trackAllUsedInFun(res, from, calledDecl, funUse);
+	if (has(caller))
+		add(res.alloc, res.funToCallers, calledDecl, force(caller));
+	eachSpecSigAndImpl(*calledDecl, calledInst.specImpls, (SpecInst* spec, Signature* sig, Called impl) {
+		trackAllUsedInSpecImpl(res, caller, calledDecl, spec, sig, impl);
+		trackAllUsedInCalled(res, from, caller, impl, FunUse.noInline);
+	});
+}
+void trackAllUsedInSpecImpl(ref AllUsedBuilder res, Opt!(FunDecl*) caller, FunDecl* calledDecl, SpecInst* spec, Signature* sig, Called impl) {
+	impl.match!void(
+		(ref Called.Bogus) {},
+		(ref FunInst x) {
+			add(res.alloc, res.funToUsedAsSpecImpl, x.decl, FunAndSpecSig(calledDecl, sig));
+			eachSpecSigAndImpl(*x.decl, x.specImpls, (SpecInst* spec2, Signature* sig2, Called impl2) {
+				trackAllUsedInSpecImpl(res, caller, x.decl, spec2, sig2, impl2);
+			});
+		},
+		(CalledSpecSig x) {
+			if (has(caller))
+				add(
+					res.alloc,
+					res.specSigToUsedAsSpecImpl,
+					FunAndSpecSig(force(caller), x.nonInstantiatedSig),
+					FunAndSpecSig(calledDecl, sig));
 		});
 }
 

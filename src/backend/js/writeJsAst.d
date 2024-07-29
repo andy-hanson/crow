@@ -49,7 +49,8 @@ import backend.js.jsAst :
 	JsTryFinallyStatement,
 	JsUnaryExpr,
 	JsVarDecl,
-	JsWhileStatement;
+	JsWhileStatement,
+	SyncOrAsync;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
@@ -74,7 +75,7 @@ string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsM
 			writeDecl(writer, showCtx, x);
 		foreach (JsStatement x; a.statements) {
 			writeNewline(writer, 0);
-			writeStatement(writer, 0, x);
+			writeStatement(writer, 0, x, StatementPos.nonFirst);
 		}
 	});
 
@@ -296,6 +297,8 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 	}
 	if (member.kind.isA!JsClassGetter)
 		writer ~= "get ";
+	if (member.kind.isA!JsClassMethod)
+		maybeWriteAsync(writer, member.kind.as!JsClassMethod.async);
 	writeNamePossiblyBracketQuoted(writer, member.name);
 	member.kind.matchIn!void(
 		(in JsClassGetter x) {
@@ -346,9 +349,9 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 
 void writeBlockStatement(scope ref Writer writer, uint indent, in JsBlockStatement a) {
 	writer ~= '{';
-	foreach (JsStatement x; a.statements) {
+	foreach (size_t index, JsStatement x; a.statements) {
 		writeNewline(writer, indent + 1);
-		writeStatement(writer, indent + 1, x);
+		writeStatement(writer, indent + 1, x, index == 0 ? StatementPos.first : StatementPos.nonFirst);
 	}
 	writeNewline(writer, indent);
 	writer ~= '}';
@@ -366,7 +369,8 @@ void writeExprOrBlockStatementIndented(scope ref Writer writer, uint indent, in 
 		});
 }
 
-void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
+enum StatementPos { first, nonFirst }
+void writeStatement(scope ref Writer writer, uint indent, in JsStatement a, StatementPos pos) {
 	a.matchIn!void(
 		(in JsAssignStatement x) {
 			writeAssign(writer, indent, x);
@@ -388,7 +392,14 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a) {
 			writer ~= "{}";
 		},
 		(in JsExpr x) {
-			writeExpr(writer, indent, x, ExprPos.statement);
+			writeExpr(writer, indent, x, () {
+				final switch (pos) {
+					case StatementPos.first:
+						return ExprPos.statementFirst;
+					case StatementPos.nonFirst:
+						return ExprPos.statementNonFirst;
+				}
+			}());
 		},
 		(in JsIfStatement x) {
 			writeIf(writer, indent, x);
@@ -430,7 +441,7 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 	writer ~= "if (";
 	writeExpr(writer, indent + 2, a.cond);
 	writer ~= ")";
-	bool wasBlock = writeStatementIndented(writer, indent, a.then);
+	bool wasBlock = writeStatementIndented(writer, indent, a.then, StatementPos.first);
 	if (has(a.else_)) {
 		if (wasBlock)
 			writer ~= ' ';
@@ -440,9 +451,9 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 		JsStatement else_ = force(a.else_);
 		if (else_.isA!(JsIfStatement*)) {
 			writer ~= ' ';
-			writeStatement(writer, indent, else_);
+			writeStatement(writer, indent, else_, StatementPos.first);
 		} else
-			cast(void) writeStatementIndented(writer, indent, else_);
+			cast(void) writeStatementIndented(writer, indent, else_, StatementPos.first);
 	}
 }
 pragma(inline, false)
@@ -502,14 +513,14 @@ void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
 }
 
 // Returns true if it was a block
-bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement a) {
+bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement a, StatementPos pos) {
 	if (a.isA!JsBlockStatement) {
 		writer ~= ' ';
 		writeBlockStatement(writer, indent, a.as!JsBlockStatement);
 		return true;
 	} else {
 		writeNewline(writer, indent + 1);
-		writeStatement(writer, indent + 1, a);
+		writeStatement(writer, indent + 1, a, pos);
 		return false;
 	}
 }
@@ -517,14 +528,16 @@ bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement
 struct ExprPos {
 	@safe @nogc pure nothrow:
 
-	bool isStartOfStatement; // Expression is at the start of a statement and may need ';'
+	bool isNonFirstStatement; // Expression is at the start of a statement and may need ';'
 	bool isCalled; // Expression is called and may need to be wrapped in '()'
 
 	ExprPos withCalled() =>
-		ExprPos(isStartOfStatement, isCalled: true);
+		ExprPos(isNonFirstStatement, isCalled: true);
 
-	static ExprPos statement() =>
-		ExprPos(isStartOfStatement: true);
+	static ExprPos statementFirst() =>
+		ExprPos(isNonFirstStatement: false, isCalled: false);
+	static ExprPos statementNonFirst() =>
+		ExprPos(isNonFirstStatement: true, isCalled: false);
 }
 void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos()) {
 	void writeArg(in JsExpr arg, ExprPos pos = ExprPos()) {
@@ -543,10 +556,11 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ']';
 		},
 		(in JsArrowFunction x) {
-			if (pos.isStartOfStatement)
+			if (pos.isNonFirstStatement)
 				writer ~= ';';
 			if (pos.isCalled)
 				writer ~= '(';
+			maybeWriteAsync(writer, x.async);
 			writeParams(writer, x.params, alwaysParens: false);
 			writer ~= " =>";
 			writeExprOrBlockStatementIndented(writer, indent, x.body_);
@@ -554,7 +568,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 				writer ~= ')';
 		},
 		(in JsBinaryExpr x) {
-			if (pos.isStartOfStatement)
+			if (pos.isNonFirstStatement)
 				writer ~= ';';
 			writer ~= '(';
 			writeArg(*x.left);
@@ -602,10 +616,26 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ')';
 		},
 		(in JsCallExpr x) {
+			final switch (x.await) { // TODO: don't have this on CallExpr, just use an AwaitExpr ---------------------------------------------------
+				case SyncOrAsync.sync:
+					break;
+				case SyncOrAsync.async:
+					if (pos.isNonFirstStatement)
+						writer ~= ';'; // TODO: couldn't we just omit the parens? ---------------------------------------------------------------------------------------
+					writer ~= "(await ";
+					break;
+			}
 			writeArg(*x.called, pos.withCalled);
 			writer ~= '(';
 			writeArgs(x.args);
 			writer ~= ')';
+			final switch (x.await) {
+				case SyncOrAsync.sync:
+					break;
+				case SyncOrAsync.async:
+					writer ~= ")";
+					break;
+			}
 		},
 		(in JsCallWithSpreadExpr x) {
 			writeArg(*x.called, pos.withCalled);
@@ -652,7 +682,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= "null";
 		},
 		(in JsObject1Expr x) {
-			assert(!pos.isStartOfStatement);
+			assert(!pos.isNonFirstStatement);
 			writer ~= "{ ";
 			writeObjectPair(writer, indent, x.key, *x.value);
 			writer ~= " }";
@@ -696,6 +726,16 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writeArg(*x.arg);
 			writer ~= ')';
 		});
+}
+
+void maybeWriteAsync(scope ref Writer writer, SyncOrAsync async) {
+	final switch (async) {
+		case SyncOrAsync.sync:
+			break;
+		case SyncOrAsync.async:
+			writer ~= "async ";
+			break;
+	}
 }
 
 void writeObjectPair(scope ref Writer writer, uint indent, Symbol key, in JsExpr value) {

@@ -512,6 +512,7 @@ immutable string[] specialSymbols = [
 	"create-record",
 	"clock_gettime",
 	"concrete-model",
+	"console",
 	"const-pointer",
 	"crow-config.json",
 	"cur-catch-point",

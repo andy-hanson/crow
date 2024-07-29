@@ -80,11 +80,15 @@ immutable struct JsClassGetter {
 	JsBlockStatement body_;
 }
 immutable struct JsClassMethod {
+	SyncOrAsync async;
 	JsParams params;
 	JsBlockStatement body_;
 }
 
+enum SyncOrAsync { sync, async }
+
 immutable struct JsArrowFunction {
+	SyncOrAsync async;
 	JsParams params;
 	JsExprOrBlockStatement body_;
 }
@@ -227,6 +231,7 @@ immutable struct JsBinaryExpr {
 	JsExpr* right;
 }
 immutable struct JsCallExpr {
+	SyncOrAsync await;
 	JsExpr* called;
 	JsExpr[] args;
 }
@@ -285,10 +290,10 @@ JsExpr genAnd(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.and, arg0, arg1);
 JsExpr genArray(JsExpr[] elements) =>
 	JsExpr(JsArrayExpr(elements));
-JsExpr genArrowFunction(JsParams params, JsExprOrBlockStatement body_) =>
-	JsExpr(JsArrowFunction(params, body_));
-JsExpr genArrowFunction(ref Alloc alloc, in JsDestructure[] params, JsExpr body_) =>
-	genArrowFunction(JsParams(newSmallArray(alloc, params)), JsExprOrBlockStatement(allocate(alloc, body_)));
+JsExpr genArrowFunction(SyncOrAsync async, JsParams params, JsExprOrBlockStatement body_) =>
+	JsExpr(JsArrowFunction(async, params, body_));
+JsExpr genArrowFunction(ref Alloc alloc, SyncOrAsync async, in JsDestructure[] params, JsExpr body_) =>
+	genArrowFunction(async, JsParams(newSmallArray(alloc, params)), JsExprOrBlockStatement(allocate(alloc, body_)));
 JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
@@ -309,22 +314,37 @@ JsStatement genBreakNoLabel() =>
 	JsStatement(JsBreakStatement(none!JsName));
 JsStatement genBreak(JsName label) =>
 	JsStatement(JsBreakStatement(some(label)));
-JsExpr genCall(JsExpr* called, JsExpr[] args) =>
-	JsExpr(JsCallExpr(called, args));
-JsExpr genCall(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
-	genCall(allocate(alloc, called), newArray(alloc, args));
-JsExpr genCallWithSpread(ref Alloc alloc, JsExpr called, in JsExpr[] args, JsExpr spreadArg) =>
-	JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg)));
-JsExpr genCallProperty(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
-	genCall(alloc, genPropertyAccess(alloc, object, property), args);
+JsExpr genCall(SyncOrAsync await, JsExpr* called, JsExpr[] args) =>
+	JsExpr(JsCallExpr(await, called, args));
+JsExpr genCallSync(JsExpr* called, JsExpr[] args) =>
+	genCall(SyncOrAsync.sync, called, args);
+JsExpr genCallAwait(JsExpr* called, JsExpr[] args) =>
+	genCall(SyncOrAsync.async, called, args);
+JsExpr genCall(ref Alloc alloc, SyncOrAsync await, JsExpr called, in JsExpr[] args) =>
+	genCall(await, allocate(alloc, called), newArray(alloc, args));
+JsExpr genCallAwait(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
+	genCall(alloc, SyncOrAsync.async, called, args);
+JsExpr genCallSync(ref Alloc alloc, JsExpr called, in JsExpr[] args) =>
+	genCall(alloc, SyncOrAsync.sync, called, args);
+JsExpr genCallWithSpread(ref Alloc alloc, SyncOrAsync await, JsExpr called, in JsExpr[] args, JsExpr spreadArg) {
+	JsExpr call = JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg)));
+	final switch (await) {
+		case SyncOrAsync.sync:
+			return call;
+		case SyncOrAsync.async:
+			return genAwait(alloc, call);
+	}
+}
+JsExpr genCallPropertySync(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
+	genCallSync(alloc, genPropertyAccess(alloc, object, property), args);
 JsStatement genEmptyStatement() =>
 	JsStatement(JsEmptyStatement());
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then) =>
 	JsStatement(allocate(alloc, JsIfStatement(cond, then)));
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>
 	JsStatement(allocate(alloc, JsIfStatement(cond, then, some(else_))));
-JsExpr genIife(ref Alloc alloc, JsBlockStatement body_) =>
-	genCall(allocate(alloc, genArrowFunction(JsParams(), JsExprOrBlockStatement(body_))), []);
+JsExpr genIife(ref Alloc alloc, SyncOrAsync async, JsBlockStatement body_) =>
+	genCall(async, allocate(alloc, genArrowFunction(async, JsParams(), JsExprOrBlockStatement(body_))), []);
 JsExpr genIn(ref Alloc alloc, Symbol arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.in_, genString(arg0), arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>

@@ -1,23 +1,21 @@
 no-std
 import
-	../bool: bool, false, true
+	../bool: &&, bool, false, true
 	../compare: <, <=, >, compare
 	../fun-util: subscript
 	../json: to
 	../misc: loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, /, nat64
 	../option: ==, new, option
-	../range: ..
+	../range: .., iterate
 	../string: ==, <=>, char32
 	../test-util: is
 	../tuple: a, b, new
 	./array: ==, array, new, subscript
-	./collection:
-		.., begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
-		subscript, swap-at
+	./collection: .., build, end, for-break, for-loop, iterate, size, subscript, swap-at
 	./mut-array:
 		~=, +, as-slice, begin, build, cast-immutable, iterate, mut-array, mut-slice, new, next,
-		prev, set-next, set-subscript, size, slice, to, subscript
+		set-next, set-subscript, size, slice, to, subscript
 	./list: ~=, ==, build, iterate, list, new, size, to
 	./mut-list: mut-list, temp-as-mut-array
 
@@ -80,34 +78,21 @@ test
 	arr.to::(char32 array array) is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
-+set-sort[col, iter, elem] void(
-	a col,
-) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, elem compare
++set-sort[t] void(a t mut-array) t compare
 	a sort= x => x
++sort=[t, k] void(a t mut[], get-key k data(elem t)) k compare
+	trusted a.temp-as-mut-array sort= get-key
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-+sort=[col, iter, elem, k] void(
-	a col,
-	get-key k data(elem elem),
-) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, k compare
++sort=[t, k] void(a t mut-array, get-key k data(elem t)) k compare
 	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
-	cur mut = a begin
-	while pair ?= cur next
-		cur move-last-sorted pair.a, get-key
-		cur := pair b
--move-last-sorted[iter, elem, k] void(
-	init iter,
-	value-to-move elem,
-	get-key k data(elem elem),
-) (elem, iter) prev, (iter, elem) set-next, k compare
-	cur mut = init
-	key-to-move = get-key[value-to-move]
-	loop
-		guard prev-pair ?= cur prev : break
-		guard get-key[prev-pair b] > key-to-move : break
-		cur set-next prev-pair.b
-		cur := prev-pair a
-		continue
-	cur set-next value-to-move
+	guard a.size > 1
+	for i : 2::nat64 .. a.size + 1
+		a[0 .. i] move-last-into-sorted get-key
+# All but the last element is sorted. Move the last element to where it needs to be.
+-move-last-into-sorted[t, k] void(a t mut-slice, get-key k data(elem t)) k compare
+	if a.size > 1 && get-key[a[a.size - 2]] > get-key[a[a.size - 1]] # TODO: end - 2, end - 1 -----------------------------------------------------------------------------
+		a swap-at a.size - 2, a.size - 1
+		a[0 .. a.size - 1] move-last-into-sorted get-key # TODO: 0 .. end - 1
 
 ###
 Sort `a` in place and remove unique elements.
