@@ -34,7 +34,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbol, symbolOfEnum;
+import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbolOfEnum;
 import util.uri : asFilePath, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 

@@ -7,7 +7,6 @@ import model.model :
 	CalledSpecSig,
 	FunDecl,
 	FunInst,
-	isFuture,
 	LinkageRange,
 	Module,
 	PurityRange,
@@ -23,8 +22,7 @@ import util.alloc.alloc : Alloc, free;
 import util.col.array : arraysEqual, copyArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
-import util.col.map : Map;
-import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, keys, moveToMap, mustAdd, mustGet, MutMap;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd;
 import util.col.mutMaxSet : has, mayAdd, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutMultiMap : add, countKeys, countPairs, mayDeleteKey, mayDeletePair, MutMultiMap;
 import util.hash : HashCode, hashTaggedPointer, hashPointerAndTaggedPointers, hashPointerAndTaggedPointersX2;

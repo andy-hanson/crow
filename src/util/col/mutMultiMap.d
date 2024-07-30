@@ -5,11 +5,9 @@ module util.col.mutMultiMap;
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.hashTable :
 	addOrChange, getOrAddAndDidAdd, mayDelete, mustDelete, mustGet, MutHashTable, size, ValueAndDidAdd;
-import util.hash :
-	HashCode, hashPointerAndTaggedPointer, hashPointers, hashTaggedPointerAndPointer, hashTaggedPointerAndTaggedPointer, hashUlong, hashUlongs;
+import util.hash : getHashOfPair, HashCode;
 import util.memory : ensureMemoryClear, initMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;
-import util.symbol : Symbol;
 
 /**
 This acts like a MutSet of (K, V) pairs.
@@ -34,29 +32,8 @@ private struct Pair(K, V) {
 	bool opEquals(in Pair b) const =>
 		key == b.key && value == b.value;
 
-	HashCode hash() const { // TODO: just separately hash key and value and combine ..........................................
-		static if (is(K == uint) && is(V == uint)) // for test
-			return hashUlong(((cast(ulong) key) << 32) | value);
-		else static if (is(K == Symbol) && is(V == Symbol))
-			return hashUlongs([key.value, value.value]);
-		else static if (is(K == P*, P) && is(V == Q*, Q))
-			return hashPointers(key, value);
-		else static if (is(K == KP*, KP)) {
-			static if (__traits(hasMember, V, "hash"))
-				return hashUlongs([cast(ulong) key, value.hash().hashCode]);
-			else
-				return hashPointerAndTaggedPointer!(K, V)(key, value);
-		}
-		else static if (__traits(hasMember, K, "hash")) {
-			static if (__traits(hasMember, V, "hash"))
-				return hashUlongs([key.hash().hashCode, value.hash().hashCode]);
-			else
-				return hashUlongs([key.hash().hashCode, cast(ulong) value]);
-		} else static if (is(V == VP*, VP))
-			return hashTaggedPointerAndPointer!(K, V)(key, value);
-		else
-			return hashTaggedPointerAndTaggedPointer!(K, V)(key, value);
-	}
+	HashCode hash() const =>
+		getHashOfPair!(K, V)(key, value);
 }
 
 private struct Node(K, V) {

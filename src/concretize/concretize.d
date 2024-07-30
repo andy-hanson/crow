@@ -41,7 +41,6 @@ import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, Mai
 import util.alloc.alloc : Alloc;
 import util.col.array : map, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
-import util.col.map : keys;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;

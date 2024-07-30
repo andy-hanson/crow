@@ -20,7 +20,6 @@ import backend.js.jsAst :
 	JsDecl,
 	JsDeclKind,
 	JsDestructure,
-	JsEmptyStatement,
 	JsExpr,
 	JsExprOrBlockStatement,
 	JsIfStatement,
@@ -387,9 +386,6 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a, Stat
 		},
 		(in JsContinueStatement x) {
 			writer ~= "continue";
-		},
-		(in JsEmptyStatement x) {
-			writer ~= "{}";
 		},
 		(in JsExpr x) {
 			writeExpr(writer, indent, x, () {

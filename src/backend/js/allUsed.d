@@ -3,8 +3,7 @@ module backend.js.allUsed;
 @safe @nogc pure nothrow:
 
 import backend.js.jsAst : SyncOrAsync;
-import frontend.ide.ideUtil : variantMethodCaller;
-import frontend.showModel : ShowCtx, ShowTypeCtx, writeFunDecl;
+import frontend.showModel : ShowCtx, ShowTypeCtx;
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -56,7 +55,6 @@ import model.model :
 	Signature,
 	SpecDecl,
 	SpecInst,
-	Specs,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -70,13 +68,14 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariantAndMethodImpls,
+	variantMethodCaller,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : zipPointers;
 import util.col.map : Map, mustGet;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
-import util.col.mutMultiMap : add, countKeys, countPairs, eachValueForKey, MutMultiMap;
+import util.col.mutMultiMap : add, eachValueForKey, MutMultiMap;
 import util.col.mutSet : mayAddToMutSet, MutSet;
 import util.col.set : moveToSet, Set;
 import util.hash : HashCode, hashPointers;
@@ -86,8 +85,7 @@ import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : TaggedUnion;
 import util.uri : Uri;
-import util.util : ptrTrustMe, todo;
-import util.writer : debugLogWithWriter, Writer; // -------------------------------------------------------------------------
+import util.util : ptrTrustMe;
 import versionInfo : isVersion, VersionInfo, VersionFun;
 
 immutable struct AnyDecl {
@@ -175,7 +173,7 @@ SyncOrAsync isAsyncCall(in AllUsed a, in Opt!(FunDecl*) caller, in Called called
 		(in CalledSpecSig x) =>
 			FunAndSpecSig(force(caller), x.nonInstantiatedSig) in a.async.asyncSpecSigs ? SyncOrAsync.async : SyncOrAsync.sync);
 
-immutable struct FunOrTest {
+private immutable struct FunOrTest {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(FunDecl*, Test*);
 
@@ -186,7 +184,7 @@ immutable struct FunOrTest {
 			(in Test x) =>
 				x.moduleUri);
 }
-Opt!(FunDecl*) optAsFun(FunOrTest a) =>
+private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 	a.matchWithPointers!(Opt!(FunDecl*))(
 		(FunDecl* x) => some(x),
 		(Test* _) => none!(FunDecl*));
@@ -288,22 +286,6 @@ AsyncSets allAsyncFuns(ref AllUsedBuilder builder, in ShowCtx showCtx) {
 
 	scope ShowTypeCtx showTypeCtx = ShowTypeCtx(showCtx, builder.program.commonTypes);
 
-	debugLogWithWriter((scope ref Writer writer) { // --------------------------------------------------------------------------
-		writer ~= "Top of allAsyncFuns:\n";
-		writer ~= "countKeys(funToCallers) is ";
-		writer ~= countKeys(builder.funToCallers);
-		writer ~= " ";
-		writer ~= countPairs(builder.funToCallers);
-		writer ~= "\nfunToUsedAsSpecImpl: ";
-		writer ~= countKeys(builder.funToUsedAsSpecImpl);
-		writer ~= " ";
-		writer ~= countPairs(builder.funToUsedAsSpecImpl);
-		writer ~= "\nspecSigToUsedAsSpecImpl: ";
-		writer ~= countKeys(builder.specSigToUsedAsSpecImpl);
-		writer ~= " ";
-		writer ~= countPairs(builder.specSigToUsedAsSpecImpl);
-	});
-
 	bool addFun(FunDecl* x) {
 		bool res = mayAddToMutSet(builder.alloc, asyncFuns, x);
 		if (res)
@@ -317,22 +299,8 @@ AsyncSets allAsyncFuns(ref AllUsedBuilder builder, in ShowCtx showCtx) {
 
 	void recurFunAndSpecSig(FunAndSpecSig x) @safe @nogc nothrow {
 		addFun(x.fun);
-		bool addedIt = mayAddToMutSet(builder.alloc, asyncSpecSigs, x); // TODO: INLINE ----------------------------------------------------
-		if (addedIt) {
-			if (x.fun.name == symbol!"size" || x.specSig.name == symbol!"size") {
-				debugLogWithWriter((scope ref Writer writer) { // ------------------------------------------------------------------------
-					writer ~= "Added an async spec sig ";
-					writeFunAndSpecSig(writer, showTypeCtx, x);
-				});
-			}
-
+		if (mayAddToMutSet(builder.alloc, asyncSpecSigs, x)) {
 			eachValueForKey(builder.specSigToUsedAsSpecImpl, x, (FunAndSpecSig y) {
-				if (x.fun.name == symbol!"size" || x.specSig.name == symbol!"size" || y.fun.name == symbol!"size" || y.specSig.name == symbol!"size") {
-					debugLogWithWriter((scope ref Writer writer) {
-						writer ~= "The spec sig is also used as a spec impl: ";
-						writeFunAndSpecSig(writer, showTypeCtx, y);						
-					});
-				}
 				recurFunAndSpecSig(y);
 			});
 		}
@@ -344,28 +312,11 @@ AsyncSets allAsyncFuns(ref AllUsedBuilder builder, in ShowCtx showCtx) {
 			addFun(caller);
 		});
 		eachValueForKey(builder.funToUsedAsSpecImpl, fun, (FunAndSpecSig x) {
-			if (fun.name == symbol!"size") {
-				debugLogWithWriter((scope ref Writer writer) { // ------------------------------------------------------------------------
-					writer ~= "This function is used as a spec impl: ";
-					writeFunDecl(writer, showTypeCtx, fun);
-					writer ~= "   used by ";
-					writeFunAndSpecSig(writer, showTypeCtx, x);
-				});
-			}
-
 			recurFunAndSpecSig(x);
 		});
 	}
 
 	return AsyncSets(moveToSet(asyncFuns), moveToSet(asyncSpecSigs));
-}
-
-void writeFunAndSpecSig(scope ref Writer writer, in ShowTypeCtx showTypeCtx, in FunAndSpecSig a) {
-	writer ~= "{fun:";
-	writeFunDecl(writer, showTypeCtx, a.fun);
-	writer ~= ", sig:";
-	writer ~= a.specSig.name;
-	writer ~= "}";
 }
 
 struct AllUsedBuilder {
@@ -528,11 +479,6 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				trackAllUsedInExprRef(res, FunOrTest(a), funBodyExprRef(a));
 			},
 			(FunBody.Extern _) {
-				import util.writer : debugLogWithWriter, Writer; // --------------------------------------------------------------------------
-				debugLogWithWriter((scope ref Writer writer) {
-					writer ~= "Somehow, an extern function was used? ";
-					writer ~= a.name;
-				});
 				assert(false);
 			},
 			(FunBody.FileImport _) {},
@@ -556,10 +502,6 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 void trackAllUsedInTest(ref AllUsedBuilder res, Uri from, Test* test) {
 	if (addDecl(res, from, AnyDecl(test)))
 		trackAllUsedInExprRef(res, FunOrTest(test), testBodyExprRef(res.commonTypes, test));
-}
-void trackAllUsedInDestructures(ref AllUsedBuilder res, Uri from, in Destructure[] a) {
-	foreach (Destructure x; a)
-		trackAllUsedInDestructure(res, from, x);
 }
 void trackAllUsedInDestructure(ref AllUsedBuilder res, Uri from, Destructure a) {
 	a.match!void(

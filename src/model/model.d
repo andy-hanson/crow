@@ -41,6 +41,7 @@ import util.col.array :
 	firstZipPointerFirst,
 	fold,
 	isEmpty,
+	mustFindPointer,
 	mustHaveIndexOfPointer,
 	newArray,
 	only,
@@ -205,12 +206,12 @@ Type arrayElementType(Type type) {
 }
 
 Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
-	assert(isOptionType(commonTypes, a.as!(StructInst*).decl));
+	assert(isOptionType(commonTypes, a));
 	return only(a.as!(StructInst*).typeArgs);
 }
 
-bool isOptionType(in CommonTypes commonTypes, in StructDecl* a) =>
-	a == commonTypes.option;
+bool isOptionType(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 bool isLambdaType(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.lambda);
@@ -2847,3 +2848,11 @@ Opt!T findDirectChildExpr(T)(
 		(TypedExpr* x) =>
 			cb(sameType(&x.inner)));
 }
+
+FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a) =>
+	mustFindFunNamed(moduleOf(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
+		fun.source.isA!(FunDeclSource.VariantMethod) &&
+		fun.source.as!(FunDeclSource.VariantMethod).method == a.method);
+
+FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
+	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));

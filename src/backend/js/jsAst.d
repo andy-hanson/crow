@@ -113,7 +113,6 @@ immutable struct JsStatement {
 		JsBlockStatement,
 		JsBreakStatement,
 		JsContinueStatement,
-		JsEmptyStatement,
 		JsExpr,
 		JsIfStatement*,
 		JsReturnStatement,
@@ -135,7 +134,6 @@ immutable struct JsBreakStatement {
 	Opt!JsName label;
 }
 immutable struct JsContinueStatement {}
-immutable struct JsEmptyStatement {}
 immutable struct JsIfStatement {
 	JsExpr cond;
 	JsStatement then;
@@ -337,8 +335,6 @@ JsExpr genCallWithSpread(ref Alloc alloc, SyncOrAsync await, JsExpr called, in J
 }
 JsExpr genCallPropertySync(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
 	genCallSync(alloc, genPropertyAccess(alloc, object, property), args);
-JsStatement genEmptyStatement() =>
-	JsStatement(JsEmptyStatement());
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then) =>
 	JsStatement(allocate(alloc, JsIfStatement(cond, then)));
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>

@@ -12,6 +12,7 @@ import model.model :
 	FunDecl,
 	FunInst,
 	isFuture,
+	isOptionType,
 	Linkage,
 	LinkageRange,
 	linkageRange,
@@ -40,7 +41,7 @@ import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuil
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.map : Map;
 import util.col.mutArr : MutArrWithAlloc, push;
-import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, keys, moveToMap, mustAdd, mustGet, MutMap;
+import util.col.mutMap : keys, moveToMap, mustAdd, mustGet, MutMap;
 import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -188,9 +189,6 @@ StructInst* makeOptionType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type
 
 Type makeOptionIfNotAlready(InstantiateCtx ctx, ref CommonTypes commonTypes, Type a) =>
 	isOptionType(commonTypes, a) ? a : Type(makeOptionType(ctx, commonTypes, a));
-
-bool isOptionType(in CommonTypes commonTypes, in Type a) => // TODO: this should be in model.d --------------------------------------
-	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
 StructInst* makeConstPointerType(InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.pointerConst, [pointeeType]);

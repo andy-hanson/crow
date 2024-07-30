@@ -4,7 +4,7 @@ module frontend.ide.getReferences;
 
 import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : Target, targetForPosition;
-import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, mustFindFunNamed, ReferenceCb, TypeCb, variantMethodCaller;
+import frontend.ide.ideUtil : eachFunSpec, eachSpecParent, eachTypeComponent, eachPackedTypeArg, ReferenceCb, TypeCb;
 import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
 	AssertOrForbidAst,
@@ -92,6 +92,7 @@ import model.model :
 	MatchVariantExpr,
 	Module,
 	moduleOf,
+	mustFindFunNamed,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -117,12 +118,12 @@ import model.model :
 	TypedExpr,
 	UnionMember,
 	VarDecl,
+	variantMethodCaller,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : MaxStackArray, withMaxStackArray;
-import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip, zipIfSizeEq;
+import util.col.array : allSame, contains, fold, isEmpty, only, zip, zipIfSizeEq;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.col.hashTable : mustGet;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol;

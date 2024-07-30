@@ -3,12 +3,10 @@ module frontend.ide.ideUtil;
 @safe @nogc pure nothrow:
 
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
-import model.model :
-	FunDecl, FunDeclSource, Module, moduleOf, Program, SpecInst, SpecDecl, StructDecl, StructInst, Type, TypeParamIndex;
-import util.col.array : arrayOfSingle, count, firstZip, isEmpty, mustFindPointer, only, only2;
+import model.model : FunDecl, FunDeclSource, SpecInst, SpecDecl, StructInst, Type, TypeParamIndex;
+import util.col.array : arrayOfSingle, count, firstZip, isEmpty, only, only2;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
-import util.symbol : Symbol;
 import util.util : ptrTrustMe;
 
 alias ReferenceCb = void delegate(in UriAndRange) @safe @nogc pure nothrow;
@@ -89,14 +87,6 @@ Opt!T findInPackedTypeArgs(T)(in Type[] typeArgs, in Opt!TypeAst ast, in TypeCbO
 		return none!T;
 	}
 }
-
-FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a) => // TODO: MOVE, this is needed outside of IDE ---------
-	mustFindFunNamed(moduleOf(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
-		fun.source.isA!(FunDeclSource.VariantMethod) &&
-		fun.source.as!(FunDeclSource.VariantMethod).method == a.method);
-
-FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
-	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));
 
 private:
 

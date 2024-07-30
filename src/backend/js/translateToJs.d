@@ -24,7 +24,6 @@ import backend.js.jsAst :
 	genCallSync,
 	genCallWithSpread,
 	genConst,
-	genEmptyStatement,
 	genEqEqEq,
 	genGlobal,
 	genIf,
@@ -85,7 +84,6 @@ import backend.js.jsAst :
 	JsVarDecl,
 	SyncOrAsync;
 import backend.js.writeJsAst : writeJsAst;
-import frontend.ide.ideUtil : variantMethodCaller;
 import frontend.showModel : ShowCtx, ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
@@ -113,7 +111,6 @@ import model.model :
 	ClosureSetExpr,
 	CommonTypes,
 	Condition,
-	countSigs,
 	defaultAssertOrForbidMessage,
 	Destructure,
 	eachImportOrReExport,
@@ -186,6 +183,7 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	VariantAndMethodImpls,
+	variantMethodCaller,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
@@ -205,7 +203,6 @@ import util.col.array :
 	newSmallArray,
 	only,
 	only2,
-	small,
 	SmallArray,
 	zipPointers;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, buildSmallArray, finish, sizeSoFar;
@@ -217,7 +214,6 @@ import util.col.set : Set;
 import util.col.sortUtil : sortInPlace;
 import util.col.tempSet : mustAdd, TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
-import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, some, someMut;
 import util.symbol : compareSymbolsAlphabetically, Extension, Symbol, symbol;
@@ -540,8 +536,6 @@ JsName testName(in TranslateModuleCtx ctx, in Test* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateTestReference(in TranslateModuleCtx ctx, in Test* a) =>
 	JsExpr(testName(ctx, a));
-JsName specName(in TranslateModuleCtx ctx, in SpecDecl* a) =>
-	mangledNameForDecl(ctx, AnyDecl(a));
 JsName structName(in TranslateModuleCtx ctx, in StructDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateStructReference(in TranslateModuleCtx ctx, in StructDecl* a) =>
