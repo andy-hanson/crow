@@ -7,6 +7,7 @@ import model.model :
 	CalledSpecSig,
 	FunDecl,
 	FunInst,
+	isFuture,
 	LinkageRange,
 	Module,
 	PurityRange,
@@ -22,7 +23,8 @@ import util.alloc.alloc : Alloc, free;
 import util.col.array : arraysEqual, copyArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
-import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd;
+import util.col.map : Map;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, keys, moveToMap, mustAdd, mustGet, MutMap;
 import util.col.mutMaxSet : has, mayAdd, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutMultiMap : add, countKeys, countPairs, mayDeleteKey, mayDeletePair, MutMultiMap;
 import util.hash : HashCode, hashTaggedPointer, hashPointerAndTaggedPointers, hashPointerAndTaggedPointersX2;
@@ -36,7 +38,7 @@ struct AllInsts {
 	private:
 	Alloc* allocPtr;
 
-	public MutHashTable!(StructInst*, StructArgs, getStructArgs) structInsts; // TODO: NOT PUBLIC ---------------------------
+	MutHashTable!(StructInst*, StructArgs, getStructArgs) structInsts;
 	MutHashTable!(SpecInst*, SpecArgs, getSpecArgs) specInsts;
 	MutHashTable!(FunInst*, FunArgs, getFunArgs) funInsts;
 	MutMultiMap!(AnyDeclOrInst, AnyInst) referencedBy;
@@ -131,6 +133,20 @@ AllInstsArrays TEST_getAllInstsArrays(ref Alloc alloc, in AllInsts a) =>
 
 const(MutMultiMap!(AnyDeclOrInst, AnyInst)) TEST_getReferencedBy(ref const AllInsts a) =>
 	a.referencedBy;
+
+Map!(StructInst*, StructInst*) getAllFutureImpls(
+	ref Alloc alloc,
+	ref const AllInsts a,
+	in StructInst* delegate(TypeArgs) @safe @nogc pure nothrow cbMakeFutureImpl,
+) {
+	MutMap!(StructInst*, StructInst*) res;
+	foreach (ref const StructInst* x; a.structInsts)
+		if (isFuture(*x))
+			mustAdd(alloc, res, x, null);
+	foreach (ref const StructInst* future; keys(res))
+		mustGet(res, future) = cbMakeFutureImpl(future.typeArgs);
+	return moveToMap(alloc, res);
+}
 
 private:
 

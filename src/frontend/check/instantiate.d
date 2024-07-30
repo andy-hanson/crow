@@ -2,7 +2,7 @@ module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
-import frontend.allInsts : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
+import frontend.allInsts : getAllFutureImpls, getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
 	BuiltinType,
 	CommonTypes,
@@ -11,7 +11,6 @@ import model.model :
 	combinePurityRange,
 	FunDecl,
 	FunInst,
-	isFuture,
 	isOptionType,
 	Linkage,
 	LinkageRange,
@@ -41,7 +40,6 @@ import util.col.exactSizeArrayBuilder : buildSmallArrayExact, ExactSizeArrayBuil
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.map : Map;
 import util.col.mutArr : MutArrWithAlloc, push;
-import util.col.mutMap : keys, moveToMap, mustAdd, mustGet, MutMap;
 import util.conv : safeToUint;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -235,15 +233,9 @@ SpecInst* instantiateSpecInst(
 		(ref Type x) => instantiateType(ctx, x, typeArgs, noDelayStructInsts),
 		(scope Type[] itsTypeArgs) => instantiateSpec(ctx, specInst.decl, small!Type(itsTypeArgs), delaySpecInsts));
 
-Map!(StructInst*, StructInst*) getAllFutureImpls(ref Alloc alloc, ref InstantiateCtx ctx, StructDecl* futureImpl) {
-	MutMap!(StructInst*, StructInst*) res;
-	foreach (StructInst* x; ctx.allInsts.structInsts)
-		if (isFuture(*x))
-			mustAdd(alloc, res, x, null);
-	foreach (ref const StructInst* key; keys(res))
-		mustGet(res, key) = instantiateStructNeverDelay(ctx, futureImpl, key.typeArgs);
-	return moveToMap(alloc, res);
-}
+Map!(StructInst*, StructInst*) getAllFutureImpls(ref Alloc alloc, ref InstantiateCtx ctx, StructDecl* futureImpl) =>
+	.getAllFutureImpls(alloc, ctx.allInsts, (TypeArgs typeArgs) =>
+		instantiateStructNeverDelay(ctx, futureImpl, typeArgs));
 
 private:
 
