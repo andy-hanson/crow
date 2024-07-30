@@ -1120,14 +1120,14 @@ Expr checkPointerOfCall(
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
 			PointerMutability fieldMutability =
-				has(recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability)
+				has(rfg.field.mutability)
 					? PointerMutability.writeable
 					: PointerMutability.readOnly;
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
 				return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+					RecordFieldPointerExpr(ExprAndType(target, Type(recordType)), rfg.field))));
 			} else if (target.kind.isA!CallExpr) {
 				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
@@ -1143,7 +1143,7 @@ Expr checkPointerOfCall(
 						return bogus(expected, source);
 					} else
 						return check(ctx, expected, pointerType, source, ExprKind(allocate(ctx.alloc,
-							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+							RecordFieldPointerExpr(ExprAndType(targetPtr, derefedType), rfg.field))));
 				} else
 					return fail();
 			} else

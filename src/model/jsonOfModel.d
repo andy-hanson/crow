@@ -281,29 +281,29 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.RecordFieldCall x) =>
 			jsonObject(alloc, [
 				kindField!"field-call",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"field-get",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldPointer x) =>
 			jsonObject(alloc, [
 				kindField!"field-pointer",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"field-set",
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in FunBody.UnionMemberGet x) =>
 			jsonObject(alloc, [
 				kindField!"member-get",
-				field!"member-index"(x.memberIndex)]),
+				field!"member"(x.member.name)]),
 		(in FunBody.VarGet) =>
 			jsonString!"var-get",
 		(in FunBody.VariantMemberGet x) =>
 			jsonObject(alloc, [kindField!"variant-member-get"]),
 		(in FunBody.VariantMethod x) =>
-			jsonObject(alloc, [kindField!"variant-method", field!"method-index"(x.methodIndex)]),
+			jsonObject(alloc, [kindField!"variant-method", field!"method"(x.method.name)]),
 		(in FunBody.VarSet) =>
 			jsonString!"var-set");
 
@@ -486,7 +486,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"field-pointer",
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
-				field!"field-index"(x.fieldIndex)]),
+				field!"field"(x.field.name)]),
 		(in SeqExpr a) =>
 			jsonObject(alloc, [
 				kindField!"seq",

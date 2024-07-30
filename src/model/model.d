@@ -868,22 +868,24 @@ immutable struct FunBody {
 		ImportFileContent content;
 	}
 	immutable struct RecordFieldCall {
-		size_t fieldIndex;
+		RecordField* field;
 		FunKind funKind;
 	}
 	immutable struct RecordFieldGet {
-		size_t fieldIndex;
+		RecordField* field;
 	}
 	immutable struct RecordFieldPointer {
-		size_t fieldIndex;
+		RecordField* field;
 	}
 	immutable struct RecordFieldSet {
-		size_t fieldIndex;
+		RecordField* field;
 	}
-	immutable struct UnionMemberGet { size_t memberIndex; }
+	immutable struct UnionMemberGet {
+		UnionMember* member;
+	}
 	immutable struct VarGet { VarDecl* var; }
 	immutable struct VariantMemberGet {}
-	immutable struct VariantMethod { size_t methodIndex; }
+	immutable struct VariantMethod { Signature* method; }
 	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
@@ -2595,15 +2597,15 @@ immutable struct RecordFieldPointerExpr {
 	@safe @nogc pure nothrow:
 
 	ExprAndType target; // This will be a pointer or by-ref type
-	size_t fieldIndex;
+	RecordField* field;
 
 	StructDecl* recordDecl() scope =>
 		isPointerConstOrMut(target.type)
 			? pointeeType(target.type).as!(StructInst*).decl
 			: target.type.as!(StructInst*).decl;
-
-	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
-		&recordDecl.body_.as!(StructBody.Record).fields[fieldIndex];
+		
+	size_t fieldIndex() =>
+		mustHaveIndexOfPointer(recordDecl.body_.as!(StructBody.Record).fields, field);
 }
 
 immutable struct SeqExpr {

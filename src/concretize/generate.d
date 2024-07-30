@@ -45,6 +45,7 @@ import util.col.array :
 	mapPointersWithIndex,
 	mapWithIndex,
 	mapZipWithIndex,
+	mustHaveIndexOfPointer,
 	newArray,
 	newSmallArray,
 	only,
@@ -161,9 +162,9 @@ ConcreteExpr genLocalSet(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteLo
 ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunBody.RecordFieldCall body_) {
 	UriAndRange range = fun.range;
 	ConcreteExpr* recordArg = allocate(ctx.alloc, genParamGet(range, &fun.params[0]));
-	ConcreteStruct* fieldType = mustBeByVal(
-		recordArg.type.struct_.body_.as!(ConcreteStructBody.Record).fields[body_.fieldIndex].type);
-	ConcreteExpr getFun = genRecordFieldGet(ConcreteType.byVal(fieldType), range, recordArg, body_.fieldIndex);
+	size_t fieldIndex = fieldIndexFromField(recordArg.type, body_.field);
+	ConcreteStruct* fieldType = mustBeByVal(concreteFieldFromIndex(recordArg.type, fieldIndex).type);
+	ConcreteExpr getFun = genRecordFieldGet(ConcreteType.byVal(fieldType), range, recordArg, fieldIndex);
 	ConcreteType[] typeArgs = fieldType.source.as!(ConcreteStructSource.Inst).typeArgs;
 	assert(typeArgs.length == 2);
 	ConcreteFun* callFun = getConcreteFun(ctx, ctx.program.commonFuns.lambdaSubscript[body_.funKind], typeArgs, []);
@@ -183,6 +184,14 @@ ConcreteFunBody genRecordFieldCall(ref ConcretizeCtx ctx, ConcreteFun* fun, FunB
 	}();
 	return ConcreteFunBody(genCall(ctx.alloc, range, callFun, [getFun, arg]));
 }
+size_t fieldIndexFromField(ConcreteType recordType, RecordField* field) =>
+	mustHaveIndexOfPointer(
+		recordType.struct_.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Record).fields,
+		field);
+ConcreteField* concreteFieldFromField(ConcreteType recordType, RecordField* field) =>
+	concreteFieldFromIndex(recordType, fieldIndexFromField(recordType, field));
+ConcreteField* concreteFieldFromIndex(ConcreteType recordType, size_t fieldIndex) =>
+	&recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex];
 
 ConcreteFunBody genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {
 	UriAndRange range = cf.range;

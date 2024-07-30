@@ -35,11 +35,12 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
+	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain;
+import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain, StructBody;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, small;
+import util.col.array : map, mustHaveIndexOfPointer, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
@@ -168,7 +169,9 @@ void finishVariants(ref ConcretizeCtx ctx) {
 
 	foreach (ConcreteFun* fun; ctx.deferredVariantMethods) {
 		ConcreteStruct* variant = mustBeByVal(fun.params[0].type);
-		size_t methodIndex = fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).methodIndex;
+		size_t methodIndex = mustHaveIndexOfPointer(
+			variant.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Variant).methods,
+			fun.source.as!ConcreteFunKey.decl.body_.as!(FunBody.VariantMethod).method);
 		MutArr!ConcreteVariantMemberAndMethodImpls impls = mustGet(ctx.variantStructToMembers, variant);
 		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}

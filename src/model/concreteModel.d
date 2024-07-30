@@ -220,6 +220,10 @@ ConcreteType pointeeType(ConcreteType pointerType) {
 	assert(isPointer(*mustBeByVal(pointerType)));
 	return only(mustBeByVal(pointerType).source.as!(ConcreteStructSource.Inst).typeArgs);
 }
+ConcreteType pointeeTypeIfIsPointer(ConcreteType a) =>
+	isPointer(*a.struct_)
+		? pointeeType(a)
+		: a;
 private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>

@@ -344,8 +344,8 @@ void addFunsForRecord(
 	Type structType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
-	foreach (size_t fieldIndex, ref RecordField field; record.fields)
-		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, &field);
+	foreach (ref RecordField field; record.fields)
+		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, &field);
 }
 
 Type instantiateStructWithTypeArgsFromParams(ref CheckCtx ctx, StructDecl* struct_) =>
@@ -385,7 +385,6 @@ void addFunsForRecordField(
 	StructDecl* struct_,
 	Type recordType,
 	bool recordIsByVal,
-	size_t fieldIndex,
 	RecordField* field,
 ) {
 	funsBuilder ~= funDeclWithBody(
@@ -396,7 +395,7 @@ void addFunsForRecordField(
 		makeParams(ctx.alloc, [param!"a"(recordType)]),
 		FunFlags.generatedBare,
 		[],
-		FunBody(FunBody.RecordFieldGet(fieldIndex)));
+		FunBody(FunBody.RecordFieldGet(field)));
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		funsBuilder ~= funDeclWithBody(
@@ -407,10 +406,10 @@ void addFunsForRecordField(
 			makeParams(ctx.alloc, [param!"a"(recordPointer)]),
 			FunFlags.generatedBareUnsafe,
 			[],
-			FunBody(FunBody.RecordFieldPointer(fieldIndex)));
+			FunBody(FunBody.RecordFieldPointer(field)));
 	}
 
-	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, fieldIndex, field);
+	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, field);
 
 	if (recordIsByVal)
 		addRecordFieldPointer(
@@ -433,7 +432,7 @@ void addFunsForRecordField(
 				]),
 				FunFlags.generatedBareUnsafe,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex)));
+				FunBody(FunBody.RecordFieldSet(field)));
 			addRecordFieldPointer(
 				setVisibility,
 				recordMutPointer,
@@ -447,7 +446,7 @@ void addFunsForRecordField(
 				makeParams(ctx.alloc, [param!"a"(recordType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex)));
+				FunBody(FunBody.RecordFieldSet(field)));
 	}
 }
 
@@ -461,7 +460,6 @@ void maybeAddFieldCaller(
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	Type recordType,
-	size_t fieldIndex,
 	RecordField* field,
 ) {
 	Opt!FunType optFunType = getFunType(commonTypes, field.type);
@@ -476,7 +474,7 @@ void maybeAddFieldCaller(
 			params,
 			FunFlags.generated.withOkIfUnused,
 			[],
-			FunBody(FunBody.RecordFieldCall(fieldIndex, funType.kind)));
+			FunBody(FunBody.RecordFieldCall(field, funType.kind)));
 	}
 }
 
@@ -514,7 +512,7 @@ void addFunsForUnion(
 	ref StructBody.Union union_,
 ) {
 	Type unionType = instantiateStructWithTypeArgsFromParams(ctx, struct_);
-	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
+	foreach (ref UnionMember member; union_.members) {
 		bool voidMember = isVoid(member.type);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(&member),
@@ -534,7 +532,7 @@ void addFunsForUnion(
 				makeParams(ctx.alloc, [param!"a"(unionType)]),
 				FunFlags.generatedBare,
 				[],
-				FunBody(FunBody.UnionMemberGet(memberIndex)));
+				FunBody(FunBody.UnionMemberGet(&member)));
 	}
 }
 
@@ -545,7 +543,7 @@ void addFunsForVariant(
 	StructDecl* struct_,
 	ref StructBody.Variant variant,
 ) {
-	foreach (size_t methodIndex, ref Signature sig; variant.methods)
+	foreach (ref Signature sig; variant.methods)
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(FunDeclSource.VariantMethod(struct_, &sig)),
 			struct_.visibility,
@@ -558,5 +556,5 @@ void addFunsForVariant(
 				sig.params)),
 			FunFlags.generated,
 			[],
-			FunBody(FunBody.VariantMethod(methodIndex)));
+			FunBody(FunBody.VariantMethod(&sig)));
 }

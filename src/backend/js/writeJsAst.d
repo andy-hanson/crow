@@ -612,26 +612,10 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= ')';
 		},
 		(in JsCallExpr x) {
-			final switch (x.await) { // TODO: don't have this on CallExpr, just use an AwaitExpr ---------------------------------------------------
-				case SyncOrAsync.sync:
-					break;
-				case SyncOrAsync.async:
-					if (pos.isNonFirstStatement)
-						writer ~= ';'; // TODO: couldn't we just omit the parens? ---------------------------------------------------------------------------------------
-					writer ~= "(await ";
-					break;
-			}
 			writeArg(*x.called, pos.withCalled);
 			writer ~= '(';
 			writeArgs(x.args);
 			writer ~= ')';
-			final switch (x.await) {
-				case SyncOrAsync.sync:
-					break;
-				case SyncOrAsync.async:
-					writer ~= ")";
-					break;
-			}
 		},
 		(in JsCallWithSpreadExpr x) {
 			writeArg(*x.called, pos.withCalled);

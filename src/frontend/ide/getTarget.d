@@ -188,15 +188,15 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 					// TODO: Target for a file showing all imports
 					Target(decl),
 				(FunBody.RecordFieldCall x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldGet x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldPointer x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.RecordFieldSet x) =>
-					recordFieldTarget(decl, x.fieldIndex),
+					Target(x.field),
 				(FunBody.UnionMemberGet x) =>
-					unionMemberTarget(decl, x.memberIndex),
+					Target(x.member),
 				(FunBody.VarGet x) =>
 					Target(x.var),
 				(FunBody.VariantMemberGet) =>
@@ -211,14 +211,3 @@ Opt!Target calledTarget(in CommonTypes commonTypes, ref Called a) =>
 
 Target returnTypeTarget(FunDecl* fun) =>
 	Target(fun.returnType.as!(StructInst*).decl);
-
-Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
-	StructInst* inst = fun.params.as!(Destructure[])[0].type.as!(StructInst*);
-	StructDecl* record = isPointer(*inst.decl) ? only(inst.typeArgs).as!(StructInst*).decl : inst.decl;
-	return Target(&record.body_.as!(StructBody.Record).fields[fieldIndex]);
-}
-
-Target unionMemberTarget(FunDecl* fun, size_t memberIndex) {
-	StructDecl* union_ = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
-	return Target(&union_.body_.as!(StructBody.Union*).members[memberIndex]);
-}

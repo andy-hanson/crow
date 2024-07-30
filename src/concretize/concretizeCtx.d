@@ -13,6 +13,7 @@ import concretize.concretizeExpr :
 import concretize.generate :
 	bodyForEnumOrFlagsMembers,
 	concretizeAutoFun,
+	fieldIndexFromField,
 	genConstant,
 	genCreateRecord,
 	genCreateUnion,
@@ -46,6 +47,8 @@ import model.concreteModel :
 	hasSizeOrPointerSizeBytes,
 	isBogus,
 	mustBeByVal,
+	pointeeType,
+	pointeeTypeIfIsPointer,
 	purity,
 	ReferenceKind,
 	sizeOrPointerSizeBytes,
@@ -100,6 +103,7 @@ import util.col.array :
 	mapPointers,
 	mapZip,
 	maxBy,
+	mustHaveIndexOfPointer,
 	newSmallArray,
 	only,
 	onlyPointer,
@@ -357,7 +361,8 @@ private ConcreteType getConcreteType_forStructInst(
 	in TypeArgsScope typeArgsScope,
 ) {
 	if (isFuture(*inst))
-		return getConcreteType_forStructInst(ctx, mustGet(ctx.program.otherTypes.futureToFutureImpl, inst), typeArgsScope);
+		return getConcreteType_forStructInst(
+			ctx, mustGet(ctx.program.otherTypes.futureToFutureImpl, inst), typeArgsScope);
 	if (isString(Type(inst)))
 		return char8ArrayType(ctx);
 	if (isSymbol(Type(inst)))
@@ -792,23 +797,23 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(genRecordFieldGet(
 				cf.returnType, cf.range,
 				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
-				x.fieldIndex)),
+				fieldIndexFromField(only(cf.params).type, x.field))),
 		(FunBody.RecordFieldPointer x) =>
 			ConcreteFunBody(genRecordFieldPointer(
 				cf.returnType, cf.range,
 				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
-				x.fieldIndex)),
+				fieldIndexFromField(pointeeType(only(cf.params).type), x.field))),
 		(FunBody.RecordFieldSet x) {
 			assert(cf.params.length == 2);
 			return ConcreteFunBody(genRecordFieldSet(
 				ctx,
 				cf.range,
 				genLocalGet(cf.range, &cf.params[0]),
-				x.fieldIndex,
+				fieldIndexFromField(pointeeTypeIfIsPointer(cf.params[0].type), x.field),
 				genLocalGet(cf.range, &cf.params[1])));
 		},
 		(FunBody.UnionMemberGet x) =>
-			genUnionMemberGet(ctx, cf, x.memberIndex),
+			genUnionMemberGet(ctx, cf, unionMemberIndex(only(concreteParams).type, x.member)),
 		(FunBody.VarGet x) =>
 			ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
 		(FunBody.VariantMemberGet x) =>
@@ -824,6 +829,10 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 	cf.overwriteBody(body_);
 }
+size_t unionMemberIndex(ConcreteType union_, UnionMember* member) =>
+	mustHaveIndexOfPointer(
+		mustBeByVal(union_).source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Union*).members,
+		member);
 
 ConcreteExpr genCreateRecordFromParams(
 	ref Alloc alloc,
