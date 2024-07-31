@@ -354,8 +354,6 @@ JsExpr genIntegerSigned(long value) =>
 	genInteger(true, IntegralValue(value));
 JsExpr genIntegerUnsigned(ulong value) =>
 	genInteger(false, IntegralValue(value));
-JsExpr genTimes(ref Alloc alloc, JsExpr left, JsExpr right) =>
-	genBinary(alloc, JsBinaryExpr.Kind.times, left, right);
 JsExpr genNot(ref Alloc alloc, JsExpr arg) =>
 	genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 JsExpr genNotEqEq(ref Alloc alloc, JsExpr left, JsExpr right) =>
@@ -408,6 +406,8 @@ JsExpr genString(Symbol value) =>
 	JsExpr(JsLiteralStringFromSymbol(value));
 JsExpr genThis() =>
 	JsExpr(JsThisExpr());
+JsExpr genTimes(ref Alloc alloc, JsExpr left, JsExpr right) =>
+	genBinary(alloc, JsBinaryExpr.Kind.times, left, right);
 JsExpr genUnary(ref Alloc alloc, JsUnaryExpr.Kind kind, JsExpr arg) =>
 	JsExpr(JsUnaryExpr(kind, allocate(alloc, arg)));
 private JsExpr number0 = genNumber(0);
@@ -421,3 +421,18 @@ JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
 	genWhileTrue(alloc, none!JsName, body_);
 JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement body_) =>
 	genWhile(alloc, label, genBool(true), body_);
+
+JsClassMember genMethod(JsClassMember.Static static_, SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+	JsClassMember(static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
+JsClassMember genInstanceMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+	genMethod(JsClassMember.Static.instance, async, name, params, body_);
+JsClassMember genStaticMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+	genMethod(JsClassMember.Static.static_, async, name, params, body_);
+JsClassMember genInstanceMethod(ref Alloc alloc, SyncOrAsync async, Symbol name, in JsDestructure[] params, JsBlockStatement body_) =>
+	genInstanceMethod(async, name, JsParams(newSmallArray(alloc, params)), body_);
+JsClassMember genInstanceMethod(ref Alloc alloc, SyncOrAsync async, Symbol name, in JsDestructure[] params, JsExpr body_) =>
+	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, [genReturn(alloc, body_)]));
+JsClassMember genField(JsClassMember.Static static_, Symbol name, JsExpr value) =>
+	JsClassMember(static_, name, JsClassMemberKind(value));
+JsClassMember genGetter(JsClassMember.Static static_, Symbol name, JsBlockStatement body_) =>
+	JsClassMember(static_, name, JsClassMemberKind(JsClassGetter(body_)));
