@@ -1386,6 +1386,11 @@ immutable struct FunDecl {
 	Arity arity() scope =>
 		params.arity;
 }
+bool eachSpecInFunIncludingParents(in FunDecl a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.specs, (ref const SpecInst* spec) =>
+		eachSpecIncludingParents(spec, cb));
+bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+	exists!(SpecInst*)(a.parents, (ref const SpecInst* parent) => eachSpecIncludingParents(parent, cb)) || cb(a);
 void eachSpecSigAndImpl(
 	in FunDecl a,
 	in SpecImpls impls,

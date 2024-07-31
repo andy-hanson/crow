@@ -11,7 +11,6 @@ import backend.js.jsAst :
 	genArrowFunction,
 	genAssign,
 	genAwait,
-	genAwaitIf,
 	genBinary,
 	genBitwiseAnd,
 	genBitwiseNot,
@@ -66,9 +65,7 @@ import backend.js.jsAst :
 	JsBinaryExpr,
 	JsBlockStatement,
 	JsClassDecl,
-	JsClassGetter,
 	JsClassMember,
-	JsClassMemberKind,
 	JsContinueStatement,
 	JsDecl,
 	JsDeclKind,
@@ -119,6 +116,7 @@ import model.model :
 	Destructure,
 	eachImportOrReExport,
 	eachLocal,
+	eachSpecInFunIncludingParents,
 	eachTest,
 	EnumOrFlagsFunction,
 	EnumOrFlagsMember,
@@ -798,12 +796,6 @@ void translateSpecsToParams(scope ref Builder!JsDestructure out_, in FunDecl a) 
 		return false;
 	});
 }
-bool eachSpecInFunIncludingParents(in FunDecl a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) => // TODO: move to model.d?
-	exists!(SpecInst*)(a.specs, (ref const SpecInst* spec) =>
-		eachSpecIncludingParents(spec, cb));
-bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
-	exists!(SpecInst*)(a.parents, (ref const SpecInst* parent) => eachSpecIncludingParents(parent, cb)) || cb(a);
-
 
 JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
 	makeDecl(AnyDecl(a), a.visibility, aliasName(ctx, a), JsDeclKind(
@@ -834,16 +826,19 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 			(StructBody.Flags x) =>
 				translateFlagsDecl(ctx, out_, a, needSuper, x),
 			(StructBody.Record x) {
-				translateRecord(ctx, out_, needSuper, x);
+				translateRecordDecl(ctx, out_, needSuper, x);
 			},
 			(ref StructBody.Union x) {
-				translateUnion(ctx, out_, needSuper, x);
+				translateUnionDecl(ctx, out_, needSuper, x);
 			},
 			(StructBody.Variant) {
 				if (a == ctx.commonTypes.exception.decl) {
 					extends = someMut(allocate(ctx.alloc, genGlobal(symbol!"Error")));
 					// get message() { return this.describe() }
-					out_ ~= genGetter(JsClassMember.Static.instance, symbol!"message", JsBlockStatement(newArray(ctx.alloc, [
+					out_ ~= genGetter(
+						JsClassMember.Static.instance,
+						symbol!"message",
+						JsBlockStatement(newArray(ctx.alloc, [
 							genReturn(ctx.alloc, genCallPropertySync(ctx.alloc, genThis(), symbol!"describe", []))])));
 				}
 			});
@@ -854,7 +849,11 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 					out_ ~= variantMethodImpl(ctx, FunDeclSource.VariantMethod(v.variant.decl, sig), force(*impl));
 			});
 	});
-	return makeDecl(AnyDecl(a), a.visibility, structName(ctx, a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
+	return makeDecl(
+		AnyDecl(a),
+		a.visibility,
+		structName(ctx, a),
+		JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
 }
 
 JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, FunDeclSource.VariantMethod variantMethod, Called a) {
@@ -888,39 +887,47 @@ JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, FunDeclSource.Varian
 	}
 }
 
-void translateEnumDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Enum a) {
-	// TODO: I think the names are unused? ---------------------------------------------------------------------------------
+void translateEnumDecl(
+	ref TranslateModuleCtx ctx,
+	scope ref Builder!JsClassMember out_,
+	bool needSuper,
+	in StructBody.Enum a,
+) {
 	/*
 	class E {
-		constructor(name, value) {
-			this.name = name
+		constructor(value) {
 			this.value = value
 		}
-		static x = new this("x", 0n)
+		static x = new this(0n)
 		static _members = [new_pair("x", this.x)]
 	}
 	*/
-	JsName name = localName(symbol!"name");
 	JsName value = localName(symbol!"value");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(name), JsDestructure(value)], needSuper, [
-		genAssignToThis(ctx.alloc, symbol!"name", JsExpr(name)),
+	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
 		genAssignToThis(ctx.alloc, symbol!"value", JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members)
-		out_ ~= genField(JsClassMember.Static.static_, member.name, genNew(ctx.alloc, genThis(), [
-			genString(member.name),
-			genInteger(isSigned(a.storage), member.value)]));
-	out_ ~= enumOrFlagsMembers(ctx, a.members); // TODO: what if a member is named 'members'? --------------------------------------
+		out_ ~= genField(
+			JsClassMember.Static.static_,
+			member.name,
+			genNew(ctx.alloc, genThis(), [genInteger(isSigned(a.storage), member.value)]));
+	out_ ~= enumOrFlagsMembers(ctx, a.members);
 }
 JsStatement genAssignToThis(ref Alloc alloc, Symbol name, JsExpr value) =>
 	genAssign(alloc, genPropertyAccess(alloc, genThis(), name), value);
-JsClassMember enumOrFlagsMembers(ref TranslateModuleCtx ctx, EnumOrFlagsMember[] members) =>
+JsClassMember enumOrFlagsMembers(ref TranslateModuleCtx ctx, in EnumOrFlagsMember[] members) =>
 	genField(
 		JsClassMember.Static.static_,
 		symbol!"_members",
 		genArray(map(ctx.alloc, members, (ref EnumOrFlagsMember member) =>
 			genNewPair(ctx, genString(member.name), genPropertyAccess(ctx.alloc, genThis(), member.name)))));
 
-void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, StructDecl* struct_, bool needSuper, ref StructBody.Flags a) {
+void translateFlagsDecl(
+	ref TranslateModuleCtx ctx,
+	scope ref Builder!JsClassMember out_,
+	in StructDecl* struct_,
+	bool needSuper,
+	in StructBody.Flags a,
+) {
 	/*
 	class F {
 		constructor(value) {
@@ -949,15 +956,23 @@ void translateFlagsDecl(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMem
 		out_ ~= genField(
 			JsClassMember.Static.static_,
 			member.name,
-			genNew(ctx.alloc, genThis(), [genIntegerUnsigned(member.value.asUnsigned())])); // TOOD: flags can only have unsigned backing type, right?
+			genNew(ctx.alloc, genThis(), [genIntegerUnsigned(member.value.asUnsigned())]));
 	}
-	out_ ~= genField(JsClassMember.Static.static_, symbol!"_none", genNew(ctx.alloc, genThis(), [genIntegerUnsigned(0)]));
+	out_ ~= genField(
+		JsClassMember.Static.static_,
+		symbol!"_none",
+		genNew(ctx.alloc, genThis(), [genIntegerUnsigned(0)]));
 	out_ ~= enumOrFlagsMembers(ctx, a.members);
-	out_ ~= intersectOrUnion(ctx, struct_, symbol!"_intersect", JsBinaryExpr.Kind.bitwiseAnd);
-	out_ ~= intersectOrUnion(ctx, struct_, symbol!"_union", JsBinaryExpr.Kind.bitwiseOr);
-	out_ ~= negate(ctx, struct_, getAllFlagsValue(a));
+	out_ ~= intersectOrUnionMethod(ctx, struct_, symbol!"_intersect", JsBinaryExpr.Kind.bitwiseAnd);
+	out_ ~= intersectOrUnionMethod(ctx, struct_, symbol!"_union", JsBinaryExpr.Kind.bitwiseOr);
+	out_ ~= negateMethod(ctx, struct_, getAllFlagsValue(a));
 }
-JsClassMember intersectOrUnion(ref TranslateModuleCtx ctx, StructDecl* struct_, Symbol name, JsBinaryExpr.Kind kind) {
+JsClassMember intersectOrUnionMethod(
+	ref TranslateModuleCtx ctx,
+	in StructDecl* struct_,
+	Symbol name,
+	JsBinaryExpr.Kind kind,
+) {
 	JsName b = localName(symbol!"b");
 	return genInstanceMethod(
 		ctx.alloc,
@@ -967,7 +982,7 @@ JsClassMember intersectOrUnion(ref TranslateModuleCtx ctx, StructDecl* struct_, 
 		genNew(ctx.alloc, translateStructReference(ctx, struct_), [
 			genBinary(ctx.alloc, kind, getValue(ctx.alloc, genThis()), getValue(ctx.alloc, JsExpr(b)))]));
 }
-JsClassMember negate(ref TranslateModuleCtx ctx, StructDecl* struct_, ulong allFlagsValue) =>
+JsClassMember negateMethod(ref TranslateModuleCtx ctx, in StructDecl* struct_, ulong allFlagsValue) =>
 	genInstanceMethod(
 		ctx.alloc,
 		SyncOrAsync.sync,
@@ -981,7 +996,12 @@ JsClassMember negate(ref TranslateModuleCtx ctx, StructDecl* struct_, ulong allF
 JsExpr getValue(ref Alloc alloc, JsExpr arg) =>
 	genPropertyAccess(alloc, arg, symbol!"value");
 
-void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Record a) {
+void translateRecordDecl(
+	ref TranslateModuleCtx ctx,
+	scope ref Builder!JsClassMember out_,
+	bool needSuper,
+	in StructBody.Record a,
+) {
 	/*
 	class R {
 		constructor(x, fooBar) {
@@ -993,24 +1013,28 @@ void translateRecord(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember
 	out_ ~= genConstructor(
 		ctx.alloc,
 		map!(JsDestructure, RecordField)(ctx.alloc, a.fields, (ref RecordField x) =>
-			JsDestructure(localName(x.name))), 
+			JsDestructure(localName(x.name))),
 		needSuper,
 		(scope ref ArrayBuilder!JsStatement out_) {
 			TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx));
 			foreach (ref RecordField x; a.fields) {
 				JsExpr value = JsExpr(localName(x.name));
-				genAssertType(out_, exprCtx, x.type, value); // TODO: make type assertions optional ----------------------------------------------------------------------------
+				genAssertType(out_, exprCtx, x.type, value);
 				add(ctx.alloc, out_, genAssignToThis(ctx.alloc, x.name, value));
 			}
 		});
 }
 
-void genAssertTypesForDestructure(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx ctx, Destructure destructure) {
+void genAssertTypesForDestructure(
+	scope ref ArrayBuilder!JsStatement out_,
+	ref TranslateExprCtx ctx,
+	in Destructure destructure,
+) {
 	eachLocal(destructure, (Local* x) {
 		genAssertType(out_, ctx, x.type, translateLocalGet(x));
 	});
 }
-void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx ctx, Type type, JsExpr get) { //TODO:MOVE -----------------------------------------------------------------------------------------------------------------
+void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx ctx, in Type type, JsExpr get) {
 	type.matchIn!void(
 		(in Type.Bogus) {},
 		(in TypeParamIndex _) {},
@@ -1021,7 +1045,10 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 				? none!JsExpr
 				: some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
-				add(ctx.alloc, out_, genIf(ctx.alloc, force(notOk), genThrowJsError(ctx.alloc, "Value did not have expected type")));
+				add(ctx.alloc, out_, genIf(
+					ctx.alloc,
+					force(notOk),
+					genThrowJsError(ctx.alloc, "Value did not have expected type")));
 		});
 }
 Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsExpr get) {
@@ -1069,7 +1096,12 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 	}
 }
 
-void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_, bool needSuper, ref StructBody.Union a) {
+void translateUnionDecl(
+	ref TranslateModuleCtx ctx,
+	scope ref Builder!JsClassMember out_,
+	bool needSuper,
+	in StructBody.Union a,
+) {
 	/*
 	class U {
 		constructor(arg) {
@@ -1083,7 +1115,11 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 	*/
 	JsName arg = localName(symbol!"arg");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], needSuper, [
-		JsStatement(genCallPropertySync(ctx.alloc, genGlobal(symbol!"Object"), symbol!"assign", [genThis(), JsExpr(arg)]))]);
+		JsStatement(genCallPropertySync(
+			ctx.alloc,
+			genGlobal(symbol!"Object"),
+			symbol!"assign",
+			[genThis(), JsExpr(arg)]))]);
 
 	foreach (ref UnionMember member; a.members) {
 		out_ ~= () {
@@ -1093,10 +1129,19 @@ void translateUnion(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember 
 				ArrayBuilder!JsStatement out_;
 				TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx));
 				genAssertType(out_, exprCtx, member.type, JsExpr(value));
-				add(ctx.alloc, out_, genReturn(ctx.alloc, genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, JsExpr(value))])));
-				return genStaticMethod(SyncOrAsync.sync, member.name, params, genBlockStatement(ctx.alloc, finish(ctx.alloc, out_)));
+				add(ctx.alloc, out_, genReturn(
+					ctx.alloc,
+					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, JsExpr(value))])));
+				return genStaticMethod(
+					SyncOrAsync.sync,
+					member.name,
+					params,
+					genBlockStatement(ctx.alloc, finish(ctx.alloc, out_)));
 			} else
-				return genField(JsClassMember.Static.static_, member.name, genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, genNull())]));
+				return genField(
+					JsClassMember.Static.static_,
+					member.name,
+					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, genNull())]));
 		}();
 	}
 }
@@ -1115,7 +1160,11 @@ JsClassMember genConstructor(
 	if (needSuper)
 		add(alloc, out_, genSuper());
 	cb(out_);
-	return genInstanceMethod(SyncOrAsync.sync, symbol!"constructor", JsParams(params), JsBlockStatement(finish(alloc, out_)));
+	return genInstanceMethod(
+		SyncOrAsync.sync,
+		symbol!"constructor",
+		JsParams(params),
+		JsBlockStatement(finish(alloc, out_)));
 }
 
 JsExpr super_ = genGlobal(symbol!"super");

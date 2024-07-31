@@ -297,7 +297,7 @@ JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>
 	genAssign(alloc, JsExpr(left), right);
 JsExpr genAwait(ref Alloc alloc, JsExpr arg) =>
 	genUnary(alloc, JsUnaryExpr.Kind.await, arg);
-JsExpr genAwaitIf(ref Alloc alloc, SyncOrAsync async, JsExpr arg) {
+private JsExpr genAwaitIf(ref Alloc alloc, SyncOrAsync async, JsExpr arg) {
 	final switch (async) {
 		case SyncOrAsync.sync:
 			return arg;
@@ -422,7 +422,7 @@ JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
 JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement body_) =>
 	genWhile(alloc, label, genBool(true), body_);
 
-JsClassMember genMethod(JsClassMember.Static static_, SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+private JsClassMember genMethod(JsClassMember.Static static_, SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
 	JsClassMember(static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
 JsClassMember genInstanceMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
 	genMethod(JsClassMember.Static.instance, async, name, params, body_);

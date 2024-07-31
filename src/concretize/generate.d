@@ -188,9 +188,7 @@ size_t fieldIndexFromField(ConcreteType recordType, RecordField* field) =>
 	mustHaveIndexOfPointer(
 		recordType.struct_.source.as!(ConcreteStructSource.Inst).decl.body_.as!(StructBody.Record).fields,
 		field);
-ConcreteField* concreteFieldFromField(ConcreteType recordType, RecordField* field) =>
-	concreteFieldFromIndex(recordType, fieldIndexFromField(recordType, field));
-ConcreteField* concreteFieldFromIndex(ConcreteType recordType, size_t fieldIndex) =>
+private ConcreteField* concreteFieldFromIndex(ConcreteType recordType, size_t fieldIndex) =>
 	&recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex];
 
 ConcreteFunBody genUnionMemberGet(ref ConcretizeCtx ctx, ConcreteFun* cf, size_t memberIndex) {

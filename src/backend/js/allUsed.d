@@ -205,7 +205,7 @@ AllUsed allUsed(ref Alloc alloc, in ShowCtx showCtx, ref ProgramWithMain program
 
 bool bodyIsInlined(in FunDecl a) =>
 	!bodyIsNotInlined(a.body_);
-bool bodyIsNotInlined(in FunBody a) =>
+private bool bodyIsNotInlined(in FunBody a) =>
 	a.isA!AutoFun ||
 	a.isA!Expr ||
 	a.isA!(FunBody.FileImport) ||
