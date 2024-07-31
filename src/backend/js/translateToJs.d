@@ -1230,7 +1230,7 @@ JsExprOrBlockStatement translateCompareUnion(
 	ref TranslateExprCtx ctx,
 	in AutoFun auto_,
 	StructDecl* comparison,
-	UnionMember[] members,
+	in UnionMember[] members,
 	JsExpr p0,
 	JsExpr p1,
 ) =>
@@ -1247,24 +1247,13 @@ JsExprOrBlockStatement translateCompareUnion(
 	else
 		throw
 	*/
-	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
-		// TODO: share code with translateEqualUnion ----------------------------------------------------------------------------
-		foldReverseWithIndex!(JsStatement, UnionMember)(
-			genThrowJsError(ctx.alloc, "Invalid union value"),
-			members,
-			(JsStatement else_, size_t index, ref UnionMember member) =>
-				genIf(
-					ctx.alloc,
-					genIn(ctx.alloc, member.name, p0),
-					genReturn(
-						ctx.alloc,
-						translateCompareUnionPart(ctx, auto_, comparison, members, index, member, p0, p1)),
-					else_))]));
+	matchUnionMembers(ctx, members, p0, (size_t memberIndex, ref UnionMember member) @safe =>
+		genReturn(ctx.alloc, translateCompareUnionPart(ctx, auto_, comparison, members, memberIndex, member, p0, p1))); // TODO: just inline it
 JsExpr translateCompareUnionPart(
 	ref TranslateExprCtx ctx,
 	in AutoFun auto_,
 	StructDecl* comparison,
-	UnionMember[] members,
+	in UnionMember[] members,
 	size_t memberIndex,
 	ref UnionMember member,
 	JsExpr p0,
@@ -1303,26 +1292,30 @@ JsExprOrBlockStatement translateEqualRecord(
 JsExprOrBlockStatement translateEqualUnion(
 	ref TranslateExprCtx ctx,
 	in AutoFun auto_,
-	UnionMember[] members,
+	in UnionMember[] members,
 	JsExpr p0,
 	JsExpr p1,
+) =>
+	matchUnionMembers(ctx, members, p0, (size_t memberIndex, ref UnionMember member) =>
+		genReturn(ctx.alloc, genAnd(
+			ctx.alloc,
+			genIn(ctx.alloc, member.name, p1),
+			genCallCompareProperty(ctx, auto_.members[memberIndex], p0, p1, member.name))));
+JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, Symbol name) =>
+	makeCall(ctx, called, [genPropertyAccess(ctx.alloc, p0, name), genPropertyAccess(ctx.alloc, p1, name)]);
+
+JsExprOrBlockStatement matchUnionMembers(
+	ref TranslateExprCtx ctx,
+	in UnionMember[] members,
+	JsExpr p0,
+	in JsStatement delegate(size_t, ref UnionMember) @safe @nogc pure nothrow cbCase,
 ) =>
 	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
 		foldReverseWithIndex!(JsStatement, UnionMember)(
 			genThrowJsError(ctx.alloc, "Invalid union value"),
 			members,
 			(JsStatement else_, size_t index, ref UnionMember member) =>
-				// if ("foo" in a) return "foo" in b && eq(a.foo, b.foo) else <<else>>
-				genIf(
-					ctx.alloc,
-					genIn(ctx.alloc, member.name, p0),
-					genReturn(ctx.alloc, genAnd(
-						ctx.alloc,
-						genIn(ctx.alloc, member.name, p1),
-						genCallCompareProperty(ctx, auto_.members[index], p0, p1, member.name))),
-					else_))]));
-JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, Symbol name) =>
-	makeCall(ctx, called, [genPropertyAccess(ctx.alloc, p0, name), genPropertyAccess(ctx.alloc, p1, name)]);
+				genIf(ctx.alloc, genIn(ctx.alloc, member.name, p0), cbCase(index, member), else_))]));
 
 SyncOrAsync isCurFunAsync(in TranslateExprCtx ctx) =>
 	has(ctx.curFun) ? isAsyncFun(ctx.ctx.allUsed, force(ctx.curFun)) : SyncOrAsync.async;
@@ -1347,35 +1340,17 @@ JsExprOrBlockStatement translateUnionToJson(
 	ref TranslateExprCtx ctx,
 	StructDecl* json,
 	in AutoFun auto_,
-	UnionMember[] members,
+	in UnionMember[] members,
 	JsExpr p0,
 ) =>
-	/*
-	if ("foo" in a)
-		new_json(new_pair("foo", toJson(a.foo)))
-	else
-		throw new Error("invalid union")
-	*/
-	// TODO: share code with translateCompareUNion --------------------------------------------------------------------------------
-	JsExprOrBlockStatement(genBlockStatement(ctx.alloc, [
-		foldReverseWithIndex!(JsStatement, UnionMember)(
-			genThrowJsError(ctx.alloc, "Invalid union value"),
-			members,
-			(JsStatement else_, size_t index, ref UnionMember member) =>
-				// if ("foo" in a) return new_json(new_pair("foo", toJson(a.foo))) else <<else>>
-				genIf(
-					ctx.alloc,
-					genIn(ctx.alloc, member.name, p0),
-					genReturn(ctx.alloc,
-						genNewJson(ctx.ctx, newArray(ctx.alloc, [
-							genNewPair(
-								ctx.ctx,
-								genString(member.name),
-								makeCall(
-									ctx,
-									auto_.members[index],
-									[genPropertyAccess(ctx.alloc, p0, member.name)]))]))),
-					else_))]));
+	matchUnionMembers(ctx, members, p0, (size_t memberIndex, ref UnionMember member) =>
+		// return new_json(new_pair("foo", toJson(a.foo)))
+		genReturn(ctx.alloc,
+			genNewJson(ctx.ctx, newArray(ctx.alloc, [
+				genNewPair(
+					ctx.ctx,
+					genString(member.name),
+					makeCall(ctx, auto_.members[memberIndex], [genPropertyAccess(ctx.alloc, p0, member.name)]))]))));
 JsExpr genNewJson(ref TranslateModuleCtx ctx, JsExpr[] pairs) =>
 	genCallAwait(
 		ctx.alloc,
@@ -1628,38 +1603,22 @@ ExprResult translateAssertOrForbid(
 
 ExprResult translateCall(ref TranslateExprCtx ctx, ref CallExpr a, Type type, scope ExprPos pos) {
 	assert(type == a.called.returnType);
-	return isInlined(a.called)
-		? translateInlineCall(
-			ctx, type, pos, a.called.as!(FunInst*).decl, a.called.as!(FunInst*).paramTypes, a.args.length,
-			(size_t argIndex) =>
-				translateExprToExpr(ctx, a.args[argIndex], paramTypeAt(a.called, argIndex)))
-		: forceExpr(ctx, pos, type, makeCallNoInline(ctx, a.called, (scope ref Builder!JsExpr out_) {
-			foreach (size_t argIndex, ref Expr arg; a.args)
-				out_ ~= translateExprToExpr(ctx, arg, paramTypeAt(a.called, argIndex));
-		}));
+	return translateCallCommon(ctx, a.called, [], a.args, pos);
 }
 ExprResult translateCallOption(ref TranslateExprCtx ctx, ref CallOptionExpr a, Type type, scope ExprPos pos) =>
 	/*
-	x?.f
+	firstArg?.called
 	==>
-	const option = x
+	const option = firstArg
 	return "some" in option
-		// 'Option.some' will be omitted if 'f' already returns an option
-		? Option.some(f(option.some))
+		// 'Option.some' will be omitted if 'called' already returns an option
+		? Option.some(called(option.some))
 		: Option.none
 	*/
 	withTemp(ctx, symbol!"option", a.firstArg, pos, (JsName option, scope ExprPos inner) {
 		JsExpr forceIt = genOptionForce(ctx.alloc, JsExpr(option));
-		JsExpr call = isInlined(a.called)
-			// TODO: share code with translateCall? -----------------------------------------------------------------------------------
-			? translateToExpr((scope ExprPos callPos) =>
-				translateInlineCall(ctx, a.called.returnType, callPos, a.called.as!(FunInst*).decl, a.called.as!(FunInst*).paramTypes, 1 + a.restArgs.length, (size_t argIndex) =>
-					argIndex == 0 ? forceIt : translateExprToExpr(ctx, a.restArgs[argIndex - 1], paramTypeAt(a.called, argIndex))))
-			: makeCallNoInline(ctx, a.called, (scope ref Builder!JsExpr out_) {
-				out_ ~= forceIt;
-				foreach (size_t index, ref Expr arg; a.restArgs)
-					out_ ~= translateExprToExpr(ctx, arg, paramTypeAt(a.called, 1 + index));
-			});
+		JsExpr call = translateToExpr((scope ExprPos callPos) =>
+			translateCallCommon(ctx, a.called, [forceIt], a.restArgs, callPos));
 		JsExpr then = a.called.returnType == type
 			? call
 			: genOptionSome(ctx, type, call);
@@ -1669,6 +1628,30 @@ ExprResult translateCallOption(ref TranslateExprCtx ctx, ref CallOptionExpr a, T
 			then,
 			genOptionNone(ctx, type)));
 	});
+ExprResult translateCallCommon(
+	ref TranslateExprCtx ctx,
+	Called called,
+	in JsExpr[] prefixArgs,
+	in Expr[] args,
+	scope ExprPos pos,
+) =>
+	isInlined(called)
+		? translateInlineCall(
+			ctx,
+			called.returnType,
+			pos,
+			called.as!(FunInst*).decl,
+			called.as!(FunInst*).paramTypes,
+			prefixArgs.length + args.length,
+			(size_t argIndex) =>
+				argIndex < prefixArgs.length
+					? prefixArgs[argIndex]
+					: translateExprToExpr(ctx, args[argIndex - prefixArgs.length], paramTypeAt(called, argIndex)))
+		: forceExpr(ctx, pos, called.returnType, makeCallNoInline(ctx, called, (scope ref Builder!JsExpr out_) {
+			out_ ~= prefixArgs;
+			foreach (size_t argIndex, ref Expr arg; args)
+				out_ ~= translateExprToExpr(ctx, arg, paramTypeAt(called, prefixArgs.length + argIndex));
+		}));
 
 bool isInlined(in Called a) =>
 	a.isA!(FunInst*) && bodyIsInlined(*a.as!(FunInst*).decl);
