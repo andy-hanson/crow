@@ -9,6 +9,7 @@ import
 	./enums: dummy-enums
 	./exceptions: dummy-exceptions
 	./extern-alignment: dummy-extern-alignment
+	./file-import: dummy-file-import
 	./flags-tests: dummy-flags
 	./function-pointers: dummy-function-pointers
 	./gc-roots: dummy-gc-roots
@@ -36,6 +37,7 @@ dummy-unit-tests nat()
 	_ = dummy-enums
 	_ = dummy-exceptions
 	_ = dummy-extern-alignment
+	_ = dummy-file-import
 	_ = dummy-flags
 	_ = dummy-function-pointers
 	_ = dummy-gc-roots

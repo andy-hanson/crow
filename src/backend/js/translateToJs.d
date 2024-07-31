@@ -1130,7 +1130,8 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 	if (fun.body_.isA!(FunBody.FileImport))
 		return fun.body_.as!(FunBody.FileImport).content.matchIn!JsExprOrBlockStatement(
 			(in immutable ubyte[] bytes) =>
-				todo!JsExprOrBlockStatement("For large file: Base64 encode as a string literal, then decode?"), // ------------------
+				JsExprOrBlockStatement(allocate(ctx.alloc, genArray(map(ctx.alloc, bytes, (ref immutable ubyte x) =>
+					genIntegerUnsigned(x))))),
 			(in string s) =>
 				JsExprOrBlockStatement(allocate(ctx.alloc, genString(s))),
 			(in ImportFileContent.Bogus) =>
@@ -1138,16 +1139,14 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 	else {
 		if (fun.body_.isA!AutoFun)
 			return translateAutoFun(ctx, fun, fun.body_.as!AutoFun);
-		else if (fun.body_.isA!Expr) {
-			if (true) { // TODO: make type assertions optional ----------------------------------------------------------------------------
-				return JsExprOrBlockStatement(JsBlockStatement(translateToStatements(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos pos) {
+		else if (fun.body_.isA!Expr)
+			return JsExprOrBlockStatement(JsBlockStatement(
+				translateToStatements(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos pos) {
 					foreach (ref Destructure param; paramsArray(fun.params))
 						genAssertTypesForDestructure(out_, ctx, param);
 					return translateExpr(ctx, fun.body_.as!Expr, fun.returnType, pos);
 				})));
-			} else
-				return translateExprToExprOrBlockStatement(ctx, fun.body_.as!Expr, fun.returnType);
-		} else {
+		else {
 			Destructure[] params = fun.params.as!(Destructure[]);
 			return translateToExprOrBlockStatement(ctx.alloc, (scope ExprPos pos) =>
 				withMapToStackArray!(ExprResult, Type, Destructure)(
