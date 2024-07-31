@@ -688,6 +688,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= "this";
 		},
 		(in JsUnaryExpr x) {
+			if (pos.isNonFirstStatement)
+				writer ~= ';';
+			writer ~= '(';
 			writer ~= () {
 				final switch (x.kind) {
 					case JsUnaryExpr.Kind.await:
@@ -702,7 +705,6 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 						return "void ";
 				}
 			}();
-			writer ~= '(';
 			writeArg(*x.arg);
 			writer ~= ')';
 		});

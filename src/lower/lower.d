@@ -30,7 +30,6 @@ import lower.lowExprHelpers :
 	genDrop,
 	genEnumEq,
 	genEnumIntersect,
-	genEnumToIntegral,
 	genEnumUnion,
 	genFalse,
 	genFunPointer,
@@ -1325,7 +1324,7 @@ LowExpr genEnumOrFlagsFunction(
 			return genConstantIntegral(type, range, 0);
 		case EnumOrFlagsFunction.toIntegral:
 			assert(args.length == 1);
-			return genEnumToIntegral(ctx.alloc, type, range, arg0());
+			return arg0();
 		case EnumOrFlagsFunction.union_:
 			assert(args.length == 2);
 			return genEnumUnion(ctx.alloc, range, arg0(), arg1());

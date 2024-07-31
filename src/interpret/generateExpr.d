@@ -802,7 +802,6 @@ void generateSpecialUnary(
 			// done in lower
 			assert(false);
 		case BuiltinUnary.asAnyPointer:
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toNat8FromChar8:

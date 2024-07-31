@@ -48,6 +48,7 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
+	mustUnwrapOptionType,
 	paramsArray,
 	Program,
 	ProgramWithMain,
@@ -203,8 +204,13 @@ AllUsed allUsed(ref Alloc alloc, in ShowCtx showCtx, ref ProgramWithMain program
 }
 
 bool bodyIsInlined(in FunDecl a) =>
-	(!a.body_.isA!AutoFun && !a.body_.isA!Expr && !a.body_.isA!(FunBody.FileImport)) ||
-	(a.body_.isA!BuiltinFun && !isInlinedBuiltinFun(a.body_.as!BuiltinFun));
+	!bodyIsNotInlined(a.body_);
+bool bodyIsNotInlined(in FunBody a) =>
+	a.isA!AutoFun ||
+	a.isA!Expr ||
+	a.isA!(FunBody.FileImport) ||
+	a.isA!(FunBody.VariantMemberGet) ||
+	(a.isA!BuiltinFun && !isInlinedBuiltinFun(a.as!BuiltinFun));
 private bool isInlinedBuiltinFun(in BuiltinFun a) =>
 	a.matchIn!bool(
 		(in BuiltinFun.AllTests) =>
@@ -492,7 +498,10 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			(FunBody.VarGet x) {
 				cast(void) addDecl(res, from, AnyDecl(x.var));
 			},
-			(FunBody.VariantMemberGet) {},
+			(FunBody.VariantMemberGet) {
+				usedReturnType();
+				trackAllUsedInType(res, from, mustUnwrapOptionType(res.commonTypes, a.returnType));
+			},
 			(FunBody.VariantMethod) {},
 			(FunBody.VarSet x) {
 				cast(void) addDecl(res, from, AnyDecl(x.var));

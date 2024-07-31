@@ -304,9 +304,6 @@ private BuiltinBinary unionForType(PrimitiveType a) {
 	}
 }
 
-LowExpr genEnumToIntegral(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
-	genUnary(alloc, type, range, BuiltinUnary.enumToIntegral, inner);
-
 LowExpr genPointerCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.PointerCast(inner))));
 

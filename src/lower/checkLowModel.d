@@ -284,8 +284,6 @@ ExpectUnary unaryExpected(
 		case BuiltinUnary.asAnyPointer:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
-		case BuiltinUnary.enumToIntegral:
-			return ExpectUnary();
 		case BuiltinUnary.bitwiseNotNat8:
 			return expect(nat8Type, nat8Type);
 		case BuiltinUnary.bitwiseNotNat16:

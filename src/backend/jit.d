@@ -1447,7 +1447,6 @@ ExprResult funPointerToGcc(ref ExprCtx ctx, ExprEmit emit, LowType type, LowFunI
 			emitToVoid(ctx, locals, a.arg);
 			return emitVoid(ctx, emit);
 		case BuiltinUnary.asAnyPointer:
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:

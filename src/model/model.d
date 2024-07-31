@@ -986,7 +986,6 @@ enum BuiltinUnary {
 	cStringOfSymbol,
 	deref,
 	drop,
-	enumToIntegral,
 	isNanFloat32,
 	isNanFloat64,
 	not,

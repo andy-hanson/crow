@@ -1687,7 +1687,6 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
 			return specialCall(ctx.isMSVC ? "isnan" : "__builtin_isnan");
-		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.referenceFromPointer:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toFloat32FromFloat64:

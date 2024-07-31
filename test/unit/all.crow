@@ -6,6 +6,7 @@ import
 	./conditions: dummy-conditions
 	./closures: dummy-closures
 	./crow-parser/all: dummy-crow-parser
+	./enums: dummy-enums
 	./exceptions: dummy-exceptions
 	./extern-alignment: dummy-extern-alignment
 	./flags-tests: dummy-flags
@@ -15,12 +16,14 @@ import
 	./library/all: dummy-library-tests
 	./log: dummy-log
 	./loops: dummy-loops
+	./options: dummy-options
 	./overloading: dummy-overloading
 	./parallel: dummy-parallel
 	./pointers: dummy-pointers
 	./record-field-callers: dummy-record-field-callers
 	./templates: dummy-templates
 	./type-cyclic-reference: dummy-type-cyclic-reference
+	./variants: dummy-variants
 
 dummy-unit-tests nat()
 	_ = dummy-array
@@ -30,6 +33,7 @@ dummy-unit-tests nat()
 	_ = dummy-conditions
 	_ = dummy-crow-parser
 	_ = dummy-closures
+	_ = dummy-enums
 	_ = dummy-exceptions
 	_ = dummy-extern-alignment
 	_ = dummy-flags
@@ -39,9 +43,11 @@ dummy-unit-tests nat()
 	_ = dummy-library-tests
 	_ = dummy-log
 	_ = dummy-loops
+	_ = dummy-options
 	_ = dummy-overloading
 	_ = dummy-parallel
 	_ = dummy-pointers
 	_ = dummy-record-field-callers
 	_ = dummy-templates
 	_ = dummy-type-cyclic-reference
+	_ = dummy-variants
