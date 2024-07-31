@@ -743,12 +743,16 @@ JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 		(VarDecl* x) =>
 			translateVarDecl(ctx, x));
 
-JsDecl makeDecl(AnyDecl source, Visibility visibility, JsName name, JsDeclKind value) => // TODO: just use source.visibility. And get name using mangledNameForDecl
-	JsDecl(source, visibility == Visibility.private_ ? JsDecl.Exported.private_ : JsDecl.Exported.export_, name, value);
+JsDecl makeDecl(in TranslateModuleCtx ctx, AnyDecl source, JsDeclKind value) =>
+	JsDecl(
+		source,
+		source.visibility == Visibility.private_ ? JsDecl.Exported.private_ : JsDecl.Exported.export_,
+		mangledNameForDecl(ctx, source),
+		value);
 
 JsDecl translateTest(ref TranslateModuleCtx ctx, Test* a) {
 	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
-	return makeDecl(AnyDecl(a), Visibility.public_, testName(ctx, a), JsDeclKind(genArrowFunction(
+	return makeDecl(ctx, AnyDecl(a), JsDeclKind(genArrowFunction(
 		SyncOrAsync.async,
 		JsParams(),
 		translateExprToExprOrBlockStatement(exprCtx, a.body_, Type(ctx.commonTypes.void_)))));
@@ -757,7 +761,7 @@ JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), some(a));
 	JsParams params = translateFunParams(exprCtx, *a);
 	JsExpr fun = genArrowFunction(isAsyncFun(ctx.allUsed, a), params, translateFunBody(exprCtx, a));
-	return makeDecl(AnyDecl(a), a.visibility, funName(ctx, a), JsDeclKind(fun));
+	return makeDecl(ctx, AnyDecl(a), JsDeclKind(fun));
 }
 
 JsParams translateFunParams(ref TranslateExprCtx ctx, in FunDecl a) {
@@ -784,10 +788,11 @@ JsDestructure translateDestructure(ref TranslateExprCtx ctx, in Destructure a) =
 		(in Destructure.Split x) =>
 			translateDestructureSplit(ctx, x));
 JsDestructure translateDestructureSplit(ref TranslateExprCtx ctx, in Destructure.Split x) {
-	SmallArray!RecordField fields = x.destructuredType.as!(StructInst*).decl.body_.as!(StructBody.Record).fields; // TODO: destructuredType will be Bogus if there's a compile error
-	return JsDestructure(JsObjectDestructure(mapZip!(immutable KeyValuePair!(Symbol, JsDestructure), RecordField, Destructure)(
-		ctx.alloc, fields, x.parts, (ref RecordField field, ref Destructure part) =>
-			immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
+	SmallArray!RecordField fields = x.destructuredType.as!(StructInst*).decl.body_.as!(StructBody.Record).fields;
+	return JsDestructure(JsObjectDestructure(
+		mapZip!(immutable KeyValuePair!(Symbol, JsDestructure), RecordField, Destructure)(
+			ctx.alloc, fields, x.parts, (ref RecordField field, ref Destructure part) =>
+				immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
 }
 void translateSpecsToParams(scope ref Builder!JsDestructure out_, in FunDecl a) {
 	eachSpecInFunIncludingParents(a, (SpecInst* spec) {
@@ -798,12 +803,11 @@ void translateSpecsToParams(scope ref Builder!JsDestructure out_, in FunDecl a) 
 }
 
 JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
-	makeDecl(AnyDecl(a), a.visibility, aliasName(ctx, a), JsDeclKind(
-		translateStructReference(ctx, a.target.decl)));
+	makeDecl(ctx, AnyDecl(a), JsDeclKind(translateStructReference(ctx, a.target.decl)));
 
 JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 	if (a.body_.isA!BuiltinType)
-		return makeDecl(AnyDecl(a), a.visibility, structName(ctx, a), JsDeclKind(genNull()));
+		return makeDecl(ctx, AnyDecl(a), JsDeclKind(genNull())); // TODO: we won't use this. Can we 'assert(false)'?
 
 	MutOpt!(JsExpr*) extends;
 	JsClassMember[] members = buildArray!JsClassMember(ctx.alloc, (scope ref Builder!JsClassMember out_) {
@@ -849,11 +853,7 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 					out_ ~= variantMethodImpl(ctx, FunDeclSource.VariantMethod(v.variant.decl, sig), force(*impl));
 			});
 	});
-	return makeDecl(
-		AnyDecl(a),
-		a.visibility,
-		structName(ctx, a),
-		JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
+	return makeDecl(ctx, AnyDecl(a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
 }
 
 JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, FunDeclSource.VariantMethod variantMethod, Called a) {
@@ -1171,7 +1171,7 @@ JsExpr super_ = genGlobal(symbol!"super");
 JsStatement genSuper() => JsStatement(genCallSync(&super_, []));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
-	makeDecl(AnyDecl(a), a.visibility, varName(ctx, a), JsDeclKind(JsDeclKind.Let()));
+	makeDecl(ctx, AnyDecl(a), JsDeclKind(JsDeclKind.Let()));
 
 JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) {
 	if (fun.body_.isA!(FunBody.FileImport))
