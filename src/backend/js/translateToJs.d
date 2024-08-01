@@ -249,7 +249,7 @@ import util.uri :
 	relativePath,
 	resolvePath,
 	Uri;
-import util.util : castNonScope_ref, min, ptrTrustMe, todo, typeAs;
+import util.util : castNonScope_ref, min, ptrTrustMe, typeAs;
 import versionInfo : isVersion, JsTarget, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
@@ -564,8 +564,6 @@ JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
 	jsNameForDecl(
 		a,
 		(a.visibility == Visibility.private_ ? ctx.privateMangledNames : ctx.exportMangledNames.mangledNames)[a]);
-JsName aliasName(in TranslateModuleCtx ctx, in StructAlias* a) =>
-	mangledNameForDecl(ctx, AnyDecl(a));
 JsName funName(in TranslateModuleCtx ctx, in FunDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateFunReference(in TranslateModuleCtx ctx, in FunDecl* a) =>

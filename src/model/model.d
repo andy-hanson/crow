@@ -211,6 +211,10 @@ Type mustUnwrapOptionType(in CommonTypes commonTypes, Type a) {
 bool isOptionType(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.option;
 
+bool isFunPointer(in Type a) =>
+	isBuiltinType(a, BuiltinType.funPointer);
+bool isLambdaType(in Type a) =>
+	isBuiltinType(a, BuiltinType.lambda);
 bool isLambdaType(in StructDecl a) =>
 	isBuiltinType(a, BuiltinType.lambda);
 
@@ -547,7 +551,7 @@ bool isCharOrIntegral(BuiltinType a) {
 			return false;
 	}
 }
-bool isPointer(BuiltinType a) =>
+private bool isPointer(BuiltinType a) =>
 	a == BuiltinType.pointerConst || a == BuiltinType.pointerMut;
 
 immutable struct StructAlias {
@@ -1387,7 +1391,7 @@ immutable struct FunDecl {
 bool eachSpecInFunIncludingParents(in FunDecl a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
 	exists!(SpecInst*)(a.specs, (ref const SpecInst* spec) =>
 		eachSpecIncludingParents(spec, cb));
-bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
+private bool eachSpecIncludingParents(SpecInst* a, in bool delegate(SpecInst*) @safe @nogc pure nothrow cb) =>
 	exists!(SpecInst*)(a.parents, (ref const SpecInst* parent) => eachSpecIncludingParents(parent, cb)) || cb(a);
 void eachSpecSigAndImpl(
 	in FunDecl a,

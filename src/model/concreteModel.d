@@ -214,7 +214,7 @@ bool isCatchPoint(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.catchPoint;
 bool isFiber(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.fiber;
-bool isPointer(in ConcreteStruct a) =>
+private bool isPointer(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.pointer;
 ConcreteType pointeeType(ConcreteType pointerType) {
 	assert(isPointer(*mustBeByVal(pointerType)));

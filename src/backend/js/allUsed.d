@@ -3,7 +3,6 @@ module backend.js.allUsed;
 @safe @nogc pure nothrow:
 
 import backend.js.jsAst : SyncOrAsync;
-import frontend.showModel : ShowCtx, ShowTypeCtx;
 import model.constant : Constant;
 import model.model :
 	asExtern,
@@ -95,7 +94,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : zipPointers;
-import util.col.map : Map, mustGet;
+import util.col.map : Map;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
 import util.col.mutMultiMap : add, eachValueForKey, MutMultiMap;

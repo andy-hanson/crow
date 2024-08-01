@@ -12,7 +12,6 @@ import model.model :
 	BuiltinBinaryLazy,
 	BuiltinBinaryMath,
 	BuiltinFun,
-	BuiltinType,
 	BuiltinUnary,
 	BuiltinUnaryMath,
 	BuiltinTernary,
@@ -26,12 +25,14 @@ import model.model :
 	isChar32,
 	isFloat32,
 	isFloat64,
+	isFunPointer,
 	isFuture,
 	isInt8,
 	isInt16,
 	isInt32,
 	isInt64,
 	isJsAny,
+	isLambdaType,
 	isMutArray,
 	isNat8,
 	isNat16,
@@ -413,7 +414,7 @@ FunBody inner(
 				? FunBody(BuiltinFun(JsFun.set))
 				: fail();
 		case symbol!"set-deref".value:
-			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPointer : failBinary);
+			return binary(isPointerMut(p0) ? BuiltinBinary.writeToPointer : failBinary);
 		case symbol!"setup-catch".value:
 			return unary(BuiltinUnary.setupCatch);
 		case symbol!"sin".value:
@@ -430,9 +431,9 @@ FunBody inner(
 			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"subscript".value:
 			// TODO: check signature
-			return isBuiltin(p0, BuiltinType.funPointer)
+			return isFunPointer(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallFunPointer()))
-				: isBuiltin(p0, BuiltinType.lambda)
+				: isLambdaType(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallLambda()))
 				: fail();
 		case symbol!"sqrt".value:
@@ -676,11 +677,6 @@ bool isProbablyFutureImpl(in Type a) =>
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
 	isNat64(a) || isString(a);
-
-bool isBuiltin(in Type a, BuiltinType b) => // TODO: use functions from model.d, then remove this ------------------------------------------------------
-	a.isA!(StructInst*) &&
-	a.as!(StructInst*).decl.body_.isA!BuiltinType &&
-	a.as!(StructInst*).decl.body_.as!BuiltinType == b;
 
 bool isFloat32Or64(in Type a) =>
 	isFloat32(a) || isFloat64(a);

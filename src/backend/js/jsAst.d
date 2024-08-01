@@ -69,7 +69,7 @@ immutable struct JsClassMember {
 	Symbol name; // member names are never mangled
 	JsClassMemberKind kind;
 }
-immutable struct JsClassMemberKind {
+private immutable struct JsClassMemberKind {
 	mixin Union!(JsClassGetter, JsClassMethod, JsExpr);
 }
 immutable struct JsClassGetter {
