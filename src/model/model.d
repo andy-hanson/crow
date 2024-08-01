@@ -1792,7 +1792,6 @@ immutable struct CommonTypes {
 	StructInst* float32;
 	StructInst* float64;
 	StructDecl* future;
-	//StructDecl* futureImpl; // TODO: This doesn't need to be in CommonTypes. THen I can get it out of bootstrap..................
 	IntegralTypes integrals;
 	StructInst* string_;
 	StructInst* symbol;
@@ -2372,15 +2371,15 @@ immutable struct ExternName {
 }
 immutable enum BuiltinExtern {
 	browser,
-	DbgHelp, // TODO: this does not belong -----------------------------------------------------------------------------------------------
+	DbgHelp,
 	js,
 	libc,
 	linux,
 	native,
 	posix,
 	pthread,
-	sodium, // TODO: this does not belong -----------------------------------------------------------------------------------------------
-	unwind, // TODO: this does not belong -----------------------------------------------------------------------------------------------
+	sodium,
+	unwind,
 	windows,
 }
 
@@ -2609,7 +2608,7 @@ immutable struct RecordFieldPointerExpr {
 		isPointerConstOrMut(target.type)
 			? pointeeType(target.type).as!(StructInst*).decl
 			: target.type.as!(StructInst*).decl;
-		
+
 	size_t fieldIndex() =>
 		mustHaveIndexOfPointer(recordDecl.body_.as!(StructBody.Record).fields, field);
 }
@@ -2869,5 +2868,9 @@ FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a)
 
 FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
 	mustFindFunNamed(module_.funs, name, cb);
-private FunDecl* mustFindFunNamed(FunDecl[] funs, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
+private FunDecl* mustFindFunNamed(
+	FunDecl[] funs,
+	Symbol name,
+	in bool delegate(in FunDecl) @safe @nogc pure nothrow cb,
+) =>
 	mustFindPointer!FunDecl(funs, (ref FunDecl fun) => fun.name == name && cb(fun));

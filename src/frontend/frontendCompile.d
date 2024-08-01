@@ -24,7 +24,17 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
-	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, OtherTypes, Program, ProgramWithMain, StructDecl;
+	CommonTypes,
+	Config,
+	emptyConfig,
+	getConfigUri,
+	getModuleUri,
+	MainFun,
+	Module,
+	OtherTypes,
+	Program,
+	ProgramWithMain,
+	StructDecl;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
