@@ -13,11 +13,11 @@ import
 		mut-pointer, null, pointer-cast, set-deref, size-of, to-const-pointer, to
 	../version: is-wasm
 	./bootstrap:
-		gc-root, hard-assert, hard-unreachable, lock, mark-ctx, marks, memory-size-words,
+		gc-root, hard-assert, hard-unreachable, mark-ctx, marks, memory-size-words,
 		memory-start, must-cur-fiber, nat64, next, new, set-gc-root, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-add, unsafe-div, unsafe-mul
 	./range-low-level: .., high, low, range
-	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
+	./thread-utils: acquire, barrier, init, lock, release, wait-barrier, uninit
 
 # Called by the compiler.
 ~gc-root gc-root mut*() unsafe, native extern

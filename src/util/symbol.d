@@ -702,6 +702,7 @@ immutable string[] specialSymbols = [
 	"function",
 	"fut-expr",
 	"future-impl",
+	"future-low-level",
 	"gccCompile",
 	"gccJit",
 	"gc-safe-value",

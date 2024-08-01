@@ -164,8 +164,6 @@ bool isFuture(in Type a) =>
 	isBuiltinType(a, BuiltinType.future);
 bool isFuture(in StructInst a) =>
 	isBuiltinType(a, BuiltinType.future);
-bool isFutureImpl(in CommonTypes commonTypes, in Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*).decl == commonTypes.futureImpl;
 bool isInt8(in Type a) =>
 	isBuiltinType(a, BuiltinType.int8);
 bool isInt16(in Type a) =>
@@ -1790,7 +1788,7 @@ immutable struct CommonTypes {
 	StructInst* float32;
 	StructInst* float64;
 	StructDecl* future;
-	StructDecl* futureImpl; // TODO: This doesn't need to be in CommonTypes. THen I can get it out of bootstrap..................
+	//StructDecl* futureImpl; // TODO: This doesn't need to be in CommonTypes. THen I can get it out of bootstrap..................
 	IntegralTypes integrals;
 	StructInst* string_;
 	StructInst* symbol;

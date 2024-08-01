@@ -24,7 +24,7 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
-	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, OtherTypes, Program, ProgramWithMain;
+	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, OtherTypes, Program, ProgramWithMain, StructDecl;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
@@ -38,6 +38,7 @@ import util.col.array :
 	findIndex,
 	indexOf,
 	map,
+	mustFindPointer,
 	MutSmallArray,
 	small,
 	SmallArray;
@@ -175,6 +176,9 @@ private Common makeProgramCommon(
 		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
 	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
+	StructDecl* futureImpl = mustFindPointer!StructDecl(
+		commonModules[CommonModule.futureLowLevel].structs,
+		(ref const StructDecl x) => x.name == symbol!"future-impl");
 	Program program = Program(
 		allConfigs: getAllConfigs(alloc, a),
 		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
@@ -182,7 +186,7 @@ private Common makeProgramCommon(
 		commonFunsDiagnostics: commonFuns.diagnostics,
 		commonFuns: commonFuns.commonFuns,
 		commonTypes: force(a.commonTypes),
-		otherTypes: OtherTypes(getAllFutureImpls(alloc, ctx, force(a.commonTypes).futureImpl)));
+		otherTypes: OtherTypes(getAllFutureImpls(alloc, ctx, futureImpl)));
 	return Common(program, commonFuns.mainFun);
 }
 
@@ -554,6 +558,7 @@ CommonUris commonUris(Uri includeDir) {
 		includeCrow / symbol!"compare",
 		private_ / symbol!"exception-low-level",
 		includeCrow / symbol!"fun-util",
+		private_ / symbol!"future-low-level",
 		includeCrow / symbol!"json",
 		includeCrow / symbol!"col" / symbol!"list",
 		includeCrow / symbol!"misc",

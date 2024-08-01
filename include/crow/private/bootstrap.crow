@@ -397,33 +397,9 @@ stack-pointer alias
 	marks bool mut*
 	memory-start nat64 mut*
 
-# In a native build, this is 'future-impl'.
+# In a native build, this is 'future-impl' (see 'future-low-level.crow').
 # In a JS build, this is a 'Promise'.
 +future[t] builtin
-
-# TODO: I think this can be outside of bootstrap now! Which means 'lock' too! -------------------------------------------------------------------------
-~future-impl[t] record by-ref, force-shared
-	lk mut lock
-	state mut t future-state
-~future-state[t] union mut
-	# The future is not resolved and nothing is awaiting it yet.
-	empty
-	# The future is not resolved, and fibers are waiting on it.
-	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
-	awaited-by fiber
-	# The future completed successfully.
-	resolved t
-	# The future completed with an exception.
-	rejected exception-and-backtrace
-
-region lock
-
-+lock record by-val, shared
-	n0 nat64
-	n1 nat64
-	n2 nat64
-	n3 nat64
-	n4 nat64
 
 region list
 

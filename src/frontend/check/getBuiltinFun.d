@@ -27,7 +27,6 @@ import model.model :
 	isFloat32,
 	isFloat64,
 	isFuture,
-	isFutureImpl,
 	isInt8,
 	isInt16,
 	isInt32,
@@ -266,9 +265,9 @@ FunBody inner(
 		case symbol!"asinh".value:
 			return unaryMath(BuiltinUnaryMath.asinhFloat32, BuiltinUnaryMath.asinhFloat64);
 		case symbol!"as-future".value:
-			return unary(isFuture(rt) && isFutureImpl(commonTypes, p0) ? BuiltinUnary.asFuture : failUnary);
+			return unary(isFuture(rt) && isProbablyFutureImpl(p0) ? BuiltinUnary.asFuture : failUnary);
 		case symbol!"as-future-impl".value:
-			return unary(isFutureImpl(commonTypes, rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
+			return unary(isProbablyFutureImpl(rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
 		case symbol!"as-js-any".value:
 			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
 				? FunBody(BuiltinFun(JsFun.asJsAny))
@@ -672,11 +671,13 @@ FunBody inner(
 			return has(version_) && arity == 0 ? FunBody(BuiltinFun(force(version_))) : fail();
 	}
 }
+bool isProbablyFutureImpl(in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"future-impl"; // TODO: also assert file name
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
 	isNat64(a) || isString(a);
 
-bool isBuiltin(in Type a, BuiltinType b) =>
+bool isBuiltin(in Type a, BuiltinType b) => // TODO: use functions from model.d, then remove this ------------------------------------------------------
 	a.isA!(StructInst*) &&
 	a.as!(StructInst*).decl.body_.isA!BuiltinType &&
 	a.as!(StructInst*).decl.body_.as!BuiltinType == b;

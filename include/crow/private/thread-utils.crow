@@ -32,9 +32,14 @@ import
 		==, *, any-mut-pointer, as-const, gc-safe-value, mut-pointer, null, pointer-cast, size-of,
 		to
 	../version: is-single-threaded
-	./bootstrap: hard-assert, hard-forbid, hard-unreachable, new, option, todo
-export
-	./bootstrap: lock
+	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
+
++lock record by-val, shared
+	n0 nat64
+	n1 nat64
+	n2 nat64
+	n3 nat64
+	n4 nat64
 
 # TODO: Support pointer to global (then we don't need to allocate this)
 -global-lock-var global(lock mut*)

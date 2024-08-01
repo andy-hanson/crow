@@ -6,16 +6,28 @@ import
 	../pointer: mut-pointer
 	../result: error, ok, result
 	./bootstrap:
-		awaiting-future, awaited-by, empty, exception-and-backtrace, fiber, future, future-state,
-		hard-unreachable, lk, new, queued, rejected, resolved, set-state, state
+		awaiting-future, exception-and-backtrace, fiber, future, hard-unreachable, queued,
+		set-state, state
 	./exception-low-level: rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
-export
-	./bootstrap: future-impl
 
-as-future-impl[t] t future-impl(a t future) builtin, bare, native extern
-as-future[t] t future(a t future-impl) builtin, bare, native extern
+~future-impl[t] record by-ref, force-shared
+	-lk mut lock
+	-state mut t future-state
+-future-state[t] union mut
+	# The future is not resolved and nothing is awaiting it yet.
+	empty
+	# The future is not resolved, and fibers are waiting on it.
+	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
+	awaited-by fiber
+	# The future completed successfully.
+	resolved t
+	# The future completed with an exception.
+	rejected exception-and-backtrace
+
+~as-future-impl[t] t future-impl(a t future) builtin, bare, native extern
+~as-future[t] t future(a t future-impl) builtin, bare, native extern
 
 # If the future is already complete, returns 'false'
 ~try-add-awaiting-fiber[t] bool(a t future-impl, fiber fiber) bare, unsafe, native extern
