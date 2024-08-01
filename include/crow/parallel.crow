@@ -6,13 +6,15 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
-	./js: as-js-any, as-t, call, call-property, js-await, js-global
+	./js: as-t, call-property, js-await, js-cast, js-global
 	./log: error, log
 	./number: nat64
 	./misc: shared, new, void
 	./pointer: any-mut-pointer, as-any-mut-pointer, reference-from-pointer
 	./private/bootstrap: add-to-queue, await-future, fiber, new, todo
-	./private/future-low-level: as-future, as-future-impl, future-impl, get-result, reject, rejected, resolve, resolved, try-add-awaiting-fiber, unresolved
+	./private/future-low-level:
+		as-future, as-future-impl, future-impl, get-result, reject, rejected, resolve, resolved,
+		try-add-awaiting-fiber, unresolved
 	./private/runtime: add-new-fiber, get-global-ctx, yield-this-fiber
 	./result: result
 	./string: interpolate
@@ -76,7 +78,8 @@ Run `f` in a new fiber with a new exclusion and return a future for its result.
 				res reject e
 		res as-future
 	elif extern js
-		f.as-js-any.call as-t
+		# `Promise.resolve().then(f)`; this ensures 'f' is not run immediately
+		"Promise".js-global call-property "resolve" call-property "then", f as-t
 	else
 		todo
 
@@ -93,8 +96,10 @@ The purpose is to allow other fibers with the current exclusion to run while wai
 Run `f` in a new fiber with the current exclusion. So it can't run until the current fiber yields.
 ###
 +with-block[t] t future(_ later, f t mut()) t shared
-	f-shared t shared() = shared () => f[]
-	parallel with-block f-shared
+	parallel with-block if trusted extern js
+		trusted f js-cast
+	else
+		shared () => f[]
 
 # Does not await the future, but will log any exceptions from the future once it is done.
 +forget[t] void(a t future) native extern

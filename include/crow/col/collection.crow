@@ -77,28 +77,28 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 
 # Represents an index relative to the size of a collection
 +index-relative-to-end record(subtract nat64) by-val
-
 +end index-relative-to-end() bare
 	0,
+-to-index[col] nat64(a col, index index-relative-to-end) bare, col size
+	a.size - index.subtract
 
 +- index-relative-to-end(a index-relative-to-end, n nat64) bare
 	a.subtract + n,
 
 +at-index[col, elem] spec
 	subscript elem(a col, index nat64)
-
-+subscript[col, elem] elem(a col, index index-relative-to-end) bare, (col, elem) at-index, col size
-	a[a.size - index.subtract]
-
 +set-at-index[col, elem] spec
 	set-subscript void(a col, index nat64, value elem)
 
-+set-subscript[col, iter, elem] void(
++subscript[col, elem] elem(a col, index index-relative-to-end) bare, (col, elem) at-index, col size
+	a[a to-index index]
+
++set-subscript[col, elem] void(
 	a col,
 	index index-relative-to-end,
 	value elem,
 ) bare, (col, elem) set-at-index, col size
-	a[a.size - index.subtract] := value
+	a[(a to-index index)] := value
 
 +fill[col, iter, elem] void(
 	a col,
@@ -154,10 +154,22 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 		lo := pair0 b
 		hi := pair1 a
 
-swap-at[col, elem] void(a col, i nat64, j nat64) (col, elem) at-index, (col, elem) set-at-index
++swap-at[col, elem] void(a col, i nat64, j nat64) (col, elem) at-index, (col, elem) set-at-index
 	temp = a[i]
 	a[i] := a[j]
 	a[j] := temp
++swap-at[col, elem] void(
+	a col,
+	i nat64,
+	j index-relative-to-end,
+) col size, (col, elem) at-index, (col, elem) set-at-index
+	a swap-at i, (a to-index j)
++swap-at[col, elem] void(
+	a col,
+	i index-relative-to-end,
+	j index-relative-to-end,
+) col size, (col, elem) at-index, (col, elem) set-at-index
+	a swap-at (a to-index i), (a to-index j)
 
 region 'for' loops
 

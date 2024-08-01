@@ -1429,7 +1429,7 @@ immutable struct FunInst {
 
 	FunDecl* decl;
 	TypeArgs typeArgs;
-	SpecImpls specImpls; // zip with ???????????????????????????????????????????????????????????????????????????????????????????
+	SpecImpls specImpls;
 	ReturnAndParamTypes instantiatedSig;
 
 	Symbol name() scope =>
@@ -1960,7 +1960,7 @@ immutable struct Program {
 	CommonTypes* commonTypes;
 	OtherTypes otherTypes;
 }
-Module* moduleOf(in Program program, Uri uri) => // TODO: rename? -------------------------------------------------------------------------
+Module* moduleAtUri(in Program program, Uri uri) =>
 	mustGet(program.allModules, uri);
 
 bool hasAnyDiagnostics(in Program a) =>
@@ -2861,7 +2861,7 @@ FunDecl* variantMemberGetter(FunDecl[] funs, in StructDecl* struct_, in VariantA
 		only(paramsArray(fun.params)).type == Type(x.variant) &&
 		fun.source.as!(StructDecl*) == struct_);
 FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a) =>
-	mustFindFunNamed(moduleOf(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
+	mustFindFunNamed(moduleAtUri(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
 		fun.source.isA!(FunDeclSource.VariantMethod) &&
 		fun.source.as!(FunDeclSource.VariantMethod).method == a.method);
 

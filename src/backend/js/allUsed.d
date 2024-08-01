@@ -389,7 +389,7 @@ void trackAllUsedInType(ref AllUsedBuilder res, Uri from, Type a) {
 		(TypeParamIndex _) {},
 		(ref StructInst x) {
 			if (!x.decl.body_.isA!BuiltinType)
-				// Don't need to track type args since they are erased	
+				// Don't need to track type args since they are erased
 				trackAllUsedInStruct(res, from, x.decl);
 		});
 }

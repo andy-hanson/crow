@@ -25,6 +25,7 @@ import
 +set[t] void(a js-any, index nat64, value t) builtin, bare, unsafe, js extern
 ###
 `a()`
+WARN: This does not 'await' the result.
 WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 ###
 +call js-any(a js-any) builtin, bare, unsafe, js extern

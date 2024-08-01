@@ -12,7 +12,7 @@ import
 	../test-util: is
 	../tuple: a, b, new
 	./array: ==, array, new, subscript
-	./collection: .., build, end, for-break, for-loop, iterate, size, subscript, swap-at
+	./collection: .., -, build, end, for-break, for-loop, iterate, size, subscript, swap-at
 	./mut-array:
 		~=, +, as-slice, begin, build, cast-immutable, iterate, mut-array, mut-slice, new, next,
 		set-next, set-subscript, size, slice, to, subscript
@@ -90,9 +90,9 @@ test
 		a[0 .. i] move-last-into-sorted get-key
 # All but the last element is sorted. Move the last element to where it needs to be.
 -move-last-into-sorted[t, k] void(a t mut-slice, get-key k data(elem t)) k compare
-	if a.size > 1 && get-key[a[a.size - 2]] > get-key[a[a.size - 1]] # TODO: end - 2, end - 1 -----------------------------------------------------------------------------
-		a swap-at a.size - 2, a.size - 1
-		a[0 .. a.size - 1] move-last-into-sorted get-key # TODO: 0 .. end - 1
+	if a.size > 1 && get-key[a[end - 2]] > get-key[a[end - 1]]
+		a swap-at end - 2, end - 1
+		a[0 .. end - 1] move-last-into-sorted get-key
 
 ###
 Sort `a` in place and remove unique elements.

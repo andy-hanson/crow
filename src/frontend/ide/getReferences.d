@@ -91,7 +91,7 @@ import model.model :
 	MatchUnionExpr,
 	MatchVariantExpr,
 	Module,
-	moduleOf,
+	moduleAtUri,
 	mustFindFunNamed,
 	NameReferents,
 	Params,
@@ -543,7 +543,7 @@ void referencesForFunDecls(in Program program, in FunDecl*[] decls, in Reference
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
 		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => x.moduleUri));
-		Module* itsModule = moduleOf(program, decls[0].moduleUri);
+		Module* itsModule = moduleAtUri(program, decls[0].moduleUri);
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, ExprRef x) {
 			eachFunReferenceAtExpr(module_, x, decls, cb);
 		});
@@ -592,7 +592,7 @@ void eachExprThatMayReference(
 }
 
 void referencesForSpecSig(in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
-	Module* itsModule = moduleOf(program, a.spec.moduleUri);
+	Module* itsModule = moduleAtUri(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, ExprRef x) {
 		Opt!Called called = getCalledAtExpr(x.expr.kind);
 		if (has(called) &&
@@ -610,7 +610,7 @@ void referencesForRecordField(in Program program, in RecordField field, in Refer
 
 void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* member, in ReferenceCb cb) {
 	StructDecl* enum_ = member.containingEnum;
-	Module* declaringModule = moduleOf(program, enum_.moduleUri);
+	Module* declaringModule = moduleAtUri(program, enum_.moduleUri);
 	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateEnumOrFlags) && fun.body_.as!(FunBody.CreateEnumOrFlags).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
@@ -626,7 +626,7 @@ void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* me
 
 void referencesForUnionMember(in Program program, in UnionMember* member, in ReferenceCb cb) {
 	StructDecl* union_ = member.containingUnion;
-	Module* declaringModule = moduleOf(program, union_.moduleUri);
+	Module* declaringModule = moduleAtUri(program, union_.moduleUri);
 	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateUnion) && fun.body_.as!(FunBody.CreateUnion).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
@@ -644,7 +644,7 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 
 void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) {
 	// Find references to get/set
-	Module* declaringModule = moduleOf(program, a.moduleUri);
+	Module* declaringModule = moduleAtUri(program, a.moduleUri);
 	FunDecl*[2] funs = mustFindFunsNamed(declaringModule, a.name, (in FunDecl x) =>
 		(x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a) ||
 		(x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a));
@@ -657,7 +657,7 @@ void withRecordFieldFunctions(
 	in void delegate(in FunDecl*[]) @safe @nogc pure nothrow cb,
 ) =>
 	withMaxStackArray!(void, FunDecl*)(3, (scope ref MaxStackArray!(FunDecl*) res) {
-		eachFunNamed(moduleOf(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
+		eachFunNamed(moduleAtUri(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
 			if (isRecordFieldFunction(fun.body_)) {
 				Type paramType = only(fun.params.as!(Destructure[])).type;
 				// TODO: for RecordFieldPointer we need to look for pointer to the struct
@@ -695,7 +695,7 @@ bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);
 
 void referencesForSpecDecl(in Program program, in SpecDecl* a, in ReferenceCb refCb) {
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
+	eachModuleThatMayReference(program, a.visibility, moduleAtUri(program, a.moduleUri), (in Module module_) {
 		scope void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
 				refCb(UriAndRange(module_.uri, ast.range));
@@ -720,7 +720,7 @@ void eachTypeInProgram(
 	Uri moduleUri,
 	in void delegate(in Module, in Type, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
-	eachModuleThatMayReference(program, visibility, moduleOf(program, moduleUri), (in Module module_) {
+	eachModuleThatMayReference(program, visibility, moduleAtUri(program, moduleUri), (in Module module_) {
 		eachTypeInModule(*program.commonTypes, module_, (in Type type, in TypeAst ast) {
 			eachTypeInType(type, ast, (in Type typeInner, in TypeAst astInner) {
 				cb(module_, typeInner, astInner);
