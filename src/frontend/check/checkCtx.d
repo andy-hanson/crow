@@ -19,6 +19,8 @@ import model.model :
 	StructDecl,
 	StructOrAlias,
 	TypeParams,
+	VariantAndMethodImpls,
+	variantMemberGetter,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, isEmpty, mustFind, SmallArray;
@@ -96,20 +98,23 @@ void markUsed(ref CheckCtx ctx, StructOrAlias a) {
 }
 
 void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] structs, SpecDecl[] specs, FunDecl[] funs) {
-	void checkUnusedDecl(T)(T* decl) {
-		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
+	void checkUnusedDecl(T)(T* decl, in bool delegate() @safe @nogc pure nothrow cbAltIsUsed) {
+		if (decl.visibility == Visibility.private_ && !(isUsed(ctx.used, decl) || cbAltIsUsed()))
 			addDiagAssertSameUri(ctx, decl.nameRange, Diag(
 				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (ref StructAlias alias_; aliases)
-		checkUnusedDecl(&alias_);
+		checkUnusedDecl(&alias_, () => false);
 	foreach (ref StructDecl struct_; structs)
-		checkUnusedDecl(&struct_);
+		checkUnusedDecl(&struct_, () =>
+			// Even if the struct is not used as a type, it's used if it's accessed as a variant member
+			exists!VariantAndMethodImpls(struct_.variants, (in VariantAndMethodImpls x) =>
+				isUsed(ctx.used, variantMemberGetter(funs, &struct_, x))));
 	foreach (ref SpecDecl spec; specs)
-		checkUnusedDecl(&spec);
+		checkUnusedDecl(&spec, () => false);
 	foreach (ref FunDecl fun; funs)
 		if (!fun.okIfUnused)
-			checkUnusedDecl(&fun);
+			checkUnusedDecl(&fun, () => false);
 }
 
 SmallArray!ImportOrExport finishImports(ref CheckCtx ctx) {

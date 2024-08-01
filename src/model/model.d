@@ -2855,10 +2855,17 @@ Opt!T findDirectChildExpr(T)(
 			cb(sameType(&x.inner)));
 }
 
+FunDecl* variantMemberGetter(FunDecl[] funs, in StructDecl* struct_, in VariantAndMethodImpls x) =>
+	mustFindFunNamed(funs, struct_.name, (in FunDecl fun) =>
+		fun.body_.isA!(FunBody.VariantMemberGet) &&
+		only(paramsArray(fun.params)).type == Type(x.variant) &&
+		fun.source.as!(StructDecl*) == struct_);
 FunDecl* variantMethodCaller(ref Program program, FunDeclSource.VariantMethod a) =>
 	mustFindFunNamed(moduleOf(program, a.variant.moduleUri), a.method.name, (in FunDecl fun) =>
 		fun.source.isA!(FunDeclSource.VariantMethod) &&
 		fun.source.as!(FunDeclSource.VariantMethod).method == a.method);
 
 FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
-	mustFindPointer!FunDecl(module_.funs, (ref FunDecl fun) => fun.name == name && cb(fun));
+	mustFindFunNamed(module_.funs, name, cb);
+private FunDecl* mustFindFunNamed(FunDecl[] funs, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
+	mustFindPointer!FunDecl(funs, (ref FunDecl fun) => fun.name == name && cb(fun));
