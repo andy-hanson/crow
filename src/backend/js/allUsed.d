@@ -9,6 +9,7 @@ import model.model :
 	asExtern,
 	AssertOrForbidExpr,
 	AutoFun,
+	BogusExpr,
 	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
@@ -22,6 +23,8 @@ import model.model :
 	CallOptionExpr,
 	CalledSpecSig,
 	CallExpr,
+	ClosureGetExpr,
+	ClosureSetExpr,
 	CommonTypes,
 	Condition,
 	Destructure,
@@ -34,18 +37,33 @@ import model.model :
 	Expr,
 	ExprRef,
 	ExternCondition,
+	ExternExpr,
+	FinallyExpr,
 	FunBody,
 	funBodyExprRef,
 	FunDecl,
 	FunDeclSource,
 	FunInst,
 	FunKind,
+	FunPointerExpr,
 	getCalledAtExpr,
 	IfExpr,
 	JsFun,
+	LambdaExpr,
+	LetExpr,
+	LiteralExpr,
 	LiteralStringLikeExpr,
 	Local,
+	LocalGetExpr,
+	LocalPointerExpr,
+	LocalSetExpr,
+	LoopExpr,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
 	mustUnwrapOptionType,
@@ -53,6 +71,8 @@ import model.model :
 	Program,
 	ProgramWithMain,
 	RecordField,
+	RecordFieldPointerExpr,
+	SeqExpr,
 	Signature,
 	SpecDecl,
 	SpecInst,
@@ -62,9 +82,11 @@ import model.model :
 	StructInst,
 	Test,
 	testBodyExprRef,
+	ThrowExpr,
 	TryExpr,
 	TryLetExpr,
 	Type,
+	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
@@ -135,15 +157,17 @@ immutable struct AnyDecl {
 }
 // This does not include FunDecl if the body would be inlined
 immutable struct AllUsed {
-	private:
-	public Map!(Uri, Set!AnyDecl) usedByModule; // This will let us know exactly what each module needs to import. TODO: PRIVATE
-	Set!AnyDecl usedDecls;
-	AsyncSets async;
+	// Maps a module to decls it uses.
+	Map!(Uri, Set!AnyDecl) usedByModule;
+	private Set!AnyDecl usedDecls;
+	private AsyncSets async;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
-	x in a.usedDecls;
+	x in a.usedDecls || (
+		x.isA!(StructAlias*) &&
+		AnyDecl(x.as!(StructAlias*).target.decl) in a.usedDecls);
 bool isModuleUsed(in AllUsed a, Uri module_) {
-	// TODO: PERF ------------------------------------------------------------------------------------------------------------
+	// TODO: PERF
 	foreach (AnyDecl x; a.usedDecls) {
 		if (x.moduleUri == module_)
 			return true;
@@ -152,7 +176,6 @@ bool isModuleUsed(in AllUsed a, Uri module_) {
 }
 
 bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
-	// TODO: could we ensure usedByModule is initialized so that this uses mustGet? ---------------------------------------------------
 	Opt!(Set!AnyDecl) set = a.usedByModule[module_];
 	return has(set) && x in force(set);
 }
@@ -172,7 +195,9 @@ SyncOrAsync isAsyncCall(in AllUsed a, in Opt!(FunDecl*) caller, in Called called
 		(in FunInst x) =>
 			isAsyncFun(a, x.decl),
 		(in CalledSpecSig x) =>
-			FunAndSpecSig(force(caller), x.nonInstantiatedSig) in a.async.asyncSpecSigs ? SyncOrAsync.async : SyncOrAsync.sync);
+			FunAndSpecSig(force(caller), x.nonInstantiatedSig) in a.async.asyncSpecSigs
+				? SyncOrAsync.async
+				: SyncOrAsync.sync);
 
 private immutable struct FunOrTest {
 	@safe @nogc pure nothrow:
@@ -190,7 +215,7 @@ private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 		(FunDecl* x) => some(x),
 		(Test* _) => none!(FunDecl*));
 
-AllUsed allUsed(ref Alloc alloc, in ShowCtx showCtx, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) { // TODO: showCtx unused
+AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.regular);
 	// Main module needs to create a new list
@@ -200,7 +225,7 @@ AllUsed allUsed(ref Alloc alloc, in ShowCtx showCtx, ref ProgramWithMain program
 		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),
 		moveToSet(res.usedDecls),
-		allAsyncFuns(res, showCtx));
+		allAsyncFuns(res));
 }
 
 bool bodyIsInlined(in FunDecl a) =>
@@ -263,7 +288,6 @@ private bool isInlinedBuiltinFun(in BuiltinFun a) =>
 
 Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, in Condition a) {
 	if (a.isA!(Expr*)) {
-		// TODO: PYRAMID OF DOOM! ------------------------------------------------------------------------------------------------
 		Expr* x = a.as!(Expr*);
 		if (x.kind.isA!CallExpr) {
 			Called y = x.kind.as!CallExpr.called;
@@ -271,9 +295,8 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 				FunDecl* decl = y.as!(FunInst*).decl;
 				if (decl.body_.isA!BuiltinFun) {
 					BuiltinFun bf = decl.body_.as!BuiltinFun;
-					if (bf.isA!VersionFun) {
+					if (bf.isA!VersionFun)
 						return some(isVersion(version_, bf.as!VersionFun));
-					}
 				}
 			}
 		}
@@ -285,12 +308,10 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 
 private:
 
-AsyncSets allAsyncFuns(ref AllUsedBuilder builder, in ShowCtx showCtx) {
+AsyncSets allAsyncFuns(ref AllUsedBuilder builder) {
 	MutSet!(FunDecl*) asyncFuns;
 	MutSet!(FunAndSpecSig) asyncSpecSigs;
 	MutArr!(FunDecl*) funsToProcess;
-
-	scope ShowTypeCtx showTypeCtx = ShowTypeCtx(showCtx, builder.program.commonTypes);
 
 	bool addFun(FunDecl* x) {
 		bool res = mayAddToMutSet(builder.alloc, asyncFuns, x);
@@ -334,7 +355,6 @@ struct AllUsedBuilder {
 	immutable SymbolSet allExterns;
 	MutMap!(Uri, MutSet!AnyDecl) usedByModule;
 	MutSet!AnyDecl usedDecls;
-	MutMultiMap!(StructDecl*, StructDecl*) variantMembers;
 
 	// Map from each function to all functions that directly call it.
 	MutMultiMap!(FunDecl*, FunDecl*) funToCallers;
@@ -378,7 +398,6 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 		trackAllUsedInStructBody(res, a.moduleUri, a.body_);
 		foreach (VariantAndMethodImpls x; a.variants) {
 			trackAllUsedInStruct(res, a.moduleUri, x.variant.decl);
-			add(res.alloc, res.variantMembers, x.variant.decl, a); // TODO: I think we should just add to callers directly -------------------------
 			zipPointers(x.variantDeclMethods, x.methodImpls, (Signature* method, Opt!Called* impl) {
 				if (has(*impl))
 					trackAllUsedInCalled(
@@ -426,13 +445,10 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 		}
 	}();
 	if (inlined || addDecl(res, from, AnyDecl(a))) {
-		if (true) { // TODO: make paaram type checks opitonal ----------------------------------------------------------------------------
-			foreach (ref Destructure param; paramsArray(a.params)) {
-				eachLocal(param, (Local* x) {
-					trackAllUsedInType(res, a.moduleUri, x.type);
-				});
-			}
-		}
+		foreach (ref Destructure param; paramsArray(a.params))
+			eachLocal(param, (Local* x) {
+				trackAllUsedInType(res, a.moduleUri, x.type);
+			});
 
 		void usedReturnType(Uri where = from) {
 			trackAllUsedInType(res, where, a.returnType);
@@ -448,7 +464,8 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 						break;
 					case AutoFun.Kind.toJson:
 						usedReturnType(a.moduleUri);
-						trackAllUsedInCalled(res, a.moduleUri, some(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
+						trackAllUsedInCalled(
+							res, a.moduleUri, some(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
 						break;
 				}
 				foreach (Called called; x.members)
@@ -527,7 +544,8 @@ void trackAllUsedInDestructure(ref AllUsedBuilder res, Uri from, Destructure a) 
 		});
 }
 
-// 'from' may differ from 'caller' for a variant method. 'called' is used from the variant member, but the caller is the variant method.
+// 'from' may differ from 'caller' for a variant method.
+// 'called' is used from the variant member, but the caller is the variant method.
 void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) caller, Called called, FunUse funUse) {
 	called.match!void(
 		(ref Called.Bogus) {},
@@ -538,7 +556,13 @@ void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) calle
 			// Functions are presumed to call their specs, so nothing to do here.
 		});
 }
-void trackAllUsedInCalledFunInst(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) caller, ref FunInst calledInst, FunUse funUse) {
+void trackAllUsedInCalledFunInst(
+	ref AllUsedBuilder res,
+	Uri from,
+	Opt!(FunDecl*) caller,
+	ref FunInst calledInst,
+	FunUse funUse,
+) {
 	FunDecl* calledDecl = calledInst.decl;
 	trackAllUsedInFun(res, from, calledDecl, funUse);
 	if (has(caller))
@@ -548,7 +572,14 @@ void trackAllUsedInCalledFunInst(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*
 		trackAllUsedInCalled(res, from, caller, impl, FunUse.noInline);
 	});
 }
-void trackAllUsedInSpecImpl(ref AllUsedBuilder res, Opt!(FunDecl*) caller, FunDecl* calledDecl, SpecInst* spec, Signature* sig, Called impl) {
+void trackAllUsedInSpecImpl(
+	ref AllUsedBuilder res,
+	Opt!(FunDecl*) caller,
+	FunDecl* calledDecl,
+	SpecInst* spec,
+	Signature* sig,
+	Called impl,
+) {
 	impl.match!void(
 		(ref Called.Bogus) {},
 		(ref FunInst x) {
@@ -576,7 +607,9 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, FunOrTest curFunc, ExprRef a)
 	Uri from = curFunc.moduleUri;
 	Opt!Called called = getCalledAtExpr(a.expr.kind);
 	if (has(called))
-		trackAllUsedInCalled(res, from, optAsFun(curFunc), force(called), FunUse.regular); // TODO: for a function pointer, this should not be regular, should be noInline
+		trackAllUsedInCalled(
+			res, from, optAsFun(curFunc), force(called),
+			a.expr.kind.isA!FunPointerExpr ? FunUse.noInline : FunUse.regular);
 
 	void trackChildren() {
 		eachDirectChildExpr(res.commonTypes, a, (ExprRef x) {
@@ -592,25 +625,58 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, FunOrTest curFunc, ExprRef a)
 		else
 			trackChildren();
 	} else {
-		// TODO: use a 'match' -----------------------------------------------------------------------------------------------------
-		if (a.expr.kind.isA!(AssertOrForbidExpr*)) {
-			if (!has(a.expr.kind.as!(AssertOrForbidExpr*).thrown))
-				trackAllUsedInFun(res, from, res.program.commonFuns.createError.decl, FunUse.regular);
-		} else if (a.expr.kind.isA!(CallOptionExpr*))
-			trackAllUsedInType(res, from, a.type);
-		else if (a.expr.kind.isA!LiteralStringLikeExpr) {
-			if (a.expr.kind.as!LiteralStringLikeExpr.isList)
-				trackAllUsedInFun(res, from, res.program.commonFuns.newTList, FunUse.regular);
-		} else if (a.expr.kind.isA!(MatchEnumExpr*))
-			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchEnumExpr*).enum_);
-		else if (a.expr.kind.isA!(MatchUnionExpr*))
-			trackAllUsedInStruct(res, from, a.expr.kind.as!(MatchUnionExpr*).union_.decl);
-		else if (a.expr.kind.isA!(MatchVariantExpr*))
-			trackAllUsedInMatchVariantCases(res, from, a.expr.kind.as!(MatchVariantExpr*).cases);
-		else if (a.expr.kind.isA!(TryExpr*))
-			trackAllUsedInMatchVariantCases(res, from, a.expr.kind.as!(TryExpr*).catches);
-		else if (a.expr.kind.isA!(TryLetExpr*))
-			trackAllUsedInMatchVariantCase(res, from, a.expr.kind.as!(TryLetExpr*).catch_);
+		a.expr.kind.match!void(
+			(ref AssertOrForbidExpr x) {
+				if (!has(x.thrown))
+					trackAllUsedInFun(res, from, res.program.commonFuns.createError.decl, FunUse.regular);
+			},
+			(BogusExpr _) {},
+			(CallExpr _) {},
+			(ref CallOptionExpr x) {
+				trackAllUsedInType(res, from, a.type);
+			},
+			(ClosureGetExpr _) {},
+			(ClosureSetExpr _) {},
+			(ExternExpr _) {},
+			(ref FinallyExpr _) {},
+			(FunPointerExpr _) {},
+			(ref IfExpr _) {},
+			(ref LambdaExpr _) {},
+			(ref LetExpr _) {},
+			(LiteralExpr _) {},
+			(LiteralStringLikeExpr x) {
+				if (x.isList)
+					trackAllUsedInFun(res, from, res.program.commonFuns.newTList, FunUse.regular);
+			},
+			(LocalGetExpr _) {},
+			(LocalPointerExpr _) {},
+			(LocalSetExpr _) {},
+			(ref LoopExpr _) {},
+			(ref LoopBreakExpr _) {},
+			(LoopContinueExpr _) {},
+			(ref LoopWhileOrUntilExpr _) {},
+			(ref MatchEnumExpr x) {
+				trackAllUsedInStruct(res, from, x.enum_);
+			},
+			(ref MatchIntegralExpr _) {},
+			(ref MatchStringLikeExpr _) {},
+			(ref MatchUnionExpr x) {
+				trackAllUsedInStruct(res, from, x.union_.decl);
+			},
+			(ref MatchVariantExpr x) {
+				trackAllUsedInMatchVariantCases(res, from, x.cases);
+			},
+			(ref RecordFieldPointerExpr _) {},
+			(ref SeqExpr _) {},
+			(ref ThrowExpr _) {},
+			(ref TrustedExpr) {},
+			(ref TryExpr x) {
+				trackAllUsedInMatchVariantCases(res, from, x.catches);
+			},
+			(ref TryLetExpr x) {
+				trackAllUsedInMatchVariantCase(res, from, x.catch_);
+			},
+			(ref TypedExpr _) {});
 		trackChildren();
 	}
 }

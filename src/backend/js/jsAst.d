@@ -33,13 +33,9 @@ immutable struct JsName {
 	Symbol crowName;
 	Opt!ushort mangleIndex;
 }
-// static assert(JsName.sizeof == ulong.sizeof); // TODO -----------------------------------------------------------------------------------------------
 
 JsName jsNameNoPrefix(Symbol name) =>
 	JsName(JsName.Kind.none, name, none!ushort);
-
-JsExpr genGlobal(Symbol name) =>
-	JsExpr(jsNameNoPrefix(name)); // MOVE _-------------------------------------------------------------------------------
 
 Comparison compareJsName(JsName a, JsName b) =>
 	compareOr(
@@ -338,6 +334,8 @@ JsExpr genCallWithSpread(ref Alloc alloc, SyncOrAsync await, JsExpr called, in J
 		JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg))));
 JsExpr genCallPropertySync(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
 	genCallSync(alloc, genPropertyAccess(alloc, object, property), args);
+JsExpr genGlobal(Symbol name) =>
+	JsExpr(jsNameNoPrefix(name));
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then) =>
 	JsStatement(allocate(alloc, JsIfStatement(cond, then)));
 JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement else_) =>
@@ -368,6 +366,8 @@ JsExpr genNew(JsExpr* class_, JsExpr[] args) =>
 	JsExpr(JsNewExpr(class_, args));
 JsExpr genOr(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.or, arg0, arg1);
+JsExpr genPlus(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
+	genBinary(alloc, JsBinaryExpr.Kind.plus, arg0, arg1);
 JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, Symbol propertyName) =>
 	JsExpr(JsPropertyAccessExpr(allocate(alloc, arg), propertyName));
 JsExpr genPropertyAccessComputed(ref Alloc alloc, JsExpr object, JsExpr propertyName) =>
@@ -422,15 +422,33 @@ JsStatement genWhileTrue(ref Alloc alloc, JsBlockStatement body_) =>
 JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement body_) =>
 	genWhile(alloc, label, genBool(true), body_);
 
-private JsClassMember genMethod(JsClassMember.Static static_, SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+private JsClassMember genMethod(
+	JsClassMember.Static static_,
+	SyncOrAsync async,
+	Symbol name,
+	JsParams params,
+	JsBlockStatement body_,
+) =>
 	JsClassMember(static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
 JsClassMember genInstanceMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
 	genMethod(JsClassMember.Static.instance, async, name, params, body_);
 JsClassMember genStaticMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
 	genMethod(JsClassMember.Static.static_, async, name, params, body_);
-JsClassMember genInstanceMethod(ref Alloc alloc, SyncOrAsync async, Symbol name, in JsDestructure[] params, JsBlockStatement body_) =>
+JsClassMember genInstanceMethod(
+	ref Alloc alloc,
+	SyncOrAsync async,
+	Symbol name,
+	in JsDestructure[] params,
+	JsBlockStatement body_,
+) =>
 	genInstanceMethod(async, name, JsParams(newSmallArray(alloc, params)), body_);
-JsClassMember genInstanceMethod(ref Alloc alloc, SyncOrAsync async, Symbol name, in JsDestructure[] params, JsExpr body_) =>
+JsClassMember genInstanceMethod(
+	ref Alloc alloc,
+	SyncOrAsync async,
+	Symbol name,
+	in JsDestructure[] params,
+	JsExpr body_,
+) =>
 	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, [genReturn(alloc, body_)]));
 JsClassMember genField(JsClassMember.Static static_, Symbol name, JsExpr value) =>
 	JsClassMember(static_, name, JsClassMemberKind(value));

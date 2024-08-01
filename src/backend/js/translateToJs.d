@@ -3,7 +3,16 @@ module backend.js.translateToJs;
 @safe @nogc pure nothrow:
 
 import backend.js.allUsed :
-	AllUsed, allUsed, AnyDecl, bodyIsInlined, isAsyncCall, isAsyncFun, isModuleUsed, isUsedAnywhere, isUsedInModule, tryEvalConstantBool;
+	AllUsed,
+	allUsed,
+	AnyDecl,
+	bodyIsInlined,
+	isAsyncCall,
+	isAsyncFun,
+	isModuleUsed,
+	isUsedAnywhere,
+	isUsedInModule,
+	tryEvalConstantBool;
 import backend.js.jsAst :
 	compareJsName,
 	genAnd,
@@ -45,6 +54,7 @@ import backend.js.jsAst :
 	genNumber,
 	genObject,
 	genOr,
+	genPlus,
 	genPropertyAccess,
 	genPropertyAccessComputed,
 	genReturn,
@@ -239,7 +249,7 @@ import util.uri :
 	relativePath,
 	resolvePath,
 	Uri;
-import util.util : min, ptrTrustMe, todo, typeAs;
+import util.util : castNonScope_ref, min, ptrTrustMe, todo, typeAs;
 import versionInfo : isVersion, JsTarget, OS, VersionFun, VersionInfo, versionInfoForBuildToJS;
 
 immutable struct TranslateToJsResult {
@@ -257,11 +267,11 @@ TranslateToJsResult translateToJs(
 	assert(!hasFatalDiagnostics(program));
 	VersionInfo version_ = versionInfoForBuildToJS(os, jsTarget);
 	SymbolSet allExterns = allExternsForJs(jsTarget);
-	AllUsed allUsed = allUsed(alloc, showCtx, program, version_, allExterns);
+	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
 	Map!(Uri, Path) modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
-		showCtx,
+		castNonScope_ref(showCtx),
 		ptrTrustMe(fileContentGetters),
 		ptrTrustMe(program),
 		version_,
@@ -269,9 +279,12 @@ TranslateToJsResult translateToJs(
 		allUsed,
 		modulePaths,
 		moduleExportMangledNames(alloc, program.program, allUsed));
-
-	doTranslateModule(ctx, program.mainModule);
-	return TranslateToJsResult(mustGet(modulePaths, program.mainUri), getOutputFiles(alloc, showCtx, modulePaths, ctx.done, jsTarget));
+	// None for unused modules
+	MutMap!(Module*, Opt!JsModuleAst) done;
+	doTranslateModule(ctx, done, program.mainModule);
+	return TranslateToJsResult(
+		mustGet(modulePaths, program.mainUri),
+		getOutputFiles(alloc, showCtx, modulePaths, done, jsTarget));
 }
 
 private:
@@ -287,7 +300,10 @@ Map!(Uri, Path) modulePaths(ref Alloc alloc, in ProgramWithMain program) {
 				(RelPath x) => force(resolvePath(force(parent(force(fromPath))), x)));
 			mustAdd(alloc, res, x.uri, alterExtension(path, Extension.js));
 			eachImportOrReExport(x, (ref ImportOrExport im) @safe nothrow {
-				recur(im.module_, some(path), has(im.source) ? force(im.source).path : PathOrRelPath(parsePath("crow/std")));
+				recur(
+					im.module_,
+					some(path),
+					has(im.source) ? force(im.source).path : PathOrRelPath(parsePath("crow/std")));
 			});
 		}
 	}
@@ -330,7 +346,6 @@ void fillGlobalImportModules(scope ref TempSet!(Module*) res, Module* main) {
 }
 
 void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nogc pure nothrow cb) {
-	// TODO: imports aren't recursive, so why did I think I needed a set? Is it just perf? ---------------------------------------------------------
 	withTempSet!(void, Module*)(0x100, (scope ref TempSet!(Module*) seen) {
 		void recur(Module* x) @safe @nogc nothrow {
 			if (tryAdd(seen, x)) {
@@ -385,21 +400,19 @@ struct TranslateProgramCtx {
 	immutable AllUsed allUsed;
 	immutable Map!(Uri, Path) modulePaths;
 	immutable ModuleExportMangledNames exportMangledNames;
-	// None for unused modules
-	MutMap!(Module*, Opt!JsModuleAst) done; // TODO: maybe move this outside of TranslateProgramCtx. It's only used in doTranslateModule
 
 	ref Alloc alloc() =>
 		*allocPtr;
 }
 
-void doTranslateModule(ref TranslateProgramCtx ctx, Module* a) {
-	if (a in ctx.done) return;
+void doTranslateModule(ref TranslateProgramCtx ctx, scope ref MutMap!(Module*, Opt!JsModuleAst) done, Module* a) {
+	if (a in done) return;
 	foreach (ImportOrExport x; a.imports)
-		doTranslateModule(ctx, x.modulePtr);
+		doTranslateModule(ctx, done, x.modulePtr);
 	foreach (ImportOrExport x; a.reExports)
-		doTranslateModule(ctx, x.modulePtr);
+		doTranslateModule(ctx, done, x.modulePtr);
 	// Test 'isModuleUsed' last, because an unused module can still have used re-exports
-	mustAdd(ctx.alloc, ctx.done, a, optIf(isModuleUsed(ctx.allUsed, a.uri), () =>
+	mustAdd(ctx.alloc, done, a, optIf(isModuleUsed(ctx.allUsed, a.uri), () =>
 		translateModule(ctx, *a)));
 }
 
@@ -430,13 +443,28 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 	JsExpr mainRef = translateFunReference(ctx, main);
 	return ctx.ctx.programWithMainPtr.mainFun.matchIn!(JsStatement[])(
 		(in MainFun.Nat64OfArgs) {
+			JsName exitCode = localName(symbol!"exitCode");
+			JsExpr exitCodeNotZero = genNotEqEq(ctx.alloc, JsExpr(exitCode), genIntegerUnsigned(0));
 			if (ctx.isBrowser) {
-				// const exit = await main(newList())
-				// if (exit !== 0n) throw new Error("Exited with code " + exit)
-				return todo!(JsStatement[])("MAIN IN BROWSER"); // --------------------------------------------------------------------
+				/*
+				const exit = await main(newList([]))
+				if (exit !== 0n)
+					throw new Error("Exited with code " + exit)
+				*/
+				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, genArray([]))]);
+				return newArray(ctx.alloc, [
+					genConst(ctx.alloc, exitCode, callMain),
+					genIf(
+						ctx.alloc,
+						exitCodeNotZero,
+						genThrow(ctx.alloc, genNew(ctx.alloc, genGlobal(symbol!"Error"), [
+							genPlus(ctx.alloc, genString("Exited with code "), JsExpr(exitCode))])))]);
 			} else {
-				// const exit = await main(newList(process.argv.slice(1)))
-				// if (exit !== 0n) process.exit(Number(exit))
+				/*
+				const exit = await main(newList(process.argv.slice(1)))
+				if (exit !== 0n)
+					process.exit(Number(exit))
+				*/
 				JsExpr process = genGlobal(symbol!"process");
 				// process.argv.slice(2)
 				JsExpr args = genCallPropertySync(
@@ -445,14 +473,13 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 					symbol!"slice",
 					[genNumber(2)]);
 				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, args)]);
-				JsName exitCode = jsNameNoPrefix(symbol!"exitCode");
 				return newArray(ctx.alloc, [
 					genConst(ctx.alloc, exitCode, callMain),
 					genIf(
 						ctx.alloc,
-						genNotEqEq(ctx.alloc, JsExpr(exitCode), genIntegerUnsigned(0)),
+						exitCodeNotZero,
 						JsStatement(genCallPropertySync(ctx.alloc, process, symbol!"exit", [
-							genCallSync(ctx.alloc, JsExpr(jsNameNoPrefix(symbol!"Number")), [JsExpr(exitCode)])])))]);
+							genCallSync(ctx.alloc, genGlobal(symbol!"Number"), [JsExpr(exitCode)])])))]);
 			}
 		},
 		(in MainFun.Void) {
@@ -573,7 +600,12 @@ ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program pr
 	MutMap!(AnyDecl, ushort) res;
 	eachExportOrTestInProgram(program, (AnyDecl decl) {
 		if (isUsedAnywhere(used, decl)) {
-			ushort index = addOrChange!(Symbol, ushort)(alloc, lastIndexForName, decl.name, () => ushort(0), (ref ushort x) { x++; });
+			ushort index = addOrChange!(Symbol, ushort)(
+				alloc,
+				lastIndexForName,
+				decl.name,
+				() => ushort(0),
+				(ref ushort x) { x++; });
 			mustAdd(alloc, res, decl, index);
 		}
 	});
@@ -585,9 +617,14 @@ ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program pr
 	return ModuleExportMangledNames(moveToMap(alloc, lastIndexForName), moveToMap(alloc, res));
 }
 
-Map!(AnyDecl, ushort) modulePrivateMangledNames(ref Alloc alloc, in Module module_, in ModuleExportMangledNames exports_, in AllUsed used) {
+Map!(AnyDecl, ushort) modulePrivateMangledNames(
+	ref Alloc alloc,
+	in Module module_,
+	in ModuleExportMangledNames exports_,
+	in AllUsed used,
+) {
 	MutMap!(Symbol, ushort) lastIndexForName;
-	MutMap!(AnyDecl, ushort) res; // TODO: share code with 'moduleExportMangledNames'? ---------------------------------------
+	MutMap!(AnyDecl, ushort) res;
 	eachPrivateDeclInModule(module_, (AnyDecl decl) {
 		if (isUsedInModule(used, module_.uri, decl)) {
 			ushort index = addOrChange!(Symbol, ushort)(
@@ -658,7 +695,6 @@ JsImport[] translateImports(
 	in Module module_,
 	scope ref MutMap!(StructDecl*, StructAlias*) aliases,
 ) {
-	// TODO: do this in a separate function? -----------------------------------------------------------------------------
 	eachImportOrReExport(module_, (ref ImportOrExport x) {
 		if (!x.hasImported) return;
 		foreach (ref immutable NameReferents* refs; x.imported) {
@@ -675,15 +711,13 @@ JsImport[] translateImports(
 		}
 	});
 
-	Opt!(Set!AnyDecl) opt = ctx.allUsed.usedByModule[module_.uri];	
+	Opt!(Set!AnyDecl) opt = ctx.allUsed.usedByModule[module_.uri];
 	if (has(opt)) {
 		Path importerPath = mustGet(ctx.modulePaths, module_.uri);
-		// TODO: PERF ---------------------------------------------------------------------------------------------------------------------------
 		MutMap!(Uri, MutArr!AnyDecl) byModule;
 		foreach (AnyDecl x; force(opt))
-			if (x.moduleUri != module_.uri) { // TODO: maybe it shouldn't be added to usedByModule in that case ------------------
+			if (x.moduleUri != module_.uri)
 				push(ctx.alloc, getOrAdd(ctx.alloc, byModule, x.moduleUri, () => MutArr!AnyDecl()), x);
-			}
 		return buildArray!JsImport(ctx.alloc, (scope ref Builder!JsImport outImports) {
 			foreach (Uri importedUri, ref MutArr!AnyDecl decls; byModule) {
 				JsName[] names = buildArray!JsName(ctx.alloc, (scope ref Builder!JsName out_) {
@@ -713,7 +747,7 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in Module module_) {
 					(in Symbol[] names) {
 						foreach (Symbol name; names) {
 							eachNameReferent(*mustGet(x.imported, name), (AnyDecl decl) {
-								if (isItUsed(ctx.allUsed, decl))
+								if (isUsedAnywhere(ctx.allUsed, decl))
 									out_ ~= jsNameForDecl(decl, ctx.exportMangledNames.mangledNames[decl]);
 							});
 						}
@@ -723,8 +757,6 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in Module module_) {
 		}
 	});
 }
-bool isItUsed(in AllUsed allUsed, in AnyDecl decl) => // TODO: MOVE -----------------------------------------------------------------------------------------------
-	isUsedAnywhere(allUsed, decl) || (decl.isA!(StructAlias*) && isUsedAnywhere(allUsed, AnyDecl(decl.as!(StructAlias*).target.decl)));
 bool isImportModuleWhole(in ImportOrExport x) =>
 	!has(x.source) || force(x.source).kind.isA!(ImportOrExportAstKind.ModuleWhole);
 
@@ -806,9 +838,6 @@ JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
 	makeDecl(ctx, AnyDecl(a), JsDeclKind(translateStructReference(ctx, a.target.decl)));
 
 JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
-	if (a.body_.isA!BuiltinType)
-		return makeDecl(ctx, AnyDecl(a), JsDeclKind(genNull())); // TODO: we won't use this. Can we 'assert(false)'?
-
 	MutOpt!(JsExpr*) extends;
 	JsClassMember[] members = buildArray!JsClassMember(ctx.alloc, (scope ref Builder!JsClassMember out_) {
 		foreach (ref VariantAndMethodImpls v; a.variants) {
@@ -819,7 +848,7 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 
 		a.body_.match!void(
 			(StructBody.Bogus) =>
-				todo!void("BOGUS TYPE"), // ------------------------------------------------------------------------------------------
+				assert(false),
 			(BuiltinType x) =>
 				assert(false),
 			(ref StructBody.Enum x) {
