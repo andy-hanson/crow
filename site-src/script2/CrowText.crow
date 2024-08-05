@@ -2,10 +2,10 @@ import
 	crow/col/mut-stack
 	crow/js: +, as-js, as-t, call, call-property, get, js-any, js-cast, js-global, set
 	./crow: ==, <=>, character, diagnostic, end, line, line-and-character, message, new, range, start
-	./util/js-util: to-js-object, make-class, method
+	./util/dom-util: define-custom-element
 	./util/util:
-		~=, create-div, create-node, create-span, create-text-node, make-debouncer, node,
-		remove-all-children, set-style-sheet
+		~~=, ~=, create-div, create-node, create-span, create-text-node, make-debouncer, node,
+		remove-all-children
 	./util/mutable-observable: get, mutable-observable, now-and-subscribe, set
 
 -line-height-px float()
@@ -24,23 +24,15 @@ crow-text-props record mut
 	text string mutable-observable
 
 define-crow-text-custom-element void() summon, trusted, js extern
-	ctor method = (this, _) =>
-		root = this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object
-		root.as-t set-style-sheet css
-		0::nat as-js
-	connectedCallback method = (this, _) =>
-		this connected
-		0::nat as-js
-	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
-	_ = "customElements".js-global call-property "define", "crow-text"::string, cls
+	"crow-text" define-custom-element css, (this, shadow-root) => this connected shadow-root
 
 create-crow-text node(props crow-text-props) trusted, js extern
 	em = "document".js-global call-property "createElement", "crow-text"::string
 	em set "props", props
 	em as-t
 
--connected void(this js-any) unsafe, js extern
-	props crow-text-props = this get "props" as-t
+-connected void(this node, shadow-root node) unsafe, js extern
+	props crow-text-props = this.as-js get "props" as-t
 	highlight-div = "highlight" create-div
 	ta = "textarea".create-node as-js
 	initial-text = props.text get
@@ -122,7 +114,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 		line-numbers.as-js set "textContent", line-numbers-content
 		diag-debounce[() => x highlight highlight-div, value]
 
-	_ = this get "shadowRoot" call-property "append", root
+	shadow-root ~= root
 
 -insert-text-area-text string(text-area js-any, inserted string) unsafe, js extern
 	value = text-area get "value"
@@ -272,24 +264,15 @@ textarea \{
 """
 
 -highlight void(td tokens-and-diagnostics, highlight-div node, text string) js extern
-	info log "TOP OF HIGHLIGHT"
 	nodes = td tokens-and-diags-to-nodes text
 	highlight-div remove-all-children
-	# TODO: this should just be `highligh-tdiv ~~= nodes` ------------------------------------------------------------------
-	for node : nodes
-		trusted
-			info log "node: {(node.as-js get "textContent").as-t::string}"
-		highlight-div ~= node
-	info log "BOTTOM OF HIGHLIGHT"
+	highlight-div ~~= nodes
 
 # TODO: I should factor this out instead of having one huge function! --------------------------------------------------------
--tokens-and-diags-to-nodes node array(td tokens-and-diagnostics, text string) js extern
+-tokens-and-diags-to-nodes node[](td tokens-and-diagnostics, text string) js extern
 	tokens = td tokens
 	diagnostics = td diagnostics
 	lines line array = for x : text split "\n"; x to
-	info log "LINES:"
-	for line : lines
-		info log line.to
 	pos mut line-and-character = 0, 0
 	container-stack container mut-stack = ().all,
 	diag-index mut nat = 0

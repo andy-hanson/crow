@@ -1,37 +1,25 @@
 import
 	crow/js:
 		==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null, set, undefined
-	crow/io/duration: millisecond
-	crow/io/time: delay
 	./crow:
 		crow-server, diagnostic, line-and-character, open-file, request, severity, to-js, token-modifiers, tokens-legend, token-types
 	./CrowIcon: copy-icon, download-icon, link-icon, play-icon, up-icon
 	./CrowText: create-crow-text, new, token, tokens-and-diagnostics
 	./LoadingIcon: create-loading-icon
-	./util/js-util: new, to-js-object, make-class, method
+	./util/dom-util: define-custom-element
+	./util/js-util: new, to-js-object
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
 	./util/util:
-		~=, create-button, create-div, create-node, create-span, create-text-node, get-child-text, node, remove-all-children, set-style-sheet
+		~=, create-button, create-div, create-node, create-span, create-text-node, get-child-text, node, remove-all-children
 
 define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
 	next-name-index := 1
 	seen-names := ()
+	"crow-runnable" define-custom-element (this => this.is-play.css), (this, root) =>
+		this connected root, crow
 
-	ctor method = (this, _) =>
-		# TODO: I'm always calling attachShadow with the same args, so share code -----------------------------------------------
-		root node = this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object as-t
-		root set-style-sheet this.is-play.css
-		0::nat as-js
-	connectedCallback method = (this, _) =>
-		# HAX: Making sure this happens after the async calls in the constructor. (Alternatively, could I just move code from the ctor to here?)
-		1.millisecond delay
-		this connected crow
-		0::nat as-js
-	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
-	_ = "customElements".js-global call-property "define", "crow-runnable"::string, cls
-
--is-play bool(this js-any) unsafe, js extern
-	(this call-property "getAttribute", "play"::string) != undefined
+-is-play bool(this node) unsafe, js extern
+	(this.as-js call-property "getAttribute", "play"::string) != undefined
 
 -seen-names global(string mut-set)
 -get-crow-runnable-name string(name-attr js-any) unsafe, js extern
@@ -70,12 +58,11 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 -copy-text-to-clipboard void(text string) summon, trusted, js extern
 	_ = "navigator".js-global get "clipboard" call-property "writeText", text await
 
--connected void(this js-any, crow crow-server) summon, unsafe, js extern
-	shadow-root = this get "shadowRoot"
-	name = this call-property "getAttribute", "name"::string get-crow-runnable-name
-	no-run = (this call-property "getAttribute", "no-run"::string) != null
+-connected void(this node, shadow-root node, crow crow-server) summon, unsafe, js extern
+	name = this.as-js call-property "getAttribute", "name"::string get-crow-runnable-name
+	no-run = (this.as-js call-property "getAttribute", "no-run"::string) != null
 	play = this is-play
-	initial-text = play get-crow-runnable-initial-text this.as-t
+	initial-text = play get-crow-runnable-initial-text this
 	main-uri string = "file:///{name}"
 	text string mutable-observable = initial-text,
 	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
@@ -135,8 +122,7 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	buttons node[] = run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
 	bottom = "bottom" create-div buttons
 	container = "outer-container" create-div (crow-text, output.container, bottom)
-	_ = shadow-root call-property "append", container
-
+	_ = shadow-root ~= container
 
 -output record(container node) mut
 

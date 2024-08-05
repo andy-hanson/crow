@@ -1,6 +1,6 @@
-# TODO: this should be in std -------------------------------------------------------------------------------------------------
 import
-	crow/js: ==, as-t, call, call-new, call-property, get, js-any, js-global, null, set, typeof
+	crow/js:
+		==, as-t, call, call-new, call-property, get, js-any, js-global, null, set, typeof
 
 new js-any(...properties (symbol, js-any) array) trusted, js extern
 	res = "Object".js-global call-new

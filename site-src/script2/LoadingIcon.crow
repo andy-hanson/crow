@@ -1,16 +1,11 @@
 import
-	crow/js: as-js, as-t, call-property, get, js-global
-	./util/js-util: make-class, method, to-js-object
-	./util/util: create-div, node, set-style-sheet
+	crow/js: as-t, call-property, js-global
+	./util/dom-util: define-custom-element
+	./util/util: ~=, create-div, node
 
-define-loading-icon-element void() trusted, js extern
-	ctor method = (this, _) =>
-		root = this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object
-		root.as-t set-style-sheet css as-js
-	connectedCallback method = (this, _) =>
-		this get "shadowRoot" call-property "append", loading-div
-	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
-	_ = "customElements".js-global call-property "define", "crow-loading-spinner"::string, cls
+define-loading-icon-element void() summon, trusted, js extern
+	"crow-loading-spinner" define-custom-element css, (_, shadow-root) =>
+		shadow-root ~= loading-div
 
 create-loading-icon node() trusted, js extern
 	"document".js-global call-property "createElement", "crow-loading-spinner"::string as-t

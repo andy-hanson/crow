@@ -1,15 +1,13 @@
 import
-	crow/js: as-js, as-t, call-property, get, js-global, set
-	./util/js-util: make-class, method, to-js-object
-	./util/util: create-div, node
+	crow/js: as-js, as-t, call-property, set
+	./util/dom-util: define-custom-element
+	./util/util: ~=, create-div, node
 
 # Icons from https://heroicons.com/
 
 define-icon-custom-element void() summon, trusted, js extern
-	ctor method = (this, _) =>
-		this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object
-	connectedCallback method = (this, _) =>
-		child = match (this call-property "getAttribute", "icon"::string).as-t::string
+	"crow-icon" define-custom-element "", (this, shadow-root) =>
+		child = match (this.as-js call-property "getAttribute", "icon"::string).as-t::string # TODO: define-custom-element should help with attributes too
 		as "copy"
 			copy-icon
 		as "download"
@@ -20,9 +18,7 @@ define-icon-custom-element void() summon, trusted, js extern
 			play-icon
 		else
 			throw todo
-		this get "shadowRoot" call-property "appendChild", child
-	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
-	_ = "customElements".js-global call-property "define", "crow-icon"::string, cls
+		shadow-root ~= child
 
 copy-icon node() js extern
 	d string = \
@@ -36,7 +32,7 @@ copy-icon node() js extern
 	/>""" icon
 
 link-icon node() js extern
-	d string = \
+	d string =
 		"M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 " ~~
 		"1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 " ~~
 		"4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
@@ -51,12 +47,15 @@ download-icon node() js extern
 	/>""" icon
 
 play-icon node() js extern
+	d string =
+		"M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 " ~~
+		"001.555.832l3.197-2.132a1 1 0 000-1.664z"
 	"""
 	<path
 		stroke-linecap="round"
 		stroke-linejoin="round"
 		stroke-width="2"
-		d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+		d="{d}" />
 	<path
 		stroke-linecap="round"
 		stroke-linejoin="round"

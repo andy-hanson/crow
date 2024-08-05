@@ -140,7 +140,6 @@ CommonFunsAndMain getCommonFuns(
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
-		// TODO:MOVE ALPHABETICALLY ---------------------------------------------------------------------------------------------
 		jsAwait: getFun(CommonModule.js,symbol!"await", jsAny, [param!"a"(jsAny)]),
 		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
 		setCurCatchPoint: getFun(

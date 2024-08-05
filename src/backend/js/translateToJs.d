@@ -1067,10 +1067,8 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 		(in StructInst x) {
 			Opt!JsExpr notOk = x.decl.body_.isA!BuiltinType
 				? genIsNotBuiltinType(ctx.ctx, x.decl.body_.as!BuiltinType, get)
-				// TODO: I should be able to do it for variants ... for 'extern', I need a way to declare the global name of the type (e.g. HTMLNode)
-				: x.decl.body_.isA!(StructBody.Extern) || x.decl.body_.isA!(StructBody.Variant)
-				? none!JsExpr
-				: some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
+				: optIf(!x.decl.body_.isA!(StructBody.Extern), () =>
+					genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
 				add(ctx.alloc, out_, genIf(
 					ctx.alloc,

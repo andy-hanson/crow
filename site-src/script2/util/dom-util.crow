@@ -1,0 +1,24 @@
+import
+	crow/js: as-js, as-t, await, call-new, call-property, get, js-any, js-global, set
+	./js-util: make-class, method
+	./util: node
+
+# TODO: I think the 'connected' callback should take a 'this custom-element-node' .....................................................
+define-custom-element void(element-name string, connected void mut(this node, shadow-root node)) summon, js extern
+	element-name define-custom-element "", connected
+define-custom-element void(element-name string, style-sheet string, connected void mut(this node, shadow-root node)) summon, js extern
+	element-name define-custom-element (_ => style-sheet), connected
+define-custom-element void(element-name string, style-sheet string mut(this node), connected void mut(this node, shadow-root node)) summon, trusted, js extern
+	constructor method = (this, _) =>
+		args = "JSON".js-global call-property "parse", "\{\"mode\":\"open\"}"::string
+		root = this call-property "attachShadow", args
+		root.as-t set-style-sheet style-sheet[this as-t] as-js
+	connected-callback method = (this, _) =>
+		connected[this.as-t, this get "shadowRoot" as-t] as-js
+	cls = "HTMLElement".js-global make-class constructor, (("connectedCallback", connected-callback),)
+	_ = "customElements".js-global call-property "define", element-name, cls
+
+set-style-sheet void(shadow-root node, css string) trusted, js extern
+	style = "CSSStyleSheet".js-global call-new
+	_ = style call-property "replace", css await
+	_ = shadow-root.as-js set "adoptedStyleSheets", (style,)::(js-any array)

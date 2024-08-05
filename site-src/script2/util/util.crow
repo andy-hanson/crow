@@ -1,6 +1,6 @@
 import
 	crow/js:
-		==, as-js, as-t, await, call, call-new, call-property, call-property-spread, get, instanceof, js-any,
+		==, as-js, as-t, call, call-property, call-property-spread, get, instanceof, js-any,
 		js-cast, js-global, null, set
 
 # TODO: This should probably be a 'js/dom' library in crow standard library
@@ -8,7 +8,10 @@ import
 node extern
 
 ~= void(a node, b node) trusted, js extern
-	_ = a.as-js call-property "append", b
+	_ = a.as-js call-property "appendChild", b
+~~= void(a node, b node[]) js extern
+	for x : b
+		a ~= x
 
 +create-node node(tag-name symbol) trusted, js extern
 	"document".js-global call-property "createElement", tag-name as-t
@@ -62,12 +65,6 @@ region mutate
 +remove-all-children void(a node) trusted, js extern
 	while child ?= a first-child
 		_ = a.as-js call-property "removeChild", child
-
-# This one probably does not belong in std -----------------------------------------------------------------------
-+set-style-sheet void(shadow-root node, css string) trusted, js extern
-	style = "CSSStyleSheet".js-global call-new
-	_ = style call-property "replace", css await
-	_ = shadow-root.as-js set "adoptedStyleSheets", (style,)::(js-any array)
 
 region Things that don't belong here
 

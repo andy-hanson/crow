@@ -1757,7 +1757,7 @@ enum FunKind {
 
 immutable struct CommonFuns {
 	@safe @nogc pure nothrow:
-	FunInst* jsAwait; // TODO: sort alphabetically -----------------------------------------------------------------------------------
+	FunInst* jsAwait;
 	FunInst* curCatchPoint;
 	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;
