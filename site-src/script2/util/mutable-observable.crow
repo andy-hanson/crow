@@ -1,0 +1,24 @@
+
++mutable-observable[t] record mut
+	-value mut t
+	-subscribers void shared(x t) mut[]
+
++new[t] t mutable-observable() t new
+	(),
++new[t] t mutable-observable(initial t)
+	initial, ()
+
++get[t] t(a t mutable-observable)
+	a value
+
++now-and-subscribe[t] void(a t mutable-observable, cb void shared(x t))
+	cb[a.value]
+	a subscribe cb
+
++subscribe[t] void(a t mutable-observable, cb void shared(x t))
+	a.subscribers ~= cb
+
++set[t] void(a t mutable-observable, value t)
+	a.value := value
+	for subscriber : a subscribers
+		subscriber[value]

@@ -1,0 +1,274 @@
+import
+	crow/js:
+		==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null, set, undefined
+	crow/io/duration: millisecond
+	crow/io/time: delay
+	./crow:
+		crow-server, diagnostic, line-and-character, open-file, request, severity, to-js, token-modifiers, tokens-legend, token-types
+	./CrowIcon: copy-icon, download-icon, link-icon, play-icon, up-icon
+	./CrowText: create-crow-text, new, token, tokens-and-diagnostics
+	./LoadingIcon: create-loading-icon
+	./util/js-util: new, to-js-object, make-class, method
+	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
+	./util/util:
+		~=, create-button, create-div, create-node, create-span, create-text-node, get-child-text, node, remove-all-children, set-style-sheet
+
+define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
+	next-name-index := 1
+	seen-names := ()
+
+	ctor method = (this, _) =>
+		# TODO: I'm always calling attachShadow with the same args, so share code -----------------------------------------------
+		root node = this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object as-t
+		root set-style-sheet this.is-play.css
+		0::nat as-js
+	connectedCallback method = (this, _) =>
+		# HAX: Making sure this happens after the async calls in the constructor. (Alternatively, could I just move code from the ctor to here?)
+		1.millisecond delay
+		this connected crow
+		0::nat as-js
+	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
+	_ = "customElements".js-global call-property "define", "crow-runnable"::string, cls
+
+-is-play bool(this js-any) unsafe, js extern
+	(this call-property "getAttribute", "play"::string) != undefined
+
+-seen-names global(string mut-set)
+-get-crow-runnable-name string(name-attr js-any) unsafe, js extern
+	name = name-attr == null ? get-default-name : name-attr.as-t
+	assert name ends-with ".crow"
+	if name in seen-names
+		error log "Two CrowRunnable have the same name {name}"
+	seen-names ~= name
+	name
+
+-get-crow-runnable-initial-text string(play bool, this node) summon, unsafe, js extern
+	(play ? get-code-from-url) ?? this.get-child-text
+-get-code-from-url string?() summon, unsafe, js extern
+	search = "window".js-global get "location" get "search"
+	code = "URLSearchParams".js-global call-new search call-property "get", "code"::string
+	unless code == null
+		("atob".js-global call code as-t),
+
+-next-name-index global(nat)
+-get-default-name string() unsafe
+	res string = "demo{next-name-index}.crow"
+	next-name-index +:= 1
+	res
+
+-copy-play-link-from-text void(text string) summon, unsafe, js extern
+	window = "window" js-global
+	location = window get "location"
+	origin string = location get "origin" as-t
+	pathname string = location get "pathname" as-t
+	base64 string = "btoa".js-global call text as-t
+	url string = "{origin}{pathname}?code={base64}"
+	_ = window get "history" call-property "pushState", (("path", url.as-js),).to-js-object, ""::string, url
+	url copy-text-to-clipboard
+
+# TODO: this belongs in JS utils .. -------------------------------------------------------------------------------------------
+-copy-text-to-clipboard void(text string) summon, trusted, js extern
+	_ = "navigator".js-global get "clipboard" call-property "writeText", text await
+
+-connected void(this js-any, crow crow-server) summon, unsafe, js extern
+	shadow-root = this get "shadowRoot"
+	name = this call-property "getAttribute", "name"::string get-crow-runnable-name
+	no-run = (this call-property "getAttribute", "no-run"::string) != null
+	play = this is-play
+	initial-text = play get-crow-runnable-initial-text this.as-t
+	main-uri string = "file:///{name}"
+	text string mutable-observable = initial-text,
+	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
+
+	get-hover string mut(x line-and-character) = position =>
+		args js-any = (("textDocument", (("uri", main-uri.as-js),)), ("position", position.to-js))
+		hover = crow request "textDocument/hover", args
+		if hover != null
+			hover get "contents" get "value" as-t
+
+	crow-text = (get-hover, tokens-and-diagnostics, text) create-crow-text
+
+	text now-and-subscribe shared value =>
+		diagnostics = crow open-file main-uri, value
+		args js-any = ("textDocument", (("uri", main-uri.as-js),)),
+		encoded-tokens = crow request "textDocument/semanticTokens/full", args get "data"
+		tokens = encoded-tokens decode-tokens crow.tokens-legend
+		error-diagnostics diagnostic array = diagnostics filter x => x.severity <= 1
+		tokens-and-diagnostics set (tokens, error-diagnostics)
+
+	output = make-output
+
+	collapse-button mut node = gc-safe-value
+	collapse-button := "Hide output" create-button "collapsed", (up-icon,), () =>
+		output hide
+		_ = collapse-button.as-js get "class-list" call-property "add", "collapsed"::string
+	_ = collapse-button.as-js get "style" set "float", "right"::string
+
+	run-button node? = unless no-run
+		button = "Run" create-button "run", (play-icon,), () =>
+			if false
+				output start-running # TODO: REMOVE ---------------------------------------------------------------------------------
+			yield-fiber # Allow to show loading first
+			_ = collapse-button.as-js get "classList" call-property "remove", "collapsed"::string
+			args js-any = (("uri", main-uri.as-js), ("diagnosticsOnlyForUris", (main-uri.as-js,)::(js-any array).as-js))
+			res = crow request "custom/run", args
+			output finish-running res
+		button,
+
+	copy-button node = "Copy to clipboard" create-button "", (copy-icon,), () =>
+		text.get copy-text-to-clipboard
+	
+	download-button node = "Download" create-button "", (download-icon,), () =>
+		# TODO: HELPER FN -----------------------------------------------------------------------------------------------------
+		a = "document".js-global call-property "createElement", "a"::string
+		blob = "Blob".js-global call-new (text.get,)::(string array), (("type", "text/crow"::string.as-js),).to-js-object
+		url = "URL".js-global call-property "createObjectUrl", blob
+		a set "href", url
+		a set "download", name
+		_ = a call-property "click"
+	
+	link-button node? = if play
+		button = "Copy link to clipboard" create-button "", (link-icon,), () =>
+			text.get copy-play-link-from-text
+		button,
+
+	buttons node[] = run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
+	bottom = "bottom" create-div buttons
+	container = "outer-container" create-div (crow-text, output.container, bottom)
+	_ = shadow-root call-property "append", container
+
+
+-output record(container node) mut
+
+-make-output output() trusted, js extern
+	res output = ("output" create-div ()),
+	res hide
+	res
+
+-hide void(a output) trusted, js extern
+	a.container.as-js get "style" set "height", "0"::string
+-start-running void(a output) trusted, js extern
+	container = a.container as-js
+	container set "className", "output"::string
+	_ = container get "classList" call-property "add", "running"::string # TODO: why do we add classes in 2 different ways?
+	container get "style" set "height", "2em"::string
+	a.container remove-all-children
+	_ = container call-property "append", create-loading-icon
+	_ = container call-property "append", (create-div, create-div, create-div, create-div)::(node array) # What was this for again??????????
+-finish-running void(a output, run-output js-any) unsafe, js extern
+	writes write array = for x : (run-output get "writes").as-t::(js-any array); x to
+	exit-code nat = (run-output get "exitCode").as-t::float to
+
+	_ = a.container.as-js get "classList" call-property "remove", "running"::string
+	a.container.as-js get "style" set "height", ""::string
+	a.container remove-all-children
+	a.container add-spans-for-writes writes, exit-code
+
+-write record(pipe pipe, text string)
+-to write(a js-any) unsafe, js extern
+	(a get "pipe" to), (a get "text" as-t)
+-pipe enum(stdout, stderr)
+-to pipe(a js-any) unsafe, js extern
+	a.as-t::string to
+
+-css string(play bool)
+	"""
+.outer-container \{
+	max-width: {play ? 60::nat : 40}em;
+	margin-left: auto;
+	margin-right: auto;
+}
+.output \{
+	width: 100%;
+	color: #fdf9f3;
+	background: #161517;
+	font-family: "hack";
+	white-space: pre-wrap;
+	tab-size: 4;
+	overflow: hidden;
+}
+.output.running \{ transition: none; }
+.output > .stderr \{ color: #ff6622; }
+.output > .exit-code \{ color: #ff4444; }
+button \{
+	border: none;
+	outline: none;
+	color: #ffebbd;
+	background: #00000000;
+	cursor: pointer;
+}
+.run \{ color: #ffd866; }
+.bottom \{
+	border-bottom-left-radius: 1.5em;
+	border-bottom-right-radius: 1.5em;
+	background: #423e44;
+	margin: 0;
+	padding-left: 0.5em;
+	padding-right: 0.5em;
+}
+div.icon svg \{ height: 1.5em; }
+button.collapsed \{ display: none; }
+"""
+
+-decode-tokens token array(a js-any, legend tokens-legend) unsafe, js extern
+	encoded nat array = for x : a.as-t::(js-any array); x.as-t::float.to
+	with out : build
+		prev-line mut nat = 0
+		prev-character mut nat = 0
+		i mut nat = 0
+		next nat mut() = () =>
+			res = encoded[i]
+			i +:= 1
+			res
+		while i < encoded.size
+			line-delta = next[]
+			character-delta = next[]
+			line nat, character nat = if line-delta == 0
+				prev-line, prev-character + character-delta
+			else
+				prev-line + line-delta, character-delta
+			prev-line := line
+			prev-character := character
+			length = next[]
+			type = legend.token-types[next[]]
+			modifiers = next[] decode-modifiers legend.token-modifiers
+			out ~= (line, character, length, type, modifiers)
+
+-decode-modifiers symbol array(encoded nat, legend symbol array)
+	assert legend.size == 1
+	assert encoded == 0 || encoded == 1
+	encoded == 0 ? () : legend
+
+-add-spans-for-writes void(container node, writes write array, exit-code nat) js extern
+	cur-pipe mut string? = ()
+	cur-line mut string = ""
+	finish-line void mut() = () =>
+		unless trusted (container.as-js get "textContent").as-t::string is-empty
+			container ~= "br".create-node
+		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
+		cur-line := ""
+	
+	for write : writes
+		pipe = write.pipe
+		text = write.text
+		if x ?= cur-pipe
+			if x != pipe.to && cur-line != ""
+				finish-line[]
+
+		cur-pipe := pipe.to,
+		parts = text split "\n"
+		cur-line ~~:= parts[0]
+		for part : parts[1 .. end]
+			finish-line[]
+			cur-line ~~:= part
+	if cur-line != ""
+		finish-line[]
+	
+	if exit-code != 0
+		cur-pipe := "exit-code",
+		cur-line := "Exit code: {exit-code}"
+		finish-line[]
+	elif writes.is-empty
+		cur-pipe := "stdout",
+		cur-line := "<<no output>>"
+		finish-line[]

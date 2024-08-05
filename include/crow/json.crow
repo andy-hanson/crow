@@ -108,7 +108,7 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 +bool-or-null bool?(a json)
 	a == null ? false, : a.bool
 
-# `x.list-or-null` is like `x.list`, but treats `null` as `false`.
+# `x.list-or-null` is like `x.list`, but treats `null` as an empty list.
 +list-or-null json[]?(a json)
 	a == null ? (), : a.list
 

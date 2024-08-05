@@ -852,8 +852,7 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 			(ref StructBody.Enum x) {
 				translateEnumDecl(ctx, out_, needSuper, x);
 			},
-			(StructBody.Extern) =>
-				assert(false),
+			(StructBody.Extern) {},
 			(StructBody.Flags x) =>
 				translateFlagsDecl(ctx, out_, a, needSuper, x),
 			(StructBody.Record x) {
@@ -1068,7 +1067,8 @@ void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx
 		(in StructInst x) {
 			Opt!JsExpr notOk = x.decl.body_.isA!BuiltinType
 				? genIsNotBuiltinType(ctx.ctx, x.decl.body_.as!BuiltinType, get)
-				: x.decl.body_.isA!(StructBody.Variant)
+				// TODO: I should be able to do it for variants ... for 'extern', I need a way to declare the global name of the type (e.g. HTMLNode)
+				: x.decl.body_.isA!(StructBody.Extern) || x.decl.body_.isA!(StructBody.Variant)
 				? none!JsExpr
 				: some(genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
@@ -2096,8 +2096,12 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 			return f32(symbol!"cos");
 		case BuiltinUnaryMath.coshFloat32:
 			return f32(symbol!"cosh");
+		case BuiltinUnaryMath.roundDownFloat32:
+			return f32(symbol!"floor");
 		case BuiltinUnaryMath.roundFloat32:
 			return toFloat32(alloc, round());
+		case BuiltinUnaryMath.roundUpFloat32:
+			return f32(symbol!"ceil");
 		case BuiltinUnaryMath.sinFloat32:
 			return f32(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat32:
@@ -2110,6 +2114,7 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 			return f32(symbol!"tanh");
 		case BuiltinUnaryMath.unsafeLogFloat32:
 			return f32(symbol!"log");
+
 		case BuiltinUnaryMath.acosFloat64:
 			return f64(symbol!"acos");
 		case BuiltinUnaryMath.acoshFloat64:
@@ -2126,8 +2131,12 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 			return f64(symbol!"cos");
 		case BuiltinUnaryMath.coshFloat64:
 			return f64(symbol!"cosh");
+		case BuiltinUnaryMath.roundDownFloat64:
+			return f64(symbol!"floor");
 		case BuiltinUnaryMath.roundFloat64:
 			return round();
+		case BuiltinUnaryMath.roundUpFloat64:
+			return f64(symbol!"ceil");
 		case BuiltinUnaryMath.sinFloat64:
 			return f64(symbol!"sin");
 		case BuiltinUnaryMath.sinhFloat64:
@@ -2376,6 +2385,10 @@ ExprResult translateCallJsFun(
 ) {
 	ExprResult expr(JsExpr value) =>
 		forceExpr(ctx.alloc, pos, returnType, value);
+	ExprResult unary(JsUnaryExpr.Kind kind) {
+		assert(nArgs == 1);
+		return expr(genUnary(ctx.alloc, kind, getArg(0)));
+	}
 	ExprResult binary(JsBinaryExpr.Kind kind) {
 		assert(nArgs == 2);
 		return expr(genBinary(ctx.alloc, kind, getArg(0), getArg(1)));
@@ -2417,6 +2430,8 @@ ExprResult translateCallJsFun(
 		case JsFun.get:
 			assert(nArgs == 2);
 			return expr(genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)));
+		case JsFun.instanceof:
+			return binary(JsBinaryExpr.Kind.instanceof);
 		case JsFun.jsGlobal:
 			assert(nArgs == 0);
 			return expr(genGlobal(ctx.isBrowser ? symbol!"window" : symbol!"global"));
@@ -2430,6 +2445,8 @@ ExprResult translateCallJsFun(
 				ctx.alloc,
 				genPropertyAccessComputed(ctx.alloc, getArg(0), getArg(1)),
 				getArg(2)));
+		case JsFun.typeof_:
+			return unary(JsUnaryExpr.Kind.typeof_);
 	}
 }
 

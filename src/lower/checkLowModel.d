@@ -376,7 +376,9 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.atanhFloat32:
 		case BuiltinUnaryMath.cosFloat32:
 		case BuiltinUnaryMath.coshFloat32:
+		case BuiltinUnaryMath.roundDownFloat32:
 		case BuiltinUnaryMath.roundFloat32:
+		case BuiltinUnaryMath.roundUpFloat32:
 		case BuiltinUnaryMath.sinFloat32:
 		case BuiltinUnaryMath.sinhFloat32:
 		case BuiltinUnaryMath.sqrtFloat32:
@@ -392,11 +394,13 @@ LowType unaryMathType(BuiltinUnaryMath kind) {
 		case BuiltinUnaryMath.atanhFloat64:
 		case BuiltinUnaryMath.cosFloat64:
 		case BuiltinUnaryMath.coshFloat64:
+		case BuiltinUnaryMath.roundDownFloat64:
+		case BuiltinUnaryMath.roundFloat64:
+		case BuiltinUnaryMath.roundUpFloat64:
 		case BuiltinUnaryMath.sinFloat64:
 		case BuiltinUnaryMath.sinhFloat64:
 		case BuiltinUnaryMath.tanFloat64:
 		case BuiltinUnaryMath.tanhFloat64:
-		case BuiltinUnaryMath.roundFloat64:
 		case BuiltinUnaryMath.sqrtFloat64:
 		case BuiltinUnaryMath.unsafeLogFloat64:
 			return float64Type;

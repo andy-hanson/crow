@@ -133,18 +133,15 @@ CommonFunsAndMain getCommonFuns(
 	Type globalCtx = getType(CommonModule.runtime, symbol!"global-ctx");
 	Type globalCtxMutPointer = instantiateType(commonTypes.pointerMut, [globalCtx]);
 
+	Type jsAny = getType(CommonModule.js, symbol!"js-any");
+
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
 	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
 		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
-		await: getFunDeclInner(
-			*modules[CommonModule.parallel],
-			symbol!"await",
-			singleTypeParams,
-			typeParam0,
-			[param!"a"(tFuture)],
-			countSpecs: 0),
+		// TODO:MOVE ALPHABETICALLY ---------------------------------------------------------------------------------------------
+		jsAwait: getFun(CommonModule.js,symbol!"await", jsAny, [param!"a"(jsAny)]),
 		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
 		setCurCatchPoint: getFun(
 			CommonModule.exceptionLowLevel, symbol!"set-cur-catch-point",

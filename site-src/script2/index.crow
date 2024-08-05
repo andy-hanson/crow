@@ -1,0 +1,25 @@
+import
+	crow/js: as-js, call-property, ==, null, set
+	./crow: make-crow-server
+	./CrowIcon: define-icon-custom-element
+	./CrowRunnable: define-crow-runnable-custom-element
+	./CrowText: define-crow-text-custom-element
+	./LoadingIcon: define-loading-icon-element
+	./util/util: query-selector
+
+main void() summon, js extern
+	open-details-on-click
+	define-icon-custom-element
+	define-crow-text-custom-element
+	define-loading-icon-element
+
+	crow = make-crow-server
+	crow define-crow-runnable-custom-element
+
+-open-details-on-click void() summon, trusted, js extern
+	for details : "details" query-selector
+		link = details.as-js call-property "querySelector", "a"::string
+		unless link == null
+			fn void mut() = () =>
+				_ = details.as-js call-property "setAttribute", "open"::string, true
+			link set "onclick", fn

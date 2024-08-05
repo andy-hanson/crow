@@ -14,7 +14,7 @@ import
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
-	./js: as-t, call, js-eq-eq-eq, js-global, js-less, js-plus
+	./js: ==, <, +, as-js, as-t, call, js-global
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
@@ -45,7 +45,7 @@ export
 
 +~~ string(a string, b string)
 	if trusted extern js
-		trusted a js-plus b
+		trusted a.as-js + b.as-js as-t
 	else
 		a.to::(char8 array) ~~ b.to to
 
@@ -73,7 +73,7 @@ export
 
 +== bool(a string, b string)
 	if trusted extern js
-		trusted a js-eq-eq-eq b
+		trusted a.as-js == b.as-js
 	else
 		a.to::(char8 array) == b.to
 +== bool(a char32, b char32) bare, builtin
@@ -86,7 +86,7 @@ export
 
 +<=> comparison(a string, b string)
 	if trusted extern js
-		if trusted a js-less b
+		if trusted a.as-js < b.as-js
 			less
 		elif a == b
 			equal

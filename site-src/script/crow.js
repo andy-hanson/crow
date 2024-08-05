@@ -49,10 +49,10 @@ export const getCrowServer = () => crowServer
 /** @type {ReadonlyArray<string & keyof Math>} */
 const mathKeys = [
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
-	"cos", "cosh", "log", "sin", "sinh", "sqrt", "tan", "tanh",
+	"ceil", "cos", "cosh", "floor", "log", "sin", "sinh", "sqrt", "tan", "tanh",
 ]
 
-/** @type {function(number): number)} */
+/** @type {function(number): number} */
 const round = x =>
 	// Behave like C's (and Crow's) round, where `-0.5.round` is -1
 	x < 0 ? -Math.round(-x) : Math.round(x)

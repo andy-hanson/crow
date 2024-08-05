@@ -6,7 +6,7 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
-	./js: as-t, call-property, js-await, js-cast, js-global
+	./js: as-js, as-t, await, call-property, js-any, js-cast, js-global, null
 	./log: error, log
 	./number: nat64
 	./misc: shared, new, void
@@ -29,7 +29,7 @@ export
 		as error x
 			x rethrow
 	elif extern js
-		a.js-await as-t
+		a.as-js.await as-t
 	else
 		todo
 
@@ -38,8 +38,13 @@ export
 	a.as-future-impl get-result
 
 # Just yields the fiber temporarily. It may be restarted immediately.
-+yield-fiber void() trusted, native extern
-	add-to-queue yield-this-fiber
++yield-fiber void() trusted
+	if extern native
+		add-to-queue yield-this-fiber
+	elif extern js
+		_ = null::js-any await
+	else
+		todo
 
 add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsafe, native extern
 	typed t future-impl = future reference-from-pointer

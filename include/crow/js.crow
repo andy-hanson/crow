@@ -7,20 +7,20 @@ but many functions that need to be 'bare' for native code need to use these func
 
 no-std
 import
-	./private/bootstrap: array, bool, void, nat64, string
+	./private/bootstrap: array, bool, gc-safe-value, void, nat64, new-void, string, symbol
 
 +js-any builtin
-+as-js-any[t] js-any(a t) builtin, bare, unsafe, js extern
++as-js[t] js-any(a t) builtin, bare, unsafe, js extern
 +as-t[t] t(a js-any) builtin, bare, unsafe, js extern
 +js-global js-any() builtin, bare, unsafe, js extern
-+js-global js-any(name string) bare, unsafe, js extern
++js-global js-any(name symbol) bare, unsafe, js extern
 	js-global get name
 # `a[name]`
-+get js-any(a js-any, name string) builtin, bare, unsafe, js extern
++get js-any(a js-any, name symbol) builtin, bare, unsafe, js extern
 # `a[index]` (This converts 'index' to a string.)
 +get js-any(a js-any, index nat64) builtin, bare, unsafe, js extern
 # `a[name] = value`
-+set[t] void(a js-any, name string, value t) builtin, bare, unsafe, js extern
++set[t] void(a js-any, name symbol, value t) builtin, bare, unsafe, js extern
 # `a[index] = value` (This converts 'index' to a string.)
 +set[t] void(a js-any, index nat64, value t) builtin, bare, unsafe, js extern
 ###
@@ -31,10 +31,16 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 +call js-any(a js-any) builtin, bare, unsafe, js extern
 # `a(arg)`
 +call[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
+# `a(arg0, arg1)`
++call[p0, p1] js-any(a js-any, arg0 p0, arg1 p1) builtin, bare, unsafe, js extern
 # `new a()`
 +call-new js-any(a js-any) builtin, bare, unsafe, js extern
 # `new a(arg)`
 +call-new[p0] js-any(a js-any, arg p0) builtin, bare, unsafe, js extern
+# `new a(arg0, arg1)`
++call-new[p0, p1] js-any(a js-any, arg p0, arg1 p1) builtin, bare, unsafe, js extern
+# `new a(arg0, arg1, arg2)`
++call-new[p0, p1, p2] js-any(a js-any, arg p0, arg1 p1, arg2 p2) builtin, bare, unsafe, js extern
 # `a[name]()`
 +call-property js-any(a js-any, name string) builtin, bare, unsafe, js extern
 # `a[name](arg)`
@@ -63,8 +69,18 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 # Treat one type as another. This is a noop in JS.
 +js-cast[out, in] out(a in) builtin, bare, unsafe, js extern
 
-region Operators
-~js-await[t] js-any(a t) builtin, bare, unsafe, js extern
-~js-eq-eq-eq[t] bool(a t, b t) builtin, bare, unsafe, js extern
-~js-less[t] bool(a t, b t) builtin, bare, unsafe, js extern
-~js-plus[t] t(a t, b t) builtin, bare, unsafe, js extern
++null js-any() bare, js extern
+	trusted gc-safe-value
++undefined js-any() bare, trusted, js extern
+	new-void as-js
+
+region Unary operators
++await js-any(a js-any) builtin, bare, unsafe, js extern
++typeof string(a js-any) builtin, bare, unsafe, js extern
+
+region Binary operators
+# NOTE: This is actually JS' `===` operator.
++== bool(a js-any, b js-any) builtin, bare, unsafe, js extern
++instanceof bool(a js-any, b js-any) builtin, bare, unsafe, js extern
++< bool(a js-any, b js-any) builtin, bare, unsafe, js extern
+++ js-any(a js-any, b js-any) builtin, bare, unsafe, js extern

@@ -1,0 +1,60 @@
+# TODO: this should be in std -------------------------------------------------------------------------------------------------
+import
+	crow/js: ==, as-t, call, call-new, call-property, get, js-any, js-global, null, set, typeof
+
+new js-any(...properties (symbol, js-any) array) trusted, js extern
+	res = "Object".js-global call-new
+	for key, value : properties
+		res set key, value
+	res
+to-js-object js-any(properties js-any[symbol]) trusted, js extern # TODO: move to std somewhere ---------------------------
+	res = "Object".js-global call-new
+	for key, value : properties
+		res set key, value
+	res
+
+json-from-js-object json(a js-any) unsafe, js extern
+	match a typeof
+	as string
+		a.as-t::string.to
+	as object
+		if a == null
+			null
+		else
+			entries js-any array = "Object".js-global call-property "entries", a as-t
+			x json[symbol] = for entry : entries
+				key = entry get 0
+				value = entry get 1
+				key.as-t::string.to, value.json-from-js-object
+			x to
+	else
+		throw todo
+
+eval js-any(source string) unsafe, js extern
+	"eval".js-global call source
+
+method alias
+	js-any mut(this js-any, args js-any array)
+
+-make-method js-any(fn method) unsafe, js extern
+	make-method = "fn => function(...args) \{ return fn(\{a:this, b:args}) }" eval
+	make-method call fn
+
+make-class js-any(
+	super-class js-any,
+	constructor method,
+	methods method[symbol],
+) unsafe, js extern
+	make = """
+		(ctor, Super) => class extends Super \{
+			constructor(...args) \{
+				super()
+				ctor(\{a:this, b:args})
+			}
+		}
+	""" eval
+	res = make call constructor, super-class
+	prototype = res get "prototype"
+	for name, method : methods
+		prototype set name, method.make-method
+	res

@@ -22,10 +22,14 @@ enum BuiltinFunction {
 	atanhf,
 	__builtin_isnan,
 	__builtin_popcountl,
+	ceil,
+	ceilf,
 	cos,
 	cosf,
 	cosh,
 	coshf,
+	floor,
+	floorf,
 	log,
 	logf,
 	round,
@@ -92,10 +96,18 @@ BuiltinFunction builtinForUnaryMath(BuiltinUnaryMath a) {
 			return BuiltinFunction.tanhf;
 		case BuiltinUnaryMath.tanhFloat64:
 			return BuiltinFunction.tanh;
+		case BuiltinUnaryMath.roundDownFloat32:
+			return BuiltinFunction.floorf;
+		case BuiltinUnaryMath.roundDownFloat64:
+			return BuiltinFunction.floor;
 		case BuiltinUnaryMath.roundFloat32:
 			return BuiltinFunction.roundf;
 		case BuiltinUnaryMath.roundFloat64:
 			return BuiltinFunction.round;
+		case BuiltinUnaryMath.roundUpFloat32:
+			return BuiltinFunction.ceilf;
+		case BuiltinUnaryMath.roundUpFloat64:
+			return BuiltinFunction.ceil;
 		case BuiltinUnaryMath.sqrtFloat32:
 			return BuiltinFunction.sqrtf;
 		case BuiltinUnaryMath.sqrtFloat64:

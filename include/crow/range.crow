@@ -63,3 +63,11 @@ region iteration
 +subscript[t] t range(a t range, indices nat64 range) bare, t rangeable
 	assert indices.high <= a.size : indices.high index-too-big a.size
 	a.low + indices.low .. a.low + indices.high
+
++clamp[t] t(a t, range t range) bare, t rangeable
+	if a < range.low
+		range.low
+	elif a > range.high
+		range.high
+	else
+		a

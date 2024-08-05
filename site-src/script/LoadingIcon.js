@@ -45,4 +45,4 @@ export class LoadingIcon extends HTMLElement {
 		}))
 	}
 }
-customElements.define("crow-loading-spinner", LoadingIcon)
+customElements.define("crow-loading-spinner-old", LoadingIcon)

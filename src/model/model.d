@@ -929,11 +929,13 @@ enum JsFun {
 	cast_,
 	eqEqEq,
 	get,
+	instanceof,
 	jsAnyAsT,
 	jsGlobal,
 	less,
 	plus,
 	set,
+	typeof_,
 }
 
 immutable struct BuiltinFun {
@@ -1043,8 +1045,12 @@ enum BuiltinUnaryMath {
 	cosFloat64,
 	coshFloat32,
 	coshFloat64,
+	roundDownFloat32,
+	roundDownFloat64,
 	roundFloat32,
 	roundFloat64,
+	roundUpFloat32,
+	roundUpFloat64,
 	sinFloat32,
 	sinFloat64,
 	sinhFloat32,
@@ -1751,7 +1757,7 @@ enum FunKind {
 
 immutable struct CommonFuns {
 	@safe @nogc pure nothrow:
-	FunDecl* await;
+	FunInst* jsAwait; // TODO: sort alphabetically -----------------------------------------------------------------------------------
 	FunInst* curCatchPoint;
 	FunInst* setCurCatchPoint;
 	VarDecl* curThrown;

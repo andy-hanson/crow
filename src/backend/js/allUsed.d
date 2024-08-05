@@ -319,7 +319,7 @@ AsyncSets allAsyncFuns(ref AllUsedBuilder builder) {
 		return res;
 	}
 
-	addFun(builder.program.commonFuns.await);
+	addFun(builder.program.commonFuns.jsAwait.decl);
 	foreach (FunKind _, ref immutable FunDecl* f; builder.program.commonFuns.lambdaSubscript)
 		addFun(f);
 
@@ -416,7 +416,7 @@ void trackAllUsedInStructBody(ref AllUsedBuilder res, Uri from, in StructBody a)
 			// 'members' constructs pairs
 			trackAllUsedInStruct(res, from, res.program.commonTypes.pair);
 		},
-		(StructBody.Extern) { assert(false); },
+		(StructBody.Extern) {},
 		(StructBody.Flags) {
 			// 'members' constructs pairs
 			trackAllUsedInStruct(res, from, res.program.commonTypes.pair);
@@ -510,7 +510,9 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 			(FunBody.RecordFieldGet) {},
 			(FunBody.RecordFieldPointer) { assert(false); },
 			(FunBody.RecordFieldSet) {},
-			(FunBody.UnionMemberGet) {},
+			(FunBody.UnionMemberGet) {
+				usedReturnType();
+			},
 			(FunBody.VarGet x) {
 				cast(void) addDecl(res, from, AnyDecl(x.var));
 			},

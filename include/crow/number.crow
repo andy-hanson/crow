@@ -335,6 +335,12 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 +round float32(a float32) bare, builtin
 +round float64(a float64) bare, builtin
+# floor
++round-down float32(a float32) bare, builtin
++round-down float64(a float64) bare, builtin
+# ceiling
++round-up float32(a float32) bare, builtin
++round-up float64(a float64) bare, builtin
 
 +to nat64(a float64) bare
 	a.to::int64 to
@@ -368,6 +374,12 @@ Conversions involving floats (in either direction) are approximate and never thr
 +to int32(a nat64) bare
 	a.to::int64 to
 
++clamp-sub nat64(a nat64, b nat64)
+	if a >= b
+		a - b
+	else
+		0
+
 # Return the closest value. Never throws.
 +clamp-to int32(a int64) bare
 	if a < min-value::int32.to
@@ -391,6 +403,8 @@ Conversions involving floats (in either direction) are approximate and never thr
 +clamp-to nat64(a int64) bare
 	if a >= 0
 		trusted a unsafe-to
++clamp-to nat64(a float64) bare
+	a.to::int64 clamp-to
 
 # Return the closest possible value to `a + b`. Never throws.
 +clamp-add int32(a int32, b int32) bare

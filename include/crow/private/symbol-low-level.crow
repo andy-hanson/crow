@@ -6,7 +6,7 @@ import
 	../col/list: iterate, list
 	../col/map: ~=, build, get-or-add
 	../compare: comparison
-	../js: js-cast, js-eq-eq-eq
+	../js: ==, as-js, js-cast
 	../misc: void
 	../number: +
 	../pointer: ==, +, *, as-const, mut-pointer, set-deref
@@ -27,7 +27,7 @@ export
 	if extern native
 		a.c-string-of-symbol == b.c-string-of-symbol
 	elif extern js
-		a js-eq-eq-eq b
+		a.as-js == b.as-js
 	else
 		todo
 

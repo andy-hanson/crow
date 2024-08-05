@@ -134,13 +134,15 @@ FunBody inner(
 
 	switch (name.value) {
 		case symbol!"+".value:
-			return binary(isFloat32(rt)
-				? BuiltinBinary.addFloat32
-				: isBinaryFloat64()
-				? BuiltinBinary.addFloat64
-				: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
-				? BuiltinBinary.addPointerAndNat64
-				: failBinary);
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.plus))
+				: binary(isFloat32(rt)
+					? BuiltinBinary.addFloat32
+					: isBinaryFloat64()
+					? BuiltinBinary.addFloat64
+					: isPointerConstOrMut(rt) && isPointerConstOrMut(p0) && isNat64(p1)
+					? BuiltinBinary.addPointerAndNat64
+					: failBinary);
 		case symbol!"-".value:
 			return binary(isFloat32(rt)
 				? BuiltinBinary.subFloat32
@@ -158,22 +160,28 @@ FunBody inner(
 					? BuiltinBinary.mulFloat64
 					: failBinary);
 		case symbol!"==".value:
-			return binary(
-				p0 != p1 ? failBinary :
-				isChar8(p0) ? BuiltinBinary.eqChar8 :
-				isChar32(p0) ? BuiltinBinary.eqChar32 :
-				isNat8(p0) ? BuiltinBinary.eqNat8 :
-				isNat16(p0) ? BuiltinBinary.eqNat16 :
-				isNat32(p0) ? BuiltinBinary.eqNat32 :
-				isNat64(p0) ? BuiltinBinary.eqNat64 :
-				isInt8(p0) ? BuiltinBinary.eqInt8 :
-				isInt16(p0) ? BuiltinBinary.eqInt16 :
-				isInt32(p0) ? BuiltinBinary.eqInt32 :
-				isInt64(p0) ? BuiltinBinary.eqInt64 :
-				isFloat32(p0) ? BuiltinBinary.eqFloat32 :
-				isFloat64(p0) ? BuiltinBinary.eqFloat64 :
-				isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
-				failBinary);
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.eqEqEq))
+				: binary(
+					p0 != p1 ? failBinary :
+					isChar8(p0) ? BuiltinBinary.eqChar8 :
+					isChar32(p0) ? BuiltinBinary.eqChar32 :
+					isNat8(p0) ? BuiltinBinary.eqNat8 :
+					isNat16(p0) ? BuiltinBinary.eqNat16 :
+					isNat32(p0) ? BuiltinBinary.eqNat32 :
+					isNat64(p0) ? BuiltinBinary.eqNat64 :
+					isInt8(p0) ? BuiltinBinary.eqInt8 :
+					isInt16(p0) ? BuiltinBinary.eqInt16 :
+					isInt32(p0) ? BuiltinBinary.eqInt32 :
+					isInt64(p0) ? BuiltinBinary.eqInt64 :
+					isFloat32(p0) ? BuiltinBinary.eqFloat32 :
+					isFloat64(p0) ? BuiltinBinary.eqFloat64 :
+					isPointerConstOrMut(p0) ? BuiltinBinary.eqPointer :
+					failBinary);
+		case symbol!"<".value:
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.less))
+				: fail();
 		case symbol!"&&".value:
 			return binaryLazy(isBool(rt) && isBool(p0) && isBool(p1) ? BuiltinBinaryLazy.boolAnd : failBinaryLazy);
 		case symbol!"||".value:
@@ -269,7 +277,7 @@ FunBody inner(
 			return unary(isFuture(rt) && isProbablyFutureImpl(p0) ? BuiltinUnary.asFuture : failUnary);
 		case symbol!"as-future-impl".value:
 			return unary(isProbablyFutureImpl(rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
-		case symbol!"as-js-any".value:
+		case symbol!"as-js".value:
 			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
 				? FunBody(BuiltinFun(JsFun.asJsAny))
 				: fail();
@@ -328,6 +336,10 @@ FunBody inner(
 				: fail();
 		case symbol!"infinity".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.infinity)));
+		case symbol!"instanceof".value:
+			return isBool(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+				? FunBody(BuiltinFun(JsFun.instanceof))
+				: fail();
 		case symbol!"interpreter-backtrace".value:
 			return ternary(BuiltinTernary.interpreterBacktrace);
 		case symbol!"is-less".value:
@@ -349,30 +361,18 @@ FunBody inner(
 				isBool(rt) && isFloat32(p0) ? BuiltinUnary.isNanFloat32 :
 				isBool(rt) && isFloat64(p0) ? BuiltinUnary.isNanFloat64 :
 				failUnary());
-		case symbol!"js-await".value:
-			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
+		case symbol!"jump-to-catch".value:
+			return unary(BuiltinUnary.jumpToCatch);
+		case symbol!"await".value:
+			return isJsAny(rt) && arity == 1 && isJsAny(p0)
 				? FunBody(BuiltinFun(JsFun.await))
 				: fail();
 		case symbol!"js-cast".value:
 			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
 				? FunBody(BuiltinFun(JsFun.cast_))
 				: fail();
-		case symbol!"js-eq-eq-eq".value:
-			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.eqEqEq))
-				: fail();
 		case symbol!"js-global".value:
 			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
-		case symbol!"js-less".value:
-			return isBool(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.less))
-				: fail();
-		case symbol!"js-plus".value:
-			return isTypeParam0(rt) && arity == 2 && isTypeParam0(p0) && isTypeParam0(p1)
-				? FunBody(BuiltinFun(JsFun.plus))
-				: fail();
-		case symbol!"jump-to-catch".value:
-			return unary(BuiltinUnary.jumpToCatch);
 		case symbol!"mark-root".value:
 			return FunBody(BuiltinFun(BuiltinFun.MarkRoot()));
 		case symbol!"mark-visit".value:
@@ -409,6 +409,10 @@ FunBody inner(
 			return unary(BuiltinUnary.referenceFromPointer);
 		case symbol!"round".value:
 			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
+		case symbol!"round-down".value:
+			return unaryMath(BuiltinUnaryMath.roundDownFloat32, BuiltinUnaryMath.roundDownFloat64);
+		case symbol!"round-up".value:
+			return unaryMath(BuiltinUnaryMath.roundUpFloat32, BuiltinUnaryMath.roundUpFloat64);
 		case symbol!"set".value:
 			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isTypeParam0(p2)
 				? FunBody(BuiltinFun(JsFun.set))
@@ -508,6 +512,10 @@ FunBody inner(
 			return unary(isString(rt) && isChar8Array(p0)
 				? BuiltinUnary.trustAsString
 				: failUnary);
+		case symbol!"typeof".value:
+			return isString(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.typeof_))
+				: fail();
 		case symbol!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? BuiltinBinary.unsafeAddInt8
@@ -676,7 +684,7 @@ bool isProbablyFutureImpl(in Type a) =>
 	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"future-impl"; // TODO: also assert file name
 
 bool isJsObjectKey(in CommonTypes commonTypes, in Type a) =>
-	isNat64(a) || isString(a);
+	isNat64(a) || isSymbol(a);
 
 bool isFloat32Or64(in Type a) =>
 	isFloat32(a) || isFloat64(a);

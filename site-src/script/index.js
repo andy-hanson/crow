@@ -1,3 +1,4 @@
+/*
 // Importing these modules registers custom elements
 import {} from "./CrowIcon.js"
 import {} from "./CrowRunnable.js"
@@ -11,3 +12,4 @@ for (const details of document.querySelectorAll('details')) {
 		}
 	}
 }
+*/

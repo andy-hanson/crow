@@ -3,7 +3,7 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../js: as-js-any, as-t, call, call-property, get, js-cast, js-global, set
+	../js: as-js, as-t, call, call-property, get, js-cast, js-global, set
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
 	../option: new, option
@@ -100,7 +100,7 @@ This is O(n).
 	if extern native
 		a.begin-pointer[index]
 	elif extern js
-		a.as-js-any get index as-t
+		a.as-js get index as-t
 	else
 		todo
 
@@ -109,7 +109,7 @@ This is O(n).
 	if extern native
 		a.begin-pointer[index] := value
 	elif extern js
-		a.as-js-any set index, value.as-js-any
+		a.as-js set index, value.as-js
 	else
 		todo
 
@@ -175,7 +175,7 @@ Throws if `dest` and `source` are not the same size.
 	elif extern js
 		i float64 = a.range.low to
 		j float64 = a.range.high to
-		a.inner.as-js-any call-property "slice", i, j as-t
+		a.inner.as-js call-property "slice", i, j as-t
 	else
 		todo
 +iterate[t] bool(a t mut-slice, f bool mut(x t))

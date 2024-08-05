@@ -405,12 +405,14 @@ const tokensAndDiagsToNodes = ({tokens, diagnostics}, text) => {
 		let startPos = pos
 		while (less(pos, end)) {
 			if (maybeStartDiag()) {
-				if (less(startPos, pos)) secondLast(containerStack).children.push(noTokenNode(startPos))
+				if (less(startPos, pos))
+					secondLast(containerStack).children.push(noTokenNode(startPos))
 				startPos = pos
 			}
 			const nextPos = nextPosition(lines, pos)
 			if (nextPos.line !== pos.line) {
-				if (!equal(startPos, pos)) last(containerStack).children.push(noTokenNode(startPos))
+				if (!equal(startPos, pos))
+						last(containerStack).children.push(noTokenNode(startPos))
 				startPos = nextPos
 				nextLine()
 			}

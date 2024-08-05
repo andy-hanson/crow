@@ -68,7 +68,7 @@ const icon = content => {
 	return res
 }
 
-customElements.define("crow-icon", class CrowIcon extends HTMLElement {
+customElements.define("crow-icon-old", class CrowIcon extends HTMLElement {
 	constructor() {
 		super()
 		this.attachShadow({ mode: "open" })

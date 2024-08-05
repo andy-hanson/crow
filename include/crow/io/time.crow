@@ -3,13 +3,13 @@ import
 	system/time: time, time_t
 	../compare: max
 	../fun-util: subscript
-	../js: as-t, call, call-new, js-global
+	../js: as-t, await, call, call-new, js-global
 	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, int64, nat64, to
 	../pointer: null
 	../private/bootstrap: todo
 	../private/runtime: delay-cur-fiber-until-time
-	./duration: duration, nanoseconds
+	./duration: duration, milliseconds, nanoseconds
 export
 	./private/time-low-level: get-monotime-nsec
 
@@ -34,8 +34,16 @@ export
 		todo
 
 # Returns a future that will resolve after `duration` has passed.
-+delay void(duration duration) summon, native extern
-	get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
++delay void(duration duration) summon
+	if trusted extern native
+		get-monotime-nsec + duration.nanoseconds.to delay-cur-fiber-until-time
+	elif trusted extern js
+		trusted
+			resolver void mut(resolve void mut()) = resolve =>
+				_ = "setTimeout".js-global call resolve, duration.milliseconds
+			_ = "Promise".js-global call-new resolver await
+	else
+		throw todo
 
 +interval record
 	-time duration

@@ -1,0 +1,462 @@
+import
+	crow/col/mut-stack
+	crow/js: +, as-js, as-t, call, call-property, get, js-any, js-cast, js-global, set
+	./crow: ==, <=>, character, diagnostic, end, line, line-and-character, message, new, range, start
+	./util/js-util: to-js-object, make-class, method
+	./util/util:
+		~=, create-div, create-node, create-span, create-text-node, make-debouncer, node,
+		remove-all-children, set-style-sheet
+	./util/mutable-observable: get, mutable-observable, now-and-subscribe, set
+
+-line-height-px float()
+	20
+-tab-size nat()
+	4
+
+token record(line nat, character nat, length nat, type symbol, modifiers symbol array)
+tokens-and-diagnostics record(tokens token array, diagnostics diagnostic array)
+new tokens-and-diagnostics()
+	(), ()
+
+crow-text-props record mut
+	getHover string mut(where line-and-character)
+	tokensAndDiagnostics tokens-and-diagnostics mutable-observable # OTDO: should just be observable
+	text string mutable-observable
+
+define-crow-text-custom-element void() summon, trusted, js extern
+	ctor method = (this, _) =>
+		root = this call-property "attachShadow", (("mode", "open"::string.as-js),).to-js-object
+		root.as-t set-style-sheet css
+		0::nat as-js
+	connectedCallback method = (this, _) =>
+		this connected
+		0::nat as-js
+	cls = "HTMLElement".js-global make-class ctor, (("connectedCallback", connectedCallback),)
+	_ = "customElements".js-global call-property "define", "crow-text"::string, cls
+
+create-crow-text node(props crow-text-props) trusted, js extern
+	em = "document".js-global call-property "createElement", "crow-text"::string
+	em set "props", props
+	em as-t
+
+-connected void(this js-any) unsafe, js extern
+	props crow-text-props = this get "props" as-t
+	highlight-div = "highlight" create-div
+	ta = "textarea".create-node as-js
+	initial-text = props.text get
+	ta set "value", initial-text
+	_ = ta call-property "setAttribute", "spellcheck"::string, "false"::string
+	keydown void mut(x js-any) = e =>
+		insert string? = match (e get "key" as-t)::string
+		as Enter
+			"\n{ta indentation-at-selection}",
+		as Tab
+			"\t",
+		else
+			()
+		if i ?= insert
+			_ = e call-property "preventDefault"
+			props.text set (ta insert-text-area-text i)
+	_ = ta call-property "addEventListener", "keydown"::string, keydown
+	on-input void mut() = () =>
+		_ = props.text set (ta get "value").as-t
+	_ = ta call-property "addEventListener", "input"::string, on-input
+
+	measurer-span = "" create-span ("a".create-text-node,)
+	measurer = "measurer" create-div (measurer-span,)
+	line-numbers = "line-numbers" create-div
+	text-container = "code" create-div (measurer, highlight-div, ta.as-t)
+	root = "root" create-div (line-numbers, text-container)
+
+	mouse-move-index mut nat = 0
+	tooltip mut node? = ()
+	mouse-is-in mut = false
+	remove-tooltip void mut() = () =>
+		if x ?= tooltip
+			_ = x.as-js call-property "remove"
+			tooltip := ()
+	mouseout void mut() = () =>
+		mouse-is-in := false
+		remove-tooltip[]
+	_ = ta call-property "addEventListener", "mouseout"::string, mouseout
+	mousemove void mut(e js-any) = e =>
+		mouse-is-in := true
+		remove-tooltip[]
+		offset-x float = e get "offsetX" as-t
+		offset-y float = e get "offsetY" as-t
+		lines = (ta get "value").as-t::string split "\n"
+		column-width float = measurer-span.as-js get "offsetWidth" as-t
+		line nat = (offset-y / line-height-px).round-down clamp-to
+		column-pre nat = (offset-x / column-width).round-down clamp-to
+		line-text = line < lines.size ? lines[line] : ""
+		leading-tabs = line-text count-leading-tabs
+		tabs-fix = leading-tabs * (tab-size - 1)
+		character nat = line-text == "" ? 0 : (column-pre clamp-sub tabs-fix) min line-text.size - 1
+		mouse-move-index +:= 1
+		
+		if mouse-move-index == 2 ** 16
+			mouse-move-index := 0
+		save-mouse-move-index = mouse-move-index
+		timeout void mut() = () =>
+			if mouse-is-in && mouse-move-index == save-mouse-move-index
+				hover = props.getHover[line, character]
+				if hover != ""
+					hover-tooltip = "hover-tooltip" create-div (hover.create-text-node,)
+					_ = text-container.as-js call-property "append", hover-tooltip
+					style = hover-tooltip.as-js get "style"
+					style set "left", "{offset-x}px"::string
+					style set "top", "{offset-y}px"::string
+					assert tooltip.is-empty
+					tooltip := hover-tooltip,
+
+		_ = "setTimeout".js-global call timeout, 200::float
+	_ = ta call-property "addEventListener", "mousemove"::string, mousemove
+
+	diag-debounce = 100 make-debouncer
+
+	props.tokensAndDiagnostics now-and-subscribe shared x =>
+		value string = ta get "value" as-t
+		(x.tokens, ()) highlight highlight-div, value
+		line-numbers-content = "\n" join for i : 0::nat .. (value split "\n").size
+			"{i + 1}"
+		line-numbers.as-js set "textContent", line-numbers-content
+		diag-debounce[() => x highlight highlight-div, value]
+
+	_ = this get "shadowRoot" call-property "append", root
+
+-insert-text-area-text string(text-area js-any, inserted string) unsafe, js extern
+	value = text-area get "value"
+	selection-start = text-area get "selectionStart"
+	selection-end = text-area get "selectionEnd"
+	# Selection is UTF16 indices. Easiest way to handle that is to use JS slicing instead of Crow slicing.
+	before = value.as-js call-property "slice", 0::float, selection-start
+	after = value.as-js call-property "slice", selection-end
+	text-area set "value", (before + inserted.as-js + after)
+	# Similarly, get the string length in JS instead of in Crow
+	new-cursor = selection-start + (inserted.as-js get "length")
+	_ = text-area call-property "setSelectionRange", new-cursor, new-cursor
+	text-area get "value" as-t
+
+-indentation-at-selection string(text-area js-any) unsafe, js extern
+	str = text-area get "value"
+	pos mut float = text-area get "selectionStart" as-t
+	first-non-space mut = pos
+	loop
+		char string = str get pos.js-cast::nat as-t
+		if char != " " && char != "\t"
+			first-non-space := pos
+		pos -:= 1
+		if pos >= 0 && (str get pos.js-cast::nat).as-t::string != "\n"
+			continue
+		else
+			break str call-property "slice", pos + 1, first-non-space as-t
+
+-count-leading-tabs nat(a string)
+	res mut nat = 0
+	for x : a
+		if x == "\t"
+			res +:= 1
+			continue
+		else
+			break
+	res
+
+-css string()
+	"""
+.root \{
+	display: flex;
+	background: #2c292d;
+	font-family: "hack";
+	font-size: 85%;
+}
+.line-numbers \{
+	display: inline-block;
+	width: 1.5em;
+	color: #6c696d;
+	border-right: 0.1em solid #6c696d;
+	line-height: 20px;
+	text-align: right;
+	white-space: pre;
+	padding-right: 0.25em;
+	margin-right: 0.25em;
+}
+.measurer \{
+	visibility: hidden;
+	height: 0;
+}
+.code \{
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	position: relative;
+	tab-size: 4;
+	font-size: 1em;
+	line-height: 20px;
+	white-space: pre;
+	display: inline-block;
+}
+.highlight \{
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+}
+.line \{
+	height: 20px;
+}
+textarea \{
+	z-index: 0;
+	margin: 0;
+	padding: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	color: #00000020;
+	caret-color: #fdf9f3;
+	background: #00000000;
+	line-height: 20px;
+	font-size: 1em;
+	border: none;
+	outline: none;
+	resize: none;
+	overflow: hidden;
+	white-space: pre;
+	font-family: "hack";
+}
+.no-token \{ font-weight: light; color: #aaa; }
+
+.declaration \{ font-weight: bold; }
+.function \{ color: #78dce8; }
+.interface \{ color: #a9dc76; }
+.keyword \{ font-weight: bold; color: #ff6188; }
+.modifier \{ color: #ff6188; }
+.name \{ color: green; }
+.namespace \{ color: #ff6188; }
+.number \{ color: #ffd866; }
+.parameter \{ color: #ffebbd; }
+.property, .enumMember \{ color: #fefefe; }
+.string \{ color: #ffd866; }
+.type \{ color: #ab9df2; }
+.typeParameter \{ color: #fc9867; }
+.variable \{ color: #ffebbd; }
+.comment \{ color: #ddeedd; }
+
+.diagnostic \{
+	position: relative;
+	border-bottom: 0.2em dotted #e87878;
+}
+.diagnostic::after \{
+	content: attr(data-tooltip);
+	position: absolute;
+	white-space: nowrap;
+	background: #80000080;
+	padding: 0.25em;
+	color: #fdf9f3;
+	border-radius: 0.5em;
+	margin-left: -1em;
+	margin-top: 0.25ex;
+	top: 3ex;
+}
+.hover-tooltip \{
+	background: #423e44;
+	color: #fdf9f3;
+	position: absolute;
+	padding: 0.5em;
+	border-radius: 0.5em;
+	z-index: 100;
+}
+"""
+
+-highlight void(td tokens-and-diagnostics, highlight-div node, text string) js extern
+	info log "TOP OF HIGHLIGHT"
+	nodes = td tokens-and-diags-to-nodes text
+	highlight-div remove-all-children
+	# TODO: this should just be `highligh-tdiv ~~= nodes` ------------------------------------------------------------------
+	for node : nodes
+		trusted
+			info log "node: {(node.as-js get "textContent").as-t::string}"
+		highlight-div ~= node
+	info log "BOTTOM OF HIGHLIGHT"
+
+# TODO: I should factor this out instead of having one huge function! --------------------------------------------------------
+-tokens-and-diags-to-nodes node array(td tokens-and-diagnostics, text string) js extern
+	tokens = td tokens
+	diagnostics = td diagnostics
+	lines line array = for x : text split "\n"; x to
+	info log "LINES:"
+	for line : lines
+		info log line.to
+	pos mut line-and-character = 0, 0
+	container-stack container mut-stack = ().all,
+	diag-index mut nat = 0
+
+	pop-container void mut() = () =>
+		popped = container-stack.pop!
+		child node = match popped
+		as line x
+			"line" create-div x.move-to
+		as diag x
+			x.message create-diag-span x.children.move-to
+		else
+			throw unreachable
+		last-container = container-stack.peek!
+		# text can't contain other nodes
+		forbid last-container is-text
+		last-container.children ~= child
+	
+	start-line void mut() = () =>
+		container-stack ~= () line
+	end-line void mut() = () =>
+		until container-stack.peek! is-line
+			pop-container[]
+		pop-container[]
+	next-line void mut() = () =>
+		end-line[]
+		start-line[]
+	
+	finish-text void mut() = () =>
+		l = container-stack.peek!
+		if t ?= l.text
+			_ = container-stack.pop!
+			new-last = container-stack.peek!
+			# text can't contain other nodes
+			forbid new-last is-text
+			new-last.children ~= "no-token" create-span (t.text.create-text-node,)
+
+	maybe-start-diag bool mut() = () =>
+		if diag-index < diagnostics.size
+			diag = diagnostics[diag-index]
+			message = diag message
+			range = diag range
+			start = range start
+			end = range end
+			if start < pos
+				# Ignore nested diags
+				unless container-stack.peek!.is-diag
+					finish-text[]
+					container-stack ~= ((), end, message) diag
+				diag-index +:= 1
+				true
+
+	should-stop-diag bool mut() = () =>
+		last-container = container-stack.peek!
+		if x ?= last-container.diag
+			x.end <= pos
+
+	maybe-stop-diag void mut() = () =>
+		if should-stop-diag[]
+			pop-container[]
+	
+	no-token-node node mut(x line-and-character) = start-pos =>
+		assert start-pos < pos
+		"no-token" create-span ((lines slice-line start-pos, pos).to.create-text-node,)
+
+	walk-to void mut(end line-and-character) = end =>
+		start-pos mut = pos
+		while pos < end
+			if maybe-start-diag[]
+				if start-pos < pos
+					container-stack[container-stack.size - 2].children ~= no-token-node[start-pos] # TODO: should be 'end - 2' not 'size - 2'
+				start-pos := pos
+			next-pos = lines next-position pos
+			if next-pos.line != pos.line
+				if start-pos != pos
+					container-stack.peek!.children ~= no-token-node[start-pos]
+				start-pos := next-pos
+				next-line[]
+			pos := next-pos
+			if should-stop-diag[]
+				container-stack.peek!.children ~= no-token-node[start-pos]
+				start-pos := pos
+				pop-container[]
+		if start-pos < pos
+			container-stack.peek!.children ~= no-token-node[start-pos]
+
+	add-span void mut(class-name string, end line-and-character) = (class-name, end) =>
+		assert pos <= end
+		if pos != end
+			parts = lines slice-lines pos, end
+			container-stack.peek!.children ~= class-name create-span (parts[0].to.create-text-node,)
+			for part : parts[1 .. parts.size] # TODO: should be 1 .. end --------------------------------------------------------
+				next-line[]
+				container-stack.peek!.children ~= class-name create-span (part.to.create-text-node,)
+			pos := end
+
+	start-line[]
+
+	for token : tokens
+		walk-to[token.line, token.character]
+		_ = maybe-start-diag[]
+		class-name string = "{token.type} {" " join for x : token.modifiers; x.to}"
+		add-span[class-name, (token.line, token.character + token.length)]
+		maybe-stop-diag[]
+	
+	walk-to[lines.last-position]
+	end-line[]
+	assert container-stack.size == 1
+	container-stack[0].all! move-to
+
+-create-diag-span node(message string, children node[]) js extern
+	"diagnostic" create-span (("data-tooltip", message),), children
+
+-container union mut
+	all node mut[]
+	line node mut[]
+	diag diag-container
+	text text-container
+-diag-container record mut
+	children node mut[]
+	end line-and-character
+	message string
+-text-container record mut
+	text string
+	children node mut[]
+
+-is-line bool(a container)
+	!a.line.is-empty
+-is-diag bool(a container)
+	!a.diag.is-empty
+-is-text bool(a container)
+	!a.text.is-empty
+
+-children node mut[](a container)
+	match a
+	as all x
+		x
+	as line x
+		x
+	as diag x
+		x.children
+	as text x
+		x.children
+
+
+line alias
+	char32 array
+
+-slice-lines line array(lines line array, start line-and-character, end line-and-character)
+	if start.line == end.line
+		(lines slice-line start, end),
+	else
+		(lines slice-line-from start) ~ lines[start.line .. end.line] ~ (lines slice-line-to end)
+-slice-line line(lines line array, start line-and-character, end line-and-character)
+	assert start.line == end.line
+	lines[start.line][start.character .. end.character]
+-slice-line-from line(lines line array, start line-and-character)
+	line = lines[start line]
+	line[start.character .. end]
+-slice-line-to line(lines line array, end line-and-character)
+	lines[end.line][0 .. end.character]
+
+-next-position line-and-character(lines line array, pos line-and-character)
+	if pos.character >= lines[pos.line].size
+		pos.line + 1, 0
+	else
+		pos.line, pos.character + 1
+
+-last-position line-and-character(lines line array)
+	lines.size - 1, lines[end - 1].size
