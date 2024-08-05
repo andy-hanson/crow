@@ -2,7 +2,7 @@ import
 	crow/col/mut-stack
 	crow/js: +, as-js, as-t, call, call-property, get, js-any, js-cast, js-global, set
 	./crow: ==, <=>, character, diagnostic, end, line, line-and-character, message, new, range, start
-	./util/dom-util: define-custom-element
+	./util/dom-util: custom-element-node, define-custom-element, shadow-root
 	./util/util:
 		~~=, ~=, create-div, create-node, create-span, create-text-node, make-debouncer, node,
 		remove-all-children
@@ -24,15 +24,16 @@ crow-text-props record mut
 	text string mutable-observable
 
 define-crow-text-custom-element void() summon, trusted, js extern
-	"crow-text" define-custom-element css, (this, shadow-root) => this connected shadow-root
+	"crow-text" define-custom-element css, x => x connected
 
 create-crow-text node(props crow-text-props) trusted, js extern
 	em = "document".js-global call-property "createElement", "crow-text"::string
 	em set "props", props
 	em as-t
 
--connected void(this node, shadow-root node) unsafe, js extern
-	props crow-text-props = this.as-js get "props" as-t
+# TODO: BREAK UP ---------------------------------------------------------------------------------------------------------------------------------------
+-connected void(a custom-element-node) unsafe, js extern
+	props crow-text-props = a.as-js get "props" as-t # TODO: HELPER FN ----------------------------------------------------------
 	highlight-div = "highlight" create-div
 	ta = "textarea".create-node as-js
 	initial-text = props.text get
@@ -114,7 +115,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 		line-numbers.as-js set "textContent", line-numbers-content
 		diag-debounce[() => x highlight highlight-div, value]
 
-	shadow-root ~= root
+	a.shadow-root ~= root
 
 -insert-text-area-text string(text-area js-any, inserted string) unsafe, js extern
 	value = text-area get "value"

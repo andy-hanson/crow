@@ -1,12 +1,12 @@
 import
 	crow/js:
-		==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null, set, undefined
+		==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null, set
 	./crow:
 		crow-server, diagnostic, line-and-character, open-file, request, severity, to-js, token-modifiers, tokens-legend, token-types
 	./CrowIcon: copy-icon, download-icon, link-icon, play-icon, up-icon
 	./CrowText: create-crow-text, new, token, tokens-and-diagnostics
 	./LoadingIcon: create-loading-icon
-	./util/dom-util: define-custom-element
+	./util/dom-util: as-node, custom-element-node, define-custom-element, get-attribute, shadow-root
 	./util/js-util: new, to-js-object
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
 	./util/util:
@@ -15,11 +15,10 @@ import
 define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
 	next-name-index := 1
 	seen-names := ()
-	"crow-runnable" define-custom-element (this => this.is-play.css), (this, root) =>
-		this connected root, crow
+	"crow-runnable" define-custom-element (x => x.is-play.css), x => x connected crow
 
--is-play bool(this node) unsafe, js extern
-	(this.as-js call-property "getAttribute", "play"::string) != undefined
+-is-play bool(a custom-element-node) unsafe, js extern
+	!(a get-attribute "play").is-empty
 
 -seen-names global(string mut-set)
 -get-crow-runnable-name string(name-attr js-any) unsafe, js extern
@@ -30,8 +29,8 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	seen-names ~= name
 	name
 
--get-crow-runnable-initial-text string(play bool, this node) summon, unsafe, js extern
-	(play ? get-code-from-url) ?? this.get-child-text
+-get-crow-runnable-initial-text string(play bool, node node) summon, unsafe, js extern
+	(play ? get-code-from-url) ?? node.get-child-text
 -get-code-from-url string?() summon, unsafe, js extern
 	search = "window".js-global get "location" get "search"
 	code = "URLSearchParams".js-global call-new search call-property "get", "code"::string
@@ -58,11 +57,11 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 -copy-text-to-clipboard void(text string) summon, trusted, js extern
 	_ = "navigator".js-global get "clipboard" call-property "writeText", text await
 
--connected void(this node, shadow-root node, crow crow-server) summon, unsafe, js extern
-	name = this.as-js call-property "getAttribute", "name"::string get-crow-runnable-name
-	no-run = (this.as-js call-property "getAttribute", "no-run"::string) != null
-	play = this is-play
-	initial-text = play get-crow-runnable-initial-text this
+-connected void(a custom-element-node, crow crow-server) summon, unsafe, js extern
+	name = a.as-js call-property "getAttribute", "name"::string get-crow-runnable-name
+	no-run = (a.as-js call-property "getAttribute", "no-run"::string) != null
+	play = a is-play
+	initial-text = play get-crow-runnable-initial-text a.as-node
 	main-uri string = "file:///{name}"
 	text string mutable-observable = initial-text,
 	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
@@ -107,12 +106,12 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	
 	download-button node = "Download" create-button "", (download-icon,), () =>
 		# TODO: HELPER FN -----------------------------------------------------------------------------------------------------
-		a = "document".js-global call-property "createElement", "a"::string
+		link = "document".js-global call-property "createElement", "a"::string
 		blob = "Blob".js-global call-new (text.get,)::(string array), (("type", "text/crow"::string.as-js),).to-js-object
 		url = "URL".js-global call-property "createObjectUrl", blob
-		a set "href", url
-		a set "download", name
-		_ = a call-property "click"
+		link set "href", url
+		link set "download", name
+		_ = link call-property "click"
 	
 	link-button node? = if play
 		button = "Copy link to clipboard" create-button "", (link-icon,), () =>
@@ -122,7 +121,7 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	buttons node[] = run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
 	bottom = "bottom" create-div buttons
 	container = "outer-container" create-div (crow-text, output.container, bottom)
-	_ = shadow-root ~= container
+	a.shadow-root ~= container
 
 -output record(container node) mut
 
