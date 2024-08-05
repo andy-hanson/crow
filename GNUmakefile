@@ -175,13 +175,13 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 ### site ###
 
 prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix \
-		site/script2
+		site/script
 	bin/crow run site-src/site.crow --aot
 
-site/script2: site-src/script2/*.crow site-src/script2/*/*.crow
+site/script: site-src/script/*.crow site-src/script/*/*.crow
 	mkdir -p site # TODO: 'build' should do this ---------------------------------------------------------------------------------------------------------
-	rm -rf site/script2 # TODO: 'build' should do this ---------------------------------------------------------------------------------------------------------
-	bin/crow build site-src/script2/index.crow --out js:site/script2
+	rm -rf site/script # TODO: 'build' should do this ---------------------------------------------------------------------------------------------------------
+	bin/crow build site-src/script/index.crow --out js:site/script
 
 serve: prepare-site
 	bin/crow run site-src/serve.crow --aot

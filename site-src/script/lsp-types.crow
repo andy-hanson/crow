@@ -1,0 +1,32 @@
+import
+	crow/js: as-js, as-t, get, js-any
+	./util/js-util: new
+
+token record(line nat, character nat, length nat, type symbol, modifiers symbol array)
+tokens-and-diagnostics record(tokens token array, diagnostics diagnostic array)
+new tokens-and-diagnostics()
+	(), ()
+
+tokens-legend record
+	token-types symbol array
+	token-modifiers symbol array
+to tokens-legend(a js-any) unsafe, js extern
+	(a get "tokenTypes").as-t, (a get "tokenModifiers").as-t
+
+text-document-item record(uri string, text string)
+
+line-and-character record(line nat, character nat)
+== bool(a line-and-character, b line-and-character)
+<=> comparison(a line-and-character, b line-and-character)
+to line-and-character(a js-any) unsafe, js extern
+	(a get "line").as-t::float.to, (a get "character").as-t::float.to
+to-js js-any(a line-and-character) trusted, js extern
+	("line", a.line.to::float.as-js), ("character", a.character.to::float.as-js)
+
+diagnostic record(range source-range, severity nat, message string)
+to diagnostic(a js-any) unsafe, js extern
+	(a get "range" to), (a get "severity").as-t::float.to, (a get "message" as-t)
+
+source-range record(start line-and-character, end line-and-character)
+to source-range(a js-any) unsafe, js extern
+	(a get "start" to), (a get "end" to)

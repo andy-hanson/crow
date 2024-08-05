@@ -1,0 +1,32 @@
+import
+	crow/js: as-t, await, call, call-property, js-any, js-global, null
+
+to-base-64 string(a string) trusted, js extern
+	"btoa".js-global call a as-t
+
+fetch-js-object js-any(url string) trusted, js extern
+	("fetch".js-global call url).await call-property "json" await
+
+make-debouncer void mut(fn void mut())(msec float) trusted, js extern
+	cur mut js-any = null
+	action =>
+		_ = "clearTimeout".js-global call cur
+		cur := "setTimeout".js-global call action, msec
+
+reduce-indent string(a string)
+	# Find first non-whtespace
+	a replace-all "\n{"\t"::string repeat a.count-indent}", "\n" strip
+-count-indent nat(a string)
+	i mut nat = 0
+	for x : a
+		match x
+		as "\n"
+			i := 0
+			continue
+		as "\t"
+			i +:= 1
+			continue
+		else
+			break i
+	else
+		0

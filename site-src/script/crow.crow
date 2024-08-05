@@ -1,6 +1,8 @@
 import
 	crow/js: ==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null
+	./lsp-types: diagnostic, new, text-document-item, to, tokens-legend
 	./util/js-util: new, to-js-object
+	./util/util: fetch-js-object
 
 -math-keys symbol[]()
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
@@ -21,7 +23,7 @@ import
 	for key : math-keys
 		value = "Math".js-global get key
 		res[key] := value
-		res["{key}f"::string.to] := value # TODO: we should be able to interpolate to a symbol ...........................
+		res["{key}f"] := value
 	res["round"] := (&round)::(float function(x float)) as-js
 	res["roundf"] := (&round)::(float32 function(x float32)) as-js
 	res["__assert"] := (&__assert)::(void function(asserted c-str, file c-str, line float)) as-js
@@ -150,7 +152,7 @@ crow-server record mut
 make-crow-server crow-server() summon, trusted, js extern
 	diagnostics-per-uri := ()
 	lsp = make-lsp-server
-	tokens-legend tokens-legend = lsp request "initialize", () to
+	tokens-legend tokens-legend = lsp request "initialize", () get "capabilities" get "semanticTokensProvider" get "legend" to
 	res crow-server = lsp, tokens-legend
 	res init
 	res
@@ -174,13 +176,6 @@ uri alias
 	_ = a open-file "file:///hello.txt", "Hello, world!"
 	a mark-unknown-files-not-found
 
-# TODO: MOVE TO UTILS ----------------------------------------------------------------------------------------------------------------
-# Fetches and parses JSON to a JS object.
--fetch-js-object js-any(url string) trusted, js extern
-	# TODO: PERF ----------------------------------------------------------------------------------------------------------------
-	f = "fetch".js-global call url await
-	f call-property "json" await
-
 get-diagnostics diagnostic[](_ crow-server, uri uri, response response) summon, trusted, js extern
 	for message : response.messages
 		method string = message get "method" as-t
@@ -192,50 +187,26 @@ get-diagnostics diagnostic[](_ crow-server, uri uri, response response) summon, 
 			diagnostics-per-uri[params get "uri" as-t] := for x : (params get "diagnostics").as-t::(js-any array); x to
 	diagnostics-per-uri[uri] ?? ()
 
-# TODO: lsp-types.crow-----------------------------------------------------------------------------------------------------------
--text-document-item record(uri string, text string)
-
 open-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
 	params js-any = (("textDocument", (uri, text)::text-document-item.as-js),)
-	message js-any = ("method", "textDocument/didOpen"::string.as-js), ("params", params)
-	response = a.lsp-server handle-message message
+	response = a.lsp-server handle-message ("textDocument/didOpen" make-message params)
 	a get-diagnostics uri, response
 change-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
 	textDocument js-any = ("uri", uri.as-js),
 	contentChanges js-any array = (("text", text.as-js),),
 	params js-any = ("textDocument", textDocument), ("contentChanges", contentChanges.as-js)
-	message js-any = ("method", "textDocument/didChange"::string.as-js), ("params", params) # TODO: dup code
-	response = a.lsp-server handle-message message
+	response = a.lsp-server handle-message ("textDocument/didChange" make-message params)
 	a get-diagnostics uri, response
 mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
 	for uri : a get-unloaded-uris
 		assert uri ends-with "/crow-config.json"
 		params js-any = ("uri", uri.as-js), ("type", "notFound"::string.as-js)
-		message js-any = ("method", "custom/readFileResult"::string.as-js), ("params", params)
-		_ = a.lsp-server handle-message message
+		_ = a.lsp-server handle-message ("custom/readFileResult" make-message params)
 	assert a.get-unloaded-uris is-empty
+
+-make-message js-any(method string, params js-any) trusted, js extern
+	("method", method.as-js), ("params", params)
 
 -get-unloaded-uris uri array(a crow-server) summon, trusted, js extern
 	response = a.lsp-server request "custom/unloadedUris", ()
 	response get "unloadedUris" as-t
-
-diagnostic record(range source-range, severity nat, message string)
--to diagnostic(a js-any) unsafe, js extern
-	(a get "range" to), (a get "severity").as-t::float.to, (a get "message" as-t)
-source-range record(start line-and-character, end line-and-character)
--to source-range(a js-any) unsafe, js extern
-	(a get "start" to), (a get "end" to)
-line-and-character record(line nat, character nat)
-== bool(a line-and-character, b line-and-character)
-<=> comparison(a line-and-character, b line-and-character)
--to line-and-character(a js-any) unsafe, js extern
-	(a get "line").as-t::float.to, (a get "character").as-t::float.to
-to-js js-any(a line-and-character) trusted, js extern
-	("line", a.line.to::float.as-js), ("character", a.character.to::float.as-js)
-
-tokens-legend record
-	token-types symbol array
-	token-modifiers symbol array
--to tokens-legend(a js-any) unsafe, js extern
-	legend = a get "capabilities" get "semanticTokensProvider" get "legend"
-	(legend get "tokenTypes").as-t, (legend get "tokenModifiers").as-t

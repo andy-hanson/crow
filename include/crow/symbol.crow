@@ -1,9 +1,11 @@
 no-std
 import
+	./col/array: array
+	./col/list: to
 	./hash: hasher
 	./misc: void
 	./number: nat64
-	./string: hash-mix, string, to
+	./string: hash-mix, join, string, to
 export
 	./private/symbol-low-level: ==, <=>, symbol, to
 
@@ -14,3 +16,6 @@ export
 	a
 +to symbol(a nat64)
 	a.to::string.to
+
++interpolate symbol(...parts string array)
+	("" join parts.to) to

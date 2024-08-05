@@ -11,7 +11,7 @@ page-template path-and-content(path string, title string, content string)
 	<link rel="icon" href="/crow.svg" type="image/x-icon">
 	<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hack-font@3/build/web/hack-subset.css">
 	<link rel="stylesheet" href="/index.css">
-	<script type="module" async src="/script2/main/index.js"></script>
+	<script type="module" async src="/script/main/index.js"></script>
 </head>
 <body>
 	<header>

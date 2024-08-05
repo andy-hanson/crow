@@ -7,7 +7,7 @@ new js-any(...properties (symbol, js-any) array) trusted, js extern
 	for key, value : properties
 		res set key, value
 	res
-to-js-object js-any(properties js-any[symbol]) trusted, js extern # TODO: move to std somewhere ---------------------------
+to-js-object js-any(properties js-any[symbol]) trusted, js extern
 	res = "Object".js-global call-new
 	for key, value : properties
 		res set key, value

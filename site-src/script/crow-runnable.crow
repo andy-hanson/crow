@@ -1,64 +1,68 @@
 import
 	crow/js:
-		==, as-js, as-t, await, call, call-new, call-property, get, js-any, js-global, null, set
-	./crow:
-		crow-server, diagnostic, line-and-character, open-file, request, severity, to-js, token-modifiers, tokens-legend, token-types
-	./CrowIcon: copy-icon, download-icon, link-icon, play-icon, up-icon
-	./CrowText: create-crow-text, new, token, tokens-and-diagnostics
-	./LoadingIcon: create-loading-icon
-	./util/dom-util: as-node, custom-element-node, define-custom-element, get-attribute, shadow-root
-	./util/js-util: new, to-js-object
+		==, as-js, as-t, call, call-new, call-property, get, instanceof, js-any, js-global, null,
+		set
+	./crow: crow-server, make-crow-server, open-file, request, tokens-legend
+	./crow-text: create-crow-text, new
+	./decode-tokens: decode-tokens
+	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
+	./loading-spinner: create-loading-spinner
+	./lsp-types: diagnostic, line-and-character, new, severity, to-js, tokens-and-diagnostics
+	./util/browser-util:
+		copy-text-to-clipboard, download-text, location, origin, pathname, push-history, search
+	./util/dom-util:
+		~=, as-node, attributes, child-nodes, custom-element-node, create-button, create-div,
+		create-node, create-span, create-text-node, define-custom-element, node,
+		remove-all-children, shadow-root, subscript
+	./util/js-util: new
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
-	./util/util:
-		~=, create-button, create-div, create-node, create-span, create-text-node, get-child-text, node, remove-all-children
+	./util/util: reduce-indent, to-base-64
 
-define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
-	next-name-index := 1
-	seen-names := ()
-	"crow-runnable" define-custom-element (x => x.is-play.css), x => x connected crow
+define-crow-runnable-custom-element void() summon, trusted, js extern
+	crow = make-crow-server
+	names names = ()
+	"crow-runnable" define-custom-element (x => x.is-play.css), x => x connected crow, names
 
--is-play bool(a custom-element-node) unsafe, js extern
-	!(a get-attribute "play").is-empty
+-names record(seen string mut-set, next-index mut nat) mut
+-new names()
+	(), 0
+-get-default-name string(a names) unsafe
+	res string = "demo{a.next-index}.crow"
+	a.next-index +:= 1
+	res
 
--seen-names global(string mut-set)
--get-crow-runnable-name string(name-attr js-any) unsafe, js extern
-	name = name-attr == null ? get-default-name : name-attr.as-t
+-get-crow-runnable-name string(a names, name-attr string?) unsafe, js extern
+	name = name-attr ?? a.get-default-name
 	assert name ends-with ".crow"
-	if name in seen-names
+	unless a.seen try-add name
 		error log "Two CrowRunnable have the same name {name}"
-	seen-names ~= name
 	name
 
 -get-crow-runnable-initial-text string(play bool, node node) summon, unsafe, js extern
 	(play ? get-code-from-url) ?? node.get-child-text
 -get-code-from-url string?() summon, unsafe, js extern
-	search = "window".js-global get "location" get "search"
-	code = "URLSearchParams".js-global call-new search call-property "get", "code"::string
+	search = location.search
+	code = "URLSearchParams".js-global call-new search call-property "get", "code"::string # TODO: util somewhere
 	unless code == null
 		("atob".js-global call code as-t),
-
--next-name-index global(nat)
--get-default-name string() unsafe
-	res string = "demo{next-name-index}.crow"
-	next-name-index +:= 1
-	res
+-get-child-text string(node node) trusted, js extern
+	child-nodes = node child-nodes
+	assert child-nodes.size == 1
+	child-nodes[0] get-text-from-node
+-get-text-from-node string(node node) trusted, js extern
+	assert node.as-js instanceof "Text".js-global
+	(node.as-js get "data").as-t reduce-indent
 
 -copy-play-link-from-text void(text string) summon, unsafe, js extern
-	window = "window" js-global
-	location = window get "location"
-	origin string = location get "origin" as-t
-	pathname string = location get "pathname" as-t
-	base64 string = "btoa".js-global call text as-t
-	url string = "{origin}{pathname}?code={base64}"
-	_ = window get "history" call-property "pushState", (("path", url.as-js),).to-js-object, ""::string, url
+	url string = "{location origin}{location pathname}?code={text to-base-64}"
+	url push-history
 	url copy-text-to-clipboard
 
-# TODO: this belongs in JS utils .. -------------------------------------------------------------------------------------------
--copy-text-to-clipboard void(text string) summon, trusted, js extern
-	_ = "navigator".js-global get "clipboard" call-property "writeText", text await
+-is-play bool(a custom-element-node) unsafe, js extern
+	!a.attributes["play"].is-empty
 
--connected void(a custom-element-node, crow crow-server) summon, unsafe, js extern
-	name = a.as-js call-property "getAttribute", "name"::string get-crow-runnable-name
+-connected void(a custom-element-node, crow crow-server, names names) summon, unsafe, js extern
+	name = names get-crow-runnable-name a.attributes["name"]
 	no-run = (a.as-js call-property "getAttribute", "no-run"::string) != null
 	play = a is-play
 	initial-text = play get-crow-runnable-initial-text a.as-node
@@ -101,18 +105,10 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 			output finish-running res
 		button,
 
-	copy-button node = "Copy to clipboard" create-button "", (copy-icon,), () =>
+	copy-button = "Copy to clipboard" create-button "", (copy-icon,), () =>
 		text.get copy-text-to-clipboard
-	
-	download-button node = "Download" create-button "", (download-icon,), () =>
-		# TODO: HELPER FN -----------------------------------------------------------------------------------------------------
-		link = "document".js-global call-property "createElement", "a"::string
-		blob = "Blob".js-global call-new (text.get,)::(string array), (("type", "text/crow"::string.as-js),).to-js-object
-		url = "URL".js-global call-property "createObjectUrl", blob
-		link set "href", url
-		link set "download", name
-		_ = link call-property "click"
-	
+	download-button = "Download" create-button "", (download-icon,), () =>
+		name download-text text.get
 	link-button node? = if play
 		button = "Copy link to clipboard" create-button "", (link-icon,), () =>
 			text.get copy-play-link-from-text
@@ -138,7 +134,7 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	_ = container get "classList" call-property "add", "running"::string # TODO: why do we add classes in 2 different ways?
 	container get "style" set "height", "2em"::string
 	a.container remove-all-children
-	_ = container call-property "append", create-loading-icon
+	_ = container call-property "append", create-loading-spinner
 	_ = container call-property "append", (create-div, create-div, create-div, create-div)::(node array) # What was this for again??????????
 -finish-running void(a output, run-output js-any) unsafe, js extern
 	writes write array = for x : (run-output get "writes").as-t::(js-any array); x to
@@ -194,35 +190,6 @@ button \{
 div.icon svg \{ height: 1.5em; }
 button.collapsed \{ display: none; }
 """
-
--decode-tokens token array(a js-any, legend tokens-legend) unsafe, js extern
-	encoded nat array = for x : a.as-t::(js-any array); x.as-t::float.to
-	with out : build
-		prev-line mut nat = 0
-		prev-character mut nat = 0
-		i mut nat = 0
-		next nat mut() = () =>
-			res = encoded[i]
-			i +:= 1
-			res
-		while i < encoded.size
-			line-delta = next[]
-			character-delta = next[]
-			line nat, character nat = if line-delta == 0
-				prev-line, prev-character + character-delta
-			else
-				prev-line + line-delta, character-delta
-			prev-line := line
-			prev-character := character
-			length = next[]
-			type = legend.token-types[next[]]
-			modifiers = next[] decode-modifiers legend.token-modifiers
-			out ~= (line, character, length, type, modifiers)
-
--decode-modifiers symbol array(encoded nat, legend symbol array)
-	assert legend.size == 1
-	assert encoded == 0 || encoded == 1
-	encoded == 0 ? () : legend
 
 -add-spans-for-writes void(container node, writes write array, exit-code nat) js extern
 	cur-pipe mut string? = ()

@@ -1,20 +1,19 @@
 import
-	crow/js: as-js, as-t, call-property, set
-	./util/dom-util: define-custom-element, shadow-root
-	./util/util: ~=, create-div, node
+	crow/js: as-js, set
+	./util/dom-util: ~=, attributes, create-div, define-custom-element, node, shadow-root, subscript
 
 # Icons from https://heroicons.com/
 
 define-icon-custom-element void() summon, trusted, js extern
 	"crow-icon" define-custom-element "", this =>
-		child = match (this.as-js call-property "getAttribute", "icon"::string).as-t::string # TODO: define-custom-element should help with attributes too
-		as "copy"
+		child = match this.attributes["icon"]!
+		as copy
 			copy-icon
-		as "download"
+		as download
 			download-icon
-		as "external-link"
+		as external-link
 			external-link-icon
-		as "play"
+		as play
 			play-icon
 		else
 			throw todo

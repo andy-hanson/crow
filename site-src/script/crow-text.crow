@@ -1,22 +1,19 @@
 import
 	crow/col/mut-stack
 	crow/js: +, as-js, as-t, call, call-property, get, js-any, js-cast, js-global, set
-	./crow: ==, <=>, character, diagnostic, end, line, line-and-character, message, new, range, start
-	./util/dom-util: custom-element-node, define-custom-element, shadow-root
-	./util/util:
-		~~=, ~=, create-div, create-node, create-span, create-text-node, make-debouncer, node,
-		remove-all-children
+	./lsp-types:
+		==, <=>, character, diagnostics, end, length, line, line-and-character, message, modifiers,
+		new, range, start, tokens, tokens-and-diagnostics, type
+	./util/dom-util:
+		~~=, ~=, create-div, create-node, create-span, create-text-node, custom-element-node,
+		define-custom-element, node, remove-all-children, shadow-root
 	./util/mutable-observable: get, mutable-observable, now-and-subscribe, set
+	./util/util: make-debouncer
 
 -line-height-px float()
 	20
 -tab-size nat()
 	4
-
-token record(line nat, character nat, length nat, type symbol, modifiers symbol array)
-tokens-and-diagnostics record(tokens token array, diagnostics diagnostic array)
-new tokens-and-diagnostics()
-	(), ()
 
 crow-text-props record mut
 	getHover string mut(where line-and-character)
