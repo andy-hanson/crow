@@ -1,18 +1,19 @@
 import
 	crow/js: ==, as-js, as-t, await, call-new, call-property, get, js-any, js-global, null, set
+	./dom-util: create-node
 	./js-util: new
 
 copy-text-to-clipboard void(text string) summon, trusted, js extern
 	_ = "navigator".js-global get "clipboard" call-property "writeText", text await
 
 download-text void(name string, text string) summon, trusted, js extern
-	link = "document".js-global call-property "createElement", "a"::string
+	link = "a" create-node
 	blob = "Blob".js-global call-new (text,)::(string array), \
 		(("type", "text/crow"::string.as-js),)::js-any
 	url = "URL".js-global call-property "createObjectURL", blob
-	link set "href", url
-	link set "download", name
-	_ = link call-property "click"
+	link.as-js set "href", url
+	link.as-js set "download", name
+	_ = link.as-js call-property "click"
 
 get-url-search string?(name string) summon, trusted, js extern
 	res = "URLSearchParams".js-global call-new location.search call-property "get", name

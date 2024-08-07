@@ -2,8 +2,8 @@ import
 	crow/col/mut-stack
 	crow/js: +, as-js, as-t, call, call-property, get, js-any, js-cast, js-global, set
 	./lsp-types:
-		==, <=>, character, diagnostics, end, length, line, line-and-character, message, modifiers,
-		new, range, start, tokens, tokens-and-diagnostics, type
+		==, <=>, character, diagnostic, diagnostics, end, length, line, line-and-character, message,
+		modifiers, new, range, start, tokens, tokens-and-diagnostics, type
 	./util/dom-util:
 		~~=, ~=, create-div, create-node, create-span, create-text-node, custom-element-node,
 		define-custom-element, node, remove-all-children, shadow-root
@@ -24,13 +24,13 @@ define-crow-text-custom-element void() summon, trusted, js extern
 	"crow-text" define-custom-element css, x => x connected
 
 create-crow-text node(props crow-text-props) trusted, js extern
-	em = "document".js-global call-property "createElement", "crow-text"::string
-	em set "props", props
-	em as-t
+	res = "crow-text" create-node
+	res.as-js set "props", props
+	res
 
 # TODO: BREAK UP ---------------------------------------------------------------------------------------------------------------------------------------
 -connected void(a custom-element-node) unsafe, js extern
-	props crow-text-props = a.as-js get "props" as-t # TODO: HELPER FN ----------------------------------------------------------
+	props crow-text-props = a.as-js get "props" as-t
 	highlight-div = "highlight" create-div
 	ta = "textarea".create-node as-js
 	initial-text = props.text get
@@ -83,7 +83,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 		tabs-fix = leading-tabs * (tab-size - 1)
 		character nat = line-text == "" ? 0 : (column-pre clamp-sub tabs-fix) min line-text.size - 1
 		mouse-move-index +:= 1
-		
+
 		if mouse-move-index == 2 ** 16
 			mouse-move-index := 0
 		save-mouse-move-index = mouse-move-index
@@ -100,7 +100,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 					tooltip := hover-tooltip,
 
 		_ = "setTimeout".js-global call timeout, 200::float
-	_ = ta call-property "addEventListener", "mousemove"::string, mousemove
+	_ = ta call-property "addEventListener", "mousemove"::string, mousemove # TODO: helper fn for addEventListener
 
 	diag-debounce = 100 make-debouncer
 
@@ -267,120 +267,121 @@ textarea \{
 	highlight-div remove-all-children
 	highlight-div ~~= nodes
 
-# TODO: I should factor this out instead of having one huge function! --------------------------------------------------------
 -tokens-and-diags-to-nodes node[](td tokens-and-diagnostics, text string) js extern
-	tokens = td tokens
-	diagnostics = td diagnostics
-	lines line array = for x : text split "\n"; x to
-	pos mut line-and-character = 0, 0
-	container-stack container mut-stack = ().all,
-	diag-index mut nat = 0
-
-	pop-container void mut() = () =>
-		popped = container-stack.pop!
-		child node = match popped
-		as line x
-			"line" create-div x.move-to
-		as diag x
-			x.message create-diag-span x.children.move-to
-		else
-			throw unreachable
-		last-container = container-stack.peek!
-		# text can't contain other nodes
-		forbid last-container is-text
-		last-container.children ~= child
-	
-	start-line void mut() = () =>
-		container-stack ~= () line
-	end-line void mut() = () =>
-		until container-stack.peek! is-line
-			pop-container[]
-		pop-container[]
-	next-line void mut() = () =>
-		end-line[]
-		start-line[]
-	
-	finish-text void mut() = () =>
-		l = container-stack.peek!
-		if t ?= l.text
-			_ = container-stack.pop!
-			new-last = container-stack.peek!
-			# text can't contain other nodes
-			forbid new-last is-text
-			new-last.children ~= "no-token" create-span (t.text.create-text-node,)
-
-	maybe-start-diag bool mut() = () =>
-		if diag-index < diagnostics.size
-			diag = diagnostics[diag-index]
-			message = diag message
-			range = diag range
-			start = range start
-			end = range end
-			if start < pos
-				# Ignore nested diags
-				unless container-stack.peek!.is-diag
-					finish-text[]
-					container-stack ~= ((), end, message) diag
-				diag-index +:= 1
-				true
-
-	should-stop-diag bool mut() = () =>
-		last-container = container-stack.peek!
-		if x ?= last-container.diag
-			x.end <= pos
-
-	maybe-stop-diag void mut() = () =>
-		if should-stop-diag[]
-			pop-container[]
-	
-	no-token-node node mut(x line-and-character) = start-pos =>
-		assert start-pos < pos
-		"no-token" create-span ((lines slice-line start-pos, pos).to.create-text-node,)
-
-	walk-to void mut(end line-and-character) = end-pos =>
-		start-pos mut = pos
-		while pos < end-pos
-			if maybe-start-diag[]
-				if start-pos < pos
-					container-stack[end - 2].children ~= no-token-node[start-pos]
-				start-pos := pos
-			next-pos = lines next-position pos
-			if next-pos.line != pos.line
-				if start-pos != pos
-					container-stack.peek!.children ~= no-token-node[start-pos]
-				start-pos := next-pos
-				next-line[]
-			pos := next-pos
-			if should-stop-diag[]
-				container-stack.peek!.children ~= no-token-node[start-pos]
-				start-pos := pos
-				pop-container[]
-		if start-pos < pos
-			container-stack.peek!.children ~= no-token-node[start-pos]
-
-	add-span void mut(class-name string, end-pos line-and-character) = (class-name, end-pos) =>
-		assert pos <= end-pos
-		if pos != end-pos
-			parts = lines slice-lines pos, end-pos
-			container-stack.peek!.children ~= class-name create-span (parts[0].to.create-text-node,)
-			for part : parts[1 .. end]
-				next-line[]
-				container-stack.peek!.children ~= class-name create-span (part.to.create-text-node,)
-			pos := end-pos
-
-	start-line[]
-
-	for token : tokens
-		walk-to[token.line, token.character]
-		_ = maybe-start-diag[]
+	a node-builder = td.diagnostics, text
+	a start-line
+	for token : td tokens
+		a walk-to (token.line, token.character)
+		_ = a maybe-start-diag
 		class-name string = "{token.type} {" " join for x : token.modifiers; x.to}"
-		add-span[class-name, (token.line, token.character + token.length)]
-		maybe-stop-diag[]
+		a add-span class-name, (token.line, token.character + token.length)
+		a maybe-stop-diag
 
-	walk-to[lines.last-position]
-	end-line[]
-	assert container-stack.size == 1
-	container-stack[0].all! move-to
+	a walk-to a.lines.last-position
+	a end-line
+	assert a.container-stack.size == 1
+	a.container-stack[0].all! move-to
+
+-node-builder record mut
+	lines line array
+	diagnostics diagnostic array
+	pos mut line-and-character
+	container-stack container mut-stack
+	diag-index mut nat
+-new node-builder(diagnostics diagnostic array, text string)
+	(for x : text split "\n"; x to), diagnostics, (0, 0), (().all,), 0
+
+-pop-container void(a node-builder) js extern
+	popped = a.container-stack.pop!
+	child node = match popped
+	as line x
+		"line" create-div x.move-to
+	as diag x
+		x.message create-diag-span x.children.move-to
+	else
+		throw unreachable
+	last-container = a.container-stack.peek!
+	# text can't contain other nodes
+	forbid last-container is-text
+	last-container.children ~= child
+
+-start-line void(a node-builder)
+	a.container-stack ~= () line
+-end-line void(a node-builder) js extern
+	until a.container-stack.peek! is-line
+		a pop-container
+	a pop-container
+-next-line void(a node-builder) js extern
+	a end-line
+	a start-line
+
+-finish-text void(a node-builder) js extern
+	last = a.container-stack.peek!
+	if text ?= last text
+		_ = a.container-stack.pop!
+		new-last = a.container-stack.peek!
+		# text can't contain other nodes
+		forbid new-last is-text
+		new-last.children ~= "no-token" create-span (text.text.create-text-node,)
+
+-maybe-start-diag bool(a node-builder) js extern
+	if a.diag-index < a.diagnostics.size
+		diag = a.diagnostics[a.diag-index]
+		message = diag message
+		range = diag range
+		start = range start
+		end = range end
+		if start < a.pos
+			# Ignore nested diags
+			unless a.container-stack.peek!.is-diag
+				a finish-text
+				a.container-stack ~= ((), end, message) diag
+			a.diag-index +:= 1
+			true
+
+should-stop-diag bool(a node-builder)
+	last-container = a.container-stack.peek!
+	if x ?= last-container.diag
+		x.end <= a.pos
+
+maybe-stop-diag void(a node-builder) js extern
+	if a should-stop-diag
+		a pop-container
+
+no-token-node node(a node-builder, start-pos line-and-character) js extern
+	assert start-pos < a.pos
+	"no-token" create-span ((a.lines slice-line start-pos, a.pos).to.create-text-node,)
+
+walk-to void(a node-builder, end-pos line-and-character) js extern
+	start-pos mut = a.pos
+	while a.pos < end-pos
+		if a maybe-start-diag
+			if start-pos < a.pos
+				a.container-stack[end - 2].children ~= a no-token-node start-pos
+			start-pos := a.pos
+		next-pos = a.lines next-position a.pos
+		if next-pos.line != a.pos.line
+			if start-pos != a.pos
+				a.container-stack.peek!.children ~= a no-token-node start-pos
+			start-pos := next-pos
+			a next-line
+		a.pos := next-pos
+		if a should-stop-diag
+			a.container-stack.peek!.children ~= a no-token-node start-pos
+			start-pos := a.pos
+			a pop-container
+	if start-pos < a.pos
+		a.container-stack.peek!.children ~= a no-token-node start-pos
+
+add-span void(a node-builder, class-name string, end-pos line-and-character) js extern
+	assert a.pos <= end-pos
+	if a.pos != end-pos
+		parts = a.lines slice-lines a.pos, end-pos
+		a.container-stack.peek!.children ~= class-name create-span (parts[0].to.create-text-node,)
+		for part : parts[1 .. end]
+			a next-line
+			a.container-stack.peek!.children ~= class-name create-span (part.to.create-text-node,)
+		a.pos := end-pos
 
 -create-diag-span node(message string, children node[]) js extern
 	"diagnostic" create-span (("data-tooltip", message),), children
@@ -396,7 +397,6 @@ textarea \{
 	message string
 -text-container record mut
 	text string
-	children node mut[]
 
 -is-line bool(a container)
 	!a.line.is-empty
@@ -413,9 +413,8 @@ textarea \{
 		x
 	as diag x
 		x.children
-	as text x
-		x.children
-
+	as text _
+		throw unreachable
 
 line alias
 	char32 array

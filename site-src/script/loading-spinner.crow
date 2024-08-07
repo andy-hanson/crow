@@ -1,13 +1,13 @@
 import
 	crow/js: as-t, call-property, js-global
-	./util/dom-util: ~=, create-div, define-custom-element, node, shadow-root
+	./util/dom-util: ~=, create-div, create-node, define-custom-element, node, shadow-root
 
 define-loading-spinner-element void() summon, trusted, js extern
 	"crow-loading-spinner" define-custom-element css, x =>
 		x.shadow-root ~= loading-div
 
 create-loading-spinner node() trusted, js extern
-	"document".js-global call-property "createElement", "crow-loading-spinner"::string as-t
+	"crow-loading-spinner" create-node
 
 -loading-div node() js extern
 	"root" create-div for class-name : ("child-0", "child-1", "child-2", "child-3")::string[]
