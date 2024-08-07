@@ -1,9 +1,92 @@
 import
+	crow/io/duration: nanosecond, milliseconds
 	crow/js: ==, as-js, as-t, await, call, call-property, get, js-any, js-global, null
-	./lsp-types: diagnostic, new, text-document-item, to, tokens-legend
+	./decode-tokens: decode-tokens
+	./lsp-types:
+		diagnostic, line-and-character, new, run-result, text-document-item, to, to-js, token,
+		tokens-legend
 	./util/DataView-util: DataView, new, read-c-string, view-c-string, wasm32, write-c-string
-	./util/js-util: new, to-js-object
+	./util/js-util: json-parse, json-stringify, new, to-js-object
 	./util/util: fetch-js-object
+
+crow-server record mut
+	-lsp-server crow-lsp-server
+	-tokens-legend tokens-legend
+	-diagnostics-per-uri diagnostic[] mut[uri]
+
+make-crow-server crow-server() summon, trusted, js extern
+	lsp = make-lsp-server
+	tokens-legend tokens-legend = lsp request "initialize", () \
+		get "capabilities" get "semanticTokensProvider" get "legend" to
+	res crow-server = lsp, tokens-legend, ()
+	res init
+	res
+
+uri alias
+	string
+
+open-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
+	params js-any = (("textDocument", (uri, text)::text-document-item.as-js),)
+	response = a.lsp-server handle-message ("textDocument/didOpen" make-message params)
+	a get-diagnostics uri, response
+
+change-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
+	textDocument js-any = ("uri", uri.as-js),
+	contentChanges js-any array = (("text", text.as-js),),
+	params js-any = ("textDocument", textDocument), ("contentChanges", contentChanges.as-js)
+	response = a.lsp-server handle-message ("textDocument/didChange" make-message params)
+	a get-diagnostics uri, response
+
+mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
+	for uri : a get-unloaded-uris
+		assert uri ends-with "/crow-config.json"
+		params js-any = ("uri", uri.as-js), ("type", "notFound"::string.as-js)
+		_ = a.lsp-server handle-message ("custom/readFileResult" make-message params)
+	assert a.get-unloaded-uris is-empty
+
+get-diagnostics diagnostic[](a crow-server, uri uri, response response) trusted, js extern
+	for message : response.messages
+		method string = message get "method" as-t
+		if method != "custom/unknownUris"
+			method is "textDocument/publishDiagnostics"
+			params = message get "params"
+			diagnostics js-any array = params get "diagnostics" as-t
+			a.diagnostics-per-uri[params get "uri" as-t] := for x : diagnostics; x to
+	a.diagnostics-per-uri[uri] ?? ()
+
+get-hover string(a crow-server, uri uri, position line-and-character) trusted, js extern
+	args js-any = ("textDocument", (("uri", uri.as-js),)), ("position", position.to-js)
+	res = a request "textDocument/hover", args
+	if res != null
+		res get "contents" get "value" as-t
+
+get-tokens token array(a crow-server, uri uri) trusted, js extern
+	args js-any = ("textDocument", (("uri", uri.as-js),)),
+	encoded = a request "textDocument/semanticTokens/full", args get "data"
+	encoded decode-tokens a.tokens-legend
+
+run run-result(a crow-server, main-uri uri) trusted, js extern
+	uris = (main-uri.as-js,)::(js-any array) as-js
+	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
+	a request "custom/run", args to
+
+-request js-any(a crow-server, method symbol, params js-any) unsafe, js extern
+	a.lsp-server request method, params
+
+-init void(a crow-server) trusted, summon, js extern
+	include-all = "/include-all.json" fetch-js-object
+	for entry : ("Object".js-global call-property "entries", include-all).as-t::(js-any array)
+		path string = entry get 0 as-t
+		text string = entry get 1 as-t
+		_ = a open-file "{include-dir}/{path}", text
+	_ = a open-file "file:///crow-config.json", "\{}"
+	_ = a open-file "file:///hello.txt", "Hello, world!"
+	a mark-unknown-files-not-found
+
+-include-dir string()
+	"file:///include"
+
+region LSP server
 
 -math-keys symbol[]()
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
@@ -12,18 +95,35 @@ import
 -imports js-any(crow crow-lsp-server) summon, trusted, js extern
 	res js-any mut[symbol] = ()
 	res["getTimeNanos"] := (&get-time-nanos)::(nat function()) as-js
-	res["perfLogMeasure"] := (&perf-log-measure)::(void function(a crow-lsp-server, name view-c-string, count wasm32, nanos nat, bytes wasm32)).as-js bind crow.as-js
-	res["perfLogFinish"] := (&perf-log-finish)::(void function(a crow-lsp-server, name view-c-string, total-nanos nat)).as-js bind crow.as-js
-	res["debugLog"] := (&debug-log)::(void function(a crow-lsp-server, text view-c-string)).as-js bind crow.as-js
+	res["perfLogMeasure"] := (&perf-log-measure)::(void function(
+		a crow-lsp-server,
+		name view-c-string,
+		count wasm32,
+		nanos nat,
+		bytes wasm32,
+	)).as-js bind crow.as-js
+	res["perfLogFinish"] := (&perf-log-finish)::(void function(
+		a crow-lsp-server,
+		name view-c-string,
+		total-nanos nat,
+	)).as-js bind crow.as-js
+	res["debugLog"] := (&debug-log)::(void function(
+		a crow-lsp-server,
+		text view-c-string,
+	)).as-js bind crow.as-js
 	for key : math-keys
 		value = "Math".js-global get key
 		res[key] := value
 		res["{key}f"] := value
 	res["round"] := (&round)::(float function(x float)) as-js
 	res["roundf"] := (&round)::(float32 function(x float32)) as-js
-	res["__assert"] := (&__assert)::(void function(a crow-lsp-server, asserted view-c-string, file view-c-string, line float)).as-js bind crow.as-js
+	res["__assert"] := (&__assert)::(void function(
+		a crow-lsp-server,
+		asserted view-c-string,
+		file view-c-string,
+		line float,
+	)).as-js bind crow.as-js
 	res.move-to to-js-object
-
 -bind js-any(fn js-any, arg js-any) unsafe, js extern
 	fn call-property "bind", arg
 
@@ -31,28 +131,42 @@ import
 	msec float = "performance".js-global call-property "now" as-t
 	msec * 1000000 to
 
--perf-measure record(name string, count nat, msec nat, bytes-allocated nat)
+-perf-measure record(name string, count nat, msec float, bytes-allocated nat)
 -to json(a perf-measure)
 
--perf-measures global(perf-measure mut[])
--perf-log-measure void(a crow-lsp-server, name-ptr view-c-string, count wasm32, nanoseconds nat, bytes-allocated wasm32) trusted, summon, js extern
-	m perf-measure = (a.view read-c-string name-ptr), count.to, nanoseconds.to-msec, bytes-allocated.to
-	perf-measures ~= m
--perf-log-finish void(a crow-lsp-server, name view-c-string, total-nanos nat) trusted, summon, js extern
+-perf-log-measure void(
+	a crow-lsp-server,
+	name-ptr view-c-string,
+	count wasm32,
+	nanoseconds nat,
+	bytes-allocated wasm32,
+) trusted, summon, js extern
+	a.perf-measures ~=
+		((a.view read-c-string name-ptr), count.to, nanoseconds.to-msec, bytes-allocated.to)
+-perf-log-finish void(
+	a crow-lsp-server,
+	name view-c-string,
+	total-nanos nat,
+) trusted, summon, js extern
 	info log "performance for {a.view read-c-string name}"
 	info log "TOTAL: {total-nanos.to-msec}"
-	for measure : perf-measures
+	for measure : a.perf-measures
 		info log measure.to::json.to
-	perf-measures := ()
+	a.perf-measures clear
+-to-msec float(nsec nat)
+	nsec.to.nanosecond.milliseconds
 
 -debug-log void(a crow-lsp-server, text view-c-string) summon, trusted, js extern
 	info log (a.view read-c-string text)
 
--__assert void(a crow-lsp-server, asserted view-c-string, file view-c-string, line float) summon, trusted, js extern
-	throw "Assertion {a.view read-c-string asserted} failed on {a.view read-c-string file} line {line}" error
-
--to-msec nat(nsec nat)
-	nsec / 1000000
+-__assert void(
+	a crow-lsp-server,
+	asserted view-c-string,
+	file view-c-string,
+	line float,
+) summon, trusted, js extern
+	message = a.view read-c-string asserted
+	throw "Assertion {message} failed on {a.view read-c-string file} line {line}" error
 
 -wasm-exports record mut
 	getParameterBufferPointer view-c-string function()
@@ -73,28 +187,25 @@ import
 	(a get "newServer" as-t),
 	(a get "handleLspMessage" as-fun2),
 	a get "memory"
--as-fun2 view-c-string mut(server wasm32, params view-c-string)(a js-any) unsafe, js extern # this is a big gotcha. We need to untuple the args.
-	(server, params) =>
-		a call server, params as-t
-
--server-params record
-	includeDir string
-	cwd string
--to json(a server-params)
+-as-fun2 view-c-string mut(server wasm32, params view-c-string)(a js-any) unsafe, js extern
+	(server, params) => a call server, params as-t
 
 -make-lsp-server crow-lsp-server() summon, trusted, js extern
-	res crow-lsp-server = (), 0, 0, uninit, 0
-	wasm-stream = "fetch".js-global call "../bin/crow.wasm"::string
-	options js-any = ("env", res.imports),
-	result = "WebAssembly".js-global call-property "instantiateStreaming", wasm-stream, options await
-	res.wasm := result get "instance" get "exports" as-wasm-exports
+	res crow-lsp-server = (), 0, 0, uninit, 0, ()
+	res.wasm := "../bin/crow.wasm" wasm-instantiate res.imports as-wasm-exports
 	buffer js-any = res.wasm.memory get "buffer"
 	res.view := (buffer,)
 	res.parameters-begin := res.wasm getParameterBufferPointer
 	res.parameters-length := res.wasm.getParameterBufferLength to
-	server-params server-params = include-dir, "file:///"
-	res.server := res.wasm.newServer[res.view write-c-string res.parameters-begin, res.parameters-length, server-params.to::json.to]
+	server-params js-any = ("includeDir", include-dir.as-js), ("cwd", "file:///"::string.as-js)
+	server-params-string = res write-parameters server-params
+	res.server := res.wasm.newServer[server-params-string]
 	res
+-wasm-instantiate js-any(url string, imports js-any) unsafe, js extern
+	fetched = "fetch".js-global call url
+	options js-any = ("env", imports),
+	result = "WebAssembly".js-global call-property "instantiateStreaming", fetched, options await
+	result get "instance" get "exports"
 
 -crow-lsp-server record mut
 	view mut DataView
@@ -102,87 +213,30 @@ import
 	parameters-length mut nat
 	wasm mut wasm-exports
 	server mut wasm32
+	perf-measures perf-measure mut[]
 
--handle-message response(a crow-lsp-server, message js-any) summon, unsafe, js extern
-	message-str string = "JSON".js-global call-property "stringify", message as-t
-	message-c-str = a.view write-c-string a.parameters-begin, a.parameters-length, message-str
-	response-str = a.view read-c-string a.wasm.handleLspMessage[a.server, message-c-str]
-	response = "JSON".js-global call-property "parse", response-str
+-response record
+	messages js-any array
+	exitCode nat?
+-handle-message response(a crow-lsp-server, message js-any) unsafe, js extern
+	response-str = a.wasm.handleLspMessage[a.server, (a write-parameters message)]
+	response = a.view read-c-string response-str json-parse
 	messages js-any array = response get "messages" as-t
 	exit-code js-any = response get "exitCode"
 	messages, unless exit-code == null
 		exit-code.as-t::float.to,
 
--request js-any(a crow-lsp-server, method symbol, params js-any) summon, unsafe, js extern
-	res = a handle-message (("id", 1::float.as-js), ("method", method.as-js), ("params", params)).to-js-object
+-write-parameters view-c-string(a crow-lsp-server, params js-any) unsafe, js extern
+	params-string string = params json-stringify
+	a.view write-c-string a.parameters-begin, a.parameters-length, params-string
+
+-request js-any(a crow-lsp-server, method symbol, params js-any) unsafe, js extern
+	res = a handle-message (("id", 1::float.as-js), ("method", method.as-js), ("params", params))
 	assert res.exitCode is-empty
 	res.messages.size is 1
 	message = res.messages[0]
 	(message get "id").as-t::float is 1
 	message get "result"
-
--response record
-	messages js-any array
-	exitCode nat?
-
--include-dir string()
-	"file:///include"
-
-crow-server record mut
-	lsp-server crow-lsp-server
-	tokens-legend tokens-legend
-	diagnostics-per-uri diagnostic[] mut[uri]
-
-make-crow-server crow-server() summon, trusted, js extern
-	lsp = make-lsp-server
-	tokens-legend tokens-legend = lsp request "initialize", () \
-		get "capabilities" get "semanticTokensProvider" get "legend" to
-	res crow-server = lsp, tokens-legend, ()
-	res init
-	res
-
--init void(a crow-server) trusted, summon, js extern
-	include-all = "/include-all.json" fetch-js-object
-	for entry : ("Object".js-global call-property "entries", include-all).as-t::(js-any array)
-		path string = entry get 0 as-t
-		text string = entry get 1 as-t
-		_ = a open-file "{include-dir}/{path}", text
-	_ = a open-file "file:///crow-config.json", "\{}"
-	_ = a open-file "file:///hello.txt", "Hello, world!"
-	a mark-unknown-files-not-found
-
-request js-any(a crow-server, method symbol, params js-any) summon, unsafe, js extern
-	a.lsp-server request method, params
-
-uri alias
-	string
-
-get-diagnostics diagnostic[](a crow-server, uri uri, response response) summon, trusted, js extern
-	for message : response.messages
-		method string = message get "method" as-t
-		if method != "custom/unknownUris"
-			method is "textDocument/publishDiagnostics"
-			params = message get "params"
-			diagnostics js-any array = params get "diagnostics" as-t
-			a.diagnostics-per-uri[params get "uri" as-t] := for x : diagnostics; x to
-	a.diagnostics-per-uri[uri] ?? ()
-
-open-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
-	params js-any = (("textDocument", (uri, text)::text-document-item.as-js),)
-	response = a.lsp-server handle-message ("textDocument/didOpen" make-message params)
-	a get-diagnostics uri, response
-change-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
-	textDocument js-any = ("uri", uri.as-js),
-	contentChanges js-any array = (("text", text.as-js),),
-	params js-any = ("textDocument", textDocument), ("contentChanges", contentChanges.as-js)
-	response = a.lsp-server handle-message ("textDocument/didChange" make-message params)
-	a get-diagnostics uri, response
-mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
-	for uri : a get-unloaded-uris
-		assert uri ends-with "/crow-config.json"
-		params js-any = ("uri", uri.as-js), ("type", "notFound"::string.as-js)
-		_ = a.lsp-server handle-message ("custom/readFileResult" make-message params)
-	assert a.get-unloaded-uris is-empty
 
 -make-message js-any(method string, params js-any) trusted, js extern
 	("method", method.as-js), ("params", params)

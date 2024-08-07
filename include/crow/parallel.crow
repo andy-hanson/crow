@@ -6,9 +6,9 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
-	./js: as-js, as-t, await, call-property, js-any, js-cast, js-global, null
+	./js: as-js, as-t, await, call, call-new, call-property, js-cast, js-global
 	./log: error, log
-	./number: nat64
+	./number: float, nat64
 	./misc: shared, new, void
 	./pointer: any-mut-pointer, as-any-mut-pointer, reference-from-pointer
 	./private/bootstrap: add-to-queue, await-future, fiber, new, todo
@@ -42,7 +42,9 @@ export
 	if extern native
 		add-to-queue yield-this-fiber
 	elif extern js
-		_ = null::js-any await
+		resolver void mut(resolve void mut()) = resolve =>
+			_ = "setTimeout".js-global call resolve, 0::float
+		_ = "Promise".js-global call-new resolver await
 	else
 		todo
 

@@ -40,6 +40,18 @@ node extern
 	res.as-js set "onclick", on-click
 	res
 
++style record(node node) nominal, mut
++set-subscript void(a style, key symbol, value string) trusted, js extern
+	a.node.as-js get "style" set key, value
+
++classes record(node node) nominal, mut
+~= void(a classes, class-name string) trusted, js extern
+	_ = a.as-js get "classList" call-property "add", class-name
++set-classes void(a node, class-names string[]) trusted, js extern
+	a.as-js set "className", (" " join class-names)::string
++remove-class void(a node, class-name string) trusted, js extern
+	_ = a.as-js get "classList" call-property "remove", class-name
+
 event extern
 
 +create-input-text node(on-input void mut(x event), value string) trusted, js extern

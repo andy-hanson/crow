@@ -58,3 +58,9 @@ make-class js-any(
 	for name, method : methods
 		prototype set name, method.make-method
 	res
+
+json-parse js-any(a string) unsafe, js extern
+	"JSON".js-global call-property "parse", a
+
+json-stringify string(a js-any) unsafe, js extern
+	"JSON".js-global call-property "stringify", a as-t

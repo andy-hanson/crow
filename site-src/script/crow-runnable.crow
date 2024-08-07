@@ -1,27 +1,27 @@
 import
-	crow/js:
-		==, as-js, as-t, call-property, get, instanceof, js-any, js-global, null, set
-	./crow: crow-server, make-crow-server, open-file, request, tokens-legend
+	crow/js: ==, as-js, as-t, call-property, get, instanceof, js-global, null
+	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run
 	./crow-text: create-crow-text, new
-	./decode-tokens: decode-tokens
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
 	./loading-spinner: create-loading-spinner
-	./lsp-types: diagnostic, line-and-character, new, severity, to-js, tokens-and-diagnostics
+	./lsp-types:
+		==, diagnostic, enum-members, exit-code, line-and-character, new, pipe, run-result,
+		severity, text, tokens-and-diagnostics, writes
 	./util/browser-util:
 		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
 		push-history
 	./util/dom-util:
-		~=, as-node, attributes, child-nodes, custom-element-node, create-button, create-div,
+		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button, create-div,
 		create-node, create-span, create-text-node, define-custom-element, node,
-		remove-all-children, shadow-root, subscript
-	./util/js-util: new
+		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
 	./util/util: from-base-64, reduce-indent, to-base-64
 
 define-crow-runnable-custom-element void() summon, trusted, js extern
 	crow = make-crow-server
 	names names = ()
-	"crow-runnable" define-custom-element (x => x.is-play.css), x => x connected crow, names
+	"crow-runnable" define-custom-element (x => x.is-play.css), x =>
+		x connected crow, names
 
 -names record(seen string mut-set, next-index mut nat) mut
 -new names()
@@ -67,40 +67,29 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	main-uri string = "file:///{name}"
 	text string mutable-observable = initial-text,
 	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
-
-	get-hover string mut(x line-and-character) = position =>
-		args js-any = (("textDocument", (("uri", main-uri.as-js),)), ("position", position.to-js))
-		hover = crow request "textDocument/hover", args
-		if hover != null
-			hover get "contents" get "value" as-t
-
+	get-hover string mut(x line-and-character) = position => crow get-hover main-uri, position
 	crow-text = (get-hover, tokens-and-diagnostics, text) create-crow-text
 
 	text now-and-subscribe shared value =>
 		diagnostics = crow open-file main-uri, value
-		args js-any = ("textDocument", (("uri", main-uri.as-js),)),
-		encoded-tokens = crow request "textDocument/semanticTokens/full", args get "data"
-		tokens = encoded-tokens decode-tokens crow.tokens-legend
+		tokens = crow get-tokens main-uri
 		error-diagnostics diagnostic array = diagnostics filter x => x.severity <= 1
 		tokens-and-diagnostics set (tokens, error-diagnostics)
 
-	output = make-output
+	output output = ()
 
 	collapse-button mut node = gc-safe-value
 	collapse-button := "Hide output" create-button "collapsed", (up-icon,), () =>
 		output hide
-		_ = collapse-button.as-js get "class-list" call-property "add", "collapsed"::string
-	_ = collapse-button.as-js get "style" set "float", "right"::string
+		collapse-button.classes ~= "collapsed"
+	collapse-button.style["float"] := "right"
 
 	run-button node? = unless no-run
 		button = "Run" create-button "run", (play-icon,), () =>
-			if false
-				output start-running # TODO: REMOVE ---------------------------------------------------------------------------------
-			yield-fiber # Allow to show loading first
-			_ = collapse-button.as-js get "classList" call-property "remove", "collapsed"::string
-			args js-any = (("uri", main-uri.as-js), ("diagnosticsOnlyForUris", (main-uri.as-js,)::(js-any array).as-js))
-			res = crow request "custom/run", args
-			output finish-running res
+			output start-running
+			collapse-button remove-class "collapsed"
+			yield-fiber # Allow to show loading before 'crow run'locks up the UI
+			output finish-running (crow run main-uri)
 		button,
 
 	copy-button = "Copy to clipboard" create-button "", (copy-icon,), () =>
@@ -118,37 +107,56 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	a.shadow-root ~= container
 
 -output record(container node) mut
-
--make-output output() trusted, js extern
+-new output() trusted, js extern
 	res output = ("output" create-div ()),
 	res hide
 	res
-
 -hide void(a output) trusted, js extern
-	a.container.as-js get "style" set "height", "0"::string
+	a.container.style["height"] := "0"
 -start-running void(a output) trusted, js extern
-	container = a.container as-js
-	container set "className", "output"::string
-	_ = container get "classList" call-property "add", "running"::string # TODO: why do we add classes in 2 different ways?
-	container get "style" set "height", "2em"::string
+	a.container.classes := "output", "running"
+	a.container.style["height"] := "2em"
 	a.container remove-all-children
-	_ = container call-property "append", create-loading-spinner
-	_ = container call-property "append", (create-div, create-div, create-div, create-div)::(node array) # What was this for again??????????
--finish-running void(a output, run-output js-any) unsafe, js extern
-	writes write array = for x : (run-output get "writes").as-t::(js-any array); x to
-	exit-code nat = (run-output get "exitCode").as-t::float to
-
-	_ = a.container.as-js get "classList" call-property "remove", "running"::string
-	a.container.as-js get "style" set "height", ""::string
+	a.container ~= create-loading-spinner
+-finish-running void(a output, run-result run-result) unsafe, js extern
+	a.container remove-class "running"
+	a.container.style["height"] := ""
 	a.container remove-all-children
-	a.container add-spans-for-writes writes, exit-code
+	a.container add-spans-for-writes run-result
 
--write record(pipe pipe, text string)
--to write(a js-any) unsafe, js extern
-	(a get "pipe" to), (a get "text" as-t)
--pipe enum(stdout, stderr)
--to pipe(a js-any) unsafe, js extern
-	a.as-t::string to
+-add-spans-for-writes void(container node, run-result run-result) js extern
+	cur-pipe mut string? = ()
+	cur-line mut string = ""
+	finish-line void mut() = () =>
+		unless trusted (container.as-js get "textContent").as-t::string is-empty
+			container ~= "br".create-node
+		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
+		cur-line := ""
+	
+	for write : run-result writes
+		pipe string = write.pipe to
+		text = write text
+		if x ?= cur-pipe
+			if x != pipe && cur-line != ""
+				finish-line[]
+
+		cur-pipe := pipe,
+		parts = text split "\n"
+		cur-line ~~:= parts[0]
+		for part : parts[1 .. end]
+			finish-line[]
+			cur-line ~~:= part
+	if cur-line != ""
+		finish-line[]
+	
+	if run-result.exit-code != 0
+		cur-pipe := "exit-code",
+		cur-line := "Exit code: {run-result exit-code}"
+		finish-line[]
+	elif run-result.writes is-empty
+		cur-pipe := "stdout",
+		cur-line := "<<no output>>"
+		finish-line[]
 
 -css string(play bool)
 	"""
@@ -188,37 +196,3 @@ button \{
 div.icon svg \{ height: 1.5em; }
 button.collapsed \{ display: none; }
 """
-
--add-spans-for-writes void(container node, writes write array, exit-code nat) js extern
-	cur-pipe mut string? = ()
-	cur-line mut string = ""
-	finish-line void mut() = () =>
-		unless trusted (container.as-js get "textContent").as-t::string is-empty
-			container ~= "br".create-node
-		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
-		cur-line := ""
-	
-	for write : writes
-		pipe = write.pipe
-		text = write.text
-		if x ?= cur-pipe
-			if x != pipe.to && cur-line != ""
-				finish-line[]
-
-		cur-pipe := pipe.to,
-		parts = text split "\n"
-		cur-line ~~:= parts[0]
-		for part : parts[1 .. end]
-			finish-line[]
-			cur-line ~~:= part
-	if cur-line != ""
-		finish-line[]
-	
-	if exit-code != 0
-		cur-pipe := "exit-code",
-		cur-line := "Exit code: {exit-code}"
-		finish-line[]
-	elif writes.is-empty
-		cur-pipe := "stdout",
-		cur-line := "<<no output>>"
-		finish-line[]

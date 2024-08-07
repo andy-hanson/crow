@@ -30,3 +30,16 @@ to diagnostic(a js-any) unsafe, js extern
 source-range record(start line-and-character, end line-and-character)
 to source-range(a js-any) unsafe, js extern
 	(a get "start" to), (a get "end" to)
+
+run-result record(writes write array, exit-code nat)
+to run-result(a js-any) unsafe, js extern
+	writes write array = for x : (a get "writes").as-t::(js-any array); x to
+	exit-code nat = (a get "exitCode").as-t::float to
+	writes, exit-code
+
+write record(pipe pipe, text string)
+-to write(a js-any) unsafe, js extern
+	(a get "pipe" to), (a get "text" as-t)
+pipe enum(stdout, stderr)
+-to pipe(a js-any) unsafe, js extern
+	a.as-t::string to

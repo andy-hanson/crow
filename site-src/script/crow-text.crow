@@ -336,12 +336,12 @@ textarea \{
 		assert start-pos < pos
 		"no-token" create-span ((lines slice-line start-pos, pos).to.create-text-node,)
 
-	walk-to void mut(end line-and-character) = end =>
+	walk-to void mut(end line-and-character) = end-pos =>
 		start-pos mut = pos
-		while pos < end
+		while pos < end-pos
 			if maybe-start-diag[]
 				if start-pos < pos
-					container-stack[container-stack.size - 2].children ~= no-token-node[start-pos] # TODO: should be 'end - 2' not 'size - 2'
+					container-stack[end - 2].children ~= no-token-node[start-pos]
 				start-pos := pos
 			next-pos = lines next-position pos
 			if next-pos.line != pos.line
@@ -357,15 +357,15 @@ textarea \{
 		if start-pos < pos
 			container-stack.peek!.children ~= no-token-node[start-pos]
 
-	add-span void mut(class-name string, end line-and-character) = (class-name, end) =>
-		assert pos <= end
-		if pos != end
-			parts = lines slice-lines pos, end
+	add-span void mut(class-name string, end-pos line-and-character) = (class-name, end-pos) =>
+		assert pos <= end-pos
+		if pos != end-pos
+			parts = lines slice-lines pos, end-pos
 			container-stack.peek!.children ~= class-name create-span (parts[0].to.create-text-node,)
-			for part : parts[1 .. parts.size] # TODO: should be 1 .. end --------------------------------------------------------
+			for part : parts[1 .. end]
 				next-line[]
 				container-stack.peek!.children ~= class-name create-span (part.to.create-text-node,)
-			pos := end
+			pos := end-pos
 
 	start-line[]
 
@@ -375,7 +375,7 @@ textarea \{
 		class-name string = "{token.type} {" " join for x : token.modifiers; x.to}"
 		add-span[class-name, (token.line, token.character + token.length)]
 		maybe-stop-diag[]
-	
+
 	walk-to[lines.last-position]
 	end-line[]
 	assert container-stack.size == 1
