@@ -4,6 +4,9 @@ import
 to-base-64 string(a string) trusted, js extern
 	"btoa".js-global call a as-t
 
+from-base-64 string(a string) trusted, js extern
+	"atob".js-global call a as-t
+
 fetch-js-object js-any(url string) trusted, js extern
 	("fetch".js-global call url).await call-property "json" await
 

@@ -1,7 +1,6 @@
 import
 	crow/js:
-		==, as-js, as-t, call, call-new, call-property, get, instanceof, js-any, js-global, null,
-		set
+		==, as-js, as-t, call-property, get, instanceof, js-any, js-global, null, set
 	./crow: crow-server, make-crow-server, open-file, request, tokens-legend
 	./crow-text: create-crow-text, new
 	./decode-tokens: decode-tokens
@@ -9,14 +8,15 @@ import
 	./loading-spinner: create-loading-spinner
 	./lsp-types: diagnostic, line-and-character, new, severity, to-js, tokens-and-diagnostics
 	./util/browser-util:
-		copy-text-to-clipboard, download-text, location, origin, pathname, push-history, search
+		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
+		push-history
 	./util/dom-util:
 		~=, as-node, attributes, child-nodes, custom-element-node, create-button, create-div,
 		create-node, create-span, create-text-node, define-custom-element, node,
 		remove-all-children, shadow-root, subscript
 	./util/js-util: new
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
-	./util/util: reduce-indent, to-base-64
+	./util/util: from-base-64, reduce-indent, to-base-64
 
 define-crow-runnable-custom-element void() summon, trusted, js extern
 	crow = make-crow-server
@@ -41,10 +41,8 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 -get-crow-runnable-initial-text string(play bool, node node) summon, unsafe, js extern
 	(play ? get-code-from-url) ?? node.get-child-text
 -get-code-from-url string?() summon, unsafe, js extern
-	search = location.search
-	code = "URLSearchParams".js-global call-new search call-property "get", "code"::string # TODO: util somewhere
-	unless code == null
-		("atob".js-global call code as-t),
+	if code ?= "code" get-url-search
+		code.from-base-64,
 -get-child-text string(node node) trusted, js extern
 	child-nodes = node child-nodes
 	assert child-nodes.size == 1

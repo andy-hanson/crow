@@ -11,7 +11,7 @@ main void() summon, js extern
 	define-icon-custom-element
 	define-crow-runnable-custom-element
 	define-crow-text-custom-element
-	define-loading-spinner-element	
+	define-loading-spinner-element
 
 -open-details-on-click void() summon, trusted, js extern
 	for details : "details" query-selector
