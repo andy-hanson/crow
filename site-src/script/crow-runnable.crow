@@ -11,8 +11,8 @@ import
 		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
 		push-history
 	./util/dom-util:
-		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button, create-div,
-		create-node, create-span, create-text-node, define-custom-element, node,
+		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button,
+		create-div, create-node, create-span, create-text-node, define-custom-element, node,
 		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
 	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
 	./util/util: from-base-64, reduce-indent, to-base-64
@@ -101,7 +101,8 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 			text.get copy-play-link-from-text
 		button,
 
-	buttons node[] = run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
+	buttons node[] =
+		run-button.to ~~ (copy-button, download-button) ~~ link-button.to ~~ (collapse-button,)
 	bottom = "bottom" create-div buttons
 	container = "outer-container" create-div (crow-text, output.container, bottom)
 	a.shadow-root ~= container
@@ -132,7 +133,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 			container ~= "br".create-node
 		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
 		cur-line := ""
-	
+
 	for write : run-result writes
 		pipe string = write.pipe to
 		text = write text
@@ -148,7 +149,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 			cur-line ~~:= part
 	if cur-line != ""
 		finish-line[]
-	
+
 	if run-result.exit-code != 0
 		cur-pipe := "exit-code",
 		cur-line := "Exit code: {run-result exit-code}"

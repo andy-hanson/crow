@@ -323,8 +323,8 @@ ExitCodeOrSignal go(
 			withProgramForMain(perf, alloc, server, x.mainUri, (ref ProgramWithMain program) =>
 				buildAllOutputs(perf, alloc, server, cwd, x.options, program)),
 		(in CommandKind.Check x) =>
-			withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program _) =>
-				ExitCodeOrSignal(print("OK"))),
+			withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program program) =>
+				hasAnyDiagnostics(program) ? ExitCodeOrSignal.error : ExitCodeOrSignal(print("OK"))),
 		(in CommandKind.Document x) =>
 			withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program program) =>
 				printJson(alloc, documentModules(alloc, program, x.rootUris))),

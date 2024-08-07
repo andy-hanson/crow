@@ -118,11 +118,12 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	value = text-area get "value"
 	selection-start = text-area get "selectionStart"
 	selection-end = text-area get "selectionEnd"
-	# Selection is UTF16 indices. Easiest way to handle that is to use JS slicing instead of Crow slicing.
+	# Selection is UTF-16 indices.
+	# The easiest way to handle that is to use JS slicing instead of Crow slicing.
 	before = value.as-js call-property "slice", 0::float, selection-start
 	after = value.as-js call-property "slice", selection-end
 	text-area set "value", (before + inserted.as-js + after)
-	# Similarly, get the string length in JS instead of in Crow
+	# Similarly, get the string length in JS instead of in Crow.
 	new-cursor = selection-start + (inserted.as-js get "length")
 	_ = text-area call-property "setSelectionRange", new-cursor, new-cursor
 	text-area get "value" as-t
