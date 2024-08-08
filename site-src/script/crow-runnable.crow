@@ -1,5 +1,5 @@
 import
-	crow/js: ==, as-js, as-t, call-property, get, instanceof, js-global, null
+	crow/js: ==, as-js, call-property, cast, instanceof, js-global, null, subscript
 	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run
 	./crow-text: create-crow-text, new
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
@@ -49,7 +49,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	child-nodes[0] get-text-from-node
 -get-text-from-node string(node node) trusted, js extern
 	assert node.as-js instanceof "Text".js-global
-	(node.as-js get "data").as-t reduce-indent
+	node.as-js["data"].cast reduce-indent
 
 -copy-play-link-from-text void(text string) summon, unsafe, js extern
 	url string = "{location origin}{location pathname}?code={text to-base-64}"
@@ -129,7 +129,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	cur-pipe mut string? = ()
 	cur-line mut string = ""
 	finish-line void mut() = () =>
-		unless trusted (container.as-js get "textContent").as-t::string is-empty
+		unless trusted container.as-js["textContent"].cast::string is-empty
 			container ~= "br".create-node
 		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
 		cur-line := ""

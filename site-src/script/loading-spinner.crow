@@ -1,5 +1,4 @@
 import
-	crow/js: as-t, call-property, js-global
 	./util/dom-util: ~=, create-div, create-node, define-custom-element, node, shadow-root
 
 define-loading-spinner-element void() summon, trusted, js extern

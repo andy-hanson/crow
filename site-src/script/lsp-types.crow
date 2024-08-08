@@ -1,5 +1,5 @@
 import
-	crow/js: as-js, as-t, get, js-any
+	crow/js: as-js, cast, js-any, subscript
 	./util/js-util: new
 
 token record(line nat, character nat, length nat, type symbol, modifiers symbol array)
@@ -11,7 +11,7 @@ tokens-legend record
 	token-types symbol array
 	token-modifiers symbol array
 to tokens-legend(a js-any) unsafe, js extern
-	(a get "tokenTypes").as-t, (a get "tokenModifiers").as-t
+	a["tokenTypes"].cast, a["tokenModifiers"].cast
 
 text-document-item record(uri string, text string)
 
@@ -19,27 +19,27 @@ line-and-character record(line nat, character nat)
 == bool(a line-and-character, b line-and-character)
 <=> comparison(a line-and-character, b line-and-character)
 to line-and-character(a js-any) unsafe, js extern
-	(a get "line").as-t::float.to, (a get "character").as-t::float.to
+	a["line"].cast::float.to, a["character"].cast::float.to
 to-js js-any(a line-and-character) trusted, js extern
 	("line", a.line.to::float.as-js), ("character", a.character.to::float.as-js)
 
 diagnostic record(range source-range, severity nat, message string)
 to diagnostic(a js-any) unsafe, js extern
-	(a get "range" to), (a get "severity").as-t::float.to, (a get "message" as-t)
+	a["range"].to, a["severity"].cast::float.to, a["message"].cast
 
 source-range record(start line-and-character, end line-and-character)
 to source-range(a js-any) unsafe, js extern
-	(a get "start" to), (a get "end" to)
+	a["start"].to, a["end"].to
 
 run-result record(writes write array, exit-code nat)
 to run-result(a js-any) unsafe, js extern
-	writes write array = for x : (a get "writes").as-t::(js-any array); x to
-	exit-code nat = (a get "exitCode").as-t::float to
+	writes write array = for x : a["writes"].cast::(js-any array); x to
+	exit-code nat = a["exitCode"].cast::float to
 	writes, exit-code
 
 write record(pipe pipe, text string)
 -to write(a js-any) unsafe, js extern
-	(a get "pipe" to), (a get "text" as-t)
+	a["pipe"].to, a["text"].cast
 pipe enum(stdout, stderr)
 -to pipe(a js-any) unsafe, js extern
-	a.as-t::string to
+	a.cast::string to

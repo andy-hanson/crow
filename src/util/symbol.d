@@ -731,7 +731,6 @@ immutable string[] specialSymbols = [
 	"is-signed",
 	"is-wasm",
 	"jump-to-catch",
-	"js-cast",
 	"js-global",
 	"keyword",
 	"keyword-pos",

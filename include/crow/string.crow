@@ -14,7 +14,7 @@ import
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
-	./js: ==, <, +, as-js, as-t, call, js-global
+	./js: ==, <, +, as-js, call, cast, js-global
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
@@ -45,7 +45,7 @@ export
 
 +~~ string(a string, b string)
 	if trusted extern js
-		trusted a.as-js + b.as-js as-t
+		trusted a.as-js + b.as-js cast
 	else
 		a.to::(char8 array) ~~ b.to to
 
@@ -201,7 +201,7 @@ Result is only digits, no punctuation.
 		a to-base 10
 
 -js-to-string[t] string(a t) unsafe, js extern
-	"String".js-global call a as-t
+	"String".js-global call a cast
 
 -digit-to-string string(a nat64)
 	a.digit-to-char to

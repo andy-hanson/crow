@@ -1,5 +1,5 @@
 import
-	crow/js: as-js, set
+	crow/js: as-js, set-subscript
 	./util/dom-util: ~=, attributes, create-div, define-custom-element, node, shadow-root, subscript
 
 # Icons from https://heroicons.com/
@@ -76,7 +76,7 @@ external-link-icon node() js extern
 
 -icon node(content string) trusted, js extern
 	res = "icon" create-div
-	res.as-js set "innerHTML", """<svg
+	res.as-js["innerHTML"] := """<svg
 		xmlns="http://www.w3.org/2000/svg"
 		fill="none"
 		viewBox="0 0 22 22"

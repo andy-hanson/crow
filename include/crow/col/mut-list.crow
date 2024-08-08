@@ -3,7 +3,7 @@ import
 	../bool: bool, not
 	../compare: !=, <, <=, >
 	../fun-util: subscript
-	../js: as-js, as-t, call-property, set
+	../js: as-js, call-property, cast, set-subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, /, float64, max-value, nat64, to
 	../option: force, new, option
@@ -105,7 +105,7 @@ Creates a new list with the given elements.
 		a.backing[new-size .. a.size] clear-memory
 		a.size := new-size
 	elif extern js
-		a.backing.as-js set "length", new-size.to::float64
+		a.backing.as-js["length"] := new-size.to::float64
 	else
 		todo
 
@@ -115,7 +115,7 @@ Writes to the original won't affect the copy.
 ###
 +copy[t] t mut[](a t mut[])
 	if trusted extern js
-		new-backing t mut-array = trusted a.backing.as-js call-property "slice" as-t
+		new-backing t mut-array = trusted a.backing.as-js call-property "slice" cast
 		new-backing, max-value
 	else
 		a.begin slice a.end
@@ -202,7 +202,7 @@ Throws if `n > a.size`.
 		res to
 	elif trusted extern js
 		res t array = trusted do
-			a.backing.as-js call-property "splice", 0::float64, n.to::float64 as-t
+			a.backing.as-js call-property "splice", 0::float64, n.to::float64 cast
 		res to
 	else
 		todo
@@ -225,7 +225,7 @@ Returns `none` if `a` is empty.
 		a.size := new-size
 		res,
 	elif trusted extern js
-		(trusted a.backing.as-js call-property "pop" as-t),
+		(trusted a.backing.as-js call-property "pop" cast),
 	else
 		todo
 
@@ -240,7 +240,9 @@ Throws if `n > a.size`.
 		trusted a.backing[new-size .. a.size] clear-memory
 		a.size := new-size
 	elif trusted extern js
-		trusted a.backing.as-js set "length", (a.size - n).to::float64
+		# TODO: 'trusted' should be able to go on the same line! ----------------------------------------------------------
+		trusted
+			a.backing.as-js["length"] := (a.size - n).to::float64
 	else
 		todo
 

@@ -3,7 +3,7 @@ import
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../js: as-js, as-t, call, call-property, get, js-cast, js-global, set
+	../js: as-js, call, call-property, cast, js-cast, js-global, subscript, set-subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
 	../option: new, option
@@ -100,7 +100,7 @@ This is O(n).
 	if extern native
 		a.begin-pointer[index]
 	elif extern js
-		a.as-js get index as-t
+		a.as-js[index] cast
 	else
 		todo
 
@@ -109,7 +109,7 @@ This is O(n).
 	if extern native
 		a.begin-pointer[index] := value
 	elif extern js
-		a.as-js set index, value.as-js
+		a.as-js[index] := value
 	else
 		todo
 
@@ -175,7 +175,7 @@ Throws if `dest` and `source` are not the same size.
 	elif extern js
 		i float64 = a.range.low to
 		j float64 = a.range.high to
-		a.inner.as-js call-property "slice", i, j as-t
+		a.inner.as-js call-property "slice", i, j cast
 	else
 		todo
 +iterate[t] bool(a t mut-slice, f bool mut(x t))
@@ -209,7 +209,7 @@ This is used by collections like `mut[]` that need some excess capacity that wil
 		(size.allocate::t mut*)[0 .. size]
 	elif extern js
 		# Array(size).fill(null)
-		"Array".js-global call size.to::float64 call-property "fill", gc-safe-value::t as-t
+		"Array".js-global call size.to::float64 call-property "fill", gc-safe-value::t cast
 	else
 		todo
 

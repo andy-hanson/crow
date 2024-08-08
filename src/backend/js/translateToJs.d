@@ -2393,7 +2393,7 @@ ExprResult translateCallJsFun(
 	}
 	final switch (fun) {
 		case JsFun.asJsAny:
-		case JsFun.jsAnyAsT:
+		case JsFun.cast_:
 			assert(nArgs == 1);
 			return expr(getArg(0));
 		case JsFun.await:
@@ -2407,9 +2407,6 @@ ExprResult translateCallJsFun(
 			return expr(genNew(
 				allocate(ctx.alloc, getArg(0)),
 				makeArray(ctx.alloc, nArgs - 1, (size_t i) => getArg(i + 1))));
-		case JsFun.cast_:
-			assert(nArgs == 1);
-			return expr(getArg(0));
 		case JsFun.callProperty:
 			assert(nArgs >= 2);
 			return expr(genCallSync(

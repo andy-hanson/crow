@@ -5,7 +5,7 @@ Functions for generating cryptographically random numbers.
 import
 	system/sodium: randombytes_random
 	../bits: bits-cat
-	../js: as-t, call-new, call-property, get, js-global
+	../js: call-new, call-property, cast, js-global, subscript
 	./private/sodium: ensure-sodium-initialized
 	../private/bootstrap: todo
 
@@ -19,7 +19,7 @@ import
 	elif extern js
 		xs = "Uint32Array".js-global call-new 1::float64
 		_ = "crypto".js-global call-property "getRandomValues", xs
-		(xs get 0).as-t::float64 to
+		xs[0].cast::float64 to
 	else
 		todo
 

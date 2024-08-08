@@ -281,10 +281,6 @@ FunBody inner(
 			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
 				? FunBody(BuiltinFun(JsFun.asJsAny))
 				: fail();
-		case symbol!"as-t".value:
-			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
-				? FunBody(BuiltinFun(JsFun.jsAnyAsT))
-				: fail();
 		case symbol!"atan".value:
 			return unaryMath(BuiltinUnaryMath.atanFloat32, BuiltinUnaryMath.atanFloat64);
 		case symbol!"atan2".value:
@@ -312,6 +308,10 @@ FunBody inner(
 			return isJsAny(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0Array(p2)
 				? FunBody(BuiltinFun(JsFun.callPropertySpread))
 				: fail();
+		case symbol!"cast".value:
+			return isTypeParam0(rt) && arity == 1 && isJsAny(p0)
+				? FunBody(BuiltinFun(JsFun.cast_))
+				: fail();
 		case symbol!"count-ones".value:
 			return unary(isNat64(p0)
 				? BuiltinUnary.countOnesNat64
@@ -330,10 +330,6 @@ FunBody inner(
 			return FunBody(BuiltinFun(BuiltinFun.GcSafeValue()));
 		case symbol!"global-init".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.Init(BuiltinFun.Init.Kind.global))) : fail();
-		case symbol!"get".value:
-			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1)
-				? FunBody(BuiltinFun(JsFun.get))
-				: fail();
 		case symbol!"infinity".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.infinity)));
 		case symbol!"instanceof".value:
@@ -366,10 +362,6 @@ FunBody inner(
 		case symbol!"await".value:
 			return isJsAny(rt) && arity == 1 && isJsAny(p0)
 				? FunBody(BuiltinFun(JsFun.await))
-				: fail();
-		case symbol!"js-cast".value:
-			return isTypeParam0(rt) && arity == 1 && isTypeParam1(p0)
-				? FunBody(BuiltinFun(JsFun.cast_))
 				: fail();
 		case symbol!"js-global".value:
 			return isJsAny(rt) && arity == 0 ? FunBody(BuiltinFun(JsFun.jsGlobal)) : fail();
@@ -413,7 +405,7 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.roundDownFloat32, BuiltinUnaryMath.roundDownFloat64);
 		case symbol!"round-up".value:
 			return unaryMath(BuiltinUnaryMath.roundUpFloat32, BuiltinUnaryMath.roundUpFloat64);
-		case symbol!"set".value:
+		case symbol!"set-subscript".value:
 			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsObjectKey(commonTypes, p1) && isTypeParam0(p2)
 				? FunBody(BuiltinFun(JsFun.set))
 				: fail();
@@ -434,8 +426,9 @@ FunBody inner(
 		case symbol!"switch-fiber-initial".value:
 			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"subscript".value:
-			// TODO: check signature
-			return isFunPointer(p0)
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsObjectKey(commonTypes, p1)
+				? FunBody(BuiltinFun(JsFun.get))
+				: isFunPointer(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallFunPointer()))
 				: isLambdaType(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallLambda()))

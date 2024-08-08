@@ -1,5 +1,5 @@
 import
-	crow/js: as-js, call-property, ==, null, set
+	crow/js: as-js, call-property, ==, null, set-subscript
 	./crow-runnable: define-crow-runnable-custom-element
 	./crow-text: define-crow-text-custom-element
 	./icon: define-icon-custom-element
@@ -19,4 +19,4 @@ main void() summon, js extern
 		unless link == null
 			fn void mut() = () =>
 				_ = details.as-js call-property "setAttribute", "open"::string, true
-			link set "onclick", fn
+			link["onclick"] := fn

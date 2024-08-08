@@ -1,6 +1,6 @@
 no-std
 import
-	./js: as-t, call-property, js-global
+	./js: call-property, js-global
 	./fun-util: subscript
 	./io/print: err, out, pipe, print
 	./misc: new, void
@@ -71,7 +71,8 @@ If you just want to call the curent log handler, you could just use `log`.
 	trusted if extern native
 		must-cur-fiber log-handler
 	elif extern js
-		logged => "console".js-global call-property logged.level.to, logged.message as-t
+		logged =>
+			_ = "console".js-global call-property logged.level.to, logged.message
 	else
 		todo
 

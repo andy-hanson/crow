@@ -1,7 +1,7 @@
 import
 	crow/js:
-		==, as-js, as-t, await, call-new, call-property, call-property-spread, get, js-any, js-cast,
-		js-global, null, set
+		==, as-js, await, call-new, call-property, call-property-spread, cast, js-any, js-cast,
+		js-global, null, set-subscript, subscript
 	./js-util: make-class, method
 
 node extern
@@ -13,7 +13,7 @@ node extern
 		a ~= x
 
 +create-node node(tag-name symbol) trusted, js extern
-	"document".js-global call-property "createElement", tag-name as-t
+	"document".js-global call-property "createElement", tag-name cast
 +create-node node(tag-name symbol, attr string[symbol]) trusted, js extern
 	node = tag-name create-node
 	for key, value : attr
@@ -26,7 +26,7 @@ node extern
 	children node[],
 ) trusted, js extern
 	node = tag-name create-node attr
-	node.as-js set "className", class-name
+	node.as-js["className"] := class-name
 	_ = node.as-js call-property-spread "append", children.to
 	node js-cast
 
@@ -37,20 +37,20 @@ node extern
 	on-click void mut(),
 ) trusted, js extern
 	res = "button" create-node (("title", title),), class-name, children
-	res.as-js set "onclick", on-click
+	res.as-js["onclick"] := on-click
 	res
 
 +style record(node node) nominal, mut
 +set-subscript void(a style, key symbol, value string) trusted, js extern
-	a.node.as-js get "style" set key, value
+	a.node.as-js["style"][key] := value
 
 +classes record(node node) nominal, mut
 ~= void(a classes, class-name string) trusted, js extern
-	_ = a.as-js get "classList" call-property "add", class-name
+	_ = a.as-js["classList"] call-property "add", class-name
 +set-classes void(a node, class-names string[]) trusted, js extern
-	a.as-js set "className", (" " join class-names)::string
+	a.as-js["className"] := (" " join class-names)::string
 +remove-class void(a node, class-name string) trusted, js extern
-	_ = a.as-js get "classList" call-property "remove", class-name
+	_ = a.as-js["classList"] call-property "remove", class-name
 
 event extern
 
@@ -72,7 +72,7 @@ event extern
 	"span" create-node attr, class-name, children
 
 +create-text-node node(text string) trusted, js extern
-	"document".js-global call-property "createTextNode", text as-t
+	"document".js-global call-property "createTextNode", text cast
 
 region query
 
@@ -80,12 +80,12 @@ region query
 +subscript string?(a attributes, attr-name symbol) trusted, js extern
 	res = a.node.as-js call-property "getAttribute", attr-name
 	unless res == null
-		res.as-t,
+		res.cast,
 
 +first-child node?(a node) trusted, js extern
-	res = a.as-js get "firstChild"
+	res = a.as-js["firstChild"]
 	unless res == null
-		res.as-t,
+		res.cast,
 
 region mutate
 
@@ -97,10 +97,10 @@ region mutate
 	"document".js-global call-property "querySelectorAll", selector array-of-node-list
 
 +child-nodes node array(a node) trusted, js extern
-	a.as-js get "childNodes" array-of-node-list
+	a.as-js["childNodes"] array-of-node-list
 
 -array-of-node-list node array(node-list js-any) trusted, js extern
-	"Array".js-global call-property "from", node-list as-t
+	"Array".js-global call-property "from", node-list cast
 
 region Custom elements
 
@@ -121,8 +121,8 @@ region Custom elements
 		# Using JSON.parse to make sure it's synchronous
 		args = "JSON".js-global call-property "parse", "\{\"mode\":\"open\"}"::string
 		root = this call-property "attachShadow", args
-		root.as-t set-style-sheet style-sheet[this as-t] as-js
-	connected-callback method = (this, _) => connected[this as-t] as-js
+		root.cast set-style-sheet style-sheet[this cast] as-js
+	connected-callback method = (this, _) => connected[this cast] as-js
 	methods method[symbol] = ("connectedCallback", connected-callback),
 	cls = "HTMLElement".js-global make-class constructor, methods
 	_ = "customElements".js-global call-property "define", element-name, cls
@@ -136,9 +136,9 @@ region Custom elements
 +attributes attributes(a custom-element-node) js extern
 	a.as-node attributes
 +shadow-root node(a custom-element-node) trusted, js extern
-	a.as-js get "shadowRoot" as-t
+	a.as-js["shadowRoot"] cast
 
 -set-style-sheet void(shadow-root node, css string) trusted, js extern
 	style = "CSSStyleSheet".js-global call-new
 	_ = style call-property "replace", css await
-	_ = shadow-root.as-js set "adoptedStyleSheets", (style,)::(js-any array)
+	shadow-root.as-js["adoptedStyleSheets"] := (style,)::(js-any array)

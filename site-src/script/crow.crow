@@ -1,6 +1,6 @@
 import
 	crow/io/duration: nanosecond, milliseconds
-	crow/js: ==, as-js, as-t, await, call, call-property, get, js-any, js-global, null
+	crow/js: ==, as-js, await, call, call-property, cast, js-any, js-global, null, subscript
 	./decode-tokens: decode-tokens
 	./lsp-types:
 		diagnostic, line-and-character, new, run-result, text-document-item, to, to-js, token,
@@ -16,8 +16,7 @@ crow-server record mut
 
 make-crow-server crow-server() summon, trusted, js extern
 	lsp = make-lsp-server
-	tokens-legend tokens-legend = lsp request "initialize", () \
-		get "capabilities" get "semanticTokensProvider" get "legend" to
+	tokens-legend tokens-legend = (lsp request "initialize", ())["capabilities"]["semanticTokensProvider"]["legend"] to
 	res crow-server = lsp, tokens-legend, ()
 	res init
 	res
@@ -46,23 +45,23 @@ mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
 
 get-diagnostics diagnostic[](a crow-server, uri uri, response response) trusted, js extern
 	for message : response.messages
-		method string = message get "method" as-t
+		method string = message["method"] cast
 		if method != "custom/unknownUris"
 			method is "textDocument/publishDiagnostics"
-			params = message get "params"
-			diagnostics js-any array = params get "diagnostics" as-t
-			a.diagnostics-per-uri[params get "uri" as-t] := for x : diagnostics; x to
+			params = message["params"]
+			diagnostics js-any array = params["diagnostics"] cast
+			a.diagnostics-per-uri[params["uri"] cast] := for x : diagnostics; x to
 	a.diagnostics-per-uri[uri] ?? ()
 
 get-hover string(a crow-server, uri uri, position line-and-character) trusted, js extern
 	args js-any = ("textDocument", (("uri", uri.as-js),)), ("position", position.to-js)
 	res = a request "textDocument/hover", args
 	if res != null
-		res get "contents" get "value" as-t
+		res["contents"]["value"] cast
 
 get-tokens token array(a crow-server, uri uri) trusted, js extern
 	args js-any = ("textDocument", (("uri", uri.as-js),)),
-	encoded = a request "textDocument/semanticTokens/full", args get "data"
+	encoded = (a request "textDocument/semanticTokens/full", args)["data"]
 	encoded decode-tokens a.tokens-legend
 
 run run-result(a crow-server, main-uri uri) trusted, js extern
@@ -75,9 +74,9 @@ run run-result(a crow-server, main-uri uri) trusted, js extern
 
 -init void(a crow-server) trusted, summon, js extern
 	include-all = "/include-all.json" fetch-js-object
-	for entry : ("Object".js-global call-property "entries", include-all).as-t::(js-any array)
-		path string = entry get 0 as-t
-		text string = entry get 1 as-t
+	for entry : ("Object".js-global call-property "entries", include-all).cast::(js-any array)
+		path string = entry[0] cast
+		text string = entry[1] cast
 		_ = a open-file "{include-dir}/{path}", text
 	_ = a open-file "file:///crow-config.json", "\{}"
 	_ = a open-file "file:///hello.txt", "Hello, world!"
@@ -112,7 +111,7 @@ region LSP server
 		text view-c-string,
 	)).as-js bind crow.as-js
 	for key : math-keys
-		value = "Math".js-global get key
+		value = "Math".js-global[key]
 		res[key] := value
 		res["{key}f"] := value
 	res["round"] := (&round)::(float function(x float)) as-js
@@ -128,7 +127,7 @@ region LSP server
 	fn call-property "bind", arg
 
 -get-time-nanos nat() summon, trusted, js extern
-	msec float = "performance".js-global call-property "now" as-t
+	msec float = "performance".js-global call-property "now" cast
 	msec * 1000000 to
 
 -perf-measure record(name string, count nat, msec float, bytes-allocated nat)
@@ -182,18 +181,18 @@ region LSP server
 	throw not-implemented
 
 -as-wasm-exports wasm-exports(a js-any) unsafe, js extern
-	(a get "getParameterBufferPointer" as-t), \
-	(a get "getParameterBufferLength" as-t),
-	(a get "newServer" as-t),
-	(a get "handleLspMessage" as-fun2),
-	a get "memory"
+	a["getParameterBufferPointer"].cast, \
+	a["getParameterBufferLength"].cast,
+	a["newServer"].cast,
+	a["handleLspMessage"].as-fun2,
+	a["memory"]
 -as-fun2 view-c-string mut(server wasm32, params view-c-string)(a js-any) unsafe, js extern
-	(server, params) => a call server, params as-t
+	(server, params) => a call server, params cast
 
 -make-lsp-server crow-lsp-server() summon, trusted, js extern
 	res crow-lsp-server = (), 0, 0, uninit, 0, ()
 	res.wasm := "../bin/crow.wasm" wasm-instantiate res.imports as-wasm-exports
-	buffer js-any = res.wasm.memory get "buffer"
+	buffer js-any = res.wasm.memory["buffer"]
 	res.view := (buffer,)
 	res.parameters-begin := res.wasm getParameterBufferPointer
 	res.parameters-length := res.wasm.getParameterBufferLength to
@@ -205,7 +204,7 @@ region LSP server
 	fetched = "fetch".js-global call url
 	options js-any = ("env", imports),
 	result = "WebAssembly".js-global call-property "instantiateStreaming", fetched, options await
-	result get "instance" get "exports"
+	result["instance"]["exports"]
 
 -crow-lsp-server record mut
 	view mut DataView
@@ -221,10 +220,10 @@ region LSP server
 -handle-message response(a crow-lsp-server, message js-any) unsafe, js extern
 	response-str = a.wasm.handleLspMessage[a.server, (a write-parameters message)]
 	response = a.view read-c-string response-str json-parse
-	messages js-any array = response get "messages" as-t
-	exit-code js-any = response get "exitCode"
+	messages js-any array = response["messages"] cast
+	exit-code js-any = response["exitCode"] cast
 	messages, unless exit-code == null
-		exit-code.as-t::float.to,
+		exit-code.cast::float.to,
 
 -write-parameters view-c-string(a crow-lsp-server, params js-any) unsafe, js extern
 	params-string string = params json-stringify
@@ -235,12 +234,11 @@ region LSP server
 	assert res.exitCode is-empty
 	res.messages.size is 1
 	message = res.messages[0]
-	(message get "id").as-t::float is 1
-	message get "result"
+	message["id"].cast::float is 1
+	message["result"]
 
 -make-message js-any(method string, params js-any) trusted, js extern
 	("method", method.as-js), ("params", params)
 
 -get-unloaded-uris uri array(a crow-server) summon, trusted, js extern
-	response = a.lsp-server request "custom/unloadedUris", ()
-	response get "unloadedUris" as-t
+	(a.lsp-server request "custom/unloadedUris", ())["unloadedUris"] cast

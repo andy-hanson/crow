@@ -1,5 +1,5 @@
 import
-	crow/js: as-js, as-t, call-new, call-property, get, js-any, js-global
+	crow/js: as-js, call-new, call-property, cast, js-any, js-global, subscript
 
 # WASM uses JS 'number' for 32 bit numbers
 wasm32 alias
@@ -13,16 +13,16 @@ view-c-string alias
 DataView extern
 
 new DataView(buffer js-any) unsafe, js extern
-	"DataView".js-global call-new buffer as-t
+	"DataView".js-global call-new buffer cast
 new DataView() unsafe, js extern
 	"ArrayBuffer".js-global.call-new,
 
 -buffer js-any(a DataView) unsafe, js extern
-	a.as-js get "buffer"
+	a.as-js["buffer"]
 -byte-length float(a DataView) unsafe, js extern
-	(a.as-js get "byteLength").as-t
+	a.as-js["byteLength"] cast
 -getUint8 float(a DataView, index float) unsafe, js extern
-	a.as-js call-property "getUint8", index as-t
+	a.as-js call-property "getUint8", index cast
 -setUint8 void(a DataView, index float, value float) unsafe, js extern
 	_ = a.as-js call-property "setUint8", index, value
 
@@ -33,7 +33,7 @@ read-c-string string(a DataView, begin view-c-string) trusted, js extern
 	a string-of-range begin, end
 -string-of-range string(a DataView, begin view-c-string, end view-c-string) trusted, js extern
 	bytes = "Uint8Array".js-global call-new a.buffer, begin, end - begin
-	"TextDecoder".js-global.call-new call-property "decode", bytes as-t
+	"TextDecoder".js-global.call-new call-property "decode", bytes cast
 
 -bytes-in-range js-any(a DataView, begin view-c-string, length nat) trusted, js extern
 	"Uint8Array".js-global call-new a.buffer, begin, length.to::float
@@ -46,7 +46,7 @@ write-c-string view-c-string(
 ) trusted, js extern
 	slice = a bytes-in-range begin, max-length
 	res = "TextEncoder".js-global.call-new call-property "encodeInto", content, slice
-	written float = res get "written" as-t
+	written float = res["written"] cast
 	assert written.to::nat < max-length
 	a setUint8 begin + written, 0
 	assert (a read-c-string begin) == content

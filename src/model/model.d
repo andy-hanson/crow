@@ -930,7 +930,6 @@ enum JsFun {
 	eqEqEq,
 	get,
 	instanceof,
-	jsAnyAsT,
 	jsGlobal,
 	less,
 	plus,

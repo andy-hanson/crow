@@ -3,7 +3,7 @@ import
 	system/time: time, time_t
 	../compare: max
 	../fun-util: subscript
-	../js: as-t, await, call, call-new, js-global
+	../js: await, call, call-new, cast, js-global
 	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, int64, nat64, to
 	../pointer: null
@@ -28,7 +28,7 @@ export
 			todo
 	elif extern js
 		# BigInt(new Date())
-		msec int64 = "BigInt".js-global call "Date".js-global.call-new as-t
+		msec int64 = "BigInt".js-global call "Date".js-global.call-new cast
 		msec / 1000,
 	else
 		todo

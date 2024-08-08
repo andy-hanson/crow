@@ -1,32 +1,30 @@
 import
 	crow/js:
-		==, as-t, call, call-new, call-property, get, js-any, js-global, null, set, typeof
+		==, call, call-new, cast, call-property, js-any, js-global, null, set-subscript, subscript, typeof
 
 new js-any(...properties (symbol, js-any) array) trusted, js extern
 	res = "Object".js-global call-new
 	for key, value : properties
-		res set key, value
+		res[key] := value
 	res
 to-js-object js-any(properties js-any[symbol]) trusted, js extern
 	res = "Object".js-global call-new
 	for key, value : properties
-		res set key, value
+		res[key] := value
 	res
 
 json-from-js-object json(a js-any) unsafe, js extern
 	match a typeof
 	as string
-		a.as-t::string.to
+		a.cast::string to
 	as object
 		if a == null
 			null
 		else
-			entries js-any array = "Object".js-global call-property "entries", a as-t
-			x json[symbol] = for entry : entries
-				key = entry get 0
-				value = entry get 1
-				key.as-t::string.to, value.json-from-js-object
-			x to
+			entries js-any array = "Object".js-global call-property "entries", a cast
+			map json[symbol] = for entry : entries
+				entry[0::nat].cast::string.to, entry[1::nat].json-from-js-object
+			map to
 	else
 		throw todo
 
@@ -54,13 +52,12 @@ make-class js-any(
 		}
 	""" eval
 	res = make call constructor, super-class
-	prototype = res get "prototype"
 	for name, method : methods
-		prototype set name, method.make-method
+		res["prototype"][name] := method.make-method
 	res
 
 json-parse js-any(a string) unsafe, js extern
 	"JSON".js-global call-property "parse", a
 
 json-stringify string(a js-any) unsafe, js extern
-	"JSON".js-global call-property "stringify", a as-t
+	"JSON".js-global call-property "stringify", a cast

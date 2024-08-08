@@ -6,7 +6,7 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, to
 	./fun-util: subscript
-	./js: as-js, as-t, await, call, call-new, call-property, js-cast, js-global
+	./js: as-js, await, call, call-new, cast, call-property, js-cast, js-global
 	./log: error, log
 	./number: float, nat64
 	./misc: shared, new, void
@@ -29,7 +29,7 @@ export
 		as error x
 			x rethrow
 	elif extern js
-		a.as-js.await as-t
+		a.as-js.await cast
 	else
 		todo
 
@@ -57,7 +57,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 	if extern native
 		value.resolved as-future
 	elif extern js
-		"Promise".js-global call-property "resolved", value as-t
+		"Promise".js-global call-property "resolved", value cast
 	else
 		todo
 
@@ -66,7 +66,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 	if extern native
 		err.rejected as-future
 	elif extern js
-		"Promise".js-global call-property "rejected", err as-t
+		"Promise".js-global call-property "rejected", err cast
 	else
 		todo
 
@@ -86,7 +86,7 @@ Run `f` in a new fiber with a new exclusion and return a future for its result.
 		res as-future
 	elif extern js
 		# `Promise.resolve().then(f)`; this ensures 'f' is not run immediately
-		"Promise".js-global call-property "resolve" call-property "then", f as-t
+		"Promise".js-global call-property "resolve" call-property "then", f cast
 	else
 		todo
 
