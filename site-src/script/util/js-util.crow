@@ -1,6 +1,7 @@
 import
 	crow/js:
-		==, call, call-new, cast, call-property, js-any, js-global, null, set-subscript, subscript, typeof
+		==, call, call-new, cast, call-property, js-any, js-global, null, set-subscript, subscript,
+		typeof
 
 new js-any(...properties (symbol, js-any) array) trusted, js extern
 	res = "Object".js-global call-new

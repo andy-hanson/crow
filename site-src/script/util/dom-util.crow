@@ -52,6 +52,12 @@ node extern
 +remove-class void(a node, class-name string) trusted, js extern
 	_ = a.as-js["classList"] call-property "remove", class-name
 
++set-text-content void(a node, text string) trusted, js extern
+	a.as-js["textContent"] := text
+
++add-event-listener void(a node, event-name string, fn void mut(event js-any)) trusted, js extern
+	_ = a.as-js call-property "addEventListener", event-name, fn
+
 event extern
 
 +create-input-text node(on-input void mut(x event), value string) trusted, js extern
@@ -81,6 +87,8 @@ region query
 	res = a.node.as-js call-property "getAttribute", attr-name
 	unless res == null
 		res.cast,
++set-subscript void(a attributes, attr-name symbol, value string) trusted, js extern
+	_ = a.node.as-js call-property "setAttribute", attr-name, value
 
 +first-child node?(a node) trusted, js extern
 	res = a.as-js["firstChild"]

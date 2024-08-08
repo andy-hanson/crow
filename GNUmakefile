@@ -179,8 +179,8 @@ prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz 
 	bin/crow run site-src/site.crow --aot
 
 site/script: site-src/script/*.crow site-src/script/*/*.crow
-	mkdir -p site # TODO: 'build' should do this ---------------------------------------------------------------------------------------------------------
-	rm -rf site/script # TODO: 'build' should do this ---------------------------------------------------------------------------------------------------------
+	mkdir -p site
+	rm -rf site/script
 	bin/crow build site-src/script/index.crow --out js:site/script
 
 serve: prepare-site

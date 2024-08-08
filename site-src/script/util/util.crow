@@ -1,4 +1,5 @@
 import
+	crow/io/duration: duration, milliseconds
 	crow/js: await, call, call-property, cast, js-any, js-global, null
 
 to-base-64 string(a string) trusted, js extern
@@ -10,11 +11,14 @@ from-base-64 string(a string) trusted, js extern
 fetch-js-object js-any(url string) trusted, js extern
 	("fetch".js-global call url).await call-property "json" await
 
-make-debouncer void mut(fn void mut())(msec float) trusted, js extern
-	cur mut js-any = null
-	action =>
-		_ = "clearTimeout".js-global call cur
-		cur := "setTimeout".js-global call action, msec
+debouncer record mut
+	-msec float
+	-timeout mut js-any
+new debouncer(time duration) trusted, js extern
+	time.milliseconds, null
+run void(a debouncer, action void mut()) trusted, js extern
+	_ = "clearTimeout".js-global call a.timeout
+	a.timeout := "setTimeout".js-global call action, a.msec
 
 reduce-indent string(a string)
 	# Find first non-whtespace

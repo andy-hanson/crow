@@ -1,5 +1,7 @@
 import
-	crow/js: ==, as-js, await, call-new, call-property, cast, js-any, js-global, null, set-subscript, subscript
+	crow/js:
+		==, as-js, await, call-new, call-property, cast, js-any, js-global, null, set-subscript,
+		subscript
 	./dom-util: create-node
 	./js-util: new
 

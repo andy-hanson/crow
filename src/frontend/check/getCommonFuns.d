@@ -107,7 +107,6 @@ CommonFunsAndMain getCommonFuns(
 	Type stringListType = instantiateType(listDecl, [stringType]);
 	Type nat8ConstPointerType = instantiateType(commonTypes.pointerConst, [nat8Type]);
 	Type nat8MutPointerType = instantiateType(commonTypes.pointerMut, [nat8Type]);
-	Type char8ArrayType = instantiateType(arrayDecl, [Type(commonTypes.char8)]);
 	Type cStringType = Type(commonTypes.cString);
 	Type cStringConstPointerType = instantiateType(commonTypes.pointerConst, [cStringType]);
 	Type mainPointerType = instantiateType(commonTypes.funPointerStruct, [nat64Type, stringListType]);
@@ -115,7 +114,6 @@ CommonFunsAndMain getCommonFuns(
 
 	Type tList = instantiateType(commonTypes.list, [typeParam0]);
 	Type tArray = instantiateType(commonTypes.array, [typeParam0]);
-	Type tFuture = instantiateType(commonTypes.future, [typeParam0]);
 
 	Type rSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [typeParam0, typeParam1]);
 	Type rMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [typeParam0, typeParam1]);

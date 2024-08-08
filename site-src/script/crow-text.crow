@@ -1,14 +1,17 @@
 import
 	crow/col/mut-stack
-	crow/js: +, as-js, call, call-property, cast, js-any, js-cast, js-global, set-subscript, subscript
+	crow/io/duration: millisecond
+	crow/js:
+		+, as-js, call, call-property, cast, js-any, js-cast, js-global, set-subscript, subscript
 	./lsp-types:
 		==, <=>, character, diagnostic, diagnostics, end, length, line, line-and-character, message,
 		modifiers, new, range, start, tokens, tokens-and-diagnostics, type
 	./util/dom-util:
-		~~=, ~=, create-div, create-node, create-span, create-text-node, custom-element-node,
-		define-custom-element, node, remove-all-children, shadow-root, set-subscript, style
+		~~=, ~=, add-event-listener, attributes, create-div, create-node, create-span,
+		create-text-node, custom-element-node, define-custom-element, node, remove-all-children,
+		shadow-root, set-subscript, set-text-content, style
 	./util/mutable-observable: get, mutable-observable, now-and-subscribe, set
-	./util/util: make-debouncer
+	./util/util: debouncer, new, run
 
 -line-height-px float()
 	20
@@ -28,90 +31,95 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	res.as-js["props"] := props
 	res
 
-# TODO: BREAK UP ---------------------------------------------------------------------------------------------------------------------------------------
 -connected void(a custom-element-node) unsafe, js extern
 	props crow-text-props = a.as-js["props"] cast
 	highlight-div = "highlight" create-div
-	ta = "textarea".create-node as-js
-	initial-text = props.text get
-	ta["value"] := initial-text
-	_ = ta call-property "setAttribute", "spellcheck"::string, "false"::string
-	keydown void mut(x js-any) = e =>
+	ta = "textarea" create-node
+	ta.as-js["value"] := props.text get
+	ta.attributes["spellcheck"] := "false"
+	ta add-event-listener "keydown", e =>
 		insert string? = match e["key"].cast::string
 		as Enter
-			"\n{ta indentation-at-selection}",
+			"\n{ta.as-js indentation-at-selection}",
 		as Tab
 			"\t",
 		else
 			()
 		if i ?= insert
 			_ = e call-property "preventDefault"
-			props.text set (ta insert-text-area-text i)
-	_ = ta call-property "addEventListener", "keydown"::string, keydown
-	on-input void mut() = () =>
-		_ = props.text set ta["value"].cast
-	_ = ta call-property "addEventListener", "input"::string, on-input
+			props.text set (ta.as-js insert-text-area-text i)
+	ta add-event-listener "input", _ =>
+		_ = props.text set ta.as-js["value"].cast
 
 	measurer-span = "" create-span ("a".create-text-node,)
 	measurer = "measurer" create-div (measurer-span,)
 	line-numbers = "line-numbers" create-div
-	text-container = "code" create-div (measurer, highlight-div, ta.cast)
+	text-container = "code" create-div (measurer, highlight-div, ta)
 	root = "root" create-div (line-numbers, text-container)
 
-	mouse-move-index mut nat = 0
-	tooltip mut node? = ()
-	mouse-is-in mut = false
-	remove-tooltip void mut() = () =>
-		if x ?= tooltip
-			_ = x.as-js call-property "remove"
-			tooltip := ()
-	mouseout void mut() = () =>
-		mouse-is-in := false
-		remove-tooltip[]
-	_ = ta call-property "addEventListener", "mouseout"::string, mouseout
-	mousemove void mut(e js-any) = e =>
-		mouse-is-in := true
-		remove-tooltip[]
-		offset-x float = e["offsetX"] cast
-		offset-y float = e["offsetY"] cast
-		lines = ta["value"].cast::string split "\n"
-		column-width float = measurer-span.as-js["offsetWidth"] cast
-		line nat = (offset-y / line-height-px).round-down clamp-to
-		column-pre nat = (offset-x / column-width).round-down clamp-to
-		line-text = line < lines.size ? lines[line] : ""
-		leading-tabs = line-text count-leading-tabs
-		tabs-fix = leading-tabs * (tab-size - 1)
-		character nat = line-text == "" ? 0 : (column-pre clamp-sub tabs-fix) min line-text.size - 1
-		mouse-move-index +:= 1
+	state crow-text-state = props, ta.as-js, measurer-span, text-container
+	ta add-event-listener "mouseout", _ =>
+		state.mouse-is-in := false
+		state remove-tooltip
+	ta add-event-listener "mousemove", e =>
+		state mouse-move e
 
-		if mouse-move-index == 2 ** 16
-			mouse-move-index := 0
-		save-mouse-move-index = mouse-move-index
-		timeout void mut() = () =>
-			if mouse-is-in && mouse-move-index == save-mouse-move-index
-				hover = props.getHover[line, character]
-				if hover != ""
-					hover-tooltip = "hover-tooltip" create-div (hover.create-text-node,)
-					_ = text-container.as-js call-property "append", hover-tooltip
-					hover-tooltip.style["left"] := "{offset-x}px"
-					hover-tooltip.style["top"] := "{offset-y}px"
-					assert tooltip.is-empty
-					tooltip := hover-tooltip,
-
-		_ = "setTimeout".js-global call timeout, 200::float
-	_ = ta call-property "addEventListener", "mousemove"::string, mousemove # TODO: helper fn for addEventListener
-
-	diag-debounce = 100 make-debouncer
-
+	diag-debounce debouncer = 100.millisecond,
 	props.tokensAndDiagnostics now-and-subscribe shared x =>
-		value string = ta["value"] cast
+		value string = ta.as-js["value"] cast
 		(x.tokens, ()) highlight highlight-div, value
-		line-numbers-content = "\n" join for i : 0::nat .. (value split "\n").size
+		line-numbers.text-content := "\n" join for i : 0::nat .. (value split "\n").size
 			"{i + 1}"
-		line-numbers.as-js["textContent"] := line-numbers-content
-		diag-debounce[() => x highlight highlight-div, value]
+		diag-debounce run () => x highlight highlight-div, value
 
 	a.shadow-root ~= root
+
+-crow-text-state record mut
+	props crow-text-props
+	text-area node
+	measurer-span node
+	text-container node
+	mouse-move-index mut nat
+	tooltip mut node?
+	mouse-is-in mut bool
+-new crow-text-state(props crow-text-props, text-area node, measurer-span node, text-container node)
+	props, text-area, measurer-span, text-container, 0, (), false
+
+-remove-tooltip void(state crow-text-state) unsafe, js extern
+	if x ?= state.tooltip
+		_ = x.as-js call-property "remove"
+		state.tooltip := ()
+
+-mouse-move void(state crow-text-state, event js-any) unsafe, js extern
+	state.mouse-is-in := true
+	state remove-tooltip
+	offset-x float = event["offsetX"] cast
+	offset-y float = event["offsetY"] cast
+	lines = state.text-area.as-js["value"].cast::string split "\n"
+	column-width float = state.measurer-span.as-js["offsetWidth"] cast
+	line nat = (offset-y / line-height-px).round-down clamp-to
+	column-pre nat = (offset-x / column-width).round-down clamp-to
+	line-text = line < lines.size ? lines[line] : ""
+	leading-tabs = line-text count-leading-tabs
+	tabs-fix = leading-tabs * (tab-size - 1)
+	character nat = line-text == "" ? 0 : (column-pre clamp-sub tabs-fix) min line-text.size - 1
+	state.mouse-move-index +:= 1
+
+	if state.mouse-move-index == 2 ** 16
+		state.mouse-move-index := 0
+	save-mouse-move-index = state.mouse-move-index
+	timeout void mut() = () =>
+		if state.mouse-is-in && state.mouse-move-index == save-mouse-move-index
+			hover = state.props.getHover[line, character]
+			if hover != ""
+				hover-tooltip = "hover-tooltip" create-div (hover.create-text-node,)
+				_ = state.text-container.as-js call-property "append", hover-tooltip
+				hover-tooltip.style["left"] := "{offset-x}px"
+				hover-tooltip.style["top"] := "{offset-y}px"
+				assert state.tooltip.is-empty
+				state.tooltip := hover-tooltip,
+
+	_ = "setTimeout".js-global call timeout, 200::float
 
 -insert-text-area-text string(text-area js-any, inserted string) unsafe, js extern
 	value = text-area["value"]

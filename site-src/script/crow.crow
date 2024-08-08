@@ -16,7 +16,8 @@ crow-server record mut
 
 make-crow-server crow-server() summon, trusted, js extern
 	lsp = make-lsp-server
-	tokens-legend tokens-legend = (lsp request "initialize", ())["capabilities"]["semanticTokensProvider"]["legend"] to
+	tokens-legend tokens-legend =
+		(lsp request "initialize", ())["capabilities"]["semanticTokensProvider"]["legend"] to
 	res crow-server = lsp, tokens-legend, ()
 	res init
 	res

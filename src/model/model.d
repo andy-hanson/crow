@@ -551,8 +551,6 @@ bool isCharOrIntegral(BuiltinType a) {
 			return false;
 	}
 }
-private bool isPointer(BuiltinType a) =>
-	a == BuiltinType.pointerConst || a == BuiltinType.pointerMut;
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -669,8 +667,6 @@ immutable struct StructDecl {
 	bool isTemplate() scope =>
 		!isEmpty(typeParams);
 }
-bool isPointer(in StructDecl a) =>
-	a.body_.isA!BuiltinType && isPointer(a.body_.as!BuiltinType);
 
 immutable struct VariantAndMethodImpls {
 	@safe @nogc pure nothrow:

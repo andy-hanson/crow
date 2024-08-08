@@ -692,8 +692,6 @@ bool isCString(in Type a) =>
 
 bool isTypeParam0(in Type a) =>
 	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 0;
-bool isTypeParam1(in Type a) =>
-	a.isA!TypeParamIndex && a.as!TypeParamIndex.index == 1;
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
 	switch (name.value) {

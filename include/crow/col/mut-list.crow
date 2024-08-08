@@ -240,7 +240,6 @@ Throws if `n > a.size`.
 		trusted a.backing[new-size .. a.size] clear-memory
 		a.size := new-size
 	elif trusted extern js
-		# TODO: 'trusted' should be able to go on the same line! ----------------------------------------------------------
 		trusted
 			a.backing.as-js["length"] := (a.size - n).to::float64
 	else
