@@ -677,10 +677,10 @@ ConcreteExpr concretizeLet(
 ) {
 	ConcreteType localType = getConcreteType(ctx, e.destructure.type);
 	return concretizeWithDestructureAndLet(
-			ctx, type, range, locals, e.destructure,
-			concretizeExpr(ctx, localType, locals, e.value),
-			(in Locals innerLocals) =>
-				concretizeExpr(ctx, type, innerLocals, e.then));
+		ctx, type, range, locals, e.destructure,
+		concretizeExpr(ctx, localType, locals, e.value),
+		(in Locals innerLocals) =>
+			concretizeExpr(ctx, type, innerLocals, e.then));
 }
 
 RootLocalAndExpr concretizeExprWithDestructure(
@@ -749,16 +749,15 @@ RootLocalAndExpr concretizeWithDestructure(
 			return RootLocalAndExpr(some(rootLocal), expr);
 		},
 		(Destructure.Split* x) {
-			if (x.destructuredType.isBogus)
-				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx, type, range));
-			else {
+			if (x.isValidDestructure(ctx.concretizeCtx.commonTypes)) {
 				ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
 					ConcreteLocalSource(ConcreteLocalSource.Generated.destruct),
 					getConcreteType(ctx, destructure.type)));
 				return RootLocalAndExpr(
 					some(temp),
 					concretizeWithDestructureSplit(ctx, type, range, locals, *x, temp, cb));
-			}
+			} else
+				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx, type, range));
 		});
 
 ConcreteExpr concretizeWithDestructureSplit(

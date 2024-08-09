@@ -1,8 +1,9 @@
 main void() trusted
 	info log if extern linux
 		if extern linux
-			"linux linux"
+			"a"
 		else
-			"just linux"
+			"b"
 	else
-		"not linux"
+		# Using the same value to keep test output consistent
+		"a"

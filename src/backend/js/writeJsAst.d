@@ -19,6 +19,7 @@ import backend.js.jsAst :
 	JsContinueStatement,
 	JsDecl,
 	JsDeclKind,
+	JsDefaultDestructure,
 	JsDestructure,
 	JsExpr,
 	JsExprOrBlockStatement,
@@ -50,6 +51,7 @@ import backend.js.jsAst :
 	JsVarDecl,
 	JsWhileStatement,
 	SyncOrAsync;
+import backend.mangle : genericMangleName, isAsciiIdentifierChar;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
@@ -101,15 +103,9 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 					return "t_";
 			}
 		}();
-		foreach (dchar x; name.crowName) {
-			Opt!string out_ = mangleChar(x);
-			if (has(out_))
-				writer ~= force(out_);
-			else
-				writer ~= x;
-		}
+		genericMangleName(writer, name.crowName);
 		if (has(name.mangleIndex)) {
-			writer ~= "__";
+			writer ~= "___";
 			writer ~= force(name.mangleIndex);
 		}
 	}
@@ -173,7 +169,9 @@ bool isJsKeyword(Symbol a) {
 	}
 }
 bool isAllowedJsIdentifierChar(dchar a) =>
-	!has(mangleChar(a));
+	// TODO: JS allows more
+	isAsciiIdentifierChar(a);
+
 Opt!string mangleChar(dchar a) {
 	switch (a) {
 		case '+':
@@ -332,6 +330,11 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 	a.matchIn!void(
 		(in JsName x) {
 			writeJsName(writer, x);
+		},
+		(in JsDefaultDestructure x) {
+			writeDestructure(writer, x.left);
+			writer ~= " = ";
+			writeExpr(writer, 0, x.default_, ExprPos.expr);
 		},
 		(in JsObjectDestructure x) {
 			writer ~= "{ ";
@@ -530,13 +533,15 @@ struct ExprPos {
 	ExprPos withCalled() =>
 		ExprPos(isNonFirstStatement, isCalled: true);
 
+	static ExprPos expr() =>
+		ExprPos(false, false);
 	static ExprPos statementFirst() =>
 		ExprPos(isNonFirstStatement: false, isCalled: false);
 	static ExprPos statementNonFirst() =>
 		ExprPos(isNonFirstStatement: true, isCalled: false);
 }
-void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos()) {
-	void writeArg(in JsExpr arg, ExprPos pos = ExprPos()) {
+void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos.expr) {
+	void writeArg(in JsExpr arg, ExprPos pos = ExprPos.expr) {
 		writeExpr(writer, indent, arg, pos);
 	}
 	void writeArgs(in JsExpr[] args) {

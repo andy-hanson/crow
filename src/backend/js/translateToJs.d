@@ -7,6 +7,7 @@ import backend.js.allUsed :
 	allUsed,
 	AnyDecl,
 	bodyIsInlined,
+	eachNameReferent,
 	isAsyncCall,
 	isAsyncFun,
 	isModuleUsed,
@@ -79,6 +80,7 @@ import backend.js.jsAst :
 	JsContinueStatement,
 	JsDecl,
 	JsDeclKind,
+	JsDefaultDestructure,
 	JsDestructure,
 	JsExpr,
 	JsExprOrBlockStatement,
@@ -392,8 +394,8 @@ struct TranslateProgramCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	ShowCtx showCtx;
-	FileContentGetters* fileContentGetters;
+	const ShowCtx showCtx;
+	const FileContentGetters* fileContentGetters;
 	immutable ProgramWithMain* programWithMainPtr;
 	immutable VersionInfo version_;
 	immutable SymbolSet allExterns;
@@ -401,6 +403,8 @@ struct TranslateProgramCtx {
 	immutable Map!(Uri, Path) modulePaths;
 	immutable ModuleExportMangledNames exportMangledNames;
 
+	ref Program program() return scope const =>
+		programWithMainPtr.program;
 	ref Alloc alloc() =>
 		*allocPtr;
 }
@@ -412,7 +416,7 @@ void doTranslateModule(ref TranslateProgramCtx ctx, scope ref MutMap!(Module*, O
 	foreach (ImportOrExport x; a.reExports)
 		doTranslateModule(ctx, done, x.modulePtr);
 	// Test 'isModuleUsed' last, because an unused module can still have used re-exports
-	mustAdd(ctx.alloc, done, a, optIf(isModuleUsed(ctx.allUsed, a.uri), () =>
+	mustAdd(ctx.alloc, done, a, optIf(isModuleUsed(ctx.allUsed, a), () =>
 		translateModule(ctx, *a)));
 }
 
@@ -460,6 +464,7 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 						genThrow(ctx.alloc, genNew(ctx.alloc, genGlobal(symbol!"Error"), [
 							genPlus(ctx.alloc, genString("Exited with code "), JsExpr(exitCode))])))]);
 			} else {
+				// TODO: Have I tested this? ------------------------------------------------------------------------------
 				/*
 				const exit = await main(newList(process.argv.slice(1)))
 				if (exit !== 0n)
@@ -483,18 +488,19 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 			}
 		},
 		(in MainFun.Void) {
-			final switch (isAsyncFun(ctx.allUsed, main)) {
-				case SyncOrAsync.sync:
+			// TODO: I think we can just do main() all the time, and it will throw uncaught errors ----------------------------
+			//final switch (isAsyncFun(ctx.allUsed, main)) {
+			//	case SyncOrAsync.sync:
 					// main()
 					return newArray(ctx.alloc, [JsStatement(genCallSync(ctx.alloc, mainRef, []))]);
-				case SyncOrAsync.async:
-					// main().catch(console.error)
-					return newArray(ctx.alloc, [JsStatement(genCallPropertySync(
-						ctx.alloc,
-						genCallSync(ctx.alloc, mainRef, []),
-						symbol!"catch",
-						[genPropertyAccess(ctx.alloc, genGlobal(symbol!"console"), symbol!"error")]))]);
-			}
+			//	case SyncOrAsync.async:
+			//		// main().catch(console.error)
+			//		return newArray(ctx.alloc, [JsStatement(genCallPropertySync(
+			//			ctx.alloc,
+			//			genCallSync(ctx.alloc, mainRef, []),
+			//			symbol!"catch",
+			//			[genPropertyAccess(ctx.alloc, genGlobal(symbol!"console"), symbol!"error")]))]);
+			//}
  		});
 }
 
@@ -509,9 +515,9 @@ struct TranslateModuleCtx {
 		ctx.alloc;
 	ref ShowCtx showCtx() return scope const =>
 		ctx.showCtx;
-	ref Program program() scope const =>
-		ctx.programWithMainPtr.program;
-	ref CommonTypes commonTypes() scope const =>
+	ref Program program() return scope const =>
+		ctx.program;
+	ref CommonTypes commonTypes() return scope const =>
 		*program.commonTypes;
 	VersionInfo version_() scope const =>
 		ctx.version_;
@@ -650,16 +656,6 @@ void eachExportOrTestInProgram(ref Program a, in void delegate(AnyDecl) @safe @n
 	foreach (ref immutable Module* x; a.allModules)
 		eachExportOrTestInModule(*x, cb);
 }
-void eachNameReferent(NameReferents a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
-	if (has(a.structOrAlias))
-		cb(force(a.structOrAlias).matchWithPointers!AnyDecl(
-			(StructAlias* x) => AnyDecl(x),
-			(StructDecl* x) => AnyDecl(x)));
-	if (has(a.spec))
-		cb(AnyDecl(force(a.spec)));
-	foreach (FunDecl* x; a.funs)
-		cb(AnyDecl(x));
-}
 
 void eachPrivateDeclInModule(ref Module a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
 	eachDeclInModule(a, (AnyDecl x) {
@@ -693,6 +689,7 @@ JsImport[] translateImports(
 	in Module module_,
 	scope ref MutMap!(StructDecl*, StructAlias*) aliases,
 ) {
+	// TODO: this step could go in its own separate function. --------------------------------------------------------------------------------
 	eachImportOrReExport(module_, (ref ImportOrExport x) {
 		if (!x.hasImported) return;
 		foreach (ref immutable NameReferents* refs; x.imported) {
@@ -735,7 +732,7 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in Module module_) {
 	return mapOp!(JsImport, ImportOrExport)(ctx.alloc, module_.reExports, (ref ImportOrExport x) {
 		RelPath relPath() => relativePath(importerPath, mustGet(ctx.modulePaths, x.module_.uri));
 		if (isImportModuleWhole(x)) // TODO: I think we still need to track aliases used by a re-exporting module
-			return optIf(isModuleUsed(ctx.allUsed, x.module_.uri), () =>
+			return optIf(isModuleUsed(ctx.allUsed, x.modulePtr), () =>
 				JsImport(none!(JsName[]), relPath));
 		else {
 			JsName[] names = buildArray(ctx.alloc, (scope ref Builder!JsName out_) {
@@ -818,11 +815,20 @@ JsDestructure translateDestructure(ref TranslateExprCtx ctx, in Destructure a) =
 		(in Destructure.Split x) =>
 			translateDestructureSplit(ctx, x));
 JsDestructure translateDestructureSplit(ref TranslateExprCtx ctx, in Destructure.Split x) {
-	SmallArray!RecordField fields = x.destructuredType.as!(StructInst*).decl.body_.as!(StructBody.Record).fields;
-	return JsDestructure(JsObjectDestructure(
-		mapZip!(immutable KeyValuePair!(Symbol, JsDestructure), RecordField, Destructure)(
-			ctx.alloc, fields, x.parts, (ref RecordField field, ref Destructure part) =>
-				immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
+	if (x.isValidDestructure(ctx.commonTypes)) {
+		SmallArray!RecordField fields = x.destructuredType.as!(StructInst*).decl.body_.as!(StructBody.Record).fields;
+		return JsDestructure(JsObjectDestructure(
+			mapZip!(immutable KeyValuePair!(Symbol, JsDestructure), RecordField, Destructure)(
+				ctx.alloc, fields, x.parts, (ref RecordField field, ref Destructure part) =>
+					immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
+	} else
+		return JsDestructure(JsObjectDestructure(
+			map(ctx.alloc, x.parts, (ref Destructure part) =>
+				immutable KeyValuePair!(Symbol, JsDestructure)(
+					symbol!"bogus",
+					JsDestructure(allocate(ctx.alloc, JsDefaultDestructure(
+						translateDestructure(ctx, part),
+						genThrowBogusExpr(ctx.alloc))))))));
 }
 void translateSpecsToParams(scope ref Builder!JsDestructure out_, in FunDecl a) {
 	eachSpecInFunIncludingParents(a, (SpecInst* spec) {
@@ -875,41 +881,48 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 
 		foreach (ref VariantAndMethodImpls v; a.variants)
 			zipPointers(v.variantDeclMethods, v.methodImpls, (Signature* sig, Opt!Called* impl) {
-				if (has(*impl))
-					out_ ~= variantMethodImpl(ctx, FunDeclSource.VariantMethod(v.variant.decl, sig), force(*impl));
+				out_ ~= variantMethodImpl(ctx, FunDeclSource.VariantMethod(v.variant.decl, sig), *impl);
 			});
 	});
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
 }
 
-JsClassMember variantMethodImpl(ref TranslateModuleCtx ctx, FunDeclSource.VariantMethod variantMethod, Called a) {
+JsClassMember variantMethodImpl(
+	ref TranslateModuleCtx ctx,
+	in FunDeclSource.VariantMethod variantMethod,
+	in Opt!Called optImpl,
+) {
+	Symbol name = variantMethod.method.name;
 	FunDecl* caller = variantMethodCaller(ctx.program, variantMethod);
-	SyncOrAsync async = isAsyncCall(ctx.allUsed, caller, a);
-	if (isInlined(a)) {
-		FunDecl* decl = a.as!(FunInst*).decl;
+	SyncOrAsync async = has(optImpl) ? isAsyncCall(ctx.allUsed, caller, force(optImpl)) : SyncOrAsync.sync;
+	if (has(optImpl) && isInlined(force(optImpl))) {
+		Called impl = force(optImpl);
+		FunDecl* decl = impl.as!(FunInst*).decl;
 		TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
 		return genInstanceMethod(
 			async,
-			a.name,
+			name,
 			translateFunParams(exprCtx, *decl),
 			translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-				translateInlineCall(exprCtx, a.returnType, pos, decl, a.paramTypes, a.arity.as!uint, (size_t i) =>
+				translateInlineCall(exprCtx, impl.returnType, pos, decl, impl.paramTypes, impl.arity.as!uint, (size_t i) =>
 					JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
 	} else {
 		// foo(...args) { return foo(anySpecs, this, ...args) }
 		JsName args = localName(symbol!"args");
 		return genInstanceMethod(
 			async,
-			a.name,
+			name,
 			JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args))),
 			genBlockStatement(ctx.alloc, [
-				genReturn(ctx.alloc, makeCallNoInlineWithSpread(
-					ctx,
-					async,
-					none!(FunDecl*),
-					a,
-					(scope ref Builder!JsExpr out_) { out_ ~= genThis(); },
-					JsExpr(args)))]));
+				has(optImpl)
+					? genReturn(ctx.alloc, makeCallNoInlineWithSpread(
+						ctx,
+						async,
+						none!(FunDecl*),
+						force(optImpl),
+						(scope ref Builder!JsExpr out_) { out_ ~= genThis(); },
+						JsExpr(args)))
+					: genThrowBogus(ctx.alloc)]));
 	}
 }
 
@@ -1594,8 +1607,12 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(LiteralStringLikeExpr x) =>
 			forceExpr(ctx, pos, type, translateLiteralStringLike(ctx, x)),
 		(LocalGetExpr x) {
-			assert(type == x.local.type);
-			return forceExpr(ctx, pos, type, translateLocalGet(x.local));
+			if (x.local.type.isBogus)
+				return translateToBogus(ctx.alloc, pos);
+			else {
+				assert(type == x.local.type);
+				return forceExpr(ctx, pos, type, translateLocalGet(x.local));
+			}
 		},
 		(LocalPointerExpr x) =>
 			assert(false),
@@ -1757,7 +1774,7 @@ ExprResult translateInlineCall(
 		genPropertyAccess(ctx.alloc, getArg(0), field.name);
 	return called.body_.matchIn!ExprResult(
 		(in FunBody.Bogus) =>
-			forceStatement(ctx.alloc, SyncOrAsync.sync, pos, genThrowBogus(ctx.alloc)),
+			translateToBogus(ctx.alloc, pos),
 		(in AutoFun x) =>
 			assert(false),
 		(in BuiltinFun x) =>
@@ -2800,8 +2817,13 @@ ExprResult withTemp2(
 JsName tempName(ref TranslateExprCtx ctx, Symbol base) =>
 	JsName(JsName.Kind.temp, base, some(safeToUshort(ctx.nextTempIndex++)));
 
+ExprResult translateToBogus(ref Alloc alloc, scope ExprPos pos) =>
+	forceStatement(alloc, SyncOrAsync.sync, pos, genThrowBogus(alloc));
+
 JsStatement genThrowBogus(ref Alloc alloc) =>
 	genThrowJsError(alloc, "Reached compile error");
+JsExpr genThrowBogusExpr(ref Alloc alloc) =>
+	genIife(alloc, SyncOrAsync.sync, genBlockStatement(alloc, [genThrowBogus(alloc)]));
 JsStatement genThrowJsError(ref Alloc alloc, string message) =>
 	genThrow(alloc, genNew(alloc, genGlobal(symbol!"Error"), [genString(message)]));
 JsExpr genNewError(ref TranslateExprCtx ctx, string message) =>
@@ -2955,7 +2977,7 @@ JsExpr makeCallNoInlineWithSpread(
 	ref TranslateModuleCtx ctx,
 	SyncOrAsync await,
 	Opt!(FunDecl*) caller,
-	Called called,
+	in Called called,
 	in void delegate(scope ref Builder!JsExpr) @safe @nogc pure nothrow cbArgs,
 	JsExpr spreadArg,
 ) =>
@@ -2982,7 +3004,7 @@ JsExpr translateFunOrSpecReference(ref TranslateExprCtx ctx, in Called called) =
 JsExpr translateFunOrSpecReference(ref TranslateModuleCtx ctx, in Opt!(FunDecl*) caller, in Called called) =>
 	called.match!JsExpr(
 		(ref Called.Bogus x) =>
-			genIife(ctx.alloc, SyncOrAsync.sync, genBlockStatement(ctx.alloc, [genThrowBogus(ctx.alloc)])),
+			genThrowBogusExpr(ctx.alloc),
 		(ref FunInst x) =>
 			translateFunReference(ctx, x.decl),
 		(CalledSpecSig x) =>

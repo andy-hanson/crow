@@ -554,6 +554,8 @@ void checkFunsWithAsts(
 		if (!fun.bodyIsSet)
 			fun.body_ = funAst.body_.kind.isA!EmptyAst
 				? checkAutoFun(ctx, specsMap, funsMap, fun)
+				: fun.returnType.isBogus
+				? FunBody(FunBody.Bogus())
 				: FunBody(checkFunctionBody(
 					ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, fun, &funAst.body_));
 	});

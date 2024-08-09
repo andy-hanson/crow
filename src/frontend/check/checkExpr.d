@@ -237,6 +237,7 @@ Expr checkFunctionBody(
 	FunDecl* fun,
 	ExprAst* ast,
 ) {
+	assert(!fun.returnType.isBogus);
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe(checkCtx),
 		structsAndAliasesMap,
@@ -768,33 +769,23 @@ Expr checkAssignIdentifier(
 	ref Expected expected,
 	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbRight,
 ) {
-	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, source, left);
+	MutOpt!VariableRefAndType optVar = getIdentifierNonCall(ctx, locals, some(source), left, LocalAccessKind.setOnStack);
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
-		Expr value = withExpect(var.type, cbRight);
-		return var.variableRef.matchWithPointers!Expr(
-			(Local* local) =>
-				check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
-			(ClosureRef x) =>
-				check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
-	} else
-		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);
-}
-
-MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {
-	MutOpt!VariableRefAndType opVar = getIdentifierNonCall(ctx, locals, some(source), name, LocalAccessKind.setOnStack);
-	if (has(opVar)) {
-		VariableRefAndType var = force(opVar);
 		final switch (var.mutability) {
 			case Mutability.immut:
 				addDiag2(ctx, source, Diag(Diag.LocalNotMutable(var.variableRef)));
-				break;
+				return bogus(expected, source);
 			case Mutability.mut:
-				break;
-		}
-		return someMut(var);
+				Expr value = withExpect(var.type, cbRight);
+				return var.variableRef.matchWithPointers!Expr(
+					(Local* local) =>
+						check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
+					(ClosureRef x) =>
+						check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
+				}
 	} else
-		return noneMut!VariableRefAndType;
+		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);
 }
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {

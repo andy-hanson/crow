@@ -266,7 +266,7 @@ void addToPrevOrIndex(T)(
 				})));
 }
 
-public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Symbol a) {
+public void writeMangledName(scope ref Writer writer, in MangledNames mangledNames, Symbol a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
 	if (a == symbol!"errno") {
 		writer ~= "_crow_errno";
@@ -275,6 +275,11 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
+	genericMangleName(writer, a);
+}
+
+// TODO:MOVE ------------------------------------------------------------------------------------------------------------
+public void genericMangleName(scope ref Writer writer, in Symbol a) {
 	foreach (dchar x; a) {
 		if (!isAsciiIdentifierChar(x)) {
 			writer ~= "__";
@@ -284,7 +289,8 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 	}
 }
 
-bool isAsciiIdentifierChar(dchar a) =>
+// TODO:MOVE ------------------------------------------------------------------------------------------------------------
+public bool isAsciiIdentifierChar(dchar a) =>
 	('a' <= a && a <= 'z') ||
 	('A' <= a && a <= 'Z') ||
 	('0' <= a && a <= '9') ||

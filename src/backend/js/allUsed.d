@@ -28,6 +28,7 @@ import model.model :
 	Condition,
 	Destructure,
 	eachDirectChildExpr,
+	eachImportOrReExport,
 	eachSpecSigAndImpl,
 	eachLocal,
 	eachTest,
@@ -47,6 +48,7 @@ import model.model :
 	FunPointerExpr,
 	getCalledAtExpr,
 	IfExpr,
+	ImportOrExport,
 	JsFun,
 	LambdaExpr,
 	LetExpr,
@@ -65,7 +67,11 @@ import model.model :
 	MatchStringLikeExpr,
 	MatchUnionExpr,
 	MatchVariantExpr,
+	Module,
+	moduleAtUri,
 	mustUnwrapOptionType,
+	nameFromNameReferentsPointer,
+	NameReferents,
 	paramsArray,
 	Program,
 	ProgramWithMain,
@@ -79,6 +85,7 @@ import model.model :
 	StructBody,
 	StructDecl,
 	StructInst,
+	StructOrAlias,
 	Test,
 	testBodyExprRef,
 	ThrowExpr,
@@ -93,7 +100,8 @@ import model.model :
 	variantMethodCaller,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : zipPointers;
+import util.col.array : exists, zipPointers;
+import util.col.hashTable : existsInHashTable;
 import util.col.map : Map;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap;
@@ -162,16 +170,18 @@ immutable struct AllUsed {
 	private AsyncSets async;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
-	x in a.usedDecls || (
-		x.isA!(StructAlias*) &&
-		AnyDecl(x.as!(StructAlias*).target.decl) in a.usedDecls);
-bool isModuleUsed(in AllUsed a, Uri module_) {
+	x in a.usedDecls;
+bool isModuleUsed(in AllUsed a, Module* module_) {
+	// TODO: can't this just check if it's a key in 'usedByModule'? ----------------------------------------------------------------------
+	// But what about modules that define something but don't use anything....
 	// TODO: PERF
 	foreach (AnyDecl x; a.usedDecls) {
-		if (x.moduleUri == module_)
+		if (x.moduleUri == module_.uri)
 			return true;
 	}
-	return false;
+	return exists!ImportOrExport(module_.reExports, (in ImportOrExport reExport) =>
+		reExport.hasImported && existsInHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer)(reExport.imported, (in NameReferents* refs) =>
+			existsNameReferent(*refs, (AnyDecl decl) => isUsedAnywhere(a, decl))));
 }
 
 bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
@@ -216,10 +226,30 @@ private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
-	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.regular);
+	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.noInline);
 	// Main module needs to create a new list
 	if (program.mainFun.needsArgsList)
 		trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.program.commonFuns.newTList, FunUse.regular);
+
+	// Add used aliases
+	foreach (Uri moduleUri, ref MutSet!AnyDecl used; res.usedByModule) {
+		eachImportOrReExport(*moduleAtUri(program.program, moduleUri), (ref ImportOrExport x) { // TODO: duplicate code in translateImports -------------------
+			if (!x.hasImported) return;
+			foreach (ref immutable NameReferents* refs; x.imported) {
+				eachNameReferent(*refs, (AnyDecl decl) {
+					if (decl.isA!(StructAlias*)) {
+						StructAlias* alias_ = decl.as!(StructAlias*);
+						StructDecl* target = alias_.target.decl;
+						if (AnyDecl(target) in res.usedDecls) {
+							mayAddToMutSet(alloc, used, AnyDecl(alias_));
+							mayAddToMutSet(alloc, res.usedDecls, AnyDecl(alias_));
+						}
+					}
+				});
+			}	
+		});
+	}
+
 	return AllUsed(
 		mapToMap!(Uri, Set!AnyDecl, MutSet!AnyDecl)(alloc, res.usedByModule, (ref MutSet!AnyDecl x) =>
 			moveToSet(x)),
@@ -305,7 +335,23 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 	return optIf(has(extern_), () => evalExternCondition(force(extern_), allExterns));
 }
 
+void eachNameReferent(NameReferents a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
+	existsNameReferent(a, (AnyDecl x) {
+		cb(x);
+		return false;
+	});
+}
+bool existsNameReferent(NameReferents a, in bool delegate(AnyDecl) @safe @nogc pure nothrow cb) =>
+	(has(a.structOrAlias) && cb(toAnyDecl(force(a.structOrAlias)))) ||
+	(has(a.spec) && cb(AnyDecl(force(a.spec)))) ||
+	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) => cb(AnyDecl(x)));
+
 private:
+
+AnyDecl toAnyDecl(StructOrAlias a) =>
+	a.matchWithPointers!AnyDecl(
+		(StructAlias* x) => AnyDecl(x),
+		(StructDecl* x) => AnyDecl(x));
 
 AsyncSets allAsyncFuns(ref AllUsedBuilder builder) {
 	MutSet!(FunDecl*) asyncFuns;

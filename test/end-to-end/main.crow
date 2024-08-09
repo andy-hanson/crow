@@ -79,6 +79,10 @@ options:
 -is-excluded bool(a string)
 	if trusted extern windows
 		a ends-with "/fail.crow"
+-is-excluded-js bool(a string)
+	a.base-name in excluded-js-names
+-excluded-js-names string set()
+	"gc.crow", "logging.crow", "main-exit-code-too-big.crow", "pointer-mutability.crow"
 
 -ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension
@@ -92,17 +96,23 @@ options:
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
+	# TODO: Lots of duplicate code here, refactor! --------------------------------------------------------------------------
 	interpret-failures = path-to-crow run-single path, interpret, overwrite
 	jit-failures = if options.include-jit && interpret-failures.is-empty && !overwrite
 		path-to-crow run-single path, jit, overwrite
 	else
 		interpret-failures
-	if jit-failures.is-empty && !overwrite
-		path-to-crow run-single path, aot, overwrite
+	aot-failures = jit-failures # -----------------------------------------------------------------------------------------------
+	#aot-failures = if jit-failures.is-empty && !overwrite
+	#	path-to-crow run-single path, aot, overwrite
+	#else
+	#	jit-failures
+	if aot-failures.is-empty && !path.base-name.is-excluded-js
+		path-to-crow run-single path, js, overwrite
 	else
-		jit-failures
+		aot-failures
 
-run-kind enum(interpret, jit, aot)
+run-kind enum(interpret, jit, aot, js)
 
 -run-single failure[](
 	path-to-crow string,
@@ -117,11 +127,13 @@ run-kind enum(interpret, jit, aot)
 		"run", path, "--jit"
 	as aot
 		"run", path, "--aot"
+	as js
+		"run", path, "--node-js"
 	info log "{path-to-crow} {" " join args}"
 	res = path-to-crow spawn-and-wait-result args
-	path handle-output "{path}.out", res.format-output, overwrite-output
+	path handle-output "{path}.out", (res format-output run-kind), overwrite-output
 
--format-output string(a process-result)
+-format-output string(a process-result, run-kind run-kind)
 	if a has-error
 		exit-code = match a exit
 		as exited x
@@ -129,13 +141,19 @@ run-kind enum(interpret, jit, aot)
 		as signaled x
 			x
 		exit-string string = exit-code != 0 && exit-code != 1 ? "big" : "{exit-code}"
-		"exit code: {exit-string}\n{a format-stdout-stderr}"
+		"exit code: {exit-string}\n{a format-stdout-stderr run-kind}"
 	else
 		a.stdout remove-colors
 
--format-stdout-stderr string(a process-result)
+-format-stdout-stderr string(a process-result, run-kind run-kind)
 	stdout string = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
-	"{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
+	stderr-no-color = a.stderr remove-colors
+	stderr string = match run-kind
+	as js
+		stderr-no-color normalize-exceptions-js
+	else
+		stderr-no-color normalize-exceptions
+	"{stdout}stderr:\n{stderr}"
 
 -remove-colors string(a string)
 	if pair ?= a try-split-once "\x1b"
@@ -156,8 +174,43 @@ run-kind enum(interpret, jit, aot)
 			normalized-name == "" ? () : ("\tat {normalized-name}",)
 		else
 			line,
+-normalize-exceptions-js string(a string)
+	started-stack mut = false
+	a update-lines line =>
+		if line starts-with "file://"
+			started-stack := true
+			()
+		elif rest ?= line try-remove-start "Error: "
+			started-stack := true
+			"Uncaught exception: {rest}",
+		elif started-stack
+			ls = line strip
+			if ls starts-with "throw new " || ls ends-with "^" || ls == ""
+				()
+			elif rest ?= ls try-remove-start "Error: "
+				"Uncaught exception: {rest}",
+			elif rest ?= ls try-remove-start "at "
+				if rest starts-with "file://"
+					()
+				elif name, _ ?= rest try-split-once "("
+					unless name in ignore-js-stack
+						"\tat {name.strip strip-prefix}",
+				else
+					line,
+			elif line starts-with "Node.js v"
+				"",
+			else
+				line,
+		else
+			line,
 
--update-lines string(a string, cb string[] data(line string))
+-strip-prefix string(a string)
+	(a try-remove-start "f_" || a try-remove-start "t_") ?? a
+
+-ignore-js-stack string set()
+	"ModuleJob.run ", "async ModuleLoader.import ", "async asyncRunEntryPointWithESMLoader "
+
+-update-lines string(a string, cb string[] mut(line string))
 	"\n" join with out : build
 		for line : a split "\n"
 			for new-line : cb[line]

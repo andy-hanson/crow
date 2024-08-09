@@ -2153,8 +2153,16 @@ immutable struct Destructure {
 		Type type;
 	}
 	immutable struct Split {
-		Type destructuredType; // This will be a tuple instance or Bogus.
+		@safe @nogc pure nothrow:
+		// This will be the type attempted to destructure.
+		// If it can't be destructured, each of 'parts' will have a bogus type.
+		Type destructuredType;
 		SmallArray!Destructure parts;
+
+		bool isValidDestructure(in CommonTypes commonTypes) scope {
+			Opt!(Type[]) types = asTuple(commonTypes, destructuredType);
+			return has(types) && force(types).length == parts.length;
+		}
 	}
 	mixin TaggedUnion!(Ignore*, Local*, Split*);
 
@@ -2790,7 +2798,7 @@ Opt!T findDirectChildExpr(T)(
 		(LiteralStringLikeExpr _) =>
 			none!T,
 		(LocalGetExpr x) {
-			assert(a.type == x.local.type);
+			assert(a.type == x.local.type || x.local.type.isBogus);
 			return none!T;
 		},
 		(LocalPointerExpr _) =>

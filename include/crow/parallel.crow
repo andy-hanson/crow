@@ -57,7 +57,7 @@ add-awaiting-fiber-for-t[t] bool(future any-mut-pointer, fiber fiber) bare, unsa
 	if extern native
 		value.resolved as-future
 	elif extern js
-		"Promise".js-global call-property "resolved", value cast
+		"Promise".js-global call-property "resolve", value cast
 	else
 		todo
 

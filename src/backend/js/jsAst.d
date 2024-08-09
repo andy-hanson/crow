@@ -97,7 +97,12 @@ immutable struct JsExprOrBlockStatement {
 }
 
 immutable struct JsDestructure {
-	mixin Union!(JsName, JsObjectDestructure);
+	mixin Union!(JsName, JsDefaultDestructure*, JsObjectDestructure);
+}
+// 'left = default'
+immutable struct JsDefaultDestructure {
+	JsDestructure left;
+	JsExpr default_;
 }
 immutable struct JsObjectDestructure {
 	KeyValuePair!(Symbol, JsDestructure)[] fields;

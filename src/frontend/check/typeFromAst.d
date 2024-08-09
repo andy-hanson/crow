@@ -523,7 +523,7 @@ Destructure checkDestructure(
 								Diag.DestructureTypeMismatch.Expected.Tuple(partAsts.length)),
 							typeWithContainer(tupleType))));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
-						Type.bogus,
+						tupleType,
 						mapPointers!(Destructure, DestructureAst)(
 							ctx.alloc, small!DestructureAst(partAsts), (DestructureAst* part) =>
 								checkDestructure(
