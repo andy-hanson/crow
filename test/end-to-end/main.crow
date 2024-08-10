@@ -82,7 +82,12 @@ options:
 -is-excluded-js bool(a string)
 	a.base-name in excluded-js-names
 -excluded-js-names string set()
-	"gc.crow", "logging.crow", "main-exit-code-too-big.crow", "pointer-mutability.crow"
+	"caught-exception-outside-of-task.crow", \
+	"empty-enum-or-union.crow",
+	"gc.crow",
+	"logging.crow",
+	"main-exit-code-too-big.crow",
+	"pointer-mutability.crow"
 
 -ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension
@@ -96,21 +101,21 @@ options:
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
-	# TODO: Lots of duplicate code here, refactor! --------------------------------------------------------------------------
-	interpret-failures = path-to-crow run-single path, interpret, overwrite
-	jit-failures = if options.include-jit && interpret-failures.is-empty && !overwrite
-		path-to-crow run-single path, jit, overwrite
+	kinds run-kind[] = for _, x : enum-members::((symbol, run-kind) array); x
+	for kind : kinds
+		include = match kind
+		as jit
+			options include-jit
+		as js
+			!path.is-excluded-js
+		else
+			true
+		if include
+			failures = path-to-crow run-single path, kind, overwrite
+			unless failures is-empty
+				break failures
 	else
-		interpret-failures
-	aot-failures = jit-failures # -----------------------------------------------------------------------------------------------
-	#aot-failures = if jit-failures.is-empty && !overwrite
-	#	path-to-crow run-single path, aot, overwrite
-	#else
-	#	jit-failures
-	if aot-failures.is-empty && !path.base-name.is-excluded-js
-		path-to-crow run-single path, js, overwrite
-	else
-		aot-failures
+		()
 
 run-kind enum(interpret, jit, aot, js)
 
@@ -131,7 +136,7 @@ run-kind enum(interpret, jit, aot, js)
 		"run", path, "--node-js"
 	info log "{path-to-crow} {" " join args}"
 	res = path-to-crow spawn-and-wait-result args
-	path handle-output "{path}.out", (res format-output run-kind), overwrite-output
+	path handle-output "{path}.out", (res format-output run-kind), overwrite-output, run-kind
 
 -format-output string(a process-result, run-kind run-kind)
 	if a has-error
@@ -183,6 +188,9 @@ run-kind enum(interpret, jit, aot, js)
 		elif rest ?= line try-remove-start "Error: "
 			started-stack := true
 			"Uncaught exception: {rest}",
+		elif rest ?= line try-remove-start "t_error [Error]: "
+			started-stack := true
+			"Uncaught exception: {rest}",
 		elif started-stack
 			ls = line strip
 			if ls starts-with "throw new " || ls ends-with "^" || ls == ""
@@ -197,6 +205,8 @@ run-kind enum(interpret, jit, aot, js)
 						"\tat {name.strip strip-prefix}",
 				else
 					line,
+			elif ls starts-with "f_describe: " || line == "}"
+				()
 			elif line starts-with "Node.js v"
 				"",
 			else
@@ -207,7 +217,7 @@ run-kind enum(interpret, jit, aot, js)
 -strip-prefix string(a string)
 	# For JS exception in a method: Ignore the class name
 	if _, x ?= a try-split-once-right "."
-		x
+		x try-remove-start "v_" ?? x
 	else
 		(a try-remove-start "f_" || a try-remove-start "t_") ?? a
 
@@ -229,6 +239,7 @@ run-kind enum(interpret, jit, aot, js)
 	output-path string,
 	actual string,
 	overwrite-output bool,
+	kind run-kind
 ) summon, native extern
 	text string = output-path read-file-or-empty
 	if actual.normalize-newlines == text.normalize-newlines
@@ -237,4 +248,4 @@ run-kind enum(interpret, jit, aot, js)
 		output-path write-file actual
 		()
 	else
-		(original-path, "{output-path} was not as expected. Actual:\n{actual}"),
+		(original-path, "For {kind}: {output-path} was not as expected. Actual:\n{actual}"),

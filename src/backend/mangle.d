@@ -275,11 +275,11 @@ public void writeMangledName(scope ref Writer writer, in MangledNames mangledNam
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	genericMangleName(writer, a);
+	mangleNameCommon(writer, a);
 }
 
-// TODO:MOVE ------------------------------------------------------------------------------------------------------------
-public void genericMangleName(scope ref Writer writer, in Symbol a) {
+// Used for both JS and C
+public void mangleNameCommon(scope ref Writer writer, in Symbol a) {
 	foreach (dchar x; a) {
 		if (!isAsciiIdentifierChar(x)) {
 			writer ~= "__";
@@ -289,7 +289,6 @@ public void genericMangleName(scope ref Writer writer, in Symbol a) {
 	}
 }
 
-// TODO:MOVE ------------------------------------------------------------------------------------------------------------
 public bool isAsciiIdentifierChar(dchar a) =>
 	('a' <= a && a <= 'z') ||
 	('A' <= a && a <= 'Z') ||

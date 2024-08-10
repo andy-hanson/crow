@@ -172,16 +172,17 @@ immutable struct AllUsed {
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>
 	x in a.usedDecls;
 bool isModuleUsed(in AllUsed a, Module* module_) {
-	// TODO: can't this just check if it's a key in 'usedByModule'? ----------------------------------------------------------------------
-	// But what about modules that define something but don't use anything....
 	// TODO: PERF
 	foreach (AnyDecl x; a.usedDecls) {
 		if (x.moduleUri == module_.uri)
 			return true;
 	}
 	return exists!ImportOrExport(module_.reExports, (in ImportOrExport reExport) =>
-		reExport.hasImported && existsInHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer)(reExport.imported, (in NameReferents* refs) =>
-			existsNameReferent(*refs, (AnyDecl decl) => isUsedAnywhere(a, decl))));
+		reExport.hasImported &&
+		existsInHashTable!(NameReferents*, Symbol, nameFromNameReferentsPointer)(
+			reExport.imported,
+			(in NameReferents* refs) =>
+				existsNameReferent(*refs, (AnyDecl decl) => isUsedAnywhere(a, decl))));
 }
 
 bool isUsedInModule(in AllUsed a, Uri module_, in AnyDecl x) {
@@ -233,20 +234,11 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 
 	// Add used aliases
 	foreach (Uri moduleUri, ref MutSet!AnyDecl used; res.usedByModule) {
-		eachImportOrReExport(*moduleAtUri(program.program, moduleUri), (ref ImportOrExport x) { // TODO: duplicate code in translateImports -------------------
-			if (!x.hasImported) return;
-			foreach (ref immutable NameReferents* refs; x.imported) {
-				eachNameReferent(*refs, (AnyDecl decl) {
-					if (decl.isA!(StructAlias*)) {
-						StructAlias* alias_ = decl.as!(StructAlias*);
-						StructDecl* target = alias_.target.decl;
-						if (AnyDecl(target) in res.usedDecls) {
-							mayAddToMutSet(alloc, used, AnyDecl(alias_));
-							mayAddToMutSet(alloc, res.usedDecls, AnyDecl(alias_));
-						}
-					}
-				});
-			}	
+		eachStructAliasInImports(*moduleAtUri(program.program, moduleUri), (StructAlias* alias_, StructDecl* target) {
+			if (AnyDecl(target) in res.usedDecls) {
+				mayAddToMutSet(alloc, used, AnyDecl(alias_));
+				mayAddToMutSet(alloc, res.usedDecls, AnyDecl(alias_));
+			}
 		});
 	}
 
@@ -255,6 +247,25 @@ AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo versio
 			moveToSet(x)),
 		moveToSet(res.usedDecls),
 		allAsyncFuns(res));
+}
+
+
+void eachStructAliasInImports(
+	in Module module_,
+	in void delegate(StructAlias*, StructDecl*) @safe @nogc pure nothrow cb,
+) {
+	eachNameReferentInImports(module_, (AnyDecl decl) {
+		if (decl.isA!(StructAlias*))
+			cb(decl.as!(StructAlias*), decl.as!(StructAlias*).target.decl);
+	});
+}
+
+private void eachNameReferentInImports(in Module module_, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
+	eachImportOrReExport(module_, (ref ImportOrExport x) {
+		if (!x.hasImported) return;
+		foreach (ref immutable NameReferents* refs; x.imported)
+			eachNameReferent(*refs, cb);
+	});
 }
 
 bool bodyIsInlined(in FunDecl a) =>
@@ -336,12 +347,12 @@ Opt!bool tryEvalConstantBool(in VersionInfo version_, in SymbolSet allExterns, i
 }
 
 void eachNameReferent(NameReferents a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
-	existsNameReferent(a, (AnyDecl x) {
+	cast(void) existsNameReferent(a, (AnyDecl x) {
 		cb(x);
 		return false;
 	});
 }
-bool existsNameReferent(NameReferents a, in bool delegate(AnyDecl) @safe @nogc pure nothrow cb) =>
+private bool existsNameReferent(NameReferents a, in bool delegate(AnyDecl) @safe @nogc pure nothrow cb) =>
 	(has(a.structOrAlias) && cb(toAnyDecl(force(a.structOrAlias)))) ||
 	(has(a.spec) && cb(AnyDecl(force(a.spec)))) ||
 	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) => cb(AnyDecl(x)));

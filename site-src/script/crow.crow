@@ -2,9 +2,7 @@ import
 	crow/io/duration: nanosecond, milliseconds
 	crow/js: ==, as-js, await, call, call-property, cast, js-any, js-global, null, subscript
 	./decode-tokens: decode-tokens
-	./lsp-types:
-		diagnostic, line-and-character, new, run-result, text-document-item, to, to-js, token,
-		tokens-legend
+	./lsp-types: diagnostic, line-and-character, run-result, to, to-js, token, tokens-legend
 	./util/DataView-util: DataView, new, read-c-string, view-c-string, wasm32, write-c-string
 	./util/js-util: json-parse, json-stringify, new, to-js-object
 	./util/util: fetch-js-object
@@ -26,7 +24,8 @@ uri alias
 	string
 
 open-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
-	params js-any = (("textDocument", (uri, text)::text-document-item.as-js),)
+	item js-any = ("uri", uri.as-js), ("text", text.as-js)
+	params js-any = ("textDocument", item),
 	response = a.lsp-server handle-message ("textDocument/didOpen" make-message params)
 	a get-diagnostics uri, response
 
@@ -101,16 +100,16 @@ region LSP server
 		count wasm32,
 		nanos nat,
 		bytes wasm32,
-	)).as-js bind crow.as-js
+	)).as-js partial crow.as-js
 	res["perfLogFinish"] := (&perf-log-finish)::(void function(
 		a crow-lsp-server,
 		name view-c-string,
 		total-nanos nat,
-	)).as-js bind crow.as-js
+	)).as-js partial crow.as-js
 	res["debugLog"] := (&debug-log)::(void function(
 		a crow-lsp-server,
 		text view-c-string,
-	)).as-js bind crow.as-js
+	)).as-js partial crow.as-js
 	for key : math-keys
 		value = "Math".js-global[key]
 		res[key] := value
@@ -122,10 +121,10 @@ region LSP server
 		asserted view-c-string,
 		file view-c-string,
 		line float,
-	)).as-js bind crow.as-js
+	)).as-js partial crow.as-js
 	res.move-to to-js-object
--bind js-any(fn js-any, arg js-any) unsafe, js extern
-	fn call-property "bind", arg
+-partial js-any(fn js-any, arg js-any) unsafe, js extern
+	fn call-property "bind", null::js-any, arg
 
 -get-time-nanos nat() summon, trusted, js extern
 	msec float = "performance".js-global call-property "now" cast

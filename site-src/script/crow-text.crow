@@ -57,7 +57,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	text-container = "code" create-div (measurer, highlight-div, ta)
 	root = "root" create-div (line-numbers, text-container)
 
-	state crow-text-state = props, ta.as-js, measurer-span, text-container
+	state crow-text-state = props, ta, measurer-span, text-container
 	ta add-event-listener "mouseout", _ =>
 		state.mouse-is-in := false
 		state remove-tooltip

@@ -13,8 +13,6 @@ tokens-legend record
 to tokens-legend(a js-any) unsafe, js extern
 	a["tokenTypes"].cast, a["tokenModifiers"].cast
 
-text-document-item record(uri string, text string)
-
 line-and-character record(line nat, character nat)
 == bool(a line-and-character, b line-and-character)
 <=> comparison(a line-and-character, b line-and-character)

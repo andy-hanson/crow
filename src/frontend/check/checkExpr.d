@@ -769,7 +769,8 @@ Expr checkAssignIdentifier(
 	ref Expected expected,
 	in Expr delegate(ref Expected) @safe @nogc pure nothrow cbRight,
 ) {
-	MutOpt!VariableRefAndType optVar = getIdentifierNonCall(ctx, locals, some(source), left, LocalAccessKind.setOnStack);
+	MutOpt!VariableRefAndType optVar =
+		getIdentifierNonCall(ctx, locals, some(source), left, LocalAccessKind.setOnStack);
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
 		final switch (var.mutability) {
@@ -780,9 +781,11 @@ Expr checkAssignIdentifier(
 				Expr value = withExpect(var.type, cbRight);
 				return var.variableRef.matchWithPointers!Expr(
 					(Local* local) =>
-						check(ctx, expected, voidType(ctx), source, ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value)))),
+						check(ctx, expected, voidType(ctx), source, ExprKind(
+							LocalSetExpr(local, allocate(ctx.alloc, value)))),
 					(ClosureRef x) =>
-						check(ctx, expected, voidType(ctx), source, ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value)))));
+						check(ctx, expected, voidType(ctx), source, ExprKind(
+							ClosureSetExpr(x, allocate(ctx.alloc, value)))));
 				}
 	} else
 		return checkCallSpecialCb1(ctx, locals, source, keywordRange, prependSet(left), expected, cbRight);

@@ -53,13 +53,13 @@ import backend.js.jsAst :
 	JsVarDecl,
 	JsWhileStatement,
 	SyncOrAsync;
-import backend.mangle : genericMangleName, isAsciiIdentifierChar;
+import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, only;
 import util.col.map : KeyValuePair;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : RelPath, Uri;
 import util.util : stringOfEnum;
@@ -97,6 +97,8 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 					return "f_";
 				case JsName.Kind.local:
 					return "l_";
+				case JsName.Kind.specialLocal:
+					return "sl_";
 				case JsName.Kind.specSig:
 					return "s_";
 				case JsName.Kind.temp:
@@ -105,7 +107,7 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 					return "t_";
 			}
 		}();
-		genericMangleName(writer, name.crowName);
+		mangleNameCommon(writer, name.crowName);
 		if (has(name.mangleIndex)) {
 			writer ~= "___";
 			writer ~= force(name.mangleIndex);
@@ -189,39 +191,6 @@ bool isJsKeyword(Symbol a) {
 bool isAllowedJsIdentifierChar(dchar a) =>
 	// TODO: JS allows more
 	isAsciiIdentifierChar(a);
-
-Opt!string mangleChar(dchar a) {
-	switch (a) {
-		case '+':
-			return some("__plus");
-		case '-':
-			return some("_");
-		case '*':
-			return some("__times");
-		case '/':
-			return some("__div");
-		case '%':
-			return some("__mod");
-		case '~':
-			return some("__tilde");
-		case '<':
-			return some("__less");
-		case '>':
-			return some("__gt");
-		case '=':
-			return some("__eq");
-		case '!':
-			return some("__bang");
-		case '.':
-			return some("__dot");
-		case '&':
-			return some("__amp");
-		case '|':
-			return some("__bar");
-		default:
-			return none!string;
-	}
-}
 
 void writeImportOrReExport(scope ref Writer writer, in string importOrExport, in JsImport import_) {
 	writer ~= importOrExport;

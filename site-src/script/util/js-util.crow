@@ -36,7 +36,11 @@ method alias
 	js-any mut(this js-any, args js-any array)
 
 -make-method js-any(fn method) unsafe, js extern
-	make-method = "fn => function(...args) \{ return fn(\{a:this, b:args}) }" eval
+	make-method = """
+		fn => function(...args) \{
+			return fn(\{ "f_a": this, "f_b": args })
+		}
+	""" eval
 	make-method call fn
 
 make-class js-any(
@@ -48,13 +52,13 @@ make-class js-any(
 		(ctor, Super) => class extends Super \{
 			constructor(...args) \{
 				super()
-				ctor(\{a:this, b:args})
+				ctor(\{ "f_a": this, "f_b": args })
 			}
 		}
 	""" eval
 	res = make call constructor, super-class
 	for name, method : methods
-		res["prototype"][name] := method.make-method
+		res["prototype"][name] := method make-method
 	res
 
 json-parse js-any(a string) unsafe, js extern
