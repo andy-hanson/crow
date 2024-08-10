@@ -205,7 +205,11 @@ run-kind enum(interpret, jit, aot, js)
 			line,
 
 -strip-prefix string(a string)
-	(a try-remove-start "f_" || a try-remove-start "t_") ?? a
+	# For JS exception in a method: Ignore the class name
+	if _, x ?= a try-split-once-right "."
+		x
+	else
+		(a try-remove-start "f_" || a try-remove-start "t_") ?? a
 
 -ignore-js-stack string set()
 	"ModuleJob.run ", "async ModuleLoader.import ", "async asyncRunEntryPointWithESMLoader "

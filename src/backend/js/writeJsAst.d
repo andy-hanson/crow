@@ -29,7 +29,9 @@ import backend.js.jsAst :
 	JsLiteralInteger,
 	JsLiteralNumber,
 	JsLiteralString,
+	JsLiteralStringFromMemberName,
 	JsLiteralStringFromSymbol,
+	JsMemberName,
 	JsModuleAst,
 	JsName,
 	JsNewExpr,
@@ -110,30 +112,46 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 		}
 	}
 }
-void writeObjectKey(scope ref Writer writer, Symbol a) {
-	if (needsMangle(a))
-		writeQuotedSymbol(writer, a);
-	else
-		writer ~= a;
+void writePropertyAccess(scope ref Writer writer, JsMemberName a) {
+	if (!needsMangle(a.crowName))
+		writer ~= '.';
+	writeMemberName(writer, a);
 }
-void writePropertyAccess(scope ref Writer writer, Symbol a) {
-	if (needsMangle(a)) {
+void writeMemberName(scope ref Writer writer, JsMemberName a) {
+	if (needsMangle(a.crowName)) {
 		writer ~= '[';
-		writeQuotedSymbol(writer, a);
+		writeQuotedMemberName(writer, a);
 		writer ~= ']';
 	} else {
-		writer ~= '.';
-		writer ~= a;
+		writer ~= memberNamePrefix(a.kind);
+		writer ~= a.crowName;
 	}
 }
-void writeNamePossiblyBracketQuoted(scope ref Writer writer, Symbol a) {
-	if (needsMangle(a)) {
-		writer ~= '[';
-		writeQuotedSymbol(writer, a);
-		writer ~= ']';
-	} else
-		writer ~= a;
+void writeQuotedMemberName(scope ref Writer writer, JsMemberName a) {
+	writer ~= '"';
+	writer ~= memberNamePrefix(a.kind);
+	writer ~= a.crowName;
+	writer ~= '"';
 }
+string memberNamePrefix(JsMemberName.Kind a) {
+	final switch (a) {
+		case JsMemberName.Kind.none:
+			return "";
+		case JsMemberName.Kind.enumMember:
+			return "e_";
+		case JsMemberName.Kind.recordField:
+			return "f_";
+		case JsMemberName.Kind.special:
+			return "s_";
+		case JsMemberName.Kind.unionConstructor:
+			return "uc_";
+		case JsMemberName.Kind.unionMember:
+			return "um_";
+		case JsMemberName.Kind.variantMethod:
+			return "v_";
+	}
+}
+
 bool needsMangle(Symbol a) {
 	foreach (dchar x; a)
 		if (!isAllowedJsIdentifierChar(x))
@@ -296,7 +314,7 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 		writer ~= "get ";
 	if (member.kind.isA!JsClassMethod)
 		maybeWriteAsync(writer, member.kind.as!JsClassMethod.async);
-	writeNamePossiblyBracketQuoted(writer, member.name);
+	writeMemberName(writer, member.name);
 	member.kind.matchIn!void(
 		(in JsClassGetter x) {
 			writer ~= "() ";
@@ -338,10 +356,10 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 		},
 		(in JsObjectDestructure x) {
 			writer ~= "{ ";
-			writeWithCommas!(KeyValuePair!(Symbol, JsDestructure))(
+			writeWithCommas!(KeyValuePair!(JsMemberName, JsDestructure))(
 				writer, x.fields,
-				(in KeyValuePair!(Symbol, JsDestructure) pair) {
-					writeObjectKey(writer, pair.key);
+				(in KeyValuePair!(JsMemberName, JsDestructure) pair) {
+					writeMemberName(writer, pair.key);
 					writer ~= ": ";
 					writeDestructure(writer, pair.value);
 				});
@@ -648,6 +666,9 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		(in JsLiteralString x) {
 			writeQuotedString(writer, x.value);
 		},
+		(in JsLiteralStringFromMemberName x) {
+			writeQuotedMemberName(writer, x.value);
+		},
 		(in JsLiteralStringFromSymbol x) {
 			writeQuotedSymbol(writer, x.value);
 		},
@@ -725,8 +746,8 @@ void maybeWriteAsync(scope ref Writer writer, SyncOrAsync async) {
 	}
 }
 
-void writeObjectPair(scope ref Writer writer, uint indent, Symbol key, in JsExpr value) {
-	writeObjectKey(writer, key);
+void writeObjectPair(scope ref Writer writer, uint indent, JsMemberName key, in JsExpr value) {
+	writeMemberName(writer, key);
 	writer ~= ": ";
 	writeExpr(writer, indent, value);
 }

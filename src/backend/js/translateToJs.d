@@ -61,6 +61,7 @@ import backend.js.jsAst :
 	genReturn,
 	genStaticMethod,
 	genString,
+	genStringFromSymbol,
 	genSwitch,
 	genTernary,
 	genThis,
@@ -85,6 +86,7 @@ import backend.js.jsAst :
 	JsExpr,
 	JsExprOrBlockStatement,
 	JsImport,
+	JsMemberName,
 	JsModuleAst,
 	JsName,
 	jsNameNoPrefix,
@@ -474,8 +476,8 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 				// process.argv.slice(2)
 				JsExpr args = genCallPropertySync(
 					ctx.alloc,
-					genPropertyAccess(ctx.alloc, process, symbol!"argv"),
-					symbol!"slice",
+					genPropertyAccess(ctx.alloc, process, JsMemberName.noPrefix(symbol!"argv")),
+					JsMemberName.noPrefix(symbol!"slice"),
 					[genNumber(2)]);
 				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, args)]);
 				return newArray(ctx.alloc, [
@@ -483,7 +485,7 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 					genIf(
 						ctx.alloc,
 						exitCodeNotZero,
-						JsStatement(genCallPropertySync(ctx.alloc, process, symbol!"exit", [
+						JsStatement(genCallPropertySync(ctx.alloc, process, JsMemberName.noPrefix(symbol!"exit"), [
 							genCallSync(ctx.alloc, genGlobal(symbol!"Number"), [JsExpr(exitCode)])])))]);
 			}
 		},
@@ -791,12 +793,12 @@ JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(fun));
 }
 
-JsParams translateFunParams(ref TranslateExprCtx ctx, in FunDecl a) {
+JsParams translateFunParams(ref TranslateExprCtx ctx, in FunDecl a, bool omitFirst = false) {
 	SmallArray!JsDestructure params = buildSmallArray!JsDestructure(ctx.alloc, (scope ref Builder!JsDestructure out_) {
 		translateSpecsToParams(out_, a);
 		a.params.match!void(
 			(Destructure[] xs) {
-				foreach (ref Destructure x; xs)
+				foreach (ref Destructure x; xs[(omitFirst ? 1 : 0) .. $])
 					out_ ~= translateDestructure(ctx, x);
 			},
 			(ref Params.Varargs x) {});
@@ -818,14 +820,14 @@ JsDestructure translateDestructureSplit(ref TranslateExprCtx ctx, in Destructure
 	if (x.isValidDestructure(ctx.commonTypes)) {
 		SmallArray!RecordField fields = x.destructuredType.as!(StructInst*).decl.body_.as!(StructBody.Record).fields;
 		return JsDestructure(JsObjectDestructure(
-			mapZip!(immutable KeyValuePair!(Symbol, JsDestructure), RecordField, Destructure)(
+			mapZip!(immutable KeyValuePair!(JsMemberName, JsDestructure), RecordField, Destructure)(
 				ctx.alloc, fields, x.parts, (ref RecordField field, ref Destructure part) =>
-					immutable KeyValuePair!(Symbol, JsDestructure)(field.name, translateDestructure(ctx, part)))));
+					immutable KeyValuePair!(JsMemberName, JsDestructure)(JsMemberName.recordField(field.name), translateDestructure(ctx, part)))));
 	} else
 		return JsDestructure(JsObjectDestructure(
 			map(ctx.alloc, x.parts, (ref Destructure part) =>
-				immutable KeyValuePair!(Symbol, JsDestructure)(
-					symbol!"bogus",
+				immutable KeyValuePair!(JsMemberName, JsDestructure)(
+					JsMemberName.special(symbol!"bogus"),
 					JsDestructure(allocate(ctx.alloc, JsDefaultDestructure(
 						translateDestructure(ctx, part),
 						genThrowBogusExpr(ctx.alloc))))))));
@@ -870,12 +872,12 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 			(StructBody.Variant) {
 				if (a == ctx.commonTypes.exception.decl) {
 					extends = someMut(allocate(ctx.alloc, genGlobal(symbol!"Error")));
-					// get message() { return this.describe() }
+					// get message() { return this.m_describe() }
 					out_ ~= genGetter(
 						JsClassMember.Static.instance,
-						symbol!"message",
+						JsMemberName.noPrefix(symbol!"message"),
 						JsBlockStatement(newArray(ctx.alloc, [
-							genReturn(ctx.alloc, genCallPropertySync(ctx.alloc, genThis(), symbol!"describe", []))])));
+							genReturn(ctx.alloc, genCallPropertySync(ctx.alloc, genThis(), JsMemberName.variantMethod(symbol!"describe"), []))])));
 				}
 			});
 
@@ -901,17 +903,17 @@ JsClassMember variantMethodImpl(
 		TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
 		return genInstanceMethod(
 			async,
-			name,
-			translateFunParams(exprCtx, *decl),
+			JsMemberName.variantMethod(name),
+			translateFunParams(exprCtx, *decl, omitFirst: true),
 			translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
 				translateInlineCall(exprCtx, impl.returnType, pos, decl, impl.paramTypes, impl.arity.as!uint, (size_t i) =>
-					JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
+					i == 0 ? genThis() : JsExpr(localName(*decl.params.as!(Destructure[])[i].as!(Local*))))));
 	} else {
 		// foo(...args) { return foo(anySpecs, this, ...args) }
 		JsName args = localName(symbol!"args");
 		return genInstanceMethod(
 			async,
-			name,
+			JsMemberName.variantMethod(name),
 			JsParams(emptySmallArray!JsDestructure, some(JsDestructure(args))),
 			genBlockStatement(ctx.alloc, [
 				has(optImpl)
@@ -943,22 +945,22 @@ void translateEnumDecl(
 	*/
 	JsName value = localName(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
-		genAssignToThis(ctx.alloc, symbol!"value", JsExpr(value))]);
+		genAssignToThis(ctx.alloc, JsMemberName.special(symbol!"value"), JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members)
 		out_ ~= genField(
 			JsClassMember.Static.static_,
-			member.name,
+			JsMemberName.enumMember(member.name),
 			genNew(ctx.alloc, genThis(), [genInteger(isSigned(a.storage), member.value)]));
 	out_ ~= enumOrFlagsMembers(ctx, a.members);
 }
-JsStatement genAssignToThis(ref Alloc alloc, Symbol name, JsExpr value) =>
+JsStatement genAssignToThis(ref Alloc alloc, JsMemberName name, JsExpr value) =>
 	genAssign(alloc, genPropertyAccess(alloc, genThis(), name), value);
 JsClassMember enumOrFlagsMembers(ref TranslateModuleCtx ctx, in EnumOrFlagsMember[] members) =>
 	genField(
 		JsClassMember.Static.static_,
-		symbol!"_members",
+		JsMemberName.special(symbol!"members"),
 		genArray(map(ctx.alloc, members, (ref EnumOrFlagsMember member) =>
-			genNewPair(ctx, genString(member.name), genPropertyAccess(ctx.alloc, genThis(), member.name)))));
+			genNewPair(ctx, genStringFromSymbol(member.name), genPropertyAccess(ctx.alloc, genThis(), JsMemberName.enumMember(member.name))))));
 
 void translateFlagsDecl(
 	ref TranslateModuleCtx ctx,
@@ -970,7 +972,7 @@ void translateFlagsDecl(
 	/*
 	class F {
 		constructor(value) {
-			this.value = value
+			this._value = value
 		}
 		static x = new this(1n)
 		static y = new this(2n)
@@ -978,38 +980,38 @@ void translateFlagsDecl(
 		static _members = [new_pair("x", this.x), new_pair("y", this.y)]
 
 		_intersect(b) {
-			return new F(this.value & b.value)
+			return new F(this._value & b._value)
 		}
 		_union(b) {
-			return new F(this.value | b.value)
+			return new F(this._value | b._value)
 		}
 		_negate() {
-			return new F(~this.value & 3n)
+			return new F(~this._value & 3n)
 		}
 	}
 	*/
 	JsName value = localName(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
-		genAssignToThis(ctx.alloc, symbol!"value", JsExpr(value))]);
+		genAssignToThis(ctx.alloc, JsMemberName.special(symbol!"value"), JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
 		out_ ~= genField(
 			JsClassMember.Static.static_,
-			member.name,
+			JsMemberName.enumMember(member.name),
 			genNew(ctx.alloc, genThis(), [genIntegerUnsigned(member.value.asUnsigned())]));
 	}
 	out_ ~= genField(
 		JsClassMember.Static.static_,
-		symbol!"_none",
+		JsMemberName.special(symbol!"none"),
 		genNew(ctx.alloc, genThis(), [genIntegerUnsigned(0)]));
 	out_ ~= enumOrFlagsMembers(ctx, a.members);
-	out_ ~= intersectOrUnionMethod(ctx, struct_, symbol!"_intersect", JsBinaryExpr.Kind.bitwiseAnd);
-	out_ ~= intersectOrUnionMethod(ctx, struct_, symbol!"_union", JsBinaryExpr.Kind.bitwiseOr);
+	out_ ~= intersectOrUnionMethod(ctx, struct_, JsMemberName.special(symbol!"intersect"), JsBinaryExpr.Kind.bitwiseAnd);
+	out_ ~= intersectOrUnionMethod(ctx, struct_, JsMemberName.special(symbol!"union"), JsBinaryExpr.Kind.bitwiseOr);
 	out_ ~= negateMethod(ctx, struct_, getAllFlagsValue(a));
 }
 JsClassMember intersectOrUnionMethod(
 	ref TranslateModuleCtx ctx,
 	in StructDecl* struct_,
-	Symbol name,
+	JsMemberName name,
 	JsBinaryExpr.Kind kind,
 ) {
 	JsName b = localName(symbol!"b");
@@ -1025,7 +1027,7 @@ JsClassMember negateMethod(ref TranslateModuleCtx ctx, in StructDecl* struct_, u
 	genInstanceMethod(
 		ctx.alloc,
 		SyncOrAsync.sync,
-		symbol!"_negate",
+		JsMemberName.special(symbol!"negate"),
 		[],
 		genNew(ctx.alloc, translateStructReference(ctx, struct_), [
 			genBitwiseAnd(
@@ -1033,7 +1035,7 @@ JsClassMember negateMethod(ref TranslateModuleCtx ctx, in StructDecl* struct_, u
 				genBitwiseNot(ctx.alloc, getValue(ctx.alloc, genThis())),
 				genIntegerUnsigned(allFlagsValue))]));
 JsExpr getValue(ref Alloc alloc, JsExpr arg) =>
-	genPropertyAccess(alloc, arg, symbol!"value");
+	genPropertyAccess(alloc, arg, JsMemberName.special(symbol!"value"));
 
 void translateRecordDecl(
 	ref TranslateModuleCtx ctx,
@@ -1059,7 +1061,7 @@ void translateRecordDecl(
 			foreach (ref RecordField x; a.fields) {
 				JsExpr value = JsExpr(localName(x.name));
 				genAssertType(out_, exprCtx, x.type, value);
-				add(ctx.alloc, out_, genAssignToThis(ctx.alloc, x.name, value));
+				add(ctx.alloc, out_, genAssignToThis(ctx.alloc, JsMemberName.recordField(x.name), value));
 			}
 		});
 }
@@ -1156,7 +1158,7 @@ void translateUnionDecl(
 		JsStatement(genCallPropertySync(
 			ctx.alloc,
 			genGlobal(symbol!"Object"),
-			symbol!"assign",
+			JsMemberName.noPrefix(symbol!"assign"),
 			[genThis(), JsExpr(arg)]))]);
 
 	foreach (ref UnionMember member; a.members) {
@@ -1169,17 +1171,17 @@ void translateUnionDecl(
 				genAssertType(out_, exprCtx, member.type, JsExpr(value));
 				add(ctx.alloc, out_, genReturn(
 					ctx.alloc,
-					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, JsExpr(value))])));
+					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, JsMemberName.unionMember(member.name), JsExpr(value))])));
 				return genStaticMethod(
 					SyncOrAsync.sync,
-					member.name,
+					JsMemberName.unionConstructor(member.name),
 					params,
 					genBlockStatement(ctx.alloc, finish(ctx.alloc, out_)));
 			} else
 				return genField(
 					JsClassMember.Static.static_,
-					member.name,
-					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, member.name, genNull())]));
+					JsMemberName.unionConstructor(member.name),
+					genNew(ctx.alloc, genThis(), [genObject(ctx.alloc, JsMemberName.unionMember(member.name), genNull())]));
 		}();
 	}
 }
@@ -1200,7 +1202,7 @@ JsClassMember genConstructor(
 	cb(out_);
 	return genInstanceMethod(
 		SyncOrAsync.sync,
-		symbol!"constructor",
+		JsMemberName.noPrefix(symbol!"constructor"),
 		JsParams(params),
 		JsBlockStatement(finish(alloc, out_)));
 }
@@ -1294,7 +1296,7 @@ JsExprOrBlockStatement translateCompareRecord(
 	JsExpr p0,
 	JsExpr p1,
 ) {
-	JsExpr equal = genPropertyAccess(ctx.alloc, translateStructReference(ctx, comparison), symbol!"equal");
+	JsExpr equal = genPropertyAccess(ctx.alloc, translateStructReference(ctx, comparison), JsMemberName.enumMember(symbol!"equal"));
 	if (isEmpty(fields)) return JsExprOrBlockStatement(allocate(ctx.alloc, equal));
 	/*
 	const compareFoo = (p0, p1) => {
@@ -1311,7 +1313,7 @@ JsExprOrBlockStatement translateCompareRecord(
 		ctx.alloc,
 		(scope ref ArrayBuilder!JsStatement out_, scope ExprPos pos) {
 			foreach (size_t index, ref RecordField field; fields) {
-				JsExpr compare = genCallCompareProperty(ctx, auto_.members[index], p0, p1, field.name);
+				JsExpr compare = genCallCompareProperty(ctx, auto_.members[index], p0, p1, JsMemberName.recordField(field.name));
 				if (index == fields.length - 1)
 					add(ctx.alloc, out_, genReturn(ctx.alloc, compare));
 				else {
@@ -1349,17 +1351,17 @@ JsExprOrBlockStatement translateCompareUnion(
 	*/
 	matchUnionMembers(ctx, members, p0, (size_t memberIndex, ref UnionMember member) {
 		JsExpr comparisonRef = translateStructReference(ctx, comparison);
-		JsExpr greater = genPropertyAccess(ctx.alloc, comparisonRef, symbol!"greater");
-		JsExpr less = genPropertyAccess(ctx.alloc, comparisonRef, symbol!"less");
-		JsExpr then = genCallCompareProperty(ctx, auto_.members[memberIndex], p0, p1, member.name);
+		JsExpr greater = genPropertyAccess(ctx.alloc, comparisonRef, JsMemberName.enumMember(symbol!"greater"));
+		JsExpr less = genPropertyAccess(ctx.alloc, comparisonRef, JsMemberName.enumMember(symbol!"less"));
+		JsExpr then = genCallCompareProperty(ctx, auto_.members[memberIndex], p0, p1, JsMemberName.unionMember(member.name));
 		JsExpr else_ = memberIndex == 0
 			? less
 			: genTernary(
 				ctx.alloc,
 				combineWithOr!UnionMember(ctx.alloc, members[0 .. memberIndex], (ref UnionMember x) =>
-					genIn(ctx.alloc, x.name, p1)),
+					genIn(ctx.alloc, JsMemberName.unionMember(x.name), p1)),
 				greater, less);
-		return genReturn(ctx.alloc, genTernary(ctx.alloc, genIn(ctx.alloc, member.name, p1), then, else_));
+		return genReturn(ctx.alloc, genTernary(ctx.alloc, genIn(ctx.alloc, JsMemberName.unionMember(member.name), p1), then, else_));
 	});
 JsExpr combineWithOr(T)(ref Alloc alloc, in T[] xs, in JsExpr delegate(ref T) @safe @nogc pure nothrow cb) =>
 	mapReduce!(JsExpr, T)(xs, cb, (JsExpr x, JsExpr y) => genOr(alloc, x, y));
@@ -1376,7 +1378,7 @@ JsExprOrBlockStatement translateEqualRecord(
 		: foldRange!JsExpr(
 			fields.length,
 			(size_t i) =>
-				genCallCompareProperty(ctx, auto_.members[i], p0, p1, fields[i].name),
+				genCallCompareProperty(ctx, auto_.members[i], p0, p1, JsMemberName.recordField(fields[i].name)),
 			(JsExpr x, JsExpr y) => genAnd(ctx.alloc, x, y))));
 JsExprOrBlockStatement translateEqualUnion(
 	ref TranslateExprCtx ctx,
@@ -1388,10 +1390,12 @@ JsExprOrBlockStatement translateEqualUnion(
 	matchUnionMembers(ctx, members, p0, (size_t memberIndex, ref UnionMember member) =>
 		genReturn(ctx.alloc, genAnd(
 			ctx.alloc,
-			genIn(ctx.alloc, member.name, p1),
-			genCallCompareProperty(ctx, auto_.members[memberIndex], p0, p1, member.name))));
-JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, Symbol name) =>
-	makeCall(ctx, called, [genPropertyAccess(ctx.alloc, p0, name), genPropertyAccess(ctx.alloc, p1, name)]);
+			genIn(ctx.alloc, JsMemberName.unionMember(member.name), p1),
+			genCallCompareProperty(ctx, auto_.members[memberIndex], p0, p1, JsMemberName.unionMember(member.name)))));
+JsExpr genCallCompareProperty(ref TranslateExprCtx ctx, Called called, JsExpr p0, JsExpr p1, JsMemberName name) =>
+	makeCall(ctx, called, [
+		genPropertyAccess(ctx.alloc, p0, name),
+		genPropertyAccess(ctx.alloc, p1, name)]);
 
 JsExprOrBlockStatement matchUnionMembers(
 	ref TranslateExprCtx ctx,
@@ -1404,7 +1408,7 @@ JsExprOrBlockStatement matchUnionMembers(
 			genThrowJsError(ctx.alloc, "Invalid union value"),
 			members,
 			(JsStatement else_, size_t index, ref UnionMember member) =>
-				genIf(ctx.alloc, genIn(ctx.alloc, member.name, p0), cbCase(index, member), else_))]));
+				genIf(ctx.alloc, genIn(ctx.alloc, JsMemberName.unionMember(member.name), p0), cbCase(index, member), else_))]));
 
 SyncOrAsync isCurFunAsync(in TranslateExprCtx ctx) =>
 	has(ctx.curFun) ? isAsyncFun(ctx.ctx.allUsed, force(ctx.curFun)) : SyncOrAsync.async;
@@ -1422,8 +1426,8 @@ JsExprOrBlockStatement translateRecordToJson(
 		mapWithIndex!(JsExpr, RecordField)(ctx.alloc, fields, (size_t i, ref RecordField field) =>
 			genNewPair(
 				ctx.ctx,
-				genString(field.name),
-				makeCall(ctx, auto_.members[i], [genPropertyAccess(ctx.alloc, p0, field.name)]))))));
+				genStringFromSymbol(field.name),
+				makeCall(ctx, auto_.members[i], [genPropertyAccess(ctx.alloc, p0, JsMemberName.recordField(field.name))]))))));
 JsExprOrBlockStatement translateUnionToJson(
 	ref TranslateExprCtx ctx,
 	in AutoFun auto_,
@@ -1436,8 +1440,8 @@ JsExprOrBlockStatement translateUnionToJson(
 			genNewJson(ctx.ctx, newArray(ctx.alloc, [
 				genNewPair(
 					ctx.ctx,
-					genString(member.name),
-					makeCall(ctx, auto_.members[memberIndex], [genPropertyAccess(ctx.alloc, p0, member.name)]))]))));
+					genStringFromSymbol(member.name),
+					makeCall(ctx, auto_.members[memberIndex], [genPropertyAccess(ctx.alloc, p0, JsMemberName.unionMember(member.name))]))]))));
 JsExpr genNewJson(ref TranslateModuleCtx ctx, JsExpr[] pairs) =>
 	genCallAwait(
 		ctx.alloc,
@@ -1771,7 +1775,7 @@ ExprResult translateInlineCall(
 	JsExpr returnTypeRef() =>
 		translateStructReference(ctx, returnType.as!(StructInst*).decl);
 	JsExpr recordField(RecordField* field) =>
-		genPropertyAccess(ctx.alloc, getArg(0), field.name);
+		genPropertyAccess(ctx.alloc, getArg(0), JsMemberName.recordField(field.name));
 	return called.body_.matchIn!ExprResult(
 		(in FunBody.Bogus) =>
 			translateToBogus(ctx.alloc, pos),
@@ -1780,7 +1784,7 @@ ExprResult translateInlineCall(
 		(in BuiltinFun x) =>
 			translateCallBuiltin(ctx, returnType, pos, x, nArgs, getArg),
 		(in FunBody.CreateEnumOrFlags x) =>
-			expr(genPropertyAccess(ctx.alloc, returnTypeRef, x.member.name)),
+			expr(genPropertyAccess(ctx.alloc, returnTypeRef, JsMemberName.enumMember(x.member.name))),
 		(in FunBody.CreateExtern) =>
 			assert(false),
 		(in FunBody.CreateRecord) =>
@@ -1788,7 +1792,7 @@ ExprResult translateInlineCall(
 		(in FunBody.CreateRecordAndConvertToVariant x) =>
 			createRecord(x.member),
 		(in FunBody.CreateUnion x) {
-			JsExpr member = genPropertyAccess(ctx.alloc, returnTypeRef, x.member.name);
+			JsExpr member = genPropertyAccess(ctx.alloc, returnTypeRef, JsMemberName.unionConstructor(x.member.name));
 			assert(nArgs == 0 || nArgs == 1);
 			return expr(nArgs == 0 ? member : genCallSync(ctx.alloc, member, [getArg(0)]));
 		},
@@ -1821,7 +1825,7 @@ ExprResult translateInlineCall(
 		},
 		(in FunBody.UnionMemberGet x) =>
 			withTemp2(ctx, symbol!"member", onlyArg(), pos, (JsName member, scope ExprPos inner) {
-				Symbol memberName = x.member.name;
+				JsMemberName memberName = JsMemberName.unionMember(x.member.name);
 				return forceExpr(ctx.alloc, inner, returnType, genTernary(
 					ctx.alloc,
 					genIn(ctx.alloc, memberName, JsExpr(member)),
@@ -1844,7 +1848,7 @@ ExprResult translateInlineCall(
 			expr(genCall(
 				ctx.alloc,
 				isAsyncFun(ctx.ctx.allUsed, called),
-				allocate(ctx.alloc, genPropertyAccess(ctx.alloc, getArg(0), x.method.name)),
+				allocate(ctx.alloc, genPropertyAccess(ctx.alloc, getArg(0), JsMemberName.variantMethod(x.method.name))),
 				args(skip: 1))),
 		(in FunBody.VarSet x) =>
 			forceStatement(ctx, pos, genAssign(ctx.alloc, translateVarReference(ctx.ctx, x.var), onlyArg())));
@@ -1933,15 +1937,15 @@ JsExpr translateEnumOrFlagsFunction(
 	in JsExpr delegate(size_t) @safe @nogc pure nothrow getArg,
 ) {
 	JsExpr getValue(JsExpr arg) =>
-		genPropertyAccess(ctx.alloc, arg, symbol!"value");
+		genPropertyAccess(ctx.alloc, arg, JsMemberName.special(symbol!"value"));
 	JsExpr call(Symbol name) {
 		assert(nArgs == 1 || nArgs == 2);
 		return nArgs == 1
-			? genCallPropertySync(ctx.alloc, getArg(0), name, [])
-			: genCallPropertySync(ctx.alloc, getArg(0), name, [getArg(1)]);
+			? genCallPropertySync(ctx.alloc, getArg(0), JsMemberName.special(name), [])
+			: genCallPropertySync(ctx.alloc, getArg(0), JsMemberName.special(name), [getArg(1)]);
 	}
 	JsExpr staticProperty(Type enumOrFlags, Symbol name) =>
-		genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags.as!(StructInst*).decl), name);
+		genPropertyAccess(ctx.alloc, translateStructReference(ctx, enumOrFlags.as!(StructInst*).decl), JsMemberName.special(name));
 	final switch (a) {
 		case EnumOrFlagsFunction.equal: {
 			StructDecl* decl = paramTypes[0].as!(StructInst*).decl;
@@ -1953,20 +1957,20 @@ JsExpr translateEnumOrFlagsFunction(
 			}
 		}
 		case EnumOrFlagsFunction.intersect:
-			return call(symbol!"_intersect");
+			return call(symbol!"intersect");
 		case EnumOrFlagsFunction.members:
 			assert(nArgs == 0);
 			Type pair = arrayElementType(returnType);
-			return staticProperty(only2(force(asTuple(ctx.commonTypes, pair)))[1], symbol!"_members");
+			return staticProperty(only2(force(asTuple(ctx.commonTypes, pair)))[1], symbol!"members");
 		case EnumOrFlagsFunction.negate:
-			return call(symbol!"_negate");
+			return call(symbol!"negate");
 		case EnumOrFlagsFunction.none:
-			return staticProperty(returnType, symbol!"_none");
+			return staticProperty(returnType, symbol!"none");
 		case EnumOrFlagsFunction.toIntegral:
 			assert(nArgs == 1);
 			return getValue(getArg(0));
 		case EnumOrFlagsFunction.union_:
-			return call(symbol!"_union");
+			return call(symbol!"union");
 	}
 }
 
@@ -1999,7 +2003,7 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			// These are 'native extern'
 			assert(false);
 		case BuiltinUnary.arraySize:
-			return genCallSync(alloc, BigInt, [genPropertyAccess(alloc, arg, symbol!"length")]);
+			return genCallSync(alloc, BigInt, [genPropertyAccess(alloc, arg, JsMemberName.noPrefix(symbol!"length"))]);
 		case BuiltinUnary.bitwiseNotNat8:
 			return genAsNat8(alloc, bitwiseNot());
 		case BuiltinUnary.bitwiseNotNat16:
@@ -2010,18 +2014,21 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			return genAsNat64(alloc, bitwiseNot());
 		case BuiltinUnary.countOnesNat64:
 			// Array.from(n.toString(2))
-			JsExpr digits = genCallPropertySync(alloc, Array, symbol!"from", [
-				genCallPropertySync(alloc, arg, symbol!"toString", [genNumber(2)])]);
+			JsExpr digits = genCallPropertySync(alloc, Array, JsMemberName.noPrefix(symbol!"from"), [
+				genCallPropertySync(alloc, arg, JsMemberName.noPrefix(symbol!"toString"), [genNumber(2)])]);
 			JsName x = localName(symbol!"x");
 			// x => x === "1"
 			JsExpr fn = genArrowFunction(
 				alloc, SyncOrAsync.sync, [JsDestructure(x)], genEqEqEq(alloc, JsExpr(x), genString("1")));
 			// BigInt(Array.from(n.toString(2)).filter(x => x === "1").length)
 			return genCallSync(alloc, BigInt, [
-				genPropertyAccess(alloc, genCallPropertySync(alloc, digits, symbol!"filter", [fn]), symbol!"length")]);
+				genPropertyAccess(
+					alloc,
+					genCallPropertySync(alloc, digits, JsMemberName.noPrefix(symbol!"filter"), [fn]),
+					JsMemberName.noPrefix(symbol!"length"))]);
 		case BuiltinUnary.isNanFloat32:
 		case BuiltinUnary.isNanFloat64:
-			return genCallPropertySync(alloc, Number, symbol!"isNaN", [arg]);
+			return genCallPropertySync(alloc, Number, JsMemberName.noPrefix(symbol!"isNaN"), [arg]);
 		case BuiltinUnary.not:
 			return genUnary(alloc, JsUnaryExpr.Kind.not, arg);
 		case BuiltinUnary.toChar8FromNat8:
@@ -2060,9 +2067,9 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 					genCallPropertySync(
 						alloc,
 						genNew(alloc, genGlobal(symbol!"TextEncoder"), []),
-						symbol!"encode",
+						JsMemberName.noPrefix(symbol!"encode"),
 						[arg])),
-				symbol!"map",
+				JsMemberName.noPrefix(symbol!"map"),
 				[BigInt]);
 		case BuiltinUnary.truncateToInt64FromFloat64:
 			return genCallSync(alloc, BigInt, [callMath(alloc, symbol!"trunc", arg)]);
@@ -2071,15 +2078,15 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 			return genCallPropertySync(
 				alloc,
 				genNew(alloc, genGlobal(symbol!"TextDecoder"), []),
-				symbol!"decode",
+				JsMemberName.noPrefix(symbol!"decode"),
 				[genNew(
 					alloc,
 					genGlobal(symbol!"Uint8Array"),
-					[genCallPropertySync(alloc, arg, symbol!"map", [Number])])]);
+					[genCallPropertySync(alloc, arg, JsMemberName.noPrefix(symbol!"map"), [Number])])]);
 	}
 }
 JsExpr genArrayFrom(ref Alloc alloc, JsExpr arg) =>
-	genCallPropertySync(alloc, genGlobal(symbol!"Array"), symbol!"from", [arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"Array"), JsMemberName.noPrefix(symbol!"from"), [arg]);
 
 JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg) {
 	JsExpr f32(Symbol name) =>
@@ -2167,12 +2174,12 @@ JsExpr translateBuiltinUnaryMath(ref Alloc alloc, BuiltinUnaryMath a, JsExpr arg
 	}
 }
 JsExpr callMath(ref Alloc alloc, Symbol name, JsExpr arg) =>
-	genCallPropertySync(alloc, genGlobal(symbol!"Math"), name, [arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"Math"), JsMemberName.noPrefix(name), [arg]);
 JsExpr toFloat32(ref Alloc alloc, JsExpr arg) =>
 	callMath(alloc, symbol!"fround", arg);
 
 JsExpr genAsNat(ref Alloc alloc, uint bits, JsExpr arg) =>
-	genCallPropertySync(alloc, genGlobal(symbol!"BigInt"), symbol!"asUintN", [genNumber(bits), arg]);
+	genCallPropertySync(alloc, genGlobal(symbol!"BigInt"), JsMemberName.noPrefix(symbol!"asUintN"), [genNumber(bits), arg]);
 JsExpr genAsNat8(ref Alloc alloc, JsExpr arg) =>
 	genAsNat(alloc, 8, arg);
 JsExpr genAsNat16(ref Alloc alloc, JsExpr arg) =>
@@ -2381,7 +2388,7 @@ ExprResult translateBuiltinBinaryLazy(
 
 JsExpr translateBuiltinBinaryMath(ref TranslateExprCtx ctx, BuiltinBinaryMath kind, JsExpr left, JsExpr right) {
 	JsExpr Math = genGlobal(symbol!"Math");
-	JsExpr atan2 = genCallPropertySync(ctx.alloc, Math, symbol!"atan2", [left, right]);
+	JsExpr atan2 = genCallPropertySync(ctx.alloc, Math, JsMemberName.noPrefix(symbol!"atan2"), [left, right]);
 	final switch (kind) {
 		case BuiltinBinaryMath.atan2Float32:
 			return toFloat32(ctx.alloc, atan2);
@@ -2523,17 +2530,17 @@ ExprResult translateUnpackOption(
 			translateToStatement(ctx.alloc, cbFalseBranch))));
 
 JsExpr genOptionHas(ref Alloc alloc, JsExpr option) =>
-	genIn(alloc, symbol!"some", option);
+	genIn(alloc, JsMemberName.unionMember(symbol!"some"), option);
 JsExpr genOptionForce(ref Alloc alloc, JsExpr option) =>
-	genPropertyAccess(alloc, option, symbol!"some");
+	genPropertyAccess(alloc, option, JsMemberName.unionMember(symbol!"some"));
 JsExpr genOptionSome(ref TranslateExprCtx ctx, Type option, JsExpr arg) =>
 	genCallPropertySync(
 		ctx.alloc,
 		translateStructReference(ctx, option.as!(StructInst*).decl),
-		symbol!"some",
+		JsMemberName.unionConstructor(symbol!"some"),
 		[arg]);
 JsExpr genOptionNone(ref TranslateExprCtx ctx, Type option) =>
-	genPropertyAccess(ctx.alloc, translateStructReference(ctx, option.as!(StructInst*).decl), symbol!"none");
+	genPropertyAccess(ctx.alloc, translateStructReference(ctx, option.as!(StructInst*).decl), JsMemberName.unionConstructor(symbol!"none"));
 
 ExprResult translateLambda(ref TranslateExprCtx ctx, ref LambdaExpr a, Type type, scope ExprPos pos) =>
 	forceExpr(ctx, pos, type, JsExpr(JsArrowFunction(
@@ -2749,8 +2756,8 @@ ExprResult translateMatchUnion(ref TranslateExprCtx ctx, ref MatchUnionExpr a, T
 			translateSwitchDefault(ctx, has(a.else_) ? some(*force(a.else_)) : none!Expr, type, "Invalid union value"),
 			(ref MatchUnionExpr.Case case_) =>
 				MatchUnionOrVariantCase(
-					genIn(ctx.alloc, case_.member.name, JsExpr(matched)),
-					genPropertyAccess(ctx.alloc, JsExpr(matched), case_.member.name))));
+					genIn(ctx.alloc, JsMemberName.unionMember(case_.member.name), JsExpr(matched)),
+					genPropertyAccess(ctx.alloc, JsExpr(matched), JsMemberName.unionMember(case_.member.name)))));
 
 ExprResult translateMatchVariant(ref TranslateExprCtx ctx, ref MatchVariantExpr a, Type type, scope ExprPos pos) =>
 	withTemp(ctx, symbol!"matched", a.matched, pos, (JsName matched, scope ExprPos inner) =>
@@ -2835,7 +2842,7 @@ JsBlockStatement translateSwitchDefault(ref TranslateExprCtx ctx, Opt!Expr else_
 		: genBlockStatement(ctx.alloc, [genThrowJsError(ctx.alloc, error)]);
 
 JsExpr translateEnumValue(ref TranslateModuleCtx ctx, EnumOrFlagsMember* a) =>
-	genPropertyAccess(ctx.alloc, translateStructReference(ctx, a.containingEnum), a.name);
+	genPropertyAccess(ctx.alloc, translateStructReference(ctx, a.containingEnum), JsMemberName.enumMember(a.name));
 
 ExprResult translateFinally(ref TranslateExprCtx ctx, ref FinallyExpr a, Type type, scope ExprPos pos) =>
 	/*

@@ -33,8 +33,7 @@ immutable struct JsName {
 	Symbol crowName;
 	Opt!ushort mangleIndex;
 }
-
-JsName jsNameNoPrefix(Symbol name) =>
+JsName jsNameNoPrefix(Symbol name) => // TODO: inSTANCE -=========================================================================
 	JsName(JsName.Kind.none, name, none!ushort);
 
 Comparison compareJsName(JsName a, JsName b) =>
@@ -42,6 +41,28 @@ Comparison compareJsName(JsName a, JsName b) =>
 		compareEnum(a.kind, b.kind),
 		() => compareSymbolsAlphabetically(a.crowName, b.crowName),
 		() => compareOptions!ushort(a.mangleIndex, b.mangleIndex, (in ushort x, in ushort y) => compareUint(x, y)));
+
+immutable struct JsMemberName {
+	@safe @nogc pure nothrow:
+	enum Kind { none, enumMember, recordField, special, unionConstructor, unionMember, variantMethod }
+	Kind kind;
+	Symbol crowName;
+
+	static JsMemberName noPrefix(Symbol name) =>
+		JsMemberName(Kind.none, name);
+	static JsMemberName enumMember(Symbol name) =>
+		JsMemberName(Kind.enumMember, name);
+	static JsMemberName recordField(Symbol name) =>
+		JsMemberName(Kind.recordField, name);
+	static JsMemberName special(Symbol name) =>
+		JsMemberName(Kind.special, name);
+	static JsMemberName unionConstructor(Symbol name) =>
+		JsMemberName(Kind.unionConstructor, name);
+	static JsMemberName unionMember(Symbol name) =>
+		JsMemberName(Kind.unionMember, name);
+	static JsMemberName variantMethod(Symbol name) =>
+		JsMemberName(Kind.variantMethod, name);
+}
 
 immutable struct JsImport {
 	Opt!(JsName[]) importedNames; // Otherwise this is 'import *'
@@ -66,7 +87,7 @@ immutable struct JsClassDecl {
 immutable struct JsClassMember {
 	enum Static { instance, static_ }
 	Static isStatic;
-	Symbol name; // member names are never mangled
+	JsMemberName name;
 	JsClassMemberKind kind;
 }
 private immutable struct JsClassMemberKind {
@@ -105,7 +126,7 @@ immutable struct JsDefaultDestructure {
 	JsExpr default_;
 }
 immutable struct JsObjectDestructure {
-	KeyValuePair!(Symbol, JsDestructure)[] fields;
+	KeyValuePair!(JsMemberName, JsDestructure)[] fields;
 }
 
 immutable struct JsStatement {
@@ -190,6 +211,7 @@ immutable struct JsExpr {
 		JsLiteralInteger,
 		JsLiteralNumber,
 		JsLiteralString,
+		JsLiteralStringFromMemberName,
 		JsLiteralStringFromSymbol,
 		JsName,
 		JsNewExpr,
@@ -251,6 +273,9 @@ immutable struct JsLiteralNumber {
 immutable struct JsLiteralString {
 	string value;
 }
+immutable struct JsLiteralStringFromMemberName {
+	JsMemberName value;
+}
 immutable struct JsLiteralStringFromSymbol {
 	Symbol value;
 }
@@ -260,13 +285,12 @@ immutable struct JsNewExpr {
 }
 immutable struct JsNullExpr {}
 immutable struct JsObject1Expr {
-	Symbol key;
+	JsMemberName key;
 	JsExpr* value;
 }
 immutable struct JsPropertyAccessExpr {
 	JsExpr* object;
-	// Property names are not mangled
-	Symbol propertyName;
+	JsMemberName propertyName;
 }
 immutable struct JsPropertyAccessComputedExpr {
 	JsExpr object;
@@ -337,7 +361,7 @@ JsExpr genCallWithSpread(ref Alloc alloc, SyncOrAsync await, JsExpr called, in J
 		alloc,
 		await,
 		JsExpr(JsCallWithSpreadExpr(allocate(alloc, called), newArray(alloc, args), allocate(alloc, spreadArg))));
-JsExpr genCallPropertySync(ref Alloc alloc, JsExpr object, Symbol property, in JsExpr[] args) =>
+JsExpr genCallPropertySync(ref Alloc alloc, JsExpr object, JsMemberName property, in JsExpr[] args) =>
 	genCallSync(alloc, genPropertyAccess(alloc, object, property), args);
 JsExpr genGlobal(Symbol name) =>
 	JsExpr(jsNameNoPrefix(name));
@@ -347,8 +371,8 @@ JsStatement genIf(ref Alloc alloc, JsExpr cond, JsStatement then, JsStatement el
 	JsStatement(allocate(alloc, JsIfStatement(cond, then, some(else_))));
 JsExpr genIife(ref Alloc alloc, SyncOrAsync async, JsBlockStatement body_) =>
 	genCall(alloc, async, allocate(alloc, genArrowFunction(async, JsParams(), JsExprOrBlockStatement(body_))), []);
-JsExpr genIn(ref Alloc alloc, Symbol arg0, JsExpr arg1) =>
-	genBinary(alloc, JsBinaryExpr.Kind.in_, genString(arg0), arg1);
+JsExpr genIn(ref Alloc alloc, JsMemberName arg0, JsExpr arg1) =>
+	genBinary(alloc, JsBinaryExpr.Kind.in_, genStringFromMemberName(arg0), arg1);
 JsExpr genInstanceof(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.instanceof, arg0, arg1);
 JsExpr genInteger(bool isSigned, IntegralValue value) =>
@@ -373,11 +397,11 @@ JsExpr genOr(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.or, arg0, arg1);
 JsExpr genPlus(ref Alloc alloc, JsExpr arg0, JsExpr arg1) =>
 	genBinary(alloc, JsBinaryExpr.Kind.plus, arg0, arg1);
-JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, Symbol propertyName) =>
+JsExpr genPropertyAccess(ref Alloc alloc, JsExpr arg, JsMemberName propertyName) =>
 	JsExpr(JsPropertyAccessExpr(allocate(alloc, arg), propertyName));
 JsExpr genPropertyAccessComputed(ref Alloc alloc, JsExpr object, JsExpr propertyName) =>
 	propertyName.isA!JsLiteralString
-		? genPropertyAccess(alloc, object, symbolOfString(propertyName.as!JsLiteralString.value))
+		? genPropertyAccess(alloc, object, JsMemberName.noPrefix(symbolOfString(propertyName.as!JsLiteralString.value)))
 		: JsExpr(allocate(alloc, JsPropertyAccessComputedExpr(object, propertyName)));
 JsStatement genReturn(ref Alloc alloc, JsExpr arg) =>
 	JsStatement(JsReturnStatement(allocate(alloc, arg)));
@@ -403,12 +427,14 @@ JsStatement genLet(JsName name) =>
 	genVarDecl(JsVarDecl.Kind.let, JsDestructure(name), none!(JsExpr*));
 JsStatement genLet(ref Alloc alloc, JsDestructure destructure, JsExpr initializer) =>
 	genVarDecl(JsVarDecl.Kind.let, destructure, some(allocate(alloc, initializer)));
-JsExpr genObject(ref Alloc alloc, Symbol name, JsExpr value) =>
+JsExpr genObject(ref Alloc alloc, JsMemberName name, JsExpr value) =>
 	JsExpr(JsObject1Expr(name, allocate(alloc, value)));
 JsExpr genString(string value) =>
 	JsExpr(JsLiteralString(value));
-JsExpr genString(Symbol value) =>
+JsExpr genStringFromSymbol(Symbol value) =>
 	JsExpr(JsLiteralStringFromSymbol(value));
+JsExpr genStringFromMemberName(JsMemberName value) =>
+	JsExpr(JsLiteralStringFromMemberName(value));
 JsExpr genThis() =>
 	JsExpr(JsThisExpr());
 JsExpr genTimes(ref Alloc alloc, JsExpr left, JsExpr right) =>
@@ -430,19 +456,19 @@ JsStatement genWhileTrue(ref Alloc alloc, Opt!JsName label, JsBlockStatement bod
 private JsClassMember genMethod(
 	JsClassMember.Static static_,
 	SyncOrAsync async,
-	Symbol name,
+	JsMemberName name,
 	JsParams params,
 	JsBlockStatement body_,
 ) =>
 	JsClassMember(static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
-JsClassMember genInstanceMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+JsClassMember genInstanceMethod(SyncOrAsync async, JsMemberName name, JsParams params, JsBlockStatement body_) =>
 	genMethod(JsClassMember.Static.instance, async, name, params, body_);
-JsClassMember genStaticMethod(SyncOrAsync async, Symbol name, JsParams params, JsBlockStatement body_) =>
+JsClassMember genStaticMethod(SyncOrAsync async, JsMemberName name, JsParams params, JsBlockStatement body_) =>
 	genMethod(JsClassMember.Static.static_, async, name, params, body_);
 JsClassMember genInstanceMethod(
 	ref Alloc alloc,
 	SyncOrAsync async,
-	Symbol name,
+	JsMemberName name,
 	in JsDestructure[] params,
 	JsBlockStatement body_,
 ) =>
@@ -450,12 +476,12 @@ JsClassMember genInstanceMethod(
 JsClassMember genInstanceMethod(
 	ref Alloc alloc,
 	SyncOrAsync async,
-	Symbol name,
+	JsMemberName name,
 	in JsDestructure[] params,
 	JsExpr body_,
 ) =>
 	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, [genReturn(alloc, body_)]));
-JsClassMember genField(JsClassMember.Static static_, Symbol name, JsExpr value) =>
+JsClassMember genField(JsClassMember.Static static_, JsMemberName name, JsExpr value) =>
 	JsClassMember(static_, name, JsClassMemberKind(value));
-JsClassMember genGetter(JsClassMember.Static static_, Symbol name, JsBlockStatement body_) =>
+JsClassMember genGetter(JsClassMember.Static static_, JsMemberName name, JsBlockStatement body_) =>
 	JsClassMember(static_, name, JsClassMemberKind(JsClassGetter(body_)));
