@@ -47,7 +47,6 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 +call-new[p0, p1, p2] js-any(a js-any, arg p0, arg1 p1, arg2 p2) builtin, bare, unsafe, js extern
 # `a[name]()`
 +call-property js-any(a js-any, name string) builtin, bare, unsafe, js extern
-# TODO: rename to get-and-call ----------------------------------------------------------------------------------------------
 # `a[name](arg)`
 +call-property[p0] js-any(a js-any, name string, arg p0) builtin, bare, unsafe, js extern
 # `a[name](arg0, arg1)`

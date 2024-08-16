@@ -4,7 +4,7 @@ import
 	crow/io/process: shell-exec
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main void() summon
+main void() summon, native extern
 	files = "src" search-dir-recursive x => x ends-with ".d"
 	dependencies dependency[] = with out : build
 		for file : files
@@ -16,7 +16,7 @@ main void() summon
 	"bin/dependencies.dot" write-file dependencies.to-dot
 	()
 
--imports string[](file string) summon
+-imports string[](file string) summon, native extern
 	"dub run dscanner --yes --quiet -- --imports {file}".shell-exec split "\n" filter x =>
 		x != "" && !(x starts-with "core.")
 

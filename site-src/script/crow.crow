@@ -70,7 +70,7 @@ run run-result(a crow-server, main-uri uri) trusted, js extern
 	a request "custom/run", args to
 
 run-js void(_ crow-server, _ uri) trusted, js extern
-	throw todo # -------------------------------------------------------------------------------------------------------------------
+	throw todo
 
 -request js-any(a crow-server, method symbol, params js-any) unsafe, js extern
 	a.lsp-server request method, params
