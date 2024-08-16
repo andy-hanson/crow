@@ -50,8 +50,7 @@ EXE should be a file path and not just a name; this does not search the system p
 		exe-c-string c-string = exe to
 		if extern windows
 			exe-c-string spawn-and-wait-result-windows args
-		elif extern posix
-			assert extern libc : not-implemented
+		elif extern posix && extern libc
 			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 		else
 			throw not-implemented
@@ -234,7 +233,6 @@ The child process shares stdout and stderr with the parent process.
 	stdout-pipes.write-pipe keep-polling stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
-
 	exit-code, stdout-builder.move-to, stderr-builder.move-to
 
 -make-pipes pipes() summon, unsafe, (native, posix) extern
@@ -274,13 +272,13 @@ The child process shares stdout and stderr with the parent process.
 	revents = pollfd revents
 	had-POLLIN = revents has-POLLIN
 	if had-POLLIN
-		pollfd.fd read-to-buffer-until-eof builder
+		pollfd.fd read-some-to-buffer builder
 	hung-up = revents has-POLLHUP
 	if revents.has-POLLPRI || revents.has-POLLOUT || revents.has-POLLERR || revents.has-POLLNVAL
 		todo
 	had-POLLIN, hung-up
 
--read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon, (native, posix) extern
+-read-some-to-buffer void(fd fd-t, buffer char8 mut[]) summon, (native, posix) extern
 	read-max nat64 = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer size
@@ -299,7 +297,8 @@ The child process shares stdout and stderr with the parent process.
 			assert n-bytes-read.to::nat64 <= read-max
 			new-size = old-size + n-bytes-read.to
 			buffer unsafe-set-size new-size
-			fd read-to-buffer-until-eof buffer
+			if n-bytes-read == read-max.to
+				fd read-some-to-buffer buffer
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal

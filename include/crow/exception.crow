@@ -5,7 +5,9 @@ import
 	./col/collection: find-index, for-loop, starts-with
 	./col/list: ~=, build
 	./compare: >
+	./js: await, call, cast, eval
 	./number: ==, <=>, -
+	./option: new, option
 	./range: ..
 	./result: result
 	./string: ==, begin, interpolate, is-empty, join, next, string, to
@@ -13,6 +15,30 @@ export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level:
 		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
+
++ignore-exceptions record nominal
++with-block[t] t?(_ ignore-exceptions, f t mut())
+	if trusted extern native
+		match f catch-all
+		as ok x
+			x,
+		as error _
+			()
+	elif trusted extern js
+		some t? data(x t) = x => x,
+		none t? data() = () => ()
+		res = trusted """
+		async (f, some, none) => \{
+			try \{
+				return some(await f())
+			} catch \{
+				return none()
+			}
+		}
+		""".eval call f, some, none await
+		trusted res cast
+	else
+		throw todo
 
 +todo record exception variant-member
 +describe string(_ todo)

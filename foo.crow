@@ -1,0 +1,9 @@
+import
+	crow/c-types: err-t
+	system/sys/types: mode_t
+
+main void() unsafe, summon, posix extern
+	err = "crow-made-me" mkdir 777
+	assert err == 0
+
+mkdir err-t(path c-string, mode mode_t) posix extern

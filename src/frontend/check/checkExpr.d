@@ -1961,7 +1961,7 @@ Out withExternFromCondition(Out)(
 	if (has(extern_) && !(isNegated ^ force(extern_).isNegated)) {
 		SymbolSet originalExterns = ctx.externs;
 		scope (exit) ctx.externs = originalExterns;
-		ctx.externs = ctx.externs | force(extern_).externName.asSymbol;
+		ctx.externs = ctx.externs | force(extern_).requiredExterns;
 		return cb();
 	} else
 		return cb();

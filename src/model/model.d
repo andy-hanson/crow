@@ -59,7 +59,7 @@ import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : enumOfSymbol, Symbol, symbol;
-import util.symbolSet : SymbolSet;
+import util.symbolSet : SymbolSet, symbolSet;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : RelPath, Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
@@ -1994,7 +1994,7 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 void eachTest(ref Program program, in SymbolSet allExterns, in void delegate(Test*) @safe @nogc pure nothrow cb) {
 	foreach (immutable Module* m; program.allModules) {
 		foreach (ref Test x; m.tests)
-			if (x.externs in allExterns)
+			if (allExterns.containsAll(x.externs))
 				cb(&x);
 	}
 }
@@ -2267,32 +2267,46 @@ immutable struct Condition {
 
 immutable struct ExternCondition {
 	bool isNegated;
-	ExternName externName;
+	// If isNegated is set, this means !(x && y && ...)
+	SymbolSet requiredExterns;
 }
 bool evalExternCondition(in ExternCondition a, in SymbolSet allExterns) =>
-	a.isNegated ^ (a.externName.asSymbol in allExterns);
-Opt!ExternCondition asExtern(in Condition a) {
-	if (a.isA!(Expr*)) {
-		Expr e = skipTrusted(*a.as!(Expr*));
-		if (e.kind.isA!CallExpr) {
-			CallExpr call = e.kind.as!CallExpr;
-			if (isNot(call.called)) {
-				Opt!ExternName name = asExternExpr(skipTrusted(only(call.args)));
-				return optIf(has(name), () => ExternCondition(true, force(name)));
-			} else
-				return none!ExternCondition;
-		} else {
-			Opt!ExternName name = asExternExpr(e);
-			return optIf(has(name), () => ExternCondition(false, force(name)));
-		}
-	} else
-		return none!ExternCondition;
+	a.isNegated ^ allExterns.containsAll(a.requiredExterns);
+Opt!ExternCondition asExtern(in Condition a) =>
+	a.isA!(Expr*)
+		? asExtern(*a.as!(Expr*))
+		: none!ExternCondition;
+private Opt!ExternCondition asExtern(ref Expr a) {
+	Expr e = skipTrusted(a);
+	if (e.kind.isA!CallExpr) {
+		CallExpr call = e.kind.as!CallExpr;
+		if (isAnd(call.called)) {
+			assert(call.args.length == 2);
+			Opt!ExternCondition arg0 = asExtern(call.args[0]);
+			Opt!ExternCondition arg1 = asExtern(call.args[1]);
+			return optIf(has(arg0) && !force(arg0).isNegated && has(arg1) && !force(arg1).isNegated, () =>
+				ExternCondition(false, force(arg0).requiredExterns | force(arg1).requiredExterns));
+		} else if (isNot(call.called)) {
+			Opt!ExternName name = asExternExpr(skipTrusted(only(call.args)));
+			return optIf(has(name), () => ExternCondition(true, symbolSet(force(name).asSymbol)));
+		} else
+			return none!ExternCondition;
+	} else {
+		Opt!ExternName name = asExternExpr(e);
+		return optIf(has(name), () => ExternCondition(false, symbolSet(force(name).asSymbol)));
+	}
 }
+private bool isAnd(in Called a) =>
+	isBuiltinFun(a, (in BuiltinFun x) =>
+		x.isA!BuiltinBinaryLazy && x.as!BuiltinBinaryLazy == BuiltinBinaryLazy.boolAnd);
 private bool isNot(in Called a) =>
+	isBuiltinFun(a, (in BuiltinFun x) =>
+		x.isA!BuiltinUnary && x.as!BuiltinUnary == BuiltinUnary.not);
+private bool isBuiltinFun(in Called a, in bool delegate(in BuiltinFun) @safe @nogc pure nothrow cb) =>
 	// A BuiltinFun body is never set late
-	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isNot(a.as!(FunInst*).decl.body_);
-private bool isNot(in FunBody a) =>
-	a.isA!BuiltinFun && a.as!BuiltinFun.isA!BuiltinUnary && a.as!BuiltinFun.as!BuiltinUnary == BuiltinUnary.not;
+	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isBuiltinFun(a.as!(FunInst*).decl.body_, cb);
+private bool isBuiltinFun(in FunBody a, in bool delegate(in BuiltinFun) @safe @nogc pure nothrow cb) =>
+	a.isA!BuiltinFun && cb(a.as!BuiltinFun);
 private Opt!ExternName asExternExpr(in Expr a) =>
 	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.name);
 private ref Expr skipTrusted(return ref Expr a) =>

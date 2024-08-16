@@ -47,9 +47,9 @@ immutable struct IntegralValues {
 	IntegralValue opIndex(size_t i) scope const =>
 		values[i];
 
-	bool opBinaryRight(string op)(IntegralValue x) const if (op == "in") =>
+	bool opBinaryRight(string op)(IntegralValue x) scope const if (op == "in") =>
 		sortedArrayContains!(IntegralValue, compareIntegralValue)(values, x);
-	bool opBinaryRight(string op)(IntegralValues xs) const if (op == "in") =>
+	bool containsAll(IntegralValues xs) scope const =>
 		sortedArrayIsSuperset!(IntegralValue, compareIntegralValue)(values, xs.values);
 
 	IntegralValues opBinary(string op)(IntegralValue x) const if (op == "|") =>

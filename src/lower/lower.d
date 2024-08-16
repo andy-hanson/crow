@@ -439,9 +439,11 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 				case BuiltinType.mutArray:
 					return record();
 				case BuiltinType.future: // Concretize replaces this with 'future-impl'
-				case BuiltinType.jsAny: // JS builds don't concretize/lower
 				case BuiltinType.lambda: // Lambda is compiled away by concretize
 					assert(false);
+				case BuiltinType.jsAny:
+				case BuiltinType.void_:
+					return LowType(PrimitiveType.void_);
 				case BuiltinType.nat8:
 					return LowType(PrimitiveType.nat8);
 				case BuiltinType.nat16:
@@ -458,8 +460,6 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 				case BuiltinType.symbol:
 					// concretize turns string into 'char array' and symbol into 'char*'
 					assert(false);
-				case BuiltinType.void_:
-					return LowType(PrimitiveType.void_);
 			}
 		},
 		(in ConcreteStructBody.Enum x) =>

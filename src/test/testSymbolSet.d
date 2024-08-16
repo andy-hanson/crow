@@ -25,8 +25,8 @@ void testSymbolSet(ref Test test) {
 	assert(a in setAB);
 	assert(b in setAB);
 	assert(c !in setAB);
-	assert(setA in setAB);
-	assert(setAB !in setA);
+	assert(setAB.containsAll(setA));
+	assert(!setA.containsAll(setAB));
 
 	assert((setB | a) == setAB);
 	assert((setB | setA) == setAB);

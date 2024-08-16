@@ -3,9 +3,9 @@ import
 	system/time: time, time_t
 	../compare: max
 	../fun-util: subscript
-	../js: await, call, call-new, cast, js-global
+	../js: await, call, call-new, call-property, cast, js-global
 	../misc: break-or-continue, new, shared, void
-	../number: ==, <=>, +, /, int64, nat64, to
+	../number: ==, <=>, +, /, float, nat64, to
 	../pointer: null
 	../private/bootstrap: todo
 	../private/runtime: delay-cur-fiber-until-time
@@ -27,9 +27,9 @@ export
 		else
 			todo
 	elif extern js
-		# BigInt(new Date())
-		msec int64 = "BigInt".js-global call "Date".js-global.call-new cast
-		msec / 1000,
+		# (new Date()).valueOf()
+		msec float = "Date".js-global.call-new call-property "valueOf" cast
+		(msec / 1000).to,
 	else
 		todo
 

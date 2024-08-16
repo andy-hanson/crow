@@ -69,6 +69,9 @@ run run-result(a crow-server, main-uri uri) trusted, js extern
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
 	a request "custom/run", args to
 
+run-js void(_ crow-server, _ uri) trusted, js extern
+	throw todo # -------------------------------------------------------------------------------------------------------------------
+
 -request js-any(a crow-server, method symbol, params js-any) unsafe, js extern
 	a.lsp-server request method, params
 
@@ -171,11 +174,16 @@ region LSP server
 	getParameterBufferPointer view-c-string function()
 	getParameterBufferLength float function()
 	newServer wasm32 mut(params view-c-string)
-	handleLspMessage view-c-string mut(server wasm32, params view-c-string)
+	# TODO: Can't make this a function for 2 reasons:
+	# - Crow functions of 2 arguments actually take a tuple.
+	#	JS functions of two arguments take 2 arguments.
+	# - Making it a function causes an 'async' call,
+	#	but we need to read pointers immediately after calling this, before it's called again.
+	handleLspMessage js-any
 	memory js-any
 -uninit wasm-exports() unsafe, js extern
 	&fake-getParameterBufferPointer, &fake-getParameterBufferPointer,
-		(_ => throw not-implemented), (_ => throw not-implemented),
+		(_ => throw not-implemented), null,
 		null
 -fake-getParameterBufferPointer view-c-string()
 	throw not-implemented
@@ -184,10 +192,8 @@ region LSP server
 	a["getParameterBufferPointer"].cast, \
 	a["getParameterBufferLength"].cast,
 	a["newServer"].cast,
-	a["handleLspMessage"].as-fun2,
+	a["handleLspMessage"],
 	a["memory"]
--as-fun2 view-c-string mut(server wasm32, params view-c-string)(a js-any) unsafe, js extern
-	(server, params) => a call server, params cast
 
 -make-lsp-server crow-lsp-server() summon, trusted, js extern
 	res crow-lsp-server = (), 0, 0, uninit, 0, ()
@@ -218,7 +224,7 @@ region LSP server
 	messages js-any array
 	exitCode nat?
 -handle-message response(a crow-lsp-server, message js-any) unsafe, js extern
-	response-str = a.wasm.handleLspMessage[a.server, (a write-parameters message)]
+	response-str wasm32 = a.wasm.handleLspMessage call a.server, (a write-parameters message) cast
 	response = a.view read-c-string response-str json-parse
 	messages js-any array = response["messages"] cast
 	exit-code js-any = response["exitCode"] cast

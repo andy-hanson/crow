@@ -1093,7 +1093,7 @@ Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType type, JsE
 		case BuiltinType.catchPoint:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
-			assert(false);
+			return some(genBool(true));
 		case BuiltinType.char8:
 		case BuiltinType.char32:
 		case BuiltinType.int8:

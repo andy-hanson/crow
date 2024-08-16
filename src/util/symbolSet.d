@@ -21,10 +21,10 @@ immutable struct SymbolSet {
 	bool isEmpty() scope const =>
 		inner.isEmpty;
 
-	bool opBinaryRight(string op)(Symbol x) const if (op == "in") =>
+	bool opBinaryRight(string op)(Symbol x) scope const if (op == "in") =>
 		toIntegral(x) in inner;
-	bool opBinaryRight(string op)(SymbolSet b) const if (op == "in") =>
-		b.inner in inner;
+	bool containsAll(SymbolSet b) scope const =>
+		inner.containsAll(b.inner);
 	SymbolSet opBinary(string op)(Symbol x) const if (op == "|") =>
 		SymbolSet(inner | toIntegral(x));
 	SymbolSet opBinary(string op)(SymbolSet x) const if (op == "|") =>

@@ -1,0 +1,23 @@
+<section>
+	<h2>Compiling to JavaScript</h2>
+	<p>
+		Most Crow code can be compiled to JavaScript.
+		<br />
+		The exception is any code relying on <code>extern native</code> or any other <code>extern</code> library.
+		That will be explained in {{tutorial/extern}}.
+	</p>
+
+	<p>
+		Unlike the other examples, examples on this page will be compiled to JavaScript and executed in the browser!
+	</p>
+
+	<crow-runnable run-js>
+		main void() trusted, js extern
+			"alert".js-global call "Hello, JS!"::string
+	</crow-runnable>
+
+	<p>
+		Currently, there's no way to generate imports.
+		If you want to use a third-party JS library, the easiest way is to write it to a global that Crow can access.
+	</p>
+</section>

@@ -1,6 +1,6 @@
 import
 	crow/js: ==, as-js, call-property, cast, instanceof, js-global, null, subscript
-	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run
+	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run, run-js
 	./crow-text: create-crow-text, new
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
 	./loading-spinner: create-loading-spinner
@@ -14,7 +14,7 @@ import
 		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button,
 		create-div, create-node, create-span, create-text-node, define-custom-element, node,
 		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
-	./util/mutable-observable: get, mutable-observable, new, now-and-subscribe, set
+	./util/mutable-observable: get, mutable-observable, observable, new, now-and-subscribe, set
 	./util/util: from-base-64, reduce-indent, to-base-64
 
 define-crow-runnable-custom-element void() summon, trusted, js extern
@@ -27,12 +27,12 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 -new names()
 	(), 0
 -get-default-name string(a names) unsafe
-	res string = "demo{a.next-index}.crow"
+	index = a.next-index
 	a.next-index +:= 1
-	res
+	"demo{index}.crow"
 
 -get-crow-runnable-name string(a names, name-attr string?) unsafe, js extern
-	name = name-attr ?? a.get-default-name
+	name = name-attr ?? a get-default-name
 	assert name ends-with ".crow"
 	unless a.seen try-add name
 		error log "Two CrowRunnable have the same name {name}"
@@ -61,14 +61,16 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 
 -connected void(a custom-element-node, crow crow-server, names names) summon, unsafe, js extern
 	name = names get-crow-runnable-name a.attributes["name"]
-	no-run = (a.as-js call-property "getAttribute", "no-run"::string) != null
+	no-run = !a.attributes["no-run"].is-empty
+	run-js = !a.attributes["run-js"].is-empty
 	play = a is-play
 	initial-text = play get-crow-runnable-initial-text a.as-node
 	main-uri string = "file:///{name}"
-	text string mutable-observable = initial-text,
+	text-mut string mutable-observable = initial-text,
+	text = text-mut observable
 	tokens-and-diagnostics tokens-and-diagnostics mutable-observable = ()
 	get-hover string mut(x line-and-character) = position => crow get-hover main-uri, position
-	crow-text = (get-hover, tokens-and-diagnostics, text) create-crow-text
+	crow-text = (get-hover, tokens-and-diagnostics.observable, text-mut) create-crow-text
 
 	text now-and-subscribe shared value =>
 		diagnostics = crow open-file main-uri, value
@@ -86,10 +88,13 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 
 	run-button node? = unless no-run
 		button = "Run" create-button "run", (play-icon,), () =>
-			output start-running
-			collapse-button remove-class "collapsed"
-			yield-fiber # Allow to show loading before 'crow run'locks up the UI
-			output finish-running (crow run main-uri)
+			if run-js
+				crow run-js main-uri
+			else
+				output start-running
+				collapse-button remove-class "collapsed"
+				yield-fiber # Allow to show loading before 'crow run'locks up the UI
+				output finish-running (crow run main-uri)
 		button,
 
 	copy-button = "Copy to clipboard" create-button "", (copy-icon,), () =>

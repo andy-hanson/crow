@@ -8,6 +8,7 @@ import
 
 +pollfd record(fd fd-t, events int16, revents int16) extern
 
+# TODO: USE FLAGS -------------------------------------------------------------------------------------------------------------------
 +POLLIN int16()
 	1
 +POLLPRI int16()

@@ -1,6 +1,5 @@
 import
 	crow/io/file: read-file
-	crow/parse
 	./page-template: page-template
 	./path-and-content: path-and-content
 
@@ -20,40 +19,34 @@ tutorial-pages path-and-content[]() summon, native extern
 		"tutorial" tutorial-template meta, metas, title-lookup, content, next
 
 -tutorial-metas tutorial-meta[]()
-	"""index: Running crow programs
-	functions: Functions
-	local-variables: Local variables
-	conditionals: Conditional expressions
-	loops: Loop expressions
-	types: Basic types
-	type-inference: Type inference
-	special-call-syntax: Special call syntax
-	options: Options
-	records: Records
-	unions: Unions
-	variants: Variants
-	purity: Purity
-	collections: Collections
-	lambdas: Lambdas
-	for-and-with: "For" and "with" expressions
-	exceptions: Exceptions
-	fibers: Fibers
-	io: I/O
-	modules: Modules
-	templates: Templates
-	specs: Specs
-	auto-functions: Auto functions
-	enums: Enums and flags
-	low-level: Low-level code
-	extern: External libraries
-	misc: Miscellaneous""" parse-tutorial-metas
-
--parse-tutorial-metas tutorial-meta[](input string)
-	name symbol grammar = ":".text-not-containing map x => x to
-	line tutorial-meta grammar = (name ~~ ": " ~~ "\n".text-not-containing) map pair =>
-		pair.a, pair.b
-	lines tutorial-meta[] grammar = line separated-by "\n\t"
-	(lines parse input)!
+	("index", "Running crow programs"), \
+	("functions", "Functions"),
+	("local-variables", "Local variables"),
+	("conditionals", "Conditional expressions"),
+	("loops", "Loop expressions"),
+	("types", "Basic types"),
+	("type-inference", "Type inference"),
+	("special-call-syntax", "Special call syntax"),
+	("options", "Options"),
+	("records", "Records"),
+	("unions", "Unions"),
+	("variants", "Variants"),
+	("purity", "Purity"),
+	("collections", "Collections"),
+	("lambdas", "Lambdas"),
+	("for-and-with", "\"For\" and \"with\" expressions"),
+	("exceptions", "Exceptions"),
+	("fibers", "Fibers"),
+	("io", "I/O"),
+	("modules", "Modules"),
+	("templates", "Templates"),
+	("specs", "Specs"),
+	("auto-functions", "Auto functions"),
+	("enums", "Enums and flags"),
+	("low-level", "Low-level code"),
+	("js", "Compiling to JavaScript"),
+	("extern", "External libraries"),
+	("misc", "Miscellaneous")
 
 -tutorial-meta record(key symbol, title string)
 

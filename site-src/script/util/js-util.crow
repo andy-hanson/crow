@@ -1,7 +1,7 @@
 import
 	crow/js:
-		==, call, call-new, cast, call-property, js-any, js-global, null, set-subscript, subscript,
-		typeof
+		==, call, call-new, cast, call-property, eval, js-any, js-global, null, set-subscript,
+		subscript, typeof
 
 new js-any(...properties (symbol, js-any) array) trusted, js extern
 	res = "Object".js-global call-new
@@ -28,9 +28,6 @@ json-from-js-object json(a js-any) unsafe, js extern
 			map to
 	else
 		throw todo
-
-eval js-any(source string) unsafe, js extern
-	"eval".js-global call source
 
 method alias
 	js-any mut(this js-any, args js-any array)
