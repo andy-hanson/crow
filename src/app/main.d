@@ -37,7 +37,7 @@ import app.parseCommand : defaultExecutableExtension, defaultExecutablePath, par
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
-import backend.js.translateToJs : TranslateToJsResult;
+import backend.js.translateToJs : JsModules;
 import backend.writeToC : PathAndArgs, WriteToCParams;
 import document.document : documentModules;
 import frontend.lang : CCompileOptions;
@@ -62,7 +62,8 @@ import lib.server :
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
-	buildToJs,
+	buildToJsModules,
+	buildToJsScript,
 	buildToLowProgram,
 	DiagsAndResultJson,
 	filesState,
@@ -106,7 +107,7 @@ import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
 import util.uri :
-	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
+	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, FilePermissions, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, JsTarget, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
@@ -373,7 +374,7 @@ ExitCodeOrSignal run(scope ref Perf perf, ref Alloc alloc, ref Server server, Fi
 					return ExitCodeOrSignal(printError("This build does not support '--jit'"));
 			},
 			(in RunOptions.NodeJs) =>
-				buildAndRunNode(perf, alloc, server, cwd, program, run.programArgs)));
+				buildAndRunNodeJs(perf, alloc, server, cwd, program, run.programArgs)));
 
 FilePath getCrowIncludeDir(FilePath thisExecutable) {
 	FilePath thisDir = parentOrEmpty(thisExecutable);
@@ -451,7 +452,7 @@ ExitCodeOrSignal buildAndRun(
 					return exitCodeCombine(res, cleanup);
 				})));
 
-ExitCodeOrSignal buildAndRunNode(
+ExitCodeOrSignal buildAndRunNodeJs(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -459,9 +460,9 @@ ExitCodeOrSignal buildAndRunNode(
 	ref ProgramWithMain program,
 	in CString[] programArgs,
 ) =>
-	withTempPath(program.mainUri, Extension.none, (FilePath dir) =>
-		withWriteToJs(perf, alloc, server, program, dir, JsTarget.node, cb: (FilePath mainJs) =>
-			runNodeJsProgram(PathAndArgs(mainJs, programArgs))));
+	withTempPath(program.mainUri, Extension.js, (FilePath js) =>
+		withWriteToJsScript(perf, alloc, server, program, js, JsTarget.node, () =>
+			runNodeJsProgram(PathAndArgs(js, programArgs))));
 
 ExitCodeOrSignal buildAllOutputs(
 	scope ref Perf perf,
@@ -487,18 +488,27 @@ ExitCodeOrSignal buildAllOutputs(
 				return ExitCodeOrSignal.ok;
 			});
 
+	ExitCodeOrSignal doJsScript(FilePath path, JsTarget target) => //name --------------------------------------------------------------
+		withWriteToJsScript(perf, alloc, server, program, path, target, () =>
+			ExitCodeOrSignal.ok);
+	ExitCodeOrSignal doJsModules(FilePath dir, JsTarget target) => //name --------------------------------------------------------------
+		withWriteToJsModules(perf, alloc, server, program, dir, target, (FilePath _) => // TODO: if this is the only use of withWriteToJsModules, the cb can be removed
+			ExitCodeOrSignal.ok);
+
 	ExitCodeOrSignal res = eachUntilError!SingleBuildOutput(options.out_, (ref SingleBuildOutput out_) {
 		final switch (out_.kind) {
 			case SingleBuildOutput.Kind.c:
 				return doC(out_.path);
 			case SingleBuildOutput.Kind.executable:
 				return ExitCodeOrSignal.ok; // do this last
-			case SingleBuildOutput.Kind.js:
-			case SingleBuildOutput.Kind.nodeJs:
-				return withWriteToJs(
-					perf, alloc, server, program, out_.path,
-					out_.kind == SingleBuildOutput.Kind.nodeJs ? JsTarget.node : JsTarget.browser,
-					(FilePath _) => ExitCodeOrSignal.ok);
+			case SingleBuildOutput.Kind.jsModules:
+				return doJsModules(out_.path, JsTarget.browser);
+			case SingleBuildOutput.Kind.jsScript:
+				return doJsScript(out_.path, JsTarget.browser);
+			case SingleBuildOutput.Kind.nodeJsModules:
+				return doJsModules(out_.path, JsTarget.node);
+			case SingleBuildOutput.Kind.nodeJsScript:
+				return doJsScript(out_.path, JsTarget.node);
 		}
 	});
 	return okAnd(res, () {
@@ -512,7 +522,20 @@ ExitCodeOrSignal buildAllOutputs(
 	});
 }
 
-ExitCodeOrSignal withWriteToJs(
+ExitCodeOrSignal withWriteToJsScript(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	ref ProgramWithMain program,
+	FilePath outFile,
+	JsTarget target,
+	in ExitCodeOrSignal delegate() @safe @nogc nothrow cb,
+) {
+	string result = buildToJsScript(alloc, server, program, target);
+	return okAnd(ExitCodeOrSignal(writeFile(outFile, result, FilePermissions.executable)), cb);
+}
+
+ExitCodeOrSignal withWriteToJsModules(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -521,7 +544,7 @@ ExitCodeOrSignal withWriteToJs(
 	JsTarget target,
 	in ExitCodeOrSignal delegate(FilePath mainJs) @safe @nogc nothrow cb,
 ) {
-	TranslateToJsResult result = buildToJs(perf, alloc, server, program, getOS(), target);
+	JsModules result = buildToJsModules(alloc, server, program, target);
 	return okAnd(
 		ExitCodeOrSignal(writeFilesToDir(outDir, result.outputFiles)),
 		() => cb(concatFilePathAndPath(outDir, result.mainJs)));
@@ -574,7 +597,7 @@ ExitCodeOrSignal withWriteToC(
 			cCompileOptions);
 		BuildToCResult result = buildToC(perf, alloc, server, os, version_, params, program);
 		return okAnd(
-			ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource)),
+			ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource, FilePermissions.regular)),
 			() => cb(result.writeToCResult.compileCommand, result.externLibraries));
 	} else
 		return ExitCodeOrSignal.error;

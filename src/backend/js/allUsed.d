@@ -166,7 +166,7 @@ immutable struct AnyDecl {
 immutable struct AllUsed {
 	// Maps a module to decls it uses.
 	Map!(Uri, Set!AnyDecl) usedByModule;
-	private Set!AnyDecl usedDecls;
+	Set!AnyDecl usedDecls;
 	private AsyncSets async;
 }
 bool isUsedAnywhere(in AllUsed a, in AnyDecl x) =>

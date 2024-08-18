@@ -8,6 +8,7 @@ import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
+import test.testHashTable : testHashTable;
 import test.testHover : testHover;
 import test.testIntegralValues : testIntegralValues;
 import test.testInterpreter : testInterpreter;
@@ -61,6 +62,7 @@ immutable NameAndTest[] allTests = [
 	NameAndTest("all-insts", &testAllInsts),
 	NameAndTest("apply-fn", &testApplyFn),
 	NameAndTest("fake-extern", &testFakeExtern),
+	NameAndTest("hash-table", &testHashTable),
 	NameAndTest("hover", &testHover),
 	NameAndTest("integral-values", &testIntegralValues),
 	NameAndTest("interpreter", &testInterpreter),

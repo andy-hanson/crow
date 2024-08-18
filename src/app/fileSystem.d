@@ -49,7 +49,9 @@ version (Windows) {
 		WriteFile;
 } else {
 	import core.sys.posix.dirent : closedir, DIR, dirent, opendir, readdir;
+	import core.sys.posix.fcntl : O_CREAT, O_EXCL, open, O_WRONLY;
 	import core.sys.posix.spawn : posix_spawn;
+	import core.sys.posix.stdio : fdopen;
 	import core.sys.posix.sys.wait : waitpid;
 	import core.sys.posix.sys.stat : mkdir, mode_t, lstat, pid_t, S_IFDIR, S_IFMT, S_IFREG, stat_t;
 	import core.sys.posix.unistd : getcwd, read, readlink, rmdir, unlink, write;
@@ -68,7 +70,7 @@ import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : eachUntilError, ExitCode, ExitCodeOrSignal, okAnd, onError, Signal;
 import util.memory : memset;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOr, some, someMut;
 import util.string : CString, cString, stringOfCString;
 import util.symbol : alterExtension, Extension, Symbol, symbol, symbolOfString;
 import util.unicode : FileContent;
@@ -80,6 +82,7 @@ import util.uri :
 	concatFilePathAndPath,
 	countComponents,
 	FilePath,
+	FilePermissions,
 	parent,
 	parseFilePath,
 	Path,
@@ -363,11 +366,12 @@ private alias TempStrForPath = char[0x1000];
 	if (!uriIsFile(uri))
 		return ReadFileResult(ReadFileDiag.notFound);
 
-	FILE* fd = openFile(asFilePath(uri), "rb");
-	if (fd == null)
+	MutOpt!(FILE*) optFd = openFileForRead(asFilePath(uri));
+	if (!has(optFd))
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
 			: ReadFileResult(ReadFileDiag.error);
+	FILE* fd = force(optFd);
 	scope(exit) fclose(fd);
 
 	int err = fseek(fd, 0, SEEK_END);
@@ -396,12 +400,27 @@ private alias TempStrForPath = char[0x1000];
 	}
 }
 
-private @system FILE* openFile(FilePath path, immutable char* flags) =>
-	withCStringOfFilePath(path, (in CString x) @trusted =>
-		fopen(x.ptr, flags));
+private @system MutOpt!(FILE*) openFileForRead(FilePath path) {
+	FILE* res = withCStringOfFilePath(path, (in CString x) @trusted =>
+		fopen(x.ptr, "rb"));
+	return res == null ? noneMut!(FILE*) : someMut(res);
+}
+private @system MutOpt!(FILE*) openFileForWrite(FilePath path, FilePermissions permissions) {
+	int res = withCStringOfFilePath(path, (in CString x) @trusted =>
+		open(x.ptr, O_CREAT | O_EXCL | O_WRONLY, filePermissionsInt(permissions)));
+	return res == -1 ? noneMut!(FILE*) : someMut(fdopen(res, "wb"));
+}
+private int filePermissionsInt(FilePermissions permissions) {
+	final switch (permissions) {
+		case FilePermissions.regular:
+			return octal!"666";
+		case FilePermissions.executable:
+			return octal!"777";
+	}
+}
 
-@trusted ExitCode writeFile(FilePath path, in string content) {
-	MutOpt!(FILE*) fd = tryOpenFileForWrite(path);
+@trusted ExitCode writeFile(FilePath path, in string content, FilePermissions permissions) {
+	MutOpt!(FILE*) fd = tryOpenFileForWrite(path, permissions);
 	if (has(fd)) {
 		scope(exit) fclose(force(fd));
 
@@ -417,17 +436,15 @@ private @system FILE* openFile(FilePath path, immutable char* flags) =>
 		return ExitCode.error;
 }
 
-private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path) {
-	FILE* fd = openFile(path, "w");
-	if (fd != null)
-		return someMut(fd);
+private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path, FilePermissions permissions) {
+	MutOpt!(FILE*) res = openFileForWrite(path, permissions);
+	if (has(res))
+		return res;
 	else if (errno == ENOENT) {
 		Opt!FilePath par = parent(path);
-		if (has(par) && makeDirectoryAndParents(force(par)) == ExitCode.ok) {
-			FILE* res = openFile(path, "w");
-			return res == null ? noneMut!(FILE*) : someMut(res);
-		} else
-			return noneMut!(FILE*);
+		return has(par) && makeDirectoryAndParents(force(par)) == ExitCode.ok
+			? openFileForWrite(path, permissions)
+			: noneMut!(FILE*);
 	} else {
 		printErrorCb((scope ref Writer writer) {
 			writer ~= "Failed to write file ";
@@ -631,7 +648,7 @@ ExitCode writeFilesToDir(FilePath baseDir, in PathAndContent[] files) =>
 	// Make sure to build from the bottom up.
 	okAnd(buildDirectoriesForFiles(baseDir, files), () =>
 		eachUntilError!PathAndContent(files, (ref PathAndContent file) =>
-			writeFile(concatFilePathAndPath(baseDir, file.path), file.content)));
+			writeFile(concatFilePathAndPath(baseDir, file.path), file.content, file.permissions)));
 
 private:
 

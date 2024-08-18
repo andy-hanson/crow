@@ -21,10 +21,9 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array : map;
 import util.col.map : Map;
-import util.opt : Opt, some;
+import util.opt : force, has, Opt, some;
 import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
-import util.uri : Uri;
 import versionInfo : VersionInfo;
 
 struct TranslateProgramCtx {
@@ -37,18 +36,21 @@ struct TranslateProgramCtx {
 	immutable VersionInfo version_;
 	immutable SymbolSet allExterns;
 	immutable AllUsed allUsed;
-	immutable ModuleExportMangledNames exportMangledNames;
+	immutable Opt!ModuleExportMangledNames exportMangledNames; // Only used for building to modules
 
 	ref Program program() return scope const =>
 		programWithMainPtr.program;
+	ref CommonTypes commonTypes() return scope const =>
+		*program.commonTypes;
 	ref Alloc alloc() =>
 		*allocPtr;
+	bool isBrowser() const =>
+		symbol!"browser" in allExterns;
 }
 
 struct TranslateModuleCtx {
 	@safe @nogc pure nothrow:
 	TranslateProgramCtx* ctx;
-	Uri curUri;
 	immutable Map!(AnyDecl, ushort) privateMangledNames;
 	immutable Map!(StructDecl*, StructAlias*) aliases;
 
@@ -59,20 +61,20 @@ struct TranslateModuleCtx {
 	ref Program program() return scope const =>
 		ctx.program;
 	ref CommonTypes commonTypes() return scope const =>
-		*program.commonTypes;
+		ctx.commonTypes;
 	VersionInfo version_() scope const =>
 		ctx.version_;
 	SymbolSet allExterns() scope const =>
 		ctx.allExterns;
 	AllUsed allUsed() return scope const =>
 		ctx.allUsed;
-	ModuleExportMangledNames exportMangledNames() return scope const =>
+	Opt!ModuleExportMangledNames exportMangledNames() return scope const =>
 		ctx.exportMangledNames;
-
 	bool isBrowser() const =>
-		symbol!"browser" in allExterns;
+		ctx.isBrowser;
 }
 
+// This will be empty whne compiling to a bundle.
 immutable struct ModuleExportMangledNames {
 	// Maps any kind of declaration to its name index.
 	// So 'foo' will be renamed 'foo__1'
@@ -112,7 +114,9 @@ JsName jsNameForDecl(in AnyDecl a, Opt!ushort index) {
 private JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
 	jsNameForDecl(
 		a,
-		(a.visibility == Visibility.private_ ? ctx.privateMangledNames : ctx.exportMangledNames.mangledNames)[a]);
+		(has(ctx.exportMangledNames) && a.visibility != Visibility.private_
+			? force(ctx.exportMangledNames).mangledNames
+			: ctx.privateMangledNames)[a]);
 private JsName funName(in TranslateModuleCtx ctx, in FunDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
 JsExpr translateFunReference(in TranslateModuleCtx ctx, in FunDecl* a) =>

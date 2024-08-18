@@ -2,7 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import backend.js.translateToJs : translateToJs, TranslateToJsResult;
+import backend.js.translateToJs : JsModules, translateToJsModules, translateToJsScript;
 import backend.writeToC : writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import frontend.frontendCompile :
@@ -703,20 +703,25 @@ BuildToCResult buildToC(
 		lowProgram.externLibraries);
 }
 
-TranslateToJsResult buildToJs(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	ref ProgramWithMain program,
-	OS os,
-	JsTarget target,
-) =>
-	translateToJs(
+string buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target) =>
+	translateToJsScript(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
 		FileContentGetters(&server.storage),
-		os,
+		target);
+
+JsModules buildToJsModules(
+	ref Alloc alloc,
+	ref Server server,
+	ref ProgramWithMain program,
+	JsTarget target,
+) =>
+	translateToJsModules(
+		alloc,
+		program,
+		getShowDiagCtx(server, program.program, forceNoColor: true),
+		FileContentGetters(&server.storage),
 		target);
 
 ShowDiagCtx getShowDiagCtx(

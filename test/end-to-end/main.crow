@@ -5,9 +5,11 @@ import
 	crow/io/print: err, out, print
 	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
 	crow/parse-command: parse-named-args
+	crow/test-util/test-runner: run-all-tests
 	../failure
 
 main nat(args string[]) summon, native extern
+	run-all-tests
 	if values ?= args parse-named-args ("print-tests", "overwrite-output", "include-jit", "match")
 		print-tests-strs, overwrite-output-strs, include-jit-strs, match-test-strs = \
 			values as-tuple4
@@ -180,39 +182,83 @@ run-kind enum(interpret, jit, aot, js)
 		else
 			line,
 -normalize-exceptions-js string(a string)
-	started-stack mut = false
+	state mut js-stack-state = not-started
 	a update-lines line =>
-		if line starts-with "file://"
-			started-stack := true
-			()
-		elif rest ?= line try-remove-start "Error: "
-			started-stack := true
-			"Uncaught exception: {rest}",
-		elif rest ?= line try-remove-start "t_error [Error]: "
-			started-stack := true
-			"Uncaught exception: {rest}",
-		elif started-stack
+		match state
+		as not-started
+			if line is-first-line-of-js-exception
+				state := started
+				()
+			elif rest ?= line try-remove-start "Error: "
+				state := started
+				"Uncaught exception: {rest}",
+			else
+				line,
+		as started
 			ls = line strip
 			if ls starts-with "throw new " || ls ends-with "^" || ls == ""
 				()
+			elif rest ?= line try-remove-start "t_error [Error]: "
+				"Uncaught exception: {rest}",
 			elif rest ?= ls try-remove-start "Error: "
 				"Uncaught exception: {rest}",
 			elif rest ?= ls try-remove-start "at "
-				if rest starts-with "file://"
+				if rest is-first-line-of-js-exception
 					()
 				elif name, _ ?= rest try-split-once "("
-					unless name in ignore-js-stack
-						"\tat {name.strip strip-prefix}",
+					simple-name = name.strip strip-prefix
+					if simple-name == "main"
+						state := ignore-rest
+					"\tat {simple-name}",
 				else
 					line,
 			elif ls starts-with "f_describe: " || line == "}"
 				()
-			elif line starts-with "Node.js v"
-				"",
 			else
 				line,
-		else
-			line,
+		as ignore-rest
+			if line starts-with "Node.js v"
+				"",
+-js-stack-state enum(not-started, started, ignore-rest)
+
+test
+	"foo.js:1".is-first-line-of-js-exception is true
+	"foo.js:1:2".is-first-line-of-js-exception is true
+	"foo.js".is-first-line-of-js-exception is false
+	"foo.crow:1".is-first-line-of-js-exception is false
+
+-is-first-line-of-js-exception bool(a string)
+	if x ?= a remove-colon-numbers-from-end
+		x ends-with ".js"
+-remove-number-from-end string?(a string)
+	res = a try-remove-end "0" ||
+		a try-remove-end "1" ||
+		a try-remove-end "2" ||
+		a try-remove-end "3" ||
+		a try-remove-end "4" ||
+		a try-remove-end "5" ||
+		a try-remove-end "6" ||
+		a try-remove-end "7" ||
+		a try-remove-end "8" ||
+		a try-remove-end "9"
+	if x ?= res
+		x.remove-number-from-end || res
+test
+	"a0".remove-number-from-end is ("a",)
+	"a".remove-number-from-end is ()
+-remove-colon-number-from-end string?(a string)
+	if x ?= a remove-number-from-end
+		x try-remove-end ":"
+test
+	"a:0".remove-colon-number-from-end is ("a",)
+	"a".remove-colon-number-from-end is ()
+# Removes e.g. ':12' or ':1:2:3'
+-remove-colon-numbers-from-end string?(a string)
+	if x ?= a remove-colon-number-from-end
+		(x.remove-colon-number-from-end ?? x),
+test
+	"a:1:2".remove-colon-numbers-from-end is ("a",)
+	"a".remove-colon-numbers-from-end is ()
 
 -strip-prefix string(a string)
 	# For JS exception in a method: Ignore the class name
@@ -220,9 +266,6 @@ run-kind enum(interpret, jit, aot, js)
 		x try-remove-start "v_" ?? x
 	else
 		(a try-remove-start "f_" || a try-remove-start "t_") ?? a
-
--ignore-js-stack string set()
-	"ModuleJob.run ", "async ModuleLoader.import ", "async asyncRunEntryPointWithESMLoader "
 
 -update-lines string(a string, cb string[] mut(line string))
 	"\n" join with out : build

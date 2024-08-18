@@ -274,6 +274,12 @@ char digitChar(ulong digit) {
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
+void writeWithCommas(T)(scope ref Writer writer, in T[] a) {
+	writeWithCommas!T(writer, a, (in T x) {
+		writer ~= x;
+	});
+}
+
 void writeWithCommas(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ", ", cb);
 }
@@ -295,6 +301,11 @@ void writeWithCommasAndAnd(T)(scope ref Writer writer, in T[] a, in void delegat
 	}
 }
 
+void writeWithCommasCompact(T)(scope ref Writer writer, in T[] a) {
+	writeWithCommasCompact!T(writer, a, (in T x) {
+		writer ~= x;
+	});
+}
 void writeWithCommasCompact(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ",", cb);
 }

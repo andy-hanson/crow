@@ -11,11 +11,10 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, only, small;
+import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, only;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, mapToArray, MutMap, size, values;
 import util.conv : safeToUint;
-import util.integralValues : IntegralValue;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : copyToCString, CString;
@@ -94,7 +93,7 @@ Constant getConstantArray(
 	Constant[] elements,
 ) {
 	if (isEmpty(elements))
-		return constantEmptyArr();
+		return constantZero;
 	else {
 		ConcreteType elementType = only(arrStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
 		ArrTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.arrs, elementType, () =>
@@ -110,11 +109,6 @@ Constant getConstantArray(
 			() => elements);
 		return Constant(Constant.ArrConstant(d.typeIndex, index));
 	}
-}
-
-private Constant constantEmptyArr() {
-	static Constant[2] fields = [Constant(IntegralValue(0)), constantZero];
-	return Constant(Constant.Record(small!Constant(fields)));
 }
 
 Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, string value) =>

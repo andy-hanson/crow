@@ -196,9 +196,7 @@ private void writeJson(ref Writer writer, in Json a) =>
 		},
 		(in Json[] x) {
 			writer ~= '[';
-			writeWithCommasCompact!Json(writer, x, (in Json y) {
-				writer ~= y;
-			});
+			writeWithCommasCompact!Json(writer, x);
 			writer ~= ']';
 		},
 		(in Json.Object x) {

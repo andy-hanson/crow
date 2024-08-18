@@ -14,15 +14,21 @@ import util.symbol : compareSymbolsAlphabetically, Symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
 
-// This is specifically for what we emit.
-// We emit a bunch of 'const' declarations.
+immutable struct JsScriptAst {
+	Shebang shebang;
+	JsDecl[] decls;
+	JsStatement[] statements;
+}
 immutable struct JsModuleAst {
+	Shebang shebang;
 	Uri sourceUri;
 	JsImport[] imports;
 	JsImport[] reExports;
 	JsDecl[] decls;
 	JsStatement[] statements;
 }
+
+enum Shebang { none, node }
 
 // Mangle lazily
 immutable struct JsName {
@@ -323,6 +329,11 @@ JsExpr genArrowFunction(SyncOrAsync async, JsParams params, JsExprOrBlockStateme
 	JsExpr(JsArrowFunction(async, params, body_));
 JsExpr genArrowFunction(ref Alloc alloc, SyncOrAsync async, in JsDestructure[] params, JsExpr body_) =>
 	genArrowFunction(async, JsParams(newSmallArray(alloc, params)), JsExprOrBlockStatement(allocate(alloc, body_)));
+JsExpr genArrowFunction(ref Alloc alloc, SyncOrAsync async, in JsDestructure[] params, in JsStatement[] body_) =>
+	genArrowFunction(
+		async,
+		JsParams(newSmallArray(alloc, params)),
+		JsExprOrBlockStatement(genBlockStatement(alloc, body_)));
 JsStatement genAssign(ref Alloc alloc, JsExpr left, JsExpr right) =>
 	JsStatement(allocate(alloc, JsAssignStatement(left, right)));
 JsStatement genAssign(ref Alloc alloc, JsName left, JsExpr right) =>

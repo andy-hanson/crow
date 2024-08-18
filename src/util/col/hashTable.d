@@ -339,12 +339,12 @@ bool existsInHashTable(T, K, alias getKey)(
 }
 
 Out withSortedKeys(Out, T, K, alias getKey)(
-	in HashTable!(T, K, getKey) a,
+	in MutHashTable!(T, K, getKey) a,
 	in Comparison delegate(in K, in K) @safe @nogc pure nothrow cbCompare,
 	in Out delegate(in K[]) @safe @nogc pure nothrow cb,
 ) =>
 	withExactStackArray(size(a), (scope ref ExactSizeArrayBuilder!K builder) {
-		foreach (ref immutable T value; a)
+		foreach (ref const T value; a)
 			builder ~= getKey(value);
 		K[] keys = finish(builder);
 		sortInPlace!(K, cbCompare)(keys);
@@ -410,6 +410,24 @@ bool shouldExpandBeforeAdd(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a)
 		mustAdd(alloc, bigger, x);
 	freeElements(alloc, a.values);
 	a.values = bigger.values;
+}
+
+// WARN: To keep the implementation simple, it's possible that this will call 'cb' twice on the same value.
+public void deleteWhere(T, K, alias getKey)(
+	scope ref MutHashTable!(T, K, getKey) a,
+	in bool delegate(in T) @safe @nogc pure nothrow cb,
+) {
+	size_t i = 0;
+	while (i != a.values.length) {
+		MutOpt!T* value = &a.values[i];
+		if (has(*value) && cb(force(*value))) {
+			deleteFromHashTableAtIndex!(T, K, getKey)(a.values, i);
+			a.size_--;
+			// This may move values from later to here. So repeat again with the same 'i'.
+		} else {
+			i++;
+		}
+	}
 }
 
 public T deleteFromHashTableAtIndex(T, K, alias getKey)(scope MutOpt!T[] values, size_t i) {

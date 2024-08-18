@@ -4,6 +4,7 @@ module versionInfo;
 
 enum OS {
 	linux,
+	nodeJs,
 	web,
 	windows,
 }
@@ -48,13 +49,13 @@ VersionInfo versionInfoForJIT(OS os, VersionOptions options) =>
 VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
 	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
 
-VersionInfo versionInfoForBuildToJS(OS os, JsTarget target) {
+VersionInfo versionInfoForBuildToJS(JsTarget target) {
 	OS jsOs = () {
 		final switch (target) {
 			case JsTarget.browser:
 				return OS.web;
 			case JsTarget.node:
-				return os;
+				return OS.nodeJs;
 		}
 	}();
 	return VersionInfo(jsOs, versionOptionsForJs(), isInterpreted: false, isJit: false);

@@ -14,6 +14,7 @@ import backend.js.allUsed :
 import backend.js.jsAst :
 	compareJsName,
 	genArray,
+	genArrowFunction,
 	genAssign,
 	genBinary,
 	genBitwiseAnd,
@@ -56,10 +57,12 @@ import backend.js.jsAst :
 	JsModuleAst,
 	JsName,
 	JsParams,
+	JsScriptAst,
 	JsStatement,
+	Shebang,
 	SyncOrAsync;
 import backend.js.translateExpr :
-	genArrayToList, genAssertType, genNewPair, TranslateExprCtx, translateFunDecl, translateTest, variantMethodImpl;
+	genArrayToList, genAssertType, genNewPair, translateFunDecl, translateTest, variantMethodImpl;
 import backend.js.translateModuleCtx :
 	jsNameForDecl,
 	makeDecl,
@@ -68,7 +71,7 @@ import backend.js.translateModuleCtx :
 	TranslateProgramCtx,
 	TranslateModuleCtx,
 	translateStructReference;
-import backend.js.writeJsAst : writeJsAst;
+import backend.js.writeJsAst : writeJsModuleAst, writeJsScriptAst;
 import frontend.showModel : ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
@@ -83,6 +86,7 @@ import model.model :
 	hasFatalDiagnostics,
 	ImportOrExport,
 	isSigned,
+	isTuple,
 	MainFun,
 	Module,
 	nameFromNameReferentsPointer,
@@ -107,7 +111,7 @@ import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, f
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : Map, mustGet;
 import util.col.mutArr : MutArr, push;
-import util.col.mutMap : addOrChange, getOrAdd, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
+import util.col.mutMap : addOrChange, deleteWhere, getOrAdd, moveToMap, mustAdd, mustDelete, mustGet, MutMap;
 import util.col.set : Set;
 import util.col.sortUtil : sortInPlace;
 import util.col.tempSet : mustAdd, TempSet, tryAdd, withTempSet;
@@ -120,6 +124,7 @@ import util.union_ : Union;
 import util.uri :
 	alterExtension,
 	countComponents,
+	FilePermissions,
 	firstNComponents,
 	isAncestor,
 	parent,
@@ -133,25 +138,54 @@ import util.uri :
 	resolvePath,
 	Uri;
 import util.util : castNonScope_ref, min, ptrTrustMe, typeAs;
-import versionInfo : JsTarget, OS, VersionInfo, versionInfoForBuildToJS;
+import versionInfo : JsTarget, VersionInfo, versionInfoForBuildToJS;
 
-immutable struct TranslateToJsResult {
-	Path mainJs;
-	PathAndContent[] outputFiles;
-}
-TranslateToJsResult translateToJs(
+string translateToJsScript(
 	ref Alloc alloc,
 	ref ProgramWithMain program,
 	in ShowTypeCtx showCtx,
 	in FileContentGetters fileContentGetters,
-	OS os,
 	JsTarget jsTarget,
+) =>
+	withTranslateProgram(alloc, program, showCtx, fileContentGetters, jsTarget, true, (ref TranslateProgramCtx ctx) =>
+		writeJsScriptAst(alloc, showCtx, doTranslateBundle(ctx)));
+
+immutable struct JsModules {
+	Path mainJs;
+	PathAndContent[] outputFiles;
+}
+JsModules translateToJsModules(
+	ref Alloc alloc,
+	ref ProgramWithMain program,
+	in ShowTypeCtx showCtx,
+	in FileContentGetters fileContentGetters,
+	JsTarget jsTarget,
+) =>
+	withTranslateProgram(alloc, program, showCtx, fileContentGetters, jsTarget, false, (ref TranslateProgramCtx ctx) {
+		ModulePaths modulePaths = modulePaths(alloc, program);
+		// None for unused modules
+		MutMap!(Module*, Opt!JsModuleAst) done;
+		doTranslateModule(ctx, modulePaths, done, program.mainModule);
+		return JsModules(
+			mustGet(modulePaths, program.mainUri),
+			getOutputFiles(alloc, showCtx, modulePaths, done, jsTarget));
+	});
+
+private:
+
+Out withTranslateProgram(Out)(
+	ref Alloc alloc,
+	ref ProgramWithMain program,
+	in ShowTypeCtx showCtx,
+	in FileContentGetters fileContentGetters,
+	JsTarget jsTarget,
+	bool isScript,
+	in Out delegate(ref TranslateProgramCtx) @safe @nogc pure nothrow cb,
 ) {
 	assert(!hasFatalDiagnostics(program));
-	VersionInfo version_ = versionInfoForBuildToJS(os, jsTarget);
+	VersionInfo version_ = versionInfoForBuildToJS(jsTarget);
 	SymbolSet allExterns = allExternsForJs(jsTarget);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
-	ModulePaths modulePaths = modulePaths(alloc, program);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
 		castNonScope_ref(showCtx),
@@ -160,16 +194,10 @@ TranslateToJsResult translateToJs(
 		version_,
 		allExterns,
 		allUsed,
-		moduleExportMangledNames(alloc, program.program, allUsed));
-	// None for unused modules
-	MutMap!(Module*, Opt!JsModuleAst) done;
-	doTranslateModule(ctx, modulePaths, done, program.mainModule);
-	return TranslateToJsResult(
-		mustGet(modulePaths, program.mainUri),
-		getOutputFiles(alloc, showCtx, modulePaths, done, jsTarget));
+		optIf(!isScript, () =>
+			moduleExportMangledNames(alloc, program.program, allUsed)));
+	return cb(ctx);
 }
-
-private:
 
 alias ModulePaths = Map!(Uri, Path);
 ModulePaths modulePaths(ref Alloc alloc, in ProgramWithMain program) {
@@ -263,12 +291,13 @@ PathAndContent[] getOutputFiles(
 ) =>
 	buildArray!PathAndContent(alloc, (scope ref Builder!PathAndContent out_) {
 		if (target == JsTarget.node)
-			out_ ~= PathAndContent(parsePath("package.json"), "{\"type\":\"module\"}");
+			out_ ~= PathAndContent(parsePath("package.json"), FilePermissions.regular, "{\"type\":\"module\"}");
 		foreach (const Module* module_, ref Opt!JsModuleAst ast; done)
 			if (has(ast))
 				out_ ~= PathAndContent(
 					mustGet(modulePaths, module_.uri),
-					writeJsAst(alloc, showCtx, module_.uri, force(ast)));
+					force(ast).shebang == Shebang.none ? FilePermissions.regular : FilePermissions.executable,
+					writeJsModuleAst(alloc, showCtx, module_.uri, force(ast)));
 	});
 
 void doTranslateModule(
@@ -293,7 +322,6 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, in ModulePaths modulePa
 	JsImport[] reExports = translateReExports(ctx, modulePaths, a);
 	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
 		ptrTrustMe(ctx),
-		a.uri,
 		modulePrivateMangledNames(ctx.alloc, a, ctx.exportMangledNames, ctx.allUsed),
 		moveToMap(ctx.alloc, aliases));
 	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
@@ -303,11 +331,37 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, in ModulePaths modulePa
 			}
 		});
 	});
-	JsStatement[] statements = a.uri == ctx.programWithMainPtr.mainFun.fun.decl.moduleUri
+	bool isMain = a.uri == ctx.programWithMainPtr.mainFun.fun.decl.moduleUri;
+	JsStatement[] statements = isMain
 		? callMain(moduleCtx)
 		: [];
-	return JsModuleAst(a.uri, imports, reExports, decls, statements);
+	return JsModuleAst(
+		isMain && !moduleCtx.isBrowser ? Shebang.node : Shebang.none,
+		a.uri, imports, reExports, decls, statements);
 }
+
+JsScriptAst doTranslateBundle(ref TranslateProgramCtx ctx) { // TODO: RENAME _---------------------------------------------------------------
+	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
+		ptrTrustMe(ctx),
+		bundlePrivateMangledNames(ctx.alloc, ctx.allUsed),
+		Map!(StructDecl*, StructAlias*)());
+	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
+		// Emit variants first, because their members need to 'extend' them.
+		// Also 'tuple2' since it is used in enum/flags 'members'
+		foreach (AnyDecl decl; ctx.allUsed.usedDecls)
+			if (isVariantOrTuple(ctx, decl))
+				out_ ~= translateDecl(moduleCtx, decl);
+		foreach (AnyDecl decl; ctx.allUsed.usedDecls)
+			if (!isVariantOrTuple(ctx, decl))
+				out_ ~= translateDecl(moduleCtx, decl);
+	});
+	JsStatement[] statements = callMain(moduleCtx);
+	return JsScriptAst(ctx.isBrowser ? Shebang.none : Shebang.node, decls, statements);
+}
+bool isVariantOrTuple(in TranslateProgramCtx ctx, in AnyDecl a) =>
+	a.isA!(StructDecl*) && (
+		a.as!(StructDecl*).body_.isA!(StructBody.Variant) ||
+		isTuple(ctx.commonTypes, a.as!(StructDecl*)));
 
 JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 	FunDecl* main = ctx.ctx.programWithMainPtr.mainFun.fun.decl;
@@ -332,9 +386,10 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 							genPlus(ctx.alloc, genString("Exited with code "), JsExpr(exitCode))])))]);
 			} else {
 				/*
-				const exit = await main(newList(process.argv.slice(1)))
-				if (exit !== 0n)
-					process.exit(Number(exit))
+				main(newList(process.argv.slice(2))).then(exitCode => {
+					if (exitCode !== 0n)
+						process.exit(Number(exitCode))
+				})
 				*/
 				JsExpr process = genGlobal(symbol!"process");
 				// process.argv.slice(2)
@@ -343,14 +398,15 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 					genPropertyAccess(ctx.alloc, process, JsMemberName.noPrefix(symbol!"argv")),
 					JsMemberName.noPrefix(symbol!"slice"),
 					[genNumber(2)]);
-				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, args)]);
-				return newArray(ctx.alloc, [
-					genConst(ctx.alloc, exitCode, callMain),
+				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.sync, mainRef, [genArrayToList(ctx, args)]);
+				JsExpr arg = genArrowFunction(ctx.alloc, SyncOrAsync.sync, [JsDestructure(exitCode)], [
 					genIf(
 						ctx.alloc,
 						exitCodeNotZero,
 						JsStatement(genCallPropertySync(ctx.alloc, process, JsMemberName.noPrefix(symbol!"exit"), [
 							genCallSync(ctx.alloc, genGlobal(symbol!"Number"), [JsExpr(exitCode)])])))]);
+				JsStatement callThen = genCallPropertySync(ctx.alloc, callMain, JsMemberName.noPrefix(symbol!"then"), [arg]);
+				return newArray(ctx.alloc, [callThen]);
 			}
 		},
 		(in MainFun.Void) =>
@@ -360,6 +416,7 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program program, in AllUsed used) {
 	MutMap!(Symbol, ushort) lastIndexForName;
 	MutMap!(AnyDecl, ushort) res;
+
 	eachExportOrTestInProgram(program, (AnyDecl decl) {
 		if (isUsedAnywhere(used, decl)) {
 			ushort index = addOrChange!(Symbol, ushort)(
@@ -376,34 +433,55 @@ ModuleExportMangledNames moduleExportMangledNames(ref Alloc alloc, in Program pr
 		if (isUsedAnywhere(used, decl) && mustGet(lastIndexForName, decl.name) == 0)
 			mustDelete(res, decl);
 	});
+
 	return ModuleExportMangledNames(moveToMap(alloc, lastIndexForName), moveToMap(alloc, res));
+}
+
+Map!(AnyDecl, ushort) bundlePrivateMangledNames(ref Alloc alloc, in AllUsed allUsed) {
+	PrivateMangledNamesBuilder builder;
+	foreach (AnyDecl decl; allUsed.usedDecls)
+		add(alloc, builder, none!ModuleExportMangledNames, decl);
+	return finish(alloc, builder);
 }
 
 Map!(AnyDecl, ushort) modulePrivateMangledNames(
 	ref Alloc alloc,
 	in Module module_,
-	in ModuleExportMangledNames exports_,
+	in Opt!ModuleExportMangledNames exports,
 	in AllUsed used,
 ) {
-	MutMap!(Symbol, ushort) lastIndexForName;
-	MutMap!(AnyDecl, ushort) res;
+	PrivateMangledNamesBuilder builder;
 	eachPrivateDeclInModule(module_, (AnyDecl decl) {
 		if (isUsedInModule(used, module_.uri, decl)) {
-			ushort index = addOrChange!(Symbol, ushort)(
-				alloc, lastIndexForName, decl.name,
-				() {
-					Opt!ushort x = exports_.lastIndexForName[decl.name];
-					return has(x) ? safeToUshort(force(x) + 1) : typeAs!ushort(0);
-				},
-				(ref ushort x) { x++; });
-			mustAdd(alloc, res, decl, index);
+			add(alloc, builder, exports, decl);
 		}
 	});
-	eachPrivateDeclInModule(module_, (AnyDecl decl) {
-		if (isUsedInModule(used, module_.uri, decl) && mustGet(lastIndexForName, decl.name) == 0)
-			mustDelete(res, decl);
-	});
-	return moveToMap(alloc, res);
+	return finish(alloc, builder);
+}
+
+struct PrivateMangledNamesBuilder {
+	MutMap!(Symbol, ushort) lastIndexForName;
+	MutMap!(AnyDecl, ushort) res;
+}
+void add(
+	ref Alloc alloc,
+	ref PrivateMangledNamesBuilder builder,
+	in Opt!ModuleExportMangledNames exports,
+	AnyDecl decl,
+) {
+	ushort index = addOrChange!(Symbol, ushort)(
+		alloc, builder.lastIndexForName, decl.name,
+		() {
+			Opt!ushort x = has(exports) ? force(exports).lastIndexForName[decl.name] : none!ushort;
+			return has(x) ? safeToUshort(force(x) + 1) : typeAs!ushort(0);
+		},
+		(ref ushort x) { x++; });
+	mustAdd(alloc, builder.res, decl, index);
+}
+Map!(AnyDecl, ushort) finish(ref Alloc alloc, ref PrivateMangledNamesBuilder builder) {
+	deleteWhere!(AnyDecl, ushort)(builder.res, (in AnyDecl decl, in ushort value) =>
+		mustGet(builder.lastIndexForName, decl.name) == 0);
+	return moveToMap(alloc, builder.res);
 }
 
 void eachExportOrTestInProgram(ref Program a, in void delegate(AnyDecl) @safe @nogc pure nothrow cb) {
@@ -461,7 +539,7 @@ JsImport[] translateImports(
 			foreach (Uri importedUri, ref MutArr!AnyDecl decls; byModule) {
 				JsName[] names = buildArray!JsName(ctx.alloc, (scope ref Builder!JsName out_) {
 					foreach (ref const AnyDecl decl; decls)
-						out_ ~= jsNameForDecl(decl, ctx.exportMangledNames.mangledNames[decl]);
+						out_ ~= jsNameForDecl(decl, force(ctx.exportMangledNames).mangledNames[decl]);
 				});
 				sortInPlace!(JsName, compareJsName)(names);
 				outImports ~= JsImport(some(names), relativePath(importerPath, mustGet(modulePaths, importedUri)));
@@ -487,7 +565,7 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in ModulePaths module
 						foreach (Symbol name; names) {
 							eachNameReferent(*mustGet(x.imported, name), (AnyDecl decl) {
 								if (isUsedAnywhere(ctx.allUsed, decl))
-									out_ ~= jsNameForDecl(decl, ctx.exportMangledNames.mangledNames[decl]);
+									out_ ~= jsNameForDecl(decl, force(ctx.exportMangledNames).mangledNames[decl]);
 							});
 						}
 					});
@@ -702,10 +780,9 @@ void translateRecordDecl(
 			JsDestructure(JsName.local(x.name))),
 		needSuper,
 		(scope ref ArrayBuilder!JsStatement out_) {
-			TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx));
 			foreach (ref RecordField x; a.fields) {
 				JsExpr value = JsExpr(JsName.local(x.name));
-				genAssertType(out_, exprCtx, x.type, value);
+				genAssertType(out_, ctx, x.type, value);
 				add(ctx.alloc, out_, genAssignToThis(ctx.alloc, JsMemberName.recordField(x.name), value));
 			}
 		});
@@ -742,8 +819,7 @@ void translateUnionDecl(
 				JsName value = JsName.specialLocal(symbol!"value");
 				JsParams params = JsParams(newSmallArray!JsDestructure(ctx.alloc, [JsDestructure(value)]));
 				ArrayBuilder!JsStatement out_;
-				TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx));
-				genAssertType(out_, exprCtx, member.type, JsExpr(value));
+				genAssertType(out_, ctx, member.type, JsExpr(value));
 				add(ctx.alloc, out_, genReturn(
 					ctx.alloc,
 					genNew(ctx.alloc, genThis(), [

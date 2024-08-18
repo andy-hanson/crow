@@ -309,6 +309,7 @@ public Extension defaultExecutableExtension(OS os) {
 	final switch (os) {
 		case OS.linux:
 			return Extension.none;
+		case OS.nodeJs:
 		case OS.web:
 			assert(false);
 		case OS.windows:
@@ -555,9 +556,10 @@ Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags d
 	Opt!PrefixAndRest optPrefix = trySplit(arg, ':');
 	if (has(optPrefix)) {
 		PrefixAndRest pr = force(optPrefix);
-		Opt!(SingleBuildOutput.Kind) kind = buildKindFromPrefix(pr.prefix);
+		FilePath path = parseFilePathWithCwdOrDiag(diags, cwd, pr.rest);
+		Opt!(SingleBuildOutput.Kind) kind = buildKindFromPrefix(pr.prefix, getExtension(path));
 		if (has(kind))
-			return some(SingleBuildOutput(force(kind), parseFilePathWithCwdOrDiag(diags, cwd, pr.rest)));
+			return some(SingleBuildOutput(force(kind), path));
 		else {
 			diags ~= Diag(Diag.BuildOutBadPrefix(pr.prefix));
 			return none!SingleBuildOutput;
@@ -574,12 +576,16 @@ Opt!SingleBuildOutput parseSingleBuildOut(FilePath cwd, OS os, scope ref Diags d
 	}
 }
 
-Opt!(SingleBuildOutput.Kind) buildKindFromPrefix(in string prefix) {
+Opt!(SingleBuildOutput.Kind) buildKindFromPrefix(in string prefix, Extension extension) {
 	switch (prefix) {
 		case "js":
-			return some(SingleBuildOutput.Kind.js);
+			return some(extension == Extension.js
+				? SingleBuildOutput.Kind.jsScript
+				: SingleBuildOutput.Kind.jsModules);
 		case "node-js":
-			return some(SingleBuildOutput.Kind.nodeJs);
+			return some(extension == Extension.js
+				? SingleBuildOutput.Kind.nodeJsScript
+				: SingleBuildOutput.Kind.nodeJsModules);
 		default:
 			return none!(SingleBuildOutput.Kind);
 	}

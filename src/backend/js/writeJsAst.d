@@ -42,6 +42,7 @@ import backend.js.jsAst :
 	JsPropertyAccessExpr,
 	JsPropertyAccessComputedExpr,
 	JsReturnStatement,
+	JsScriptAst,
 	JsStatement,
 	JsSwitchStatement,
 	JsTernaryExpr,
@@ -52,6 +53,7 @@ import backend.js.jsAst :
 	JsUnaryExpr,
 	JsVarDecl,
 	JsWhileStatement,
+	Shebang,
 	SyncOrAsync;
 import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
@@ -65,8 +67,17 @@ import util.uri : RelPath, Uri;
 import util.util : stringOfEnum;
 import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
 
-string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
+string writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in JsScriptAst a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
+		writeShebang(writer, a.shebang);
+		foreach (JsDecl x; a.decls)
+			writeDecl(writer, showCtx, x, neverExport: true);
+		writeStatements(writer, a.statements);
+	});
+
+string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
+		writeShebang(writer, a.shebang);
 		writer ~= "// ";
 		writer ~= sourceUri;
 		writer ~= '\n';
@@ -76,13 +87,26 @@ string writeJsAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsM
 			writeImportOrReExport(writer, "export", x);
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x);
-		foreach (JsStatement x; a.statements) {
-			writeNewline(writer, 0);
-			writeStatement(writer, 0, x, StatementPos.nonFirst);
-		}
+		writeStatements(writer, a.statements);
 	});
 
 private:
+
+void writeShebang(scope ref Writer writer, Shebang a) {
+	final switch (a) {
+		case Shebang.none:
+			break;
+		case Shebang.node:
+			writer ~= "#!/usr/bin/env node\n";
+	}
+}
+
+void writeStatements(scope ref Writer writer, in JsStatement[] statements) {
+	foreach (JsStatement x; statements) {
+		writeNewline(writer, 0);
+		writeStatement(writer, 0, x, StatementPos.nonFirst);
+	}
+}
 
 void writeJsName(scope ref Writer writer, in JsName name) {
 	if (isJsKeyword(name.crowName) && !has(name.mangleIndex)) {
@@ -213,15 +237,17 @@ void writeQuotedRelPath(scope ref Writer writer, RelPath path) {
 	writer ~= '"';
 }
 
-void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl) {
+void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl, bool neverExport = false) {
 	writeDeclComment(writer, showCtx, decl.source);
 	writer ~= '\n';
-	final switch (decl.exported) {
-		case JsDecl.Exported.private_:
-			break;
-		case JsDecl.Exported.export_:
-			writer ~= "export ";
-			break;
+	if (!neverExport) {
+		final switch (decl.exported) {
+			case JsDecl.Exported.private_:
+				break;
+			case JsDecl.Exported.export_:
+				writer ~= "export ";
+				break;
+		}
 	}
 	decl.kind.matchIn!void(
 		(in JsClassDecl x) {

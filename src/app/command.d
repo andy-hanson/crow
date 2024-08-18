@@ -78,7 +78,7 @@ immutable struct BuildOptions {
 }
 
 immutable struct SingleBuildOutput {
-	enum Kind { c, executable, js, nodeJs }
+	enum Kind { c, executable, jsScript, jsModules, nodeJsScript, nodeJsModules }
 	Kind kind;
 	FilePath path;
 }

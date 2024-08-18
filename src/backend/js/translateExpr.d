@@ -196,6 +196,7 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.symbol : Symbol, symbol;
 import util.unicode : mustUnicodeDecode;
 import util.union_ : TaggedUnion, Union;
+import util.uri : Uri;
 import util.util : ptrTrustMe;
 import versionInfo : isVersion, VersionFun;
 
@@ -209,20 +210,20 @@ JsExpr genNewPair(ref TranslateModuleCtx ctx, JsExpr a, JsExpr b) =>
 
 private void genAssertTypesForDestructure(
 	scope ref ArrayBuilder!JsStatement out_,
-	ref TranslateExprCtx ctx,
+	ref TranslateModuleCtx ctx,
 	in Destructure destructure,
 ) {
 	eachLocal(destructure, (Local* x) {
 		genAssertType(out_, ctx, x.type, translateLocalGet(x));
 	});
 }
-void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateExprCtx ctx, in Type type, JsExpr get) {
+void genAssertType(scope ref ArrayBuilder!JsStatement out_, ref TranslateModuleCtx ctx, in Type type, JsExpr get) {
 	type.matchIn!void(
 		(in Type.Bogus) {},
 		(in TypeParamIndex _) {},
 		(in StructInst x) {
 			Opt!JsExpr notOk = x.decl.body_.isA!BuiltinType
-				? genIsNotBuiltinType(ctx.ctx, x.decl.body_.as!BuiltinType, get)
+				? genIsNotBuiltinType(ctx, x.decl.body_.as!BuiltinType, get)
 				: optIf(!x.decl.body_.isA!(StructBody.Extern), () =>
 					genNot(ctx.alloc, genInstanceof(ctx.alloc, get, translateStructReference(ctx, x.decl))));
 			if (has(notOk))
@@ -278,14 +279,14 @@ private Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType t
 }
 
 JsDecl translateTest(ref TranslateModuleCtx ctx, Test* a) {
-	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
+	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), a.moduleUri, none!(FunDecl*));
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(genArrowFunction(
 		SyncOrAsync.async,
 		JsParams(),
 		translateExprToExprOrBlockStatement(exprCtx, a.body_, Type(ctx.commonTypes.void_)))));
 }
 JsDecl translateFunDecl(ref TranslateModuleCtx ctx, FunDecl* a) {
-	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), some(a));
+	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), a.moduleUri, some(a));
 	JsParams params = translateFunParams(exprCtx, *a);
 	JsExpr fun = genArrowFunction(isAsyncFun(ctx.allUsed, a), params, translateFunBody(exprCtx, a));
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(fun));
@@ -302,7 +303,7 @@ JsClassMember variantMethodImpl(
 	if (has(optImpl) && isInlined(force(optImpl))) {
 		Called impl = force(optImpl);
 		FunDecl* decl = impl.as!(FunInst*).decl;
-		TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), none!(FunDecl*));
+		TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), caller.moduleUri, none!(FunDecl*));
 		return genInstanceMethod(
 			async,
 			JsMemberName.variantMethod(name),
@@ -629,7 +630,7 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 			return JsExprOrBlockStatement(JsBlockStatement(
 				translateToStatements(ctx.alloc, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos pos) {
 					foreach (ref Destructure param; paramsArray(fun.params))
-						genAssertTypesForDestructure(out_, ctx, param);
+						genAssertTypesForDestructure(out_, ctx.ctx, param);
 					return translateExpr(ctx, fun.body_.as!Expr, fun.returnType, pos);
 				})));
 		else {
@@ -645,9 +646,10 @@ JsExprOrBlockStatement translateFunBody(ref TranslateExprCtx ctx, FunDecl* fun) 
 	}
 }
 
-public struct TranslateExprCtx {
+struct TranslateExprCtx {
 	@safe @nogc pure nothrow:
 	TranslateModuleCtx* ctxPtr;
+	Uri curUri;
 	Opt!(FunDecl*) curFun;
 	private uint nextTempIndex;
 
@@ -887,7 +889,7 @@ ExprResult translateAssertOrForbid(
 			? translateExprToExpr(ctx, *force(a.thrown), Type(ctx.commonTypes.exception))
 			: genNewError(
 				ctx,
-				defaultAssertOrForbidMessage(ctx.alloc, ctx.ctx.curUri, expr, a, ctx.fileContentGetters))));
+				defaultAssertOrForbidMessage(ctx.alloc, ctx.curUri, expr, a, ctx.fileContentGetters))));
 	ExprResult after(scope ExprPos inner) =>
 		translateExpr(ctx, a.after, type, inner);
 	return translateIfCb(

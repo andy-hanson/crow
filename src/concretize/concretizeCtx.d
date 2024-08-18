@@ -922,6 +922,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 					case OS.linux:
 						// Keep in sync with 'catch point size' comment in writeToC_boilerplate_posix.c
 						return TypeSize(0x40, 8);
+					case OS.nodeJs:
 					case OS.web:
 						// Always interpreted
 						assert(false);

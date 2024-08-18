@@ -70,6 +70,8 @@ private @trusted Path getOrAddChild_impure(ref MutArr!Path children, Opt!Path pa
 	return res;
 }
 
+pure Path rootPath(Symbol name) =>
+	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 private @trusted pure Path rootPath(Symbol name, PathInfo info) =>
 	(cast(Path function(Symbol, PathInfo) @safe @nogc pure nothrow) &rootPath_impure)(name, info);
 private @system Path rootPath_impure(Symbol name, PathInfo info) =>
@@ -688,7 +690,9 @@ public void writeUriPreferRelative(ref Writer writer, in UrisInfo urisInfo, Uri 
 public size_t relPathLength(in RelPath a) =>
 	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(a.path);
 
-public immutable struct PathAndContent {
+public enum FilePermissions { regular, executable }
+public immutable struct PathAndContent { // TODO: RENAME -----------------------------------------------------------------------------------------------------
 	Path path;
+	FilePermissions permissions;
 	string content;
 }

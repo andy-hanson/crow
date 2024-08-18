@@ -5,6 +5,7 @@ module util.col.mutMap;
 import util.alloc.alloc : Alloc;
 import util.col.hashTable :
 	addOrChange,
+	deleteWhere,
 	getOrAdd,
 	getOrAddAndDidAdd,
 	hashTableMapToArray,
@@ -198,4 +199,10 @@ private @trusted Out[] mapToArray(Out, K, V)(
 			a.inner,
 			(ref KeyValuePair!(K, VIn) x) => KeyValuePair!(K, VOut)(x.key, cb(x.value)));
 	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
+}
+
+// WARN: To keep the implementation simple, it's possible that this will call 'cb' twice on the same value.
+void deleteWhere(K, V)(scope ref MutMap!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
+	.deleteWhere(a.inner, (in KeyValuePair!(K, V) x) =>
+		cb(x.key, x.value));
 }
