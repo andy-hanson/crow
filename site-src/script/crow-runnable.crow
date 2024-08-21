@@ -1,5 +1,5 @@
 import
-	crow/js: ==, as-js, call-property, cast, instanceof, js-global, null, subscript
+	crow/js: as-js, cast, instanceof, js-global, subscript
 	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run, run-js
 	./crow-text: create-crow-text, new
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon

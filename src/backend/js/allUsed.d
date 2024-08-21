@@ -422,7 +422,7 @@ struct AllUsedBuilder {
 	ref Alloc alloc() =>
 		*allocPtr;
 	ref CommonTypes commonTypes() =>
-		*program.commonTypes;
+		program.commonTypes;
 }
 immutable struct FunAndSpecSig {
 	@safe @nogc pure nothrow:

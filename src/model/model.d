@@ -50,7 +50,7 @@ import util.col.array :
 	SmallArray,
 	sum;
 import util.col.hashTable : existsInHashTable, HashTable, mustGet;
-import util.col.map : Map;
+import util.col.map : Map, mustGet;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.integralValues : IntegralValue;
@@ -1750,6 +1750,10 @@ enum FunKind {
 	function_,
 }
 
+immutable struct CommonFunsAndDiagnostics {
+	CommonFuns commonFuns;
+	SmallArray!UriAndDiagnostic diagnostics;
+}
 immutable struct CommonFuns {
 	@safe @nogc pure nothrow:
 	FunInst* jsAwait;
@@ -1913,16 +1917,42 @@ ulong maxValue(IntegralType type) {
 
 immutable struct ProgramWithMain {
 	@safe @nogc pure nothrow:
-	Config* mainConfig;
-	MainFun mainFun;
 	Program program;
+	MainFunAndDiagnostics mainFunAndDiagnostics;
 
 	Uri mainUri() scope =>
 		mainFun.fun.decl.moduleUri;
+	MainFun mainFun() return scope =>
+		mainFunAndDiagnostics.mainFun;
+	UriAndDiagnostic[] mainFunDiagnostics() return scope =>
+		mainFunAndDiagnostics.diagnostics;
 	Module* mainModule() return scope =>
 		mustGet(program.allModules, mainUri);
+	Config* mainConfig() return scope =>
+		mainModule.config;
 }
 
+immutable struct ProgramWithOptMain {//TODO: just use a Union? -----------------------------------------------------------------
+	@safe @nogc pure nothrow:
+	Program program;
+	private Opt!MainFunAndDiagnostics mainFunAndDiagnostics;
+
+	bool hasMain() scope =>
+		has(mainFunAndDiagnostics);
+	ProgramWithMain asProgramWithMain() return scope =>
+		ProgramWithMain(program, force(mainFunAndDiagnostics));
+	Program asProgram() return scope =>
+		program;
+}
+ProgramWithOptMain asProgramWithOptMain(ProgramWithMain a) =>
+	ProgramWithOptMain(a.program, some(a.mainFunAndDiagnostics));
+ProgramWithOptMain asProgramWithOptMain(Program a) =>
+	ProgramWithOptMain(a, none!MainFunAndDiagnostics);
+
+immutable struct MainFunAndDiagnostics {
+	MainFun mainFun;
+	SmallArray!UriAndDiagnostic diagnostics;
+}
 immutable struct MainFun {
 	@safe @nogc pure nothrow:
 
@@ -1950,29 +1980,34 @@ immutable struct MainFun {
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
-	hasAnyDiagnostics(a.program);
+	hasAnyDiagnostics(a.program) || !isEmpty(a.mainFunDiagnostics);
 bool hasFatalDiagnostics(in ProgramWithMain a) =>
-	hasFatalDiagnostics(a.program);
+	hasFatalDiagnostics(a.program) || !isEmpty(a.mainFunDiagnostics);
 
 immutable struct Program {
+	@safe @nogc pure nothrow:
 	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
-	SmallArray!UriAndDiagnostic commonFunsDiagnostics;
-	CommonFuns commonFuns;
-	CommonTypes* commonTypes;
+	CommonFunsAndDiagnostics commonFunsAndDiagnostics;
+	CommonTypes* commonTypesPtr;
 	OtherTypes otherTypes;
+
+	ref CommonFuns commonFuns() return =>
+		commonFunsAndDiagnostics.commonFuns;
+	ref CommonTypes commonTypes() return scope =>
+		*commonTypesPtr;
 }
 Module* moduleAtUri(in Program program, Uri uri) =>
 	mustGet(program.allModules, uri);
 
-bool hasAnyDiagnostics(in Program a) =>
+bool hasAnyDiagnostics(in Program a) => // todo: just inline? ------------------------------------------------------------
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
 bool hasFatalDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic x) =>
 		isFatal(getDiagnosticSeverity(x.kind)));
 
 // Iterates in no particular order
-void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
+void eachDiagnostic(in ProgramWithOptMain a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
 	bool res = existsDiagnostic(a, (in UriAndDiagnostic x) {
 		cb(x);
 		return false;
@@ -1980,8 +2015,11 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 	assert(!res);
 }
 
+private bool existsDiagnostic(in ProgramWithOptMain a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
+	(a.hasMain && exists!UriAndDiagnostic(a.asProgramWithMain.mainFunDiagnostics, cb)) || existsDiagnostic(a.program, cb);
+
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
-	exists!UriAndDiagnostic(a.commonFunsDiagnostics, cb) ||
+	exists!UriAndDiagnostic(a.commonFunsAndDiagnostics.diagnostics, cb) ||
 	existsInHashTable!(immutable Config*, Uri, getConfigUri)(a.allConfigs, (in Config* config) =>
 		exists!Diagnostic(config.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(force(config.configUri), x)))) ||

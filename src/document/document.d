@@ -11,6 +11,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	Module,
+	moduleAtUri,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -59,7 +60,7 @@ import util.util : stringOfEnum;
 Json documentModules(ref Alloc alloc, in Program program, in Uri[] moduleUris) =>
 	jsonObject(alloc, [
 		field!"modules"(jsonList!Uri(alloc, moduleUris, (in Uri x) =>
-			documentModule(alloc, program, *mustGet(program.allModules, x))))]);
+			documentModule(alloc, program, *moduleAtUri(program, x))))]);
 
 private:
 

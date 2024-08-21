@@ -143,7 +143,7 @@ import util.union_ : TaggedUnion, Union;
 import util.util : enumConvert;
 
 Opt!Position getPosition(ref Program program, Module* module_, Pos pos) {
-	Ctx ctx = Ctx(program.commonTypes);
+	Ctx ctx = Ctx(program.commonTypesPtr);
 	Opt!PositionKind kind = getPositionKind(ctx, *module_, pos);
 	return optIf(has(kind), () => Position(module_, force(kind)));
 }

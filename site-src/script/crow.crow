@@ -64,6 +64,14 @@ get-tokens token array(a crow-server, uri uri) trusted, js extern
 	encoded = (a request "textDocument/semanticTokens/full", args)["data"]
 	encoded decode-tokens a.tokens-legend
 
+run-js run-result(a crow-server, main-uri uri) trusted, js extern
+	uris = (main-uri.as-js,)::(js-any array) as-js
+	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
+	response = a request "custom/run", args
+	script string = response["script"] cast
+	info log "script is {script}"
+	throw todo
+
 run run-result(a crow-server, main-uri uri) trusted, js extern
 	uris = (main-uri.as-js,)::(js-any array) as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)

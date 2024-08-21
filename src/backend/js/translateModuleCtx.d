@@ -41,7 +41,7 @@ struct TranslateProgramCtx {
 	ref Program program() return scope const =>
 		programWithMainPtr.program;
 	ref CommonTypes commonTypes() return scope const =>
-		*program.commonTypes;
+		program.commonTypes;
 	ref Alloc alloc() =>
 		*allocPtr;
 	bool isBrowser() const =>

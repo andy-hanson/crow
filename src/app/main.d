@@ -571,7 +571,7 @@ ExitCodeOrSignal withProgramForMain(
 	loadAllFiles(perf, server, [main]);
 	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 	if (hasAnyDiagnostics(program))
-		printError(showDiagnostics(alloc, server, program.program));
+		printError(showDiagnostics(alloc, server, program));
 	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
 }
 ExitCodeOrSignal withProgramForRoots(

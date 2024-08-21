@@ -6,7 +6,7 @@ import backend.js.translateToJs : JsModules, translateToJsModules, translateToJs
 import backend.writeToC : writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import frontend.frontendCompile :
-	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
+	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats, programWithMainFromProgram;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.syntaxTranslate : syntaxTranslate;
 import frontend.ide.getDefinition : getDefinitionForPosition;
@@ -47,6 +47,7 @@ import interpret.runBytecode : runBytecode;
 import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
 	BuildJsScriptParams,
+	BuildJsScriptResult,
 	CancelRequestParams,
 	DefinitionParams,
 	DidChangeTextDocumentParams,
@@ -100,7 +101,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Module, Program, ProgramWithMain;
+import model.model : asProgramWithOptMain, hasAnyDiagnostics, hasFatalDiagnostics, Module, moduleAtUri, Program, ProgramWithMain, ProgramWithOptMain;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
@@ -134,7 +135,7 @@ ExitCodeOrSignal buildAndInterpret(
 	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
-	return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
+	return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) @safe {
 		LowProgram lowProgram = buildToLowProgram(
 			perf, buildAlloc, server, versionInfoForInterpret(getOS(), version_), program);
 		Opt!ExternPointersForAllLibraries externPointers =
@@ -280,8 +281,8 @@ private Opt!LspOutResult respondWithProgram(
 	in LspInRequest request,
 ) {
 	if (filesState(server) == FilesState.allLoaded) {
-		return some(handleLspRequestWithProgram(
-			perf,alloc, server, getProgramForAll(perf, alloc, server), request.params));
+		Program program = getProgramForAll(perf, alloc, server);
+		return some(handleLspRequestWithProgram(perf, alloc, server, program, request.params));
 	} else {
 		push(server.lspState.stateAlloc, server.lspState.pendingRequests, request);
 		return none!LspOutResult;
@@ -292,12 +293,16 @@ private LspOutResult handleLspRequestWithProgram(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	in Program program,
+	ref Program program,
 	in LspInRequestParams a,
-) =>
-	a.matchImpure!LspOutResult(
-		(in BuildJsScriptParams x) =>
-			assert(false), //LspOutResult(BuildJsScriptResult(buildToJsScript(alloc, server, program, JsTarget.browser))),
+) {
+	ProgramWithMain programWithMain(Uri main) @safe =>
+		programWithMainFromProgram(perf, alloc, server.frontend, program, main);
+	return a.matchImpure!LspOutResult(
+		(in BuildJsScriptParams x) {
+			ProgramWithMain pwm = programWithMain(x.uri);
+			return LspOutResult(BuildJsScriptResult(buildToJsScript(alloc, server, pwm, JsTarget.browser)));
+		},
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
 		(in HoverParams x) =>
@@ -310,9 +315,9 @@ private LspOutResult handleLspRequestWithProgram(
 			LspOutResult(getRenameForProgram(alloc, server, program, x)),
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
-			// TODO: this redundantly builds a program.............................................................................
+			ProgramWithMain pwm = programWithMain(x.uri);
 			ExitCodeOrSignal exitCode = runFromLsp(
-				perf, alloc, server, x.uri, x.diagnosticsOnlyForUris,
+				perf, alloc, server, pwm, x.diagnosticsOnlyForUris,
 				(Pipe pipe, in string x) {
 					add(alloc, writes, Write(pipe, copyString(alloc, x)));
 				});
@@ -329,12 +334,13 @@ private LspOutResult handleLspRequestWithProgram(
 			assert(false),
 		(in UnloadedUrisParams _) =>
 			assert(false));
+}
 
 private ExitCodeOrSignal runFromLsp(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	Uri main,
+	ref ProgramWithMain program,
 	in Opt!(Uri[]) diagnosticsOnlyForUris,
 	in WriteCb writeCb,
 ) {
@@ -342,9 +348,8 @@ private ExitCodeOrSignal runFromLsp(
 	// Or just have interpreter free things.
 	CString[1] allArgs = [cString!"/usr/bin/fakeExecutable"];
 	return withFakeExtern(alloc, writeCb, (scope ref Extern extern_) {
-		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 		if (hasAnyDiagnostics(program))
-			writeCb(Pipe.stderr, showDiagnostics(alloc, server, program.program, diagnosticsOnlyForUris));
+			writeCb(Pipe.stderr, showDiagnostics(alloc, server, program, diagnosticsOnlyForUris));
 		return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : buildAndInterpret(
 			perf, server, extern_,
 			(in string x) { writeCb(Pipe.stderr, x); },
@@ -507,13 +512,17 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
+string showDiagnostics(ref Alloc alloc, in Server server, in Program program) =>
+	showDiagnosticsCommon(alloc, server, asProgramWithOptMain(program), none!(Uri[]));
 string showDiagnostics(
 	ref Alloc alloc,
 	in Server server,
-	in Program program,
+	in ProgramWithMain program,
 	in Opt!(Uri[]) onlyForUris = none!(Uri[]),
 ) =>
-	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program, onlyForUris);
+	showDiagnosticsCommon(alloc, server, asProgramWithOptMain(program), onlyForUris);
+private string showDiagnosticsCommon(ref Alloc alloc, in Server server, in ProgramWithOptMain program, in Opt!(Uri[]) onlyForUris) =>
+	stringOfDiagnostics(alloc, getShowDiagCtx(server, program.program), program, onlyForUris);
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
@@ -522,7 +531,7 @@ private UriAndRange[] getDefinitionForProgram(
 	in DefinitionParams params,
 ) {
 	Opt!Position position = serverGetPosition(server, program, params.params);
-	return has(position) ? getDefinitionForPosition(alloc, *program.commonTypes, force(position)) : [];
+	return has(position) ? getDefinitionForPosition(alloc, program.commonTypes, force(position)) : [];
 }
 
 private UriAndRange[] getReferencesForProgram(
@@ -607,7 +616,7 @@ private CrowFileInfo* getCrowFileForTokens(ref Alloc alloc, ref Server server, U
 				fileAstForDiag(alloc, ParseDiag(x)))));
 
 Json jsonOfModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Program program, Uri uri) =>
-	jsonOfModule(alloc, server.lineAndColumnGetters[uri], *mustGet(program.allModules, uri));
+	jsonOfModule(alloc, server.lineAndColumnGetters[uri], *moduleAtUri(program, uri));
 
 Json jsonOfConcreteModel(
 	scope ref Perf perf,
@@ -734,7 +743,7 @@ ShowDiagCtx getShowDiagCtx(
 	return scope ref Program program,
 	bool forceNoColor = false,
 ) =>
-	ShowDiagCtx(getShowCtx(server, forceNoColor: forceNoColor), program.commonTypes);
+	ShowDiagCtx(getShowCtx(server, forceNoColor: forceNoColor), program.commonTypesPtr);
 
 private:
 
@@ -754,7 +763,7 @@ void notifyDiagnostics(
 	ref Server server,
 	ref Program program,
 ) {
-	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, program);
+	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, asProgramWithOptMain(program));
 	ref LspState state() => server.lspState;
 	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);
 	UriAndDiagnostics[] all = concatenate(

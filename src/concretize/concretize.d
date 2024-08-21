@@ -131,7 +131,7 @@ ConcreteProgram concretizeInner(
 	return res;
 }
 
-ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
+ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, MainFun main) =>
 	main.match!(ConcreteFun*)(
 		(MainFun.Nat64OfArgs x) =>
 			getNonTemplateConcreteFun(ctx, x.fun),

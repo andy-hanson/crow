@@ -272,12 +272,17 @@ LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, return scope CSt
 
 enum PosKind { startOfRange, endOfRange }
 
-uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) =>
-	line < a.lineToPos.length - 1
-		? a.lineToPos[line + 1] - a.lineToPos[line]
-		: line == a.lineToPos.length - 1
-		? a.maxPos - a.lineToPos[line]
-		: 0;
+uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) {
+	if (line < a.lineToPos.length - 1) {
+		Pos next = a.lineToPos[line + 1];
+		Pos here = a.lineToPos[line];
+		assert(next > here);
+		return next - here - 1; // TODO: what about '\r'? And I should unit test. ----------------------------------------------
+	} else if (line == a.lineToPos.length - 1)
+		return a.maxPos - a.lineToPos[line];
+	else
+		return 0;
+}
 
 private:
 

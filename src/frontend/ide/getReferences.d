@@ -130,7 +130,7 @@ import util.symbol : Symbol;
 import util.uri : Uri;
 
 UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
-	Opt!Target target = targetForPosition(*program.commonTypes, pos.kind);
+	Opt!Target target = targetForPosition(program.commonTypes, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
 			eachReferenceForTarget(program, pos.module_.uri, force(target), (in UriAndRange x) {
@@ -162,7 +162,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForLocal(program, curUri, x, cb);
 		},
 		(Target.Loop x) {
-			referencesForLoop(*program.commonTypes, curUri, x, cb);
+			referencesForLoop(program.commonTypes, curUri, x, cb);
 		},
 		(Module* x) {
 			referencesForModule(program, x, cb);
@@ -183,7 +183,7 @@ void referencesForTarget(in Program program, Uri curUri, in Target a, in Referen
 			referencesForStructDecl(program, x, cb);
 		},
 		(PositionKind.TypeParamWithContainer x) {
-			referencesForTypeParam(*program.commonTypes, curUri, x, cb);
+			referencesForTypeParam(program.commonTypes, curUri, x, cb);
 		},
 		(UnionMember* x) {
 			referencesForUnionMember(program, x, cb);
@@ -245,13 +245,13 @@ void referencesForLocal(in Program program, Uri curUri, in PositionKind.LocalPos
 				? some(ContainerAndBody(ExprContainer(x), funBodyExprRef(x)))
 				: none!ContainerAndBody,
 		(Test* x) =>
-			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(*program.commonTypes, x))),
+			some(ContainerAndBody(ExprContainer(x), testBodyExprRef(program.commonTypes, x))),
 		(SpecDecl*) =>
 			none!ContainerAndBody,
 		(StructDecl*) =>
 			none!ContainerAndBody);
 	if (has(body_))
-		eachDescendentExprIncluding(*program.commonTypes, force(body_).body_, (ExprRef x) {
+		eachDescendentExprIncluding(program.commonTypes, force(body_).body_, (ExprRef x) {
 			Opt!(Local*) itsLocal = exprLocalReference(x.expr.kind);
 			if (has(itsLocal) && force(itsLocal) == a.local && !x.expr.ast.kind.isA!AssignmentCallAst)
 				cb(UriAndRange(force(body_).container.moduleUri, x.expr.range));
@@ -580,14 +580,13 @@ void eachExprThatMayReference(
 	eachModuleThatMayReference(program, visibility, module_, (in Module module_) {
 		foreach (ref FunDecl fun; module_.funs)
 			if (fun.body_.isA!Expr)
-				eachDescendentExprIncluding(*program.commonTypes, funBodyExprRef(&fun), (ExprRef x) {
+				eachDescendentExprIncluding(program.commonTypes, funBodyExprRef(&fun), (ExprRef x) {
 					cb(module_, x);
 				});
 		foreach (ref Test test; module_.tests)
-			eachDescendentExprIncluding(
-				*program.commonTypes, testBodyExprRef(*program.commonTypes, &test), (ExprRef x) {
-					cb(module_, x);
-				});
+			eachDescendentExprIncluding(program.commonTypes, testBodyExprRef(program.commonTypes, &test), (ExprRef x) {
+				cb(module_, x);
+			});
 	});
 }
 
@@ -721,7 +720,7 @@ void eachTypeInProgram(
 	in void delegate(in Module, in Type, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
 	eachModuleThatMayReference(program, visibility, moduleAtUri(program, moduleUri), (in Module module_) {
-		eachTypeInModule(*program.commonTypes, module_, (in Type type, in TypeAst ast) {
+		eachTypeInModule(program.commonTypes, module_, (in Type type, in TypeAst ast) {
 			eachTypeInType(type, ast, (in Type typeInner, in TypeAst astInner) {
 				cb(module_, typeInner, astInner);
 			});

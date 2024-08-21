@@ -4,7 +4,7 @@ module frontend.frontendCompile;
 
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.checkCtx : CommonModule, CommonUris;
-import frontend.check.getCommonFuns : CommonFunsAndMain, getCommonFuns;
+import frontend.check.getCommonFuns : getCommonFuns, getMainFun;
 import frontend.check.instantiate : getAllFutureImpls, InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
@@ -24,6 +24,7 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
+	CommonFunsAndDiagnostics,
 	CommonTypes,
 	Config,
 	emptyConfig,
@@ -162,42 +163,34 @@ private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
 ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
-	CrowFile* mainFile = mustGet(a.crowFiles, mainUri);
-	Common res = makeProgramCommon(perf, alloc, a, [mainUri], some(mainFile.mustHaveModule));
-	return ProgramWithMain(force(mainFile.config), force(res.mainFun), res.program);
+	Program program = makeProgramCommon(perf, alloc, a, [mainUri]);
+	return programWithMainFromProgram(perf, alloc, a, program, mainUri);
+}
+
+ProgramWithMain programWithMainFromProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, ref Program program, Uri mainUri) { // TODO:NAME
+	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)); // TODO: DUPE CODE -------------------------------------------------
+	return ProgramWithMain(program, getMainFun(alloc, ctx, mainUri, program));
 }
 
 Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) =>
-	makeProgramCommon(perf, alloc, a, roots, none!(Module*)).program;
+	makeProgramCommon(perf, alloc, a, roots); // TODO: this is the same function then! -------------------------------------------------------------
 
-private struct Common {
-	Program program;
-	Opt!MainFun mainFun;
-}
-private Common makeProgramCommon(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Frontend a,
-	in Uri[] roots,
-	Opt!(Module*) mainModule,
-) {
+private Program makeProgramCommon(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) { // TODO: merge with 'makeProgramForRoots', just name it 'makeProgram'
 	assert(filesState(a.storage) == FilesState.allLoaded);
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
-	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
+	CommonFunsAndDiagnostics commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules);
 	StructDecl* futureImpl = mustFindPointer!StructDecl(
 		commonModules[CommonModule.futureLowLevel].structs,
 		(ref const StructDecl x) => x.name == symbol!"future-impl");
-	Program program = Program(
+	return Program(
 		allConfigs: getAllConfigs(alloc, a),
 		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
-		commonFunsDiagnostics: commonFuns.diagnostics,
-		commonFuns: commonFuns.commonFuns,
-		commonTypes: force(a.commonTypes),
+		commonFunsAndDiagnostics: commonFuns,
+		commonTypesPtr: force(a.commonTypes),
 		otherTypes: OtherTypes(getAllFutureImpls(alloc, ctx, futureImpl)));
-	return Common(program, commonFuns.mainFun);
 }
 
 void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri, FileInfoOrDiag info) {

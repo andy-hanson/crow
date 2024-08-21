@@ -12,6 +12,7 @@ import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,
 	CommonFuns,
+	CommonFunsAndDiagnostics,
 	CommonTypes,
 	Destructure,
 	emptySpecImpls,
@@ -27,11 +28,14 @@ import model.model :
 	LocalMutability,
 	LocalSource,
 	MainFun,
+	MainFunAndDiagnostics,
 	Module,
+	moduleAtUri,
 	NameReferents,
 	Params,
 	ParamShort,
 	ParamsShort,
+	Program,
 	StructInst,
 	StructOrAlias,
 	StructDecl,
@@ -47,26 +51,21 @@ import util.col.array :
 	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, map, sizeEq, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
+import util.col.map : mustGet;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
 import util.string : emptySmallString;
 import util.symbol : Symbol, symbol;
+import util.uri : Uri;
 import util.util : castNonScope_ref;
 
-struct CommonFunsAndMain {
-	SmallArray!UriAndDiagnostic diagnostics;
-	CommonFuns commonFuns;
-	Opt!MainFun mainFun;
-}
-
-CommonFunsAndMain getCommonFuns(
+CommonFunsAndDiagnostics getCommonFuns(
 	ref Alloc alloc,
 	InstantiateCtx ctx,
 	ref CommonTypes commonTypes,
 	in EnumMap!(CommonModule, Module*) modules,
-	Opt!(Module*) mainModule,
 ) {
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 
@@ -199,10 +198,17 @@ CommonFunsAndMain getCommonFuns(
 		setGcRoot: getFun(CommonModule.alloc, symbol!"set-gc-root", voidType, [
 			param!"value"(gcRootMutPointer)]),
 		popGcRoot: getFun(CommonModule.alloc, symbol!"pop-gc-root", voidType, []));
-	Opt!MainFun main = has(mainModule)
-		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64Type, stringListType, voidType))
-		: none!MainFun;
-	return CommonFunsAndMain(smallFinish(alloc, diagsBuilder), commonFuns, main);
+	return CommonFunsAndDiagnostics(commonFuns, smallFinish(alloc, diagsBuilder));
+}
+
+MainFunAndDiagnostics getMainFun(ref Alloc alloc, InstantiateCtx ctx, Uri mainUri, ref Program program) {
+	ArrayBuilder!UriAndDiagnostic diagsBuilder;
+	ref CommonTypes commonTypes() => program.commonTypes;
+	Type stringListType = Type(instantiateStructNeverDelay(ctx, commonTypes.list, [Type(commonTypes.string_)]));
+	MainFun res = getMainFun( // TODO: inline that? at least change its name? -------------------------------------------------
+		alloc, ctx, diagsBuilder, *moduleAtUri(program, mainUri),
+		Type(commonTypes.integrals.nat64), stringListType, Type(commonTypes.void_));
+	return MainFunAndDiagnostics(res, smallFinish(alloc, diagsBuilder));
 }
 
 Destructure makeParam(ref Alloc alloc, ParamShort param) =>

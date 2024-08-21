@@ -129,6 +129,7 @@ enum ReadFileResultType { ok, notFound, error }
 // Parameter to "custom/build-js-script"
 immutable struct BuildJsScriptParams {
 	Uri uri;
+	Opt!(Uri[]) diagnosticsOnlyForUris;
 }
 immutable struct BuildJsScriptResult {
 	string script;

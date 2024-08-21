@@ -208,7 +208,7 @@ struct ConcretizeCtx {
 	ref Program program() return scope const =>
 		*programPtr;
 	ref CommonTypes commonTypes() return scope const =>
-		*program.commonTypes;
+		program.commonTypes;
 	ConcreteFun* equalNat64Function() return scope const =>
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>

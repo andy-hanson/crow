@@ -49,6 +49,7 @@ import model.model :
 	nTypeParams,
 	Params,
 	Program,
+	ProgramWithOptMain,
 	SpecDecl,
 	Signature,
 	StructBody,
@@ -81,7 +82,7 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
+string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in ProgramWithOptMain program, in Opt!(Uri[]) onlyForUris) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
@@ -117,7 +118,7 @@ immutable struct UriAndDiagnostics {
 	Diagnostic[] diagnostics;
 }
 
-UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
+UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in ProgramWithOptMain program) {
 	MultiMap!(Uri, Diagnostic) map = makeMultiMap!(Uri, Diagnostic)(alloc, (in MultiMapCb!(Uri, Diagnostic) cb) {
 		eachDiagnostic(program, (in UriAndDiagnostic x) {
 			cb(x.uri, x.diagnostic);
@@ -141,7 +142,7 @@ Comparison compareUriAndDiagnosticsByUri(in UriAndDiagnostics a, in UriAndDiagno
 Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b) =>
 	compareRange(a.range, b.range);
 
-DiagnosticSeverity maxDiagnosticSeverity(in Program a) {
+DiagnosticSeverity maxDiagnosticSeverity(in ProgramWithOptMain a) {
 	DiagnosticSeverity res = DiagnosticSeverity.unusedCode;
 	eachDiagnostic(a, (in UriAndDiagnostic x) {
 		res = max(res, getDiagnosticSeverity(x.kind));

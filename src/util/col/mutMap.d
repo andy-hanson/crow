@@ -203,6 +203,6 @@ private @trusted Out[] mapToArray(Out, K, V)(
 
 // WARN: To keep the implementation simple, it's possible that this will call 'cb' twice on the same value.
 void deleteWhere(K, V)(scope ref MutMap!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
-	.deleteWhere(a.inner, (in KeyValuePair!(K, V) x) =>
+	.deleteWhere!(KeyValuePair!(K, V), K, getKey)(a.inner, (in KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 }

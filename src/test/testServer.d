@@ -26,7 +26,7 @@ void testCircularImportFixed(ref Test test) {
 		setupTestServer(test, alloc, server, uriA, "");
 
 		string showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
 
 		assertEqual(showDiags(), expectedDiags1);
 
@@ -50,7 +50,7 @@ void testFileNotFoundThenAdded(ref Test test) {
 		Uri uriB = mustParseUri("test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
 		string showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
 
 		string bDoesNotExist = "test:///a.crow 2:5-2:8 Imported file test:///b.crow does not exist.\n" ~
 			"test:///b.crow 1:1-1:1 This file does not exist.";
@@ -72,7 +72,7 @@ void testFileImportNotFound(ref Test test) {
 		setFileAssumeUtf8(test.perf, server, uriB, "hello");
 
 		string showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
 
 		string original = "import\n\t./b.txt as b string\n\nmain void()\n\t()";
 		setupTestServer(test, alloc, server, uriA, original);
@@ -92,7 +92,7 @@ void testChangeBootstrap(ref Test test) {
 		Uri uriA = mustParseUri("test:///a.crow");
 		setupTestServer(test, alloc, server, uriA, "main void()\n\t()");
 		string showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
 
 		assertEqual(showDiags(), "");
 
