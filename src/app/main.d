@@ -107,7 +107,15 @@ import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
 import util.uri :
-	baseName, concatFilePathAndPath, cStringOfUriPreferRelative, FilePath, FilePermissions, Uri, parentOrEmpty, rootFilePath, toUri;
+	baseName,
+	concatFilePathAndPath,
+	cStringOfUriPreferRelative,
+	FilePath,
+	FilePermissions,
+	Uri,
+	parentOrEmpty,
+	rootFilePath,
+	toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, JsTarget, OS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
@@ -480,7 +488,7 @@ ExitCodeOrSignal buildAllOutputs(
 	Opt!FilePath exe = findPath(SingleBuildOutput.Kind.executable);
 	Late!PathAndArgs exeCompileCommand = late!PathAndArgs();
 
-	ExitCodeOrSignal doC(FilePath cPath) =>
+	ExitCodeOrSignal buildC(FilePath cPath) =>
 		withWriteToC(
 			perf, alloc, server, cPath, exe, options.version_, options.cCompileOptions, program,
 			(PathAndArgs compileCommand, in ExternLibraries _) {
@@ -488,27 +496,30 @@ ExitCodeOrSignal buildAllOutputs(
 				return ExitCodeOrSignal.ok;
 			});
 
-	ExitCodeOrSignal doJsScript(FilePath path, JsTarget target) => //name --------------------------------------------------------------
+	ExitCodeOrSignal buildJsScript(FilePath path, JsTarget target) =>
 		withWriteToJsScript(perf, alloc, server, program, path, target, () =>
 			ExitCodeOrSignal.ok);
-	ExitCodeOrSignal doJsModules(FilePath dir, JsTarget target) => //name --------------------------------------------------------------
-		withWriteToJsModules(perf, alloc, server, program, dir, target, (FilePath _) => // TODO: if this is the only use of withWriteToJsModules, the cb can be removed
-			ExitCodeOrSignal.ok);
+	ExitCodeOrSignal buildJsModules(FilePath dir, JsTarget target) =>
+		withWriteToJsModules(perf, alloc, server, program, dir, target, (FilePath main) =>
+			ExitCodeOrSignal(printCb((scope ref Writer writer) {
+				writer ~= "Main module is ";
+				writer ~= main;
+			})));
 
 	ExitCodeOrSignal res = eachUntilError!SingleBuildOutput(options.out_, (ref SingleBuildOutput out_) {
 		final switch (out_.kind) {
 			case SingleBuildOutput.Kind.c:
-				return doC(out_.path);
+				return buildC(out_.path);
 			case SingleBuildOutput.Kind.executable:
 				return ExitCodeOrSignal.ok; // do this last
 			case SingleBuildOutput.Kind.jsModules:
-				return doJsModules(out_.path, JsTarget.browser);
+				return buildJsModules(out_.path, JsTarget.browser);
 			case SingleBuildOutput.Kind.jsScript:
-				return doJsScript(out_.path, JsTarget.browser);
+				return buildJsScript(out_.path, JsTarget.browser);
 			case SingleBuildOutput.Kind.nodeJsModules:
-				return doJsModules(out_.path, JsTarget.node);
+				return buildJsModules(out_.path, JsTarget.node);
 			case SingleBuildOutput.Kind.nodeJsScript:
-				return doJsScript(out_.path, JsTarget.node);
+				return buildJsScript(out_.path, JsTarget.node);
 		}
 	});
 	return okAnd(res, () {
@@ -516,7 +527,7 @@ ExitCodeOrSignal buildAllOutputs(
 			return lateIsSet(exeCompileCommand)
 				? buildToExeFromC(perf, lateGet(exeCompileCommand))
 				: withTempPath(force(exe), Extension.c, (FilePath cPath) =>
-					okAnd(doC(cPath), () => buildToExeFromC(perf, lateGet(exeCompileCommand))));
+					okAnd(buildC(cPath), () => buildToExeFromC(perf, lateGet(exeCompileCommand))));
 		else
 			return ExitCodeOrSignal.ok;
 	});

@@ -3,7 +3,6 @@ module test.testHashTable;
 @safe @nogc pure nothrow:
 
 import test.testUtil : assertEqual, Test;
-import util.col.array : arraysEqual;
 import util.col.hashTable :
 	deleteWhere,
 	getOrAddAndDidAdd,

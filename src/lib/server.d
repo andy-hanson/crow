@@ -46,6 +46,7 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
+	BuildJsScriptParams,
 	CancelRequestParams,
 	DefinitionParams,
 	DidChangeTextDocumentParams,
@@ -245,6 +246,8 @@ private Opt!LspOutResult handleLspRequest(
 	in LspInRequest a,
 ) =>
 	a.params.matchImpure!(Opt!LspOutResult)(
+		(in BuildJsScriptParams x) =>
+			respondWithProgram(perf, alloc, server, a),
 		(in DefinitionParams x) =>
 			respondWithProgram(perf, alloc, server, a),
 		(in HoverParams x) =>
@@ -293,6 +296,8 @@ private LspOutResult handleLspRequestWithProgram(
 	in LspInRequestParams a,
 ) =>
 	a.matchImpure!LspOutResult(
+		(in BuildJsScriptParams x) =>
+			assert(false), //LspOutResult(BuildJsScriptResult(buildToJsScript(alloc, server, program, JsTarget.browser))),
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
 		(in HoverParams x) =>
@@ -305,7 +310,7 @@ private LspOutResult handleLspRequestWithProgram(
 			LspOutResult(getRenameForProgram(alloc, server, program, x)),
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
-			// TODO: this redundantly builds a program...
+			// TODO: this redundantly builds a program.............................................................................
 			ExitCodeOrSignal exitCode = runFromLsp(
 				perf, alloc, server, x.uri, x.diagnosticsOnlyForUris,
 				(Pipe pipe, in string x) {

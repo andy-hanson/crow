@@ -5,6 +5,7 @@ module lib.lsp.lspToJson;
 import frontend.ide.getTokens : getTokensLegend;
 import frontend.storage : LineAndCharacterGetters;
 import lib.lsp.lspTypes :
+	BuildJsScriptResult,
 	Hover,
 	InitializeResult,
 	LspDiagnostic,
@@ -71,6 +72,8 @@ Json jsonOfLspOutNotification(ref Alloc alloc, in LineAndCharacterGetters lcg, r
 
 Json jsonOfLspOutResult(ref Alloc alloc, in LineAndCharacterGetters lcg, ref LspOutResult a) =>
 	a.match!Json(
+		(BuildJsScriptResult x) =>
+			jsonObject(alloc, [field!"script"(x.script)]),
 		(InitializeResult _) =>
 			jsonObject(alloc, [field!"capabilities"(initializeCapabilities(alloc))]),
 		(Opt!Hover x) =>

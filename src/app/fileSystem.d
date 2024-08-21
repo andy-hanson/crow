@@ -70,7 +70,7 @@ import util.col.tempSet : TempSet, tryAdd, withTempSetImpure;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : eachUntilError, ExitCode, ExitCodeOrSignal, okAnd, onError, Signal;
 import util.memory : memset;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOr, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString, stringOfCString;
 import util.symbol : alterExtension, Extension, Symbol, symbol, symbolOfString;
 import util.unicode : FileContent;

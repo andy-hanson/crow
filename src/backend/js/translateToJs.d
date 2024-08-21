@@ -148,7 +148,7 @@ string translateToJsScript(
 	JsTarget jsTarget,
 ) =>
 	withTranslateProgram(alloc, program, showCtx, fileContentGetters, jsTarget, true, (ref TranslateProgramCtx ctx) =>
-		writeJsScriptAst(alloc, showCtx, doTranslateBundle(ctx)));
+		writeJsScriptAst(alloc, showCtx, translateProgramToScript(ctx)));
 
 immutable struct JsModules {
 	Path mainJs;
@@ -340,7 +340,7 @@ JsModuleAst translateModule(ref TranslateProgramCtx ctx, in ModulePaths modulePa
 		a.uri, imports, reExports, decls, statements);
 }
 
-JsScriptAst doTranslateBundle(ref TranslateProgramCtx ctx) { // TODO: RENAME _---------------------------------------------------------------
+JsScriptAst translateProgramToScript(ref TranslateProgramCtx ctx) {
 	TranslateModuleCtx moduleCtx = TranslateModuleCtx(
 		ptrTrustMe(ctx),
 		bundlePrivateMangledNames(ctx.alloc, ctx.allUsed),
@@ -405,7 +405,8 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 						exitCodeNotZero,
 						JsStatement(genCallPropertySync(ctx.alloc, process, JsMemberName.noPrefix(symbol!"exit"), [
 							genCallSync(ctx.alloc, genGlobal(symbol!"Number"), [JsExpr(exitCode)])])))]);
-				JsStatement callThen = genCallPropertySync(ctx.alloc, callMain, JsMemberName.noPrefix(symbol!"then"), [arg]);
+				JsStatement callThen = genCallPropertySync(
+					ctx.alloc, callMain, JsMemberName.noPrefix(symbol!"then"), [arg]);
 				return newArray(ctx.alloc, [callThen]);
 			}
 		},

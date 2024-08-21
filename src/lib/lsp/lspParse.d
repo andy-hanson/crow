@@ -3,6 +3,7 @@ module lib.lsp.lspParse;
 @safe @nogc pure nothrow:
 
 import lib.lsp.lspTypes :
+	BuildJsScriptParams,
 	CancelRequestParams,
 	SyntaxTranslateParams,
 	DefinitionParams,
@@ -66,6 +67,8 @@ LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 				get!"source"(params).as!string,
 				enumOfString!Language(get!"from"(params).as!string),
 				enumOfString!Language(get!"to"(params).as!string)));
+		case "custom/build-js-script":
+			return request(BuildJsScriptParams(parseUriProperty(params)));
 		case "custom/run":
 			return request(RunParams(
 				parseUriProperty(params),

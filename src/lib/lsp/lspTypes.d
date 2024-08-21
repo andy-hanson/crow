@@ -41,6 +41,7 @@ immutable struct LspInRequest {
 }
 immutable struct LspInRequestParams {
 	mixin Union!(
+		BuildJsScriptParams,
 		DefinitionParams,
 		HoverParams,
 		InitializeParams,
@@ -74,6 +75,7 @@ immutable struct LspOutResponse {
 immutable struct LspOutResult {
 	immutable struct Null {}
 	mixin Union!(
+		BuildJsScriptResult,
 		InitializeResult,
 		Opt!Hover,
 		RunResult,
@@ -124,6 +126,13 @@ immutable struct ReadFileResultParams {
 	ubyte[] content;
 }
 enum ReadFileResultType { ok, notFound, error }
+// Parameter to "custom/build-js-script"
+immutable struct BuildJsScriptParams {
+	Uri uri;
+}
+immutable struct BuildJsScriptResult {
+	string script;
+}
 // Parameter to "custom/run"
 immutable struct RunParams {
 	Uri uri;

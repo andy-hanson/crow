@@ -691,7 +691,7 @@ public size_t relPathLength(in RelPath a) =>
 	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(a.path);
 
 public enum FilePermissions { regular, executable }
-public immutable struct PathAndContent { // TODO: RENAME -----------------------------------------------------------------------------------------------------
+public immutable struct PathAndContent {
 	Path path;
 	FilePermissions permissions;
 	string content;
