@@ -15,7 +15,8 @@ import
 export
 	./private/backtrace: native-backtrace, backtrace-entry, file-path, function-name, line-number
 	./private/exception-low-level:
-		backtrace, catch-all, describe, error, exception, exception-and-backtrace, rethrow, threw-non-exception, thrown, unreachable
+		backtrace, catch-all, describe, error, exception, exception-and-backtrace, rethrow,
+		threw-non-exception, thrown, unreachable
 
 +ignore-exceptions record nominal
 +with-block[t] t?(_ ignore-exceptions, f t mut())
@@ -45,8 +46,7 @@ export
 +to string(a exception)
 	a describe
 
-# TODO: move to backtrace.crow? -------------------------------------------------------------------------------------------
-+to string(a native-backtrace) unsafe, native extern
+-to string(a native-backtrace) unsafe, native extern
 	# Don't include entries from runtime, only at start of function
 	kept-entries = if idx ?= a find-index x => x is-runtime-function-entry
 		if idx > 0

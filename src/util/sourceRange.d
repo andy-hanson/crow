@@ -87,9 +87,17 @@ UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
 
 immutable struct LineAndCharacter {
+	@safe @nogc pure nothrow:
+
 	uint line;
 	// This counts tabs as 1 character.
 	uint character;
+
+	void writeTo(scope ref Writer writer) {
+		writer ~= line;
+		writer ~= 'x';
+		writer ~= character;
+	}
 }
 
 private immutable struct LineAndColumnRange {
@@ -215,11 +223,12 @@ immutable struct LineAndCharacterGetter {
 immutable struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
 	LineAndCharacterGetter lineAndCharacterGetter;
+	bool usesCRLF;
 	ubyte[] lineToNTabs;
 
 	static LineAndColumnGetter empty() {
 		static immutable ubyte[] emptyLineToNTabs = [0];
-		return LineAndColumnGetter(LineAndCharacterGetter.empty, emptyLineToNTabs);
+		return LineAndColumnGetter(LineAndCharacterGetter.empty, false, emptyLineToNTabs);
 	}
 
 	Pos opIndex(in LineAndColumn x) scope =>
@@ -267,6 +276,7 @@ LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, return scope CSt
 
 	return LineAndColumnGetter(
 		LineAndCharacterGetter(stringOfRange(text, ptr), finish(alloc, lineToPos), ptr - text, usesCRLF),
+		usesCRLF,
 		finish(alloc, lineToNTabs));
 }
 
@@ -276,8 +286,8 @@ uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) {
 	if (line < a.lineToPos.length - 1) {
 		Pos next = a.lineToPos[line + 1];
 		Pos here = a.lineToPos[line];
-		assert(next > here);
-		return next - here - 1; // TODO: what about '\r'? And I should unit test. ----------------------------------------------
+		assert(next > here + a.usesCRLF);
+		return next - here - 1 - a.usesCRLF;
 	} else if (line == a.lineToPos.length - 1)
 		return a.maxPos - a.lineToPos[line];
 	else

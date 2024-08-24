@@ -25,7 +25,6 @@ import backend.js.jsAst :
 	genCallSync,
 	genConst,
 	genField,
-	genGetter,
 	genGlobal,
 	genIf,
 	genInstanceMethod,
@@ -662,24 +661,14 @@ void translateExceptionClass(ref TranslateModuleCtx ctx, scope ref Builder!JsCla
 		[],
 		[
 			genAssign(ctx.alloc, this_message, callDescribe),
-			genAssign(ctx.alloc, this_stack, genCallPropertySync(ctx.alloc, this_stack, JsMemberName.noPrefix(symbol!"replace"), [messagePlaceholder, this_message]))
+			genAssign(
+				ctx.alloc, this_stack,
+				genCallPropertySync(
+					ctx.alloc,
+					this_stack,
+					JsMemberName.noPrefix(symbol!"replace"),
+					[messagePlaceholder, this_message])),
 		]);
-
-	// JUNK ----------------------------------------------------------------------------------------------------------------------------
-	/*
-	get message() {
-		return this.m_describe()
-	}
-	*/
-	/*
-	out_ ~= genGetter(
-		JsClassMember.Static.instance,
-		messageName,
-		JsBlockStatement(newArray(ctx.alloc, [
-			genReturn(
-				ctx.alloc,
-				);
-	*/
 }
 
 JsMemberName finishConstructorName = JsMemberName.special(symbol!"finish-constructor");
@@ -877,7 +866,12 @@ void translateUnionDecl(
 	}
 }
 
-JsClassMember genConstructor(ref Alloc alloc, in JsDestructure[] params, Opt!Super super_, in JsStatement[] statements) =>
+JsClassMember genConstructor(
+	ref Alloc alloc,
+	in JsDestructure[] params,
+	Opt!Super super_,
+	in JsStatement[] statements,
+) =>
 	genConstructor(alloc, newSmallArray(alloc, params), super_, (scope ref ArrayBuilder!JsStatement out_) {
 		addAll(alloc, out_, statements);
 	});
@@ -901,8 +895,6 @@ JsClassMember genConstructor(
 }
 
 immutable struct Super {
-	// Used to call the JS 'Error' constructor with the class name (can't use 'describe' since that needs the instance already constructed)
-	//TODO: this is not needed any more? --------------------------------------------------------------------------------------
 	SmallArray!JsExpr args;
 	bool callFinishConstructor;
 }

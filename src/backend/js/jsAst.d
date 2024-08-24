@@ -104,10 +104,7 @@ immutable struct JsClassMember {
 	JsClassMemberKind kind;
 }
 private immutable struct JsClassMemberKind {
-	mixin Union!(JsClassGetter, JsClassMethod, JsExpr);
-}
-immutable struct JsClassGetter {
-	JsBlockStatement body_;
+	mixin Union!(JsClassMethod, JsExpr);
 }
 immutable struct JsClassMethod {
 	SyncOrAsync async;
@@ -509,5 +506,3 @@ JsClassMember genInstanceMethod(
 	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, [genReturn(alloc, body_)]));
 JsClassMember genField(JsClassMember.Static static_, JsMemberName name, JsExpr value) =>
 	JsClassMember(static_, name, JsClassMemberKind(value));
-JsClassMember genGetter(JsClassMember.Static static_, JsMemberName name, JsBlockStatement body_) =>
-	JsClassMember(static_, name, JsClassMemberKind(JsClassGetter(body_)));

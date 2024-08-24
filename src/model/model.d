@@ -1932,7 +1932,7 @@ immutable struct ProgramWithMain {
 		mainModule.config;
 }
 
-immutable struct ProgramWithOptMain {//TODO: just use a Union? -----------------------------------------------------------------
+immutable struct ProgramWithOptMain {
 	@safe @nogc pure nothrow:
 	Program program;
 	private Opt!MainFunAndDiagnostics mainFunAndDiagnostics;
@@ -2000,7 +2000,7 @@ immutable struct Program {
 Module* moduleAtUri(in Program program, Uri uri) =>
 	mustGet(program.allModules, uri);
 
-bool hasAnyDiagnostics(in Program a) => // todo: just inline? ------------------------------------------------------------
+bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
 bool hasFatalDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic x) =>
@@ -2015,8 +2015,12 @@ void eachDiagnostic(in ProgramWithOptMain a, in void delegate(in UriAndDiagnosti
 	assert(!res);
 }
 
-private bool existsDiagnostic(in ProgramWithOptMain a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
-	(a.hasMain && exists!UriAndDiagnostic(a.asProgramWithMain.mainFunDiagnostics, cb)) || existsDiagnostic(a.program, cb);
+private bool existsDiagnostic(
+	in ProgramWithOptMain a,
+	in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb,
+) =>
+	(a.hasMain && exists!UriAndDiagnostic(a.asProgramWithMain.mainFunDiagnostics, cb)) ||
+	existsDiagnostic(a.program, cb);
 
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
 	exists!UriAndDiagnostic(a.commonFunsAndDiagnostics.diagnostics, cb) ||

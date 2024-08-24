@@ -2,7 +2,8 @@ no-std
 import
 	../bool: bool
 	../fun-util: subscript
-	../js: +, as-js, await, call, call-property, cast, eval, instanceof, js-any, js-global, subscript
+	../js:
+		+, as-js, await, call, call-property, cast, eval, instanceof, js-any, js-global, subscript
 	../misc: new, void
 	../pointer: const-pointer, gc-safe-value, mut-pointer, pointer-cast
 	../result: error, ok, result
@@ -21,7 +22,6 @@ There is no exception subtyping in crow, so all exceptions have this type.
 ###
 +exception-and-backtrace record by-val
 	exception exception
-	# TODO: PRIVATE --------------------------------------------------------------------------------------------------
 	# This will be empty for JS
 	~backtrace native-backtrace
 
@@ -84,8 +84,15 @@ rethrow-current-exception void() bare, unsafe
 				(e.cast, ()) error
 			else
 				(e.threw-non-exception, ()) error
-		res = "async (f, error) => \{ try \{ return await f() } catch (e) \{ return error(e) } }".eval call f, error
-		res.await cast
+		("""
+			async (f, error) => \{
+				try \{
+					return await f()
+				} catch (e) \{
+					return error(e)
+				}
+			}
+		""".eval call f, error).await cast
 	else
 		hard-unreachable
 

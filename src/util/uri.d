@@ -70,7 +70,7 @@ private @trusted Path getOrAddChild_impure(ref MutArr!Path children, Opt!Path pa
 	return res;
 }
 
-pure Path rootPath(Symbol name) =>
+pure Path rootPathPlain(Symbol name) =>
 	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 private @trusted pure Path rootPath(Symbol name, PathInfo info) =>
 	(cast(Path function(Symbol, PathInfo) @safe @nogc pure nothrow) &rootPath_impure)(name, info);
@@ -308,9 +308,6 @@ bool isWindowsPath(FilePath a) =>
 	isWindowsPath(a.path);
 bool isWindowsPath(Path a) =>
 	pathInfo(a).isWindowsPath;
-
-Path rootPathPlain(Symbol name) =>
-	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 
 Uri bogusUri() =>
 	mustParseUri("bogus:bogus");

@@ -26,11 +26,10 @@ import
 	./range-low-level: ..
 	./thread-utils: acquire, global-lock, release
 
-+native-backtrace alias
+~native-backtrace alias
 	backtrace-entry array
 # 'extern' because interpreter also declares this type
-# TODO:PRIVATE? ---------------------------------------------------------------------------------------------------------
-+backtrace-entry record extern
+~backtrace-entry record extern
 	# These point into either GC or permanent memory. May be empty strings, never null.
 	function-name c-string
 	file-path c-string

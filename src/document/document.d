@@ -37,7 +37,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
 import util.col.arrayBuilder : arrayBuilderSort, buildArray, Builder;
-import util.col.hashTable : mustGet;
 import util.comparison : Comparison;
 import util.json :
 	field,

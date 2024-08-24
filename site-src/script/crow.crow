@@ -1,9 +1,12 @@
 import
 	crow/io/duration: nanosecond, milliseconds
-	crow/js: ==, as-js, await, call, call-property, cast, eval, js-any, js-global, null, set-subscript, subscript, typeof
+	crow/js:
+		==, as-js, await, call, call-property, cast, eval, js-any, js-global, null, set-subscript,
+		subscript, typeof
 	./decode-tokens: decode-tokens
 	./lsp-types:
-		diagnostic, line-and-character, new, run-result, stderr, stdout, to, to-js, token, tokens-legend, write
+		diagnostic, line-and-character, new, run-result, stderr, stdout, to, to-js, token,
+		tokens-legend, write
 	./util/DataView-util: DataView, new, read-c-string, view-c-string, wasm32, write-c-string
 	./util/js-util: json-parse, json-stringify, new, to-js-object
 	./util/util: fetch-js-object

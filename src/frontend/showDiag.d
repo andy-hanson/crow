@@ -48,7 +48,6 @@ import model.model :
 	minValue,
 	nTypeParams,
 	Params,
-	Program,
 	ProgramWithOptMain,
 	SpecDecl,
 	Signature,
@@ -82,7 +81,12 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in ProgramWithOptMain program, in Opt!(Uri[]) onlyForUris) =>
+string stringOfDiagnostics(
+	ref Alloc alloc,
+	in ShowDiagCtx ctx,
+	in ProgramWithOptMain program,
+	in Opt!(Uri[]) onlyForUris,
+) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;

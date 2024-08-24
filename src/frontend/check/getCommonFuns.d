@@ -48,10 +48,9 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
-	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, map, sizeEq, small, SmallArray;
+	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, map, sizeEq, small;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
-import util.col.map : mustGet;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
@@ -205,7 +204,7 @@ MainFunAndDiagnostics getMainFun(ref Alloc alloc, InstantiateCtx ctx, Uri mainUr
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 	ref CommonTypes commonTypes() => program.commonTypes;
 	Type stringListType = Type(instantiateStructNeverDelay(ctx, commonTypes.list, [Type(commonTypes.string_)]));
-	MainFun res = getMainFun( // TODO: inline that? at least change its name? -------------------------------------------------
+	MainFun res = getMainFun(
 		alloc, ctx, diagsBuilder, *moduleAtUri(program, mainUri),
 		Type(commonTypes.integrals.nat64), stringListType, Type(commonTypes.void_));
 	return MainFunAndDiagnostics(res, smallFinish(alloc, diagsBuilder));

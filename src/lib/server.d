@@ -6,7 +6,13 @@ import backend.js.translateToJs : JsModules, translateToJsModules, translateToJs
 import backend.writeToC : writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import frontend.frontendCompile :
-	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats, programWithMainFromProgram;
+	Frontend,
+	initFrontend,
+	makeProgram,
+	makeProgramWithMain,
+	onFileChanged,
+	perfStats,
+	programWithMainFromProgram;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.syntaxTranslate : syntaxTranslate;
 import frontend.ide.getDefinition : getDefinitionForPosition;
@@ -101,13 +107,20 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : asProgramWithOptMain, hasAnyDiagnostics, hasFatalDiagnostics, Module, moduleAtUri, Program, ProgramWithMain, ProgramWithOptMain;
+import model.model :
+	asProgramWithOptMain,
+	hasAnyDiagnostics,
+	hasFatalDiagnostics,
+	Module,
+	moduleAtUri,
+	Program,
+	ProgramWithMain,
+	ProgramWithOptMain;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.alloc.stackAlloc : ensureStackAllocInitialized;
 import util.col.array : concatenate, contains, map, mapOp, newArray;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.hashTable : mustGet;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode, ExitCodeOrSignal, Signal;
 import util.integralValues : initIntegralValues;
@@ -135,7 +148,7 @@ ExitCodeOrSignal buildAndInterpret(
 	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
-	return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) @safe {
+	return withTempAllocImpure!ExitCodeOrSignal(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
 		LowProgram lowProgram = buildToLowProgram(
 			perf, buildAlloc, server, versionInfoForInterpret(getOS(), version_), program);
 		Opt!ExternPointersForAllLibraries externPointers =
@@ -521,7 +534,12 @@ string showDiagnostics(
 	in Opt!(Uri[]) onlyForUris = none!(Uri[]),
 ) =>
 	showDiagnosticsCommon(alloc, server, asProgramWithOptMain(program), onlyForUris);
-private string showDiagnosticsCommon(ref Alloc alloc, in Server server, in ProgramWithOptMain program, in Opt!(Uri[]) onlyForUris) =>
+private string showDiagnosticsCommon(
+	ref Alloc alloc,
+	in Server server,
+	in ProgramWithOptMain program,
+	in Opt!(Uri[]) onlyForUris,
+) =>
 	stringOfDiagnostics(alloc, getShowDiagCtx(server, program.program), program, onlyForUris);
 
 private UriAndRange[] getDefinitionForProgram(
@@ -567,10 +585,10 @@ private Opt!Hover getHoverForProgram(
 }
 
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
-	makeProgramForRoots(perf, alloc, server.frontend, roots);
+	makeProgram(perf, alloc, server.frontend, roots);
 
 ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
-	makeProgramForMain(perf, alloc, server.frontend, mainUri);
+	makeProgramWithMain(perf, alloc, server.frontend, mainUri);
 
 Program getProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	getProgram(perf, alloc, server, roots);

@@ -30,7 +30,6 @@ import model.model :
 	emptyConfig,
 	getConfigUri,
 	getModuleUri,
-	MainFun,
 	Module,
 	OtherTypes,
 	Program,
@@ -60,7 +59,7 @@ import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete;
 import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
-import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
+import util.opt : ConstOpt, force, has, MutOpt, Opt, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Extension, Symbol, symbol;
 import util.unicode : FileContent;
@@ -162,20 +161,23 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
-	Program program = makeProgramCommon(perf, alloc, a, [mainUri]);
+ProgramWithMain makeProgramWithMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
+	Program program = makeProgram(perf, alloc, a, [mainUri]);
 	return programWithMainFromProgram(perf, alloc, a, program, mainUri);
 }
 
-ProgramWithMain programWithMainFromProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, ref Program program, Uri mainUri) { // TODO:NAME
-	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)); // TODO: DUPE CODE -------------------------------------------------
-	return ProgramWithMain(program, getMainFun(alloc, ctx, mainUri, program));
-}
+ProgramWithMain programWithMainFromProgram(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Frontend a,
+	ref Program program,
+	Uri mainUri,
+) =>
+	ProgramWithMain(
+		program,
+		getMainFun(alloc, InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)), mainUri, program));
 
-Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) =>
-	makeProgramCommon(perf, alloc, a, roots); // TODO: this is the same function then! -------------------------------------------------------------
-
-private Program makeProgramCommon(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) { // TODO: merge with 'makeProgramForRoots', just name it 'makeProgram'
+Program makeProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) {
 	assert(filesState(a.storage) == FilesState.allLoaded);
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);

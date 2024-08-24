@@ -43,9 +43,10 @@ test
 
 test
 	(() => 6 / 2).catch-all.ok!::nat is 3
-	# TODO: NEATER -------------------------------------------------------------------------------------------------------------------
-	x = (() => 1::nat / 0).catch-all.error!.exception.divide-by-0!
-	_ = x
+	assert (() => 1::nat / 0).catch-all.error!.exception is-divide-by-0
+-is-divide-by-0 bool(a exception)
+	if _ ?= a divide-by-0
+		true
 
 test trusted, js extern
 	error = (() => "throw 0" eval).catch-all.error!

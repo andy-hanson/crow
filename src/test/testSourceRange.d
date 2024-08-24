@@ -2,31 +2,29 @@ module test.testSourceRange;
 
 @safe @nogc pure nothrow:
 
-import test.testUtil : Test;
+import test.testUtil : assertEqual, Test;
 import util.sourceRange :
-	LineAndCharacter, LineAndColumn, LineAndColumnGetter, lineAndColumnGetterForText, Pos, PosKind;
+	LineAndCharacter,
+	LineAndCharacterGetter,
+	LineAndColumn,
+	LineAndColumnGetter,
+	lineAndColumnGetterForText,
+	lineLengthInCharacters,
+	Pos,
+	PosKind;
 import util.string : CString, cString, MutCString, startsWith;
 
 void testSourceRange(ref Test test) {
-	testLF(test);
-	testCR(test);
-	testCRLF(test);
+	testLFOrCR(test, cString!"a\n\tbb\nc\n");
+	testLFOrCR(test, cString!"a\r\tbb\rc\r");
+	testCRLF(test, cString!"a\r\n\tbb\r\nc\r\n");
 	testUnicode(test);
 }
 
 private:
 
-void testLF(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\n\tbb\nc\n");
-	testLFOrCR(lcg);
-}
-
-void testCR(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\r\tbb\rc\r");
-	testLFOrCR(lcg);
-}
-
-void testLFOrCR(in LineAndColumnGetter lcg) {
+void testLFOrCR(ref Test test, CString text) {
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, text);
 	verifyConvert(lcg, 0, line: 0, character: 0); // a
 	verifyConvert(lcg, 0, line: 0, character: 0); //
 	verifyConvert(lcg, 1, line: 0, character: 1); // \n or \r
@@ -38,15 +36,11 @@ void testLFOrCR(in LineAndColumnGetter lcg) {
 	verifyConvert(lcg, 6, line: 2, character: 0); // c
 	verifyConvert(lcg, 7, line: 2, character: 1); // \n or \r
 	verifyConvert(lcg, 8, line: 3, character: 0); // end
-
-	assert(lcg[LineAndColumn(0, 99)] == 1);
-	assert(lcg.lineAndCharacterGetter[LineAndCharacter(0, 99)] == 1);
-	assert(lcg[LineAndColumn(99, 99)] == 8);
-	assert(lcg.lineAndCharacterGetter[LineAndCharacter(99, 99)] == 8);
+	common(lcg, crlf: false);
 }
 
-void testCRLF(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\r\n\tbb\r\nc\r\n");
+void testCRLF(ref Test test, CString text) {
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, text);
 	verifyConvert(lcg, 0, line: 0, character: 0); // a
 	verifyConvert(lcg, 1, line: 0, character: 1); // \r
 	verifyConvert(lcg, 2, PosKind.startOfRange, line: 0, character: 1, column: 1, convertBackPos: 1); // \n
@@ -61,6 +55,21 @@ void testCRLF(ref Test test) {
 	verifyConvert(lcg, 9, line: 2, character: 1, column: 1); // \r
 	verifyConvert(lcg, 10, PosKind.startOfRange, line: 2, character: 1, column: 1, convertBackPos: 9); // \n
 	verifyConvert(lcg, 11, line: 3, character: 0); // end
+	common(lcg, crlf: true);
+}
+
+void common(ref LineAndColumnGetter lcg, bool crlf) {
+	LineAndCharacterGetter chg = lcg.lineAndCharacterGetter;
+
+	assertEqual(lcg[LineAndColumn(0, 99)], 1 + crlf);
+	assertEqual(chg[LineAndCharacter(0, 99)], 1 + crlf);
+	assertEqual(lcg[LineAndColumn(99, 99)], 8 + crlf * 3);
+	assertEqual(chg[LineAndCharacter(99, 99)], 8 + crlf * 3);
+
+	assertEqual(lineLengthInCharacters(chg, line: 0), 1);
+	assertEqual(lineLengthInCharacters(chg, line: 1), 3);
+	assertEqual(lineLengthInCharacters(chg, line: 2), 1);
+	assertEqual(lineLengthInCharacters(chg, line: 3), 0);
 }
 
 void testUnicode(ref Test test) {
@@ -110,8 +119,8 @@ void verifyConvert(
 ) {
 	LineAndCharacter lineAndCharacter = LineAndCharacter(line, character);
 	LineAndColumn lineAndColumn = LineAndColumn(line, column);
-	assert(lcg.lineAndCharacterGetter[pos, kind] == lineAndCharacter);
-	assert(lcg[pos, kind] == lineAndColumn);
-	assert(lcg.lineAndCharacterGetter[lineAndCharacter] == convertBackPos);
-	assert(lcg[lineAndColumn] == convertBackPos);
+	assertEqual(lcg.lineAndCharacterGetter[pos, kind], lineAndCharacter);
+	assertEqual(lcg[pos, kind], lineAndColumn);
+	assertEqual(lcg.lineAndCharacterGetter[lineAndCharacter], convertBackPos);
+	assertEqual(lcg[lineAndColumn], convertBackPos);
 }
