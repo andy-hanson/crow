@@ -28,7 +28,6 @@ import model.lowModel :
 	isChar8,
 	isChar32,
 	isPointerNonGc,
-	isVoid,
 	localMustBeVolatile,
 	LowExpr,
 	LowExprKind,
@@ -788,7 +787,7 @@ void writeFunWithExprBody(
 	if (body_.hasTailRecur)
 		writer ~= "\n\ttop:;"; // Need ';' so it labels a statement
 	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
-	WriteKind writeKind = isVoid(fun.returnType) ? WriteKind(WriteKind.Void()) : WriteKind(WriteKind.Return());
+	WriteKind writeKind = isEmptyType(ctx, fun.returnType) ? WriteKind(WriteKind.Void()) : WriteKind(WriteKind.Return());
 	cast(void) writeExpr(writer, 1, bodyCtx, writeKind, body_.expr);
 	writer ~= "\n}\n";
 }

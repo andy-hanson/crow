@@ -106,7 +106,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array :
-	isEmpty, map, mapOp, newArray, newSmallArray, SmallArray, zipPointers;
+	emptySmallArray, isEmpty, map, mapOp, newArray, newSmallArray, SmallArray, zipPointers;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, finish;
 import util.col.hashTable : mustGet, withSortedKeys;
 import util.col.map : Map, mustGet;
@@ -597,13 +597,16 @@ JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
 	makeDecl(ctx, AnyDecl(a), JsDeclKind(translateStructReference(ctx, a.target.decl)));
 
 JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
+	// Normally we don't bother to inherit from variants
+	// (which is not always doable since there may be more than one variant).
+	// However, it's important to inherit from Error so it can set the stack trace.
 	MutOpt!(JsExpr*) extends;
 	JsClassMember[] members = buildArray!JsClassMember(ctx.alloc, (scope ref Builder!JsClassMember out_) {
 		foreach (ref VariantAndMethodImpls v; a.variants) {
 			if (v.variant == ctx.commonTypes.exception)
 				extends = someMut(allocate(ctx.alloc, translateStructReference(ctx, v.variant.decl)));
 		}
-		bool needSuper = has(extends);
+		Opt!Super super_ = optIf(has(extends), () => Super(emptySmallArray!JsExpr, callFinishConstructor: true));
 
 		a.body_.match!void(
 			(StructBody.Bogus) =>
@@ -611,31 +614,21 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 			(BuiltinType x) =>
 				assert(false),
 			(ref StructBody.Enum x) {
-				translateEnumDecl(ctx, out_, needSuper, x);
+				translateEnumDecl(ctx, out_, super_, x);
 			},
 			(StructBody.Extern) {},
 			(StructBody.Flags x) =>
-				translateFlagsDecl(ctx, out_, a, needSuper, x),
+				translateFlagsDecl(ctx, out_, a, super_, x),
 			(StructBody.Record x) {
-				translateRecordDecl(ctx, out_, needSuper, x);
+				translateRecordDecl(ctx, out_, super_, x);
 			},
 			(ref StructBody.Union x) {
-				translateUnionDecl(ctx, out_, needSuper, x);
+				translateUnionDecl(ctx, out_, super_, x);
 			},
 			(StructBody.Variant) {
 				if (a == ctx.commonTypes.exception.decl) {
 					extends = someMut(allocate(ctx.alloc, genGlobal(symbol!"Error")));
-					// get message() { return this.m_describe() }
-					out_ ~= genGetter(
-						JsClassMember.Static.instance,
-						JsMemberName.noPrefix(symbol!"message"),
-						JsBlockStatement(newArray(ctx.alloc, [
-							genReturn(
-								ctx.alloc,
-								genCallPropertySync(
-									ctx.alloc,
-									genThis(),
-									JsMemberName.variantMethod(symbol!"describe"), []))])));
+					translateExceptionClass(ctx, out_);
 				}
 			});
 
@@ -647,10 +640,54 @@ JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(JsClassDecl(optFromMut!(JsExpr*)(extends), members)));
 }
 
+void translateExceptionClass(ref TranslateModuleCtx ctx, scope ref Builder!JsClassMember out_) {
+	// constructor() { super("<<message>>") }
+	JsMemberName messageName = JsMemberName.noPrefix(symbol!"message");
+	JsExpr messagePlaceholder = genString("<<message>>");
+	out_ ~= genConstructor(ctx.alloc, [], some(Super(newSmallArray!JsExpr(ctx.alloc, [messagePlaceholder]))), []);
+
+	/*
+	"finish-constructor"() {
+		this.message = this.v_describe()
+		this.stack = this.stack.replace("<<message>>", this.message)
+	}
+	*/
+	JsExpr callDescribe = genCallPropertySync(ctx.alloc, genThis(), JsMemberName.variantMethod(symbol!"describe"), []);
+	JsExpr this_message = genPropertyAccess(ctx.alloc, genThis(), messageName);
+	JsExpr this_stack = genPropertyAccess(ctx.alloc, genThis(), JsMemberName.noPrefix(symbol!"stack"));
+	out_ ~= genInstanceMethod(
+		ctx.alloc,
+		SyncOrAsync.sync,
+		finishConstructorName,
+		[],
+		[
+			genAssign(ctx.alloc, this_message, callDescribe),
+			genAssign(ctx.alloc, this_stack, genCallPropertySync(ctx.alloc, this_stack, JsMemberName.noPrefix(symbol!"replace"), [messagePlaceholder, this_message]))
+		]);
+
+	// JUNK ----------------------------------------------------------------------------------------------------------------------------
+	/*
+	get message() {
+		return this.m_describe()
+	}
+	*/
+	/*
+	out_ ~= genGetter(
+		JsClassMember.Static.instance,
+		messageName,
+		JsBlockStatement(newArray(ctx.alloc, [
+			genReturn(
+				ctx.alloc,
+				);
+	*/
+}
+
+JsMemberName finishConstructorName = JsMemberName.special(symbol!"finish-constructor");
+
 void translateEnumDecl(
 	ref TranslateModuleCtx ctx,
 	scope ref Builder!JsClassMember out_,
-	bool needSuper,
+	Opt!Super super_,
 	in StructBody.Enum a,
 ) {
 	/*
@@ -663,7 +700,7 @@ void translateEnumDecl(
 	}
 	*/
 	JsName value = JsName.specialLocal(symbol!"value");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
+	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], super_, [
 		genAssignToThis(ctx.alloc, JsMemberName.special(symbol!"value"), JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members)
 		out_ ~= genField(
@@ -688,7 +725,7 @@ void translateFlagsDecl(
 	ref TranslateModuleCtx ctx,
 	scope ref Builder!JsClassMember out_,
 	in StructDecl* struct_,
-	bool needSuper,
+	Opt!Super super_,
 	in StructBody.Flags a,
 ) {
 	/*
@@ -713,7 +750,7 @@ void translateFlagsDecl(
 	}
 	*/
 	JsName value = JsName.specialLocal(symbol!"value");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], needSuper, [
+	out_ ~= genConstructor(ctx.alloc, [JsDestructure(value)], super_, [
 		genAssignToThis(ctx.alloc, JsMemberName.special(symbol!"value"), JsExpr(value))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
 		out_ ~= genField(
@@ -764,7 +801,7 @@ JsExpr getValue(ref Alloc alloc, JsExpr arg) =>
 void translateRecordDecl(
 	ref TranslateModuleCtx ctx,
 	scope ref Builder!JsClassMember out_,
-	bool needSuper,
+	Opt!Super super_,
 	in StructBody.Record a,
 ) {
 	/*
@@ -779,7 +816,7 @@ void translateRecordDecl(
 		ctx.alloc,
 		map!(JsDestructure, RecordField)(ctx.alloc, a.fields, (ref RecordField x) =>
 			JsDestructure(JsName.local(x.name))),
-		needSuper,
+		super_,
 		(scope ref ArrayBuilder!JsStatement out_) {
 			foreach (ref RecordField x; a.fields) {
 				JsExpr value = JsExpr(JsName.local(x.name));
@@ -792,7 +829,7 @@ void translateRecordDecl(
 void translateUnionDecl(
 	ref TranslateModuleCtx ctx,
 	scope ref Builder!JsClassMember out_,
-	bool needSuper,
+	Opt!Super super_,
 	in StructBody.Union a,
 ) {
 	/*
@@ -807,7 +844,7 @@ void translateUnionDecl(
 	}
 	*/
 	JsName arg = JsName.specialLocal(symbol!"arg");
-	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], needSuper, [
+	out_ ~= genConstructor(ctx.alloc, [JsDestructure(arg)], super_, [
 		JsStatement(genCallPropertySync(
 			ctx.alloc,
 			genGlobal(symbol!"Object"),
@@ -840,20 +877,22 @@ void translateUnionDecl(
 	}
 }
 
-JsClassMember genConstructor(ref Alloc alloc, in JsDestructure[] params, bool needSuper, in JsStatement[] statements) =>
-	genConstructor(alloc, newSmallArray(alloc, params), needSuper, (scope ref ArrayBuilder!JsStatement out_) {
+JsClassMember genConstructor(ref Alloc alloc, in JsDestructure[] params, Opt!Super super_, in JsStatement[] statements) =>
+	genConstructor(alloc, newSmallArray(alloc, params), super_, (scope ref ArrayBuilder!JsStatement out_) {
 		addAll(alloc, out_, statements);
 	});
 JsClassMember genConstructor(
 	ref Alloc alloc,
 	SmallArray!JsDestructure params,
-	bool needSuper,
+	Opt!Super super_,
 	in void delegate(scope ref ArrayBuilder!JsStatement) @safe @nogc pure nothrow cb,
 ) {
 	ArrayBuilder!JsStatement out_;
-	if (needSuper)
-		add(alloc, out_, genSuper());
+	if (has(super_))
+		add(alloc, out_, genSuper(force(super_).args));
 	cb(out_);
+	if (has(super_) && force(super_).callFinishConstructor)
+		add(alloc, out_, JsStatement(genCallPropertySync(alloc, genThis(), finishConstructorName, [])));
 	return genInstanceMethod(
 		SyncOrAsync.sync,
 		JsMemberName.noPrefix(symbol!"constructor"),
@@ -861,8 +900,15 @@ JsClassMember genConstructor(
 		JsBlockStatement(finish(alloc, out_)));
 }
 
+immutable struct Super {
+	// Used to call the JS 'Error' constructor with the class name (can't use 'describe' since that needs the instance already constructed)
+	//TODO: this is not needed any more? --------------------------------------------------------------------------------------
+	SmallArray!JsExpr args;
+	bool callFinishConstructor;
+}
+
 JsExpr super_ = genGlobal(symbol!"super");
-JsStatement genSuper() => JsStatement(genCallSync(&super_, []));
+JsStatement genSuper(SmallArray!JsExpr args) => JsStatement(genCallSync(&super_, args));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 	makeDecl(ctx, AnyDecl(a), JsDeclKind(JsDeclKind.Let()));

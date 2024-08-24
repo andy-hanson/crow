@@ -488,6 +488,14 @@ JsClassMember genInstanceMethod(
 	SyncOrAsync async,
 	JsMemberName name,
 	in JsDestructure[] params,
+	in JsStatement[] body_,
+) =>
+	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, body_));
+JsClassMember genInstanceMethod(
+	ref Alloc alloc,
+	SyncOrAsync async,
+	JsMemberName name,
+	in JsDestructure[] params,
 	JsBlockStatement body_,
 ) =>
 	genInstanceMethod(async, name, JsParams(newSmallArray(alloc, params)), body_);

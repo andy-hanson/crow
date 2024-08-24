@@ -1,8 +1,9 @@
 import
 	crow/io/duration: nanosecond, milliseconds
-	crow/js: ==, as-js, await, call, call-property, cast, js-any, js-global, null, subscript
+	crow/js: ==, as-js, await, call, call-property, cast, eval, js-any, js-global, null, set-subscript, subscript, typeof
 	./decode-tokens: decode-tokens
-	./lsp-types: diagnostic, line-and-character, run-result, to, to-js, token, tokens-legend
+	./lsp-types:
+		diagnostic, line-and-character, new, run-result, stderr, stdout, to, to-js, token, tokens-legend, write
 	./util/DataView-util: DataView, new, read-c-string, view-c-string, wasm32, write-c-string
 	./util/js-util: json-parse, json-stringify, new, to-js-object
 	./util/util: fetch-js-object
@@ -64,21 +65,50 @@ get-tokens token array(a crow-server, uri uri) trusted, js extern
 	encoded = (a request "textDocument/semanticTokens/full", args)["data"]
 	encoded decode-tokens a.tokens-legend
 
-run-js run-result(a crow-server, main-uri uri) trusted, js extern
-	uris = (main-uri.as-js,)::(js-any array) as-js
-	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
-	response = a request "custom/run", args
-	script string = response["script"] cast
-	info log "script is {script}"
-	throw todo
-
 run run-result(a crow-server, main-uri uri) trusted, js extern
 	uris = (main-uri.as-js,)::(js-any array) as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
 	a request "custom/run", args to
 
-run-js void(_ crow-server, _ uri) trusted, js extern
-	throw todo
+run-js run-result(a crow-server, main-uri uri) trusted, js extern
+	uris = (main-uri.as-js,)::(js-any array) as-js
+	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
+	response = a request "custom/build-js-script", args
+	response["script"].cast run-script
+
+run-script run-result(script string) unsafe, js extern
+	info log "script is {script}"
+	console = "console".js-global
+	old-info = console["info"]
+	old-error = console["error"]
+	finally do
+		console["info"] := old-info
+		console["error"] := old-error
+	writes write mut[] = ()
+	new-info void mut(x string) = x =>
+		writes ~= (stdout, x)
+	new-error void mut(x string) = x =>
+		writes ~= (stderr, x)
+	console["info"] := new-info
+	console["error"] := new-error
+	exit nat = match (() => script eval) catch-all
+	as ok _
+		0
+	as error e
+		writes ~= (stderr, "{e.show-exception}")
+		1
+	writes.move-to, exit
+
+-show-exception string(a exception-and-backtrace) unsafe, js extern
+	if x ?= a.exception.threw-non-exception
+		# It might be the script's exception type.
+		stack = x.thrown["stack"]
+		if stack.typeof == "string"
+			stack cast
+		else
+			"{a}"
+	else
+		"{a}"
 
 -request js-any(a crow-server, method symbol, params js-any) unsafe, js extern
 	a.lsp-server request method, params

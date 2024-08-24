@@ -27,7 +27,7 @@ import
 	elif extern js
 		fn string = match pipe
 		as out
-			"log"
+			"info"
 		as err
 			"error"
 		_ = "console".js-global call-property fn, message

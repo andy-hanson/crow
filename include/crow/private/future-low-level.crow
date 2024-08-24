@@ -5,10 +5,8 @@ import
 	../option: ??, new
 	../pointer: mut-pointer
 	../result: error, ok, result
-	./bootstrap:
-		awaiting-future, exception-and-backtrace, fiber, future, hard-unreachable, queued,
-		set-state, state
-	./exception-low-level: rethrow
+	./bootstrap: awaiting-future, fiber, future, hard-unreachable, queued, set-state, state
+	./exception-low-level: exception-and-backtrace, rethrow
 	./runtime: enqueue-fiber, get-global-ctx
 	./thread-utils: acquire, init, lock, release, uninit
 

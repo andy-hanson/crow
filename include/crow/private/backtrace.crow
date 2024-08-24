@@ -8,7 +8,7 @@ import
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: &&, true
-	../col/array: new
+	../col/array: array, new
 	../col/mut-array: as-mut-array, cast-immutable
 	../compare: !=, >
 	../misc: new, void
@@ -25,28 +25,34 @@ import
 	./number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	./range-low-level: ..
 	./thread-utils: acquire, global-lock, release
-export
-	./bootstrap:
-		backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number,
-		new
 
--new backtrace() bare
-	(),
++native-backtrace alias
+	backtrace-entry array
+# 'extern' because interpreter also declares this type
+# TODO:PRIVATE? ---------------------------------------------------------------------------------------------------------
++backtrace-entry record extern
+	# These point into either GC or permanent memory. May be empty strings, never null.
+	function-name c-string
+	file-path c-string
+	# 1-indexed. 0 if unknown.
+	line-number nat32
+	# 1-indexed. 0 if unknown.
+	column-number nat32
 
 # Taking 'gc' explicitly to avoid accidental uses
-get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe, native extern
+native-backtrace native-backtrace(gc gc-ctx, skip nat64) bare, unsafe, native extern
 	guard is-stack-trace-enabled
 	max-entries nat64 = 16
 	guard entries ?= (gc try-allocate max-entries)::backtrace-entry mut*?
 	if is-interpreted
 		end = entries interpreter-backtrace max-entries, skip
 		gc copy-strings entries, end
-		(entries .. end).as-mut-array.cast-immutable,
+		(entries .. end).as-mut-array.cast-immutable
 	elif extern windows
 		if extern DbgHelp
-			gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
+			gc native-backtrace-windows entries, max-entries, (skip wrap-add 2)
 	elif extern unwind
-		gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
+		gc native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
 
 ###
 Implemented by interpreter only.
@@ -73,7 +79,7 @@ Result entries are temporary, must copy!
 	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path),
 		a.line-number, a.column-number
 
--get-native-backtrace-windows backtrace(
+-native-backtrace-windows native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
@@ -84,7 +90,7 @@ Result entries are temporary, must copy!
 	guard vars ?= gc try-alloc-windows-backtrace-vars
 	gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
 
--get-windows-backtrace-with-vars backtrace(
+-get-windows-backtrace-with-vars native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
@@ -105,7 +111,7 @@ Result entries are temporary, must copy!
 			max-end, skip, process, thread, &context, &frame, vars
 		ok = process SymCleanup
 		ok hard-assert
-		(entries .. end).as-mut-array.cast-immutable,
+		(entries .. end).as-mut-array cast-immutable
 
 -windows-backtrace-vars record by-val, mut
 	offset nat64 mut*
@@ -174,7 +180,7 @@ Result entries are temporary, must copy!
 	else
 		""
 
--get-native-backtrace-libunwind backtrace(
+-native-backtrace-libunwind native-backtrace(
 	gc gc-ctx,
 	entries backtrace-entry mut*,
 	max-entries nat64,
@@ -186,10 +192,10 @@ Result entries are temporary, must copy!
 	err0 == 0 hard-assert
 	err1 = &cursor unw_init_local &context
 	err1 == 0 hard-assert
-	# omit 'get-native-backtrace' in addition to other skipped
+	# omit 'native-backtrace' in addition to other skipped
 	&cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind entries, entries + max-entries, &cursor
-	(entries .. end).as-mut-array.cast-immutable,
+	(entries .. end).as-mut-array cast-immutable
 
 -unwind-skip void(cursor unw_cursor_t mut*, skip nat64) bare, unsafe, unwind extern
 	unless skip == 0

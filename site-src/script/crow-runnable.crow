@@ -88,13 +88,13 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 
 	run-button node? = unless no-run
 		button = "Run" create-button "run", (play-icon,), () =>
-			if run-js
+			output start-running
+			collapse-button remove-class "collapsed"
+			yield-fiber # Allow to show loading before 'crow run'locks up the UI
+			output finish-running if run-js
 				crow run-js main-uri
 			else
-				output start-running
-				collapse-button remove-class "collapsed"
-				yield-fiber # Allow to show loading before 'crow run'locks up the UI
-				output finish-running (crow run main-uri)
+				crow run main-uri
 		button,
 
 	copy-button = "Copy to clipboard" create-button "", (copy-icon,), () =>

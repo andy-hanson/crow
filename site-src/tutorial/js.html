@@ -7,14 +7,18 @@
 		That will be explained in {{tutorial/extern}}.
 	</p>
 
-	<p>
-		Unlike the other examples, examples on this page will be compiled to JavaScript and executed in the browser!
-	</p>
-
 	<crow-runnable run-js>
+		import
+			crow/js: call, js-global
+
 		main void() trusted, js extern
-			"alert".js-global call "Hello, JS!"::string
+			_ = "alert".js-global call "Hello, JS!"::string
+			info log "This goes to log below"
 	</crow-runnable>
+
+	<aside class="small">
+		On this page, examples will run in the browser instead of using the interpreter. Logging will still be redirected to output though.
+	</aside>
 
 	<p>
 		Currently, there's no way to generate imports.

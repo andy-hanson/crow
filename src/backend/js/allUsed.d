@@ -501,13 +501,15 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 		}
 	}();
 	if (inlined || addDecl(res, from, AnyDecl(a))) {
+		Uri typesUsedAt = inlined ? from : a.moduleUri;
+
 		foreach (ref Destructure param; paramsArray(a.params))
 			eachLocal(param, (Local* x) {
 				trackAllUsedInType(res, a.moduleUri, x.type);
 			});
 
 		void usedReturnType(Uri where = from) {
-			trackAllUsedInType(res, where, a.returnType);
+			trackAllUsedInType(res, typesUsedAt, a.returnType);
 		}
 		a.body_.match!void(
 			(FunBody.Bogus) {},
@@ -516,7 +518,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 					case AutoFun.Kind.equals:
 						break;
 					case AutoFun.Kind.compare:
-						usedReturnType(a.moduleUri);
+						usedReturnType(a.moduleUri); // TODO: I'm not sure if I still need the explicit 'where' argument. I changed the default to depend on if it's inlined.
 						break;
 					case AutoFun.Kind.toJson:
 						usedReturnType(a.moduleUri);
@@ -574,6 +576,7 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 				cast(void) addDecl(res, from, AnyDecl(x.var));
 			},
 			(FunBody.VariantMemberGet) {
+				// Needs the unwrapped option type for 'instanceof', and the option type to return 'option.some' or 'option.none'
 				usedReturnType();
 				trackAllUsedInType(res, from, mustUnwrapOptionType(res.commonTypes, a.returnType));
 			},

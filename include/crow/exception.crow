@@ -5,40 +5,25 @@ import
 	./col/collection: find-index, for-loop, starts-with
 	./col/list: ~=, build
 	./compare: >
-	./js: await, call, cast, eval
+	./js: as-js, cast, subscript
 	./number: ==, <=>, -
 	./option: new, option
 	./range: ..
 	./result: result
 	./string: ==, begin, interpolate, is-empty, join, next, string, to
+	./private/bootstrap: hard-unreachable
 export
-	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
+	./private/backtrace: native-backtrace, backtrace-entry, file-path, function-name, line-number
 	./private/exception-low-level:
-		catch-all, describe, error, exception, exception-and-backtrace, rethrow, unreachable
+		backtrace, catch-all, describe, error, exception, exception-and-backtrace, rethrow, threw-non-exception, thrown, unreachable
 
 +ignore-exceptions record nominal
 +with-block[t] t?(_ ignore-exceptions, f t mut())
-	if trusted extern native
-		match f catch-all
-		as ok x
-			x,
-		as error _
-			()
-	elif trusted extern js
-		some t? data(x t) = x => x,
-		none t? data() = () => ()
-		res = trusted """
-		async (f, some, none) => \{
-			try \{
-				return some(await f())
-			} catch \{
-				return none()
-			}
-		}
-		""".eval call f, some, none await
-		trusted res cast
-	else
-		throw todo
+	match f catch-all
+	as ok x
+		x,
+	as error _
+		()
 
 +todo record exception variant-member
 +describe string(_ todo)
@@ -49,24 +34,30 @@ export
 	"The operation is not implemented on this platform."
 
 # Outputs the exception's message and backtrace to a string.
-+to string(a exception-and-backtrace) unsafe, native extern
-	"{a exception}{a backtrace}"
++to string(a exception-and-backtrace) unsafe
+	if extern native
+		"{a exception}{a backtrace}"
+	elif extern js
+		a.exception.as-js["stack"] cast
+	else
+		hard-unreachable
 
 +to string(a exception)
 	a describe
 
-+to string(a backtrace) unsafe, native extern
+# TODO: move to backtrace.crow? -------------------------------------------------------------------------------------------
++to string(a native-backtrace) unsafe, native extern
 	# Don't include entries from runtime, only at start of function
-	kept-entries = if idx ?= a.entries find-index x => x is-runtime-function-entry
+	kept-entries = if idx ?= a find-index x => x is-runtime-function-entry
 		if idx > 0
-			if a.entries[idx - 1].function-name.to::string == "call"
-				a.entries[0 .. idx - 1]
+			if a[idx - 1].function-name.to::string == "call"
+				a[0 .. idx - 1]
 			else
-				a.entries[0 .. idx]
+				a[0 .. idx]
 		else
-			a entries
+			a
 	else
-		a entries
+		a
 	"" join for x : kept-entries
 		"\n\tat {x}"
 

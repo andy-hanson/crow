@@ -257,18 +257,6 @@ An `act` can have anything in its closure, including mutable data, so it's consi
 
 region future
 
-+backtrace record(entries backtrace-entry array) by-val
-
-# 'extern' because interpreter also declares this type
-+backtrace-entry record extern
-	# These point into either GC or permanent memory. May be empty strings, never null.
-	function-name c-string
-	file-path c-string
-	# 1-indexed. 0 if unknown.
-	line-number nat32
-	# 1-indexed. 0 if unknown.
-	column-number nat32
-
 ###
 Describes the reason there is a 'throw'.
 For common exceptions, see `exception.crow`.
@@ -283,21 +271,6 @@ This is a variant type, meaning anything can declare a `variant-member` that is 
 -abandoned record exception variant-member
 -describe string(_ abandoned)
 	"Reached a fatal error"
-
-###
-Type of a thrown exception.
-
-There is no exception subtyping in crow, so all exceptions have this type.
-###
-+exception-and-backtrace record by-val
-	# Message passed to `throw`.
-	exception exception
-	# TODO: accessing backtrace should be unsafe
-	###
-	Backtrace when the exception was created.
-	Catching and rethrowing the exception doesn't affect this.
-	###
-	backtrace backtrace
 
 ###
 Log severity.
