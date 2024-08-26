@@ -12,7 +12,7 @@ version (Windows) {
 }
 
 import app.backtrace : writeBacktrace;
-import app.command : BuildOptions, Command, CommandKind, RunOptions, SingleBuildOutput;
+import app.command : BuildOptions, Command, CommandKind, RunOptions, SingleBuildOutput, targetsForBuild;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	cleanupCompile,
@@ -87,7 +87,7 @@ import lib.server :
 	showDiagnostics,
 	version_;
 import model.diag : ReadFileDiag;
-import model.model : hasAnyDiagnostics, hasFatalDiagnostics, Program, ProgramWithMain;
+import model.model : BuildTarget, hasAnyDiagnostics, hasFatalDiagnostics, Program, ProgramWithMain;
 import model.lowModel : ExternLibraries;
 version (Test) {
 	import test.test : test;
@@ -329,7 +329,7 @@ ExitCodeOrSignal go(
 ) =>
 	command.matchImpure!ExitCodeOrSignal(
 		(in CommandKind.Build x) =>
-			withProgramForMain(perf, alloc, server, x.mainUri, (ref ProgramWithMain program) =>
+			withProgramForMain(perf, alloc, server, x.mainUri, targetsForBuild(alloc, x), (ref ProgramWithMain program) =>
 				buildAllOutputs(perf, alloc, server, cwd, x.options, program)),
 		(in CommandKind.Check x) =>
 			withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program program) =>
@@ -359,7 +359,7 @@ ExitCodeOrSignal go(
 			})));
 
 ExitCodeOrSignal run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) =>
-	withProgramForMain(perf, alloc, server, run.mainUri, (ref ProgramWithMain program) =>
+	withProgramForMain(perf, alloc, server, run.mainUri, [BuildTarget.native], (ref ProgramWithMain program) =>
 		run.options.matchImpure!ExitCodeOrSignal(
 			(in RunOptions.Aot x) =>
 				buildAndRun(perf, alloc, server, cwd, program, run.programArgs, x),
@@ -422,13 +422,13 @@ ExitCodeOrSignal doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server
 			withProgramForRoots(perf, alloc, server, [mainUri], (ref Program program) =>
 				printJson(alloc, jsonOfModel(perf, alloc, server, program, mainUri))),
 		(in PrintKind.ConcreteModel) =>
-			withProgramForMain(perf, alloc, server, mainUri, (ref ProgramWithMain program) =>
+			withProgramForMain(perf, alloc, server, mainUri, [], (ref ProgramWithMain program) =>
 				printJson(alloc, jsonOfConcreteModel(
 					perf, alloc, server, server.lineAndColumnGetters,
 					versionInfoForInterpret(getOS(), VersionOptions()),
 					program))),
 		(in PrintKind.LowModel) =>
-			withProgramForMain(perf, alloc, server, mainUri, (ref ProgramWithMain program) =>
+			withProgramForMain(perf, alloc, server, mainUri, [], (ref ProgramWithMain program) =>
 				printJson(alloc, jsonOfLowModel(
 					perf, alloc, server, server.lineAndColumnGetters,
 					versionInfoForInterpret(getOS(), VersionOptions()),
@@ -566,10 +566,11 @@ ExitCodeOrSignal withProgramForMain(
 	ref Alloc alloc,
 	ref Server server,
 	Uri main,
+	in BuildTarget[] targets,
 	in ExitCodeOrSignal delegate(ref ProgramWithMain) @safe @nogc nothrow cb,
 ) {
 	loadAllFiles(perf, server, [main]);
-	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
+	ProgramWithMain program = getProgramForMain(perf, alloc, server, main, targets);
 	if (hasAnyDiagnostics(program))
 		printError(showDiagnostics(alloc, server, program));
 	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);

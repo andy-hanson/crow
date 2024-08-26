@@ -375,6 +375,9 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct LoopWithoutBreak {}
+	immutable struct MainMissingExterns {
+		Symbol[] missing;
+	}
 	immutable struct MatchCaseDuplicate {
 		immutable struct Kind {
 			mixin Union!(Symbol, string, ulong, long);
@@ -710,6 +713,7 @@ immutable struct Diag {
 		LocalNotMutable,
 		LoopDisallowedBody,
 		LoopWithoutBreak,
+		MainMissingExterns,
 		MatchCaseDuplicate,
 		MatchCaseForType,
 		MatchCaseNameDoesNotMatch,

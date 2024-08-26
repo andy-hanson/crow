@@ -3,7 +3,7 @@ module util.col.arrayBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.array : small, SmallArray;
+import util.col.array : contains, small, SmallArray;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
 import util.conv : safeToUint;
@@ -25,6 +25,11 @@ struct Builder(T) {
 	void opOpAssign(string op)(in T[] xs) scope if (op == "~") {
 		addAll!T(alloc, inner, xs);
 	}
+}
+
+void addIfNotContains(T)(scope ref Builder!T a, T value) {
+	if (!contains(asTemporaryArray(a), value))
+		a ~= value;
 }
 
 immutable(SmallArray!T) smallFinish(T)(scope ref Builder!T a) =>

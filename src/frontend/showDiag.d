@@ -888,6 +888,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.LoopWithoutBreak) {
 			writer ~= "'loop' has no 'break'.";
 		},
+		(in Diag.MainMissingExterns x) {
+			writer ~= "'main' function depends on extern ";
+			writeWithCommas!Symbol(writer, x.missing, (in Symbol x) {
+				writeName(writer, ctx, x);
+			});
+			writer ~= " which is not provided.";
+		},
 		(in Diag.MatchCaseDuplicate x) {
 			writer ~= "Duplicate branch ";
 			x.kind.matchIn!void(

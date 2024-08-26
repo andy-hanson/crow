@@ -4,6 +4,9 @@ module app.command;
 
 import frontend.lang : CCompileOptions, JitOptions;
 import lib.server : PrintKind;
+import model.model : BuildTarget;
+import util.alloc.alloc : Alloc;
+import util.col.arrayBuilder : addIfNotContains, buildArray, Builder;
 import util.string : CString;
 import util.exitCode : ExitCode;
 import util.union_ : Union;
@@ -81,4 +84,23 @@ immutable struct SingleBuildOutput {
 	enum Kind { c, executable, jsScript, jsModules, nodeJsScript, nodeJsModules }
 	Kind kind;
 	FilePath path;
+}
+
+BuildTarget[] targetsForBuild(ref Alloc alloc, in CommandKind.Build x) =>
+	buildArray!BuildTarget(alloc, (scope ref Builder!BuildTarget out_) {
+		foreach (SingleBuildOutput output; x.options.out_)
+			addIfNotContains!BuildTarget(out_, targetForBuildOutput(output.kind));
+	});
+
+BuildTarget targetForBuildOutput(SingleBuildOutput.Kind a) {
+	final switch (a) {
+		case SingleBuildOutput.Kind.c:
+		case SingleBuildOutput.Kind.executable:
+			return BuildTarget.native;
+		case SingleBuildOutput.Kind.jsScript:
+		case SingleBuildOutput.Kind.jsModules:
+		case SingleBuildOutput.Kind.nodeJsScript:
+		case SingleBuildOutput.Kind.nodeJsModules:
+			return BuildTarget.js;
+	}
 }

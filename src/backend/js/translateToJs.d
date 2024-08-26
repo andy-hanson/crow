@@ -75,6 +75,8 @@ import frontend.showModel : ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
 import model.model :
+	allExterns,
+	BuildTarget,
 	BuiltinType,
 	Called,
 	eachImportOrReExport,
@@ -183,7 +185,7 @@ Out withTranslateProgram(Out)(
 ) {
 	assert(!hasFatalDiagnostics(program));
 	VersionInfo version_ = versionInfoForBuildToJS(jsTarget);
-	SymbolSet allExterns = symbolSet(symbol!"js");
+	SymbolSet allExterns = allExterns(program, BuildTarget.js);
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),

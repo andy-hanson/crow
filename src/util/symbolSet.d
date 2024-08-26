@@ -2,8 +2,10 @@ module util.symbolSet;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
 import util.col.array : fold, isEmpty, only;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToUint;
 import util.integralValues :
 	emptyIntegralValues, IntegralValue, IntegralValues, mapToIntegralValues, only, singleIntegralValue;
@@ -53,6 +55,13 @@ alias SymbolSetBuilder = StackArrayBuilder!Symbol;
 SymbolSet buildSymbolSet(in void delegate(scope ref SymbolSetBuilder) @safe @nogc pure nothrow cb) =>
 	withBuildStackArray!(SymbolSet, Symbol)(cb, (scope Symbol[] symbols) =>
 		SymbolSet(mapToIntegralValues!Symbol(symbols, (ref const Symbol x) => toIntegral(x))));
+
+Symbol[] symbolSetDifference(ref Alloc alloc, SymbolSet a, SymbolSet b) =>
+	buildArray!Symbol(alloc, (scope ref Builder!Symbol out_) {
+		foreach (Symbol x; a)
+			if (x !in b)
+				out_ ~= x;
+	});
 
 private:
 

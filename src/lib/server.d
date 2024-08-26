@@ -109,6 +109,7 @@ import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model :
 	asProgramWithOptMain,
+	BuildTarget,
 	hasAnyDiagnostics,
 	hasFatalDiagnostics,
 	Module,
@@ -309,11 +310,11 @@ private LspOutResult handleLspRequestWithProgram(
 	ref Program program,
 	in LspInRequestParams a,
 ) {
-	ProgramWithMain programWithMain(Uri main) @safe =>
-		programWithMainFromProgram(perf, alloc, server.frontend, program, main);
+	ProgramWithMain programWithMain(Uri main, BuildTarget target) =>
+		programWithMainFromProgram(perf, alloc, server.frontend, program, main, [target]);
 	return a.matchImpure!LspOutResult(
 		(in BuildJsScriptParams x) {
-			ProgramWithMain pwm = programWithMain(x.uri);
+			ProgramWithMain pwm = programWithMain(x.uri, BuildTarget.js);
 			return LspOutResult(BuildJsScriptResult(hasFatalDiagnostics(pwm)
 				? "console.error(\"Program has fatal diagnostics\")"
 				: buildToJsScript(alloc, server, pwm, JsTarget.browser)));
@@ -330,7 +331,7 @@ private LspOutResult handleLspRequestWithProgram(
 			LspOutResult(getRenameForProgram(alloc, server, program, x)),
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
-			ProgramWithMain pwm = programWithMain(x.uri);
+			ProgramWithMain pwm = programWithMain(x.uri, BuildTarget.native);
 			ExitCodeOrSignal exitCode = runFromLsp(
 				perf, alloc, server, pwm, x.diagnosticsOnlyForUris,
 				(Pipe pipe, in string x) {
@@ -589,8 +590,8 @@ private Opt!Hover getHoverForProgram(
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	makeProgram(perf, alloc, server.frontend, roots);
 
-ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
-	makeProgramWithMain(perf, alloc, server.frontend, mainUri);
+ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri, in BuildTarget[] targets) =>
+	makeProgramWithMain(perf, alloc, server.frontend, mainUri, targets);
 
 Program getProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	getProgram(perf, alloc, server, roots);

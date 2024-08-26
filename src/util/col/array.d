@@ -4,7 +4,7 @@ import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.alloc.stackAlloc : withStackArray;
 import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
-import util.opt : force, has, none, MutOpt, Opt, some, someMut;
+import util.opt : force, has, none, MutOpt, Opt, optIf, some, someMut;
 import util.union_ : TaggedUnion, Union;
 import util.util : castImmutable, max, typeAs;
 
@@ -123,6 +123,9 @@ bool sizeEq3(T, U, V)(in T[] a, in U[] b, in V[] c) =>
 
 bool isEmpty(T)(in T[] a) =>
 	a.length == 0;
+
+Opt!T optOnly(T)(in T[] a) =>
+	optIf(a.length == 1, () => only(a));
 
 ref inout(T) only(T)(scope inout T[] a) {
 	assert(a.length == 1);

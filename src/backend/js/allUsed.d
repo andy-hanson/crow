@@ -9,6 +9,7 @@ import model.model :
 	AssertOrForbidExpr,
 	AutoFun,
 	BogusExpr,
+	BuildTarget,
 	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,
@@ -225,8 +226,8 @@ private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 		(FunDecl* x) => some(x),
 		(Test* _) => none!(FunDecl*));
 
-AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExtern) {
-	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExtern);
+AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExterns) {
+	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExterns);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.noInline);
 	// Main module needs to create a new list
 	if (program.mainFun.needsArgsList)

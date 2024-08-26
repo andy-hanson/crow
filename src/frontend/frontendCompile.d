@@ -24,6 +24,8 @@ import frontend.storage :
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
+	allExternsForMainConfig,
+	BuildTarget,
 	CommonFunsAndDiagnostics,
 	CommonTypes,
 	Config,
@@ -31,6 +33,7 @@ import model.model :
 	getConfigUri,
 	getModuleUri,
 	Module,
+	moduleAtUri,
 	OtherTypes,
 	Program,
 	ProgramWithMain,
@@ -50,6 +53,7 @@ import util.col.array :
 	map,
 	mustFindPointer,
 	MutSmallArray,
+	optOnly,
 	small,
 	SmallArray;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
@@ -62,6 +66,7 @@ import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Extension, Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
@@ -161,9 +166,9 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-ProgramWithMain makeProgramWithMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
+ProgramWithMain makeProgramWithMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri, in BuildTarget[] targets) {
 	Program program = makeProgram(perf, alloc, a, [mainUri]);
-	return programWithMainFromProgram(perf, alloc, a, program, mainUri);
+	return programWithMainFromProgram(perf, alloc, a, program, mainUri, targets);
 }
 
 ProgramWithMain programWithMainFromProgram(
@@ -172,10 +177,15 @@ ProgramWithMain programWithMainFromProgram(
 	ref Frontend a,
 	ref Program program,
 	Uri mainUri,
+	in BuildTarget[] targets,
 ) =>
 	ProgramWithMain(
 		program,
-		getMainFun(alloc, InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)), mainUri, program));
+		getMainFun(
+			alloc,
+			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)),
+			program, mainUri,
+			allExternsForMainConfig(*moduleAtUri(program, mainUri).config, optOnly(targets))));
 
 Program makeProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) {
 	assert(filesState(a.storage) == FilesState.allLoaded);

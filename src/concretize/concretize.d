@@ -38,7 +38,17 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
-import model.model : BuiltinExtern, BuiltinFun, CommonFuns, Config, FunBody, MainFun, ProgramWithMain, StructBody;
+import model.model :
+	allExterns,
+	BuildTarget,
+	BuiltinExtern,
+	BuiltinFun,
+	CommonFuns,
+	Config,
+	FunBody,
+	MainFun,
+	ProgramWithMain,
+	StructBody;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, mustHaveIndexOfPointer, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
@@ -81,7 +91,7 @@ ConcreteProgram concretizeInner(
 		versionInfo,
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters),
-		allExterns(*program.mainConfig));
+		allExterns(program, BuildTarget.native));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
 	lateSet(ctx.equalNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.equalNat64));
@@ -176,21 +186,3 @@ void finishVariants(ref ConcretizeCtx ctx) {
 		fun.overwriteBody(generateCallVariantMethod(ctx, fun, variant, asTemporaryArray(impls), methodIndex));
 	}
 }
-
-SymbolSet allExterns(in Config mainConfig) =>
-	buildSymbolSet((scope ref SymbolSetBuilder out_) {
-		version (Windows)
-			out_ ~= [symbolOfEnum(BuiltinExtern.DbgHelp), symbolOfEnum(BuiltinExtern.windows)];
-		else
-			out_ ~= [
-				symbolOfEnum(BuiltinExtern.linux),
-				symbolOfEnum(BuiltinExtern.posix),
-				symbolOfEnum(BuiltinExtern.pthread),
-				symbolOfEnum(BuiltinExtern.sodium),
-				symbolOfEnum(BuiltinExtern.unwind),
-			];
-		out_ ~= [symbolOfEnum(BuiltinExtern.libc), symbolOfEnum(BuiltinExtern.native)];
-		foreach (Symbol name, Opt!Uri uri; mainConfig.extern_)
-			if (has(uri))
-				out_ ~= name;
-	});

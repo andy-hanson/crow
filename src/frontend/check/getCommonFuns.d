@@ -57,6 +57,7 @@ import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
 import util.string : emptySmallString;
 import util.symbol : Symbol, symbol;
+import util.symbolSet : SymbolSet, symbolSetDifference;
 import util.uri : Uri;
 import util.util : castNonScope_ref;
 
@@ -200,13 +201,19 @@ CommonFunsAndDiagnostics getCommonFuns(
 	return CommonFunsAndDiagnostics(commonFuns, smallFinish(alloc, diagsBuilder));
 }
 
-MainFunAndDiagnostics getMainFun(ref Alloc alloc, InstantiateCtx ctx, Uri mainUri, ref Program program) {
+MainFunAndDiagnostics getMainFun(ref Alloc alloc, InstantiateCtx ctx, ref Program program, Uri mainUri, SymbolSet allExterns) {
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 	ref CommonTypes commonTypes() => program.commonTypes;
 	Type stringListType = Type(instantiateStructNeverDelay(ctx, commonTypes.list, [Type(commonTypes.string_)]));
+	// TODO: rename 'getMainFun' or inline it ----------------------------------------------------------------------------------
 	MainFun res = getMainFun(
 		alloc, ctx, diagsBuilder, *moduleAtUri(program, mainUri),
 		Type(commonTypes.integrals.nat64), stringListType, Type(commonTypes.void_));
+	SymbolSet mainExterns = res.fun.decl.externs;
+	if (!allExterns.containsAll(mainExterns))
+		add(alloc, diagsBuilder, UriAndDiagnostic(
+			res.fun.decl.range,
+			Diag(Diag.MainMissingExterns(symbolSetDifference(alloc, mainExterns, allExterns)))));
 	return MainFunAndDiagnostics(res, smallFinish(alloc, diagsBuilder));
 }
 

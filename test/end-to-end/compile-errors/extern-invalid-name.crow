@@ -1,3 +1,6 @@
-main void() foo extern
+main void()
 	if extern bar
-		()
+		foo
+
+foo void() bar extern
+	()

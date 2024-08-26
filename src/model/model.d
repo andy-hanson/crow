@@ -58,8 +58,8 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
-import util.symbol : enumOfSymbol, Symbol, symbol;
-import util.symbolSet : SymbolSet, symbolSet;
+import util.symbol : enumOfSymbol, Symbol, symbol, symbolOfEnum;
+import util.symbolSet : buildSymbolSet, SymbolSet, symbolSet, SymbolSetBuilder;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : RelPath, Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
@@ -1928,9 +1928,42 @@ immutable struct ProgramWithMain {
 		mainFunAndDiagnostics.diagnostics;
 	Module* mainModule() return scope =>
 		mustGet(program.allModules, mainUri);
-	Config* mainConfig() return scope =>
-		mainModule.config;
+	ref Config mainConfig() return scope =>
+		*mainModule.config;
 }
+
+private enum _BuildTarget { js, native }
+alias BuildTarget = immutable _BuildTarget;
+
+// All 'extern's to compile with for the given target
+SymbolSet allExterns(in ProgramWithMain program, BuildTarget target) =>
+	allExternsForMainConfig(program.mainConfig, some(target));
+SymbolSet allExternsForMainConfig(in Config mainConfig, Opt!BuildTarget target) =>
+	buildSymbolSet((scope ref SymbolSetBuilder out_) {
+		if (has(target)) {
+			final switch (force(target)) {
+				case BuildTarget.js:
+					out_ ~= symbol!"js";
+					break;
+				case BuildTarget.native:
+					version (Windows)
+						out_ ~= [symbolOfEnum(BuiltinExtern.DbgHelp), symbolOfEnum(BuiltinExtern.windows)];
+					else
+						out_ ~= [
+							symbolOfEnum(BuiltinExtern.linux),
+							symbolOfEnum(BuiltinExtern.posix),
+							symbolOfEnum(BuiltinExtern.pthread),
+							symbolOfEnum(BuiltinExtern.sodium),
+							symbolOfEnum(BuiltinExtern.unwind),
+						];
+					out_ ~= [symbolOfEnum(BuiltinExtern.libc), symbolOfEnum(BuiltinExtern.native)];
+					break;
+			}
+		}
+		foreach (Symbol name, Opt!Uri uri; mainConfig.extern_)
+			if (has(uri))
+				out_ ~= name;
+	});
 
 immutable struct ProgramWithOptMain {
 	@safe @nogc pure nothrow:
