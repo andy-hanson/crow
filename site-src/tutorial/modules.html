@@ -73,7 +73,7 @@
 		the library path is <code>include/crow</code> or <code>include/system</code>
 		from where Crow is installed.
 		<br />
-		Otherwise, the library path must be specified in <code>crow-config.json</code>.
+		Otherwise, the library path must be specified in <code>crow-config.json</code>. (See {{doc/config}}.)
 	</p>
 	<aside class="small">
 		<code>crow/std</code> is imported by default.
@@ -81,31 +81,6 @@
 		<br />
 		See them all <a href="https://github.com/andy-hanson/crow/blob/master/include/crow/std.crow">here</a>.
 	</aside>
-</section>
-<section>
-	<h2>crow-config.json</h2>
-	<p>
-		If you haven't already, download the <a href="/download.html#demo">demos</a>.
-	</p>
-	<p>
-		Take a look at the <code>crow-demo/sdl</code> directory.
-		This has a file <code>crow-config.json</code>.
-		This has two parts:
-	</p>
-	<ul class="bullets">
-		<li><code>"include"</code> tells crow where to find the crow code that declares SDL2 bindings.</li>
-		<li>
-			<code>"extern"</code> tells crow where to find the machine code for the library on Windows.
-			<br />
-			(On Linux, it's should be in the library search path. It should be if you installed SDL normally.)
-		</li>
-	</ul>
-
-	<p>
-		Since it specifies <code>"SDL2": "../libraries/SDL2"</code> in the <code>"include"</code> section,
-		<code>main.crow</code> can be import it as <code>SDL2/SDL_rect</code> instead of
-		<code>../libraries/SDL2/SDL_rect</code>.
-	</p>
 </section>
 <section>
 	<h2>File imports</h2>

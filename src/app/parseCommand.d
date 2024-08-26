@@ -12,7 +12,7 @@ import util.col.array : copyArray, findIndex, isEmpty, map, newArray, only;
 import util.col.arrayBuilder : buildArray, Builder, finish;
 import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string :
 	CString,
@@ -149,7 +149,7 @@ alias Diags = Builder!Diag;
 void writeDiag(scope ref Writer writer, in Diag a) {
 	a.matchIn!void(
 		(in Diag.BuildOutBadFileExtension x) {
-			writer ~= "Build output must be a '.c' or ";
+			writer ~= "Build output must be a '.c', '.js', or ";
 			writeExtension(writer, x.executableExtension);
 			writer ~= " file.";
 		},
@@ -590,12 +590,17 @@ Opt!(SingleBuildOutput.Kind) buildKindFromPrefix(in string prefix, Extension ext
 			return none!(SingleBuildOutput.Kind);
 	}
 }
-Opt!(SingleBuildOutput.Kind) buildKindFromExtension(Extension extension, OS os) =>
-	extension == Extension.c
-	? some(SingleBuildOutput.Kind.c)
-	: extension == defaultExecutableExtension(os)
-	? some(SingleBuildOutput.Kind.executable)
-	: none!(SingleBuildOutput.Kind);
+Opt!(SingleBuildOutput.Kind) buildKindFromExtension(Extension extension, OS os) {
+	switch (extension) {
+		case Extension.c:
+			return some(SingleBuildOutput.Kind.c);
+		case Extension.js:
+			return some(SingleBuildOutput.Kind.jsScript);
+		default:
+			return optIf(extension == defaultExecutableExtension(os), () =>
+				SingleBuildOutput.Kind.executable);
+	}
+}
 
 
 FilePath parseFilePathWithCwdOrDiag(scope ref Diags diags, FilePath cwd, in CString arg) =>

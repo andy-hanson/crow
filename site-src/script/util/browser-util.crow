@@ -1,9 +1,8 @@
 import
 	crow/js:
-		==, as-js, await, call-new, call-property, cast, js-any, js-global, null, set-subscript,
-		subscript
-	./dom-util: create-node
-	./js-util: new
+		==, as-js, await, call-new, call-property, cast, js-any, js-global, new, null,
+		set-subscript, subscript
+	crow/js/dom: create-node
 
 copy-text-to-clipboard void(text string) summon, trusted, js extern
 	_ = "navigator".js-global["clipboard"] call-property "writeText", text await

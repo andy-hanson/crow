@@ -1,6 +1,6 @@
 import
 	crow/js: as-js, set-subscript
-	./util/dom-util: ~=, attributes, create-div, define-custom-element, node, shadow-root, subscript
+	crow/js/dom: ~=, attributes, create-div, define-custom-element, node, shadow-root, subscript
 
 # Icons from https://heroicons.com/
 

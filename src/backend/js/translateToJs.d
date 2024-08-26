@@ -183,7 +183,7 @@ Out withTranslateProgram(Out)(
 ) {
 	assert(!hasFatalDiagnostics(program));
 	VersionInfo version_ = versionInfoForBuildToJS(jsTarget);
-	SymbolSet allExterns = allExternsForJs(jsTarget);
+	SymbolSet allExterns = symbolSet(symbol!"js");
 	AllUsed allUsed = allUsed(alloc, program, version_, allExterns);
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
@@ -191,6 +191,7 @@ Out withTranslateProgram(Out)(
 		ptrTrustMe(fileContentGetters),
 		ptrTrustMe(program),
 		version_,
+		jsTarget,
 		allExterns,
 		allUsed,
 		optIf(!isScript, () =>
@@ -270,16 +271,6 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 		recur(main);
 	});
 }
-
-SymbolSet allExternsForJs(JsTarget target) =>
-	symbolSet(symbol!"js") | () {
-		final switch (target) {
-			case JsTarget.browser:
-				return symbol!"browser";
-			case JsTarget.node:
-				return symbol!"node-js";
-		}
-	}();
 
 PathAndContent[] getOutputFiles(
 	ref Alloc alloc,

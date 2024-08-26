@@ -1,4 +1,6 @@
 import
+	crow/js: as-js, js-any
+	crow/js/util: deep-equals
 	crow/parse
 
 dummy-json-tests nat64()
@@ -38,3 +40,12 @@ test
 	j json = ("a", 1.number),
 	j["a"] is 1.number
 	j["b"] is null
+
+test trusted, js extern
+	true.to test-js-roundtrip true.as-js
+	(1::float64.to) test-js-roundtrip (1::float64.as-js)
+	"a"::string.to test-js-roundtrip "a"::string.as-js
+
+-test-js-roundtrip void(json json, js js-any) unsafe, js extern
+	assert json.to deep-equals js
+	js.to::json is json

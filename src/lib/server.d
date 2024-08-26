@@ -314,7 +314,9 @@ private LspOutResult handleLspRequestWithProgram(
 	return a.matchImpure!LspOutResult(
 		(in BuildJsScriptParams x) {
 			ProgramWithMain pwm = programWithMain(x.uri);
-			return LspOutResult(BuildJsScriptResult(buildToJsScript(alloc, server, pwm, JsTarget.browser)));
+			return LspOutResult(BuildJsScriptResult(hasFatalDiagnostics(pwm)
+				? "console.error(\"Program has fatal diagnostics\")"
+				: buildToJsScript(alloc, server, pwm, JsTarget.browser)));
 		},
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
@@ -735,13 +737,15 @@ BuildToCResult buildToC(
 		lowProgram.externLibraries);
 }
 
-string buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target) =>
-	translateToJsScript(
+string buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target) {
+	assert(!hasFatalDiagnostics(program));
+	return translateToJsScript(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
 		FileContentGetters(&server.storage),
 		target);
+}
 
 JsModules buildToJsModules(
 	ref Alloc alloc,

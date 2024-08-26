@@ -1,0 +1,84 @@
+import
+	../js:
+		==, +, as-js, call, cast, call-property, eval, js-any, js-global, set-subscript, subscript,
+		typeof
+
+###
+Compares two JS objects deeply.
+This won't work on opaque types.
+###
++deep-equals bool(a js-any, b js-any) unsafe, js extern
+	if a == b
+		true
+	elif a is-array
+		if b.is-array && a["length"] == b["length"]
+			i mut = 0::float64.as-js
+			loop
+				if i == a["length"]
+					break true
+				elif a[i.cast::nat64] deep-equals b[i.cast::nat64]
+					i +:= 1::float64.as-js
+					continue
+				else
+					break false 
+	elif a.typeof.as-js == "object"::string.as-js
+		keys = a.sorted-keys as-js
+		if keys deep-equals b.sorted-keys.as-js
+			i mut = 0::float64.as-js
+			loop
+				if i == keys["length"]
+					break true
+				elif a[keys[i.cast::nat64].cast::symbol] deep-equals b[keys[i.cast::nat64].cast::symbol]
+					i +:= 1::float64.as-js
+					continue
+				else
+					break false
+-is-array bool(a js-any) unsafe, js extern
+	"Array".js-global call-property "isArray", a cast
+-sorted-keys string array(a js-any) unsafe, js extern
+	"Object".js-global call-property "keys", a call-property "sort" cast
+
+###
+Creates a new JavaScript class.
+This currently does not support fields, getters/setters, or calling 'super' with arguments.
+###
++make-class js-any(
+	super-class js-any,
+	constructor method,
+	methods method[symbol],
+) unsafe, js extern
+	res = """
+		(ctor, Super) => class extends Super \{
+			constructor(...args) \{
+				super()
+				ctor(\{ "f_a": this, "f_b": args })
+			}
+		}
+	""".eval call constructor, super-class
+	for name, method : methods
+		res["prototype"][name] := method make-method
+	res
+
++method alias
+	js-any mut(this js-any, args js-any array)
+
+-make-method js-any(fn method) unsafe, js extern
+	make-method = """
+		fn => function(...args) \{
+			return fn(\{ "f_a": this, "f_b": args })
+		}
+	""" eval
+	make-method call fn
+
+###
+Same as `JSON.parse(a)` in JS.
+Returns a JS object, not a `json` value.
+###
++json-parse js-any(a string) unsafe, js extern
+	"JSON".js-global call-property "parse", a
+
+###
+Same as `JSON.stringify(a)` in JS.
+###
++json-stringify string(a js-any) unsafe, js extern
+	"JSON".js-global call-property "stringify", a cast

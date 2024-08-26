@@ -3,13 +3,13 @@ import
 	crow/io/duration: millisecond
 	crow/js:
 		+, as-js, call, call-property, cast, js-any, js-cast, js-global, set-subscript, subscript
-	./lsp-types:
-		==, <=>, character, diagnostic, diagnostics, end, length, line, line-and-character, message,
-		modifiers, new, range, start, tokens, tokens-and-diagnostics, type
-	./util/dom-util:
+	crow/js/dom:
 		~~=, ~=, add-event-listener, attributes, create-div, create-node, create-span,
 		create-text-node, custom-element-node, define-custom-element, node, remove-all-children,
 		shadow-root, set-subscript, set-text-content, style
+	./lsp-types:
+		==, <=>, character, diagnostic, diagnostics, end, length, line, line-and-character, message,
+		modifiers, new, range, start, tokens, tokens-and-diagnostics, type
 	./util/mutable-observable: get, mutable-observable, now-and-subscribe, observable, set
 	./util/util: debouncer, new, with-block
 
@@ -138,7 +138,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 
 -indentation-at-selection string(text-area js-any) unsafe, js extern
 	str = text-area["value"]
-	pos mut float = text-area["selectionStart"] cast
+	pos mut float = text-area["selectionStart"].cast min (str["length"].cast - 1)
 	first-non-space mut = pos
 	loop
 		char string = str[pos.js-cast::nat] cast

@@ -629,3 +629,26 @@ region with-index
 		res = f[i, x]
 		i +:= 1
 		res
+
++corresponds[col0, iter0, elem0, col1, iter1, elem1] bool(
+	a col0,
+	b col1,
+	f bool mut(x elem0, y elem1)
+) col0 size, (iter0, col0) begin, (elem0, iter0) next, col1 size, (iter1, col1) begin, (elem1, iter1) next
+	if a.size == b.size
+		i0 mut = a begin
+		i1 mut = b begin
+		res mut = true
+		loop
+			if x, i0n ?= i0 next
+				i0 := i0n
+				y, i1n = i1.next!
+				i1 := i1n
+				if f[x, y]
+					continue
+				else
+					res := false
+					break
+			else
+				break
+		res

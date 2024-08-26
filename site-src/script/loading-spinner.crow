@@ -1,5 +1,5 @@
 import
-	./util/dom-util: ~=, create-div, create-node, define-custom-element, node, shadow-root
+	crow/js/dom: ~=, create-div, create-node, define-custom-element, node, shadow-root
 
 define-loading-spinner-element void() summon, trusted, js extern
 	"crow-loading-spinner" define-custom-element css, x =>

@@ -1,10 +1,10 @@
 import
 	crow/js: as-js, call-property, ==, null, set-subscript
+	crow/js/dom: query-selector
 	./crow-runnable: define-crow-runnable-custom-element
 	./crow-text: define-crow-text-custom-element
 	./icon: define-icon-custom-element
 	./loading-spinner: define-loading-spinner-element
-	./util/dom-util: query-selector
 
 main void() summon, js extern
 	open-details-on-click

@@ -2,18 +2,26 @@ import
 	crow/js:
 		==, as-js, await, call-new, call-property, call-property-spread, cast, js-any, js-cast,
 		js-global, null, set-subscript, subscript
-	./js-util: make-class, method
+	./util: make-class, method
 
-node extern
+###
+Represents a DOM node.
+You can use `as-js` and treat this as a JS object.
+###
++node extern
 
-~= void(a node, b node) trusted, js extern
+# Append a child nodes.
++~= void(a node, b node) trusted, js extern
 	_ = a.as-js call-property "appendChild", b
-~~= void(a node, b node[]) js extern
+# APpend many child nodes.
++~~= void(a node, b node[]) js extern
 	for x : b
 		a ~= x
 
+# Create a new DOM node with the given tag.
 +create-node node(tag-name symbol) trusted, js extern
 	"document".js-global call-property "createElement", tag-name cast
+# Create a new node with the given tag and HTML attributes.
 +create-node node(tag-name symbol, attr string[symbol]) trusted, js extern
 	node = tag-name create-node
 	for key, value : attr
@@ -45,7 +53,7 @@ node extern
 	a.node.as-js["style"][key] := value
 
 +classes record(node node) nominal, mut
-~= void(a classes, class-name string) trusted, js extern
++~= void(a classes, class-name string) trusted, js extern
 	_ = a.as-js["classList"] call-property "add", class-name
 +set-classes void(a node, class-names string[]) trusted, js extern
 	a.as-js["className"] := (" " join class-names)::string
@@ -58,9 +66,7 @@ node extern
 +add-event-listener void(a node, event-name string, fn void mut(event js-any)) trusted, js extern
 	_ = a.as-js call-property "addEventListener", event-name, fn
 
-event extern
-
-+create-input-text node(on-input void mut(x event), value string) trusted, js extern
++create-input-text node(on-input void mut(x js-any), value string) trusted, js extern
 	res = "input" create-node (("type", "text"), ("value", value))
 	_ = res.as-js call-property "addEventListener", "input"::string, on-input
 	res
@@ -82,6 +88,11 @@ event extern
 
 region query
 
++first-child node?(a node) trusted, js extern
+	res = a.as-js["firstChild"]
+	unless res == null
+		res.cast,
+
 +attributes record(node node) nominal, mut
 +subscript string?(a attributes, attr-name symbol) trusted, js extern
 	res = a.node.as-js call-property "getAttribute", attr-name
@@ -89,11 +100,6 @@ region query
 		res.cast,
 +set-subscript void(a attributes, attr-name symbol, value string) trusted, js extern
 	_ = a.node.as-js call-property "setAttribute", attr-name, value
-
-+first-child node?(a node) trusted, js extern
-	res = a.as-js["firstChild"]
-	unless res == null
-		res.cast,
 
 region mutate
 

@@ -175,16 +175,18 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 ### site ###
 
 prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix \
-		site/script
+		site/index.js
 	bin/crow run site-src/site.crow --aot
 
-site/script: site-src/script/*.crow site-src/script/*/*.crow
+site/index.js: site-src/script/*.crow site-src/script/*/*.crow
 	mkdir -p site
-	rm -rf site/script
-	bin/crow build site-src/script/index.crow --out js:site/script
+	rm -f site/index.js
+	bin/crow build site-src/script/index.crow --out site/index.js
 
 serve: prepare-site
-	bin/crow run site-src/serve.crow --aot
+	python3 -m http.server -d site
+	# -----------------------------------------------------------------------------------------------------------------------------
+	# bin/crow run site-src/serve.crow --aot
 
 ### publish ###
 

@@ -2,12 +2,15 @@ no-std
 import
 	./bool: ==, bool, false
 	./compare: equal
-	./col/array: array, iterate, size
+	./col/array: ~=, array, build, iterate, size
 	./col/collection: for-loop
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
 	./col/mut-list: iterate, mut-list, size
 	./col/list: ==, ~=, build, iterate, list, new, size
+	./js:
+		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null, set-subscript, subscript,
+		typeof
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
@@ -147,3 +150,45 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 		parts = "," join for k, v : o
 			"{k.to quote}:{v}"
 		"\{{parts}}"
+
+# Converts from a json value to the corresponding JS object
++to js-any(a json) trusted, js extern
+	match a
+	as null
+		null
+	as bool x
+		x as-js
+	as number x
+		x as-js
+	as string x
+		x as-js
+	as list xs
+		(for x : xs; x to)::(js-any array) as-js
+	as object x
+		res = "Object".js-global call-new
+		for key, value : x
+			res[key] := value
+		res
+
+# Converts a JS object to the corresponding JSON value.
+# This does not fail on bad JS values, it just returns 'null'.
++to json(a js-any) unsafe, js extern
+	match a typeof
+	as boolean
+		a.cast::bool to
+	as number
+		a.cast::float64 to
+	as string
+		a.cast::string to
+	as object
+		if a == null
+			null
+		elif a instanceof "Array".js-global
+			a.cast::(js-any array) to
+		else
+			entries js-any array = "Object".js-global call-property "entries", a cast
+			map json[symbol] = for entry : entries
+				entry[0::nat64].cast::string.to, entry[1::nat64].to
+			map to
+	else
+		null

@@ -1,5 +1,9 @@
 import
 	crow/js: as-js, cast, instanceof, js-global, subscript
+	crow/js/dom:
+		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button,
+		create-div, create-node, create-span, create-text-node, define-custom-element, node,
+		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
 	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run, run-js
 	./crow-text: create-crow-text, new
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
@@ -10,10 +14,6 @@ import
 	./util/browser-util:
 		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
 		push-history
-	./util/dom-util:
-		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button,
-		create-div, create-node, create-span, create-text-node, define-custom-element, node,
-		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
 	./util/mutable-observable: get, mutable-observable, observable, new, now-and-subscribe, set
 	./util/util: from-base-64, reduce-indent, to-base-64
 

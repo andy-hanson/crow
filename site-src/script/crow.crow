@@ -1,14 +1,14 @@
 import
 	crow/io/duration: nanosecond, milliseconds
 	crow/js:
-		==, as-js, await, call, call-property, cast, eval, js-any, js-global, null, set-subscript,
-		subscript, typeof
+		==, as-js, await, call, call-property, cast, eval, js-any, js-global, new, null,
+		set-subscript, subscript, typeof
+	crow/js/util: json-parse, json-stringify
 	./decode-tokens: decode-tokens
 	./lsp-types:
 		diagnostic, line-and-character, new, run-result, stderr, stdout, to, to-js, token,
 		tokens-legend, write
 	./util/DataView-util: DataView, new, read-c-string, view-c-string, wasm32, write-c-string
-	./util/js-util: json-parse, json-stringify, new, to-js-object
 	./util/util: fetch-js-object
 
 crow-server record mut
@@ -80,7 +80,6 @@ run-js run-result(a crow-server, main-uri uri) trusted, js extern
 	response["script"].cast run-script
 
 run-script run-result(script string) unsafe, js extern
-	info log "script is {script}"
 	console = "console".js-global
 	old-info = console["info"]
 	old-error = console["error"]
@@ -136,7 +135,7 @@ region LSP server
 	"ceil", "cos", "cosh", "floor", "log", "sin", "sinh", "sqrt", "tan", "tanh"
 
 -imports js-any(crow crow-lsp-server) summon, trusted, js extern
-	res js-any mut[symbol] = ()
+	res js-any = ()
 	res["getTimeNanos"] := (&get-time-nanos)::(nat function()) as-js
 	res["perfLogMeasure"] := (&perf-log-measure)::(void function(
 		a crow-lsp-server,
@@ -166,7 +165,7 @@ region LSP server
 		file view-c-string,
 		line float,
 	)).as-js partial crow.as-js
-	res.move-to to-js-object
+	res
 -partial js-any(fn js-any, arg js-any) unsafe, js extern
 	fn call-property "bind", null::js-any, arg
 

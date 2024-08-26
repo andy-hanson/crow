@@ -628,12 +628,10 @@ void getExprHover(
 			if (has(builtin)) {
 				writer ~= () {
 					final switch (force(builtin)) {
-						case BuiltinExtern.browser:
-							return "The expression will be 'true' when running in a web browser.";
 						case BuiltinExtern.DbgHelp:
 							return "The expression will be 'true' on Windows.";
 						case BuiltinExtern.js:
-							return "The expression will be 'true' in a JavaScript or Node.js build.";
+							return "The expression will be 'true' in a JavaScript build.";
 						case BuiltinExtern.libc:
 							return "Currently equivalent to 'extern native'.";
 						case BuiltinExtern.linux:

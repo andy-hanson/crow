@@ -24,7 +24,7 @@ import util.col.map : Map;
 import util.opt : force, has, Opt, some;
 import util.symbol : Symbol, symbol;
 import util.symbolSet : SymbolSet;
-import versionInfo : VersionInfo;
+import versionInfo : JsTarget, VersionInfo;
 
 struct TranslateProgramCtx {
 	@safe @nogc pure nothrow:
@@ -34,6 +34,7 @@ struct TranslateProgramCtx {
 	const FileContentGetters* fileContentGetters;
 	immutable ProgramWithMain* programWithMainPtr;
 	immutable VersionInfo version_;
+	immutable JsTarget target;
 	immutable SymbolSet allExterns;
 	immutable AllUsed allUsed;
 	immutable Opt!ModuleExportMangledNames exportMangledNames; // Only used for building to modules
@@ -45,7 +46,7 @@ struct TranslateProgramCtx {
 	ref Alloc alloc() =>
 		*allocPtr;
 	bool isBrowser() const =>
-		symbol!"browser" in allExterns;
+		target == JsTarget.browser;
 }
 
 struct TranslateModuleCtx {

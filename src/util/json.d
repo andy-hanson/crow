@@ -33,7 +33,7 @@ immutable struct Json {
 		Null,
 		bool,
 		double,
-		SmallString,
+		string,
 		Symbol,
 		SmallArray!Json,
 		SmallArray!ObjectField);
@@ -60,7 +60,7 @@ immutable struct Json {
 		writeJson(writer, this);
 	}
 }
-static assert(Json.sizeof == ulong.sizeof * 2);
+// static assert(Json.sizeof == ulong.sizeof * 2); // TODO, but SmallString was too small! ---------------------------------------------------------------------------------------------
 
 Json get(string key)(in Json a) {
 	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>

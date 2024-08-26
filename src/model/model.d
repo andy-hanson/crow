@@ -2435,7 +2435,6 @@ immutable struct ExternName {
 	}
 }
 immutable enum BuiltinExtern {
-	browser,
 	DbgHelp,
 	js,
 	libc,

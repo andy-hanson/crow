@@ -47,7 +47,7 @@ same link(a string)
 	a, a
 
 -all-to-link link[]() summon, native extern
-	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
+	in-src-paths link[] = for x : ("crow.svg", "index.css", "tutorial/example.json")::string[]
 		("site-src" child-path x), x
 
 	script-paths = "site-src/script" search-dir-recursive x => x ends-with ".js"

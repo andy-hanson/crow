@@ -1,6 +1,5 @@
 import
-	crow/js: as-js, cast, js-any, subscript
-	./util/js-util: new
+	crow/js: as-js, cast, js-any, new, subscript
 
 token record(line nat, character nat, length nat, type symbol, modifiers symbol array)
 tokens-and-diagnostics record(tokens token array, diagnostics diagnostic array)
