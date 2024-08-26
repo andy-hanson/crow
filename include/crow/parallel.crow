@@ -211,7 +211,7 @@ Works like `parallel`, but works in groups of 'chunk-size' elements to reduce pa
 +filter[out-col, in-col, in-iter, elem, builder] out-col(
 	a in-col chunked-parallel,
 	f bool shared(elem elem),
-) out-col shared, (in-col, in-iter, elem) chunkable, (out-col, elem, builder) build, native extern
+) out-col shared, (in-col, in-iter, elem) chunkable, (out-col, elem, builder) build
 	bools bool[] = a for-loop f
 	with out : build
 		for i, x : a.collection with-index

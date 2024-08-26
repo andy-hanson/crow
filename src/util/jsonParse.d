@@ -56,6 +56,10 @@ Opt!Json parseValue(ref Alloc alloc, scope ref MutCString ptr) {
 			return tryTakeChars(ptr, "alse")
 				? some(Json(false))
 				: none!Json;
+		case 'n':
+			return tryTakeChars(ptr, "ull")
+				? some(Json(Json.Null()))
+				: none!Json;
 		case 't':
 			return tryTakeChars(ptr, "rue")
 				? some(Json(true))

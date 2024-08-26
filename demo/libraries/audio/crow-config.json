@@ -2,5 +2,9 @@
 	"include": {
 		"SDL2": "../SDL2",
 		"sndfile": "../sndfile"
+	},
+	"extern": {
+		"SDL2": null,
+		"sndfile": null
 	}
 }

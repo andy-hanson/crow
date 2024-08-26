@@ -1,7 +1,7 @@
 import
 	crow/c-types: c-int
 	./headers:
-		sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK, SQLITE_OPEN_CREATE,
+		==, |, enum-members, sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK, SQLITE_OPEN_CREATE,
 		SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
 +db record force-shared

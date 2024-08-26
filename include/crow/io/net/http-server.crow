@@ -26,8 +26,9 @@ Starts running an HTTP server. Stops it when `cb` returns.
 +with-block[t] t(
 	a http-server-options,
 	cb t mut(server http-server),
-) summon, t shared, (posix, native) extern
+) summon, t shared, native extern
 	assert trusted extern libc : not-implemented
+	assert trusted extern posix : not-implemented
 	server tcp-server future = with : parallel
 		client-states http-parse-state mut[SOCKET] = ()
 		handler tcp-handler = do

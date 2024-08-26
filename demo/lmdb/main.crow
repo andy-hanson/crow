@@ -7,7 +7,7 @@ import
 		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
 		to, to-lmdb-key, with-block, write-transaction
 
-main nat(args string[]) summon
+main nat(args string[]) summon, (lmdb, native) extern
 	command-name = !args.is-empty ? args[0]
 	rest-args = !args.is-empty ? args[1 .. end]
 	match command-name
