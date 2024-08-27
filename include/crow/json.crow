@@ -9,8 +9,8 @@ import
 	./col/mut-list: iterate, mut-list, size
 	./col/list: ==, ~=, build, iterate, list, new, size
 	./js:
-		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null, set-subscript, subscript,
-		typeof
+		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null,
+		set-subscript, subscript, typeof
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block

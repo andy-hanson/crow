@@ -21,7 +21,11 @@ main void() summon, trusted, (native, posix) extern
 	forbid socket-file-descriptor == max-value
 	socket-file-descriptor to
 
--connect-socket void(socket fd-t, hostname string, server-port nat16) summon, unsafe, (native, posix) extern
+-connect-socket void(
+	socket fd-t,
+	hostname string,
+	server-port nat16,
+) summon, unsafe, (native, posix) extern
 	hostent = hostname.to gethostbyname
 	forbid hostent == null
 	in_addr0 in_addr* = hostent->h_addr_list->pointer-cast

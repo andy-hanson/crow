@@ -38,28 +38,14 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	mustBeByVal;
-import model.model :
-	allExterns,
-	BuildTarget,
-	BuiltinExtern,
-	BuiltinFun,
-	CommonFuns,
-	Config,
-	FunBody,
-	MainFun,
-	ProgramWithMain,
-	StructBody;
+import model.model : allExterns, BuildTarget, BuiltinFun, CommonFuns, FunBody, MainFun, ProgramWithMain, StructBody;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, mustHaveIndexOfPointer, small;
 import util.col.arrayBuilder : asTemporaryArray, finish;
 import util.col.mutArr : asTemporaryArray, MutArr, push;
 import util.col.mutMap : mustGet;
 import util.late : late, lateSet;
-import util.opt : has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : Symbol, symbol, symbolOfEnum;
-import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
-import util.uri : Uri;
 import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 

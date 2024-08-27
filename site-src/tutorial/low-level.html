@@ -1,7 +1,7 @@
 <section>
 	<h2>Unsafe code</h2>
 	<p>
-		Crow is normally safe; normal Crow functions can't do bad things like:
+		Crow is normally safe. Normal Crow functions can't do bad things like:
 	</p>
 	<ul class="bullets">
 		<li>Allocate memory and never free it.</li>
@@ -9,12 +9,17 @@
 		<li>Access global state.</li>
 		<li>
 			Have different behavior on different environments (like endianness or the operating system).
-			(Though a <code class="keyword">summon</code> function can depend on this.)
+			<br />
+			(A function that simply prints the name of your operating system would be safe,
+			but <code class="keyword">summon</code>.)
 		</li>
 		<li>
 			Access other information not explicitly passed through parameters, like a stack trace.
 		</li>
-		<li>Access private information about data structures.</li>
+		<li>
+			Access private information about data structures.
+			(E.g., distinguish two equal values based on reference identity.)
+		</li>
 	</ul>
 	<p>
 		However, unsafe Crow running natively can do anything C can.
@@ -28,7 +33,8 @@
 		An <code class="keyword">unsafe</code> function can call other <code class="keyword">unsafe</code> functions.
 	</p>
 	<p>
-		Many <code class="keyword">unsafe</code> operations also require <code>native extern</code>.
+		Many (but not all) <code class="keyword">unsafe</code> operations
+		also require the function to be marked <code>native extern</code>.
 		This will be explained in {{tutorial/extern}} instead of here.
 	</p>
 

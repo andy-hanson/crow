@@ -91,8 +91,7 @@ BuildTarget[] targetsForBuild(ref Alloc alloc, in CommandKind.Build x) =>
 		foreach (SingleBuildOutput output; x.options.out_)
 			addIfNotContains!BuildTarget(out_, targetForBuildOutput(output.kind));
 	});
-
-BuildTarget targetForBuildOutput(SingleBuildOutput.Kind a) {
+private BuildTarget targetForBuildOutput(SingleBuildOutput.Kind a) {
 	final switch (a) {
 		case SingleBuildOutput.Kind.c:
 		case SingleBuildOutput.Kind.executable:

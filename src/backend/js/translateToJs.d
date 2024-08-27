@@ -120,7 +120,7 @@ import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, some, someMut;
 import util.symbol : compareSymbolsAlphabetically, Extension, Symbol, symbol;
-import util.symbolSet : SymbolSet, symbolSet;
+import util.symbolSet : SymbolSet;
 import util.union_ : Union;
 import util.uri :
 	alterExtension,

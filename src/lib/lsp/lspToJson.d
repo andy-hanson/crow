@@ -73,7 +73,7 @@ Json jsonOfLspOutNotification(ref Alloc alloc, in LineAndCharacterGetters lcg, r
 Json jsonOfLspOutResult(ref Alloc alloc, in LineAndCharacterGetters lcg, ref LspOutResult a) =>
 	a.match!Json(
 		(BuildJsScriptResult x) =>
-			jsonObject(alloc, [field!"script"(x.script)]),
+			jsonObject(alloc, [field!"diagnostics"(x.diagnostics), optionalField!"script"(x.script)]),
 		(InitializeResult _) =>
 			jsonObject(alloc, [field!"capabilities"(initializeCapabilities(alloc))]),
 		(Opt!Hover x) =>

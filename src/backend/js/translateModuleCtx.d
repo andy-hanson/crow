@@ -22,7 +22,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : map;
 import util.col.map : Map;
 import util.opt : force, has, Opt, some;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol;
 import util.symbolSet : SymbolSet;
 import versionInfo : JsTarget, VersionInfo;
 

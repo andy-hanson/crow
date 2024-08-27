@@ -42,9 +42,11 @@
 
 	<h4>Modules</h4>
 	<p>
-		For easier debugging, you can build to a directory full of modules: <code>crow build foo.crow --out js:foo</code>.
+		For easier debugging, you can build to a directory full of modules:
+		<code>crow build foo.crow --out js:foo</code>.
 		<br />
-		This is slower to load in the browser, but easier to debug as each output module corresponds to a single Crow module.
+		This is slower to load in the browser,
+		but easier to debug as each output module corresponds to a single Crow module.
 	</p>
 
 	<h4>Node.js</h4>
@@ -112,7 +114,7 @@
 	<aside class="small" id="abc">
 		This text will be set by the above code.
 	</aside>
-	
+
 	<p>
 		Here we need to specify some types when dealing with JS.
 		<code>call-property</code> takes a <code class="type">js-any</code> (the object) and
@@ -124,7 +126,7 @@
 		<p>
 			<code class="function">call-property</code> returns a <code class="type">js-any</code>,
 			so you will often need to <code>cast</code> the result.
-		</p>	
+		</p>
 	</aside>
 
 	<h2>Type translation</h2>
@@ -168,7 +170,8 @@
 				<td>
 					<code>Array</code>
 					<br />
-					Immutability is not enforced at runtime, so only pass a <code class="type">t array</code> to JS code that will not mutate it.
+					Immutability is not enforced at runtime,
+					so only pass a <code class="type">t array</code> to JS code that will not mutate it.
 				</td>
 			</tr>
 			<tr>
@@ -176,7 +179,10 @@
 				<td><code>function</code> with the same number of parameters.</td>
 			</tr>
 			<tr>
-				<td>Lambda types (<code class="type">r data(x p)</code>, <code class="type">r shared(x p)</code>, <code class="type">r mut(x p)</code>)</td>
+				<td>
+					Lambda types (<code class="type">r data(x p)</code>, <code class="type">r shared(x p)</code>,
+					<code class="type">r mut(x p)</code>)
+				</td>
 				<td><code>function</code> with a single parameter, which might be a Crow tuple.</td>
 			</tr>
 			<tr>
@@ -212,7 +218,8 @@
 
 	<p>
 		Crow functions still have Crow semantics regardless of the representation.
-		For example, <code>nat32</code> adddition will still throw on overflow, and <code>float32</code> operations have 32-bit precision.
+		For example, <code>nat32</code> adddition will still throw on overflow,
+		and <code>float32</code> operations have 32-bit precision.
 	</p>
 
 	<h2>Type checks</h2>

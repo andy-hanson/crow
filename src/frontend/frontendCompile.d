@@ -4,7 +4,7 @@ module frontend.frontendCompile;
 
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.checkCtx : CommonModule, CommonUris;
-import frontend.check.getCommonFuns : getCommonFuns, getMainFun;
+import frontend.check.getCommonFuns : getCommonFuns, getMainFunAndDiagnostics;
 import frontend.check.instantiate : getAllFutureImpls, InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
@@ -66,7 +66,6 @@ import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Extension, Symbol, symbol;
-import util.symbolSet : SymbolSet;
 import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
@@ -166,7 +165,13 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-ProgramWithMain makeProgramWithMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri, in BuildTarget[] targets) {
+ProgramWithMain makeProgramWithMain(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Frontend a,
+	Uri mainUri,
+	in BuildTarget[] targets,
+) {
 	Program program = makeProgram(perf, alloc, a, [mainUri]);
 	return programWithMainFromProgram(perf, alloc, a, program, mainUri, targets);
 }
@@ -181,7 +186,7 @@ ProgramWithMain programWithMainFromProgram(
 ) =>
 	ProgramWithMain(
 		program,
-		getMainFun(
+		getMainFunAndDiagnostics(
 			alloc,
 			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts)),
 			program, mainUri,

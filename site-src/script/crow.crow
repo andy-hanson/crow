@@ -3,7 +3,7 @@ import
 	crow/js:
 		==, as-js, await, call, call-property, cast, eval, js-any, js-global, new, null,
 		set-subscript, subscript, typeof
-	crow/js/util: json-parse, json-stringify
+	crow/js/util: cast-option, json-parse, json-stringify
 	./decode-tokens: decode-tokens
 	./lsp-types:
 		diagnostic, line-and-character, new, run-result, stderr, stdout, to, to-js, token,
@@ -47,7 +47,7 @@ mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
 		_ = a.lsp-server handle-message ("custom/readFileResult" make-message params)
 	assert a.get-unloaded-uris is-empty
 
-get-diagnostics diagnostic[](a crow-server, uri uri, response response) trusted, js extern
+-get-diagnostics diagnostic[](a crow-server, uri uri, response response) trusted, js extern
 	for message : response.messages
 		method string = message["method"] cast
 		if method != "custom/unknownUris"
@@ -77,9 +77,9 @@ run-js run-result(a crow-server, main-uri uri) trusted, js extern
 	uris = (main-uri.as-js,)::(js-any array) as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
 	response = a request "custom/build-js-script", args
-	response["script"].cast run-script
+	response["script"].cast-option run-script response["diagnostics"].cast
 
-run-script run-result(script string) unsafe, js extern
+-run-script run-result(script string?, diagnostics string) unsafe, js extern
 	console = "console".js-global
 	old-info = console["info"]
 	old-error = console["error"]
@@ -87,17 +87,22 @@ run-script run-result(script string) unsafe, js extern
 		console["info"] := old-info
 		console["error"] := old-error
 	writes write mut[] = ()
+	unless diagnostics is-empty
+		writes ~= (stderr, "{diagnostics}\n")
 	new-info void mut(x string) = x =>
-		writes ~= (stdout, x)
+		writes ~= (stdout, "{x}\n")
 	new-error void mut(x string) = x =>
-		writes ~= (stderr, x)
+		writes ~= (stderr, "{x}\n")
 	console["info"] := new-info
 	console["error"] := new-error
-	exit nat = match (() => script eval) catch-all
-	as ok _
-		0
-	as error e
-		writes ~= (stderr, "{e.show-exception}")
+	exit nat = if x ?= script
+		match (() => x.eval await) catch-all
+		as ok _
+			0
+		as error e
+			writes ~= (stderr, "{e.show-exception}")
+			1
+	else
 		1
 	writes.move-to, exit
 

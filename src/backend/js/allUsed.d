@@ -9,7 +9,6 @@ import model.model :
 	AssertOrForbidExpr,
 	AutoFun,
 	BogusExpr,
-	BuildTarget,
 	Builtin4ary,
 	BuiltinBinary,
 	BuiltinBinaryLazy,

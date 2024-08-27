@@ -1,7 +1,12 @@
 import
 	../js:
-		==, +, as-js, call, cast, call-property, eval, js-any, js-global, set-subscript, subscript,
-		typeof
+		==, +, as-js, call, cast, call-property, eval, js-any, js-global, null, set-subscript,
+		subscript, typeof, undefined
+
+# Converts a JS nullable / undefined-able value to 't'.
++cast-option[t] t?(a js-any) unsafe, js extern
+	unless a == null || a == undefined
+		a.cast,
 
 ###
 Compares two JS objects deeply.
@@ -16,11 +21,11 @@ This won't work on opaque types.
 			loop
 				if i == a["length"]
 					break true
-				elif a[i.cast::nat64] deep-equals b[i.cast::nat64]
+				elif a[i] deep-equals b[i]
 					i +:= 1::float64.as-js
 					continue
 				else
-					break false 
+					break false
 	elif a.typeof.as-js == "object"::string.as-js
 		keys = a.sorted-keys as-js
 		if keys deep-equals b.sorted-keys.as-js
@@ -28,7 +33,7 @@ This won't work on opaque types.
 			loop
 				if i == keys["length"]
 					break true
-				elif a[keys[i.cast::nat64].cast::symbol] deep-equals b[keys[i.cast::nat64].cast::symbol]
+				elif a[keys[i]] deep-equals b[keys[i]]
 					i +:= 1::float64.as-js
 					continue
 				else

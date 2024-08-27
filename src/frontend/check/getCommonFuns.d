@@ -201,11 +201,16 @@ CommonFunsAndDiagnostics getCommonFuns(
 	return CommonFunsAndDiagnostics(commonFuns, smallFinish(alloc, diagsBuilder));
 }
 
-MainFunAndDiagnostics getMainFun(ref Alloc alloc, InstantiateCtx ctx, ref Program program, Uri mainUri, SymbolSet allExterns) {
+MainFunAndDiagnostics getMainFunAndDiagnostics(
+	ref Alloc alloc,
+	InstantiateCtx ctx,
+	ref Program program,
+	Uri mainUri,
+	SymbolSet allExterns,
+) {
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 	ref CommonTypes commonTypes() => program.commonTypes;
 	Type stringListType = Type(instantiateStructNeverDelay(ctx, commonTypes.list, [Type(commonTypes.string_)]));
-	// TODO: rename 'getMainFun' or inline it ----------------------------------------------------------------------------------
 	MainFun res = getMainFun(
 		alloc, ctx, diagsBuilder, *moduleAtUri(program, mainUri),
 		Type(commonTypes.integrals.nat64), stringListType, Type(commonTypes.void_));

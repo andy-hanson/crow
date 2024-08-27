@@ -184,9 +184,7 @@ site/index.js: site-src/script/*.crow site-src/script/*/*.crow
 	bin/crow build site-src/script/index.crow --out site/index.js
 
 serve: prepare-site
-	python3 -m http.server -d site
-	# -----------------------------------------------------------------------------------------------------------------------------
-	# bin/crow run site-src/serve.crow --aot
+	bin/crow run site-src/serve.crow --aot
 
 ### publish ###
 

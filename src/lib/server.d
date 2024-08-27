@@ -315,9 +315,10 @@ private LspOutResult handleLspRequestWithProgram(
 	return a.matchImpure!LspOutResult(
 		(in BuildJsScriptParams x) {
 			ProgramWithMain pwm = programWithMain(x.uri, BuildTarget.js);
-			return LspOutResult(BuildJsScriptResult(hasFatalDiagnostics(pwm)
-				? "console.error(\"Program has fatal diagnostics\")"
-				: buildToJsScript(alloc, server, pwm, JsTarget.browser)));
+			return LspOutResult(BuildJsScriptResult(
+				showDiagnostics(alloc, server, pwm, x.diagnosticsOnlyForUris),
+				optIf(!hasFatalDiagnostics(pwm), () =>
+					buildToJsScript(alloc, server, pwm, JsTarget.browser))));
 		},
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
@@ -590,7 +591,13 @@ private Opt!Hover getHoverForProgram(
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	makeProgram(perf, alloc, server.frontend, roots);
 
-ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri, in BuildTarget[] targets) =>
+ProgramWithMain getProgramForMain(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	Uri mainUri,
+	in BuildTarget[] targets,
+) =>
 	makeProgramWithMain(perf, alloc, server.frontend, mainUri, targets);
 
 Program getProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>

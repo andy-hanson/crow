@@ -132,7 +132,8 @@ immutable struct BuildJsScriptParams {
 	Opt!(Uri[]) diagnosticsOnlyForUris;
 }
 immutable struct BuildJsScriptResult {
-	string script;
+	string diagnostics;
+	Opt!string script;
 }
 // Parameter to "custom/run"
 immutable struct RunParams {

@@ -14,7 +14,7 @@ import
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
-	./js: ==, <, +, as-js, call, cast, js-global
+	./js: ==, <, +, as-js, call, call-property, cast, js-global
 	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, infinity, int8, int16, int32, int64,
@@ -50,7 +50,11 @@ export
 		a.to::(char8 array) ~~ b.to to
 
 +interpolate string(...parts string array)
-	"" join parts.to
+	if trusted extern js
+		# This makes sure it's synchronous, and faster
+		trusted parts.as-js call-property "join", ""::string cast
+	else
+		"" join parts.to
 +interpolate c-string(...parts string array) unsafe, native extern
 	("" join parts.to) to
 

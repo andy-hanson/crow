@@ -45,8 +45,8 @@ tutorial-pages path-and-content[]() summon, native extern
 	("enums", "Enums and flags"),
 	("low-level", "Low-level code"),
 	("js", "Compiling to JavaScript"),
-	("extern", "External libraries"),
-	("config", "crow-config files"),
+	("extern", "Extern functions"),
+	("config", "Config files"),
 	("misc", "Miscellaneous")
 
 -tutorial-meta record(key symbol, title string)

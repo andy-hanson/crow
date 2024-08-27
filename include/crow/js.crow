@@ -17,14 +17,21 @@ import
 +js-global js-any() builtin, bare, unsafe, js extern
 +js-global js-any(name symbol) bare, unsafe, js extern
 	js-global[name]
-# `a[name]`
-+subscript js-any(a js-any, name symbol) builtin, bare, unsafe, js extern
+# `a[key]`
++subscript js-any(a js-any, key js-any) builtin, bare, unsafe, js extern
++subscript js-any(a js-any, name symbol) bare, unsafe, js extern
+	a[name as-js]
 # `a[index]` (This converts 'index' to a string.)
-+subscript js-any(a js-any, index nat64) builtin, bare, unsafe, js extern
++subscript js-any(a js-any, index nat64) bare, unsafe, js extern
+	a[index as-js]
+# `a[key] = value`
++set-subscript[t] void(a js-any, key js-any, value t) builtin, bare, unsafe, js extern
 # `a[name] = value`
-+set-subscript[t] void(a js-any, name symbol, value t) builtin, bare, unsafe, js extern
++set-subscript[t] void(a js-any, name symbol, value t) bare, unsafe, js extern
+	a[name as-js] := value
 # `a[index] = value` (This converts 'index' to a string.)
-+set-subscript[t] void(a js-any, index nat64, value t) builtin, bare, unsafe, js extern
++set-subscript[t] void(a js-any, index nat64, value t) bare, unsafe, js extern
+	a[index as-js] := value
 ###
 `a()`
 WARN: This does not 'await' the result.
@@ -111,7 +118,7 @@ Create a new JavaScript object.
 	res = "Object".js-global call-new
 	i mut js-any = 0::float64 as-js
 	until i == properties.as-js["length"]
-		key, value = properties.as-js[i.cast::nat64].cast::(symbol, js-any)
+		key, value = properties.as-js[i].cast::(symbol, js-any)
 		res[key] := value
 		i +:= 1::float64.as-js
 	res

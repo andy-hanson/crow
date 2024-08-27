@@ -329,8 +329,9 @@ ExitCodeOrSignal go(
 ) =>
 	command.matchImpure!ExitCodeOrSignal(
 		(in CommandKind.Build x) =>
-			withProgramForMain(perf, alloc, server, x.mainUri, targetsForBuild(alloc, x), (ref ProgramWithMain program) =>
-				buildAllOutputs(perf, alloc, server, cwd, x.options, program)),
+			withProgramForMain(
+				perf, alloc, server, x.mainUri, targetsForBuild(alloc, x), (ref ProgramWithMain program) =>
+					buildAllOutputs(perf, alloc, server, cwd, x.options, program)),
 		(in CommandKind.Check x) =>
 			withProgramForRoots(perf, alloc, server, x.rootUris, (ref Program program) =>
 				hasAnyDiagnostics(program) ? ExitCodeOrSignal.error : ExitCodeOrSignal(print("OK"))),

@@ -9,7 +9,7 @@ import util.col.hashTable : HashTable, withSortedKeys;
 import util.col.map : KeyValuePair;
 import util.comparison : Comparison;
 import util.opt : force, has, Opt;
-import util.string : copyString, CString, SmallString, stringsEqual, stringOfCString;
+import util.string : copyString, CString, stringsEqual, stringOfCString;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.writer :
@@ -60,7 +60,6 @@ immutable struct Json {
 		writeJson(writer, this);
 	}
 }
-// static assert(Json.sizeof == ulong.sizeof * 2); // TODO, but SmallString was too small! ---------------------------------------------------------------------------------------------
 
 Json get(string key)(in Json a) {
 	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
@@ -90,6 +89,8 @@ Json jsonNull() =>
 Json.ObjectField optionalField(string name)(bool isPresent, in Json delegate() @safe @nogc pure nothrow cb) =>
 	field!name(isPresent ? cb() : jsonNull);
 
+Json.ObjectField optionalField(string name)(in Opt!string a) =>
+	optionalField!(name, string)(a, (in string x) => jsonString(x));
 Json.ObjectField optionalField(string name, T)(in Opt!T a, in Json delegate(in T) @safe @nogc pure nothrow cb) =>
 	field!name(has(a) ? cb(force(a)) : jsonNull);
 
