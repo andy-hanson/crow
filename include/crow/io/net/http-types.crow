@@ -15,8 +15,8 @@ region request
 +body string(a http-request)
 	a.body as-string
 
-+body-json json?(a http-request)
-	json parse a.body ok
++body-json json(a http-request)
+	(json parse a.body).ok ?? throw "Body must be JSON" http-bad-query
 
 +cookies alias
 	string[symbol]
@@ -46,44 +46,46 @@ region response
 	headers string[symbol]
 	response-body nat8[]
 
-# Creates a 400 response with the message "Bad query".
-+http-bad-query http-response()
-	"Bad query" http-bad-query
++respond-error record(status nat, status-desc string) exception variant-member
++to http-response(a respond-error)
+	a.status, a.status-desc, (), a.status-desc.to-bytes
++describe string(a respond-error)
+	"{a status} {a status-desc}"
 
+# Creates a 400 response with the message "Bad query".
++http-bad-query exception()
+	"Bad query" http-bad-query
 # Creates a 400 response with the given message.
-+http-bad-query http-response(message string)
-	400, message, (), message.to-bytes
++http-bad-query exception(message string)
+	400 respond-error message
 
 # Creates a 403 response with the message "Forbidden".
-+http-forbidden http-response()
++http-forbidden exception()
 	"Forbidden" http-forbidden
-
 # Creates a 403 response with the given message.
-+http-forbidden http-response(message string)
-	403, message, (), message.to-bytes
++http-forbidden exception(message string)
+	403 respond-error message
 
 # Creates a 404 response with the message "Not found".
-+http-not-found http-response()
++http-not-found exception()
 	"Not found" http-not-found
-
 # Creates a 404 response with the given message.
-+http-not-found http-response(message string)
-	404, message, (), message.to-bytes
++http-not-found exception(message string)
+	404 respond-error message
 
-+http-internal-server-error http-response()
-	"Internal server error" http-internal-server-error
-
-+http-internal-server-error http-response(message string)
-	500, message, (), message.to-bytes
++http-internal-server-error respond-error()
+	500, "Internal server error"
 
 # Creates a 200 response with the message "OK".
 +http-ok http-response()
 	"OK" http-ok
-
 # Creates a 200 response with the given message.
++http-ok http-response(content json)
+	content.to::string http-ok ()
 +http-ok http-response(message string)
 	message http-ok ()
-
++http-ok http-response(content json, headers string[symbol])
+	content.to::string http-ok headers
 # Creates a 200 response with the given message and headers.
 +http-ok http-response(message string, headers string[symbol])
 	200, "OK", headers, message.to-bytes

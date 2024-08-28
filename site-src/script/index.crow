@@ -1,6 +1,6 @@
 import
 	crow/js: as-js, call-property, ==, null, set-subscript
-	crow/js/dom: query-selector
+	crow/js/dom: query-all
 	./crow-runnable: define-crow-runnable-custom-element
 	./crow-text: define-crow-text-custom-element
 	./icon: define-icon-custom-element
@@ -14,7 +14,7 @@ main void() summon, js extern
 	define-loading-spinner-element
 
 -open-details-on-click void() summon, trusted, js extern
-	for details : "details" query-selector
+	for details : "details" query-all
 		link = details.as-js call-property "querySelector", "a"::string
 		unless link == null
 			fn void mut() = () =>

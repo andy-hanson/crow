@@ -1,8 +1,8 @@
 import
 	crow/js:
-		==, as-js, await, call-new, call-property, call-property-spread, cast, js-any, js-cast,
-		js-global, null, set-subscript, subscript
-	./util: make-class, method
+		==, as-js, await, call-new, call-property, call-property-spread, cast, eval, js-any,
+		js-cast, js-global, new, null, set-subscript, subscript
+	./util: cast-option, make-class, method
 
 ###
 Represents a DOM node.
@@ -10,13 +10,7 @@ You can use `as-js` and treat this as a JS object.
 ###
 +node extern
 
-# Append a child nodes.
-+~= void(a node, b node) trusted, js extern
-	_ = a.as-js call-property "appendChild", b
-# APpend many child nodes.
-+~~= void(a node, b node[]) js extern
-	for x : b
-		a ~= x
+region Create nodes
 
 # Create a new DOM node with the given tag.
 +create-node node(tag-name symbol) trusted, js extern
@@ -86,12 +80,10 @@ You can use `as-js` and treat this as a JS object.
 +create-text-node node(text string) trusted, js extern
 	"document".js-global call-property "createTextNode", text cast
 
-region query
++document node() summon, trusted, js extern
+	"document".js-global cast
 
-+first-child node?(a node) trusted, js extern
-	res = a.as-js["firstChild"]
-	unless res == null
-		res.cast,
+region Node properties
 
 +attributes record(node node) nominal, mut
 +subscript string?(a attributes, attr-name symbol) trusted, js extern
@@ -101,13 +93,17 @@ region query
 +set-subscript void(a attributes, attr-name symbol, value string) trusted, js extern
 	_ = a.node.as-js call-property "setAttribute", attr-name, value
 
-region mutate
+# Gets the value for an input node, or "" if it's not an input node.
++value string(a node) trusted, js extern
+	a.as-js["value"].cast-option ?? ""
 
-+remove-all-children void(a node) trusted, js extern
-	while child ?= a first-child
-		_ = a.as-js call-property "removeChild", child
+region Node queries
 
-+query-selector node array(selector string) trusted, js extern
+# Calls 'querySelector'
++query node?(parent node, selector string) trusted, js extern
+	parent.as-js call-property "querySelector", selector cast-option
+
++query-all node array(selector string) trusted, js extern
 	"document".js-global call-property "querySelectorAll", selector array-of-node-list
 
 +child-nodes node array(a node) trusted, js extern
@@ -115,6 +111,40 @@ region mutate
 
 -array-of-node-list node array(node-list js-any) trusted, js extern
 	"Array".js-global call-property "from", node-list cast
+
+# Calls 'getElementById'
++element node?(parent node, id string) trusted, js extern
+	parent.as-js call-property "getElementById", id cast-option
+
++first-child node?(a node) trusted, js extern
+	res = a.as-js["firstChild"]
+	unless res == null
+		res.cast,
+
+region Events
+
++on-click void(a node, fn void mut()) summon, trusted, js extern
+	_ = a.as-js call-property "addEventListener", "click"::string, fn
+
+region Mutations
+
+# Append a child node.
++~= void(a node, b node) trusted, js extern
+	_ = a.as-js call-property "appendChild", b
+
+# Append many child nodes.
++~~= void(a node, b node[]) js extern
+	for x : b
+		a ~= x
+
+# Overwrites any existing child nodes.
++set-children void(a node, children node[]) js extern
+	a remove-all-children
+	a ~~= children
+
++remove-all-children void(a node) trusted, js extern
+	while child ?= a first-child
+		_ = a.as-js call-property "removeChild", child
 
 region Custom elements
 
@@ -132,8 +162,7 @@ region Custom elements
 	connected connected-callback,
 ) summon, trusted, js extern
 	constructor method = (this, _) =>
-		# Using JSON.parse to make sure it's synchronous
-		args = "JSON".js-global call-property "parse", "\{\"mode\":\"open\"}"::string
+		args js-any = ("mode", "open"::string.as-js),
 		root = this call-property "attachShadow", args
 		root.cast set-style-sheet style-sheet[this cast] as-js
 	connected-callback method = (this, _) => connected[this cast] as-js
@@ -156,3 +185,7 @@ region Custom elements
 	style = "CSSStyleSheet".js-global call-new
 	_ = style call-property "replace", css await
 	shadow-root.as-js["adoptedStyleSheets"] := (style,)::(js-any array)
+
++wait-until-window-loaded void() summon, trusted, js extern
+	unless "document".js-global["readyState"].cast::string == "complete"
+		"new Promise(resolve => window.addEventListener('load', resolve))".eval.await cast

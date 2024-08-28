@@ -2,7 +2,7 @@ import
 	crow/col/mut-stack
 	crow/io/duration: millisecond
 	crow/js:
-		+, as-js, call, call-property, cast, js-any, js-cast, js-global, set-subscript, subscript
+		+, as-js, call, call-property, cast, js-any, js-global, set-subscript, subscript
 	crow/js/dom:
 		~~=, ~=, add-event-listener, attributes, create-div, create-node, create-span,
 		create-text-node, custom-element-node, define-custom-element, node, remove-all-children,

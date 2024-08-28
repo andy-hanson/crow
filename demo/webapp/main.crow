@@ -1,11 +1,14 @@
+#!/usr/bin/env crow
 import
-	crow/io/file: read-file
-	crow/io/net/http-server: http-handler, http-server, with-block
+	crow/io/net/http-server
 	crow/io/net/http-types
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
-	crow/parse: nat, parse, to
+	crow/parse: nat, parse
 	./db
+	./index.html as index-html string
+	./index.js as index-js string
+	./model
 
 main void() summon, (libc, lmdb, native, posix, sodium) extern
 	with db : open-real-db
@@ -16,65 +19,48 @@ main void() summon, (libc, lmdb, native, posix, sodium) extern
 			_ = read-stdin
 
 -handle-request http-response(req http-request, db db) summon, (lmdb, native, sodium) extern
-	try
-		req handle-request-inner db
-	catch user-not-authorized
-		http-forbidden
-
--handle-request-inner http-response(req http-request, db db) summon, (lmdb, native, sodium) extern
-	path = req path
-	query = req query
 	match req method
 	as GET
-		match path
+		match req path
 		as "/"
-			"demo/webapp/index.html".read-file http-ok
+			index-html http-ok
 		as "/index.js"
-			"demo/webapp/index.js".read-file http-ok
+			index-js http-ok
 		as "/posts"
-			(("posts", db.list-posts.to),)::json.to http-ok
+			(("posts", db.list-posts.to),)::json http-ok
 		as "/user-name"
-			user = query["user"] ?? ""
-			guard user-id ?= nat parse user ok : "Bad user" http-bad-query
+			user = req.query["user"] ?? ""
+			assert user-id ?= nat parse user ok : "Bad user" http-bad-query
 			db user-name user-id http-ok
 		as "/users"
-			(("users", db.list-users.to),)::json.to http-ok
+			(("users", db.list-users.to),)::json http-ok
 		else
-			http-not-found
+			throw http-not-found
 	as POST
-		match path
+		match req path
 		as "/register"
-			guard args ?= req.body-json : "Body must be JSON" http-bad-query
-			guard user-name ?= args["userName"].string : "Missing userName" http-bad-query
-			guard password ?= args["password"].string : "Missing password" http-bad-query
-			match db register-user user-name, password
+			args register-args = req.body-json to
+			match db register-user args
 			as register-user-success user-id
-				# We need to get: user-name and password
-				(("userId", user-id.to),)::json.to http-ok
+				(("user", user-id.to),)::json http-ok
 			as bad-user-name message
-				"Bad user name: {message}" http-bad-query
+				throw "Bad user name: {message}" http-bad-query
 			as user-already-exists
-				"User already exists" http-bad-query
+				throw "User already exists" http-bad-query
 		as "/login"
-			guard args ?= req.body-json : "Body must be JSON" http-bad-query
-			guard user-name ?= args["userName"].string : "Missing userName" http-bad-query
-			guard password ?= args["password"].string : "Missing password" http-bad-query
-			guard cookie ?= db login user-name, password : http-forbidden
+			args login-args = req.body-json to
+			cookie = db login args
 			cookies cookies = ("login", cookie.to), ("max-age", cookie-expire-seconds.to)
-			"Logged in as {user-name}" http-ok (cookies.set-cookie-header,)
+			(("user", cookie.user.to),)::json http-ok (cookies.set-cookie-header,)
 		as "/post"
-			cookies = req parse-cookies
-			guard cookie ?= cookies["login"] : "Missing login cookie" http-forbidden
-			match user-cookie parse cookie
-			as ok user-cookie
-				guard args ?= req.body-json : "Body must be JSON" http-bad-query
-				guard content ?= args["content"].string : "Missing content" http-bad-query
-				post = db add-post user-cookie, content
-				(("postId", post.to),)::json.to http-ok
-			as error e
-				"Error parsing 'login' cookie: {e}" http-forbidden
+			args post-args = req.body-json to
+			post = db add-post req.get-login-cookie, args.content
+			response post-response = post,
+			response.to::json http-ok
 		else
-			http-not-found
+			throw http-not-found
 
--to json(a user-info)
--to json(a post-info)
+-get-login-cookie user-cookie(req http-request)
+	cookies = req parse-cookies
+	assert cookie ?= cookies["login"] : "Missing login cookie" http-forbidden
+	(user-cookie parse cookie).ok ?? throw "Error parsing 'login' cookie" http-forbidden

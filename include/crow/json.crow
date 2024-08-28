@@ -16,7 +16,7 @@ import
 		with-block
 	./misc: ==, key, to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
-	./option: ??, new, option
+	./option: ??, force, new, option
 	./result: result
 	./string: ==, char8, char32, interpolate, join, quote, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
@@ -131,6 +131,13 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 -json-primitive json grammar()
 	literal json grammar = (bool map x => x to) / ("null" exact null)
 	(quoted-string map x => x.to) / (float map x => x.to) / literal
+
++to[t] t[](a json) (t, json) to
+	for x : a.list!
+		x to
+
++to nat64(a json) bare
+	a.number! to
 
 # Renders a json value to JSON.
 +to string(a json)

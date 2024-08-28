@@ -28,7 +28,7 @@ to string(a string[symbol])
 	try
 		full-path file-response full-path.read-file
 	catch path-not-found _
-		http-not-found
+		throw http-not-found
 
 file-response http-response(path string, content nat8[])
 	200, "OK", (("Content-Type", path.content-type),), content

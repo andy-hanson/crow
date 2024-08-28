@@ -339,12 +339,16 @@ JsScriptAst translateProgramToScript(ref TranslateProgramCtx ctx) {
 		Map!(StructDecl*, StructAlias*)());
 	JsDecl[] decls = buildArray!JsDecl(ctx.alloc, (scope ref Builder!JsDecl out_) {
 		// Emit variants first, because their members need to 'extend' them.
-		// Also 'tuple2' since it is used in enum/flags 'members'
+		// Also 'tuple2' since it is used in enum/flags 'members'.
+		// Emit aliases last.
 		foreach (AnyDecl decl; ctx.allUsed.usedDecls)
 			if (isVariantOrTuple(ctx, decl))
 				out_ ~= translateDecl(moduleCtx, decl);
 		foreach (AnyDecl decl; ctx.allUsed.usedDecls)
-			if (!isVariantOrTuple(ctx, decl))
+			if (!isVariantOrTuple(ctx, decl) && !decl.isA!(StructAlias*))
+				out_ ~= translateDecl(moduleCtx, decl);
+		foreach (AnyDecl decl; ctx.allUsed.usedDecls)
+			if (decl.isA!(StructAlias*))
 				out_ ~= translateDecl(moduleCtx, decl);
 	});
 	JsStatement[] statements = callMain(moduleCtx);

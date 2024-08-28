@@ -6,7 +6,7 @@ import
 	../../private/bootstrap: todo
 	./http-types:
 		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
-		http-response, new, response-body, status, status-desc
+		http-response, new, respond-error, response-body, status, status-desc, to
 	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler, tcp-server
 
 # Reference to a running server.
@@ -67,17 +67,24 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		request = state finish-request
 		_ = (client-states remove sock)!
 		with : fire-and-forget
-			response = match (() => handler[request]) catch-all
-			as ok o
-				o
-			as error e
-				error log "{e}"
-				http-internal-server-error
-			sock write-until-finished response.response-to-array
+			sock write-until-finished (handler run-handler-and-catch request).response-to-array
 			sock close-client
 			()
 	as abandon
 		_ = (client-states remove sock)!
+
+-run-handler-and-catch http-response(handler http-handler, request http-request) unsafe
+	cb http-response mut() = () =>
+		try
+			handler[request]
+		catch respond-error x
+			x to
+	match cb catch-all
+	as ok o
+		o
+	as error e
+		error log "{e}"
+		http-internal-server-error to
 
 -write-until-finished void(
 	sock SOCKET,
