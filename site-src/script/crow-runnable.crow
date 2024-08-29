@@ -136,7 +136,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	finish-line void mut() = () =>
 		unless trusted container.as-js["textContent"].cast::string is-empty
 			container ~= "br".create-node
-		container ~= cur-pipe!.to create-span (cur-line.create-text-node,)
+		container ~= cur-pipe!.show create-span (cur-line.create-text-node,)
 		cur-line := ""
 
 	for write : run-result writes

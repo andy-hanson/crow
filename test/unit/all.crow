@@ -17,6 +17,7 @@ import
 	./library/all: dummy-library-tests
 	./log: dummy-log
 	./loops: dummy-loops
+	./matches: dummy-matches
 	./options: dummy-options
 	./overloading: dummy-overloading
 	./parallel: dummy-parallel
@@ -45,6 +46,7 @@ dummy-unit-tests nat()
 	_ = dummy-library-tests
 	_ = dummy-log
 	_ = dummy-loops
+	_ = dummy-matches
 	_ = dummy-options
 	_ = dummy-overloading
 	_ = dummy-parallel

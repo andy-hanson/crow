@@ -137,6 +137,8 @@ enum PrimitiveType : ubyte {
 	nat64,
 	void_,
 }
+bool isSignedInteger(PrimitiveType a) =>
+	a == PrimitiveType.int8 || a == PrimitiveType.int16 || a == PrimitiveType.int32 || a == PrimitiveType.int64;
 
 immutable struct LowType {
 	@safe @nogc pure nothrow:

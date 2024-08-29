@@ -111,6 +111,7 @@ import interpret.runBytecode : opSetupCatch, opSwitchFiber, opSwitchFiberInitial
 import model.constant : Constant;
 import model.lowModel :
 	asNonGcPointee,
+	isSignedInteger,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -570,6 +571,7 @@ void generateSwitch(
  ) {
 	StackEntry stackBefore = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
+	signExtendSignedInts(writer, source, a.value.type.as!PrimitiveType);
 	bool defaultAbort = a.default_.kind.isA!(LowExprKind.Abort);
 	SwitchDelayed delayed = writeSwitchDelay(writer, source, a.caseValues, !defaultAbort);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
@@ -584,6 +586,27 @@ void generateSwitch(
 		if (!defaultAbort)
 			writeCaseOrDefault(a.caseExprs.length, a.default_, true);
 	});
+}
+
+void signExtendSignedInts(ref ByteCodeWriter writer, ByteCodeSource source, PrimitiveType type) {
+	// Switch only works on 64 bit values. A 32 bit signed value must be sign-extended.
+	if (isSignedInteger(type)) {
+		switch (type) {
+			case PrimitiveType.int8:
+				writeFnUnary(writer, source, &fnInt64FromInt8);
+				break;
+			case PrimitiveType.int16:
+				writeFnUnary(writer, source, &fnInt64FromInt16);
+				break;
+			case PrimitiveType.int32:
+				writeFnUnary(writer, source, &fnInt64FromInt32);
+				break;
+			case PrimitiveType.int64:
+				break;
+			default:
+				assert(false);
+		}
+	}
 }
 
 void generateTailRecur(

@@ -198,7 +198,7 @@ region LSP server
 	info log "performance for {a.view read-c-string name}"
 	info log "TOTAL: {total-nanos.to-msec}"
 	for measure : a.perf-measures
-		info log measure.to::json.to
+		info log measure.to::json.show
 	a.perf-measures clear
 -to-msec float(nsec nat)
 	nsec.to.nanosecond.milliseconds
