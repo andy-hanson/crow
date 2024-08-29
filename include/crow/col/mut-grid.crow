@@ -28,7 +28,7 @@ Coordinate in a grid.
 +== bool(a coord, b coord) bare
 
 # `"<x, y>"`
-+to string(a coord)
++show string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
@@ -84,7 +84,7 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-+to[t] string(a t mut-grid) (string, t) to
++show[t] string(a t mut-grid) t show
 	"\n" join for row : a rows
 		" " join for value : row
 			"{value}"
@@ -124,7 +124,7 @@ region spec impls (see collection.crow)
 
 test
 	a string mut-grid = 3 make 2, (x, y) => "{x}|{y}"
-	a.to::string is "0|0 1|0 2|0\n0|1 1|1 2|1"
+	a.show is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	values = " " join for coord, value : a with-coords
 		"{coord}/{value}"

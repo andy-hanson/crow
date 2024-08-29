@@ -12,7 +12,7 @@ import
 	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: ..
-	../../string: interpolate, join, string, to-hex, to
+	../../string: interpolate, join, show, string, to-hex
 	../array: array, iterate, new, subscript
 	../collection: build-options, for-loop
 	../list: ~=, build, iterate, list, list-builder, to
@@ -388,7 +388,7 @@ intersect index-set(a index-set, b index-set)
 -bit-index nat64(a nat64)
 	a % 64
 
-+to string(a index-set)
++show string(a index-set)
 	", " join for x : a; "{x}"
 
 region spec impls (see collection.crow)

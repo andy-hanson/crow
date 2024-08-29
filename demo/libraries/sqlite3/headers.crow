@@ -77,3 +77,5 @@ sqlite3-result enum extern
 	SQLITE_WARNING = 28
 	SQLITE_ROW = 100
 	SQLITE_DONE = 101
+show string(a sqlite3-result)
+	a to

@@ -27,7 +27,7 @@ test
 		finally throw "thrown second" error
 		throw "thrown first" error
 	catch error e
-		e.describe is "thrown second"
+		e.show is "thrown second"
 
 # Test that yielding the fiber does not break exception handling
 test
@@ -51,6 +51,6 @@ test
 test trusted, js extern
 	error = (() => "throw 0" eval).catch-all.error!
 	exception = error exception
-	exception.describe is "Threw a non-exception value 0"
+	exception.show is "Threw a non-exception value 0"
 	exception.as-js["message"].cast::string is "Threw a non-exception value 0"
-	assert "{error}"::string starts-with "Error: Threw a non-exception value 0"
+	assert error.show starts-with "Error: Threw a non-exception value 0"

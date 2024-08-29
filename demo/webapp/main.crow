@@ -50,7 +50,7 @@ main void() summon, (libc, lmdb, native, posix, sodium) extern
 		as "/login"
 			args login-args = req.body-json to
 			cookie = db login args
-			cookies cookies = ("login", cookie.to), ("max-age", cookie-expire-seconds.to)
+			cookies cookies = ("login", "{cookie}"), ("max-age", "{cookie-expire-seconds}")
 			(("user", cookie.user.to),)::json http-ok (cookies.set-cookie-header,)
 		as "/post"
 			args post-args = req.body-json to

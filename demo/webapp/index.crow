@@ -36,7 +36,7 @@ main void() summon, js extern
 	credentials include-credentials,
 ) summon, js extern
 	try response = url post args, credentials catch fetch-error x : do
-		x.describe alert
+		x.show alert
 		()
 	info log "{url} response: {response}"
 	response,
@@ -48,13 +48,13 @@ main void() summon, js extern
 
 -render-users void() summon, js extern
 	(document element "users")!.children := for x : fetch-users
-		x.to create-div-with-text
+		"{x}" create-div-with-text
 -fetch-users user-info[]() summon, js extern
 	("/users".fetch::json)["users"] to
 
 -render-posts void() summon, js extern
 	(document element "posts")!.children := for x : fetch-posts
-		x.to create-div-with-text
+		"{x}" create-div-with-text
 -fetch-posts post-info[]() summon, js extern
 	("/posts".fetch::json)["posts"] to
 

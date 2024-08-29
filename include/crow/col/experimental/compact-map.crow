@@ -148,13 +148,13 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a (k, v) compact-map) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) compact-map) k show, v show
 	a.impl dbg
--dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) impl) k show, v show
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs
-			"{k} -> {v?.to ?? "_"}"
+			"{k} -> {v?.show ?? "_"}"
 		"{o.prev dbg}, [{parts}]"
 	as end-node e
 		parts = ", " join for k, v : e

@@ -19,7 +19,7 @@ main void() summon, native extern
 		"{k}: {v}"
 	"{a method} {a path}{a query}\n{headers}\n\n{a.body as-string}"
 
-to string(a string[symbol])
+show string(a string[symbol])
 	if a is-empty
 		""
 	else

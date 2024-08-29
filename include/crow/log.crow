@@ -5,7 +5,7 @@ import
 	./io/print: err, out, pipe, print
 	./misc: new, void
 	./private/bootstrap: must-cur-fiber, set-log-handler, todo
-	./string: interpolate, string, to
+	./string: interpolate, show, string
 export
 	./private/bootstrap:
 		==, enum-members, error, info, level, logged, log-handler, log-level, message, warn
@@ -36,8 +36,8 @@ that task will still have the default log handler.
 	finally trusted original-handler set-log-handler
 	cb[]
 
-# TODO: this is what 'to string' in enum.crow would do, is there a way to use that?
--to string(a log-level)
+# TODO: this is what 'show' in enum.crow would do, is there a way to use that?
+-show string(a log-level)
 	match a
 	as debug
 		"debug"
@@ -73,7 +73,7 @@ If you just want to call the curent log handler, you could just use `log`.
 	elif extern js
 		logged =>
 			content string = "{logged level}: {logged message}"
-			_ = "console".js-global call-property logged.level.to, content
+			_ = "console".js-global call-property logged.level.show, content
 	else
 		todo
 

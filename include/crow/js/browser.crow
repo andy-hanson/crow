@@ -17,7 +17,7 @@ import
 				break value
 
 +fetch-error record(url string, status nat, message string) exception variant-member
-+describe string(a fetch-error)
++show string(a fetch-error)
 	"HTTP {a status} error fetching {a url}: {a message}"
 
 +fetch string(url string) summon, trusted, js extern
@@ -28,22 +28,22 @@ import
 +post[in] json(
 	url string,
 	body in,
-) (json, string) to, (string, in) to, summon, trusted, js extern
+) (json, string) to, in show, summon, trusted, js extern
 	url post body, exclude-credentials
 +include-credentials enum(include-credentials, exclude-credentials)
 +post[in] json(
 	url string,
 	body in,
 	credentials include-credentials,
-) (string, in) to, summon, trusted, js extern
-	(url fetch-text (body.to post-options credentials)).json-parse to
+) in show, summon, trusted, js extern
+	(url fetch-text (body.show post-options credentials)).json-parse to
 -post-options js-any(body string, credentials include-credentials) trusted, js extern
 	cred js-any = match credentials
 	as include-credentials
 		"include"::string.as-js
 	as exclude-credentials
 		undefined
-	("method", "POST"::string.as-js), ("body", body.to::string.as-js), ("credentials", cred)
+	("method", "POST"::string.as-js), ("body", body.show.as-js), ("credentials", cred)
 
 -fetch-text string(url string, options js-any) summon, trusted, js extern
 	(url fetch-response options call-property "text").await cast

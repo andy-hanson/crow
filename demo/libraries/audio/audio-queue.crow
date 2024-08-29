@@ -1,7 +1,7 @@
 import
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	./audio: new, playing-sound
-	./sound: ==, format, new, samples, sound, sound-format, to
+	./sound: ==, format, new, samples, show, sound, sound-format
 
 audio-queue record by-ref, force-shared
 	format sound-format

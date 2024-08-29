@@ -14,7 +14,7 @@ dummy-json-tests nat64()
 -verify[t] void(a t, s string) (json, t) to
 	json parse s is a.to.ok
 	json json = a to
-	json.to::string is s
+	json.show is s
 
 test
 	json parse "potato" is ("potato", "potato".begin, "expected 'null'").error

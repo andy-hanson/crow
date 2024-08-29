@@ -48,7 +48,7 @@ test
 	tanh t(a t)
 	square-root t(a t)
 	to t(a string)
-	to string(a t)
+	show string(a t)
 	to json(a t)
 
 -test-t[t] void() t float

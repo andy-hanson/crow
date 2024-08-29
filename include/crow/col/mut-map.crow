@@ -5,10 +5,10 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../json: to
-	../misc: key, new, void, to
+	../misc: key, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: ==, ??, is-empty, new, option
-	../string: ==, interpolate, join, string, to
+	../string: ==, interpolate, join, show, string
 	../test-util: is
 	../tuple: ==, new
 	./array: array, iterate, size
@@ -311,7 +311,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to
+-dbg[k, v] string(a v mut[k]) k show, v show
 	parts string[] = for entry : a entries
 		match entry
 		as none
@@ -321,7 +321,7 @@ region test
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
 	" " join parts
--dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
+-dbg[k, v] string((k k, v v)) k show, v show
 	"{k} -> {v}"
 
 -verify void(a string mut[nat64], expected string)

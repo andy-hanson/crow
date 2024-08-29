@@ -26,14 +26,14 @@ import
 	0, 0, 0
 
 # `"<x, y>"`
-+to string(a vec2-32)
++show string(a vec2-32)
 	"<{a x}, {a y}>"
-+to string(a vec2-64)
++show string(a vec2-64)
 	"<{a x}, {a y}>"
 # `"<x, y, z>"`
-+to string(a vec3-32)
++show string(a vec3-32)
 	"<{a x}, {a y}, {a z}>"
-+to string(a vec3-64)
++show string(a vec3-64)
 	"<{a x}, {a y}, {a z}>"
 
 +to float32 array(a vec2-32)

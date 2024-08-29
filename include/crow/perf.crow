@@ -12,17 +12,17 @@ import
 	./col/mut-array: ~=, build, mut-array, new, set-subscript, subscript
 	./exception: error
 	./fun-util: subscript
-	./io/duration: duration, nanosecond, to
+	./io/duration: duration, nanosecond, show
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: new, void
 	./number: ==, <=>, +, -, nat64, to
 	./range: .., iterate, size
-	./string: interpolate, join, string, to
-	./symbol: ==, <=>, hash-mix, symbol, to
+	./string: interpolate, join, show, string
+	./symbol: ==, <=>, hash-mix, show, symbol
 	./tuple: new
 
 +perf-result record(total duration, measures measure-total[symbol])
-+to string(a perf-result)
++show string(a perf-result)
 	measures = ", " join for name, total : a measures
 		"{name}: {total}"
 	"total: {a total}, {measures}"
@@ -33,7 +33,7 @@ import
 	count nat64
 	# Total time spent in all measures with this name.
 	total-duration duration
-+to string(a measure-total)
++show string(a measure-total)
 	"{a count} × {a total-duration}"
 
 # Use 'nsec' instead of 'duration' to avoid spending time converting to floats

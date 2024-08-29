@@ -1,7 +1,5 @@
 import
-	crow/parse:
-		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
-		text-not-containing-any, to
+	crow/parse
 	./module
 
 all-exports record(types module-path[symbol], specs module-path[symbol])

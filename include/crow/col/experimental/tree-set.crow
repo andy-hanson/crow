@@ -5,10 +5,10 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: to
-	../../misc: key, new, to, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: ??, force, new, option
-	../../string: ==, <=>, begin, hash-mix, interpolate, join, next, string, to
+	../../string: ==, <=>, begin, hash-mix, interpolate, join, next, show, string
 	../../test-util: is
 	../../tuple: a
 	../array:
@@ -424,9 +424,9 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[t] string(a t tree-set) (string, t) to
+-dbg[t] string(a t tree-set) t show
 	a.root dbg
--dbg[t] string(a t node) (string, t) to
+-dbg[t] string(a t node) t show
 	match a
 	as inner i
 		"({i.left dbg} {i value} {i.right dbg})"

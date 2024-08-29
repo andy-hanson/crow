@@ -8,7 +8,7 @@ import
 	../option: ==, new, option
 	../pointer: gc-safe-value
 	../range: ..
-	../string: ==, interpolate, join, new, string, to
+	../string: ==, interpolate, join, new, show, string
 	../test-util: is
 	./collection: .., -, end, for-loop, subscript, with-index
 	./mut-array:

@@ -50,6 +50,6 @@ If `a` is non-empty, returns its value; else throws.
 +force[t] t(a t?) bare
 	a ?? throw force-option-error
 +force-option-error record exception variant-member
-+describe string(_ force-option-error)
++show string(_ force-option-error)
 	"Tried to force empty option"
 

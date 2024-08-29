@@ -179,9 +179,14 @@ This is still unsafe because 'a' must end in a `"\0"` character.
 	# TODO: 'copy' seems unnecessary since 'to' should do that?
 	copy char8 mut[] = a.as-string.to::(char8 array).to.copy
 	copy.move-to::(char8 array).to
++show string(a c-string) unsafe, native extern
+	a to
+
++show[t] spec
+	show string(a t)
 
 # `"true"` or `"false"`.
-+to string(a bool) bare
++show string(a bool) bare
 	if a
 		"true"
 	else
@@ -190,15 +195,19 @@ This is still unsafe because 'a' must end in a `"\0"` character.
 # String containing a single character.
 +to string(a char8)
 	a.to::char32 to
++show string(a char8)
+	a to
 +to string(a char32)
 	with out : build
 		out ~= a
++show string(a char32)
+	a to
 
 ###
 Converts a nat64 to a string.
 Result is only digits, no punctuation.
 ###
-+to string(a nat64)
++show string(a nat64)
 	if trusted extern js
 		trusted a js-to-string
 	else
@@ -270,28 +279,28 @@ Result is only digits, no punctuation.
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
 
-+to string(a string) bare
++show string(a string) bare
 	a
 
-+to string(a nat8)
-	a.to::nat64 to
++show string(a nat8)
+	a.to::nat64 show
 
-+to string(a nat16)
-	a.to::nat64 to
++show string(a nat16)
+	a.to::nat64 show
 
-+to string(a nat32)
-	a.to::nat64 to
++show string(a nat32)
+	a.to::nat64 show
 
-+to string(a int8)
-	a.to::int64 to
++show string(a int8)
+	a.to::int64 show
 
-+to string(a int16)
-	a.to::int64 to
++show string(a int16)
+	a.to::int64 show
 
-+to string(a int32)
-	a.to::int64 to
++show string(a int32)
+	a.to::int64 show
 
-+to string(a int64)
++show string(a int64)
 	if trusted extern js
 		trusted a js-to-string
 	elif a == min-value
@@ -300,15 +309,15 @@ Result is only digits, no punctuation.
 		s string = "{a abs}"
 		a < 0 ? "-{s}" : s
 
-+to string(a float32)
-	a.to::float64 to
++show string(a float32)
+	a.to::float64 show
 
-+to string(a float64) trusted
++show string(a float64) trusted
 	guard !(extern js) : a js-to-string
 	guard !a.is-nan : "NaN"
 	guard a != infinity : "Infinity"
 	guard a != -infinity : "-Infinity"
-	guard a != a.truncate-to::int64.to : a.truncate-to to
+	guard a != a.truncate-to::int64.to : a.truncate-to show
 	guard a > 0 : a == 0 ? "0" : "-{-a}"
 
 	dec mut, exp mut = a to-decimal-and-exponent
@@ -410,10 +419,10 @@ region spec impls (see collection.crow)
 region utilities
 
 +invalid-unicode-character record(character nat32) exception variant-member
-+describe string(a invalid-unicode-character)
++show string(a invalid-unicode-character)
 	"0x{a.character to-hex} is not a valid Unicode character."
 +unicode-decode-error record exception variant-member
-+describe string(_ unicode-decode-error)
++show string(_ unicode-decode-error)
 	"Error decoding bytes as UTF-8"
 
 +lines string[](a string)

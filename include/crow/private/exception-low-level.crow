@@ -13,7 +13,7 @@ import
 		abandon, array, catch-point, cur-fiber, cur-catch-point, hard-unreachable, must-cur-fiber,
 		set-cur-catch-point, string
 export
-	./bootstrap: describe, exception
+	./bootstrap: exception, show
 
 ###
 Type of a thrown exception.
@@ -26,7 +26,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	~backtrace native-backtrace
 
 # Thrown when an exception is not specified in an 'assert' or 'forbid'.
-+error record(describe string) by-val, exception variant-member
++error record(show string) by-val, exception variant-member
 
 # 'setup-catch' is like 'setjmp' and 'jump-to-catch' is like 'longjmp'.
 # ('setjmp' and 'longjmp' don't work with fibers on Windows.)
@@ -98,7 +98,7 @@ rethrow-current-exception void() bare, unsafe
 
 # This can only happen in JS
 +threw-non-exception record(thrown js-any) exception variant-member
-+describe string(a threw-non-exception) trusted
++show string(a threw-non-exception) trusted
 	if extern js
 		"Threw a non-exception value "::string.as-js + a.thrown cast
 	else

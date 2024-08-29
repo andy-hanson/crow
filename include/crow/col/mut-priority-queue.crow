@@ -4,10 +4,10 @@ import
 	../compare: ==, <=>, <, compare-reverse
 	../fun-util: subscript
 	../json: to
-	../misc: new, to, void
+	../misc: new, void
 	../number: ==, <=>, +, nat64
 	../option: ==, force, new, option
-	../string: ==, interpolate, join, new, string, to
+	../string: ==, interpolate, join, new, show, string
 	../test-util: is
 	../tuple: ==, new
 	./array: array, iterate, size, subscript
@@ -137,7 +137,7 @@ This is O(n).
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
--dbg[k, v] string(a (k, v) mut-priority-queue) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) mut-priority-queue) k show, v show
 	# TODO: should be able to infer type arguments
 	trusted
 		mins = a.mins temp-as-array
@@ -150,7 +150,7 @@ This is O(n).
 					" [{parts}]"
 			"{min dbg}{show-bucket}"
 
--dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
+-dbg[k, v] string((k k, v v)) k show, v show
 	"{k} -> {v}"
 
 -verify void(a (nat64, string) mut-priority-queue, expected string)

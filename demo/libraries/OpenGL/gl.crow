@@ -3,7 +3,7 @@ import
 	./headers
 
 +gl-error record(action string, error GLenum, description string) exception variant-member
-+describe string(a gl-error)
++show string(a gl-error)
 	"OpenGL error in {a action}: {a.error.to::nat32} {a description}"
 +gl-error exception(action string, error GLenum)
 	action gl-error error, ""

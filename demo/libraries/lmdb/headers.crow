@@ -146,6 +146,8 @@ mdb-error enum extern, err-t storage
 	MDB_BAD_TXN = -30782
 	MDB_BAD_VALSIZE = -30781
 	MDB_BAD_DBI = -30780
+show string(a mdb-error)
+	a to
 
 MDB_LAST_ERRCODE mdb-error()
 	MDB_BAD_DBI

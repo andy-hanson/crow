@@ -5,12 +5,12 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: to
-	../../misc: key, new, to, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, hash-mix, interpolate, join, new, string, to
+	../../string: ==, <=>, hash-mix, interpolate, join, new, show, string
 	../../test-util: is
 	../array:
 		~=, array, as-array, begin-pointer, build, end-pointer, is-empty, iterate, new, next-index,
@@ -413,7 +413,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[t] string(a t sorted-set) (string, t) to
+-dbg[t] string(a t sorted-set) t show
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -421,7 +421,7 @@ region test
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 
--dbg[t] string(a t add-node) (string, t) to
+-dbg[t] string(a t add-node) t show
 	left string = if l ?= a left
 		"{l dbg}, "
 	values = " " join for x : a values; "{x}"

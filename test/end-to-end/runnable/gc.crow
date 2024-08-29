@@ -24,14 +24,13 @@ main void() summon, trusted, native extern
 	out print "stats (after print): {gc get-stats}"
 	()
 
-r record by-ref
+-r record by-ref
 	a nat
 	b nat
 	c nat
-
-to string(a r)
+-show string(a r)
 	"a={a a}, b={a b}, c={a c}"
 
-to string(a gc-stats)
-	a.to::json to
-to json(a gc-stats)
+-show string(a gc-stats)
+	a.to::json show
+-to json(a gc-stats)

@@ -16,15 +16,15 @@ import
 	./win32-util: show-win32-error
 
 +path-already-exists record(path string) exception variant-member
-+describe string(a path-already-exists)
++show string(a path-already-exists)
 	"Path already exists: {a path}"
 
 +path-not-found record(path string) exception variant-member
-+describe string(a path-not-found)
++show string(a path-not-found)
 	"Path not found: {a path}"
 
 +file-system-error record(path string, description string) exception variant-member
-+describe string(a file-system-error)
++show string(a file-system-error)
 	"Error at path {a path}: {a description}"
 
 # `true` iff anything (like a file or directory) exists at the path.
@@ -116,7 +116,7 @@ Use `paths-in-dir` if you want full paths.
 		file-data mut WIN32_FIND_DATAA = ()
 		file = path-search FindFirstFileA &file-data
 		forbid file == INVALID_HANDLE_VALUE : path exception-for-last
-		finally file find-close path.to
+		finally file find-close path
 		path names-in-dir-windows file sort
 	elif extern posix
 		dirp = path.to opendir
@@ -197,7 +197,7 @@ Otherwise, this will be the path where `crow` is installed.
 	"/proc/self/exe" read-link
 
 +not-a-text-file record(path string) exception variant-member
-+describe string(a not-a-text-file)
++show string(a not-a-text-file)
 	"File is not valid UTF-8: {a path}"
 
 # Reads the full contents of the file.

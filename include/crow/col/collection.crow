@@ -13,21 +13,21 @@ export
 	./private/build
 
 +index-too-big record(actual nat64, maximum nat64) by-val, exception variant-member
-+describe string(_ index-too-big)
++show string(_ index-too-big)
 	"The index is bigger than the collection's size"
 
 # Exception when attempting to skip too far forward or backward
 +iterator-out-of-bounds record exception variant-member
-+describe string(_ iterator-out-of-bounds)
++show string(_ iterator-out-of-bounds)
 	"Iterator out of bounds"
 # For a 'slice', the first iterator should be to the right of the second iterator.
 +slice-right-to-left record exception variant-member
-+describe string(_ slice-right-to-left)
++show string(_ slice-right-to-left)
 	"Iterators for slice were in the wrong order"
 
 # Some iterator operations like 'slice' require two iterators to be for the same collection.
 +iterator-not-comparable record exception variant-member
-+describe string(_ iterator-not-comparable)
++show string(_ iterator-not-comparable)
 	"Iterators are for different collections and can't be compared."
 
 +is-empty[t] spec
@@ -61,7 +61,7 @@ export
 +slice[col, iter] spec
 	slice col(begin iter, end iter)
 +slice-out-of-order record exception variant-member
-+describe string(_ slice-out-of-order)
++show string(_ slice-out-of-order)
 	"Tried to slice from a later iterator to an earlier one."
 
 +skip-prev[iter] spec

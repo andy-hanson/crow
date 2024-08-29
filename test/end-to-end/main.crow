@@ -291,4 +291,5 @@ test
 		output-path write-file actual
 		()
 	else
-		(original-path, "For {kind}: {output-path} was not as expected. Actual:\n{actual}"),
+		(original-path, \
+			"For {kind.to::string}: {output-path} was not as expected. Actual:\n{actual}"),

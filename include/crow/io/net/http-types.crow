@@ -49,7 +49,7 @@ region response
 +respond-error record(status nat, status-desc string) exception variant-member
 +to http-response(a respond-error)
 	a.status, a.status-desc, (), a.status-desc.to-bytes
-+describe string(a respond-error)
++show string(a respond-error)
 	"{a status} {a status-desc}"
 
 # Creates a 400 response with the message "Bad query".
@@ -81,14 +81,16 @@ region response
 	"OK" http-ok
 # Creates a 200 response with the given message.
 +http-ok http-response(content json)
-	content.to::string http-ok ()
+	content.show http-ok ()
 +http-ok http-response(message string)
 	message http-ok ()
 +http-ok http-response(content json, headers string[symbol])
-	content.to::string http-ok headers
+	content.show http-ok headers
 # Creates a 200 response with the given message and headers.
 +http-ok http-response(message string, headers string[symbol])
 	200, "OK", headers, message.to-bytes
 
 # Method used by an HTTP request.
 +http-method enum(GET, POST)
++show string(a http-method)
+	a to

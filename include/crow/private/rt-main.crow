@@ -4,7 +4,7 @@ import
 	../col/array: array, size, subscript
 	../col/mut-array: cast-immutable, gc-safe-mut-array, mut-array, set-subscript
 	../col/list: list, to
-	../exception: catch-all, to
+	../exception: catch-all, show
 	../fun-util: subscript
 	../io/print: err, print
 	../misc: new, void
@@ -15,7 +15,7 @@ import
 		+, *, any-mut-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../string: c-string, interpolate, string, to
+	../string: c-string, interpolate, show, string, to
 	./alloc: mutator-begin, mutator-end, unmanaged-alloc-uninitialized-elements, unmanaged-free
 	./bootstrap: set-cur-fiber
 	./future-low-level: as-future-impl, must-get-result

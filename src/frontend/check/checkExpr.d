@@ -609,7 +609,7 @@ Expr checkInterpolated(
 			ExprAst* part = &ast.parts[i];
 			return part.kind.isA!LiteralStringAst
 				? checkLiteralString(ctx, part, part.kind.as!LiteralStringAst.value, argExpected)
-				: checkCallSpecial(ctx, locals, source, part.range, symbol!"to", arrayOfSingle(part), argExpected);
+				: checkCallSpecial(ctx, locals, source, part.range, symbol!"show", arrayOfSingle(part), argExpected);
 		});
 
 struct VariableRefAndType {

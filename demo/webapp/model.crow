@@ -1,5 +1,5 @@
 import
-	crow/crypto/experimental/login-cookie: login-cookie, to
+	crow/crypto/experimental/login-cookie: login-cookie, show
 	crow/parse
 
 register-args record(user-name string, password string)
@@ -13,7 +13,7 @@ login-args alias
 user-cookie record(user nat, inner login-cookie)
 user-cookie user-cookie grammar()
 	nat ~~ "|" ~~ login-cookie map (user, cookie) => user, cookie
-to string(a user-cookie)
+show string(a user-cookie)
 	"{a user}|{a inner}"
 
 post-args record(content string)
@@ -25,7 +25,7 @@ post-response record(id post)
 to json(a post-response)
 to post-response(a json)
 	a["id"].to,
-to string(a post-response)
+show string(a post-response)
 	"Post id={a id}"
 
 user alias
@@ -35,7 +35,7 @@ user-info record(user user, user-name string)
 to json(a user-info)
 to user-info(a json)
 	a["user"].to, a["user-name"].string!
-to string(a user-info)
+show string(a user-info)
 	"User id={a user} name={a user-name}"
 
 post alias
@@ -45,5 +45,5 @@ post-info record(post post, user user, user-name string, content string)
 to json(a post-info)
 to post-info(a json)
 	a["post"].to, a["user"].to, a["user-name"].string!, a["content"].string!
-to string(a post-info)
+show string(a post-info)
 	"Post id={a post} user-id={a user} user-name{a user-name} content={a content}"

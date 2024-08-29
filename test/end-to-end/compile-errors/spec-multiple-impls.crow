@@ -3,7 +3,7 @@ to json(a string)
 	a string
 
 to-json-string[t] string(a t) (json, t) to
-	a.to::json to
+	a.to::json show
 
 main void()
 	info log ("a",)::string[] to-json-string

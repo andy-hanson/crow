@@ -12,10 +12,10 @@ import
 region env
 
 +lmdb-error record(code mdb-error) exception variant-member
-+describe string(a lmdb-error)
++show string(a lmdb-error)
 	"LMDB error {a code}"
 +key-already-exists record exception variant-member
-+describe string(_ key-already-exists)
++show string(_ key-already-exists)
 	"The key is already in the database."
 
 # LMDB environment.
@@ -248,8 +248,7 @@ region stat
 	leaf-pages nat
 	overflow-pages nat
 	entries nat
-
-+to string(a lmdb_stat)
++show string(a lmdb_stat)
 	""""lmdb_stat:
 	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
 	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"

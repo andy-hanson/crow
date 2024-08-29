@@ -5,7 +5,7 @@ import
 dummy-list-tests nat64()
 	0
 
--verify[t] void(a t[], expected string) t equal, (json, t) to, (string, t) to
+-verify[t] void(a t[], expected string) t equal, (json, t) to, t show
 	a.dbg is expected
 	a.size is a.root.check-structure
 
@@ -41,11 +41,11 @@ dummy-list-tests nat64()
 
 -dbg[t] spec
 	dbg string(a t)
--dbg[t] string(a t[]) (string, t) to
+-dbg[t] string(a t[]) t show
 	a.root.node dbg-node
--dbg[t] string(a t l2) (string, t) to
+-dbg[t] string(a t l2) t show
 	a.node dbg-node
--dbg[t] string(a t l3) (string, t) to
+-dbg[t] string(a t l3) t show
 	a.nodes dbg
 -dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
 	match a
@@ -53,13 +53,13 @@ dummy-list-tests nat64()
 		l dbg
 	as branch b
 		"({b.left dbg} {b.down dbg} {b.right dbg})"
--dbg[t] string(a t array) (string, t) to
+-dbg[t] string(a t array) t show
 	parts = " " join for x : a; "{x}"
 	"[{parts}]"
--dbg[t] string(a t array2d) (string, t) to
+-dbg[t] string(a t array2d) t show
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
--dbg[t] string(a t array3d) (string, t) to
+-dbg[t] string(a t array3d) t show
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
 
@@ -147,7 +147,7 @@ test
 -to json(a big-nat)
 	a.a to
 
--to string(a big-nat)
+-show string(a big-nat)
 	"{a a}"
 
 test

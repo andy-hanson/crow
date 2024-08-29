@@ -665,7 +665,6 @@ immutable string[] specialSymbols = [
 	"debugger",
 	"default",
 	"definition",
-	"describe",
 	"destruct",
 	"destructure",
 	"diagnostics",

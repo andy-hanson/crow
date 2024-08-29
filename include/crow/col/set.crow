@@ -3,10 +3,10 @@ import
 	../bool: bool, false, new, not, true
 	../compare: <=, >, >=
 	../fun-util: subscript
-	../misc: key, new, to, void
+	../misc: key, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: interpolate, join, new, string, to
+	../string: interpolate, join, new, show, string
 	./array: array
 	./collection: build, build-options, filter, for-loop, iterate, with-block, with-index
 	./experimental/index-set:
@@ -249,14 +249,14 @@ region spec impls (see collection.crow)
 
 region test
 
-dbg[t] string(a t set) (string, t) to
+dbg[t] string(a t set) t show
 	add = a.add dbg
 	if a.remove is-empty
 		add
 	else
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
--dbg[t] string(a t add-node) (string, t) to
+-dbg[t] string(a t add-node) t show
 	left string = if l ?= a left
 		"{l dbg}, "
 	here = " " join for x : a here; "{x}"

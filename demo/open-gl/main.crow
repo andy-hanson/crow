@@ -213,7 +213,7 @@ main void() summon, trusted, (native, SDL2) extern
 		description fail-sdl-error
 
 -sdl-error record(action string, description string) exception variant-member
--describe string(a sdl-error)
+-show string(a sdl-error)
 	"SDL error in {a action}: {a description}"
 
 -fail-sdl-error void(description string) summon, unsafe, (native, SDL2) extern

@@ -10,12 +10,12 @@ import
 	./option: new, option
 	./range: ..
 	./result: result
-	./string: ==, begin, interpolate, is-empty, join, next, string, to
+	./string: ==, begin, interpolate, is-empty, join, next, show, string, to
 	./private/bootstrap: hard-unreachable
 export
 	./private/backtrace: native-backtrace, backtrace-entry, file-path, function-name, line-number
 	./private/exception-low-level:
-		backtrace, catch-all, describe, error, exception, exception-and-backtrace, rethrow,
+		backtrace, catch-all, error, exception, exception-and-backtrace, rethrow, show,
 		threw-non-exception, thrown, unreachable
 
 +ignore-exceptions record nominal
@@ -27,15 +27,15 @@ export
 		()
 
 +todo record exception variant-member
-+describe string(_ todo)
++show string(_ todo)
 	"TODO"
 
 +not-implemented record exception variant-member
-+describe string(_ not-implemented)
++show string(_ not-implemented)
 	"The operation is not implemented on this platform."
 
 # Outputs the exception's message and backtrace to a string.
-+to string(a exception-and-backtrace) unsafe
++show string(a exception-and-backtrace) unsafe
 	if extern native
 		"{a exception}{a backtrace}"
 	elif extern js
@@ -43,10 +43,7 @@ export
 	else
 		hard-unreachable
 
-+to string(a exception)
-	a describe
-
--to string(a native-backtrace) unsafe, native extern
+-show string(a native-backtrace) unsafe, native extern
 	# Don't include entries from runtime, only at start of function
 	kept-entries = if idx ?= a find-index x => x is-runtime-function-entry
 		if idx > 0
@@ -78,7 +75,7 @@ export
 	elif a == "invoke-action" || a == "invoke__45action"
 		true
 
--to string(a backtrace-entry) native extern
+-show string(a backtrace-entry) native extern
 	name string = trusted a.function-name.to translate-name
 	path string = trusted a.file-path to
 	if name is-empty

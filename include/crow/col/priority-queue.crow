@@ -1,24 +1,3 @@
-no-std
-import
-	../bool: bool, new, not, true
-	../compare: <, >, <=, compare
-	../fun-util: subscript
-	../json: to
-	../misc: data, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, nat64
-	../option: force, is-empty, new, option
-	../range: .., iterate
-	../string: ==, interpolate, join, new, string, to
-	../test-util: is
-	../tuple: ==, a, b, new
-	./array: ~=, ~~=, array, array-builder, build, is-empty, iterate, new, size, subscript
-	./collection: .., build, build-options, end, for-break, for-loop, subscript, swap-at, with-block
-	./mut-array:
-		~=, ~~=, as-slice, build, cast-immutable, is-empty, mut-array, mut-array-builder, mut-slice,
-		size, set-subscript, subscript
-	./list: ==, ~=, build, list, new, to
-	./sort: sort, sort=
-
 ###
 Immutable priority queue.
 

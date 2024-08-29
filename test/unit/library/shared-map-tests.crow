@@ -10,3 +10,5 @@ test
 		x, x * 2
 	()
 
+-to symbol(a nat)
+	a.show to

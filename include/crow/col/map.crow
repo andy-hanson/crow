@@ -6,11 +6,11 @@ import
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash
-	../misc: key, loop-break, new, to, void
+	../misc: key, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
-	../string: interpolate, join, string, to
+	../string: interpolate, join, show, string
 	../tuple: a, b, new
 	../private/bootstrap: todo
 	./array:
@@ -402,9 +402,9 @@ region spec impls (see collection.crow)
 +~=[k, v] void(a (k, v) map-builder, pair (k, v))
 	a.inner ~= pair
 
-dbg[k, v] string(a v[k]) (string, k) to, (string, v) to
+dbg[k, v] string(a v[k]) k show, v show
 	a.root dbg ""
--dbg[k, v] string(a (k, v) node, path string) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) node, path string) k show, v show
 	match a
 	as inner-node node
 		parts string[][] = for index, child : node with-index

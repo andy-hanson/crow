@@ -5,7 +5,7 @@ import
 	../exception: error
 	../misc: new, void
 	../number: ==
-	../string: interpolate, to
+	../string: interpolate, show
 
 # Fail if `errno != 0`.
 check-errno void() summon, unsafe, (libc, native) extern

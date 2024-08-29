@@ -644,11 +644,11 @@ void translateExceptionClass(ref TranslateModuleCtx ctx, scope ref Builder!JsCla
 
 	/*
 	"finish-constructor"() {
-		this.message = this.v_describe()
+		this.message = this.v_show()
 		this.stack = this.stack.replace("<<message>>", this.message)
 	}
 	*/
-	JsExpr callDescribe = genCallPropertySync(ctx.alloc, genThis(), JsMemberName.variantMethod(symbol!"describe"), []);
+	JsExpr callDescribe = genCallPropertySync(ctx.alloc, genThis(), JsMemberName.variantMethod(symbol!"show"), []);
 	JsExpr this_message = genPropertyAccess(ctx.alloc, genThis(), messageName);
 	JsExpr this_stack = genPropertyAccess(ctx.alloc, genThis(), JsMemberName.noPrefix(symbol!"stack"));
 	out_ ~= genInstanceMethod(

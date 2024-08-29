@@ -4,18 +4,18 @@ import
 	./col/list: to
 	./hash: hasher
 	./misc: void
-	./number: nat64
-	./string: hash-mix, join, string, to
+	./string: hash-mix, join, string
 export
 	./private/symbol-low-level: ==, <=>, symbol, to
+
++show string(a symbol)
+	a to
 
 +hash-mix void(hasher hasher, a symbol)
 	hasher hash-mix a.to::string
 
 +to symbol(a symbol) bare
 	a
-+to symbol(a nat64)
-	a.to::string.to
 
 +interpolate symbol(...parts string array)
 	("" join parts.to) to

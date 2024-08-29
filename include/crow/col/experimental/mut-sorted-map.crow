@@ -256,9 +256,9 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a (k, v) mut-sorted-map) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) mut-sorted-map) k show, v show
 	pairs = ", " join for k, v : a pairs
-		"{k} -> {v?.to ?? "_"}"
+		"{k} -> {v?.show ?? "_"}"
 	if next ?= a next
 		"[{pairs}], {next dbg}"
 	else
