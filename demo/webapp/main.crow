@@ -13,7 +13,7 @@ import
 main void() summon, (libc, lmdb, native, posix, sodium) extern
 	with db : open-real-db
 		handler http-handler = shared req => req handle-request db
-		port nat16 = 8080
+		port nat16 = 8081
 		with _ : port http-server handler
 			out print "Serving at http://localhost:{port}; press enter to stop"
 			_ = read-stdin

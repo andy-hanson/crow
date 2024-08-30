@@ -29,7 +29,7 @@ region Create nodes
 ) trusted, js extern
 	node = tag-name create-node attr
 	node.as-js["className"] := class-name
-	_ = node.as-js call-property-spread "append", children.to
+	_ = node.as-js call-property-spread "append", children
 	node js-cast
 
 +create-button node(
@@ -103,13 +103,13 @@ region Node queries
 +query node?(parent node, selector string) trusted, js extern
 	parent.as-js call-property "querySelector", selector cast-option
 
-+query-all node array(selector string) trusted, js extern
++query-all node[](selector string) trusted, js extern
 	"document".js-global call-property "querySelectorAll", selector array-of-node-list
 
-+child-nodes node array(a node) trusted, js extern
++child-nodes node[](a node) trusted, js extern
 	a.as-js["childNodes"] array-of-node-list
 
--array-of-node-list node array(node-list js-any) trusted, js extern
+-array-of-node-list node[](node-list js-any) trusted, js extern
 	"Array".js-global call-property "from", node-list cast
 
 # Calls 'getElementById'
@@ -184,7 +184,7 @@ region Custom elements
 -set-style-sheet void(shadow-root node, css string) trusted, js extern
 	style = "CSSStyleSheet".js-global call-new
 	_ = style call-property "replace", css await
-	shadow-root.as-js["adoptedStyleSheets"] := (style,)::(js-any array)
+	shadow-root.as-js["adoptedStyleSheets"] := (style,)::js-any[]
 
 +wait-until-window-loaded void() summon, trusted, js extern
 	unless "document".js-global["readyState"].cast::string == "complete"

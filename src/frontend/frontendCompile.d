@@ -581,7 +581,6 @@ CommonUris commonUris(Uri includeDir) {
 		private_ / symbol!"future-low-level",
 		includeCrow / symbol!"js",
 		includeCrow / symbol!"json",
-		includeCrow / symbol!"col" / symbol!"list",
 		includeCrow / symbol!"misc",
 		private_ / symbol!"number-low-level",
 		includeCrow / symbol!"std",

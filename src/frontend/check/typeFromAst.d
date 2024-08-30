@@ -289,6 +289,8 @@ private Opt!TypeParamIndex findTypeParam(in TypeParams typeParamsScope, Symbol n
 
 Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 	switch (a.value) {
+		case symbol!"array".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.array);
 		case symbol!"fun-data".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funData);
 		case symbol!"fun-mut".value:
@@ -301,8 +303,6 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case symbol!"map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.map);
-		case symbol!"list".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.list);
 		case symbol!"mut-map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutMap);
 		case symbol!"mut-list".value:
@@ -311,8 +311,8 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
 		case symbol!"option".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case symbol!"shared-list".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.sharedList);
+		case symbol!"shared-array".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.sharedArray);
 		case symbol!"shared-map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.sharedMap);
 		case symbol!"tuple2".value:

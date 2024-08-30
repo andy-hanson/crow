@@ -4,14 +4,13 @@ export
 	./bool
 	./col/array
 	./col/collection
-	./col/list
 	./col/map
 	./col/mut-array
 	./col/mut-list
 	./col/mut-map
 	./col/mut-set
 	./col/set
-	./col/shared-list
+	./col/shared-array
 	./col/shared-map
 	./col/sort
 	./col/util

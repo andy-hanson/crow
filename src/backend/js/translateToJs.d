@@ -60,8 +60,7 @@ import backend.js.jsAst :
 	JsStatement,
 	Shebang,
 	SyncOrAsync;
-import backend.js.translateExpr :
-	genArrayToList, genAssertType, genNewPair, translateFunDecl, translateTest, variantMethodImpl;
+import backend.js.translateExpr : genAssertType, genNewPair, translateFunDecl, translateTest, variantMethodImpl;
 import backend.js.translateModuleCtx :
 	jsNameForDecl,
 	makeDecl,
@@ -372,7 +371,7 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 				if (exit !== 0n)
 					throw new Error("Exited with code " + exit)
 				*/
-				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArrayToList(ctx, genArray([]))]);
+				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.async, mainRef, [genArray([])]);
 				return newArray(ctx.alloc, [
 					genConst(ctx.alloc, exitCode, callMain),
 					genIf(
@@ -394,7 +393,7 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 					genPropertyAccess(ctx.alloc, process, JsMemberName.noPrefix(symbol!"argv")),
 					JsMemberName.noPrefix(symbol!"slice"),
 					[genNumber(2)]);
-				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.sync, mainRef, [genArrayToList(ctx, args)]);
+				JsExpr callMain = genCall(ctx.alloc, SyncOrAsync.sync, mainRef, [args]);
 				JsExpr arg = genArrowFunction(ctx.alloc, SyncOrAsync.sync, [JsDestructure(exitCode)], [
 					genIf(
 						ctx.alloc,

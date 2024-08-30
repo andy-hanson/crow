@@ -11,12 +11,11 @@ import
 	../string: ==, <=>, char32
 	../test-util: is
 	../tuple: a, b, new
-	./array: ==, array, new, subscript
+	./array: ~=, ==, array, build, iterate, new, size, subscript
 	./collection: .., -, build, end, for-break, for-loop, iterate, size, subscript, swap-at
 	./mut-array:
 		~=, +, as-slice, begin, build, cast-immutable, iterate, mut-array, mut-slice, new, next,
 		set-next, set-subscript, size, slice, to, subscript
-	./list: ~=, ==, build, iterate, list, new, size, to
 	./mut-list: mut-list, temp-as-mut-array
 
 +is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
@@ -71,11 +70,11 @@ test
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr char32 array mut-array = "2a", "2b", "1a", "1b"
+	arr char32[] mut-array = "2a", "2b", "1a", "1b"
 	arr sort= x => x[0]
-	arr.to::(char32 array array) is ("1a", "1b", "2a", "2b")
+	arr.to::char32[][] is ("1a", "1b", "2a", "2b")
 	arr sort= x => x[1]
-	arr.to::(char32 array array) is ("1a", "2a", "1b", "2b")
+	arr.to::char32[][] is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
 +set-sort[t] void(a t mut-array) t compare
@@ -122,7 +121,7 @@ Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j
 	mut-a t mut-array = a to
 	mut-b u mut-array = b to
 	mut-a.as-slice set-sort-by-first mut-b.as-slice
-	trusted mut-a.cast-immutable.to, mut-b.cast-immutable.to
+	trusted mut-a.cast-immutable, mut-b.cast-immutable
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 ~set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare

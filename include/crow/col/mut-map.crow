@@ -11,13 +11,12 @@ import
 	../string: ==, interpolate, join, show, string
 	../test-util: is
 	../tuple: ==, new
-	./array: array, iterate, size
+	./array: ==, ~=, array, build, iterate, new, size
 	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
 	./mut-array:
 		~=, begin, build, iterate, mut-array, is-empty, new, next, set-next, set-subscript, size,
 		subscript
-	./list: ==, ~=, build, iterate, list, new, size
 	./mut-list:
 		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
 		remove-unordered-at, set-next, set-subscript, size, subscript
@@ -38,7 +37,7 @@ New map containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-+new[k, v] v mut[k](...a (k, v) array) k key
++new[k, v] v mut[k](...a (k, v)[]) k key
 	a to
 
 ###
@@ -58,8 +57,6 @@ Convert a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v mut[k](a (k, v)[]) k key
-	for x : a; x
-+to[k, v] v mut[k](a (k, v) array) k key
 	for x : a; x
 +to[k, v] v[k](a v mut[k]) k key
 	for x : a; x

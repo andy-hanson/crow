@@ -8,17 +8,16 @@ import
 	../option: ??
 	../test-util: is
 	../tuple: new
-	./array: array
+	./array: array, iterate
 	./collection: for-loop
-	./list: iterate, list, to
 	./map: ~, iterate, map, subscript
 	./mut-map: mut-map, new, set-subscript, subscript, to
 
 +counter[k] record
 	-inner nat64[k]
 
-+new[k] k counter(...a k array) k key
-	a.to to
++new[k] k counter(...a k[]) k key
+	a to
 
 +to[k] k counter(values k[]) k key
 	res nat64 mut[k] = ()

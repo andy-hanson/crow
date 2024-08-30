@@ -13,13 +13,12 @@ import
 	../../string: ==, <=>, hash-mix, interpolate, join, new, show, string
 	../../test-util: is
 	../array:
-		~=, array, as-array, begin-pointer, build, end-pointer, is-empty, iterate, new, next-index,
-		size, subscript
+		~=, array, array-builder, as-array, begin-pointer, build, end-pointer, is-empty, iterate,
+		new, next-index, size, subscript
 	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
 	../mut-array:
 		~=, as-slice, begin-pointer, build, end-pointer, gc-safe-mut-array, is-empty, mut-array,
 		mut-array-builder, mut-slice, set-subscript, size, subscript
-	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
@@ -38,17 +37,16 @@ Largest node is on the left.
 Nodes are added to the right.
 ###
 
--add-node[t] record(values t array, left t add-node?)
+-add-node[t] record(values t[], left t add-node?)
 
-+new[t] t sorted-set(...a t array) t key
-	a.to to
++new[t] t sorted-set(...a t[]) t key
+	a to
 
 +to[t] t sorted-set(a t[]) t key
-	(a.to.sort, ()) :: (t add-node), ()
+	(a.sort, ()) :: (t add-node), ()
 
 +to[t] t[](a t sorted-set) t key
-	for x : a
-		x
+	for x : a; x
 
 # Same as `a.size == 0`.
 +is-empty[t] bool(a t sorted-set)
@@ -244,7 +242,7 @@ Or a combination of the two.
 
 -merge[t] void(
 	a t compactor,
-	values t array,
+	values t[],
 	add-size-here-and-left nat64,
 	remove index-set,
 ) unsafe, t key, native extern
@@ -264,7 +262,7 @@ Or a combination of the two.
 	a-begin t*,
 	init-a-read t*,
 	init-a-write t mut*,
-	b t array,
+	b t[],
 	init-b-remove-index nat64,
 	b-remove index-set,
 ) unsafe, t key, native extern
@@ -307,7 +305,7 @@ Or a combination of the two.
 
 -copy-from-b[t] void(
 	init-a-write t mut*,
-	b t array,
+	b t[],
 	init-b-remove-index nat64,
 	b-remove index-set,
 ) unsafe, native extern
@@ -325,7 +323,7 @@ Or a combination of the two.
 			b-remove-index -:= 1
 			continue
 
--finish[t] t array(a t compactor) unsafe, native extern
+-finish[t] t[](a t compactor) unsafe, native extern
 	assert a.cur == a.end
 	a.begin .. a.end.as-const as-array
 
@@ -364,7 +362,7 @@ region spec impls (see collection.crow)
 			current-least find-least-iter current-least-index, iter-index + 1, iters
 
 -iter-part[t] record by-val
-	values t array
+	values t[]
 	remove-index nat64
 
 -is-empty[t] bool(a t iter-part)
@@ -403,7 +401,7 @@ region spec impls (see collection.crow)
 		a
 
 +sorted-set-builder[t] record mut
-	-inner t list-builder
+	-inner t array-builder
 
 +build[t] t sorted-set(a build-options, f void mut(out t sorted-set-builder)) t key
 	a build (out => f[out,]) to

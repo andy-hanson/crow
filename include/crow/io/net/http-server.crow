@@ -50,7 +50,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	client-states http-parse-state mut[SOCKET],
 	sock SOCKET,
 	state http-parse-state,
-	chunk nat8 array,
+	chunk nat8[],
 	handler http-handler,
 ) summon, unsafe, (libc, posix, native) extern
 	state.unparsed ~~= chunk
@@ -88,9 +88,9 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 -write-until-finished void(
 	sock SOCKET,
-	content nat8 array,
+	content nat8[],
 ) summon, unsafe, (libc, native, posix) extern
-	remaining mut nat8 array = content
+	remaining mut nat8[] = content
 	until remaining.is-empty
 		wrote = sock.as-fd write remaining.begin-pointer, remaining.size
 		if wrote == -1
@@ -106,7 +106,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	path, query = state.path-and-query parse-path-and-query
 	state.method, path, query, state.headers.move-to::(symbol, string)[].to, state.unparsed.move-to
 
--response-to-array nat8 array(a http-response) native extern
+-response-to-array nat8[](a http-response) native extern
 	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive,
 	# maybe forbid any upper-case letters in headers to be consistent
@@ -117,7 +117,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	if a.response-body is-empty
 		"{head}\r\n\r\n" to-bytes
 	else
-		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body to
+		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body
 
 http-initial-state enum(needs-more, finished, abandon)
 

@@ -30,7 +30,7 @@ Iteration is not supported; since operations on this take a lock, they need to b
 	else
 		cb[a inner]
 
-+new[k, v] v shared[k](...a (k, v) array) k key
++new[k, v] v shared[k](...a (k, v)[]) k key
 	a.to new-from-mut-map
 
 -new-from-mut-map[k, v] v shared[k](inner v mut[k]) k key, trusted

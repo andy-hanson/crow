@@ -82,8 +82,6 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.createErrorFunction_, getNonTemplateConcreteFun(ctx, commonFuns.createError));
 	lateSet(ctx.equalNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.equalNat64));
 	lateSet(ctx.lessNat64Function_, getNonTemplateConcreteFun(ctx, commonFuns.lessNat64));
-	lateSet(ctx.newChar8ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char8Type(ctx)], []));
-	lateSet(ctx.newChar32ListFunction_, getConcreteFun(ctx, ctx.program.commonFuns.newTList, [char32Type(ctx)], []));
 	lateSet(ctx.newJsonFromPairsFunction_, getNonTemplateConcreteFun(ctx, commonFuns.newJsonFromPairs));
 	ConcreteCommonFuns concreteCommonFuns = ConcreteCommonFuns(
 		alloc: getNonTemplateConcreteFun(ctx, commonFuns.allocate),
@@ -132,7 +130,7 @@ ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, MainFun main) =>
 		(MainFun.Nat64OfArgs x) =>
 			getNonTemplateConcreteFun(ctx, x.fun),
 		(MainFun.Void x) =>
-			concreteFunForWrapMain(ctx, x.stringList, x.fun));
+			concreteFunForWrapMain(ctx, x.stringArray, x.fun));
 
 void finishLambdas(ref ConcretizeCtx ctx) {
 	foreach (ConcreteStruct* struct_, MutArr!ConcreteLambdaImpl impls; ctx.lambdaStructToImpls) {

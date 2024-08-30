@@ -8,7 +8,6 @@ import
 	../pointer: mut-pointer
 	./array: array
 	./collection: build-options
-	./list: list
 	./mut-list: ~=, build, clear, mut-list, move-to, new, size, subscript, to
 
 ###
@@ -18,7 +17,7 @@ Iteration is not supported; since operations on this take a lock, they need to b
 If you need to iterate, you could use 'copy-to' or 'move-to' to get a snapshot of all the elements
 and iterate it at your leisure.
 ###
-+shared-list[t] record force-shared, by-ref
++shared-array[t] record force-shared, by-ref
 	-lk mut lock
 	-inner mut t mut[]
 -lock[t] lock mut*(a t shared[]) bare, unsafe, native extern
@@ -31,7 +30,7 @@ and iterate it at your leisure.
 	else
 		cb[a inner]
 
-+new[t] t shared[](...a t array)
++new[t] t shared[](...a t[])
 	a.to new-from-new-mut-list
 -new-from-new-mut-list[t] t shared[](inner t mut[]) trusted
 	res t shared[] = uninit, inner

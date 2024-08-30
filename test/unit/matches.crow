@@ -7,7 +7,7 @@ test trusted, native extern
 	a int32 = -7
 	ap int32* = &a
 	b = *ap
-	info log match b
+	match b
 	as -7
 		()
 	else

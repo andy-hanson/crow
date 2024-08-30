@@ -103,8 +103,7 @@ options:
 	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
-	kinds run-kind[] = for _, x : enum-members::((symbol, run-kind) array); x
-	for kind : kinds
+	for kind : values::run-kind[]
 		include = match kind
 		as jit
 			options include-jit

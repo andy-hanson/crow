@@ -377,11 +377,10 @@ Returns an array of the results.
 	0, null
 
 -val-of-bytes MDB_val(a nat8[]) unsafe, native extern
-	array nat8 array = a to
-	array.size, array.begin-pointer.as-mut
+	a.size, a.begin-pointer.as-mut
 
 -bytes-of-val nat8[](a MDB_val) unsafe, native extern
-	a.mv_data .. a.mv_data + a.mv_size as-list
+	a.mv_data.as-const[0 .. a.mv_size]
 
 -check-lmdb-error void(a mdb-error)
 	assert a == MDB_SUCCESS : a lmdb-error

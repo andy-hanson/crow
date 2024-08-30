@@ -221,7 +221,7 @@ The child process shares stdout and stderr with the parent process.
 	&actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
 	pid mut pid_t = 0
-	&pid posix_spawn exe, &actions, null, args.to.begin-pointer, get-environ-raw check-posix-error
+	&pid posix_spawn exe, &actions, null, args.begin-pointer, get-environ-raw check-posix-error
 
 	# Close child-side of pipes (from this process, child still has them)
 	stdout-pipes.read-pipe.close check-posix-error
@@ -304,7 +304,7 @@ The child process shares stdout and stderr with the parent process.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 -spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe, (native, posix) extern
 	pid mut pid_t = 0
-	args-pointer = args.to::(c-string array) begin-pointer
+	args-pointer = args begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 

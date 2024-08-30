@@ -10,11 +10,11 @@ import
 	../range: ..
 	../string: ==, interpolate, join, new, show, string
 	../test-util: is
+	./array: ==, ~=, array, build, is-empty, new, size, subscript
 	./collection: .., -, end, for-loop, subscript, with-index
 	./mut-array:
 		as-slice, cast-immutable, clear-memory, gc-safe-mut-array, iterate, mut-array, mut-slice,
 		is-empty, new, set-subscript, size, subscript
-	./list: ==, ~=, build, is-empty, list, new, size, subscript, to
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
@@ -44,7 +44,7 @@ Copy elements to a list.
 This is O(n).
 ###
 +to[t] t[](a t mut-deque)
-	trusted a.to.cast-immutable to
+	trusted a.to cast-immutable
 
 -to[t] t mut-array(a t mut-deque)
 	guard !a.is-empty

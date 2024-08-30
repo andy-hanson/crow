@@ -174,8 +174,6 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) createErrorFunction_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
-	Late!(ConcreteFun*) newChar8ListFunction_;
-	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructSource.Inst, getStructKey) nonLambdaConcreteStructs;
@@ -213,10 +211,6 @@ struct ConcretizeCtx {
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>
 		lateGet(lessNat64Function_);
-	ConcreteFun* newChar8ListFunction() return scope const =>
-		lateGet(newChar8ListFunction_);
-	ConcreteFun* newChar32ListFunction() return scope const =>
-		lateGet(newChar32ListFunction_);
 	ConcreteFun* newJsonFromPairsFunction() return scope const =>
 		lateGet(newJsonFromPairsFunction_);
 	ConcreteFun* createErrorFunction() return scope const =>
@@ -528,8 +522,8 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, Test* test, size_t testIn
 	return res;
 }
 
-public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringList, FunInst* modelMain) {
-	ConcreteType stringListType = getConcreteType_forStructInst(ctx, modelStringList, emptySmallArray!ConcreteType);
+public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringArray, FunInst* modelMain) {
+	ConcreteType stringArrayType = getConcreteType_forStructInst(ctx, modelStringArray, emptySmallArray!ConcreteType);
 	ConcreteFun* innerMain = getNonTemplateConcreteFun(ctx, modelMain);
 	/*
 	This is like:
@@ -547,7 +541,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		nat64,
 		newSmallArray(ctx.alloc, [
-			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringArrayType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);

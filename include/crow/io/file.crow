@@ -223,7 +223,7 @@ If the file already exists, overwrites it.
 	fd = path.to fopen "wb"
 	forbid fd == null : path exception-for-last
 	finally fd close-fd path
-	bytes nat8 array = content to-bytes
+	bytes nat8[] = content to-bytes
 	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
 	assert wrote-bytes == bytes.size : path exception-for-last
 
@@ -248,7 +248,7 @@ If the file already exists, overwrites it.
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : path exception-for-last
-		res.cast-immutable to
+		res cast-immutable
 
 -close-fd void(fd FILE mut*, path string) summon, unsafe, (libc, native) extern
 	assert fd.fclose == 0 : path exception-for-last

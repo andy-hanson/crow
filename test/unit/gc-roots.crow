@@ -46,7 +46,7 @@ test trusted, native extern
 # Same for create array
 test trusted, native extern
 	start = count-roots
-	res r array = start.f0, start.f1
+	res r[] = start.f0, start.f1
 	count-roots is start + 1
 	yield-fiber
 	res[0] use

@@ -3,7 +3,6 @@ import
 	../compare: <
 	../col/array: array, size, subscript
 	../col/mut-array: cast-immutable, gc-safe-mut-array, mut-array, set-subscript
-	../col/list: list, to
 	../exception: catch-all, show
 	../fun-util: subscript
 	../io/print: err, print
@@ -64,7 +63,7 @@ rt-main int32(
 	res
 
 -invoke-main int32 future(
-	args c-string array,
+	args c-string[],
 	main-pointer main-pointer,
 ) force-ctx, summon, unsafe, native extern
 	set-dummy-fiber
@@ -84,13 +83,13 @@ rt-main int32(
 	res
 
 # Avoiding a lambda here or the compiler may erroneously think this may yield
--convert-args string[](args c-string array) trusted, native extern
+-convert-args string[](args c-string[]) trusted, native extern
 	res string mut-array = args.size gc-safe-mut-array
 	i mut nat64 = 0
 	while i < args.size
 		res[i] := args[i] to
 		i +:= 1
-	res.cast-immutable to
+	res cast-immutable
 
 -thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 

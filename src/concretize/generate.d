@@ -319,14 +319,6 @@ private Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, i
 			});
 		}));
 
-ConcreteExpr genChar8List(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		ConcreteExprKind.Call(ctx.newChar8ListFunction, newSmallArray(ctx.alloc, [
-			genChar8Array(ctx, range, value)]))));
-ConcreteExpr genChar32List(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(
-		ConcreteExprKind.Call(ctx.newChar32ListFunction, newSmallArray(ctx.alloc, [
-			genChar32Array(ctx, range, value)]))));
 private ConcreteExpr genCallVariadic(ref Alloc alloc, UriAndRange range, ConcreteFun* called, ConcreteExpr[] args) =>
 	genCall(alloc, range, called, [genCreateArray(alloc, only(called.params).type, range, args)]);
 

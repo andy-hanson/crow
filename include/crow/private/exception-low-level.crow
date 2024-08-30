@@ -120,7 +120,7 @@ throw-impl void(a exception) bare, native extern
 		ctx native-backtrace 1
 	(a, backtrace) rethrow
 
--new[t] t array(...a t array) bare
+-new[t] t[](...a t[]) bare
 	a
 
 ###

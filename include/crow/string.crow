@@ -5,12 +5,13 @@ import
 	./compare: !=, <, <=, >, compare, comparison, equal, greater, less
 	./col/array:
 		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-cast, array-iterator, as-array, begin,
-		begin-pointer, build, collection, end, is-empty, iterate, new, next, prev, size, slice
+		begin-pointer, build, collection, end, is-empty, iterate, new, next, prev, size, slice,
+		subscript
+	./col/mut-array: cast-immutable, cast-mutable, copy, mut-array
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
-	./col/list: ~=, build, iterate, list, size, subscript, to
-	./col/mut-list: ~=, copy, insert-at, move-to, mut-list, new, reverse-in-place, size, to
+	./col/mut-list: ~=, insert-at, move-to, mut-list, new, reverse-in-place, size
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix
@@ -30,16 +31,12 @@ export
 	# TODO: don't export find-c-string-end
 	./private/c-string-util: ==, char8, c-string, find-c-string-end, to
 
-+to char8 array(a string) builtin, bare
-+to char8[](a string)
-	a.to::(char8 array) to
++to char8[](a string) builtin, bare
 
 -unsafe-to char32(a char8) builtin, bare
 +to char32(a char8) bare
 	assert a is-valid-single-byte-character
 	a.unsafe-to
-+to char32 array(a string)
-	for x : a; x
 +to char32[](a string)
 	for x : a; x
 
@@ -47,16 +44,16 @@ export
 	if trusted extern js
 		trusted a.as-js + b.as-js cast
 	else
-		a.to::(char8 array) ~~ b.to to
+		a.to::char8[] ~~ b.to to
 
-+interpolate string(...parts string array)
++interpolate string(...parts string[])
 	if trusted extern js
 		# This makes sure it's synchronous, and faster
 		trusted parts.as-js call-property "join", ""::string cast
 	else
-		"" join parts.to
-+interpolate c-string(...parts string array) unsafe, native extern
-	("" join parts.to) to
+		"" join parts
++interpolate c-string(...parts string[]) unsafe, native extern
+	"" join parts to
 
 # Same as `""`.
 +new string() bare
@@ -64,11 +61,11 @@ export
 
 # Same as `a == ""`.
 +is-empty bool(a string) bare
-	a.to::(char8 array) is-empty
+	a.to::char8[] is-empty
 
 # Size in `char8`s
 +size-char8s nat64(a string) bare
-	a.to::(char8 array) size
+	a.to::char8[] size
 +size nat64(a string)
 	res mut nat64 = 0
 	for _ : a
@@ -79,7 +76,7 @@ export
 	if trusted extern js
 		trusted a.as-js == b.as-js
 	else
-		a.to::(char8 array) == b.to
+		a.to::char8[] == b.to
 +== bool(a char32, b char32) bare, builtin
 +to nat32(a char32) bare, builtin
 # This is unsafe because a 'char32' should be a valid unicode character.
@@ -97,14 +94,14 @@ export
 		else
 			greater
 	else
-		a.to::(char8 array) <=> b.to
+		a.to::char8[] <=> b.to
 +<=> comparison(a char8, b char8) bare
 	a.to::nat8 <=> b.to
 +<=> comparison(a char32, b char32) bare
 	a.to::nat32 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
-	for c : a.to::(char8 array)
+	for c : a.to::char8[]
 		hasher hash-mix c
 +hash-mix void(hasher hasher, a char8)
 	hasher hash-mix a.to::nat8.to::nat64
@@ -113,29 +110,25 @@ export
 
 region conversion
 
-+to string(a char32 array)
-	a.to::char32[].to
 +to string(a char32[])
 	with out : build
 		for x : a
 			out ~= x
 
 # Assumes its input is valid UTF-8 without validation.
--trust-as-string string(a char8 array) builtin, bare, unsafe
+-trust-as-string string(a char8[]) builtin, bare, unsafe
 
 # Treats UTF-8 character codes as a string. O(n) due to validation.
-+to string(a char8[])
-	a.to::(char8 array) to
-+to string(a char8 array) trusted
++to string(a char8[]) trusted
 	res string = a trust-as-string
 	# Validate decoding
 	for _ : res; ()
 	res
++move-to string(a char8 mut[]) unsafe
+	a.move-to::char8[] to
 # Validates that bytes are UTF-8 character codes, and returns them as a string.
-+as-string string(bytes nat8[])
-	bytes.to::(nat8 array) as-string
-+as-string string(bytes nat8 array) trusted
-	bytes.array-cast::(char8 array) to
++as-string string(bytes nat8[]) trusted
+	bytes.array-cast::char8[] to
 
 +to nat64(a char8) bare
 	a.to::nat8 to
@@ -144,12 +137,10 @@ region conversion
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-+to-bytes nat8[](a string)
-	a.to-bytes::(nat8 array) to
-+to-bytes nat8 array(a string) trusted
-	a.to::(char8 array) array-cast
++to-bytes nat8[](a string) trusted
+	a.to::char8[] array-cast
 
-+to nat8 array(a string)
++to nat8[](a string)
 	a to-bytes
 
 ###
@@ -160,7 +151,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 +to c-string(a string) unsafe, native extern
-	(a.to::(char8 array) ~ "\0") begin-pointer
+	(a.to::char8[] ~ "\0") begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.
@@ -168,7 +159,10 @@ Treats a c-string as a string by walking to the end.
 Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
 ###
 +as-string string(a c-string) unsafe, native extern
-	(a .. a.find-c-string-end).as-array to
+	a.to::char8[] to
+
++to char8[](a c-string) unsafe, native extern
+	a .. a.find-c-string-end as-array
 
 ###
 Unlike 'as-string' this copies the 'c-string'.
@@ -176,11 +170,8 @@ Unlike 'as-string' this copies the 'c-string'.
 This is still unsafe because 'a' must end in a `"\0"` character.
 ###
 +to string(a c-string) unsafe, native extern
-	# TODO: 'copy' seems unnecessary since 'to' should do that?
-	copy char8 mut[] = a.as-string.to::(char8 array).to.copy
-	copy.move-to::(char8 array).to
-+show string(a c-string) unsafe, native extern
-	a to
+	copy char8 mut-array = a.to.cast-mutable copy
+	copy.cast-immutable to
 
 +show[t] spec
 	show string(a t)
@@ -279,6 +270,8 @@ Result is only digits, no punctuation.
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
 
++show string(a c-string) unsafe, native extern
+	a to
 +show string(a string) bare
 	a
 
@@ -341,7 +334,7 @@ Result is only digits, no punctuation.
 		else
 			for _ : out.size .. exp.to
 				out ~= "0"
-	out.move-to::(char32 array) to
+	out.move-to::char32[] to
 
 -to-decimal-and-exponent (nat64, int64)(a float64)
 	assert a > 0
@@ -362,9 +355,6 @@ Result is only digits, no punctuation.
 		dec /:= 10
 		exp +:= 1
 	dec, exp
-
-+move-to string(a char8 mut[]) unsafe
-	a.move-to::(char8 array) to
 
 region spec impls (see collection.crow)
 
@@ -409,7 +399,7 @@ region spec impls (see collection.crow)
 +string-builder record mut
 	-inner char8 array-builder
 +build string(a build-options, f void mut(out string-builder))
-	chars char8 array = a build out => f[out,]
+	chars char8[] = a build out => f[out,]
 	trusted chars trust-as-string
 +~= void(a string-builder, value char32)
 	a unicode-encode value.to
@@ -427,11 +417,8 @@ region utilities
 
 +lines string[](a string)
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
-	arr char32 array = a to
-	for x : arr split ("\n",)
-		rme char32 array? = x try-remove-end "\r"
-		rmex char32 array = rme ?? x
-		rmex.to
+	for x : a.to::char32[] split ("\n",)
+		((x try-remove-end "\r") ?? x) to
 
 # Lower cases every character in `a`.
 +lower-case string(a string)

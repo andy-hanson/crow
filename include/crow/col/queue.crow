@@ -8,9 +8,8 @@ import
 	../option: force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new
-	./array: array, is-empty, iterate, new, size, subscript
+	./array: ==, ~=, array, array-builder, build, is-empty, iterate, new, size, subscript
 	./collection: .., build-options, end, for-loop, subscript
-	./list: ==, ~=, build, list, list-builder, new, to
 	./stack: ~, is-empty, iterate, new, size, stack, to
 
 ###
@@ -19,7 +18,7 @@ Immutable queue.
 Supports efficient removal from the left and insertion to the right.
 ###
 +queue[t] record
-	-left t array
+	-left t[]
 	-right t stack
 
 # Empty queue.
@@ -27,7 +26,7 @@ Supports efficient removal from the left and insertion to the right.
 	(), ()
 
 +to[t] t queue(a t[])
-	a.to, ()
+	a, ()
 
 ###
 Copies queue elements to an array.
@@ -57,7 +56,7 @@ Returns an empty option iff `a` is empty.
 +dequeue[t] (t, t queue)?(a t queue)
 	if a.left is-empty
 		unless a.right is-empty
-			(a.right.to::t[].to, ()) dequeue
+			(a.right.to, ()) dequeue
 	else
 		(a.left[0], (a.left[1 .. end], a.right)),
 
@@ -69,7 +68,7 @@ region iteration
 region build
 
 +queue-builder[t] record mut
-	-inner t list-builder
+	-inner t array-builder
 +build[t] t queue(a build-options, f void mut(out t queue-builder))
 	a build (out => f[out,]) to
 +~=[t] void(a t queue-builder, value t)

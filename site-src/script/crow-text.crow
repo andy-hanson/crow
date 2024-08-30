@@ -181,12 +181,12 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	a.container-stack[0].all! move-to
 
 -node-builder record mut
-	lines line array
-	diagnostics diagnostic array
+	lines line[]
+	diagnostics diagnostic[]
 	pos mut line-and-character
 	container-stack container mut-stack
 	diag-index mut nat
--new node-builder(diagnostics diagnostic array, text string)
+-new node-builder(diagnostics diagnostic[], text string)
 	(for x : text split "\n"; x to), diagnostics, (0, 0), (().all,), 0
 
 -pop-container void(a node-builder) js extern
@@ -315,29 +315,29 @@ create-crow-text node(props crow-text-props) trusted, js extern
 		throw unreachable
 
 line alias
-	char32 array
+	char32[]
 
--slice-lines line array(lines line array, start line-and-character, end line-and-character)
+-slice-lines line[](lines line[], start line-and-character, end line-and-character)
 	if start.line == end.line
 		(lines slice-line start, end),
 	else
 		(lines slice-line-from start) ~ lines[start.line .. end.line] ~ (lines slice-line-to end)
--slice-line line(lines line array, start line-and-character, end line-and-character)
+-slice-line line(lines line[], start line-and-character, end line-and-character)
 	assert start.line == end.line
 	lines[start.line][start.character .. end.character]
--slice-line-from line(lines line array, start line-and-character)
+-slice-line-from line(lines line[], start line-and-character)
 	line = lines[start line]
 	line[start.character .. end]
--slice-line-to line(lines line array, end line-and-character)
+-slice-line-to line(lines line[], end line-and-character)
 	lines[end.line][0 .. end.character]
 
--next-position line-and-character(lines line array, pos line-and-character)
+-next-position line-and-character(lines line[], pos line-and-character)
 	if pos.character >= lines[pos.line].size
 		pos.line + 1, 0
 	else
 		pos.line, pos.character + 1
 
--last-position line-and-character(lines line array)
+-last-position line-and-character(lines line[])
 	lines.size - 1, lines[end - 1].size
 
 -css string()

@@ -31,9 +31,7 @@ import concretize.generate :
 	genCallNoAllocArgs,
 	genCallKindNoAllocArgs,
 	genChar8Array,
-	genChar8List,
 	genChar32Array,
-	genChar32List,
 	genConstant,
 	genContinue,
 	genCreateRecord,
@@ -848,12 +846,8 @@ ConcreteExpr concretizeLiteralStringLike(
 	final switch (kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
 			return genChar8Array(ctx.concretizeCtx, range, value);
-		case LiteralStringLikeExpr.Kind.char8List:
-			return genChar8List(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.char32Array:
 			return genChar32Array(ctx.concretizeCtx, range, value);
-		case LiteralStringLikeExpr.Kind.char32List:
-			return genChar32List(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.cString:
 			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, value)));
 		case LiteralStringLikeExpr.Kind.string_:

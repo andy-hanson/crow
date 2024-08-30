@@ -3,7 +3,8 @@ main void()
 
 r record extern
 	a string
-	b nat64 list
+	b nat array
+	c string array
 
 r2 record by-val, extern
 	a nat64

@@ -117,12 +117,12 @@ immutable struct TypeAst {
 	immutable struct SuffixSpecial {
 		@safe @nogc pure nothrow:
 		enum Kind : ubyte {
-			list,
+			array,
 			mutList,
 			mutPtr,
 			option,
 			ptr,
-			sharedList,
+			sharedArray,
 		}
 		TypeAst left;
 		Pos suffixPos;
@@ -174,7 +174,7 @@ static assert(TypeAst.sizeof == size_t.sizeof + NameAndRange.sizeof);
 
 private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.list:
+		case TypeAst.SuffixSpecial.Kind.array:
 			return cast(uint) "[]".length;
 		case TypeAst.SuffixSpecial.Kind.option:
 			return cast(uint) "?".length;
@@ -184,7 +184,7 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 			return cast(uint) "mut*".length;
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return cast(uint) "*".length;
-		case TypeAst.SuffixSpecial.Kind.sharedList:
+		case TypeAst.SuffixSpecial.Kind.sharedArray:
 			return cast(uint) "shared[]".length;
 	}
 }
@@ -202,8 +202,8 @@ Symbol symbolForTypeAstMap(TypeAst.Map.Kind a) {
 
 Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.SuffixSpecial.Kind.list:
-			return symbol!"list";
+		case TypeAst.SuffixSpecial.Kind.array:
+			return symbol!"array";
 		case TypeAst.SuffixSpecial.Kind.mutList:
 			return symbol!"mut-list";
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
@@ -212,8 +212,8 @@ Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 			return symbol!"option";
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return symbol!"const-pointer";
-		case TypeAst.SuffixSpecial.Kind.sharedList:
-			return symbol!"shared-list";
+		case TypeAst.SuffixSpecial.Kind.sharedArray:
+			return symbol!"shared-array";
 	}
 }
 

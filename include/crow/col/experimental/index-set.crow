@@ -13,9 +13,8 @@ import
 	../../private/number-low-level: wrap-sub
 	../../range: ..
 	../../string: interpolate, join, show, string, to-hex
-	../array: array, iterate, new, subscript
+	../array: ~=, array, array-builder, build, iterate, new, subscript
 	../collection: build-options, for-loop
-	../list: ~=, build, iterate, list, list-builder, to
 
 +index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -31,7 +30,7 @@ import
 -subscript nat64(a leaf-node, n nat64)
 	a.values[n]
 
--values nat64 array(a leaf-node)
+-values nat64[](a leaf-node)
 	trusted if extern native
 		((&a.a)::nat64*)[0 .. 4]
 	else
@@ -40,9 +39,8 @@ import
 	# 64 * 4
 	256
 
-+new index-set(...a nat64 array)
-	a.to to
-
++new index-set(...a nat64[])
+	a to
 +to index-set(a nat64[])
 	res mut index-set = (0, empty)
 	for x : a
@@ -331,7 +329,7 @@ intersect index-set(a index-set, b index-set)
 -count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
 
--count-ones-in-array nat64(a nat64 array)
+-count-ones-in-array nat64(a nat64[])
 	res mut nat64 = 0
 	for x : a
 		res +:= x count-ones
@@ -421,7 +419,7 @@ region spec impls (see collection.crow)
 		false
 
 +index-set-builder record mut
-	-inner nat64 list-builder
+	-inner nat64 array-builder
 
 +build index-set(a build-options, f void mut(out index-set-builder))
 	a build (out => f[out,]) to

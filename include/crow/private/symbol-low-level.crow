@@ -3,7 +3,6 @@ import
 	../bool: bool
 	../col/array: array, iterate, size
 	../col/collection: for-loop
-	../col/list: iterate, list
 	../col/map: ~=, build, get-or-add
 	../compare: comparison
 	../js: ==, as-js, js-cast
@@ -48,7 +47,7 @@ init-symbol-table void(a global-ctx mut*) unsafe
 		x.to, x
 
 # All symbols that exist in the compiled code, in arbitrary order
--static-symbols symbol array() builtin, bare
+-static-symbols symbol[]() builtin, bare
 
 ###
 Interns a string.

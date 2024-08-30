@@ -6,7 +6,6 @@ import
 	../option: option
 	./collection: iterate
 	./array: array
-	./list: list
 	./mut-list: ~=, ~~=, copy, filter=, is-empty, iterate, mut-list, peek, pop, size, subscript, to
 
 ###
@@ -18,7 +17,7 @@ Iteration functions move from the bottom to the top.
 +mut-stack[t] record mut
 	-inner t mut[]
 
-+new[t] t mut-stack(...a t array)
++new[t] t mut-stack(...a t[])
 	a.to,
 
 +copy[t] t mut-stack(a t mut-stack)

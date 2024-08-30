@@ -1291,6 +1291,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
 				final switch (x.kind) {
+					case Diag.TypeShouldUseSyntax.Kind.array:
+						return "Prefer to write 't[]' instead of 't array'.";
 					case Diag.TypeShouldUseSyntax.Kind.funData:
 						return "Prefer to write 'r data(x p)' instead of '(r, p) fun-data'.";
 					case Diag.TypeShouldUseSyntax.Kind.funMut:
@@ -1299,8 +1301,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to writer 'r function(x p)' instead of '(r, p) fun-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.funShared:
 						return "Prefer to write 'r shared(x p)' instead of '(r, p) fun-shared'.";
-					case Diag.TypeShouldUseSyntax.Kind.list:
-						return "Prefer to write 't[]' instead of 't list'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
 						return "Prefer to write 'v[k]' instead of '(k, v) map'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutMap:
@@ -1313,8 +1313,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to write 't?' instead of 't option'.";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
 						return "Prefer to write 't*' instead of 't const-pointer'.";
-					case Diag.TypeShouldUseSyntax.Kind.sharedList:
-						return "Prefer to write 't shared[]' instead of 't shared-list'.";
+					case Diag.TypeShouldUseSyntax.Kind.sharedArray:
+						return "Prefer to write 't shared[]' instead of 't shared-array'.";
 					case Diag.TypeShouldUseSyntax.Kind.sharedMap:
 						return "Prefer to write 'v shared[k]' instead of '(k, v) shared-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:

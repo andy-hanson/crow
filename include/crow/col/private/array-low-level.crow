@@ -20,7 +20,7 @@ import
 export
 	../../private/bootstrap: array, todo
 
-array-reference-equal[t] bool(a t array, b t array) bare, unsafe
+array-reference-equal[t] bool(a t[], b t[]) bare, unsafe
 	if extern native
 		a.array-pointer == b.array-pointer && a.array-size == b.array-size
 	elif extern js
@@ -28,11 +28,11 @@ array-reference-equal[t] bool(a t array, b t array) bare, unsafe
 	else
 		todo
 
-+begin-pointer[t] t*(a t array) bare, unsafe, native extern
++begin-pointer[t] t*(a t[]) bare, unsafe, native extern
 	a array-pointer
 
 # Pointer to the end of an array.
-+end-pointer[t] t*(a t array) bare, unsafe, native extern
++end-pointer[t] t*(a t[]) bare, unsafe, native extern
 	a.array-pointer + a.array-size
 
 ###
@@ -40,13 +40,13 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-+as-array[t] t array(pointers t* range) bare, unsafe, native extern
++as-array[t] t[](pointers t* range) bare, unsafe, native extern
 	pointers.size new-array pointers.low
 
-+pointers[t] t* range(a t array) bare, unsafe, native extern
++pointers[t] t* range(a t[]) bare, unsafe, native extern
 	a.begin-pointer .. a.end-pointer
 
-array-cast[out, in] out array(a in array) bare, unsafe
+array-cast[out, in] out[](a in[]) bare, unsafe
 	if extern native
 		assert size-of@out == size-of@in
 		a.array-size new-array a.begin-pointer.pointer-cast
@@ -55,7 +55,7 @@ array-cast[out, in] out array(a in array) bare, unsafe
 	else
 		todo
 
-+subscript[t] t(a t array, index nat64) bare, trusted
++subscript[t] t(a t[], index nat64) bare, trusted
 	assert index < a.array-size : index index-too-big a.array-size
 	if extern native
 		a.array-pointer[index]
@@ -64,7 +64,7 @@ array-cast[out, in] out array(a in array) bare, unsafe
 	else
 		todo
 
-+subscript[t] t array(a t array, indices nat64 range) bare
++subscript[t] t[](a t[], indices nat64 range) bare
 	assert indices.high <= a.array-size : indices.high index-too-big a.array-size
 	trusted if extern native
 		indices.size new-array a.begin-pointer + indices.low
@@ -74,7 +74,7 @@ array-cast[out, in] out array(a in array) bare, unsafe
 		todo
 
 # Create an array from a range of pointers.
-+subscript[t] t array(a t*, r nat64 range) bare, unsafe, native extern
++subscript[t] t[](a t*, r nat64 range) bare, unsafe, native extern
 	r.size new-array a + r.low
 
 ###
@@ -82,7 +82,7 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 
 Calls `f` for each element in `a`.
 ###
-+iterate[t] bool(a t array, f bool mut(elem t)) trusted
++iterate[t] bool(a t[], f bool mut(elem t)) trusted
 	if extern native
 		if size-of@t == 0
 			i mut nat64 = 0
@@ -122,11 +122,11 @@ Calls `f` for each element in `a`.
 	-buffer mut t mut-array
 	# Not used in JS
 	-cur-size mut nat64
-+build[t] t array(a build-options, f void mut(out t array-builder)) trusted
++build[t] t[](a build-options, f void mut(out t array-builder)) trusted
 	if extern native
 		builder t array-builder = a.size-hint.gc-safe-mut-array, 0
 		f[builder]
-		res t array = builder.cur-size new-array builder.buffer.mut-array-pointer.as-const
+		res t[] = builder.cur-size new-array builder.buffer.mut-array-pointer.as-const
 		builder.buffer := 0 new-mut-array null
 		builder.cur-size := max-value
 		res
@@ -138,7 +138,7 @@ Calls `f` for each element in `a`.
 	else
 		todo
 
--new[t] t mut-array(...a t array) trusted, js extern
+-new[t] t mut-array(...a t[]) trusted, js extern
 	a js-cast
 
 +size[t] nat64(a t array-builder) trusted
@@ -165,7 +165,7 @@ Calls `f` for each element in `a`.
 	else
 		todo
 
-+~~=[t] void(a t array-builder, values t array) trusted
++~~=[t] void(a t array-builder, values t[]) trusted
 	if extern native
 		forbid a.cur-size == max-value
 		capacity = a.buffer mut-array-size

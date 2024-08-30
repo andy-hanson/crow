@@ -2,8 +2,8 @@ import
 	crow/js: cast, js-any
 	./lsp-types: new, token, tokens-legend, token-modifiers, token-types
 
-decode-tokens token array(a js-any, legend tokens-legend) unsafe, js extern
-	encoded nat array = for x : a.cast::(js-any array); x.cast::float.to
+decode-tokens token[](a js-any, legend tokens-legend) unsafe, js extern
+	encoded nat[] = for x : a.cast::js-any[]; x.cast::float.to
 	with out : build
 		prev-line mut nat = 0
 		prev-character mut nat = 0
@@ -26,7 +26,7 @@ decode-tokens token array(a js-any, legend tokens-legend) unsafe, js extern
 			modifiers = next[] decode-modifiers legend.token-modifiers
 			out ~= (line, character, length, type, modifiers)
 
--decode-modifiers symbol array(encoded nat, legend symbol array)
+-decode-modifiers symbol[](encoded nat, legend symbol[])
 	assert legend.size == 1
 	assert encoded == 0 || encoded == 1
 	encoded == 0 ? () : legend

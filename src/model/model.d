@@ -1767,7 +1767,6 @@ immutable struct CommonFuns {
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
-	FunDecl* newTList;
 	FunInst* runFiber;
 	FunInst* rtMain;
 	FunInst* throwImpl;
@@ -1808,9 +1807,6 @@ immutable struct CommonTypes {
 	StructInst* char8ConstPointer;
 	StructInst* char32Array;
 	StructInst* nat8Array;
-	StructDecl* list;
-	StructInst* char8List;
-	StructInst* char32List;
 	StructDecl* option;
 	StructDecl* pointerConst;
 	StructDecl* pointerMut;
@@ -1995,7 +1991,7 @@ immutable struct MainFun {
 
 	immutable struct Void {
 		// Needed to wrap it to the Nat64OfArgs signature
-		StructInst* stringList;
+		StructInst* stringArray;
 		FunInst* fun;
 	}
 
@@ -2005,11 +2001,6 @@ immutable struct MainFun {
 		match!(FunInst*)(
 			(Nat64OfArgs x) => x.fun,
 			(Void x) => x.fun);
-
-	bool needsArgsList() scope =>
-		matchIn!bool(
-			(in Nat64OfArgs _) => true,
-			(in Void _) => false);
 }
 
 bool hasAnyDiagnostics(in ProgramWithMain a) =>
@@ -2546,23 +2537,9 @@ immutable struct LiteralExpr {
 immutable struct LiteralStringLikeExpr {
 	@safe @nogc pure nothrow:
 
-	enum Kind { char8Array, char8List, char32Array, char32List, cString, string_, symbol }
+	enum Kind { char8Array, char32Array, cString, string_, symbol }
 	Kind kind;
 	SmallString value; // For char32Array, this will be decoded in concretize.
-
-	bool isList() scope {
-		final switch (kind) {
-			case LiteralStringLikeExpr.Kind.char8Array:
-			case LiteralStringLikeExpr.Kind.char32Array:
-			case LiteralStringLikeExpr.Kind.cString:
-			case LiteralStringLikeExpr.Kind.string_:
-			case LiteralStringLikeExpr.Kind.symbol:
-				return false;
-			case LiteralStringLikeExpr.Kind.char8List:
-			case LiteralStringLikeExpr.Kind.char32List:
-				return true;
-		}
-	}
 }
 
 immutable struct LocalGetExpr {

@@ -346,14 +346,14 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 		case Token.bracketLeft:
 			mustTakeToken(lexer, Token.bracketLeft);
 			return tryTakeToken(lexer, Token.bracketRight)
-				? suffix(TypeAst.SuffixSpecial.Kind.list)
+				? suffix(TypeAst.SuffixSpecial.Kind.array)
 				: mapLike(TypeAst.Map.Kind.data);
 		case Token.questionBracket:
 			mustTakeToken(lexer, Token.questionBracket);
 			TypeAst left = force(suffix(TypeAst.SuffixSpecial.Kind.option));
 			return tryTakeToken(lexer, Token.bracketRight)
 				? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
-					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.list))))
+					left, suffixPos + 1, TypeAst.SuffixSpecial.Kind.array))))
 				: mapLike(TypeAst.Map.Kind.data, suffixPos + 1, left);
 		case Token.operator:
 			return tryTakeOperator(lexer, symbol!"*")
@@ -388,7 +388,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 					mustTakeToken(lexer, Token.shared_);
 					mustTakeToken(lexer, Token.bracketLeft);
 					return tryTakeToken(lexer, Token.bracketRight)
-						? suffix(TypeAst.SuffixSpecial.Kind.sharedList)
+						? suffix(TypeAst.SuffixSpecial.Kind.sharedArray)
 						: mapLike(TypeAst.Map.Kind.shared_);
 				} else
 					return none!TypeAst;

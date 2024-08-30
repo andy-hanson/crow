@@ -15,8 +15,7 @@ import
 		subscript, swap-at, with-block, with-index
 	../mut-array:
 		~=, begin, build, cast-immutable, iterate, mut-array, mut-array-builder, next, set-next,
-		set-subscript, size, subscript
-	../list: list, to
+		set-subscript, size, subscript, to
 
 ###
 Immutable map that is not efficient to update.
@@ -24,20 +23,18 @@ However, this is more compact than `map` and has faster lookups.
 ###
 +frozen-map[k, v] record by-val
 	# exposed for tests only
-	~pairs (k, v) array
-	~bucket-starts nat64 array
+	~pairs (k, v)[]
+	~bucket-starts nat64[]
 
-+new[k, v] (k, v) frozen-map(...a (k, v) array) k key
-	a.to to
++new[k, v] (k, v) frozen-map(...a (k, v)[]) k key
+	a to
 
 +to[k, v] (k, v) frozen-map(a (k, v)[]) k key
 	trusted a.to as-frozen-map
 
 # This is O(1).
-+to[k, v] (k, v) array(a (k, v) frozen-map) bare
++to[k, v] (k, v)[](a (k, v) frozen-map) bare
 	a pairs
-+to[k, v] (k, v)[](a (k, v) frozen-map)
-	a.to::((k, v) array) to
 
 +is-empty[k, v] bool(a (k, v) frozen-map)
 	a.pairs is-empty
@@ -72,7 +69,7 @@ try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
 		a.bucket-starts[bucket-index + 1]
 	bucket-start .. bucket-end
 
--bucket-at-index[k, v] (k, v) array(a (k, v) frozen-map, bucket-index nat64)
+-bucket-at-index[k, v] (k, v)[](a (k, v) frozen-map, bucket-index nat64)
 	a.pairs[a bucket-indices-at-index bucket-index]
 
 -as-frozen-map[k, v] (k, v) frozen-map(a (k, v) mut-array) unsafe, k key
@@ -120,7 +117,7 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 		for i : a.bucket-starts indices
 			out write-bucket-without-duplicates (a bucket-at-index i)
 
--write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k key
+-write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v)[]) k key
 	for i, pair : pairs with-index
 		unless pair.a key-in-range pairs[i + 1 .. end]
 			out ~= pair
@@ -132,14 +129,14 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 		a.bucket-starts.indices exists i =>
 			a bucket-at-index i bucket-has-duplicates
 
--bucket-has-duplicates[k, v] bool(pairs (k, v) array) k key
+-bucket-has-duplicates[k, v] bool(pairs (k, v)[]) k key
 	pairs.with-index exists (i, (k, _)) =>
 		k key-in-range pairs[i + 1 .. end]
 
--key-in-range[k, v] bool(key k, pairs (k, v) array) k key
+-key-in-range[k, v] bool(key k, pairs (k, v)[]) k key
 	pairs exists (k, _) => k == key
 
--get-bucket-starts[k, v] nat64 array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
+-get-bucket-starts[k, v] nat64[](a (k, v) mut-array, n-buckets nat64) unsafe, k key
 	res nat64 mut-array = n-buckets n-of 0
 	for k, _ : a
 		res[k get-bucket-index n-buckets] +:= 1

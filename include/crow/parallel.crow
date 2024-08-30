@@ -1,9 +1,9 @@
 no-std
 import
 	./bool: bool
+	./col/array: ~~, ~=, array, build, iterate, new, size, subscript
 	./col/collection: build, flatten, for-loop, iterate, size, with-block, with-index
 	./col/util: groupable, groups-of
-	./col/list: ~~, ~=, build, iterate, list, new, size, subscript
 	./exception: catch-all, exception-and-backtrace, rethrow, show
 	./fun-util: subscript
 	./js: as-js, await, call, call-new, cast, call-property, js-cast, js-global

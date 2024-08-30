@@ -47,9 +47,9 @@ A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
 +array[t] builtin extern
-~new-array[t] t array(size nat64, pointer t*) builtin, bare, native extern
-~array-size[t] nat64(a t array) builtin, bare
-~array-pointer[t] t*(a t array) builtin, bare, native extern
+~new-array[t] t[](size nat64, pointer t*) builtin, bare, native extern
+~array-size[t] nat64(a t[]) builtin, bare
+~array-pointer[t] t*(a t[]) builtin, bare, native extern
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -373,31 +373,6 @@ stack-pointer alias
 # In a native build, this is 'future-impl' (see 'future-low-level.crow').
 # In a JS build, this is a 'Promise'.
 +future[t] builtin
-
-region list
-
-###
-Immutable list type.
-
-This type is designed so concatenation (`~` and `~~`) will be efficient.
-It also is efficient to split from an iterator.
-
-It does not support efficient access by an index, so iterators should be used instead.
-###
-+list[t] record by-val
-	~root t l1
-
-~l1[t] record(node (t array, t l2) node) by-val
-~l2[t] record(node (t array2d, t l3) node) by-val
-~l3[t] record(nodes t array3d) by-val
-~node[leaf, lower] union(leaf leaf, branch (leaf, lower) branch)
-###
-'left', 'down', and 'right' should all be non-empty.
-(Else, this layer should be a leaf. See `branch-or-leaf`.)
-###
-~branch[leaf, lower] record(left leaf, down lower, right leaf) by-ref
-~array2d[t] record(total-size nat64, arrays t array array) by-val
-~array3d[t] record(total-size nat64, arrays t array2d array) by-val
 
 ###
 A sequence of `char32`s.

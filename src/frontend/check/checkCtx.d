@@ -69,7 +69,6 @@ enum CommonModule {
 	futureLowLevel,
 	js,
 	json,
-	list,
 	misc,
 	numberLowLevel,
 	std,

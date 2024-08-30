@@ -27,7 +27,7 @@ import
 	./thread-utils: acquire, global-lock, release
 
 ~native-backtrace alias
-	backtrace-entry array
+	backtrace-entry[]
 # 'extern' because interpreter also declares this type
 ~backtrace-entry record extern
 	# These point into either GC or permanent memory. May be empty strings, never null.

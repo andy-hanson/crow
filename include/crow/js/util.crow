@@ -40,7 +40,7 @@ This won't work on opaque types.
 					break false
 -is-array bool(a js-any) unsafe, js extern
 	"Array".js-global call-property "isArray", a cast
--sorted-keys string array(a js-any) unsafe, js extern
+-sorted-keys string[](a js-any) unsafe, js extern
 	"Object".js-global call-property "keys", a call-property "sort" cast
 
 ###
@@ -65,7 +65,7 @@ This currently does not support fields, getters/setters, or calling 'super' with
 	res
 
 +method alias
-	js-any mut(this js-any, args js-any array)
+	js-any mut(this js-any, args js-any[])
 
 -make-method js-any(fn method) unsafe, js extern
 	make-method = """

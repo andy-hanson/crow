@@ -21,8 +21,8 @@ New map containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-+new[k, v] (k, v) mut-sorted-map(...a (k, v) array) k key
-	a.to to
++new[k, v] (k, v) mut-sorted-map(...a (k, v)[]) k key
+	a to
 
 +to[k, v] (k, v) mut-sorted-map(a (k, v)[]) k key
 	res (k, v) mut-sorted-map = ()::(k, v?) mut[], 0, ()
@@ -243,7 +243,7 @@ region spec impls (see collection.crow)
 		f[k, v!]
 
 +mut-sorted-map-builder[k, v] record mut
-	-inner (k, v) list-builder
+	-inner (k, v) array-builder
 
 +build[k, v] (k, v) mut-sorted-map(
 	a build-options,

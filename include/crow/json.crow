@@ -2,12 +2,11 @@ no-std
 import
 	./bool: ==, bool, false
 	./compare: equal
-	./col/array: ~=, array, build, iterate, size
+	./col/array: ==, ~=, array, build, iterate, new, size
 	./col/collection: for-loop
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
 	./col/mut-list: iterate, mut-list, size
-	./col/list: ==, ~=, build, iterate, list, new, size
 	./js:
 		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null,
 		set-subscript, subscript, typeof
@@ -34,7 +33,7 @@ JSON data.
 	object json[symbol]
 +== bool(a json, b json)
 
-+new json(...pairs (symbol, json) array)
++new json(...pairs (symbol, json)[])
 	pairs.to object
 
 +to json(a json)
@@ -69,8 +68,6 @@ JSON data.
 	a string
 +to json(a symbol)
 	a.to::string to
-+to[t] json(a t array) (json, t) to
-	(for x : a; x to) list
 +to[t] json(a t[]) (json, t) to
 	(for x : a; x to) list
 +to[t] json(a t mut[]) (json, t) to
@@ -170,7 +167,7 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 	as string x
 		x as-js
 	as list xs
-		(for x : xs; x to)::(js-any array) as-js
+		(for x : xs; x to)::js-any[] as-js
 	as object x
 		res = "Object".js-global call-new
 		for key, value : x
@@ -191,9 +188,9 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 		if a == null
 			null
 		elif a instanceof "Array".js-global
-			a.cast::(js-any array) to
+			a.cast::js-any[] to
 		else
-			entries js-any array = "Object".js-global call-property "entries", a cast
+			entries js-any[] = "Object".js-global call-property "entries", a cast
 			map json[symbol] = for entry : entries
 				entry[0::nat64].cast::string.to, entry[1::nat64].to
 			map to

@@ -5,9 +5,8 @@ import
 	../misc: key, new, void
 	../option: is-empty
 	../tuple: a, new
-	./array: array, iterate, size
+	./array: ~=, array, build, iterate, size
 	./collection: for-loop
-	./list: ~=, build, iterate, list, size
 	./mut-map: ~=, clear, iterate, move-to, mut-map, in, to, remove
 	./set: iterate, set, to
 
@@ -18,7 +17,7 @@ Mutable unordered set.
 	-inner void mut[t]
 
 # New set with the given elements (with duplicates removed).
-+new[t] t mut-set(...a t array) t key
++new[t] t mut-set(...a t[]) t key
 	pairs (t, void)[] = for x : a; (x, ())
 	# TODO: build the mut-map directly
 	pairs.to,

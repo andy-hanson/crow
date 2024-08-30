@@ -35,7 +35,7 @@ open-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js 
 
 change-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, js extern
 	textDocument js-any = ("uri", uri.as-js),
-	contentChanges js-any array = (("text", text.as-js),),
+	contentChanges js-any[] = (("text", text.as-js),),
 	params js-any = ("textDocument", textDocument), ("contentChanges", contentChanges.as-js)
 	response = a.lsp-server handle-message ("textDocument/didChange" make-message params)
 	a get-diagnostics uri, response
@@ -53,7 +53,7 @@ mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
 		if method != "custom/unknownUris"
 			method is "textDocument/publishDiagnostics"
 			params = message["params"]
-			diagnostics js-any array = params["diagnostics"] cast
+			diagnostics js-any[] = params["diagnostics"] cast
 			a.diagnostics-per-uri[params["uri"] cast] := for x : diagnostics; x to
 	a.diagnostics-per-uri[uri] ?? ()
 
@@ -63,18 +63,18 @@ get-hover string(a crow-server, uri uri, position line-and-character) trusted, j
 	if res != null
 		res["contents"]["value"] cast
 
-get-tokens token array(a crow-server, uri uri) trusted, js extern
+get-tokens token[](a crow-server, uri uri) trusted, js extern
 	args js-any = ("textDocument", (("uri", uri.as-js),)),
 	encoded = (a request "textDocument/semanticTokens/full", args)["data"]
 	encoded decode-tokens a.tokens-legend
 
 run run-result(a crow-server, main-uri uri) trusted, js extern
-	uris = (main-uri.as-js,)::(js-any array) as-js
+	uris = (main-uri.as-js,)::js-any[] as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
 	a request "custom/run", args to
 
 run-js run-result(a crow-server, main-uri uri) trusted, js extern
-	uris = (main-uri.as-js,)::(js-any array) as-js
+	uris = (main-uri.as-js,)::js-any[] as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
 	response = a request "custom/build-js-script", args
 	response["script"].cast-option run-script response["diagnostics"].cast
@@ -122,7 +122,7 @@ run-js run-result(a crow-server, main-uri uri) trusted, js extern
 
 -init void(a crow-server) trusted, summon, js extern
 	include-all = "/include-all.json" fetch-js-object
-	for entry : ("Object".js-global call-property "entries", include-all).cast::(js-any array)
+	for entry : ("Object".js-global call-property "entries", include-all).cast::js-any[]
 		path string = entry[0] cast
 		text string = entry[1] cast
 		_ = a open-file "{include-dir}/{path}", text
@@ -265,13 +265,11 @@ region LSP server
 	server mut wasm32
 	perf-measures perf-measure mut[]
 
--response record
-	messages js-any array
-	exitCode nat?
+-response record(messages js-any[], exitCode nat?)
 -handle-message response(a crow-lsp-server, message js-any) unsafe, js extern
 	response-str wasm32 = a.wasm.handleLspMessage call a.server, (a write-parameters message) cast
 	response = a.view read-c-string response-str json-parse
-	messages js-any array = response["messages"] cast
+	messages js-any[] = response["messages"] cast
 	exit-code js-any = response["exitCode"] cast
 	messages, unless exit-code == null
 		exit-code.cast::float.to,
@@ -291,5 +289,5 @@ region LSP server
 -make-message js-any(method string, params js-any) trusted, js extern
 	("method", method.as-js), ("params", params)
 
--get-unloaded-uris uri array(a crow-server) summon, trusted, js extern
+-get-unloaded-uris uri[](a crow-server) summon, trusted, js extern
 	(a.lsp-server request "custom/unloadedUris", ())["unloadedUris"] cast

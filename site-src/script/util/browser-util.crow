@@ -9,7 +9,7 @@ copy-text-to-clipboard void(text string) summon, trusted, js extern
 
 download-text void(name string, text string) summon, trusted, js extern
 	link = "a" create-node
-	blob = "Blob".js-global call-new (text,)::(string array), \
+	blob = "Blob".js-global call-new (text,)::string[], \
 		(("type", "text/crow"::string.as-js),)::js-any
 	url = "URL".js-global call-property "createObjectURL", blob
 	link.as-js["href"] := url

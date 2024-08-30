@@ -1,9 +1,8 @@
 no-std
 import
 	./bool: bool
-	./col/array: array, iterate
+	./col/array: ~=, array, build, iterate, size
 	./col/collection: build, for-loop, with-block
-	./col/list: ~=, build, iterate, list, size
 	./compare: equal
 	./json: json, to
 	./misc: new
@@ -13,7 +12,7 @@ import
 +flags-like[t] spec t equal
 	& t(a t, b t)
 	| t(a t, b t)
-	flags-members (symbol, t) array()
+	flags-members (symbol, t)[]()
 
 ###
 True if every flag set in `a` is set in `b`.

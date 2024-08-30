@@ -16,7 +16,7 @@ test
 	all = x | y | z
 	all.to::nat32 is 0b111
 
-	flags-members::((symbol, f) array) is (("x", x), ("y", y), ("z", z))
+	flags-members::(symbol, f)[] is (("x", x), ("y", y), ("z", z))
 
 	none | none is none
 	x | x is x

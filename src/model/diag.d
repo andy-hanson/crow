@@ -580,18 +580,18 @@ immutable struct Diag {
 	}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
+			array,
 			funData,
 			funMut,
 			funPointer,
 			funShared,
-			list,
 			map,
 			mutMap,
 			mutList,
 			mutPointer,
 			opt,
 			pointer,
-			sharedList,
+			sharedArray,
 			sharedMap,
 			tuple,
 		}

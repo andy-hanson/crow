@@ -72,11 +72,7 @@ WARN: 'get' followed by 'call' may not work. Use 'call-property' instead.
 	arg2 p2,
 ) builtin, bare, unsafe, js extern
 # `a[name](...args)`
-+call-property-spread[p] js-any(
-	a js-any,
-	name string,
-	args p array,
-) builtin, bare, unsafe, js extern
++call-property-spread[p] js-any(a js-any, name string, args p[]) builtin, bare, unsafe, js extern
 ###
 Treat one type as another. This is a noop in JS.
 
@@ -112,9 +108,9 @@ region Utiliies
 Create a new JavaScript object.
 `("x", 1::float.as-js), ("y", "why"::string.as-js)` is like `{ x: 1, y: "why" }` in JavaScript.
 ###
-+new js-any(...properties (symbol, js-any) array) trusted, js extern
++new js-any(...properties (symbol, js-any)[]) trusted, js extern
 	properties to-js-object
-+to-js-object js-any(properties (symbol, js-any) array) trusted, js extern
++to-js-object js-any(properties (symbol, js-any)[]) trusted, js extern
 	res = "Object".js-global call-new
 	i mut js-any = 0::float64 as-js
 	until i == properties.as-js["length"]

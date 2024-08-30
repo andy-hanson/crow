@@ -848,13 +848,11 @@ Expr checkLiteralIntegral(ref ExprCtx ctx, ExprAst* source, in LiteralIntegral a
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
-	immutable StructInst*[9] allowedTypes = [
+	immutable StructInst*[7] allowedTypes = [
 		ctx.commonTypes.char8,
 		ctx.commonTypes.char32,
 		ctx.commonTypes.char8Array,
-		ctx.commonTypes.char8List,
 		ctx.commonTypes.char32Array,
-		ctx.commonTypes.char32List,
 		ctx.commonTypes.cString,
 		ctx.commonTypes.string_,
 		ctx.commonTypes.symbol,
@@ -864,9 +862,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 		LiteralStringLikeExpr.Kind.cString, // won't be used
 		LiteralStringLikeExpr.Kind.cString, // won't be used
 		LiteralStringLikeExpr.Kind.char8Array,
-		LiteralStringLikeExpr.Kind.char8List,
 		LiteralStringLikeExpr.Kind.char32Array,
-		LiteralStringLikeExpr.Kind.char32List,
 		LiteralStringLikeExpr.Kind.cString,
 		LiteralStringLikeExpr.Kind.string_,
 		LiteralStringLikeExpr.Kind.symbol,
@@ -892,9 +888,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 				string fixedValue = () {
 					final switch (kind) {
 						case LiteralStringLikeExpr.Kind.char8Array:
-						case LiteralStringLikeExpr.Kind.char8List:
 						case LiteralStringLikeExpr.Kind.char32Array:
-						case LiteralStringLikeExpr.Kind.char32List:
 							return value;
 						case LiteralStringLikeExpr.Kind.cString:
 							return checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
@@ -1862,9 +1856,7 @@ Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromBuiltin(BuiltinType a
 Opt!(LiteralStringLikeExpr.Kind) getMatchableStringLikeFromRecord(in CommonTypes commonTypes, in StructInst* inst) =>
 	inst == commonTypes.symbol ? some(LiteralStringLikeExpr.Kind.symbol) :
 	inst == commonTypes.char32Array ? some(LiteralStringLikeExpr.Kind.char32Array) :
-	inst == commonTypes.char32List ? some(LiteralStringLikeExpr.Kind.char32List) :
 	inst == commonTypes.char8Array ? some(LiteralStringLikeExpr.Kind.char8Array) :
-	inst == commonTypes.char8List ? some(LiteralStringLikeExpr.Kind.char8List) :
 	none!(LiteralStringLikeExpr.Kind);
 
 Expr checkMatchStringLike(

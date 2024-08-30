@@ -7,7 +7,7 @@ import
 	./json-tests: dummy-json-tests
 	./math-tests: dummy-math-tests
 	./number-tests: dummy-number-tests
-	./shared-list-tests: dummy-shared-list-tests
+	./shared-array-tests: dummy-shared-array-tests
 	./shared-map-tests: dummy-shared-map-tests
 	./string-tests: dummy-string-tests
 	./symbol-tests: dummy-symbol-tests
@@ -21,7 +21,7 @@ dummy-library-tests nat()
 	_ = dummy-json-tests
 	_ = dummy-math-tests
 	_ = dummy-number-tests
-	_ = dummy-shared-list-tests
+	_ = dummy-shared-array-tests
 	_ = dummy-shared-map-tests
 	_ = dummy-string-tests
 	_ = dummy-symbol-tests

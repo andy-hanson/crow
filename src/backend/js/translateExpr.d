@@ -200,11 +200,6 @@ import util.uri : Uri;
 import util.util : ptrTrustMe;
 import versionInfo : isVersion, VersionFun;
 
-private JsExpr genNewList(ref TranslateModuleCtx ctx, JsExpr[] elements) =>
-	genCallSync(allocate(ctx.alloc, translateFunReference(ctx, ctx.program.commonFuns.newTList)), elements);
-JsExpr genArrayToList(ref TranslateModuleCtx ctx, JsExpr array) =>
-	genCallWithSpread(
-		ctx.alloc, SyncOrAsync.sync, translateFunReference(ctx, ctx.program.commonFuns.newTList), [], array);
 JsExpr genNewPair(ref TranslateModuleCtx ctx, JsExpr a, JsExpr b) =>
 	genNew(ctx.alloc, translateStructReference(ctx, ctx.commonTypes.pair), [a, b]);
 
@@ -1822,24 +1817,16 @@ JsExpr translateConstant(ref TranslateModuleCtx ctx, in Constant value, in Type 
 	}
 }
 JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, ref LiteralStringLikeExpr a) {
-	JsExpr[] char8s() =>
-		map(ctx.alloc, a.value, (ref immutable char x) =>
-			genIntegerUnsigned(x));
-	JsExpr[] char32s() =>
-		buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
-			mustUnicodeDecode(a.value, (dchar x) {
-				out_ ~= genIntegerUnsigned(x);
-			});
-		});
 	final switch (a.kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
-			return genArray(char8s());
-		case LiteralStringLikeExpr.Kind.char8List:
-			return genNewList(ctx.ctx, char8s());
+			return genArray(map(ctx.alloc, a.value, (ref immutable char x) =>
+				genIntegerUnsigned(x)));
 		case LiteralStringLikeExpr.Kind.char32Array:
-			return genArray(char32s());
-		case LiteralStringLikeExpr.Kind.char32List:
-			return genNewList(ctx.ctx, char32s());
+			return genArray(buildArray!JsExpr(ctx.alloc, (scope ref Builder!JsExpr out_) {
+				mustUnicodeDecode(a.value, (dchar x) {
+					out_ ~= genIntegerUnsigned(x);
+				});
+			}));
 		case LiteralStringLikeExpr.Kind.cString:
 			assert(false);
 		case LiteralStringLikeExpr.Kind.string_:

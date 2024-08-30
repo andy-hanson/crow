@@ -14,7 +14,7 @@ import
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
-	./array: array, size
+	./array: array, iterate, size
 	./collection:
 		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, slice-out-of-order,
 		subscript
@@ -22,7 +22,6 @@ import
 		+, begin, begin-pointer, cast-immutable, cast-mutable, clear-memory, copy-to,
 		gc-safe-mut-array, mut-array, mut-array-iterator, mut-slice, prev, new, next, next-index,
 		set-next, set-prev, set-subscript, size, subscript, temp-as-array, to
-	./list: iterate, list, to
 
 ###
 Mutable array type that can change in size.
@@ -80,15 +79,9 @@ capacity[t] nat64(a t mut[]) bare, unsafe, native extern
 ###
 Creates a new list with the given elements.
 ###
-+new[t] t mut[](...a t array) trusted
++new[t] t mut[](...a t[]) trusted
 	# Spread always creates a new array
 	a.cast-mutable, a.size
-
-+to[t] t mut[](a t array)
-	backing t mut-array = ()
-	res t mut[] = backing, 0
-	res ~~= a.to::t[]
-	res
 
 +to[t] t mut[](a t[])
 	backing t mut-array = ()
@@ -130,9 +123,7 @@ Writes to the `mut-list` won't affect the `list`.
 ###
 'move-to' is like 'to' but sets the input to empty.
 ###
-+move-to[t] t[](a t mut[])
-	a.move-to::(t array) to
-+move-to[t] t array(a t mut[]) bare
++move-to[t] t[](a t mut[]) bare
 	trusted a.move-to cast-immutable
 +move-to[t] t mut-array(a t mut[]) bare
 	trusted if extern native
@@ -180,7 +171,7 @@ temp-as-mut-array[t] t mut-array(a t mut[]) bare, unsafe
 Converts to an `array`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
-temp-as-array[t] t array(a t mut[]) bare, unsafe
+temp-as-array[t] t[](a t mut[]) bare, unsafe
 	a.temp-as-mut-array temp-as-array
 
 # True iff `a.size == 0`.
@@ -195,15 +186,13 @@ Throws if `n > a.size`.
 +pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : n index-too-big a.size
 	if trusted extern native
-		res t array = a.backing[0 .. n] to
+		res t[] = a.backing[0 .. n] to
 		new-size = a.size - n
 		a.backing[0 .. new-size] := a.backing[n .. a.size]
 		a.size := new-size
-		res to
+		res
 	elif trusted extern js
-		res t array = trusted do
-			a.backing.as-js call-property "splice", 0::float64, n.to::float64 cast
-		res to
+		trusted a.backing.as-js call-property "splice", 0::float64, n.to::float64 cast
 	else
 		todo
 

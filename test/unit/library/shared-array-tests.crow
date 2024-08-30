@@ -1,4 +1,4 @@
-dummy-shared-list-tests nat()
+dummy-shared-array-tests nat()
 	0
 
 test

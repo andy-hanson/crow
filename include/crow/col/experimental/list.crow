@@ -1,30 +1,77 @@
-no-std
 import
-	../bool: &&, ||, bool, false, not
-	../compare: !=, <, <=, >, compare, comparison, equal
-	../fun-util: subscript
-	../misc: ==, <=>, new
-	../number: ==, <=>, +, -, *, nat64
-	../option: ??, new, option
-	../pointer: const-pointer, mut-pointer
-	../private/exception-low-level: unreachable
-	../private/range-low-level: .., high, iterate, low, range, rangeable, size
-	../pointer: size-of
-	../tuple: a, b, new
-	./array:
-		~~, ~=, array, array-cast, as-array, begin, build, is-empty, iterate, new, next, size,
-		subscript
-	./collection:
-		.., -, concatenate, end, for-loop, index-relative-to-end, index-too-big, is-empty,
-		iterator-not-comparable, iterator-out-of-bounds, range-relative-to-end, sequence-compare,
-		sequence-equal, slice-right-to-left, subscript
-	./mut-array: ~=, as-mut-array, build, cast-immutable, mut-array, to
-	./private/array-low-level: array-reference-equal
-	./private/list-low-level:
-		array2d, array3d, arrays, branch, down, iterate-chunks, l1, l2, l3, leaf, left,
-		list-reference-equal, node, nodes, right, root, total-size
-export
-	./private/list-low-level: ~=, ~~=, build, list, list-builder
+	../private/array-low-level: array-reference-equal
+
+###
+Immutable list type.
+
+This type is designed so concatenation (`~` and `~~`) will be efficient.
+It also is efficient to split from an iterator.
+
+It does not support efficient access by an index, so iterators should be used instead.
+###
++list[t] record by-val
+	~root t l1
+
+-l1[t] record(node (t[], t l2) node) by-val
+-l2[t] record(node (t array2d, t l3) node) by-val
+-l3[t] record(nodes t array3d) by-val
+-node[leaf, lower] union(leaf leaf, branch (leaf, lower) branch)
+###
+'left', 'down', and 'right' should all be non-empty.
+(Else, this layer should be a leaf. See `branch-or-leaf`.)
+###
+-branch[leaf, lower] record(left leaf, down lower, right leaf) by-ref
+-array2d[t] record(total-size nat64, arrays t[][]) by-val
+-array3d[t] record(total-size nat64, arrays t array2d[]) by-val
+
+-list-reference-equal[t] bool(a t list, b t list) unsafe
+	match a.root node
+	as leaf la
+		match b.root node
+		as leaf lb
+			la array-reference-equal lb
+		as branch _
+			false
+	as branch ba
+		match b.root node
+		as leaf _
+			false
+		as branch bb
+			ba reference-equal bb
+
++list-builder[t] record mut
+	-inner t array-builder
++build[t] t list(a build-options, f void mut(out t list-builder))
+	inner t array = a build out => f[out,]
+	(inner.leaf,),
++~=[t] void(a t list-builder, value t)
+	a.inner ~= value
++~~=[t] void(a t list-builder, values t list)
+	broke = values iterate-chunks chunk =>
+		a.inner ~~= chunk
+		false
+	forbid broke
+
+-iterate-chunks[t] bool(a t list, f bool mut(chunk t array))
+	a.root iterate-l1 f
+
+-iterate-l1[t] bool(a t l1, f bool mut(chunk t array))
+	match a node
+	as leaf l
+		f[l]
+	as branch b
+		f[b left] || b.down iterate-l2 f || f[b right]
+
+-iterate-l2[t] bool(a t l2, f bool mut(chunk t array))
+	match a node
+	as leaf l
+		l.arrays iterate f
+	as branch b
+		b.left.arrays iterate f || b.down iterate-l3 f || b.right.arrays iterate f
+
+-iterate-l3[t] bool(a t l3, f bool mut(chunk t array))
+	a.nodes.arrays iterate nodes =>
+		nodes.arrays iterate f
 
 -new[t] t array2d() bare
 	0, ()
@@ -95,7 +142,7 @@ export
 -is-empty[t] bool(a t l3)
 	a.nodes is-empty
 
--depth[t] nat64(a t[])
+-depth[t] nat64(a t list)
 	match a.root.node
 	as leaf _
 		0
@@ -119,83 +166,66 @@ export
 	as branch b
 		b
 
--try-as-l1-leaf[t] t array?(a t[]) bare
+-try-as-l1-leaf[t] t array?(a t list) bare
 	match a.root node
 	as leaf xs
 		xs,
 	as branch _
 		()
 
--get-l1-branch[t] (t array, t l2) branch(a t[]) bare
+-get-l1-branch[t] (t array, t l2) branch(a t list) bare
 	a.root.node as-branch
 
--try-get-l2[t] t l2?(a t[]) bare
+-try-get-l2[t] t l2?(a t list) bare
 	match a.root node
 	as leaf _
 		()
 	as branch b
 		b.down,
 
--get-l2[t] t l2(a t[]) bare
+-get-l2[t] t l2(a t list) bare
 	a.try-get-l2!
 
--get-l2-branch[t] (t array2d, t l3) branch(a t[]) bare
+-get-l2-branch[t] (t array2d, t l3) branch(a t list) bare
 	a.get-l1-branch.down.node as-branch
 
--get-l3[t] t l3(a t[]) bare
+-get-l3[t] t l3(a t list) bare
 	a.get-l2-branch down
 
 # List containing the given elements.
-+new[t] t[](...a t array)
++new[t] t list(...a t array)
 	a to
 
-+subscript[t] t(a t[], index nat64) bare
++subscript[t] t(a t list, index nat64) bare
 	assert index < a.size : index index-too-big a.size
 	(a.begin + index).next!.a
-+subscript[t] t[](a t[], indices nat64 range)
++subscript[t] t list(a t list, indices nat64 range)
 	a.begin + indices.low slice a.begin + indices.high
-
-+as-list[t] t[](a t* range) unsafe, native extern
-	a.as-array to
-+as-list[t] t[](a t mut* range) unsafe, native extern
-	a.as-mut-array.cast-immutable to
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-+to[t] t[](a t array)
++to[t] t list(a t array)
 	l t l1 = a.leaf,
 	l,
-+to[t] t[](a t mut-array)
-	a.to::(t array) to
 
-+to[t] t[](a t?)
++to[t] t list(a t?)
 	if x ?= a
 		x,
-+to[t] t[](a t range) t rangeable
-	for x : a
-		x
 
 ###
 Convert a list to an array.
 This is O(n).
 This is O(1) if the list was converted from an array, meaning a round trip is free.
 ###
-+to[t] t array(a t[])
++to[t] t array(a t list)
 	a.try-as-l1-leaf ?? for x : a; x
-+to[t] t mut-array(a t[])
-	for x : a; x
 
-list-cast[out, in] out[](a in[]) unsafe, native extern
-	assert size-of@out == size-of@in
-	# TODO:PERF
-	a.to.array-cast::(out array) to
-
-+==[t] bool(a t[], b t[]) t equal
++==[t] bool(a t list, b t list) t equal
 	(trusted a list-reference-equal b) || a sequence-equal b
 
-+<=>[t] comparison(a t[], b t[]) t compare
++<=>[t] comparison(a t list, b t list) t compare
 	if trusted a list-reference-equal b
 		equal
 	else
@@ -205,7 +235,7 @@ list-cast[out, in] out[](a in[]) unsafe, native extern
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-+is-empty[t] bool(a t[]) bare
++is-empty[t] bool(a t list) bare
 	match a.root node
 	as leaf xs
 		xs is-empty
@@ -216,7 +246,7 @@ This is O(1).
 Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
-+~~[t] t[](a t[], b t[])
++~~[t] t list(a t list, b t list)
 	guard !a.is-empty : b
 	guard !b.is-empty : a
 	# Concatenate the smaller list onto the bigger one.
@@ -235,14 +265,14 @@ This is O(log n), where `n` is the size of the smaller list.
 Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
-+~[t] t[](a t, b t[])
++~[t] t list(a t, b t list)
 	((a,) cat-left-array-l1 b.root),
 
 ###
 Append an element to a list.
 This is O(log n), amortized O(1).
 ###
-+~[t] t[](a t[], b t)
++~[t] t list(a t list, b t)
 	(a.root cat-right-array-l1 (b,)),
 
 # 'r' is bigger, add 'l' to the left
@@ -394,15 +424,15 @@ region spec impls (see collection.crow)
 Number of elements in the list.
 This is O(n).
 ###
-+size[t] nat64(a t[]) bare
++size[t] nat64(a t list) bare
 	a.end - a.begin
 
-+iterate[t] bool(a t[], f bool mut(elem t))
++iterate[t] bool(a t list, f bool mut(elem t))
 	a iterate-chunks chunk =>
 		chunk iterate f
 
 +list-iterator[t] record by-val
-	-list t[]
+	-list t list
 	# Always non-empty
 	-cur-chunk t array
 	# Always be a valid index
@@ -499,21 +529,21 @@ This is O(n).
 	left, cur = i slice-left
 	left.total-size + cur.total-size + a.next-index-in-chunk
 
-+begin[t] t list-iterator(a t[]) bare
++begin[t] t list-iterator(a t list) bare
 	match a.root node
 	as leaf xs
 		a, xs, 0, l1-leaf
 	as branch b
 		a, b.left, 0, l1-left
 
-+end[t] t list-iterator(a t[]) bare
++end[t] t list-iterator(a t list) bare
 	match a.root node
 	as leaf xs
 		a, xs, xs.size, l1-leaf
 	as branch b
 		a, b.right, b.right.size, l1-right
 
-+collection[t] t[](a t list-iterator) bare
++collection[t] t list(a t list-iterator) bare
 	a list
 
 + +[t] t list-iterator(a t list-iterator, n nat64) bare
@@ -662,14 +692,14 @@ This is O(n).
 	else
 		a prev-set-chunk nodes[end - 1][end - 1], nodes.end.l3-leaf
 
-+slice[t] t[](begin t list-iterator, end t list-iterator)
++slice[t] t list(begin t list-iterator, end t list-iterator)
 	end-of-same-list = if trusted begin.list list-reference-equal end.list
 		end
 	else
 		begin.list.begin + end.next-index
 	begin slice-same-list end-of-same-list
 
--slice-same-list[t] t[](a t list-iterator, b t list-iterator)
+-slice-same-list[t] t list(a t list-iterator, b t list-iterator)
 	a-level = a.pos level
 	b-level = b.pos level
 	a-side = a.pos side
@@ -746,12 +776,12 @@ This is O(n).
 -slice-right-cur-chunk[t] t array(a t list-iterator)
 	a.cur-chunk[a.next-index-in-chunk .. end]
 
--slice-same-array1d[t] t[](a t list-iterator, b t list-iterator)
+-slice-same-array1d[t] t list(a t list-iterator, b t list-iterator)
 	assert trusted a.cur-chunk array-reference-equal b.cur-chunk
 	assert a.next-index-in-chunk <= b.next-index-in-chunk : slice-right-to-left
 	a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to
 
--slice-same-array2d[t] t[](
+-slice-same-array2d[t] t list(
 	a t list-iterator,
 	ai t array-2d-iterator,
 	b t list-iterator,
@@ -768,7 +798,7 @@ This is O(n).
 	as greater
 		throw slice-right-to-left
 
--slice-both-l3[t] t[](
+-slice-both-l3[t] t list(
 	a t list-iterator,
 	ai t array-3d-iterator,
 	b t list-iterator,
@@ -825,7 +855,7 @@ This is O(n).
 		else
 			(left, down, right) branch
 
--make-l1[t] t[](left t array, down t l2, right t array)
+-make-l1[t] t list(left t array, down t l2, right t array)
 	l1 t l1 = (left make-level-generic down, right),
 	l1,
 
@@ -934,3 +964,200 @@ This is O(n).
 -slice-right[t] (t array2d, t array3d)(a t array-3d-iterator) bare
 	a2d t array-2d-iterator = a.arrays[a index-3d], a.index-2d
 	a2d.slice-right, a.arrays[a.index-3d + 1 .. end]
+
+
+region test
+
+-verify[t] void(a t list, expected string) t equal, (json, t) to, t show
+	a.dbg is expected
+	a.size is a.root.check-structure
+
+	(for x : a; x)::(t list) is a
+
+	a-array t array = a to
+
+	iter mut = a begin
+	for index : 0::nat64 .. a.size
+		iter.next-index is index
+		a.begin slice iter is a-array[0 .. index].to
+		iter slice a.end is a-array[index .. end].to
+		next-pair = iter.next!
+		next-pair.a is a[index]
+		iter := next-pair b
+	iter.next-index is a.size
+	assert iter.next is-empty
+
+	iter := a end
+	for index : 0::nat64 .. a.size reversed
+		prev-pair = iter.prev!
+		iter := prev-pair a
+		prev-pair.b is a[index]
+		iter.next-index is index
+		a.begin slice iter is a-array[0 .. iter.next-index].to
+		iter slice a.end is a-array[iter.next-index .. end].to
+	iter.next-index is 0
+	assert iter.prev is-empty
+
+	for i : 0::nat64 .. a.size
+		for j : i .. a.size
+			a[i .. j] is a-array[i .. j].to
+
+-to[t] json(a t list) (json, t) to
+	(for x : a; x to) list
+
+-dbg[t] spec
+	dbg string(a t)
+-dbg[t] string(a t list) t show
+	a.root.node dbg-node
+-dbg[t] string(a t l2) t show
+	a.node dbg-node
+-dbg[t] string(a t l3) t show
+	a.nodes dbg
+-dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
+	match a
+	as leaf l
+		l dbg
+	as branch b
+		"({b.left dbg} {b.down dbg} {b.right dbg})"
+-dbg[t] string(a t array) t show
+	parts = " " join for x : a; "{x}"
+	"[{parts}]"
+-dbg[t] string(a t array2d) t show
+	parts = " " join for x : a arrays; x dbg
+	"[{parts}]"
+-dbg[t] string(a t array3d) t show
+	parts = " " join for x : a arrays; x dbg
+	"[{parts}]"
+
+-check-structure[t] nat64(a t l1)
+	match a node
+	as leaf xs
+		xs size
+	as branch b
+		forbid b.left is-empty
+		forbid b.right is-empty
+		b.left.size + b.down.check-structure + b.right.size
+
+-check-structure[t] nat64(a t l2)
+	match a node
+	as leaf xs
+		xs check-structure
+	as branch b
+		b.left.check-structure + b.down.nodes.check-structure + b.right.check-structure
+
+-check-structure[t] nat64(a t array2d)
+	acc mut nat64 = 0
+	for a1d : a arrays
+		forbid a1d is-empty
+		acc +:= a1d size
+	assert acc == a.total-size
+	acc
+
+-check-structure[t] nat64(a t array3d)
+	# TODO: check total-size is accurate
+	acc mut nat64 = 0
+	for a2d : a arrays
+		forbid a2d.arrays is-empty
+		acc +:= a2d check-structure
+	assert acc == a.total-size
+	acc
+
+test
+	a nat64 list = ()
+	b nat64 list = 1 ~ a
+	b verify "[1]"
+
+test
+	a big-nat list = 1.big, 2.big, 3.big, 4.big
+	a verify "[1 2 3 4]"
+	a ~~ () verify "[1 2 3 4]"
+	()::(big-nat list) ~~ a verify "[1 2 3 4]"
+
+test
+	a nat64 list = 1, 2, 3, 4, 5, 6, 7, 8
+	a verify "[1 2 3 4 5 6 7 8]"
+	b nat64 list = 1 ~ a
+	b verify "([1] [] [1 2 3 4 5 6 7 8])"
+	c nat64 list = (8, 7, 6, 5, 4, 3, 2) ~~ b
+	c verify "([8 7 6 5 4 3 2 1] [] [1 2 3 4 5 6 7 8])"
+	d nat64 list = 9 ~ c
+	d verify "([9] [[8 7 6 5 4 3 2 1]] [1 2 3 4 5 6 7 8])"
+	e = d ~~ (1, 2, 3, 4, 5)
+	e verify "([9] [[8 7 6 5 4 3 2 1] [1 2 3 4 5 6 7 8]] [1 2 3 4 5])"
+
+test
+	a nat64 list = 1, 2, 3, 4, 5
+	a verify "[1 2 3 4 5]"
+	b = a ~~ (9, 8, 7, 6)
+	b verify "([1 2 3 4 5] [] [9 8 7 6])"
+	c = b ~~ b
+	s string = "[9 8 7 6 1 2 3 4 5]"
+	c verify "([1 2 3 4 5] [{s}] [9 8 7 6])"
+	d = c ~~ c
+	d verify "([1 2 3 4 5] [{s} {s} {s}] [9 8 7 6])"
+	e = d ~~ d
+	e verify if trusted extern native
+		"([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
+	else
+		"([1 2 3 4 5] [{s} {s} {s} {s} {s} {s} {s}] [9 8 7 6])"
+
+# use a big type to force smaller leaves for easier testing
+-big-nat record(a nat64, b nat64, c nat64) by-val
+
+-== bool(a big-nat, b big-nat)
+	a.a == b.a && a.b == b.b && a.c == b.c
+
+-big big-nat(a nat64)
+	a, a, a
+
+-to json(a big-nat)
+	a.a to
+
+-show string(a big-nat)
+	"{a a}"
+
+test
+	js bool = trusted extern js
+	trusted if extern native
+		size-of@big-nat is 24
+	a big-nat list = 5.big, 6.big
+	b big-nat list = 4.big ~ a
+	b verify (js ? "[4 5 6]" : "([4] [] [5 6])")
+
+	b-split = (b try-split-once (5.big,))!
+	b-split.a verify "[4]"
+	b-split.b verify "[6]"
+
+	c big-nat list = b ~ 7.big
+	c verify (js ? "[4 5 6 7]" : "([4] [[5 6]] [7])")
+
+	c-split = (c try-split-once (5.big,))!
+	c-split.a verify "[4]"
+	c-split.b verify "[6 7]"
+
+	d big-nat list = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
+	d verify (js ? "[4 5 6 7 8 9 10 11]" : "([4] [[5 6] [7 8] [9 10]] [11])")
+
+	d-split = (d try-split-once (6.big, 7.big))!
+	d-split.a verify "[4 5]"
+	d-split.b verify (js ? "[8 9 10 11]" : "([8] [[9 10]] [11])")
+
+	e big-nat list = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
+	e verify if js
+		"([0 1 2 3] [] [4 5 6 7 8 9 10 11])"
+	else
+		"([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
+	f big-nat list = e ~ 12.big ~ 13.big
+	f verify if js
+		"([0 1 2 3] [[4 5 6 7 8 9 10 11]] [12 13])"
+	else
+		"([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
+
+	f-split = (f try-split-once (4.big, 5.big))!
+	f-split.a verify (js ? "[0 1 2 3]" : "([0] [[1 2]] [3])")
+	f-split.b verify (js ? "[6 7 8 9 10 11 12 13]" : "([6] [[7 8] [9 10] [11 12]] [13])")
+
+test
+	a nat64 list = 1, 2, 3, 4, 5, 6, 7
+	a groups-of 3 is ((1, 2, 3), (4, 5, 6), (7,))
+

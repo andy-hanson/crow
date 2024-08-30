@@ -93,7 +93,6 @@ CommonFunsAndDiagnostics getCommonFuns(
 
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
-	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
 	StructDecl* tuple2Decl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"tuple2", 2);
 	Type markCtxType = getType(CommonModule.bootstrap, symbol!"mark-ctx");
@@ -103,16 +102,13 @@ CommonFunsAndDiagnostics getCommonFuns(
 	Type nat64Type = Type(commonTypes.integrals.nat64);
 	Type voidType = Type(commonTypes.void_);
 	Type stringType = Type(commonTypes.string_);
-	Type stringListType = instantiateType(listDecl, [stringType]);
+	Type stringArrayType = instantiateType(arrayDecl, [stringType]);
 	Type nat8ConstPointerType = instantiateType(commonTypes.pointerConst, [nat8Type]);
 	Type nat8MutPointerType = instantiateType(commonTypes.pointerMut, [nat8Type]);
 	Type cStringType = Type(commonTypes.cString);
 	Type cStringConstPointerType = instantiateType(commonTypes.pointerConst, [cStringType]);
-	Type mainPointerType = instantiateType(commonTypes.funPointerStruct, [nat64Type, stringListType]);
+	Type mainPointerType = instantiateType(commonTypes.funPointerStruct, [nat64Type, stringArrayType]);
 	Type jsonType = getType(CommonModule.json, symbol!"json");
-
-	Type tList = instantiateType(commonTypes.list, [typeParam0]);
-	Type tArray = instantiateType(commonTypes.array, [typeParam0]);
 
 	Type rSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [typeParam0, typeParam1]);
 	Type rMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [typeParam0, typeParam1]);
@@ -134,8 +130,6 @@ CommonFunsAndDiagnostics getCommonFuns(
 
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
-	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
-		param!"value"(tArray), typeParam0);
 	CommonFuns commonFuns = CommonFuns(
 		jsAwait: getFun(CommonModule.js,symbol!"await", jsAny, [param!"a"(jsAny)]),
 		curCatchPoint: getFun(CommonModule.exceptionLowLevel, symbol!"cur-catch-point", catchPointConstPointer, []),
@@ -164,9 +158,6 @@ CommonFunsAndDiagnostics getCommonFuns(
 		newJsonFromPairs: instantiateNonTemplateFun(ctx, getFunDecl(
 			alloc, diagsBuilder, *modules[CommonModule.json], symbol!"new",
 			TypeParamsAndSig(emptyTypeParams, jsonType, ParamsShort(&newJsonPairsParams), countSpecs: 0))),
-		newTList: getFunDecl(
-			alloc, diagsBuilder, *modules[CommonModule.list], symbol!"new",
-			TypeParamsAndSig(singleTypeParams, tList, ParamsShort(&newTListParams), countSpecs: 0)),
 		runFiber: getFun(
 			CommonModule.runtime, symbol!"run-fiber",
 			Type(commonTypes.void_),
@@ -210,10 +201,10 @@ MainFunAndDiagnostics getMainFunAndDiagnostics(
 ) {
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 	ref CommonTypes commonTypes() => program.commonTypes;
-	Type stringListType = Type(instantiateStructNeverDelay(ctx, commonTypes.list, [Type(commonTypes.string_)]));
+	Type stringArrayType = Type(instantiateStructNeverDelay(ctx, commonTypes.array, [Type(commonTypes.string_)]));
 	MainFun res = getMainFun(
 		alloc, ctx, diagsBuilder, *moduleAtUri(program, mainUri),
-		Type(commonTypes.integrals.nat64), stringListType, Type(commonTypes.void_));
+		Type(commonTypes.integrals.nat64), stringArrayType, Type(commonTypes.void_));
 	SymbolSet mainExterns = res.fun.decl.externs;
 	if (!allExterns.containsAll(mainExterns))
 		add(alloc, diagsBuilder, UriAndDiagnostic(
@@ -381,10 +372,10 @@ MainFun getMainFun(
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module mainModule,
 	Type nat64Type,
-	Type stringListType,
+	Type stringArrayType,
 	Type voidType,
 ) {
-	scope ParamShort[] argsParamsInner = [param!"args"(stringListType)];
+	scope ParamShort[] argsParamsInner = [param!"args"(stringArrayType)];
 	ParamsShort argsParams = ParamsShort(small!ParamShort(castNonScope_ref(argsParamsInner)));
 	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, symbol!"main", [
 		TypeParamsAndSig(emptyTypeParams, voidType, ParamsShort(emptySmallArray!ParamShort), countSpecs: 0),
@@ -392,7 +383,7 @@ MainFun getMainFun(
 	FunInst* inst = instantiateNonTemplateFun(ctx, decl.decl);
 	final switch (decl.sigIndex) {
 		case 0:
-			return MainFun(MainFun.Void(stringListType.as!(StructInst*), inst));
+			return MainFun(MainFun.Void(stringArrayType.as!(StructInst*), inst));
 		case 1:
 			return MainFun(MainFun.Nat64OfArgs(inst));
 	}

@@ -6,8 +6,8 @@ import
 	../../number: nat64
 	../../option: is-empty
 	../../tuple: new
+	../array: ~=, array, build, iterate, size
 	../collection: build-options, for-loop
-	../list: ~=, build, iterate, list, size
 	./mut-sorted-map:
 		~=, build, clear, filter=, in, is-empty, iterate, map=, mut-sorted-map, new, remove-key,
 		set-subscript, size, subscript

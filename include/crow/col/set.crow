@@ -7,14 +7,13 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
 	../string: interpolate, join, new, show, string
-	./array: array
+	./array: ~=, array, build
 	./collection: build, build-options, filter, for-loop, iterate, with-block, with-index
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
 		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to,
 		try-get-unordered-index
-	./list: ~=, build, list, to
 
 ###
 Immutable unsorted set.
@@ -26,8 +25,8 @@ Immutable unsorted set.
 -add-node[t] record(here t frozen-set, left t add-node?)
 
 # Set containing the given elements (with duplicates removed).
-+new[t] t set(...a t array) t key
-	a.to::t[] to
++new[t] t set(...a t[]) t key
+	a to
 
 # Set containing the given elements (with duplicates removed).
 +to[t] t set(a t[]) t key

@@ -28,9 +28,9 @@ import
 +I mat3-64() bare
 	(1, 0, 0), (0, 1, 0), (0, 0, 1)
 
-+to float32 array(a mat3-32)
++to float32[](a mat3-32)
 	a.row0.to ~~ a.row1.to ~~ a.row2.to
-+to float64 array(a mat3-64)
++to float64[](a mat3-64)
 	a.row0.to ~~ a.row1.to ~~ a.row2.to
 
 +col0 vec3-32(a mat3-32) bare

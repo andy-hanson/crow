@@ -17,7 +17,6 @@ import
 	../collection:
 		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, slice-left,
 		slice-right, starts-with, subscript, with-block
-	../list: ~=, build, list, list-builder, to
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert
@@ -30,7 +29,7 @@ Unlike `array`, the values are always in sorted order, and there are never two o
 	-root t node
 	-total-size nat64
 
--node[t] union(inner t inner-node, leaf t array)
+-node[t] union(inner t inner-node, leaf t[])
 
 -inner-node[t] record(value t, left t node, right t node) by-ref
 
@@ -43,12 +42,12 @@ is-empty[t] bool(a t tree-set) t key
 	a total-size
 
 # Empty `tree-set`.
-+new[t] t tree-set(...a t array) t key
-	a.to to
++new[t] t tree-set(...a t[]) t key
+	a to
 
 # Copy a list to a `tree-set`.
 +to[t] t tree-set(a t[]) t key
-	values t array = a.to sort-unique
+	values t[] = a sort-unique
 	values.leaf, values.size
 
 ###
@@ -58,9 +57,9 @@ This is O(n).
 +to[t] t[](a t tree-set) t key
 	match a.root
 	as inner i
-		i tree-to-array a.size to
+		i tree-to-array a.size
 	as leaf l
-		l to
+		l
 
 # True iff the value is in the set.
 +in[t] bool(value t, a t tree-set) t key
@@ -106,14 +105,14 @@ This is O(n).
 			out walk-iter-union x, b-iter
 		b-iter consume-rest out
 	list to
--consume-rest[t] void(a t iter, out t list-builder)
+-consume-rest[t] void(a t iter, out t array-builder)
 	for x : a cur
 		out ~= x
 	while popped ?= a.stack pop
 		popped each-inner x =>
 			out ~= x
 
--walk-iter-union[t] void(out t list-builder, value t, a t iter) t key
+-walk-iter-union[t] void(out t array-builder, value t, a t iter) t key
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -156,7 +155,7 @@ This is O(a.size ln).
 If `value` is in `a`, returns `a` with the first instance of `value` removed.
 Else, returns an empty option.
 ###
--try-remove[t] t array?(a t array, value t) t key
+-try-remove[t] t[]?(a t[], value t) t key
 	if index ?= a index-of value
 		(a remove-at index),
 
@@ -214,7 +213,7 @@ This is O(a.size ln).
 	a filter x => !(b-iter walk-iter-has x)
 
 -iter[t] record mut
-	cur mut t array
+	cur mut t[]
 	# If a node is on the stack, we have yet to write out the middle and right.
 	# TODO:PERF use a mut-array, initialized to the tree's height
 	stack t inner-node mut-stack
@@ -288,7 +287,7 @@ This is O(a.size ln).
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
--add-to-array[t] t add-result(a t array, value t, max-height nat64) t key
+-add-to-array[t] t add-result(a t[], value t, max-height nat64) t key
 	insert = a binary-search-insert value
 	if !insert.is-at-end && insert.next!.a == value
 		none
@@ -301,7 +300,7 @@ This is O(a.size ln).
 		a break-up-arr value, insert, max-height
 
 -break-up-arr[t] t add-result(
-	a t array,
+	a t[],
 	value t,
 	insert-iter t array-iterator,
 	max-height nat64,
@@ -354,10 +353,10 @@ This is O(a.size ln).
 	as leaf l
 		l size
 
--tree-to-array[t] t array(a t inner-node, value t, size nat64) t key
+-tree-to-array[t] t[](a t inner-node, value t, size nat64) t key
 	with out : size build
 		out tree-to-array-recur a.inner, value
--tree-to-array[t] t array(a t inner-node, size nat64) t key
+-tree-to-array[t] t[](a t inner-node, size nat64) t key
 	with out : size build
 		out tree-to-array-recur a.inner
 -tree-to-array-recur[t] void(out t array-builder, a t node, value t) t key
@@ -414,7 +413,7 @@ region spec impls (see collection.crow)
 	forbid res
 
 +tree-set-builder[t] record mut
-	-inner t list-builder
+	-inner t array-builder
 
 +build[t] t tree-set(a build-options, f void mut(out t tree-set-builder)) t key
 	a build (out => f[out,]) to

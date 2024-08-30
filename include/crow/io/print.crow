@@ -54,7 +54,7 @@ import
 		throw not-implemented
 
 -write-windows void(console HANDLE, a string) summon, unsafe, (native, windows) extern
-	bytes nat8 array = a to-bytes
+	bytes nat8[] = a to-bytes
 	written mut DWORD = 0
 	size32 nat32 = bytes.size to
 	ok = console WriteFile bytes.begin-pointer, size32, &written, null
@@ -65,7 +65,7 @@ import
 
 -write-posix void(fd fd-t, a string) summon, unsafe, (native, posix) extern
 	assert size-of@char8 == size-of@nat8
-	bytes nat8 array = a to-bytes
+	bytes nat8[] = a to-bytes
 	res = fd write bytes.begin-pointer, bytes.size
 	unless res == bytes.size.to
 		# TODO: Maybe retry

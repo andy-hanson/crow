@@ -29,7 +29,7 @@ export
 ###
 Creates a new `mut-array` with the given elements.
 ###
-+new[t] t mut-array(...a t array) bare, trusted
++new[t] t mut-array(...a t[]) bare, trusted
 	# A spread argument is always a new array
 	a cast-mutable
 
@@ -42,7 +42,7 @@ Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-+to[t] t mut-array(a t array) trusted
++to[t] t mut-array(a t[]) trusted
 	# Not using a 'for' loop because the compiler may think it may yield (due to the virtual call)
 	res t mut-array = a.size gc-safe-mut-array
 	res.as-slice copy-from a
@@ -55,9 +55,9 @@ This is O(n).
 
 There is no `move-to` for `mut-array` since there might be slices that still refer to its elements.
 ###
-+to[t] t array(a t mut-array) trusted
++to[t] t[](a t mut-array) trusted
 	a.copy cast-immutable
-+to[t] t array(a t mut-slice) trusted
++to[t] t[](a t mut-slice) trusted
 	for x : a; x
 
 # Creates a `mut-array` from a range of pointers.
@@ -117,25 +117,25 @@ This is O(n).
 Copies elements from `source` to `dest`.
 Throws if `dest` and `source` are not the same size.
 ###
-+set-subscript[t] void(dest t mut-array, range nat64 range, source t array) bare
++set-subscript[t] void(dest t mut-array, range nat64 range, source t[]) bare
 	dest[range] copy-from source
 +set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-array) bare
 	dest[range] := trusted source temp-as-array
 +set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-slice) bare
 	dest[range] := trusted source temp-as-array
-+set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t array) bare
++set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t[]) bare
 	dest[range to-range dest.size] := source
 +set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-array) bare
 	dest[range] := trusted source temp-as-array
 +set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-slice) bare
 	dest[range] := trusted source temp-as-array
-+set-subscript[t] void(dest t mut-slice, range nat64 range, source t array) bare
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t[]) bare
 	dest[range] copy-from source
 +set-subscript[t] void(dest t mut-slice, range nat64 range, source t mut-array) bare
 	dest[range] := trusted source temp-as-array
 +set-subscript[t] void(dest t mut-slice, range nat64 range, source t mut-slice) bare
 	dest[range] := trusted source temp-as-array
-+set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t array) bare
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t[]) bare
 	dest[range to-range dest.size] := source
 +set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-array) bare
 	dest[range to-range dest.size] := source
@@ -169,7 +169,7 @@ Throws if `dest` and `source` are not the same size.
 	a[indices to-range a.size]
 +begin-pointer[t] t mut*(a t mut-slice) bare, unsafe, native extern
 	a.inner.begin-pointer + a.range.low
-+temp-as-array[t] t array(a t mut-slice) bare, unsafe
++temp-as-array[t] t[](a t mut-slice) bare, unsafe
 	if extern native
 		a.begin-pointer[0 .. a.size] temp-as-array
 	elif extern js
@@ -185,7 +185,7 @@ Throws if `dest` and `source` are not the same size.
 	res[0 .. a.size] := a
 	res
 
--copy-from[t] void(dest t mut-slice, source t array) bare
+-copy-from[t] void(dest t mut-slice, source t[]) bare
 	assert dest.size == source.size
 	trusted if extern native
 		dest.begin-pointer mem-move source.begin-pointer, source.size
@@ -245,14 +245,14 @@ See `gc-safe-mut-array` for why this is unsafe.
 Unsafe cast a mut-array to an array.
 It must never be written to again.
 ###
-+cast-immutable[t] t array(a t mut-array) bare, unsafe
++cast-immutable[t] t[](a t mut-array) bare, unsafe
 	if extern native
 		a.as-slice cast-immutable
 	elif extern js
 		a js-cast
 	else
 		todo
-+cast-immutable[t] t array(a t mut-slice) bare, unsafe
++cast-immutable[t] t[](a t mut-slice) bare, unsafe
 	if extern native
 		a.size new-array a.begin-pointer.as-const
 	elif extern js
@@ -260,7 +260,7 @@ It must never be written to again.
 	else
 		todo
 
-~cast-mutable[t] t mut-array(a t array) bare, unsafe
+~cast-mutable[t] t mut-array(a t[]) bare, unsafe
 	if extern native
 		a.size new-mut-array a.begin-pointer.as-mut
 	elif extern js
@@ -276,7 +276,7 @@ This is O(1).
 Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
 so this value must only be used temporarily.
 ###
-+temp-as-array[t] t array(a t mut-array) bare, unsafe
++temp-as-array[t] t[](a t mut-array) bare, unsafe
 	a cast-immutable
 
 ###
@@ -350,7 +350,7 @@ region spec impls (see collection.crow)
 	(a build out => f[out,]) cast-mutable
 +~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value
-+~~=[t] void(a t mut-array-builder, values t array)
++~~=[t] void(a t mut-array-builder, values t[])
 	a.inner ~~= values
 +size[t] nat64(a t mut-array-builder)
 	a.inner size

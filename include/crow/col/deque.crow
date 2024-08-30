@@ -7,25 +7,21 @@ import
 +deque[t] record
 	# NOTE: This is in reverse (top of the stack furthest left)
 	-left t stack
-	-mid t array
+	-mid t[]
 	-right t stack
 
 ###
 Deque containing the given elements.
 ###
-+new[t] t deque(...a t array)
++new[t] t deque(...a t[])
 	a to
 
-+to[t] t deque(a t array)
++to[t] t deque(a t[])
 	# TODO: should not need type annotation
 	()::(t stack), a, ()
 
-+to[t] t deque(a t[])
-	a.to::(t array) to
-
 +to[t] t[](a t deque)
-	for x : a
-		x
+	for x : a; x
 
 ###
 `true` iff `a.size == 0`.
@@ -60,7 +56,7 @@ Returns an empty option iff `a` is empty.
 		# TODO: should not need type annotation
 		(a.mid[0], (()::(t stack), a.mid[1 .. end], a.right)),
 	else
-		right-arr t array = a.right to
+		right-arr t[] = a.right to
 		unless right-arr is-empty
 			(right-arr[0], right-arr[1 .. end].to),
 

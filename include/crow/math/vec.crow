@@ -36,13 +36,13 @@ import
 +show string(a vec3-64)
 	"<{a x}, {a y}, {a z}>"
 
-+to float32 array(a vec2-32)
++to float32[](a vec2-32)
 	a.x, a.y
-+to float64 array(a vec2-64)
++to float64[](a vec2-64)
 	a.x, a.y
-+to float32 array(a vec3-32)
++to float32[](a vec3-32)
 	a.x, a.y, a.z
-+to float64 array(a vec3-64)
++to float64[](a vec3-64)
 	a.x, a.y, a.z
 
 region named directions

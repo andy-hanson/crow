@@ -330,6 +330,8 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {
+			case Diag.TypeShouldUseSyntax.Kind.array:
+				return suffix("[]");
 			case Diag.TypeShouldUseSyntax.Kind.map:
 				return map("");
 			case Diag.TypeShouldUseSyntax.Kind.funData:
@@ -340,8 +342,6 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 				return fun(FunKind.function_);
 			case Diag.TypeShouldUseSyntax.Kind.funShared:
 				return fun(FunKind.shared_);
-			case Diag.TypeShouldUseSyntax.Kind.list:
-				return suffix("[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutMap:
 				return map(" mut");
 			case Diag.TypeShouldUseSyntax.Kind.mutList:
@@ -352,8 +352,8 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 				return suffix("?");
 			case Diag.TypeShouldUseSyntax.Kind.pointer:
 				return suffix("*");
-			case Diag.TypeShouldUseSyntax.Kind.sharedList:
-				return suffix("[]");
+			case Diag.TypeShouldUseSyntax.Kind.sharedArray:
+				return suffix(" shared[]");
 			case Diag.TypeShouldUseSyntax.Kind.sharedMap:
 				return map(" shared");
 			case Diag.TypeShouldUseSyntax.Kind.tuple:

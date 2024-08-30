@@ -72,7 +72,7 @@ main void() summon, trusted, (native, SDL2) extern
 	gl glUniformMatrix3fv rotation-loc, 1, false, I.to.begin-pointer
 	gl gl-check-error "after set rotation-loc"
 
-	texture = gl load-texture-from-bmp crow-bmp.to
+	texture = gl load-texture-from-bmp crow-bmp
 
 	vertices vertex array = make-cube
 	triangle-vbo = gl vbo-create vertices

@@ -817,7 +817,7 @@ immutable string[] specialSymbols = [
 	"set-n0",
 	"setup-catch",
 	"severity",
-	"shared-list",
+	"shared-array",
 	"shared-map",
 	"size-bytes",
 	"size-of",

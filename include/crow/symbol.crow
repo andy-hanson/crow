@@ -1,7 +1,6 @@
 no-std
 import
 	./col/array: array
-	./col/list: to
 	./hash: hasher
 	./misc: void
 	./string: hash-mix, join, string
@@ -17,5 +16,5 @@ export
 +to symbol(a symbol) bare
 	a
 
-+interpolate symbol(...parts string array)
-	("" join parts.to) to
++interpolate symbol(...parts string[])
+	"" join parts to

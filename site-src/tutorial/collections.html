@@ -1,39 +1,33 @@
 <section>
-	<h2>Lists</h2>
+	<h2>Arrays</h2>
 
 	<p>
-		<code class="type">string[]</code> declares a list type.
+		<code class="type">string[]</code> declares an array type.
 		This is an immutable ordered collection of elements.
 		<br />
-		It acts like an array, but concatenation (<code class="function">~~</code>) is efficient.
-		<br />
-		Some common list operations are:
+		Some common array operations are:
 	</p>
 	<table>
 		<tbody>
 			<tr>
 				<td><code>x ~ xs</code></td>
-				<td>Prepends an element <code>x</code> on the left of to the list <code>xs</code>.</td>
+				<td>Prepends an element <code>x</code> on the left of the array <code>xs</code>.</td>
 			</tr>
 			<tr>
 				<td><code>xs ~ x</code></td>
-				<td>Appends an element <code>x</code> on the right of the list <code>xs</code>.</td>
+				<td>Appends an element <code>x</code> on the right of the array <code>xs</code>.</td>
 			</tr>
 			<tr>
 				<td><code>xs ~~ ys</code></td>
-				<td>Concatenates two lists. This is efficient (logarithmic in the size of the lists).</td>
+				<td>Concatenates two arrays.</td>
 			</tr>
 			<tr>
 				<td><code>xs[3]</code></td>
 				<td>Accesses an element at a 0-based index.</td>
 			</tr>
 			<tr>
-				<td><code>xs[3 .. 5]</code></td>
-				<td>Slices the list. This example returns a list <code>xs[3], xs[4]</code>.</td>
-			</tr>
-			<tr>
 				<td><code>for x : xs; x + 1</code></td>
-				<td>Loops over the list. Explained in {{tutorial/for-and-with}}.</td>
+				<td>Loops over the array and returns a new array. Explained in {{tutorial/for-and-with}}.</td>
 			</tr>
 		</tbody>
 	</table>
@@ -47,8 +41,13 @@
 			info log "{zs.to::json}"
 	</crow-runnable>
 
+	<aside class="small">
+		For type safety, collections don't implement <code class="function">show</code> by default,
+		but you can convert to JSON to debug them.
+	</aside>
+
 	<p>
-		Creating a list uses the same syntax as creating a record,
+		Creating an array uses the same syntax as creating a record,
 		meaning it is calling a function called <code class="function">new</code>.
 		This function is variadic, meaning it can take any number of arguments.
 	</p>
@@ -56,30 +55,54 @@
 	<aside>
 		<h4>Immutable operations</h4>
 		<p>
-			Since the list is immutable, <code>xs ~ "c"</code> creates a new list without modifying <code>xs</code>.
+			Since the array is immutable, <code>xs ~ "c"</code> creates a new array without modifying <code>xs</code>.
 			So <code>zs</code> is <code>a b a b c</code> instead of <code>a b c a b c</code>
 			because the original <code>xs</code> didn't change.
 		</p>
 	</aside>
 
-	<aside>
-		<h4>Lists are not arrays</h4>
-		<p>
-			True arrays are written as <code>nat array</code>, not <code>nat[]</code>.
-			They work a lot like lists, but concatenation is less efficient.
-			<br />
-			You usually don't need arrays, though they may be useful for implementing other collections.
-		</p>
+	<h3>Slicing</h3>
+
+	<p>
+		<code>xs[i]</code> gets the <code>i</code>th element of a array. Indices start at 0.
+		<br />
+		<code>xs[end - j]</code> gets the <code>j</code>th last element.
+		<code>end</code> is one past the last element, so <code>j</code> should not be 0.
+		<br />
+		<code>xs[i .. j]</code> gets elements <code>i</code>, <code>i + 1</code>, etc.,
+		up to (but not including) <code>j</code>.
+		<br />
+		<code>xs[i .. end]</code> discards the first <code>i</code> elements.
+		<br />
+		<code>xs[0 .. end - j]</code> discards the last <code>j</code> elements.
+	</p>
+	<crow-runnable>
+		main void()
+			xs nat[] = 0, 1, 2
+			info log "{xs[end - 1]} == {xs[2]}"
+			info log "{xs[1 .. end]} == {xs[1 .. 3]}"
+			info log "{xs[0 .. end - 1] == xs[0 .. 2]}"
+			info log "{xs[2 .. 1]}" # will throw
+
+		show string(a nat[])
+			a.to::json show
+	</crow-runnable>
+
+	<aside class="danger small">
+		Slices have to use valid indices.
+		<br />
+		That means that <code>xs[10 .. 20]</code> is guaranteed to return 10 elements,
+		or throw if the array is too short.
 	</aside>
 
-	<aside class="small">Documentation: {{doc/col/list}}</aside>
+	<aside class="small">Documentation: {{doc/col/array}}</aside>
 </section>
 <section>
-	<h2>Mutable lists</h2>
+	<h2>Mutable array</h2>
 	<p>
-		<code class="type">string mut[]</code> declares a mutable list.
+		<code class="type">string mut[]</code> declares a mutable array.
 		<br />
-		Use <code class="function">~=</code> and <code class="function">~~=</code> to append elements or lists.
+		Use <code class="function">~=</code> and <code class="function">~~=</code> to append elements or arrays.
 		(There is no efficient prepend; there is {{doc/col/mut-dequeue}} for that.)
 	</p>
 	<crow-runnable>
@@ -93,7 +116,7 @@
 			info log "{xs.to::json}"
 	</crow-runnable>
 
-	<aside class="small">Documentation: {{doc/col/mut-list}}</aside>
+	<aside class="small">Documentation: {{doc/col/mut-array}}</aside>
 </section>
 <section>
 	<h2>Maps</h2>
@@ -143,7 +166,7 @@
 		<code>t mut[]</code> and <code>v mut[k]</code> but are <code class="keyword">shared</code>.
 	</p>
 
-	<aside class="small">Documentation: {{doc/col/shared-list}}, {{doc/col/shared-map}}</aside>
+	<aside class="small">Documentation: {{doc/col/shared-array}}, {{doc/col/shared-map}}</aside>
 </section>
 <section>
 	<h2>Other collections</h2>
@@ -154,36 +177,4 @@
 	</p>
 </section>
 <section>
-	<h2>Slicing</h2>
-
-	<p>
-		This is technically a library feature and not a language feature.
-		<br />
-		<code>xs[i]</code> gets the <code>i</code>th element of a list. Indices start at 0.
-		<br />
-		<code>xs[i .. j]</code> gets elements <code>i</code>, <code>i + 1</code>, etc.,
-		up to (but not including) <code>j</code>.
-		<br />
-		<code>xs[i .. end]</code> discards the first <code>i</code> elements.
-		<br />
-		<code>xs[0 .. end - j]</code> discards the list <code>j</code> elements.
-	</p>
-	<crow-runnable>
-		main void()
-			xs nat[] = 0, 1, 2
-			info log "{xs[end - 1]} == {xs[1]}"
-			info log "{xs[1 .. end]} == {xs[1 .. 3]}"
-			info log "{xs[0 .. end - 1] == xs[0 .. 2]}"
-			info log "{xs[2 .. 1]}" # will throw
-
-		to string(a nat[])
-			a.to::json.to
-	</crow-runnable>
-
-	<aside class="danger small">
-		Slices have to use valid indices.
-		<br />
-		That means that <code>xs[10 .. 20]</code> is guaranteed to return 10 elements,
-		or throw if the list is too short.
-	</aside>
 </section>

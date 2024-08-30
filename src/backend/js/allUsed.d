@@ -228,9 +228,6 @@ private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExterns) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExterns);
 	trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.mainFun.fun.decl, FunUse.noInline);
-	// Main module needs to create a new list
-	if (program.mainFun.needsArgsList)
-		trackAllUsedInFun(res, program.mainFun.fun.decl.moduleUri, program.program.commonFuns.newTList, FunUse.regular);
 
 	// Add used aliases
 	foreach (Uri moduleUri, ref MutSet!AnyDecl used; res.usedByModule) {
@@ -706,10 +703,7 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, FunOrTest curFunc, ExprRef a)
 			(ref LambdaExpr _) {},
 			(ref LetExpr _) {},
 			(LiteralExpr _) {},
-			(LiteralStringLikeExpr x) {
-				if (x.isList)
-					trackAllUsedInFun(res, from, res.program.commonFuns.newTList, FunUse.regular);
-			},
+			(LiteralStringLikeExpr x) {},
 			(LocalGetExpr _) {},
 			(LocalPointerExpr _) {},
 			(LocalSetExpr _) {},

@@ -8,9 +8,8 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: ==, new, option
 	../test-util: is
-	./array: array
+	./array: ~=, ==, array, build, iterate, new
 	./collection: for-loop, iterate, with-index
-	./list: ~=, ==, build, iterate, list, new
 	./mut-array: gc-safe-mut-array, is-empty, mut-array, new, set-subscript, size, subscript, to
 
 +mut-queue[t] record mut
@@ -20,7 +19,7 @@ import
 	-begin mut nat64
 	-end mut nat64
 
-+new[t] t mut-queue(...values t array)
++new[t] t mut-queue(...values t[])
 	values.to, 0, 0
 
 +to[t] t[](a t mut-queue)

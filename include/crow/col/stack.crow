@@ -8,9 +8,8 @@ import
 	../option: ==, force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new
-	./array: ~=, array, array-iterator, begin, build, end, next, prev
+	./array: ==, ~=, array, array-iterator, begin, build, end, iterate, new, next, prev
 	./collection: build, for-loop, reversed, with-block
-	./list: ==, ~=, build, iterate, list, new, to
 
 ###
 Immutable stack type.
@@ -26,7 +25,7 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-+new[t] t stack(...a t array)
++new[t] t stack(...a t[])
 	a to
 
 ###
@@ -34,16 +33,12 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-+to[t] t stack(a t array)
-	a.to::t[] to
 +to[t] t stack(a t[])
 	res mut t stack = ()::(t node?),
 	for x : a
 		res ~:= x
 	res
 
-+to[t] t array(a t stack)
-	for x : a; x
 +to[t] t[](a t stack)
 	for x : a; x
 
@@ -103,7 +98,7 @@ iterate-reverse[t] bool(a t stack, f bool mut(elem t))
 			cur := c prev
 			continue
 
-~to-array-reverse[t] t array(a t stack)
+~to-array-reverse[t] t[](a t stack)
 	with out : a.size build
 		broke = a iterate-reverse x =>
 			out ~= x

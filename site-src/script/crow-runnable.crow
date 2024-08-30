@@ -75,7 +75,7 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	text now-and-subscribe shared value =>
 		diagnostics = crow open-file main-uri, value
 		tokens = crow get-tokens main-uri
-		error-diagnostics diagnostic array = diagnostics filter x => x.severity <= 1
+		error-diagnostics diagnostic[] = diagnostics filter x => x.severity <= 1
 		tokens-and-diagnostics set (tokens, error-diagnostics)
 
 	output output = ()

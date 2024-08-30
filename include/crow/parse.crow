@@ -1,8 +1,8 @@
 no-std
 import
 	./bool: &&, bool, false, not, true
+	./col/array: ~, ~=, array, build, iterate, new, size
 	./col/collection: build, exists, for-break, for-loop, is-at-end, with-block
-	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
 	./compare: <=, equal
 	./exception: exception
