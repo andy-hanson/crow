@@ -2,6 +2,16 @@ dummy-array-tests nat64()
 	0
 
 test
+	res nat[] = for _ : ((), ())::void[]
+		1
+	res is (1, 1)
+
+test
+	res nat[] = for i, _ : ((), ())::void[] with-index
+		i
+	res is (0, 1)
+
+test
 	a void[] = with out : build
 		out ~= ()
 		out.size is 1

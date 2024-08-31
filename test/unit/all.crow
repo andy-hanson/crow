@@ -1,5 +1,4 @@
 import
-	./array: dummy-array
 	./auto-funs: dummy-auto-funs
 	./bare-funs: dummy-bare
 	./by-val-or-ref: dummy-by-val-or-ref
@@ -28,7 +27,6 @@ import
 	./variants: dummy-variants
 
 dummy-unit-tests nat()
-	_ = dummy-array
 	_ = dummy-auto-funs
 	_ = dummy-bare
 	_ = dummy-by-val-or-ref
