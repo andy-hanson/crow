@@ -17,7 +17,6 @@ import
 		PeekNamedPipe, _popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES,
 		SetHandleInformation, Sleep, STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../col/mut-slice: begin-pointer, mut-slice, new, size, subscript
-	../col/mut-array: unsafe-set-size
 	../c-types: fd-t
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
@@ -59,16 +58,17 @@ EXE should be a file path and not just a name; this does not search the system p
 -keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe, (libc, native) extern
 	read-at-a-time nat64 = 0x1000
 	old-size = res size
-	res unsafe-set-size old-size + read-at-a-time
+	res push-gc-safe-values read-at-a-time
 	old-end = res.end-pointer - read-at-a-time
-	err = old-end fgets read-at-a-time.to, file
-	if err == null
-		res unsafe-set-size old-size
+	out = old-end fgets read-at-a-time.to, file
+	if out == null
+		res reduce-size-to old-size
 		unless file feof
 			check-errno
 	else
+		assert out == old-end
 		new-end = old-end find-c-string-end
-		res unsafe-set-size new-end - res.begin-pointer
+		res reduce-size-to new-end - res.begin-pointer
 		res keep-reading file
 
 ###
@@ -171,9 +171,6 @@ The child process shares stdout and stderr with the parent process.
 		closed
 
 -peek-available nat64?(pipe HANDLE, desc string) summon, unsafe, (native, windows) extern
-	buf nat8 mut[] = ()
-	buf-size nat64 = 8
-	buf unsafe-set-size buf-size
 	n-read mut nat32 = 0
 	total-available mut nat32 = 0
 	bytes-left mut nat32 = 0
@@ -190,16 +187,16 @@ The child process shares stdout and stderr with the parent process.
 	n-to-read nat64,
 ) summon, unsafe, (native, windows) extern
 	old-size = res size
-	res unsafe-set-size old-size + n-to-read
+	res push-gc-safe-values n-to-read
 	old-end = res.end-pointer - n-to-read
 	n-read mut nat32 = 0
 	ok = pipe ReadFile old-end, n-to-read.to, &n-read, null
 	if ok
 		assert n-read.to::nat64 == n-to-read
-		res unsafe-set-size old-size + n-read.to
+		res reduce-size-to old-size + n-read.to
 		available
 	else
-		res unsafe-set-size old-size
+		res reduce-size-to old-size
 		err = GetLastError
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}".error
 		closed
@@ -279,27 +276,25 @@ The child process shares stdout and stderr with the parent process.
 		todo
 	had-POLLIN, hung-up
 
--read-some-to-buffer void(fd fd-t, buffer char8 mut[]) summon, (native, posix) extern
+-read-some-to-buffer void(fd fd-t, buffer char8 mut[]) summon, trusted, (native, posix) extern
 	read-max nat64 = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer size
-	trusted
-		buffer unsafe-set-size old-size + read-max
-		add-data-to = buffer.begin-pointer + old-size
-		n-bytes-read = fd read add-data-to.pointer-cast, read-max
-		match n-bytes-read
-		as -1
-			# Error
-			todo
-		as 0
-			# EOF, done
-			buffer unsafe-set-size old-size
-		else
-			assert n-bytes-read.to::nat64 <= read-max
-			new-size = old-size + n-bytes-read.to
-			buffer unsafe-set-size new-size
-			if n-bytes-read == read-max.to
-				fd read-some-to-buffer buffer
+	buffer push-gc-safe-values read-max
+	add-data-to = buffer.begin-pointer + old-size
+	n-bytes-read = fd read add-data-to.pointer-cast, read-max
+	match n-bytes-read
+	as -1
+		# Error
+		todo
+	as 0
+		# EOF, done
+		buffer reduce-size-to old-size
+	else
+		assert n-bytes-read.to::nat64 <= read-max
+		buffer reduce-size-to old-size + n-bytes-read.to
+		if n-bytes-read == read-max.to
+			fd read-some-to-buffer buffer
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal

@@ -407,3 +407,39 @@
 		</p>
 	</aside>
 </section>
+<section>
+	<h2>Memory slices (buffers)</h2>
+
+	<p>
+		Much low-level code deals with slices of memory (also known as buffers).
+		<br />
+		The Crow types <code>t[]</code> and <code>t mut-slice</code> are guaranteed to be contiguous slices of memory
+		when compiling to native code.
+		<br />
+		So, they have <code class="function">begin-pointer</code> and <code class="function">end-pointer</code>
+		functions.
+		<br />
+		To go in the reverse direction (from pointers to a slice), there are functions
+		<code class="function">as-array</code> and <code class="function">as-mut-slice</code>.
+	</p>
+	<p>
+		<code class="type">t mut[]</code> also has <code class="function">begin-pointer</code> and
+		<code class="function">end-pointer</code> functions, but the pointers aren't guaranteed to last.
+		<br />
+		A <code class="type">t mut[]</code> is not directly a slice of memory but a reference to a slice
+		which may be re-allocated when elements are added or removed from the array.
+		<br />
+		You can (unsafely) access this slice using <code class="function">temp-as-array</code> and
+		<code class="function">temp-as-mut-slice</code>.
+	</p>
+	<p>
+		Often you will want to use a function like <a href="https://linux.die.net/man/2/read"><code>read</code></a>
+		to add elements to a <code class="type">mut[]</code>.
+		To do that, you can use <code class="function">a push-gc-safe-values n</code> to allocate space in the
+		<code class="type">mut[]</code>, then start writing to <code>a.end-pointer - n</code>
+		(where <code>n</code> is the amount of space you need).
+		<br />
+		When done writing, <code>a reduce-size-to x</code> if you didn't use all the space you allocated.
+		(GC-safe values are not safe in general, so it's important to not leave them accessible by safe code.)
+	</p>
+</section>

@@ -8,6 +8,7 @@ import
 	crow/col/experimental/frozen-set: frozen-set, new
 	crow/col/experimental/hamt-set: hamt-set, new
 	crow/col/experimental/index-set: index-set, new
+	crow/col/experimental/list: list, new
 	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
 	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
 	crow/col/experimental/sorted-set: new, sorted-set
@@ -62,6 +63,7 @@ main void() summon
 	_ = "".strip
 	_ = () :: index-set
 	_ = info
+	_ = () :: (nat list)
 	_ = () :: nat mut[]
 	_ = () :: mat3-32
 	_ = () :: (nat mut-deque)

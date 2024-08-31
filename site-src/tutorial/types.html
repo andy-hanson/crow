@@ -70,11 +70,11 @@
 			Unsigned integers are often avoided in other languages due to the risk of underflow:
 			operations that would have returned a negative value would return a very large value instead.
 			<br />
-			In crow, this will cause an exception instead.
+			In Crow, this will cause an exception instead.
 		</p>
 		<p>
 			If a variable doesn't make sense with a negative value (for example, a count of anything),
-			make it a <code class="type">nat</code> instead of <code class="int">int</code>
+			make it a <code class="type">nat</code> instead of <code class="type">int</code>
 			to protect it from negative values.
 		</p>
 	</aside>
@@ -91,7 +91,8 @@
 			n nat = 3
 			i int = n to
 			f float = i to
-			s string = f to
+			# "Conversion" to string is usually called `show` instead of `to`
+			s string = "{f}"
 			info log s
 	</crow-runnable>
 
@@ -118,7 +119,7 @@
 
 	<h3>String syntax</h3>
 	<p>
-		Basic string syntax is very similar to C: <code>"hello"</code>.
+		Basic string syntax is similar to C: <code>"hello"</code>.
 		<br />
 		They support the same escape sequences, like <code>"hello\nworld"</code>.
 	</p>
@@ -143,6 +144,7 @@ but I forgot it
 		<code>"1 + 1 is {1 + 1}!"</code> is shorthand for
 		<code>("1 + 1 is ", (1 + 1).show, "!") interpolate</code>.
 		<br />
+		(<code class="function">interpolate</code> just concatenates its inputs.)
 		<code class="function">show</code> is a conventional name for a function that renders its argument to a string.
 	</p>
 
@@ -170,7 +172,7 @@ but I forgot it
 
 	<crow-runnable>
 		main void()
-			info log "{"left".opposite}"
+			info log "{"left" opposite}"
 
 		opposite symbol(a symbol)
 			# This will be fast since it compares symbols by identity.
@@ -201,9 +203,8 @@ but I forgot it
 	<crow-runnable>
 		main void()
 			tuple (nat, string) = 0, "a"
-			# equivalent
-			n nat, s string = 0, "a"
-			# '==' is defined based on the members
+			n nat, s string = tuple
+			# '==' compares each member
 			info log "{tuple == (n, s)}"
 	</crow-runnable>
 </section>

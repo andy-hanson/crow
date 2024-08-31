@@ -14,10 +14,10 @@
 	</p>
 	<crow-runnable>
 		main void()
-			info log ().show
-			info log (1,).show
+			info log ().describe
+			info log (1,).describe
 
-		show string(a nat?)
+		describe string(a nat?)
 			if x ?= a
 				"non-empty {x}"
 			else
@@ -36,11 +36,11 @@
 	</p>
 	<crow-runnable>
 		main void()
-			info log (() show "fizz")
-			info log ((1,) show "fizz")
-			info log ((1,) show "buzz")
+			info log (() foo "fizz")
+			info log ((1,) foo "fizz")
+			info log ((1,) foo "buzz")
 
-		show string(a nat?, b string)
+		foo string(a nat?, b string)
 			if b == "buzz"
 				"buzz"
 			elif x ?= a
@@ -66,11 +66,11 @@
 	</p>
 	<crow-runnable>
 		main void()
-			info log (() || ()).show
-			info log (() || (1,)).show
-			info log ((2,) || (3,)).show
+			info log (() || ()).describe
+			info log (() || (1,)).describe
+			info log ((2,) || (3,)).describe
 
-		show string(a nat?)
+		describe string(a nat?)
 			if x ?= a
 				"non-empty {x}"
 			else
@@ -105,7 +105,7 @@
 			info log "{non-empty?.reverse}"
 			()
 
-		to string(a string?)
+		show string(a string?)
 			a ?? "empty"
 	</crow-runnable>
 
@@ -120,7 +120,7 @@
 			info log "{non-empty?[1]}"
 			()
 
-		to string(a string?)
+		show string(a string?)
 			a ?? "empty"
 	</crow-runnable>
 

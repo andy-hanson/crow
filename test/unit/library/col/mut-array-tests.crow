@@ -13,3 +13,10 @@ test
 	a.to::nat8[] is (2, 5, 3)
 	a remove-at 1 is 5
 	a.to::nat8[] is (2, 3)
+
+test
+	a nat8 mut[] = 1, 2
+	b nat8 mut[] = 3,
+	a swap b
+	a.to::nat8[] is (3,)
+	b.to::nat8[] is (1, 2)

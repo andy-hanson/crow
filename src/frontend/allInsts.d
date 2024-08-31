@@ -8,6 +8,7 @@ import model.model :
 	FunDecl,
 	FunInst,
 	isFuture,
+	isMutArray,
 	LinkageRange,
 	Module,
 	PurityRange,
@@ -134,17 +135,22 @@ AllInstsArrays TEST_getAllInstsArrays(ref Alloc alloc, in AllInsts a) =>
 const(MutMultiMap!(AnyDeclOrInst, AnyInst)) TEST_getReferencedBy(ref const AllInsts a) =>
 	a.referencedBy;
 
-Map!(StructInst*, StructInst*) getAllFutureImpls(
+Map!(StructInst*, StructInst*) getAllFutureAndMutArrayImpls(
 	ref Alloc alloc,
 	ref const AllInsts a,
 	in StructInst* delegate(TypeArgs) @safe @nogc pure nothrow cbMakeFutureImpl,
+	in StructInst* delegate(TypeArgs) @safe @nogc pure nothrow cbMakeMutArrayImpl,
 ) {
 	MutMap!(StructInst*, StructInst*) res;
 	foreach (ref const StructInst* x; a.structInsts)
-		if (isFuture(*x))
+		if (isFuture(*x) || isMutArray(*x))
 			mustAdd(alloc, res, x, null);
-	foreach (ref const StructInst* future; keys(res))
-		mustGet(res, future) = cbMakeFutureImpl(future.typeArgs);
+	foreach (ref const StructInst* x; keys(res))
+		mustGet(res, x) = isFuture(*x)
+			? cbMakeFutureImpl(x.typeArgs)
+			: isMutArray(*x)
+			? cbMakeMutArrayImpl(x.typeArgs)
+			: assert(false);
 	return moveToMap(alloc, res);
 }
 

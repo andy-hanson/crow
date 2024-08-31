@@ -70,6 +70,7 @@ enum CommonModule {
 	js,
 	json,
 	misc,
+	mutArray,
 	numberLowLevel,
 	std,
 	string_,

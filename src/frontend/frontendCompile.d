@@ -5,7 +5,7 @@ module frontend.frontendCompile;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.checkCtx : CommonModule, CommonUris;
 import frontend.check.getCommonFuns : getCommonFuns, getMainFunAndDiagnostics;
-import frontend.check.instantiate : getAllFutureImpls, InstantiateCtx;
+import frontend.check.instantiate : getAllFutureAndMutArrayImpls, InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
@@ -201,13 +201,16 @@ Program makeProgram(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri
 	StructDecl* futureImpl = mustFindPointer!StructDecl(
 		commonModules[CommonModule.futureLowLevel].structs,
 		(ref const StructDecl x) => x.name == symbol!"future-impl");
+	StructDecl* mutArrayImpl = mustFindPointer!StructDecl(
+		commonModules[CommonModule.mutArray].structs,
+		(ref const StructDecl x) => x.name == symbol!"mut-array-impl");
 	return Program(
 		allConfigs: getAllConfigs(alloc, a),
 		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
 		commonFunsAndDiagnostics: commonFuns,
 		commonTypesPtr: force(a.commonTypes),
-		otherTypes: OtherTypes(getAllFutureImpls(alloc, ctx, futureImpl)));
+		otherTypes: OtherTypes(getAllFutureAndMutArrayImpls(alloc, ctx, futureImpl, mutArrayImpl)));
 }
 
 void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri, FileInfoOrDiag info) {
@@ -570,6 +573,7 @@ MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) =>
 
 CommonUris commonUris(Uri includeDir) {
 	Uri includeCrow = includeDir / symbol!"crow";
+	Uri col = includeCrow / symbol!"col";
 	Uri private_ = includeCrow / symbol!"private";
 	return enumMapMapValues!(CommonModule, Uri, Uri)(CommonUris([
 		private_ / symbol!"bootstrap",
@@ -582,6 +586,7 @@ CommonUris commonUris(Uri includeDir) {
 		includeCrow / symbol!"js",
 		includeCrow / symbol!"json",
 		includeCrow / symbol!"misc",
+		col / symbol!"mut-array",
 		private_ / symbol!"number-low-level",
 		includeCrow / symbol!"std",
 		includeCrow / symbol!"string",

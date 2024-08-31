@@ -818,6 +818,8 @@ void generateSpecialUnary(
 		case BuiltinUnary.arraySize:
 		case BuiltinUnary.asFuture:
 		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
 		case BuiltinUnary.cStringOfSymbol:
 		case BuiltinUnary.symbolOfCString:
 		case BuiltinUnary.toChar8ArrayFromString:

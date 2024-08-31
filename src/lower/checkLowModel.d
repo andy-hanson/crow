@@ -272,6 +272,8 @@ ExpectUnary unaryExpected(
 	final switch (kind) {
 		case BuiltinUnary.asFuture:
 		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
 		case BuiltinUnary.arraySize:
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.cStringOfSymbol:

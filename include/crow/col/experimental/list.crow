@@ -1,4 +1,5 @@
 import
+	../collection: sequence-compare, sequence-equal
 	../private/array-low-level: array-reference-equal
 
 ###
@@ -42,7 +43,7 @@ It does not support efficient access by an index, so iterators should be used in
 +list-builder[t] record mut
 	-inner t array-builder
 +build[t] t list(a build-options, f void mut(out t list-builder))
-	inner t array = a build out => f[out,]
+	inner t[] = a build out => f[out,]
 	(inner.leaf,),
 +~=[t] void(a t list-builder, value t)
 	a.inner ~= value
@@ -52,46 +53,46 @@ It does not support efficient access by an index, so iterators should be used in
 		false
 	forbid broke
 
--iterate-chunks[t] bool(a t list, f bool mut(chunk t array))
+-iterate-chunks[t] bool(a t list, f bool mut(chunk t[]))
 	a.root iterate-l1 f
 
--iterate-l1[t] bool(a t l1, f bool mut(chunk t array))
+-iterate-l1[t] bool(a t l1, f bool mut(chunk t[]))
 	match a node
 	as leaf l
 		f[l]
 	as branch b
 		f[b left] || b.down iterate-l2 f || f[b right]
 
--iterate-l2[t] bool(a t l2, f bool mut(chunk t array))
+-iterate-l2[t] bool(a t l2, f bool mut(chunk t[]))
 	match a node
 	as leaf l
 		l.arrays iterate f
 	as branch b
 		b.left.arrays iterate f || b.down iterate-l3 f || b.right.arrays iterate f
 
--iterate-l3[t] bool(a t l3, f bool mut(chunk t array))
+-iterate-l3[t] bool(a t l3, f bool mut(chunk t[]))
 	a.nodes.arrays iterate nodes =>
 		nodes.arrays iterate f
 
 -new[t] t array2d() bare
 	0, ()
--new[t] t array2d(a t array)
+-new[t] t array2d(a t[])
 	a.size, (a,)
 -is-empty[t] bool(a t array2d) bare
 	a.arrays is-empty
 -~~[t] t array2d(a t array2d, b t array2d)
 	a.total-size + b.total-size, a.arrays ~~ b.arrays
--subscript[t] t array(a t array2d, index nat64) bare
+-subscript[t] t[](a t array2d, index nat64) bare
 	a.arrays[index]
--subscript[t] t array(a t array2d, index index-relative-to-end) bare
+-subscript[t] t[](a t array2d, index index-relative-to-end) bare
 	a.arrays[index]
 -subscript[t] t array2d(a t array2d, indices nat64 range) bare
 	a.arrays[indices] recompute-total-size
 -subscript[t] t array2d(a t array2d, indices range-relative-to-end) bare
 	a.arrays[indices] recompute-total-size
--recompute-total-size[t] t array2d(a t array array) bare
+-recompute-total-size[t] t array2d(a t[][]) bare
 	a.compute-total-size, a
--compute-total-size[t] nat64(a t array array) bare
+-compute-total-size[t] nat64(a t[][]) bare
 	total-size mut nat64 = 0
 	iter mut = a begin
 	while x, next ?= iter next
@@ -114,9 +115,9 @@ It does not support efficient access by an index, so iterators should be used in
 	a.arrays[indices] recompute-total-size
 -subscript[t] t array3d(a t array3d, indices range-relative-to-end) bare
 	a.arrays[indices] recompute-total-size
--recompute-total-size[t] t array3d(a t array2d array) bare
+-recompute-total-size[t] t array3d(a t array2d[]) bare
 	a.compute-total-size, a
--compute-total-size[t] nat64(a t array2d array) bare
+-compute-total-size[t] nat64(a t array2d[]) bare
 	total-size mut nat64 = 0
 	iter mut = a begin
 	while x, next ?= iter next
@@ -166,14 +167,14 @@ It does not support efficient access by an index, so iterators should be used in
 	as branch b
 		b
 
--try-as-l1-leaf[t] t array?(a t list) bare
+-try-as-l1-leaf[t] t[]?(a t list) bare
 	match a.root node
 	as leaf xs
 		xs,
 	as branch _
 		()
 
--get-l1-branch[t] (t array, t l2) branch(a t list) bare
+-get-l1-branch[t] (t[], t l2) branch(a t list) bare
 	a.root.node as-branch
 
 -try-get-l2[t] t l2?(a t list) bare
@@ -193,7 +194,7 @@ It does not support efficient access by an index, so iterators should be used in
 	a.get-l2-branch down
 
 # List containing the given elements.
-+new[t] t list(...a t array)
++new[t] t list(...a t[])
 	a to
 
 +subscript[t] t(a t list, index nat64) bare
@@ -206,7 +207,7 @@ It does not support efficient access by an index, so iterators should be used in
 Convert an array to a list.
 This is O(1).
 ###
-+to[t] t list(a t array)
++to[t] t list(a t[])
 	l t l1 = a.leaf,
 	l,
 
@@ -219,7 +220,7 @@ Convert a list to an array.
 This is O(n).
 This is O(1) if the list was converted from an array, meaning a round trip is free.
 ###
-+to[t] t array(a t list)
++to[t] t[](a t list)
 	a.try-as-l1-leaf ?? for x : a; x
 
 +==[t] bool(a t list, b t list) t equal
@@ -362,10 +363,10 @@ This is O(log n), amortized O(1).
 		((x, y) => x cat-right-node-l2 y)
 	node,
 
--cat-left-array-l1[t] t l1(l t array, r t l1)
+-cat-left-array-l1[t] t l1(l t[], r t l1)
 	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l2 lower),
 
--cat-right-array-l1[t] t l1(l t l1, r t array)
+-cat-right-array-l1[t] t l1(l t l1, r t[])
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 -cat-left-node-l2[t] t l2(l t l2, r t l2)
@@ -407,16 +408,10 @@ This is O(log n), amortized O(1).
 	size-bytes nat64(a t)
 # 'trusted' since we are just using it to guide branch sizes
 # (which should have no observable effect)
--size-bytes[t] nat64(a t array)
+-size-bytes[t] nat64(a t[])
 	a.size * trusted extern native ? size-of@t : 8
 -size-bytes[t] nat64(a t array2d)
 	a.arrays size-bytes
-
--force[t] t(a t?) bare
-	if x ?= a
-		x
-	else
-		unreachable
 
 region spec impls (see collection.crow)
 
@@ -434,7 +429,7 @@ This is O(n).
 +list-iterator[t] record by-val
 	-list t list
 	# Always non-empty
-	-cur-chunk t array
+	-cur-chunk t[]
 	# Always be a valid index
 	-next-index-in-chunk nat64
 	# Identifies where cur-chunk is from
@@ -638,10 +633,10 @@ This is O(n).
 			else
 				a prev-to-l2-left
 
--next-set-chunk[t] (t, t list-iterator)?(a t list-iterator, chunk t array, pos t position) bare
+-next-set-chunk[t] (t, t list-iterator)?(a t list-iterator, chunk t[], pos t position) bare
 	(chunk[0], (a.list, chunk, 1, pos)),
 
--prev-set-chunk[t] (t list-iterator, t)?(a t list-iterator, chunk t array, pos t position) bare
+-prev-set-chunk[t] (t list-iterator, t)?(a t list-iterator, chunk t[], pos t position) bare
 	((a.list, chunk, chunk.size - 1, pos), chunk[end - 1]),
 
 -next-to-l1-right[t] (t, t list-iterator)?(a t list-iterator) bare
@@ -771,9 +766,9 @@ This is O(n).
 		as l3 bi
 			a slice-both-l3 ai, b, bi
 
--slice-left-cur-chunk[t] t array(a t list-iterator)
+-slice-left-cur-chunk[t] t[](a t list-iterator)
 	a.cur-chunk[0 .. a.next-index-in-chunk]
--slice-right-cur-chunk[t] t array(a t list-iterator)
+-slice-right-cur-chunk[t] t[](a t list-iterator)
 	a.cur-chunk[a.next-index-in-chunk .. end]
 
 -slice-same-array1d[t] t list(a t list-iterator, b t list-iterator)
@@ -855,14 +850,14 @@ This is O(n).
 		else
 			(left, down, right) branch
 
--make-l1[t] t list(left t array, down t l2, right t array)
+-make-l1[t] t list(left t[], down t l2, right t[])
 	l1 t l1 = (left make-level-generic down, right),
 	l1,
 
 -make-l2[t] t l2(left t array2d, down t l3, right t array2d)
 	(left make-level-generic down, right),
 
--pop-left[t] (t array, t l2)(a t l2)
+-pop-left[t] (t[], t l2)(a t l2)
 	match a node
 	as leaf xs
 		xs[0], (xs[1 .. end].leaf,)
@@ -880,12 +875,12 @@ This is O(n).
 			(b.left[1 .. end], b.down, b.right).branch,
 		popped, rest
 
--pop-right[t] (t l2, t array)(a t l2)
+-pop-right[t] (t l2, t[])(a t l2)
 	match a node
 	as leaf xs
 		(xs[0 .. end - 1].leaf,), xs[end - 1]
 	as branch b
-		popped t array = b.right[end - 1]
+		popped t[] = b.right[end - 1]
 		forbid b.right.arrays is-empty
 		rest t l2 = if b.right.arrays.size == 1
 			if b.down is-empty
@@ -914,7 +909,7 @@ This is O(n).
 -end[t] t array-2d-iterator(a t array2d) bare
 	a, a.arrays.size - 1
 
--*[t] t array(a t array-2d-iterator) bare
+-*[t] t[](a t array-2d-iterator) bare
 	a.arrays[a index-2d]
 
 -move-left[t] t array-2d-iterator?(a t array-2d-iterator) bare
@@ -942,7 +937,7 @@ This is O(n).
 -end[t] t array-3d-iterator(a t array3d) bare
 	a, a.arrays.size - 1, a[end - 1].arrays.size - 1
 
--*[t] t array(a t array-3d-iterator) bare
+-*[t] t[](a t array-3d-iterator) bare
 	a.arrays[a.index-3d][a.index-2d]
 
 -move-left[t] t array-3d-iterator?(a t array-3d-iterator) bare
@@ -974,7 +969,7 @@ region test
 
 	(for x : a; x)::(t list) is a
 
-	a-array t array = a to
+	a-array t[] = a to
 
 	iter mut = a begin
 	for index : 0::nat64 .. a.size
@@ -1019,7 +1014,7 @@ region test
 		l dbg
 	as branch b
 		"({b.left dbg} {b.down dbg} {b.right dbg})"
--dbg[t] string(a t array) t show
+-dbg[t] string(a t[]) t show
 	parts = " " join for x : a; "{x}"
 	"[{parts}]"
 -dbg[t] string(a t array2d) t show

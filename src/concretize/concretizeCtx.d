@@ -72,6 +72,7 @@ import model.model :
 	isArrayOrMutSlice,
 	isFuture,
 	isLambdaType,
+	isMutArray,
 	isPointerConstOrMut,
 	isString,
 	isSymbol,
@@ -344,9 +345,9 @@ private ConcreteType getConcreteType_forStructInst(
 	StructInst* inst,
 	in TypeArgsScope typeArgsScope,
 ) {
-	if (isFuture(*inst))
+	if (isFuture(*inst) || isMutArray(*inst))
 		return getConcreteType_forStructInst(
-			ctx, mustGet(ctx.program.otherTypes.futureToFutureImpl, inst), typeArgsScope);
+			ctx, mustGet(ctx.program.otherTypes.futureOrMutArrayToImpl, inst), typeArgsScope);
 	if (isString(Type(inst)))
 		return char8ArrayType(ctx);
 	if (isSymbol(Type(inst)))
@@ -892,6 +893,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 			return TypeSize(8, 8);
 		case BuiltinType.future: // Replaced by 'future-impl'
 		case BuiltinType.lambda: // Replaced by variants
+		case BuiltinType.mutArray: // Replaced by 'mut-array-impl'
 			assert(false);
 		case BuiltinType.array:
 		case BuiltinType.mutSlice:

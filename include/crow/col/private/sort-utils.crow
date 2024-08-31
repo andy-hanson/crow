@@ -17,8 +17,8 @@ import
 	../collection: for-break, for-loop
 	../mut-slice: +, begin, mut-slice, mut-slice-iterator, new, next-index, temp-as-array
 	../mut-array:
-		+, begin, clear, is-empty, move-to, mut-array, mut-array-iterator, set-subscript, size,
-		subscript, swap, temp-as-array, to, unsafe-set-size
+		+, begin, clear, is-empty, move-to, mut-array, mut-array-iterator, push-gc-safe-values,
+		set-subscript, size, subscript, swap, temp-as-array, to
 
 binary-search-has[t] bool(a t[], value t) t compare
 	!(a binary-search-exact value is-empty)
@@ -170,7 +170,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 	guard !b.is-empty
 	trusted
 		a-old-size = a size
-		a unsafe-set-size a-old-size + b.size
+		a push-gc-safe-values b.size
 		a-read mut = a-old-size - 1
 		a-write mut = a.size - 1
 		b-read mut = b.size - 1

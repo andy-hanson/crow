@@ -2,7 +2,8 @@ module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
-import frontend.allInsts : getAllFutureImpls, getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
+import frontend.allInsts :
+	getAllFutureAndMutArrayImpls, getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
 	BuiltinType,
 	CommonTypes,
@@ -233,9 +234,16 @@ SpecInst* instantiateSpecInst(
 		(ref Type x) => instantiateType(ctx, x, typeArgs, noDelayStructInsts),
 		(scope Type[] itsTypeArgs) => instantiateSpec(ctx, specInst.decl, small!Type(itsTypeArgs), delaySpecInsts));
 
-Map!(StructInst*, StructInst*) getAllFutureImpls(ref Alloc alloc, ref InstantiateCtx ctx, StructDecl* futureImpl) =>
-	.getAllFutureImpls(alloc, ctx.allInsts, (TypeArgs typeArgs) =>
-		instantiateStructNeverDelay(ctx, futureImpl, typeArgs));
+Map!(StructInst*, StructInst*) getAllFutureAndMutArrayImpls(
+	ref Alloc alloc,
+	ref InstantiateCtx ctx,
+	StructDecl* futureImpl,
+	StructDecl* mutArrayImpl,
+) =>
+	.getAllFutureAndMutArrayImpls(
+		alloc, ctx.allInsts,
+		(TypeArgs typeArgs) => instantiateStructNeverDelay(ctx, futureImpl, typeArgs),
+		(TypeArgs typeArgs) => instantiateStructNeverDelay(ctx, mutArrayImpl, typeArgs));
 
 private:
 

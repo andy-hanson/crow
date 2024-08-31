@@ -101,8 +101,11 @@ export
 	a.to::nat32 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
-	for c : a.to::char8[]
-		hasher hash-mix c
+	chars char8[] = a to
+	i mut nat64 = 0
+	until i == chars.size
+		hasher hash-mix chars[i]
+		i +:= 1
 +hash-mix void(hasher hasher, a char8)
 	hasher hash-mix a.to::nat8.to::nat64
 +hash-mix void(hasher hasher, a char32)

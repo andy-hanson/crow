@@ -235,6 +235,7 @@ private Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType t
 		some(genNotEqEq(ctx.alloc, genTypeof(ctx.alloc, get), genString(expected)));
 	final switch (type) {
 		case BuiltinType.array:
+		case BuiltinType.mutArray:
 		case BuiltinType.mutSlice: // mutSlice might use a Proxy, but that is still instanceof Array
 			return instanceof(symbol!"Array");
 		case BuiltinType.bool_:
@@ -1189,6 +1190,8 @@ JsExpr translateBuiltinUnary(ref Alloc alloc, BuiltinUnary a, JsExpr arg) {
 	final switch (a) {
 		case BuiltinUnary.asFuture:
 		case BuiltinUnary.asFutureImpl:
+		case BuiltinUnary.asMutArray:
+		case BuiltinUnary.asMutArrayImpl:
 		case BuiltinUnary.arrayPointer:
 		case BuiltinUnary.asAnyPointer:
 		case BuiltinUnary.cStringOfSymbol:

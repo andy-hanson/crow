@@ -136,6 +136,10 @@ private bool isEmptyRecord(in StructDecl a) =>
 
 bool isArray(in Type a) =>
 	isBuiltinType(a, BuiltinType.array);
+bool isMutArray(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
+bool isMutArray(in StructInst a) =>
+	isBuiltinType(a, BuiltinType.mutArray);
 bool isMutSlice(in Type a) =>
 	isBuiltinType(a, BuiltinType.mutSlice);
 bool isArrayOrMutSlice(in StructDecl a) =>
@@ -509,6 +513,7 @@ enum BuiltinType {
 	int64,
 	jsAny,
 	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
+	mutArray,
 	mutSlice,
 	nat8,
 	nat16,
@@ -542,6 +547,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.funPointer:
 		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
+		case BuiltinType.mutArray:
 		case BuiltinType.mutSlice:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
@@ -977,6 +983,8 @@ enum BuiltinUnary {
 	asAnyPointer,
 	asFuture,
 	asFutureImpl,
+	asMutArray,
+	asMutArrayImpl,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
 	bitwiseNotNat32,
@@ -1828,7 +1836,7 @@ immutable struct CommonTypes {
 		9;
 }
 immutable struct OtherTypes {
-	Map!(StructInst*, StructInst*) futureToFutureImpl;
+	Map!(StructInst*, StructInst*) futureOrMutArrayToImpl;
 }
 
 immutable struct IntegralTypes {

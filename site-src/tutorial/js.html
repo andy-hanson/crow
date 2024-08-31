@@ -166,12 +166,14 @@
 				<td><code>number</code></td>
 			</tr>
 			<tr>
-				<td><code class="type">t array</code>, <code class="type">t mut-array</code></td>
+				<td><code class="type">t[]</code>, <code>t mut[]</code>, <code class="type">t mut-slice</code></td>
 				<td>
 					<code>Array</code>
 					<br />
-					Immutability is not enforced at runtime,
-					so only pass a <code class="type">t array</code> to JS code that will not mutate it.
+					Be sure to only pass these to JS code that will follow Crow's rules:
+					Never mutate a <code class="type">t[]</code>,
+					and don't do anything that would change the length of a <code class="type">t mut-slice</code>
+					(e.g., <code>push</code>, <code>pop</code>, or <code>splice</code>).
 				</td>
 			</tr>
 			<tr>
@@ -212,13 +214,12 @@
 	<p>
 		The above chart shows that if you know a JS value is a <code>number</code>, you can cast it to a
 		<code class="type">float32</code> or <code class="type">float64</code>,
-		but casting to a <code class="type">nat</code> will cause problems.
-		(Casting is unchecked, so it will sucteed at first, but may )
+		but casting to a <code class="type">nat</code> may cause problems.
 	</p>
 
 	<p>
-		Crow functions still have Crow semantics regardless of the representation.
-		For example, <code>nat32</code> adddition will still throw on overflow,
+		Crow functions still have Crow semantics.
+		For example, <code>nat32</code> adddition will still throw on 32-bit overflow,
 		and <code>float32</code> operations have 32-bit precision.
 	</p>
 
@@ -234,15 +235,19 @@
 		import
 			crow/js
 		main void() unsafe, js extern
+			# MAX_SAFE_INTEGER is actually a float
 			"Number".js-global["MAX_SAFE_INTEGER"].cast foo
 		foo void(a nat)
 			info log "This will not appear: {a}"
 	</crow-runnable>
 
 	<aside class="danger">
-		Don't rely on badly typed values being caught. In theory, optimized builds could omit the checks.
+		Don't rely on badly typed values being caught.
+		<br />
+		In theory, optimized builds could omit the checks.
 	</aside>
-
+</section>
+<section>
 	<h2>Asynchrony</h2>
 	<p>
 		JavaScript code needs to <code class="keyword">await</code> any time it calls an
@@ -266,18 +271,37 @@
 			json = response call-property "json" await
 			info log "{(json.to::json)["crow"]}"
 	</crow-runnable>
+</section>
+<section>
+	<h2>Runtime</h2>
 
+	<p>
+		When Crow compiles to JavaScript, it doesn't include the Crow runtime
+		(meaning the allocator and task scheduler).
+		<br />
+		The JavaScript runtime follows all the rules of a Crow runtime limited to a single thread.
+		<br />
+		Crow "fibers" are implemented using JS async functions.
+		<br />
+		A Crow <code class="keyword">shared</code> lambda just compiles to a normal JS function;
+		with only a single thread, there is no need for any exclusion.
+	</p>
+</section>
+<section>
 	<h2>How do I?</h2>
 
 	<h4>Import a module</h4>
 	<p>
 		Currently, there's no way to <code class="keyword">import</code> a JS module.
+		<br />
 		If you want to use a JS library, store it in a global variable so Crow can access it.
 	</p>
 
 	<h4>Define a class</h4>
 	<p>
 		There is no syntax for this, but {{doc/js/util}} has a function <code class="function">make-class</code>.
+		(You can also <code class="function">eval</code> a <code>class</code> expression if you just want to
+		write the entire class in JavaScript.)
 	</p>
 
 	<h4>Do exotic JS operations</h4>

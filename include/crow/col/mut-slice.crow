@@ -13,7 +13,7 @@ import
 		set-subscript, size-of, subscript, gc-safe-value
 	../private/alloc: allocate
 	../private/bootstrap: new-array, todo
-	../range: .., high, low, range, size
+	../range: .., high, iterate, low, range, size
 	../tuple: new
 	./array: ~=, ~~=, array, array-builder, begin-pointer, build, iterate, size, subscript
 	./private/array-low-level:
@@ -206,6 +206,10 @@ See `gc-safe-mut-slice` for why this is unsafe.
 			i +:= 1
 	else
 		todo
+
++fill[t] void(a t mut-slice, value t)
+	for i : 0::nat64 .. a.size
+		a[i] := value
 
 +in[t] bool(value t, a t mut-slice) bare, t equal, trusted
 	cur mut nat64 = 0

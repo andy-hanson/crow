@@ -33,6 +33,7 @@ import model.model :
 	isInt64,
 	isJsAny,
 	isLambdaType,
+	isMutArray,
 	isMutSlice,
 	isNat8,
 	isNat16,
@@ -277,6 +278,10 @@ FunBody inner(
 			return unary(isFuture(rt) && isProbablyFutureImpl(p0) ? BuiltinUnary.asFuture : failUnary);
 		case symbol!"as-future-impl".value:
 			return unary(isProbablyFutureImpl(rt) && isFuture(p0) ? BuiltinUnary.asFutureImpl : failUnary);
+		case symbol!"as-mut-array".value:
+			return unary(isMutArray(rt) && isProbablyMutArrayImpl(p0) ? BuiltinUnary.asMutArray : failUnary);
+		case symbol!"as-mut-array-impl".value:
+			return unary(isProbablyMutArrayImpl(rt) && isMutArray(p0) ? BuiltinUnary.asMutArrayImpl : failUnary);
 		case symbol!"as-js".value:
 			return isJsAny(rt) && arity == 1 && isTypeParam0(p0)
 				? FunBody(BuiltinFun(JsFun.asJsAny))
@@ -674,7 +679,9 @@ FunBody inner(
 	}
 }
 bool isProbablyFutureImpl(in Type a) =>
-	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"future-impl"; // TODO: also assert file name
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"future-impl";
+bool isProbablyMutArrayImpl(in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"mut-array-impl";
 
 bool isFloat32Or64(in Type a) =>
 	isFloat32(a) || isFloat64(a);

@@ -440,6 +440,7 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 					return record();
 				case BuiltinType.future: // Concretize replaces this with 'future-impl'
 				case BuiltinType.lambda: // Lambda is compiled away by concretize
+				case BuiltinType.mutArray: // Concretize replaces this with 'mut-array-impl'
 					assert(false);
 				case BuiltinType.jsAny:
 				case BuiltinType.void_:
@@ -1408,6 +1409,8 @@ LowExpr getCallBuiltinExpr(
 					return genRecordFieldGet(ctx.alloc, type, range, arg, 0);
 				case BuiltinUnary.asFuture:
 				case BuiltinUnary.asFutureImpl:
+				case BuiltinUnary.asMutArray:
+				case BuiltinUnary.asMutArrayImpl:
 				case BuiltinUnary.cStringOfSymbol:
 				case BuiltinUnary.symbolOfCString:
 				case BuiltinUnary.toChar8ArrayFromString:
