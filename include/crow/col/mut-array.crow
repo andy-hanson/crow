@@ -29,29 +29,28 @@ This is represented as a reference to a `mut-slice` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
-+mut-list[t] record mut
-	# Fields should only be used in mut-list.crow
++mut-array[t] record mut
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'gc-safe-value'
 	-backing mut t mut-slice
 	# Not used for JS
-	-mut-list-size mut nat64
+	-mut-array-size mut nat64
 
 +size[t] nat64(a t mut[]) bare
 	if trusted extern js
 		a.backing size
 	else
-		a mut-list-size
+		a mut-array-size
 -set-size[t] void(a t mut[], size nat64) bare, native extern
-	a.mut-list-size := size
+	a.mut-array-size := size
 
 +subscript[t] t(a t mut[], index nat64) bare
 	unless trusted extern js
-		assert index < a.mut-list-size : index index-too-big a.mut-list-size
+		assert index < a.mut-array-size : index index-too-big a.mut-array-size
 	a.backing[index]
 +set-subscript[t] void(a t mut[], index nat64, value t) bare
 	unless trusted extern js
-		assert index < a.mut-list-size : index index-too-big a.mut-list-size
+		assert index < a.mut-array-size : index index-too-big a.mut-array-size
 	a.backing[index] := value
 
 # True if they are identical.
@@ -61,7 +60,7 @@ but appending (or removing) from the beginning is always O(N).
 
 ###
 Pointer to the first element.
-Since `mut-list` changes its underlying data occasionally,
+Since `mut-array` changes its underlying data occasionally,
 it's unsafe to use this after the size of `a` changes.
 ###
 +begin-pointer[t] t mut*(a t mut[]) bare, unsafe, native extern
@@ -103,7 +102,7 @@ Creates a new list with the given elements.
 		todo
 
 ###
-Copies the `mut-list`.
+Copies the array.
 Writes to the original won't affect the copy.
 ###
 +copy[t] t mut[](a t mut[])
@@ -114,8 +113,8 @@ Writes to the original won't affect the copy.
 		a.begin slice a.end
 
 ###
-Copies a `mut-list` to a `list`.
-Writes to the `mut-list` won't affect the `list`.
+Copies a `mut-array` to an `array`.
+Writes to the `mut-array` won't affect the `array`.
 ###
 +to[t] t[](a t mut[])
 	a.copy move-to
@@ -139,9 +138,9 @@ Writes to the `mut-list` won't affect the `list`.
 	if trusted extern js
 		a.move-to, max-value
 	else
-		res t mut[] = a.backing, a.mut-list-size
+		res t mut[] = a.backing, a.mut-array-size
 		a.backing := ()
-		a.mut-list-size := 0
+		a.mut-array-size := 0
 		res
 
 +swap[t] void(a t mut[], b t mut[])
@@ -290,7 +289,7 @@ hint-size[t] void(a t mut[], eventual-size nat64)
 		a increase-capacity-to min-capacity
 
 ###
-Ensure that the mut-list can grow to a size of `reserved` without reallocating.
+Ensure that the mut-array can grow to a size of `reserved` without reallocating.
 Does nothing if the capacity is already sufficient.
 
 This may reserve more space than requested,
@@ -314,7 +313,7 @@ remove-unordered-at[t] t(a t mut[], index nat64) bare
 		a[index] := replacement
 	res
 
-uninitialized-mut-list[t] t mut[](size nat64) unsafe, native extern
+uninitialized-mut-array[t] t mut[](size nat64) unsafe, native extern
 	res t mut[] = ()
 	res unsafe-set-size size
 	res
@@ -408,46 +407,46 @@ region spec impls (see collection.crow)
 	0::nat64 .. a.size iterate i =>
 		f[a[i]]
 
-+mut-list-iterator[t] record(collection t mut[], next-index nat64) by-val, mut
++mut-array-iterator[t] record(collection t mut[], next-index nat64) by-val, mut
 
-+begin[t] t mut-list-iterator(a t mut[]) bare
++begin[t] t mut-array-iterator(a t mut[]) bare
 	a, 0
 
-+end[t] t mut-list-iterator(a t mut[]) bare
++end[t] t mut-array-iterator(a t mut[]) bare
 	a, a.size
 
--as-backing-iter[t] t mut-slice-iterator(a t mut-list-iterator) bare
+-as-backing-iter[t] t mut-slice-iterator(a t mut-array-iterator) bare
 	assert a.next-index <= a.collection.size
 	a.collection.backing.begin + a.next-index
 
-+prev[t] (t mut-list-iterator, t)?(a t mut-list-iterator) bare
++prev[t] (t mut-array-iterator, t)?(a t mut-array-iterator) bare
 	if res ?= a.as-backing-iter prev
 		((a.collection, res.a.next-index), res.b),
 
-+next[t] (t, t mut-list-iterator)?(a t mut-list-iterator) bare
++next[t] (t, t mut-array-iterator)?(a t mut-array-iterator) bare
 	if res ?= a.as-backing-iter next
 		if res.b.next-index <= a.collection.size
 			(res.a, (a.collection, res.b.next-index)),
 
-+ +[t] t mut-list-iterator(a t mut-list-iterator, n nat64) bare
++ +[t] t mut-array-iterator(a t mut-array-iterator, n nat64) bare
 	new-next-index = a.next-index + n
 	assert new-next-index <= a.collection.size
 	a.collection, new-next-index
 
-+-[t] t mut-list-iterator(a t mut-list-iterator, n nat64) bare
++-[t] t mut-array-iterator(a t mut-array-iterator, n nat64) bare
 	a.collection, a.next-index - n
 
-+-[t] nat64(a t mut-list-iterator, b t mut-list-iterator) bare
++-[t] nat64(a t mut-array-iterator, b t mut-array-iterator) bare
 	assert a.collection == b.collection
 	a.next-index - b.next-index
 
-+set-prev[t] void(a t mut-list-iterator, value t) bare
++set-prev[t] void(a t mut-array-iterator, value t) bare
 	a.as-backing-iter set-prev value
 
-+set-next[t] void(a t mut-list-iterator, value t) bare
++set-next[t] void(a t mut-array-iterator, value t) bare
 	a.as-backing-iter set-next value
 
-+slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)
++slice[t] t mut[](a t mut-array-iterator, b t mut-array-iterator)
 	assert a.next-index <= b.next-index : slice-out-of-order
 	res t mut-slice = a.collection.backing[a.next-index .. b.next-index]
 	res.copy, res.size

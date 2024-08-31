@@ -1303,10 +1303,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to write 'r shared(x p)' instead of '(r, p) fun-shared'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
 						return "Prefer to write 'v[k]' instead of '(k, v) map'.";
+					case Diag.TypeShouldUseSyntax.Kind.mutArray:
+						return "Prefer to write 't mut[]' instead of 't mut-array'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutMap:
 						return "Prefer to write 'v mut[k]' instead of '(k, v) mut-map'.";
-					case Diag.TypeShouldUseSyntax.Kind.mutList:
-						return "Prefer to write 't mut[]' instead of 't mut-list'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
 						return "Prefer to write 't mut*' instead of 't mut-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.opt:

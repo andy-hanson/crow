@@ -6,7 +6,7 @@ import
 	./col/collection: for-loop
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
-	./col/mut-list: iterate, mut-list, size
+	./col/mut-array: iterate, mut-array, size
 	./js:
 		==, as-js, call-new, call-property, cast, instanceof, js-any, js-global, null,
 		set-subscript, subscript, typeof

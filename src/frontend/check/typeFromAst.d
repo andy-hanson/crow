@@ -303,10 +303,10 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case symbol!"map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.map);
+		case symbol!"mut-array".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.mutArray);
 		case symbol!"mut-map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutMap);
-		case symbol!"mut-list".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
 		case symbol!"mut-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
 		case symbol!"option".value:

@@ -8,10 +8,10 @@ import
 	../pointer: mut-pointer
 	./array: array
 	./collection: build-options
-	./mut-list: ~=, build, clear, mut-list, move-to, new, size, subscript, to
+	./mut-array: ~=, build, clear, move-to, mut-array, new, size, subscript, to
 
 ###
-Shared equivalent to 'mut-list'.
+Shared equivalent to 'mut-array'.
 
 Iteration is not supported; since operations on this take a lock, they need to be short.
 If you need to iterate, you could use 'copy-to' or 'move-to' to get a snapshot of all the elements
@@ -31,8 +31,8 @@ and iterate it at your leisure.
 		cb[a inner]
 
 +new[t] t shared[](...a t[])
-	a.to new-from-new-mut-list
--new-from-new-mut-list[t] t shared[](inner t mut[]) trusted
+	a.to new-from-new-mut-array
+-new-from-new-mut-array[t] t shared[](inner t mut[]) trusted
 	res t shared[] = uninit, inner
 	if extern native
 		res.lock init
@@ -43,12 +43,12 @@ and iterate it at your leisure.
 +is-empty[t] bool(a t shared[])
 	a.size == 0
 
-# WARN: This holds the lock while copying the entire list. Consider using 'move-to' instead.
+# WARN: This holds the lock while copying the entire array. Consider using 'move-to' instead.
 +copy-to[t] t[](a t shared[]) unsafe
 	a with-lock x => x.to
 
 +move-to[t] t shared[](a t mut[])
-	a.move-to new-from-new-mut-list
+	a.move-to new-from-new-mut-array
 +move-to[t] t[](a t shared[])
 	trusted a with-lock x => x move-to
 +move-to[t] t mut[](a t shared[])

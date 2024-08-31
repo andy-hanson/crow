@@ -290,10 +290,10 @@ module-content string(a module, all-exports all-exports)
 		a type-ref-suffix "?", ctx
 	as "list"
 		a type-ref-suffix "[]", ctx
-	as "mut-list"
-		a type-ref-suffix " mut[]", ctx
 	as "map"
 		a type-ref-map "[", ctx
+	as "mut-array"
+		a type-ref-suffix " mut[]", ctx
 	as "mut-map"
 		a type-ref-map " mut[", ctx
 	as "const-pointer"

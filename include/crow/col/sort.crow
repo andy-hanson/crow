@@ -16,7 +16,7 @@ import
 	./mut-slice:
 		~=, +, begin, build, cast-immutable, iterate, mut-slice, new, next, set-next, set-subscript,
 		size, slice, to, subscript
-	./mut-list: mut-list, temp-as-mut-slice
+	./mut-array: mut-array, temp-as-mut-slice
 
 +is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
 	prev mut elem? = ()

@@ -1,4 +1,4 @@
-dummy-mut-list-tests nat()
+dummy-mut-array-tests nat()
 	0
 
 test

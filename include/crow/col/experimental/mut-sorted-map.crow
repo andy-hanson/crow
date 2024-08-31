@@ -209,7 +209,7 @@ Else, returns an empty option.
 	a.next := ()
 	a.node-size := a.pairs size
 
--find-exact[k, v] (k, v?) mut-list-iterator?(a (k, v) mut-sorted-map, key k) k key
+-find-exact[k, v] (k, v?) mut-array-iterator?(a (k, v) mut-sorted-map, key k) k key
 	a.pairs binary-search-exact (k, _) => key <=> k
 
 region mutating iteration

@@ -3,7 +3,7 @@ import
 	./index-set-tests: dummy-index-set-tests
 	./array-tests: dummy-array-tests
 	./map-tests: dummy-map-tests
-	./mut-list-tests: dummy-mut-list-tests
+	./mut-array-tests: dummy-mut-array-tests
 	./set-tests: dummy-set-tests
 
 dummy-col-tests nat()
@@ -11,5 +11,5 @@ dummy-col-tests nat()
 	_ = dummy-frozen-map-tests
 	_ = dummy-index-set-tests
 	_ = dummy-map-tests
-	_ = dummy-mut-list-tests
+	_ = dummy-mut-array-tests
 	_ = dummy-set-tests

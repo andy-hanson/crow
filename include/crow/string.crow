@@ -11,7 +11,7 @@ import
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
-	./col/mut-list: ~=, insert-at, move-to, mut-list, new, reverse-in-place, size
+	./col/mut-array: ~=, insert-at, move-to, mut-array, new, reverse-in-place, size
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix

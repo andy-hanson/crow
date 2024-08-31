@@ -367,7 +367,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				mustTakeToken(lexer, Token.mut);
 				return tryTakeToken(lexer, Token.bracketLeft)
 					? tryTakeToken(lexer, Token.bracketRight)
-						? suffix(TypeAst.SuffixSpecial.Kind.mutList)
+						? suffix(TypeAst.SuffixSpecial.Kind.mutArray)
 						: mapLike(TypeAst.Map.Kind.mut)
 					: tryTakeOperator(lexer, symbol!"*")
 					? suffix(TypeAst.SuffixSpecial.Kind.mutPtr)

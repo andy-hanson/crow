@@ -5,7 +5,7 @@ export
 	./col/array
 	./col/collection
 	./col/map
-	./col/mut-list
+	./col/mut-array
 	./col/mut-map
 	./col/mut-set
 	./col/set

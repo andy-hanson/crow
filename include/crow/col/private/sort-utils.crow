@@ -16,8 +16,8 @@ import
 		==, <=>, +, -, array, array-iterator, begin, end, iterate, new, next, next-index, slice
 	../collection: for-break, for-loop
 	../mut-slice: +, begin, mut-slice, mut-slice-iterator, new, next-index, temp-as-array
-	../mut-list:
-		+, begin, clear, is-empty, move-to, mut-list, mut-list-iterator, set-subscript, size,
+	../mut-array:
+		+, begin, clear, is-empty, move-to, mut-array, mut-array-iterator, set-subscript, size,
 		subscript, swap, temp-as-array, to, unsafe-set-size
 
 binary-search-has[t] bool(a t[], value t) t compare
@@ -45,7 +45,7 @@ binary-search-key[k, v] v?(a (k, v)[], key k) k compare
 				left := mid + 1
 				continue
 
-binary-search-exact[t] t mut-list-iterator?(a t mut[], compare comparison data(elem t))
+binary-search-exact[t] t mut-array-iterator?(a t mut[], compare comparison data(elem t))
 	if iter ?= trusted a.temp-as-array binary-search-exact compare
 		a.begin + iter.next-index,
 
@@ -98,7 +98,7 @@ binary-search-exact[t] t array-iterator?(a t[], compare comparison data(elem t))
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert[t] t mut-list-iterator(a t mut[], compare comparison data(elem t))
+binary-search-insert[t] t mut-array-iterator(a t mut[], compare comparison data(elem t))
 	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
 binary-search-insert[t] t mut-slice-iterator(a t mut-slice, compare comparison data(elem t))

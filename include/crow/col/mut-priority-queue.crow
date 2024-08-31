@@ -12,8 +12,8 @@ import
 	../tuple: ==, new
 	./array: ==, ~=, array, array-builder, build, iterate, new, size, subscript
 	./collection: build-options, for-loop, is-at-end, reversed, set-reverse, with-index
-	./mut-list:
-		~=, ~~=, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
+	./mut-array:
+		~=, ~~=, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-array, new, next,
 		next-index, peek, pop, prev, set-next, set-prev, size, subscript, temp-as-array, to
 	./priority-queue: priority
 	./sort: sort=
@@ -38,7 +38,7 @@ If two pairs have the same key, the second pair added will be popped second.
 +new[k, v] (k, v) mut-priority-queue(...a (k, v)[]) k priority
 	a to
 
-# Copies a list to a new priority queue.
+# Copies an array to a new priority queue.
 +to[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins (k, v) mut[] = a to
 	mins sort= (k, _) => k compare-reverse

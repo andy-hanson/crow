@@ -14,8 +14,8 @@ import
 	./array: ==, ~=, array, build, iterate, new, size
 	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
-	./mut-list:
-		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
+	./mut-array:
+		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-array, new, next,
 		remove-unordered-at, set-next, set-subscript, size, subscript
 	./mut-slice:
 		~=, begin, build, iterate, is-empty, mut-slice, new, next, set-next, set-subscript, size,

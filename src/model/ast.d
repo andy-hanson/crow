@@ -118,7 +118,7 @@ immutable struct TypeAst {
 		@safe @nogc pure nothrow:
 		enum Kind : ubyte {
 			array,
-			mutList,
+			mutArray,
 			mutPtr,
 			option,
 			ptr,
@@ -178,7 +178,7 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 			return cast(uint) "[]".length;
 		case TypeAst.SuffixSpecial.Kind.option:
 			return cast(uint) "?".length;
-		case TypeAst.SuffixSpecial.Kind.mutList:
+		case TypeAst.SuffixSpecial.Kind.mutArray:
 			return cast(uint) "mut[]".length;
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return cast(uint) "mut*".length;
@@ -204,8 +204,8 @@ Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
 		case TypeAst.SuffixSpecial.Kind.array:
 			return symbol!"array";
-		case TypeAst.SuffixSpecial.Kind.mutList:
-			return symbol!"mut-list";
+		case TypeAst.SuffixSpecial.Kind.mutArray:
+			return symbol!"mut-array";
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return symbol!"mut-pointer";
 		case TypeAst.SuffixSpecial.Kind.option:

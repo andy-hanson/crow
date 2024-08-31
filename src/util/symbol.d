@@ -760,7 +760,7 @@ immutable string[] specialSymbols = [
 	"modules",
 	"mutability",
 	"mut-slice",
-	"mut-list",
+	"mut-array",
 	"mut-map",
 	"mut-pointer",
 	"nanosleep",

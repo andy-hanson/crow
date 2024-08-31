@@ -17,7 +17,7 @@ import
 		PeekNamedPipe, _popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES,
 		SetHandleInformation, Sleep, STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../col/mut-slice: begin-pointer, mut-slice, new, size, subscript
-	../col/mut-list: unsafe-set-size
+	../col/mut-array: unsafe-set-size
 	../c-types: fd-t
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end

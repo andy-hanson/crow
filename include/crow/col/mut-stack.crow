@@ -6,7 +6,8 @@ import
 	../option: option
 	./collection: iterate
 	./array: array
-	./mut-list: ~=, ~~=, copy, filter=, is-empty, iterate, mut-list, peek, pop, size, subscript, to
+	./mut-array:
+		~=, ~~=, copy, filter=, is-empty, iterate, mut-array, peek, pop, size, subscript, to
 
 ###
 Mutable stack.
