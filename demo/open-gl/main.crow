@@ -74,7 +74,7 @@ main void() summon, trusted, (native, SDL2) extern
 
 	texture = gl load-texture-from-bmp crow-bmp
 
-	vertices vertex array = make-cube
+	vertices vertex[] = make-cube
 	triangle-vbo = gl vbo-create vertices
 	forbid triangle-vbo == 0
 
@@ -99,7 +99,7 @@ main void() summon, trusted, (native, SDL2) extern
 		SDL_Quit
 		()
 
--make-cube vertex array()
+-make-cube vertex[]()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
 	back vertex[] = with out : build
 		for xs : front groups-of 3
@@ -136,7 +136,7 @@ main void() summon, trusted, (native, SDL2) extern
 	render-thread-id nat
 	window SDL_Window mut*
 	shader-prog GLuint
-	vertices vertex array
+	vertices vertex[]
 	triangle-vbo GLuint
 	texture GLuint
 	rotation-loc GLint
@@ -220,7 +220,7 @@ main void() summon, trusted, (native, SDL2) extern
 	SDL_Quit
 	throw description sdl-error SDL_GetError.to
 
--vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe, native extern
+-vbo-create GLuint(gl gl-ext, vertices vertex[]) summon, unsafe, native extern
 	vbo mut GLuint = 0
 	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
@@ -234,7 +234,7 @@ main void() summon, trusted, (native, SDL2) extern
 		throw "Creating VBO" gl-error err
 	vbo
 
-size-bytes nat(vertices vertex array) unsafe, native extern
+size-bytes nat(vertices vertex[]) unsafe, native extern
 	vertices.size * size-of@vertex
 
 -vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe, native extern

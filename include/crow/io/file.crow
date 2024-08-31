@@ -12,6 +12,7 @@ import
 		GetLastError, HANDLE, INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
+	../col/mut-slice
 	./path: child-path
 	./win32-util: show-win32-error
 
@@ -169,7 +170,7 @@ Use `paths-in-dir` if you want full paths.
 +read-link string(path string) summon, (native, posix) extern
 	trusted
 		# TODO: smart small and retry if necessAry
-		buff char8 mut-array = 1000 gc-safe-mut-array
+		buff char8 mut-slice = 1000 gc-safe-mut-slice
 		size = path.to readlink buff.begin-pointer, buff.size
 		forbid size == -1 : path exception-for-last
 		buff.cast-immutable[0 .. size.to] to
@@ -244,7 +245,7 @@ If the file already exists, overwrites it.
 		assert err2 == 0 : todo
 
 		file-size-nat nat64 = file-size to
-		res nat8 mut-array = file-size-nat gc-safe-mut-array
+		res nat8 mut-slice = file-size-nat gc-safe-mut-slice
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : path exception-for-last
@@ -255,7 +256,7 @@ If the file already exists, overwrites it.
 
 # Gets the current directory (of the user that ran the program).
 +current-directory string() summon, trusted, native extern
-	buff char8 mut-array = 256 gc-safe-mut-array
+	buff char8 mut-slice = 256 gc-safe-mut-slice
 	b = if extern windows
 		buff.begin-pointer _getcwd buff.size
 	elif extern posix

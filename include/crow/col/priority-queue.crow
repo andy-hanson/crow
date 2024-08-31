@@ -1,3 +1,6 @@
+import
+	./mut-slice
+
 ###
 Immutable priority queue.
 
@@ -177,7 +180,7 @@ This is amortized O(log n).
 	n-to-compact nat64,
 	nodes-to-compact (k, v) node?,
 ) k compare
-	compacted (k, v) mut-array = with out : n-to-compact build
+	compacted (k, v) mut-slice = with out : n-to-compact build
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
 	assert compacted.size == n-to-compact
@@ -185,14 +188,14 @@ This is amortized O(log n).
 	arr = trusted compacted cast-immutable
 	arr[0], arr[1 .. end], ()
 
--compact-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node)
+-compact-singles[k, v] void(out (k, v) mut-slice-builder, a (k, v) node)
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		if next ?= a next
 			out compact-singles next
 		out ~= a min
 
--compact-non-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node?)
+-compact-non-singles[k, v] void(out (k, v) mut-slice-builder, a (k, v) node?)
 	cur mut = a
 	while node ?= cur
 		out ~= node min
@@ -212,12 +215,12 @@ This is amortized O(log n).
 region spec impls (see collection.crow)
 
 +iterate[k, v] bool(a (k, v) priority-queue, f bool mut(key k, value v)) k priority
-	a.each-arr.as-slice walk f
+	a.each-arr walk f
 
 -each-part[k, v] record(min mut (k, v), pairs mut (k, v)[]) mut
 
--each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) k compare
-	res (k, v) each-part mut-array = with out : a.node-count build
+-each-arr[k, v] (k, v) each-part mut-slice(a (k, v) priority-queue) k compare
+	res (k, v) each-part mut-slice = with out : a.node-count build
 		out fill-each-arr a.root
 	assert res.size == a.node-count
 	res sort= x => x.min a
@@ -232,7 +235,7 @@ region spec impls (see collection.crow)
 	else
 		acc
 
--fill-each-arr[k, v] void(out (k, v) each-part mut-array-builder, a (k, v) node?)
+-fill-each-arr[k, v] void(out (k, v) each-part mut-slice-builder, a (k, v) node?)
 	cur mut = a
 	while node ?= cur
 		out ~= (node.min, node.pairs)

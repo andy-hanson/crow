@@ -549,7 +549,7 @@ JsImport[] translateReExports(ref TranslateProgramCtx ctx, in ModulePaths module
 	Path importerPath = mustGet(modulePaths, module_.uri);
 	return mapOp!(JsImport, ImportOrExport)(ctx.alloc, module_.reExports, (ref ImportOrExport x) {
 		RelPath relPath() => relativePath(importerPath, mustGet(modulePaths, x.module_.uri));
-		if (isImportModuleWhole(x)) // TODO: I think we still need to track aliases used by a re-exporting module
+		if (isImportModuleWhole(x))
 			return optIf(isModuleUsed(ctx.allUsed, x.modulePtr), () =>
 				JsImport(none!(JsName[]), relPath));
 		else {

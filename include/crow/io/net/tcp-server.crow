@@ -9,6 +9,7 @@ import
 	system/sys/socket: accept, as-fd, as-socket, listen, shutdown, SHUT_RDWR, sockaddr, SOCKET
 	system/sys/types: socklen_t
 	system/unistd: close, read
+	../../col/mut-slice
 	../../c-types: c-int, fd-t
 	../../private/bootstrap: todo
 	../duration: millisecond
@@ -157,7 +158,7 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 	fd fd-t,
 	on-received-chunk void mut(socket SOCKET, chunk nat8[]),
 ) summon, unsafe, (libc, native, posix) extern
-	buf nat8 mut-array = 0x1000 gc-safe-mut-array
+	buf nat8 mut-slice = 0x1000 gc-safe-mut-slice
 	count = fd read buf.begin-pointer, buf.size
 	if count < 0
 		err = errno

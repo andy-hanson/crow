@@ -128,5 +128,5 @@ This happens in its own scope, so don't count on anything being in the enclosing
 Instead, `eval` a function literal, then `call` it, like `"x => f(x)".eval call x`.
 If appropriate, remember to make the function `async` and `await` the result.
 ###
-+eval js-any(source string) unsafe, js extern
++eval js-any(source string) bare, unsafe, js extern
 	"eval".js-global call source

@@ -3,10 +3,10 @@ import
 	crow/io/print
 	crow/perf
 
-main void() summon
+main void() summon, native extern
 	xs nat[], perf perf-result = with : ("is-prime",) measure-performance
 		with out : build
-			for x : 2::nat .. 1000
+			for x : 2::nat .. 10000
 				with : "is-prime" perf-measure
 					if x is-prime
 						out ~= x

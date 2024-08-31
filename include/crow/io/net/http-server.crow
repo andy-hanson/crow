@@ -83,7 +83,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	as ok o
 		o
 	as error e
-		error log "{e}"
+		error log "HTTP handler error: {e}"
 		http-internal-server-error to
 
 -write-until-finished void(

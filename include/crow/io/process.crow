@@ -16,6 +16,7 @@ import
 		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
 		PeekNamedPipe, _popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES,
 		SetHandleInformation, Sleep, STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
+	../col/mut-slice: begin-pointer, mut-slice, new, size, subscript
 	../col/mut-list: unsafe-set-size
 	../c-types: fd-t
 	../private/bootstrap: todo
@@ -246,7 +247,7 @@ The child process shares stdout and stderr with the parent process.
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
 ) summon, unsafe, (libc, native, posix) extern
-	poll-fds pollfd mut-array = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
+	poll-fds pollfd mut-slice = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events int64 = poll-fds.begin-pointer poll poll-fds.size, -1 to
 	if n-pollfds-with-events == 0

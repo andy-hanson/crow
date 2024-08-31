@@ -310,7 +310,7 @@ GetLowTypeCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 				(in ConcreteStructBody.Builtin x) {
 					switch (x.kind) {
 						case BuiltinType.array:
-						case BuiltinType.mutArray:
+						case BuiltinType.mutSlice:
 							return some(addAndGetIndex(alloc, recordsBuilder, LowRecord(source)));
 						case BuiltinType.catchPoint:
 							return some(addAndGetIndex(alloc, externTypesBuilder, LowExternType(source)));
@@ -373,7 +373,7 @@ SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRec
 			LowField(
 				LowFieldSource(LowFieldSource.ArrayField.pointer),
 				8,
-				builtin.kind == BuiltinType.mutArray
+				builtin.kind == BuiltinType.mutSlice
 					? getPointerMut(getLowTypeCtx, elementType)
 					: getPointerConst(getLowTypeCtx, elementType))]);
 	} else
@@ -385,7 +385,7 @@ SmallArray!LowField makeRecordFields(ref GetLowTypeCtx getLowTypeCtx, ref LowRec
 				LowField(LowFieldSource(field), fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type)));
 }
 bool lowersToArray(BuiltinType a) =>
-	a == BuiltinType.array || a == BuiltinType.mutArray || a == BuiltinType.string_;
+	a == BuiltinType.array || a == BuiltinType.mutSlice || a == BuiltinType.string_;
 
 SmallArray!LowType maybeUnpackTuple(ref Alloc alloc, LowType a) {
 	Opt!(SmallArray!LowType) res = tryUnpackTuple(alloc, a);
@@ -436,7 +436,7 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 				case BuiltinType.int64:
 					return LowType(PrimitiveType.int64);
 				case BuiltinType.array:
-				case BuiltinType.mutArray:
+				case BuiltinType.mutSlice:
 					return record();
 				case BuiltinType.future: // Concretize replaces this with 'future-impl'
 				case BuiltinType.lambda: // Lambda is compiled away by concretize

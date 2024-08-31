@@ -1067,8 +1067,8 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.int64;
 		case symbol!"js-any".value:
 			return BuiltinType.jsAny;
-		case symbol!"mut-array".value:
-			return BuiltinType.mutArray;
+		case symbol!"mut-slice".value:
+			return BuiltinType.mutSlice;
 		case symbol!"nat8".value:
 			return BuiltinType.nat8;
 		case symbol!"nat16".value:

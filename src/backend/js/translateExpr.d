@@ -235,7 +235,7 @@ private Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, BuiltinType t
 		some(genNotEqEq(ctx.alloc, genTypeof(ctx.alloc, get), genString(expected)));
 	final switch (type) {
 		case BuiltinType.array:
-		case BuiltinType.mutArray:
+		case BuiltinType.mutSlice: // mutSlice might use a Proxy, but that is still instanceof Array
 			return instanceof(symbol!"Array");
 		case BuiltinType.bool_:
 			return typeof_("boolean");

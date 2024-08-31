@@ -14,12 +14,12 @@ import
 	./array: ==, ~=, array, build, iterate, new, size
 	./collection: build-options, fill, find, find-index, for-loop, n-of, map=, size-hint
 	./map: ~=, build, map
-	./mut-array:
-		~=, begin, build, iterate, mut-array, is-empty, new, next, set-next, set-subscript, size,
-		subscript
 	./mut-list:
 		~=, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
 		remove-unordered-at, set-next, set-subscript, size, subscript
+	./mut-slice:
+		~=, begin, build, iterate, is-empty, mut-slice, new, next, set-next, set-subscript, size,
+		subscript
 
 ###
 Mutable unordered map.
@@ -27,7 +27,7 @@ Mutable unordered map.
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
 +mut-map[k, v] record mut
-	-entries mut (k, v) entry mut-array
+	-entries mut (k, v) entry mut-slice
 	-total-size mut nat64
 
 -entry[k, v] union(none, one (k, v), many (k, v) mut[]) mut
@@ -49,7 +49,7 @@ this makes no guarantees about whether more allocations will be needed.
 ###
 -mut-map-with-capacity[k, v] v mut[k](capacity nat64) k key
 	# TODO: should not need type annotation
-	(capacity n-of none)::((k, v) entry mut-array), 0
+	(capacity n-of none)::((k, v) entry mut-slice), 0
 
 ###
 Convert a list of pairs to a map.
@@ -82,7 +82,7 @@ Later pairs overwrite earlier pairs with the same key.
 
 # Copy pairs to a new map.
 +copy[k, v] v mut[k](a v mut[k]) k key
-	entries (k, v) entry mut-array = for entry : a entries
+	entries (k, v) entry mut-slice = for entry : a entries
 		match entry
 		as none
 			none

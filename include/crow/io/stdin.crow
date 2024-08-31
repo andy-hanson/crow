@@ -2,6 +2,7 @@ import
 	system/stdio: stdin
 	system/unistd: read
 	system/win32: DWORD, GetLastError, GetStdHandle, ReadConsoleA, STD_INPUT_HANDLE
+	../col/mut-slice
 	../private/bootstrap: todo
 	./print: out, print
 	./win32-util: show-win32-error
@@ -14,7 +15,7 @@ Result will not have leading or trailing whitespace.
 +read-stdin string() summon, trusted, native extern
 	with : new-exclusion
 		# TODO: use a non-blocking API
-		buffer nat8 mut-array = 0x2000 gc-safe-mut-array
+		buffer nat8 mut-slice = 0x2000 gc-safe-mut-slice
 		bytes-read nat = if extern windows
 			n-read mut DWORD = 0
 			ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \

@@ -1,4 +1,5 @@
 import
+	crow/col/mut-slice
 	crow/c-types: c-int
 	crow/private/alloc: unmanaged-alloc, unmanaged-free
 	crow/private/thread-utils: acquire, release
@@ -47,5 +48,5 @@ import
 
 -audio-cb void(userdata any-mut-pointer, stream nat8 mut*, len c-int) bare, unsafe, native extern
 	queue = (userdata.pointer-cast::write-ctx mut*)->queue
-	floats float32 mut-array = stream[0 .. len.to] cast-mut-array
+	floats float32 mut-slice = stream[0 .. len.to] cast-mut-slice
 	queue pull floats

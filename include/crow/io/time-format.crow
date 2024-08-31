@@ -6,6 +6,7 @@ Most of these take a `unix-time`; see `get-unix-time` in `crow/io/time`.
 
 import
 	system/time: gmtime, localtime, strftime
+	../col/mut-slice
 	./time: seconds-since-epoch, unix-time
 
 +time-locale record
@@ -123,6 +124,6 @@ Second from 00 to 60 inclusive.
 			&seconds localtime
 		else
 			&seconds gmtime
-		res char8 mut-array = max-size + 1 gc-safe-mut-array
+		res char8 mut-slice = max-size + 1 gc-safe-mut-slice
 		len = res.begin-pointer strftime res.size, format.to, tm.as-const
 		res.cast-immutable[0 .. len] to

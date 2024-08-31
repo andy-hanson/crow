@@ -1,6 +1,7 @@
 import
+	../mut-slice: ~=, build, mut-slice
 	./frozen-map:
-		frozen-map, in, is-empty, iterate, mut-array-to-frozen-map-promise-no-duplicates, new,
+		frozen-map, in, is-empty, iterate, mut-slice-to-frozen-map-promise-no-duplicates, new,
 		size, subscript, to
 
 +compact-map[k, v] record by-val
@@ -102,26 +103,26 @@ TODO
 	l (k, v?) frozen-map,
 	r (k, v?) frozen-map,
 ) k key
-	pairs (k, v?) mut-array = with out : l.size + r.size build
+	pairs (k, v?) mut-slice = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
 		for x : r
 			out ~= x
-	trusted pairs mut-array-to-frozen-map-promise-no-duplicates
+	trusted pairs mut-slice-to-frozen-map-promise-no-duplicates
 
 -merge-to-end[k, v] (k, v) frozen-map(
 	l (k, v) frozen-map,
 	r (k, v?) frozen-map,
 ) k key
-	pairs (k, v) mut-array = with out : l.size + r.size build
+	pairs (k, v) mut-slice = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
 		for k, vr : r
 			if v ?= vr
 				out ~= (k, v)
-	trusted pairs mut-array-to-frozen-map-promise-no-duplicates
+	trusted pairs mut-slice-to-frozen-map-promise-no-duplicates
 
 region spec impls (see collection.crow)
 

@@ -16,9 +16,9 @@ import
 		~=, array, array-builder, as-array, begin-pointer, build, end-pointer, is-empty, iterate,
 		new, next-index, size, subscript
 	../collection: .., -, build, build-options, end, for-loop, subscript, with-block
-	../mut-array:
-		~=, as-slice, begin-pointer, build, end-pointer, gc-safe-mut-array, is-empty, mut-array,
-		mut-array-builder, mut-slice, set-subscript, size, subscript
+	../mut-slice:
+		~=, begin-pointer, build, end-pointer, gc-safe-mut-slice, is-empty, mut-slice,
+		mut-slice-builder, set-subscript, size, subscript
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
@@ -195,7 +195,7 @@ Or a combination of the two.
 ) t key, native extern
 	assert plan.compacted-size > 1
 	trusted
-		compacted t mut-array = plan.compacted-size gc-safe-mut-array
+		compacted t mut-slice = plan.compacted-size gc-safe-mut-slice
 		begin = compacted begin-pointer
 		*begin := value
 		compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
@@ -213,7 +213,7 @@ Or a combination of the two.
 			left, new-remove
 	else
 		trusted
-			compacted t mut-array = plan.compacted-size gc-safe-mut-array
+			compacted t mut-slice = plan.compacted-size gc-safe-mut-slice
 			begin = compacted begin-pointer
 			compactor t compactor = begin.as-const, begin, compacted.end-pointer
 			old-size = plan.add-size-left + plan.compacted-size + 1
@@ -330,7 +330,7 @@ Or a combination of the two.
 region spec impls (see collection.crow)
 
 +iterate[t] bool(a t sorted-set, f bool mut(elem t)) t key
-	iters mut t iter-part mut-slice = a.init-iters as-slice
+	iters mut t iter-part mut-slice = a init-iters
 	loop
 		if iters is-empty
 			break false
@@ -371,7 +371,7 @@ region spec impls (see collection.crow)
 -tail[t] t iter-part(a t iter-part, remove index-set)
 	(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 
--init-iters[t] t iter-part mut-array(a t sorted-set)
+-init-iters[t] t iter-part mut-slice(a t sorted-set)
 	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
 
@@ -384,7 +384,7 @@ region spec impls (see collection.crow)
 	acc
 
 # Returns next remove index
--init-iters-recur[t] nat64(out t iter-part mut-array-builder, a t add-node, remove index-set)
+-init-iters-recur[t] nat64(out t iter-part mut-slice-builder, a t add-node, remove index-set)
 	prev = if left ?= a left
 		out init-iters-recur left, remove
 	else

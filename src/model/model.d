@@ -136,10 +136,10 @@ private bool isEmptyRecord(in StructDecl a) =>
 
 bool isArray(in Type a) =>
 	isBuiltinType(a, BuiltinType.array);
-bool isMutArray(in Type a) =>
-	isBuiltinType(a, BuiltinType.mutArray);
-bool isArrayOrMutArray(in StructDecl a) =>
-	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutArray);
+bool isMutSlice(in Type a) =>
+	isBuiltinType(a, BuiltinType.mutSlice);
+bool isArrayOrMutSlice(in StructDecl a) =>
+	isBuiltinType(a, BuiltinType.array) || isBuiltinType(a, BuiltinType.mutSlice);
 
 bool isTuple(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
@@ -509,7 +509,7 @@ enum BuiltinType {
 	int64,
 	jsAny,
 	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
-	mutArray,
+	mutSlice,
 	nat8,
 	nat16,
 	nat32,
@@ -542,7 +542,7 @@ bool isCharOrIntegral(BuiltinType a) {
 		case BuiltinType.funPointer:
 		case BuiltinType.jsAny:
 		case BuiltinType.lambda:
-		case BuiltinType.mutArray:
+		case BuiltinType.mutSlice:
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
 		case BuiltinType.string_:
@@ -972,8 +972,8 @@ immutable struct BuiltinFun {
 }
 
 enum BuiltinUnary {
-	arrayPointer, // works on mut-array too
-	arraySize, // works on mut-array too
+	arrayPointer, // works on mut-slice too
+	arraySize, // works on mut-slice too
 	asAnyPointer,
 	asFuture,
 	asFutureImpl,
@@ -1115,7 +1115,7 @@ enum BuiltinBinary {
 	lessPointer,
 	mulFloat32,
 	mulFloat64,
-	newArray, // Also works for mut-array
+	newArray, // Also works for mut-slice
 	referenceEqual,
 	seq,
 	subFloat32,

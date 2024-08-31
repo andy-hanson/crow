@@ -7,7 +7,7 @@ import
 		~, ~~, ~=, ~~=, ==, <=>, array, array-builder, array-cast, array-iterator, as-array, begin,
 		begin-pointer, build, collection, end, is-empty, iterate, new, next, prev, size, slice,
 		subscript
-	./col/mut-array: cast-immutable, cast-mutable, copy, mut-array
+	./col/mut-slice: cast-immutable, cast-mutable, copy, mut-slice
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
 		try-remove-end, try-split-once, with-block
@@ -170,7 +170,7 @@ Unlike 'as-string' this copies the 'c-string'.
 This is still unsafe because 'a' must end in a `"\0"` character.
 ###
 +to string(a c-string) unsafe, native extern
-	copy char8 mut-array = a.to.cast-mutable copy
+	copy char8 mut-slice = a.to.cast-mutable copy
 	copy.cast-immutable to
 
 +show[t] spec

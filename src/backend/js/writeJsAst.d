@@ -267,6 +267,8 @@ void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl, 
 
 void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDecl a) {
 	writer ~= "// ";
+	writer ~= a.range.uri;
+	writer ~= ' ';
 	writer ~= showCtx.lineAndColumnGetters[a.range].range;
 	a.matchWithPointers!void(
 		(FunDecl* x) {

@@ -52,24 +52,21 @@ elements not reachable by any slice will be garbage collected.
 ~array-pointer[t] t*(a t[]) builtin, bare, native extern
 
 ###
-`mut-array` is a low-level type mostly useful for implementing other collections.
+This is a low-level type mostly useful for implementing other collections.
 For normal code, a `mut[]` is preferable.
 
-A `mut-array` is like a `mut[]`,
-but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
-This has a small performance benefit, since (like an immutable array)
-a `mut-array` is just a pointer and size which can be stored by value.
+A `mut-slice` is like a `mut[]`,
+but while a `mut[]` has capacity for pushing elements, `mut-slice` is fixed-size.
+This has a small performance benefit for native code, since (like an immutable array)
+a `mut-slice` is just a pointer and size which can be stored by value.
 
-You can't change what range of addresses a `mut-array` points to,
+You can't change what range of addresses a `mut-slice` points to,
 though you can write to its elements.
 
-Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
+Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-slice`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-+mut-array[t] builtin extern
-~new-mut-array[t] t mut-array(size nat64, pointer t mut*) builtin, bare, native extern
-~mut-array-size[t] nat64(a t mut-array) builtin, bare
-~mut-array-pointer[t] t mut*(a t mut-array) builtin, bare, unsafe, native extern
++mut-slice[t] builtin extern
 
 # This could be any byte in a UTF-8 string.
 +char8 builtin extern
@@ -312,7 +309,7 @@ For example, this might write it to the console.
 	state mut fiber-state
 	log-handler mut log-handler
 	# This must be 16-byte aligned
-	stack nat64 mut-array
+	stack nat64 mut-slice
 	# Null if no roots yet
 	gc-root mut gc-root mut*
 

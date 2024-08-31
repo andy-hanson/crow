@@ -215,7 +215,7 @@ This is O(a.size ln).
 -iter[t] record mut
 	cur mut t[]
 	# If a node is on the stack, we have yet to write out the middle and right.
-	# TODO:PERF use a mut-array, initialized to the tree's height
+	# TODO:PERF use a mut-slice, initialized to the tree's height
 	stack t inner-node mut-stack
 
 -iter[t] t iter(a t tree-set)

@@ -231,8 +231,6 @@ ParamShort param(string name)(Type type) =>
 
 private:
 
-immutable NameAndRange[1] singleTypeParamsArray = [NameAndRange(0, symbol!"t")];
-TypeParams singleTypeParams() => TypeParams(singleTypeParamsArray);
 immutable NameAndRange[2] twoTypeParamsArray = [NameAndRange(0, symbol!"r"), NameAndRange(0, symbol!"p")];
 TypeParams twoTypeParams() => TypeParams(twoTypeParamsArray);
 Type typeParam0() => Type(TypeParamIndex(0));

@@ -1,5 +1,6 @@
 #!/usr/bin/env crow
 import
+	crow/col/mut-slice
 	crow/c-types: fd-t
 	crow/io/print: out, print
 	system/arpa/inet: inet_addr, inet_ntoa
@@ -39,7 +40,7 @@ main void() summon, trusted, (native, posix) extern
 
 -send-request void(socket fd-t, request string) summon, unsafe, (native, posix) extern
 	forbid request is-empty
-	bytes mut nat8 array = request to
+	bytes mut nat8[] = request to
 	loop
 		bytes-sent = socket write bytes.begin-pointer, bytes.size
 		# TODO: might be 0 if the socket is overloaded -- delay and try again
@@ -53,7 +54,7 @@ main void() summon, trusted, (native, posix) extern
 
 -receive-response void(socket fd-t) summon, (native, posix) extern
 	trusted
-		buffer nat8 mut-array = 0x2000 gc-safe-mut-array
+		buffer nat8 mut-slice = 0x2000 gc-safe-mut-slice
 		# TODO: use epoll like we did in the server, for a non-blocking read.
 		bytes-read = socket read buffer.begin-pointer, buffer.size
 		assert bytes-read >= 0

@@ -19,7 +19,7 @@ import
 	./collection:
 		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, n-of,
 		subscript, with-block, with-index
-	./mut-array: ~=, build, cast-immutable, mut-array, set-subscript, subscript
+	./mut-slice: ~=, build, cast-immutable, mut-slice, set-subscript, subscript
 
 ###
 Immutable unordered map type.
@@ -362,7 +362,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	for k, _ : a
 		max-hash max:= k.hash >> hash-shift low-bits
 	trusted
-		res (k, v) node mut-array = max-hash + 1 n-of empty-leaf-node
+		res (k, v) node mut-slice = max-hash + 1 n-of empty-leaf-node
 		# TODO: avoid allocating the same leaf twice...
 		res[key-hash] := ((key, value),).leaf-node
 		for k, v : a

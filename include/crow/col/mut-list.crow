@@ -18,14 +18,14 @@ import
 	./collection:
 		.., -, build-options, end, for-loop, index-too-big, iterate, size-hint, slice-out-of-order,
 		subscript
-	./mut-array:
-		+, begin, begin-pointer, cast-immutable, cast-mutable, clear-memory, copy-to,
-		gc-safe-mut-array, mut-array, mut-array-iterator, mut-slice, prev, new, next, next-index,
+	./mut-slice:
+		+, begin, begin-pointer, cast-immutable, cast-mutable, clear-memory, copy,
+		gc-safe-mut-slice, mut-slice, mut-slice-iterator, prev, new, next, next-index,
 		set-next, set-prev, set-subscript, size, subscript, temp-as-array, to
 
 ###
 Mutable array type that can change in size.
-This is represented as a reference to a `mut-array` with extra capacity.
+This is represented as a reference to a `mut-slice` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
@@ -33,7 +33,7 @@ but appending (or removing) from the beginning is always O(N).
 	# Fields should only be used in mut-list.crow
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'gc-safe-value'
-	-backing mut t mut-array
+	-backing mut t mut-slice
 	# Not used for JS
 	-mut-list-size mut nat64
 
@@ -84,7 +84,7 @@ Creates a new list with the given elements.
 	a.cast-mutable, a.size
 
 +to[t] t mut[](a t[])
-	backing t mut-array = ()
+	backing t mut-slice = ()
 	res t mut[] = backing, 0
 	res ~~= a
 	res
@@ -108,7 +108,7 @@ Writes to the original won't affect the copy.
 ###
 +copy[t] t mut[](a t mut[])
 	if trusted extern js
-		new-backing t mut-array = trusted a.backing.as-js call-property "slice" cast
+		new-backing t mut-slice = trusted a.backing.as-js call-property "slice" cast
 		new-backing, max-value
 	else
 		a.begin slice a.end
@@ -125,9 +125,9 @@ Writes to the `mut-list` won't affect the `list`.
 ###
 +move-to[t] t[](a t mut[]) bare
 	trusted a.move-to cast-immutable
-+move-to[t] t mut-array(a t mut[]) bare
++move-to[t] t mut-slice(a t mut[]) bare
 	trusted if extern native
-		res t mut-array = a.backing.begin-pointer[0 .. a.size]
+		res t mut-slice = a.backing.begin-pointer[0 .. a.size]
 		a.backing := ()
 		a.size := 0
 		res
@@ -158,10 +158,10 @@ Writes to the `mut-list` won't affect the `list`.
 	assert index < a.size : index index-too-big a.size
 
 ###
-Converts to an `mut-array`.
+Converts to a `mut-slice`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
-temp-as-mut-array[t] t mut-array(a t mut[]) bare, unsafe
+temp-as-mut-slice[t] t mut-slice(a t mut[]) bare, unsafe
 	if extern native
 		a.backing.begin-pointer[0 .. a.size]
 	else
@@ -172,7 +172,7 @@ Converts to an `array`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
 temp-as-array[t] t[](a t mut[]) bare, unsafe
-	a.temp-as-mut-array temp-as-array
+	a.temp-as-mut-slice temp-as-array
 
 # True iff `a.size == 0`.
 +is-empty[t] bool(a t mut[]) bare
@@ -273,7 +273,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe, nativ
 -increase-capacity-to[t] void(a t mut[], new-capacity nat64) trusted, native extern
 	assert new-capacity > a.capacity
 	old-begin = a begin-pointer
-	a.backing := new-capacity gc-safe-mut-array
+	a.backing := new-capacity gc-safe-mut-slice
 	a.begin-pointer mem-copy old-begin.as-const, a.size
 	a.backing[a.size + 1 .. end] clear-memory
 
@@ -416,7 +416,7 @@ region spec impls (see collection.crow)
 +end[t] t mut-list-iterator(a t mut[]) bare
 	a, a.size
 
--as-backing-iter[t] t mut-array-iterator(a t mut-list-iterator) bare
+-as-backing-iter[t] t mut-slice-iterator(a t mut-list-iterator) bare
 	assert a.next-index <= a.collection.size
 	a.collection.backing.begin + a.next-index
 
@@ -450,7 +450,7 @@ region spec impls (see collection.crow)
 +slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)
 	assert a.next-index <= b.next-index : slice-out-of-order
 	res t mut-slice = a.collection.backing[a.next-index .. b.next-index]
-	res.copy-to, res.size
+	res.copy, res.size
 
 +build[t] t mut[](a build-options, f void mut(out t mut[]))
 	res t mut[] = ()

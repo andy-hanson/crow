@@ -33,7 +33,7 @@ import model.model :
 	isInt64,
 	isJsAny,
 	isLambdaType,
-	isMutArray,
+	isMutSlice,
 	isNat8,
 	isNat16,
 	isNat32,
@@ -370,18 +370,18 @@ FunBody inner(
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
-		case symbol!"mut-array-pointer".value:
-			return arity == 1 && isPointerMut(rt) && isMutArray(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
-		case symbol!"mut-array-size".value:
-			return arity == 1 && isNat64(rt) && isMutArray(p0) ? unary(BuiltinUnary.arraySize) : fail();
+		case symbol!"mut-slice-pointer".value:
+			return arity == 1 && isPointerMut(rt) && isMutSlice(p0) ? unary(BuiltinUnary.arrayPointer) : fail();
+		case symbol!"mut-slice-size".value:
+			return arity == 1 && isNat64(rt) && isMutSlice(p0) ? unary(BuiltinUnary.arraySize) : fail();
 		case symbol!"nan".value:
 			return constant(isFloat32Or64(rt), Constant(Constant.Float(double.nan)));
 		case symbol!"new-array".value:
 			return isArray(rt) && isNat64(p0) && isPointerConst(p1)
 				? binary(BuiltinBinary.newArray)
 				: fail();
-		case symbol!"new-mut-array".value:
-			return isMutArray(rt) && isNat64(p0) && isPointerMut(p1)
+		case symbol!"new-mut-slice".value:
+			return isMutSlice(rt) && isNat64(p0) && isPointerMut(p1)
 				? binary(BuiltinBinary.newArray)
 				: fail();
 		case symbol!"not".value:

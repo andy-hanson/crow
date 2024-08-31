@@ -6,8 +6,6 @@ import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes;
 import concretize.concretizeCtx :
 	boolType,
-	char8Type,
-	char32Type,
 	concreteFunForWrapMain,
 	ConcreteLambdaImpl,
 	ConcreteVariantMemberAndMethodImpls,
@@ -15,7 +13,6 @@ import concretize.concretizeCtx :
 	deferredFillRecordAndUnionBodies,
 	exceptionType,
 	finishConcreteVars,
-	getConcreteFun,
 	getNonTemplateConcreteFun,
 	getVar,
 	nat64Type,

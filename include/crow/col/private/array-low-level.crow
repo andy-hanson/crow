@@ -8,17 +8,20 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, float64, nat64, round-up-to-power-of-two, to
 	../../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, gc-safe-value, mem-copy, null, pointer-cast,
-		set-subscript, size-of, subscript
+		==, <=>, +, -, *, as-const, const-pointer, gc-safe-value, mem-copy, mut-pointer, null,
+		pointer-cast, set-subscript, size-of, subscript
 	../../range: .., high, low, range, size
 	../../private/alloc: allocate
 	../../private/bootstrap:
-		array-pointer, array-size, mut-array, mut-array-pointer, mut-array-size, new-array,
-		new-mut-array
+		array-pointer, array-size, mut-slice, new-array
 	../../private/number-low-level: max-value
 	./build: build-options, size-hint
 export
 	../../private/bootstrap: array, todo
+
+~new-mut-slice[t] t mut-slice(size nat64, pointer t mut*) builtin, bare, native extern
+~mut-slice-size[t] nat64(a t mut-slice) builtin, bare
+~mut-slice-pointer[t] t mut*(a t mut-slice) builtin, bare, unsafe, native extern
 
 array-reference-equal[t] bool(a t[], b t[]) bare, unsafe
 	if extern native
@@ -119,15 +122,15 @@ Calls `f` for each element in `a`.
 		todo
 
 +array-builder[t] record mut
-	-buffer mut t mut-array
+	-buffer mut t mut-slice
 	# Not used in JS
 	-cur-size mut nat64
 +build[t] t[](a build-options, f void mut(out t array-builder)) trusted
 	if extern native
-		builder t array-builder = a.size-hint.gc-safe-mut-array, 0
+		builder t array-builder = a.size-hint.gc-safe-mut-slice, 0
 		f[builder]
-		res t[] = builder.cur-size new-array builder.buffer.mut-array-pointer.as-const
-		builder.buffer := 0 new-mut-array null
+		res t[] = builder.cur-size new-array builder.buffer.mut-slice-pointer.as-const
+		builder.buffer := 0 new-mut-slice null
 		builder.cur-size := max-value
 		res
 	elif extern js
@@ -138,13 +141,13 @@ Calls `f` for each element in `a`.
 	else
 		todo
 
--new[t] t mut-array(...a t[]) trusted, js extern
+-new[t] t mut-slice(...a t[]) trusted, js extern
 	a js-cast
 
 +size[t] nat64(a t array-builder) trusted
 	if extern js
 		assert a.cur-size == max-value
-		a.buffer.mut-array-size
+		a.buffer mut-slice-size
 	else
 		forbid a.cur-size == max-value
 		a cur-size
@@ -152,13 +155,13 @@ Calls `f` for each element in `a`.
 +~=[t] void(a t array-builder, value t) trusted
 	if extern native
 		forbid a.cur-size == max-value
-		capacity = a.buffer mut-array-size
+		capacity = a.buffer mut-slice-size
 		if a.cur-size == capacity
 			new-capacity nat64 = capacity == 0 ? 4 : capacity * 2
-			new-buffer t mut-array = new-capacity gc-safe-mut-array
-			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, capacity
+			new-buffer t mut-slice = new-capacity gc-safe-mut-slice
+			new-buffer.mut-slice-pointer mem-copy a.buffer.mut-slice-pointer.as-const, capacity
 			a.buffer := new-buffer
-		a.buffer.mut-array-pointer[a.cur-size] := value
+		a.buffer.mut-slice-pointer[a.cur-size] := value
 		a.cur-size +:= 1
 	elif extern js
 		a.buffer.as-js call-property "push", value cast
@@ -168,19 +171,19 @@ Calls `f` for each element in `a`.
 +~~=[t] void(a t array-builder, values t[]) trusted
 	if extern native
 		forbid a.cur-size == max-value
-		capacity = a.buffer mut-array-size
+		capacity = a.buffer mut-slice-size
 		if a.cur-size + values.array-size > capacity
 			new-size = a.cur-size + values.array-size
 			new-capacity = new-size round-up-to-power-of-two
-			new-buffer t mut-array = new-capacity gc-safe-mut-array
-			new-buffer.mut-array-pointer mem-copy a.buffer.mut-array-pointer.as-const, a.cur-size
+			new-buffer t mut-slice = new-capacity gc-safe-mut-slice
+			new-buffer.mut-slice-pointer mem-copy a.buffer.mut-slice-pointer.as-const, a.cur-size
 			a.buffer := new-buffer
-		a.buffer.mut-array-pointer + a.cur-size mem-copy values.begin-pointer, values.array-size
+		a.buffer.mut-slice-pointer + a.cur-size mem-copy values.begin-pointer, values.array-size
 		a.cur-size +:= values array-size
 	elif extern js
 		a.buffer.as-js call-property-spread "push", values cast
 	else
 		todo
 
--gc-safe-mut-array[t] t mut-array(size nat64) unsafe, native extern
-	size new-mut-array size.allocate
+-gc-safe-mut-slice[t] t mut-slice(size nat64) unsafe, native extern
+	size new-mut-slice size.allocate

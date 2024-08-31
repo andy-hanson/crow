@@ -1,3 +1,6 @@
+import
+	./mut-slice
+
 ###
 Mutable grid (matrix) type.
 This is intended for data that happens to fall in a grid; it may not be ideal for linear algebra.
@@ -9,7 +12,7 @@ then the second row left-to-right, etc.
 Grid elements are mutable, but changing the width or height is not supported.
 ###
 +mut-grid[t] record mut
-	-elements t mut-array
+	-elements t mut-slice
 	width nat64
 	height nat64
 
@@ -55,7 +58,7 @@ Throws if `y` is out of range.
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 +make[t] t mut-grid(width nat64, height nat64, f t mut(x nat64, y nat64))
-	elements t mut-array = with out : width * height build
+	elements t mut-slice = with out : width * height build
 		for y : 0::nat64 .. height
 			for x : 0::nat64 .. width
 				out ~= f[x, y]

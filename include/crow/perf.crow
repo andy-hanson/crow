@@ -8,7 +8,7 @@ import
 	./col/array: ~=, array, build, is-empty, iterate, new, size, subscript
 	./col/collection: for-loop, index-of
 	./col/map: ~=, build, iterate, map, size
-	./col/mut-array: ~=, build, mut-array, new, set-subscript, subscript
+	./col/mut-slice: ~=, build, mut-slice, new, set-subscript, subscript
 	./exception: error
 	./fun-util: subscript
 	./io/duration: duration, nanosecond, show
@@ -33,7 +33,7 @@ import
 	# Total time spent in all measures with this name.
 	total-duration duration
 +show string(a measure-total)
-	"{a count} × {a total-duration}"
+	"{a total-duration} (total of {a count} times)"
 
 # Use 'nsec' instead of 'duration' to avoid spending time converting to floats
 -measure-accum record(count nat64, total-nsec nat64)
@@ -80,7 +80,7 @@ this contribues to its performance measurement.
 # List of all names being measured
 -measure-names thread-local(symbol[])
 # Parallel to measure-names
--measure-accums thread-local(measure-accum mut-array)
+-measure-accums thread-local(measure-accum mut-slice)
 -clear-perf void() unsafe
 	measure-names := ()
 	measure-accums := ()

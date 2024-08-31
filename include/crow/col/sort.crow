@@ -13,10 +13,10 @@ import
 	../tuple: a, b, new
 	./array: ~=, ==, array, build, iterate, new, size, subscript
 	./collection: .., -, build, end, for-break, for-loop, iterate, size, subscript, swap-at
-	./mut-array:
-		~=, +, as-slice, begin, build, cast-immutable, iterate, mut-array, mut-slice, new, next,
-		set-next, set-subscript, size, slice, to, subscript
-	./mut-list: mut-list, temp-as-mut-array
+	./mut-slice:
+		~=, +, begin, build, cast-immutable, iterate, mut-slice, new, next, set-next, set-subscript,
+		size, slice, to, subscript
+	./mut-list: mut-list, temp-as-mut-slice
 
 +is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
 	prev mut elem? = ()
@@ -50,7 +50,7 @@ Same as `sort`, but use `get-key` to get the comparable part of each element.
 	a col,
 	get-key k data(elem elem),
 ) (col, elem, builder) build, (col, elem) iterate, col size, k compare
-	res elem mut-array = for x : a; x
+	res elem mut-slice = for x : a; x
 	res sort= get-key
 	for x : res; x
 
@@ -62,7 +62,7 @@ That means `res[i] < res[i + 1]` for each element in the result.
 +sort-unique[col, elem, builder] col(
 	a col,
 ) (col, elem, builder) build, (col, elem) iterate, col size, elem compare
-	m elem mut-array = for x : a; x
+	m elem mut-slice = for x : a; x
 	for x : m set-sort-unique; x
 
 test
@@ -70,19 +70,19 @@ test
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr char32[] mut-array = "2a", "2b", "1a", "1b"
+	arr char32[] mut-slice = "2a", "2b", "1a", "1b"
 	arr sort= x => x[0]
 	arr.to::char32[][] is ("1a", "1b", "2a", "2b")
 	arr sort= x => x[1]
 	arr.to::char32[][] is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
-+set-sort[t] void(a t mut-array) t compare
++set-sort[t] void(a t mut-slice) t compare
 	a sort= x => x
 +sort=[t, k] void(a t mut[], get-key k data(elem t)) k compare
-	trusted a.temp-as-mut-array sort= get-key
+	trusted a.temp-as-mut-slice sort= get-key
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-+sort=[t, k] void(a t mut-array, get-key k data(elem t)) k compare
++sort=[t, k] void(a t mut-slice, get-key k data(elem t)) k compare
 	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
 	guard a.size > 1
 	for i : 2::nat64 .. a.size + 1
@@ -97,7 +97,7 @@ test
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
--set-sort-unique[t] t mut-slice(a t mut-array) t compare
+-set-sort-unique[t] t mut-slice(a t mut-slice) t compare
 	a set-sort
 	out mut = a begin
 	in mut = a begin
@@ -118,14 +118,14 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
 ~sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
-	mut-a t mut-array = a to
-	mut-b u mut-array = b to
-	mut-a.as-slice set-sort-by-first mut-b.as-slice
+	mut-a t mut-slice = a to
+	mut-b u mut-slice = b to
+	mut-a set-sort-by-first mut-b
 	trusted mut-a.cast-immutable, mut-b.cast-immutable
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 ~set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
-	trusted a.temp-as-mut-array.as-slice set-sort-by-first b.temp-as-mut-array.as-slice
+	trusted a.temp-as-mut-slice set-sort-by-first b.temp-as-mut-slice
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 ~set-sort-by-first[t, u] void(a t mut-slice, b u mut-slice) t compare

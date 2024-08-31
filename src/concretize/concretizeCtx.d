@@ -69,7 +69,7 @@ import model.model :
 	getAllFlagsValue,
 	ImportFileContent,
 	IntegralType,
-	isArrayOrMutArray,
+	isArrayOrMutSlice,
 	isFuture,
 	isLambdaType,
 	isPointerConstOrMut,
@@ -189,10 +189,8 @@ struct ConcretizeCtx {
 	MutMap!(ConcreteStruct*, MutArr!ConcreteVariantMemberAndMethodImpls) variantStructToMembers;
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
-	Late!ConcreteType _char8Type;
 	Late!ConcreteType _char8ArrayType;
 	Late!ConcreteType _char8ConstPointerType;
-	Late!ConcreteType _char32Type;
 	Late!ConcreteType _char32ArrayType;
 	Late!ConcreteType _exceptionType;
 	Late!ConcreteType _voidType;
@@ -261,20 +259,12 @@ ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, emptySmallArray!ConcreteType));
 
-ConcreteType char8Type(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._char8Type, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.char8, emptySmallArray!ConcreteType));
-
 ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ArrayType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
 private ConcreteType char8ConstPointerType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char8ConstPointerType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.char8ConstPointer, emptySmallArray!ConcreteType));
-
-ConcreteType char32Type(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._char32Type, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.char32, emptySmallArray!ConcreteType));
 
 ConcreteType char32ArrayType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._char32ArrayType, () =>
@@ -371,7 +361,7 @@ private ConcreteType getConcreteType_forStructInst(
 					Purity purity = fold!(Purity, ConcreteType)(
 						decl.purity, typeArgs, (Purity p, in ConcreteType ta) =>
 							worsePurity(p, purity(ta)));
-					ConcreteStruct.SpecialKind specialKind = isArrayOrMutArray(*decl)
+					ConcreteStruct.SpecialKind specialKind = isArrayOrMutSlice(*decl)
 						? ConcreteStruct.SpecialKind.arrayOrMutArray
 						: inst == ctx.program.commonFuns.catchPointType
 						? ConcreteStruct.SpecialKind.catchPoint
@@ -904,7 +894,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind, in VersionInfo version_) {
 		case BuiltinType.lambda: // Replaced by variants
 			assert(false);
 		case BuiltinType.array:
-		case BuiltinType.mutArray:
+		case BuiltinType.mutSlice:
 		case BuiltinType.string_:
 			return TypeSize(16, 8);
 		case BuiltinType.catchPoint:

@@ -1,0 +1,326 @@
+no-std
+import
+	../bool: &&, bool, false, true
+	../compare: !=, <, <=, equal
+	../fun-util: subscript
+	../js:
+		as-js, call, call-property, cast, eval, js-any, js-cast, js-global, subscript, set-subscript
+	../misc: new, void
+	../number: ==, <=>, +, -, *, /, %, float64, nat64, to
+	../option: new, option
+	../pointer:
+		==, <=>, +, -, as-const, as-mut, mem-clear, mem-move, mut-pointer, pointer-cast,
+		set-subscript, size-of, subscript, gc-safe-value
+	../private/alloc: allocate
+	../private/bootstrap: new-array, todo
+	../range: .., high, low, range, size
+	../tuple: new
+	./array: ~=, ~~=, array, array-builder, begin-pointer, build, iterate, size, subscript
+	./private/array-low-level:
+		array-reference-equal, new-mut-slice, mut-slice-pointer, mut-slice-size
+	./collection:
+		build-options, for-loop, index-too-big, iterator-not-comparable, range-relative-to-end,
+		slice-out-of-order, to-range
+export
+	../private/bootstrap: mut-slice
+
+-js-mut-slice[t] t mut-slice(array js-any, begin nat64, size nat64) bare, unsafe, js extern
+	# Use a proxy to produce a mutable slice of the original. (JS 'slice' makes a copy.)
+	"""
+	(array, begin, size) => new Proxy(array, \{
+		get(target, prop) \{
+			return /^\\d+$/.test(prop)
+				? (Number(prop) < size ? target[begin + Number(prop)] : undefined)
+				: prop === 'length'
+				? size
+				: Reflect.get(...arguments)
+		},
+		set(target, prop, value) \{
+			if (/^\\d+$/.test(prop)) \{
+				if (Number(prop) < size)
+					return target[begin + Number(prop)] = value
+				else
+					throw new Error("Index outside range of mut slice")
+			} else
+				return Reflect.set(...arguments)
+		},
+	})
+	""".eval call array, begin.to::float64, size.to::float64 cast
+
+# True if they are identical.
++==[t] bool(a t mut-slice, b t mut-slice) bare, trusted
+	a.cast-immutable array-reference-equal b.cast-immutable
+
+###
+Creates a new `mut-slice` with the given elements.
+###
++new[t] t mut-slice(...a t[]) bare, trusted
+	# A spread argument is always a new array
+	a cast-mutable
+
+# Get a `mut-slice` from a pointer and range of indices.
++subscript[t] t mut-slice(a t mut*, indices nat64 range) bare, unsafe, native extern
+	a.as-const[indices] cast-mutable
+
+###
+Copies the array elements to a new `mut-slice`.
+
+This is O(n).
+###
++to[t] t mut-slice(a t[]) trusted
+	# Not using a 'for' loop because the compiler may think it may yield (due to the virtual call)
+	res t mut-slice = a.size gc-safe-mut-slice
+	res copy-from a
+	res
+
+###
+Copies the elements to an immutable array.
+
+This is O(n).
+
+There is no `move-to` for `mut-slice` since there might be slices that still refer to its elements.
+###
++to[t] t[](a t mut-slice) trusted
+	for x : a; x
+
+# Creates a `mut-slice` from a range of pointers.
++as-mut-slice[t] t mut-slice(a t mut* range) bare, unsafe, native extern
+	assert a.low <= a.high
+	(a.high - a.low) new-mut-slice a.low
+
++pointers[t] t mut* range(a t mut-slice) bare, unsafe, native extern
+	a.begin-pointer .. a.end-pointer
+
+# Number of elements.
++size[t] nat64(a t mut-slice) bare
+	a mut-slice-size
+
+# `true` iff `a.size == 0`.
++is-empty[t] bool(a t mut-slice) bare
+	a.size == 0
+
+# Pointer to the beginning of the `mut-slice`.
++begin-pointer[t] t mut*(a t mut-slice) bare, unsafe, native extern
+	a mut-slice-pointer
+
+###
+Pointer to the end of the `mut-slice`.
+This is one past the last valid pointer.
+###
++end-pointer[t] t mut*(a t mut-slice) bare, unsafe, native extern
+	a.begin-pointer + a.size
+
+###
+Copies the elements to a new `mut-slice`.
+
+This is O(n).
+###
++copy[t] t mut-slice(a t mut-slice)
+	for x : a; x
+
++subscript[t] t(a t mut-slice, index nat64) bare, trusted
+	assert index < a.size : index index-too-big a.size
+	if extern native
+		a.begin-pointer[index]
+	elif extern js
+		a.as-js[index] cast
+	else
+		todo
+
++set-subscript[t] void(a t mut-slice, index nat64, value t) bare, trusted
+	assert index < a.size : index index-too-big a.size
+	if extern native
+		a.begin-pointer[index] := value
+	elif extern js
+		a.as-js[index] := value
+	else
+		todo
+
++subscript[t] t mut-slice(a t mut-slice, indices nat64 range) bare
+	assert indices.high <= a.size : indices.high index-too-big a.size
+	trusted if extern native
+		indices.size new-mut-slice a.begin-pointer + indices.low
+	elif extern js
+		a.as-js js-mut-slice indices.low, indices.size
+	else
+		todo
+
+###
+Copies elements from `source` to `dest`.
+Throws if `dest` and `source` are not the same size.
+###
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t[]) bare
+	dest[range] copy-from source
++set-subscript[t] void(dest t mut-slice, range nat64 range, source t mut-slice) bare
+	dest[range] := trusted source temp-as-array
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t[]) bare
+	dest[range to-range dest.size] := source
++set-subscript[t] void(dest t mut-slice, range range-relative-to-end, source t mut-slice) bare
+	dest[range] := trusted source temp-as-array
+
+-copy-from[t] void(dest t mut-slice, source t[]) bare
+	assert dest.size == source.size
+	trusted if extern native
+		dest.begin-pointer mem-move source.begin-pointer, source.size
+	else
+		i mut nat64 = 0
+		until i == source.size
+			dest[i] := source[i]
+			i +:= 1
+
++swap[t] void(a t mut-slice, i nat64, j nat64) bare
+	temp = a[i]
+	a[i] := a[j]
+	a[j] := temp
+
+###
+Allocates a `mut-slice` full of GC-safe values. See `gc-safe-value`.
+If you just want to create a `mut-slice`, use a `for` loop instead.
+
+Keep exceptions in mind: Don't store a reference to the result until it's initialized,
+since initialization code might throw an exception.
+
+This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
+###
++gc-safe-mut-slice[t] t mut-slice(size nat64) unsafe
+	if extern native
+		(size.allocate::t mut*)[0 .. size]
+	elif extern js
+		# Array(size).fill(null)
+		array = "Array".js-global call size.to::float64 call-property "fill", gc-safe-value::t
+		array js-mut-slice 0, size
+	else
+		todo
+
+###
+Sets every element to `gc-safe-value`.
+See `gc-safe-mut-slice` for why this is unsafe.
+###
++clear-memory[t] void(a t mut-slice) bare, unsafe
+	if extern native
+		a.begin-pointer mem-clear a.size
+	elif extern js
+		i mut nat64 = 0
+		until i == a.size
+			a[i] := gc-safe-value
+			i +:= 1
+	else
+		todo
+
++in[t] bool(value t, a t mut-slice) bare, t equal, trusted
+	cur mut nat64 = 0
+	loop
+		if cur == a.size
+			break false
+		elif a[cur] == value
+			break true
+		else
+			cur +:= 1
+			continue
+
+###
+Unsafe cast a mut-slice to an array.
+It must never be written to again.
+###
++cast-immutable[t] t[](a t mut-slice) bare, unsafe
+	if extern native
+		a.size new-array a.begin-pointer.as-const
+	elif extern js
+		a js-cast
+	else
+		todo
+
+~cast-mutable[t] t mut-slice(a t[]) bare, unsafe
+	if extern native
+		a.size new-mut-slice a.begin-pointer.as-mut
+	elif extern js
+		a js-cast
+	else
+		todo
+
+###
+Unsafe cast to immutable array.
+
+This is O(1).
+
+Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
+so this value must only be used temporarily.
+###
++temp-as-array[t] t[](a t mut-slice) bare, unsafe
+	a cast-immutable
+
+###
+Casts elements to a different type.
+If the element type is different, adjusts the size so that the number of bytes is the same.
+###
++cast-mut-slice[out, in] out mut-slice(a in mut-slice) bare, unsafe, native extern
+	assert size-of@in != 0 && size-of@out != 0
+	size-bytes = a.size * size-of@in
+	assert size-bytes % size-of@out == 0
+	size-out = size-bytes / size-of@out
+	# TODO: shouldn't need parentheses
+	(a.begin-pointer.pointer-cast::out mut*)[0 .. size-out]
+
+region spec impls (see collection.crow)
+
+# Calls 'f' on each element in the mut-slice.
++iterate[t] bool(a t mut-slice, f bool mut(elem t))
+	trusted a.temp-as-array iterate f
+
++mut-slice-iterator[t] record by-val, mut
+	~collection t mut-slice
+	~next-index nat64
+
++begin[t] t mut-slice-iterator(a t mut-slice) bare
+	a, 0
+
++end[t] t mut-slice-iterator(a t mut-slice) bare
+	a, a.size
+
++ +[t] t mut-slice-iterator(a t mut-slice-iterator, b nat64) bare
+	new-index = a.next-index + b
+	assert new-index <= a.collection.size
+	a.collection, new-index
+
++-[t] t mut-slice-iterator(a t mut-slice-iterator, b nat64) bare
+	a.collection, a.next-index - b
+
++-[t] nat64(a t mut-slice-iterator, b t mut-slice-iterator) bare
+	assert a.collection == b.collection
+	a.next-index - b.next-index
+
++prev[t] (t mut-slice-iterator, t)?(a t mut-slice-iterator) bare
+	guard a.next-index != 0
+	assert a.next-index <= a.collection.size
+	value = a.collection[a.next-index - 1]
+	((a.collection, a.next-index - 1), value),
+
++next[t] (t, t mut-slice-iterator)?(a t mut-slice-iterator) bare
+	guard a.next-index < a.collection.size
+	value = a.collection[a next-index]
+	(value, (a.collection, a.next-index + 1)),
+
++set-prev[t] void(a t mut-slice-iterator, value t) bare
+	assert a.next-index != 0 && a.next-index <= a.collection.size
+	a.collection[a.next-index - 1] := value
+
++set-next[t] void(a t mut-slice-iterator, value t) bare
+	assert a.next-index < a.collection.size
+	a.collection[a next-index] := value
+
+# JS can't slice a 'mut-slice', so this is only available in native code.
++slice[t] t mut-slice(begin t mut-slice-iterator, end t mut-slice-iterator) bare, trusted
+	assert begin.collection == end.collection : iterator-not-comparable
+	assert begin.next-index <= end.next-index : slice-out-of-order
+	begin.collection[begin.next-index .. end.next-index]
+
++mut-slice-builder[t] record mut
+	-inner t array-builder
++build[t] t mut-slice(a build-options, f void mut(out t mut-slice-builder)) trusted
+	(a build out => f[out,]) cast-mutable
++~=[t] void(a t mut-slice-builder, value t)
+	a.inner ~= value
++~~=[t] void(a t mut-slice-builder, values t[])
+	a.inner ~~= values
++size[t] nat64(a t mut-slice-builder)
+	a.inner size

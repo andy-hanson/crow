@@ -12,13 +12,13 @@ import
 	../test-util: is
 	./array: ==, ~=, array, build, is-empty, new, size, subscript
 	./collection: .., -, end, for-loop, subscript, with-index
-	./mut-array:
-		as-slice, cast-immutable, clear-memory, gc-safe-mut-array, iterate, mut-array, mut-slice,
-		is-empty, new, set-subscript, size, subscript
+	./mut-slice:
+		cast-immutable, clear-memory, gc-safe-mut-slice, iterate, mut-slice, is-empty, new,
+		set-subscript, size, subscript
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
-	-inner mut t mut-array
+	-inner mut t mut-slice
 	# Index of the first element. 'nil' for an empty queue.
 	-left mut nat64
 	# Index of the element after the last. 'nil' for an empty queue.
@@ -46,10 +46,10 @@ This is O(n).
 +to[t] t[](a t mut-deque)
 	trusted a.to cast-immutable
 
--to[t] t mut-array(a t mut-deque)
+-to[t] t mut-slice(a t mut-deque)
 	guard !a.is-empty
-	res t mut-array = trusted a.size gc-safe-mut-array
-	res.as-slice copy-from-deque a
+	res t mut-slice = trusted a.size gc-safe-mut-slice
+	res copy-from-deque a
 	res
 
 # Copy elements to a new deque.
@@ -144,7 +144,7 @@ Callers should then push something.
 	if a.left == nil
 		assert a.right == nil
 		if a.inner is-empty
-			a.inner := 2 gc-safe-mut-array
+			a.inner := 2 gc-safe-mut-slice
 		a.left := 0
 		a.right := 0
 	else
@@ -154,7 +154,7 @@ Callers should then push something.
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner t mut-array = new-capacity gc-safe-mut-array
+			new-inner t mut-slice = new-capacity gc-safe-mut-slice
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] clear-memory
 			a.inner := new-inner
