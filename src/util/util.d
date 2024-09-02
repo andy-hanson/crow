@@ -30,6 +30,9 @@ T clamp(T)(T a, T min, T max) {
 	return a < min ? min : a > max ? max : a;
 }
 
+uint abs(int a) =>
+	a < 0 ? -a : a;
+
 ulong abs(long a) =>
 	a < 0 ? -a : a;
 

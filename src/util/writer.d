@@ -4,7 +4,7 @@ module util.writer;
 
 import util.alloc.alloc : Alloc, withStackAlloc, withStackAllocImpure;
 import util.alloc.stackAlloc : StackArrayBuilder, withBuildStackArray;
-import util.col.arrayBuilder : Builder, finish;
+import util.col.arrayBuilder : asTemporaryArray, Builder, finish, sizeSoFar;
 import util.col.array : reverseInPlace, zip;
 import util.conv : bitsOfFloat64, round, safeToSizeT, safeToUlong;
 import util.string : eachChar, CString, stringOfCString;
@@ -39,7 +39,7 @@ struct Writer {
 	private:
 	Builder!(immutable char) res;
 
-	this(return scope Alloc* allocPtr) {
+	public this(return scope Alloc* allocPtr) {
 		res = Builder!(immutable char)(allocPtr);
 	}
 
@@ -63,22 +63,22 @@ struct Writer {
 	void opOpAssign(string op : "~")(ubyte a) {
 		writeNat(this, a);
 	}
-	void opOpAssign(string op : "~")(int a) {
-		this ~= long(a);
-	}
-	void opOpAssign(string op : "~")(long a) {
-		if (a < 0)
-			this ~= '-';
-		this ~= abs(a);
-	}
 	void opOpAssign(string op : "~")(ushort a) {
 		writeNat(this, a);
 	}
 	void opOpAssign(string op : "~")(uint a) {
 		writeNat(this, a);
 	}
+	void opOpAssign(string op : "~")(int a) {
+		this ~= long(a);
+	}
 	void opOpAssign(string op : "~")(ulong a) {
 		writeNat(this, a);
+	}
+	void opOpAssign(string op : "~")(long a) {
+		if (a < 0)
+			this ~= '-';
+		this ~= abs(a);
 	}
 	void opOpAssign(string op : "~", T)(T a) {
 		a.writeTo(this);
@@ -128,6 +128,19 @@ CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @s
 	return finishCString(writer);
 }
 
+void writeAndVerify(
+	scope ref Writer writer,
+	in void delegate() @safe @nogc pure nothrow cbWrite,
+	in void delegate(in string) @safe @nogc pure nothrow cbVerify,
+) {
+	size_t prevSize = sizeSoFar(writer.res);
+	cbWrite();
+	cbVerify(asTemporaryArray(writer.res)[prevSize .. $]);
+}
+
+string finish(scope ref Writer writer) =>
+	finish(writer.res);
+
 private @trusted CString finishCString(scope ref Writer writer) {
 	writer ~= '\0';
 	return CString(finish(writer.res).ptr);
@@ -136,7 +149,7 @@ private @trusted CString finishCString(scope ref Writer writer) {
 string makeStringWithWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
-	return finish(writer.res);
+	return finish(writer);
 }
 
 void writeHex(scope ref Writer writer, ulong a, uint minDigits = 1) {

@@ -76,6 +76,13 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
 size_t findIndexOrPush(T)(
 	ref Alloc alloc,
 	scope ref MutArr!T a,
+	T value
+) =>
+	findIndexOrPush!T(alloc, a, (in T x) => x == value, () => value, (ref T _) {});
+
+size_t findIndexOrPush(T)(
+	ref Alloc alloc,
+	scope ref MutArr!T a,
 	in bool delegate(in T) @safe @nogc pure nothrow cbSearch,
 	in T delegate() @safe @nogc pure nothrow cbValue,
 	in void delegate(ref T) @safe @nogc pure nothrow cbAfterPush,

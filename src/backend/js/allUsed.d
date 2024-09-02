@@ -140,7 +140,7 @@ immutable struct AnyDecl {
 			(in SpecDecl x) => x.name,
 			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name,
-			(in Test x) => symbol!"test",
+			(in Test x) => x.name,
 			(in VarDecl x) => x.name);
 
 	UriAndRange range() scope =>
@@ -197,19 +197,20 @@ private immutable struct AsyncSets {
 SyncOrAsync isAsyncFun(in AllUsed a, FunDecl* fun) =>
 	fun in a.async.asyncFuns ? SyncOrAsync.async : SyncOrAsync.sync;
 SyncOrAsync isAsyncCall(in AllUsed a, in FunDecl* caller, in Called called) =>
-	isAsyncCall(a, some(caller), called);
-SyncOrAsync isAsyncCall(in AllUsed a, in Opt!(FunDecl*) caller, in Called called) =>
+	isAsyncCall(a, FunOrTest(caller), called);
+SyncOrAsync isAsyncCall(in AllUsed a, in FunOrTest caller, in Called called) =>
 	called.matchIn!SyncOrAsync(
 		(in Called.Bogus) =>
 			SyncOrAsync.sync,
 		(in FunInst x) =>
 			isAsyncFun(a, x.decl),
 		(in CalledSpecSig x) =>
-			FunAndSpecSig(force(caller), x.nonInstantiatedSig) in a.async.asyncSpecSigs
+			FunAndSpecSig(caller.as!(FunDecl*), x.nonInstantiatedSig) in a.async.asyncSpecSigs
 				? SyncOrAsync.async
 				: SyncOrAsync.sync);
 
-private immutable struct FunOrTest {
+// TODO: MOVE ------------------------------------------------------------------------------------------------------------------
+immutable struct FunOrTest {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(FunDecl*, Test*);
 
@@ -219,6 +220,13 @@ private immutable struct FunOrTest {
 				x.moduleUri,
 			(in Test x) =>
 				x.moduleUri);
+	
+	Symbol name() scope =>
+		matchIn!Symbol(
+			(in FunDecl x) =>
+				x.name,
+			(in Test x) =>
+				x.name);
 }
 private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
 	a.matchWithPointers!(Opt!(FunDecl*))(

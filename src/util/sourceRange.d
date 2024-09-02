@@ -100,7 +100,7 @@ immutable struct LineAndCharacter {
 	}
 }
 
-private immutable struct LineAndColumnRange {
+immutable struct LineAndColumnRange {
 	@safe @nogc pure nothrow:
 
 	LineAndColumn start;
@@ -141,6 +141,9 @@ immutable struct LineAndColumn {
 		writer ~= column1Indexed;
 	}
 }
+Comparison compareLineAndColumn(LineAndColumn a, LineAndColumn b) =>
+	compareOr(compareUint(a.line0Indexed, b.line0Indexed), () =>
+		compareUint(a.column0Indexed, b.column0Indexed));
 
 immutable struct LineAndCharacterRange {
 	LineAndCharacter start;

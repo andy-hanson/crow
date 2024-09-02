@@ -3,12 +3,14 @@ module backend.js.translateModuleCtx;
 @safe @nogc pure nothrow:
 
 import backend.js.allUsed : AllUsed, allUsed, AnyDecl;
-import backend.js.jsAst : JsDecl, JsDeclKind, JsExpr, JsName;
+import backend.js.jsAst : genLocalGet, JsDecl, JsDeclKind, JsExpr, JsName;
+import backend.js.sourceMap : Source;
 import frontend.showModel : ShowCtx;
-import frontend.storage : FileContentGetters;
+import frontend.storage : FileContentGetters, LineAndColumnGetters;
 import model.model :
 	CommonTypes,
 	FunDecl,
+	FunDeclSource,
 	Local,
 	Program,
 	ProgramWithMain,
@@ -22,6 +24,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : map;
 import util.col.map : Map;
 import util.opt : force, has, Opt, some;
+import util.sourceRange : UriAndRange;
 import util.symbol : Symbol;
 import util.symbolSet : SymbolSet;
 import versionInfo : JsTarget, VersionInfo;
@@ -31,6 +34,7 @@ struct TranslateProgramCtx {
 
 	Alloc* allocPtr;
 	const ShowCtx showCtx;
+	const LineAndColumnGetters lineAndColumnGetters;
 	const FileContentGetters* fileContentGetters;
 	immutable ProgramWithMain* programWithMainPtr;
 	immutable VersionInfo version_;
@@ -74,6 +78,15 @@ struct TranslateModuleCtx {
 	bool isBrowser() const =>
 		ctx.isBrowser;
 }
+
+Source source(in TranslateModuleCtx ctx, in UriAndRange range, Symbol name) =>
+	Source(range.uri, name, ctx.ctx.lineAndColumnGetters[range].range.start);
+Source funSource(in TranslateModuleCtx ctx, in FunDecl* a) =>
+	source(ctx, a.range, a.name);
+Source structSource(in TranslateModuleCtx ctx, in StructDecl* a) =>
+	source(ctx, a.range, a.name);
+Source variantMethodSource(in TranslateModuleCtx ctx, in FunDeclSource.VariantMethod a) =>
+	source(ctx, a.method.range, a.method.name);
 
 // This will be empty whne compiling to a bundle.
 immutable struct ModuleExportMangledNames {
@@ -120,20 +133,20 @@ private JsName mangledNameForDecl(in TranslateModuleCtx ctx, in AnyDecl a) =>
 			: ctx.privateMangledNames)[a]);
 private JsName funName(in TranslateModuleCtx ctx, in FunDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
-JsExpr translateFunReference(in TranslateModuleCtx ctx, in FunDecl* a) =>
-	JsExpr(funName(ctx, a));
+JsExpr translateFunReference(in TranslateModuleCtx ctx, in Source source, in FunDecl* a) =>
+	genLocalGet(source, funName(ctx, a));
 private JsName testName(in TranslateModuleCtx ctx, in Test* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
-JsExpr translateTestReference(in TranslateModuleCtx ctx, in Test* a) =>
-	JsExpr(testName(ctx, a));
+JsExpr translateTestReference(in TranslateModuleCtx ctx, in Source source, in Test* a) =>
+	genLocalGet(source, testName(ctx, a));
 private JsName structName(in TranslateModuleCtx ctx, in StructDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
-JsExpr translateStructReference(in TranslateModuleCtx ctx, in StructDecl* a) =>
-	JsExpr(structName(ctx, a));
+JsExpr translateStructReference(in TranslateModuleCtx ctx, in Source source, in StructDecl* a) =>
+	genLocalGet(source, structName(ctx, a));
 private JsName varName(in TranslateModuleCtx ctx, in VarDecl* a) =>
 	mangledNameForDecl(ctx, AnyDecl(a));
-JsExpr translateVarReference(in TranslateModuleCtx ctx, in VarDecl* a) =>
-	JsExpr(varName(ctx, a));
+JsExpr translateVarReference(in TranslateModuleCtx ctx, in Source source, in VarDecl* a) =>
+	genLocalGet(source, varName(ctx, a));
 
 JsName localName(in Local a) =>
 	JsName.local(a.name);

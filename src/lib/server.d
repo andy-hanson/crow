@@ -751,6 +751,7 @@ string buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain p
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
+		LineAndColumnGetters(&server.storage),
 		FileContentGetters(&server.storage),
 		target);
 }
@@ -765,6 +766,7 @@ JsModules buildToJsModules(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
+		LineAndColumnGetters(&server.storage),
 		FileContentGetters(&server.storage),
 		target);
 

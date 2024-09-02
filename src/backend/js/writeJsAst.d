@@ -54,20 +54,23 @@ import backend.js.jsAst :
 	JsWhileStatement,
 	Shebang,
 	SyncOrAsync;
+import backend.js.sourceMap : SingleSourceMapping, Source, SourceMapBuilder;
 import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, only;
+import util.col.array : contains, isEmpty, only;
 import util.col.map : KeyValuePair;
+import util.col.mutArr : moveToArray, MutArr, push;
 import util.opt : force, has, none;
+import util.sourceRange : LineAndColumn, LineAndColumnRange;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : RelPath, Uri;
-import util.util : stringOfEnum;
-import util.writer : makeStringWithWriter, writeFloatLiteral, writeNewline, writeQuotedString, Writer, writeWithCommas;
+import util.util : ptrTrustMe, stringOfEnum, todo;
+import util.writer : finish, writeAndVerify, writeFloatLiteral, writeNewline, writeQuotedString, Writer;
 
 string writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in JsScriptAst a) =>
-	makeStringWithWriter(alloc, (scope ref Writer writer) {
+	buildOutput(alloc, (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x, neverExport: true);
@@ -75,7 +78,7 @@ string writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in JsScriptAst 
 	});
 
 string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
-	makeStringWithWriter(alloc, (scope ref Writer writer) {
+	buildOutput(alloc, (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
 		writer ~= "// ";
 		writer ~= sourceUri;
@@ -91,7 +94,121 @@ string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, 
 
 private:
 
-void writeShebang(scope ref Writer writer, Shebang a) {
+string buildOutput(ref Alloc alloc, in void delegate(scope ref Output) @safe @nogc pure nothrow cb) {
+	Output writer = Output(SourceMapBuilder(ptrTrustMe(alloc)), Writer(ptrTrustMe(alloc)));
+	cb(writer);
+	return finish(writer.writer);
+}
+
+struct Output {
+	@safe @nogc pure nothrow:
+
+	SourceMapBuilder map;
+	Writer writer;
+	uint line;
+	uint column;
+
+	ref Alloc alloc() return scope =>
+		map.alloc;
+
+	void opOpAssign(string op : "~")(in string s) scope {
+		foreach (char x; s)
+			this ~= x;
+	}
+	void opOpAssign(string op  : "~")(in char x) scope {
+		writer ~= x;
+		if (x == '\n') {
+			line += 1;
+			column = 0;
+		} else
+			column += 1;
+	}
+	void opOpAssign(string op : "~")(in dchar x) scope {
+		writer ~= x;
+		if (x == '\n') {
+			line += 1;
+			column = 0;
+		} else
+			column += 1;
+	}
+
+	void opOpAssign(string op : "~")(bool x) scope {
+		writeOnSingleLine(this, x);
+	}
+	void opOpAssign(string op : "~")(ushort x) scope {
+		writeOnSingleLine(this, x);
+	}
+	void opOpAssign(string op : "~")(uint x) scope {
+		writeOnSingleLine(this, x);
+	}
+	void opOpAssign(string op : "~")(ulong x) scope {
+		writeOnSingleLine(this, x);
+	}
+	void opOpAssign(string op : "~")(long x) scope {
+		writeOnSingleLine(this, x);
+	}
+	void opOpAssign(string op : "~")(double x) scope {
+		writeOnSingleLine(this, x);
+	}
+
+	void opOpAssign(string op : "~")(in LineAndColumn x) scope {
+		writeOnSingleLine!LineAndColumn(this, x);
+	}
+	void opOpAssign(string op : "~")(in LineAndColumnRange x) scope {
+		writeOnSingleLine!LineAndColumnRange(this, x);
+	}
+	void opOpAssign(string op : "~")(in RelPath x) scope {
+		writeOnSingleLine!RelPath(this, x);
+	}
+	void opOpAssign(string op  : "~")(Symbol x) scope {
+		writeOnSingleLine!Symbol(this, x);
+	}
+	void opOpAssign(string op : "~")(Uri x) {
+		writeOnSingleLine!Uri(this, x);
+	}
+}
+string finish(ref Output writer) => // TODO: include the source map! -----------------------------------------------------------------------------------
+	finish(writer.writer);
+
+void markMap(scope ref Output a, in Source source) {
+	a.map ~= SingleSourceMapping(source, LineAndColumn(a.line, a.column));
+}
+
+void writeOnSingleLine(T)(scope ref Output writer, in T x) {
+	writeOnSingleLine(writer, (scope ref Writer w) {
+		w ~= x;
+	});
+}
+void writeOnSingleLine(scope ref Output writer, in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
+	writeAndVerify(
+		writer.writer,
+		() {
+			cb(writer.writer);
+		},
+		(in string x) {
+			assert(!contains(x, '\n'));
+			writer.column += x.length;
+		});
+}
+
+void writeNewline(scope ref Output writer, uint indent) {
+	writer ~= '\n';
+	foreach (size_t _; 0 .. indent)
+		writer ~= '\t';
+}
+
+void writeWithCommas(T)(scope ref Output writer, in T[] xs, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	bool first = true;
+	foreach (ref const T x; xs) {
+		if (first)
+			first = false;
+		else
+			writer ~= ',';
+		cb(x);
+	}
+}
+
+void writeShebang(scope ref Output writer, Shebang a) {
 	final switch (a) {
 		case Shebang.none:
 			break;
@@ -100,14 +217,14 @@ void writeShebang(scope ref Writer writer, Shebang a) {
 	}
 }
 
-void writeStatements(scope ref Writer writer, in JsStatement[] statements) {
+void writeStatements(scope ref Output writer, in JsStatement[] statements) {
 	foreach (JsStatement x; statements) {
 		writeNewline(writer, 0);
 		writeStatement(writer, 0, x, StatementPos.nonFirst);
 	}
 }
 
-void writeJsName(scope ref Writer writer, in JsName name) {
+void writeJsName(scope ref Output writer, in JsName name) {
 	if (isJsKeyword(name.crowName) && !has(name.mangleIndex)) {
 		writer ~= '_';
 		writer ~= name.crowName;
@@ -137,12 +254,12 @@ void writeJsName(scope ref Writer writer, in JsName name) {
 		}
 	}
 }
-void writePropertyAccess(scope ref Writer writer, JsMemberName a) {
+void writePropertyAccess(scope ref Output writer, JsMemberName a) {
 	if (!needsMangle(a.crowName))
 		writer ~= '.';
 	writeMemberName(writer, a);
 }
-void writeMemberName(scope ref Writer writer, JsMemberName a) {
+void writeMemberName(scope ref Output writer, JsMemberName a) {
 	if (needsMangle(a.crowName)) {
 		writer ~= '[';
 		writeQuotedMemberName(writer, a);
@@ -152,7 +269,7 @@ void writeMemberName(scope ref Writer writer, JsMemberName a) {
 		writer ~= a.crowName;
 	}
 }
-void writeQuotedMemberName(scope ref Writer writer, JsMemberName a) {
+void writeQuotedMemberName(scope ref Output writer, JsMemberName a) {
 	writer ~= '"';
 	writer ~= memberNamePrefix(a.kind);
 	writer ~= a.crowName;
@@ -215,7 +332,7 @@ bool isAllowedJsIdentifierChar(dchar a) =>
 	// TODO: JS allows more
 	isAsciiIdentifierChar(a);
 
-void writeImportOrReExport(scope ref Writer writer, in string importOrExport, in JsImport import_) {
+void writeImportOrReExport(scope ref Output writer, in string importOrExport, in JsImport import_) {
 	writer ~= importOrExport;
 	if (has(import_.importedNames)) {
 		writer ~= " { ";
@@ -230,13 +347,13 @@ void writeImportOrReExport(scope ref Writer writer, in string importOrExport, in
 	writer ~= "\n";
 }
 
-void writeQuotedRelPath(scope ref Writer writer, RelPath path) {
+void writeQuotedRelPath(scope ref Output writer, RelPath path) {
 	writer ~= '"';
 	writer ~= path;
 	writer ~= '"';
 }
 
-void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl, bool neverExport = false) {
+void writeDecl(scope ref Output writer, in ShowTypeCtx showCtx, in JsDecl decl, bool neverExport = false) {
 	writeDeclComment(writer, showCtx, decl.source);
 	writer ~= '\n';
 	if (!neverExport) {
@@ -265,7 +382,7 @@ void writeDecl(scope ref Writer writer, in ShowTypeCtx showCtx, in JsDecl decl, 
 	writer ~= "\n";
 }
 
-void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDecl a) {
+void writeDeclComment(scope ref Output writer, in ShowTypeCtx showCtx, in AnyDecl a) {
 	writer ~= "// ";
 	writer ~= a.range.uri;
 	writer ~= ' ';
@@ -273,7 +390,9 @@ void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDec
 	a.matchWithPointers!void(
 		(FunDecl* x) {
 			writer ~= ' ';
-			writeFunDecl(writer, showCtx, x);
+			writeOnSingleLine(writer, (scope ref Writer w) {
+				writeFunDecl(w, showCtx, x);
+			});
 		},
 		(SpecDecl*) {},
 		(StructAlias*) {},
@@ -282,7 +401,7 @@ void writeDeclComment(scope ref Writer writer, in ShowTypeCtx showCtx, in AnyDec
 		(VarDecl*) {});
 }
 
-void writeClass(scope ref Writer writer, JsName name, in JsClassDecl x) {
+void writeClass(scope ref Output writer, JsName name, in JsClassDecl x) {
 	writer ~= "class ";
 	writeJsName(writer, name);
 	if (has(x.extends)) {
@@ -298,7 +417,7 @@ void writeClass(scope ref Writer writer, JsName name, in JsClassDecl x) {
 	writeNewline(writer, 0);
 	writer ~= "}";
 }
-void writeClassMember(scope ref Writer writer, in JsClassMember member) {
+void writeClassMember(scope ref Output writer, in JsClassMember member) {
 	final switch (member.isStatic) {
 		case JsClassMember.Static.instance:
 			break;
@@ -320,7 +439,7 @@ void writeClassMember(scope ref Writer writer, in JsClassMember member) {
 		});
 }
 
-void writeParams(scope ref Writer writer, in JsParams a, bool alwaysParens) {
+void writeParams(scope ref Output writer, in JsParams a, bool alwaysParens) {
 	bool parens = alwaysParens || a.params.length != 1 || !only(a.params).isA!JsName || has(a.restParam);
 	if (parens) writer ~= '(';
 	writeWithCommas!JsDestructure(writer, a.params, (in JsDestructure x) {
@@ -334,7 +453,7 @@ void writeParams(scope ref Writer writer, in JsParams a, bool alwaysParens) {
 	}
 	if (parens) writer ~= ')';
 }
-void writeDestructure(scope ref Writer writer, in JsDestructure a) {
+void writeDestructure(scope ref Output writer, in JsDestructure a) {
 	a.matchIn!void(
 		(in JsName x) {
 			writeJsName(writer, x);
@@ -357,7 +476,7 @@ void writeDestructure(scope ref Writer writer, in JsDestructure a) {
 		});
 }
 
-void writeBlockStatement(scope ref Writer writer, uint indent, in JsBlockStatement a) {
+void writeBlockStatement(scope ref Output writer, uint indent, in JsBlockStatement a) {
 	writer ~= '{';
 	foreach (size_t index, JsStatement x; a.statements) {
 		writeNewline(writer, indent + 1);
@@ -367,7 +486,7 @@ void writeBlockStatement(scope ref Writer writer, uint indent, in JsBlockStateme
 	writer ~= '}';
 }
 
-void writeExprOrBlockStatementIndented(scope ref Writer writer, uint indent, in JsExprOrBlockStatement a) {
+void writeExprOrBlockStatementIndented(scope ref Output writer, uint indent, in JsExprOrBlockStatement a) {
 	a.matchIn!void(
 		(in JsExpr x) {
 			writeNewline(writer, indent + 1);
@@ -380,8 +499,9 @@ void writeExprOrBlockStatementIndented(scope ref Writer writer, uint indent, in 
 }
 
 enum StatementPos { first, nonFirst }
-void writeStatement(scope ref Writer writer, uint indent, in JsStatement a, StatementPos pos) {
-	a.matchIn!void(
+void writeStatement(scope ref Output writer, uint indent, in JsStatement a, StatementPos pos) {
+	markMap(writer, a.source);
+	a.kind.matchIn!void(
 		(in JsAssignStatement x) {
 			writeAssign(writer, indent, x);
 		},
@@ -437,14 +557,15 @@ void writeStatement(scope ref Writer writer, uint indent, in JsStatement a, Stat
 }
 // Optimized build has infinite compile time inlining 'writeStatement' into itself recursively.
 // May be a similar issue to https://github.com/ldc-developers/ldc/issues/3879
+// TODO: IS THIS STILL TRUE? -------------------------------------------------------------------------------------------------------
 pragma(inline, false)
-void writeAssign(scope ref Writer writer, uint indent, in JsAssignStatement a) {
+void writeAssign(scope ref Output writer, uint indent, in JsAssignStatement a) {
 	writeExpr(writer, indent, a.left);
 	writer ~= " = ";
 	writeExpr(writer, indent, a.right);
 }
 pragma(inline, false)
-void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
+void writeIf(scope ref Output writer, uint indent, in JsIfStatement a) {
 	writer ~= "if (";
 	writeExpr(writer, indent + 2, a.cond);
 	writer ~= ")";
@@ -456,7 +577,7 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 			writeNewline(writer, indent);
 		writer ~= "else";
 		JsStatement else_ = force(a.else_);
-		if (else_.isA!(JsIfStatement*)) {
+		if (else_.kind.isA!(JsIfStatement*)) {
 			writer ~= ' ';
 			writeStatement(writer, indent, else_, StatementPos.first);
 		} else
@@ -464,7 +585,7 @@ void writeIf(scope ref Writer writer, uint indent, in JsIfStatement a) {
 	}
 }
 pragma(inline, false)
-void writeSwitch(scope ref Writer writer, uint indent, in JsSwitchStatement a) {
+void writeSwitch(scope ref Output writer, uint indent, in JsSwitchStatement a) {
 	writer ~= "switch (";
 	writeExpr(writer, indent + 2, *a.arg);
 	writer ~= ") {";
@@ -482,7 +603,7 @@ void writeSwitch(scope ref Writer writer, uint indent, in JsSwitchStatement a) {
 	writer ~= "}";
 }
 pragma(inline, false)
-void writeTryCatch(scope ref Writer writer, uint indent, in JsTryCatchStatement a) {
+void writeTryCatch(scope ref Output writer, uint indent, in JsTryCatchStatement a) {
 	writer ~= "try ";
 	writeBlockStatement(writer, indent, a.tried);
 	writer ~= " catch (";
@@ -491,14 +612,14 @@ void writeTryCatch(scope ref Writer writer, uint indent, in JsTryCatchStatement 
 	writeBlockStatement(writer, indent, a.catch_);
 }
 pragma(inline, false)
-void writeTryFinally(scope ref Writer writer, uint indent, in JsTryFinallyStatement a) {
+void writeTryFinally(scope ref Output writer, uint indent, in JsTryFinallyStatement a) {
 	writer ~= "try ";
 	writeBlockStatement(writer, indent, a.tried);
 	writer ~= " finally ";
 	writeBlockStatement(writer, indent, a.finally_);
 }
 pragma(inline, false)
-void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
+void writeVarDecl(scope ref Output writer, uint indent, in JsVarDecl a) {
 	writer ~= stringOfEnum(a.kind);
 	writer ~= ' ';
 	writeDestructure(writer, a.destructure);
@@ -508,7 +629,7 @@ void writeVarDecl(scope ref Writer writer, uint indent, in JsVarDecl a) {
 	}
 }
 pragma(inline, false)
-void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
+void writeWhile(scope ref Output writer, uint indent, in JsWhileStatement a) {
 	if (has(a.label)) {
 		writeJsName(writer, force(a.label));
 		writer ~= ": ";
@@ -520,10 +641,10 @@ void writeWhile(scope ref Writer writer, uint indent, in JsWhileStatement a) {
 }
 
 // Returns true if it was a block
-bool writeStatementIndented(scope ref Writer writer, uint indent, in JsStatement a, StatementPos pos) {
-	if (a.isA!JsBlockStatement) {
+bool writeStatementIndented(scope ref Output writer, uint indent, in JsStatement a, StatementPos pos) {
+	if (a.kind.isA!JsBlockStatement) {
 		writer ~= ' ';
-		writeBlockStatement(writer, indent, a.as!JsBlockStatement);
+		writeBlockStatement(writer, indent, a.kind.as!JsBlockStatement);
 		return true;
 	} else {
 		writeNewline(writer, indent + 1);
@@ -548,7 +669,8 @@ struct ExprPos {
 	static ExprPos statementNonFirst() =>
 		ExprPos(isNonFirstStatement: true, isCalled: false);
 }
-void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = ExprPos.expr) {
+void writeExpr(scope ref Output writer, uint indent, in JsExpr a, ExprPos pos = ExprPos.expr) {
+	markMap(writer, a.source);
 	void writeArg(in JsExpr arg, ExprPos pos = ExprPos.expr) {
 		writeExpr(writer, indent, arg, pos);
 	}
@@ -558,7 +680,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		});
 	}
 
-	a.matchIn!void(
+	a.kind.matchIn!void(
 		(in JsArrayExpr x) {
 			writer ~= '[';
 			writeArgs(x.elements);
@@ -651,16 +773,22 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 			writer ~= 'n';
 		},
 		(in JsLiteralNumber x) {
-			writeFloatLiteral(writer, x.value, infinity: "Number.POSITIVE_INFINITY", nan: "Number.NaN");
+			writeOnSingleLine(writer, (scope ref Writer w) {
+				writeFloatLiteral(w, x.value, infinity: "Number.POSITIVE_INFINITY", nan: "Number.NaN");
+			});
 		},
 		(in JsLiteralString x) {
-			writeQuotedString(writer, x.value);
+			writeOnSingleLine(writer, (scope ref Writer w) {
+				writeQuotedString(w, x.value);
+			});
 		},
 		(in JsLiteralStringFromMemberName x) {
 			writeQuotedMemberName(writer, x.value);
 		},
 		(in JsLiteralStringFromSymbol x) {
-			writeQuotedSymbol(writer, x.value);
+			writeOnSingleLine(writer, (scope ref Writer w) {
+				writeQuotedSymbol(w, x.value);
+			});
 		},
 		(in JsName x) {
 			writeJsName(writer, x);
@@ -726,7 +854,7 @@ void writeExpr(scope ref Writer writer, uint indent, in JsExpr a, ExprPos pos = 
 		});
 }
 
-void maybeWriteAsync(scope ref Writer writer, SyncOrAsync async) {
+void maybeWriteAsync(scope ref Output writer, SyncOrAsync async) {
 	final switch (async) {
 		case SyncOrAsync.sync:
 			break;
@@ -736,7 +864,7 @@ void maybeWriteAsync(scope ref Writer writer, SyncOrAsync async) {
 	}
 }
 
-void writeObjectPair(scope ref Writer writer, uint indent, JsMemberName key, in JsExpr value) {
+void writeObjectPair(scope ref Output writer, uint indent, JsMemberName key, in JsExpr value) {
 	writeMemberName(writer, key);
 	writer ~= ": ";
 	writeExpr(writer, indent, value);

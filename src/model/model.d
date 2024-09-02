@@ -1427,6 +1427,9 @@ immutable struct Test {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+
+	Symbol name() scope =>
+		symbol!"test";
 }
 
 immutable struct FunDeclAndTypeArgs {

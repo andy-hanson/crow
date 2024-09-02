@@ -279,7 +279,7 @@ public void writeMangledName(scope ref Writer writer, in MangledNames mangledNam
 }
 
 // Used for both JS and C
-public void mangleNameCommon(scope ref Writer writer, in Symbol a) {
+public void mangleNameCommon(Writer)(scope ref Writer writer, in Symbol a) {
 	foreach (dchar x; a) {
 		if (!isAsciiIdentifierChar(x)) {
 			writer ~= "__";
