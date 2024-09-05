@@ -11,7 +11,6 @@ import util.comparison : compareEnum, Comparison, compareOptions, compareOr, com
 import util.integralValues : IntegralValue;
 import util.memory : allocate;
 import util.opt : none, Opt, some;
-import util.sourceRange : LineAndColumn;
 import util.symbol : compareSymbolsAlphabetically, Symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
@@ -86,7 +85,7 @@ immutable struct JsImport {
 
 immutable struct JsDecl {
 	enum Exported { private_, export_ }
-	AnyDecl source;
+	Source source;
 	Exported exported;
 	JsName name;
 	JsDeclKind kind;
@@ -221,7 +220,7 @@ immutable struct JsExpr {
 	Source source;
 	JsExprKind kind;
 }
-immutable struct JsExprKind {
+private immutable struct JsExprKind {
 	mixin Union!(
 		JsArrayExpr,
 		JsArrowFunction,

@@ -2,16 +2,66 @@ module test.testSourceMap;
 
 @safe @nogc pure nothrow:
 
-import backend.js.sourceMap : finish, SingleSourceMapping, Source, SourceMapBuilder;
+import backend.js.sourceMap : finish, ModulePaths, SingleSourceMapping, Source, SourceMapBuilder, writeBase64VLQ;
+import frontend.storage : FileContentGetters, FileType, fileType, setFileAssumeUtf8, Storage;
 import test.testUtil : assertEqual, Test;
-import util.sourceRange : LineAndColumn;
+import util.col.map : KeyValuePair, newMap;
+import util.sourceRange : LineAndCharacter;
 import util.symbol : symbol;
-import util.uri : mustParseUri;
+import util.uri : mustParseUri, parsePath, Path, Uri;
+import util.writer : withStackWriter, Writer;
 
 void testSourceMap(ref Test test) {
-	SourceMapBuilder map = SourceMapBuilder(test.allocPtr);
+	testVLQ();
+	foo(test);
+}
+
+private:
+
+void testVLQ() {
+	void test(int value, string expected) {
+		withStackWriter!0x10000(
+			(scope ref Writer writer) {
+				writeBase64VLQ(writer, value);
+			},
+			(in string actual) {
+				assertEqual(actual, expected);
+			});
+	}
+
+	test(0, "A");
+	test(1, "C");
+	test(-1, "D");
+	test(2, "E");
+	test(-2, "F");
+	test(15, "e");
+	test(-15, "f");
+	test(16, "gB");
+	test(-16, "hB");
+	test(17, "iB");
+	test(-17, "jB");
+	test(511, "+f");
+	test(-511, "/f");
+	test(512, "ggB");
+	test(513, "igB");
+}
+
+void foo(ref Test test) { // NAME ---------------------------------------------------------------------------------------------------------
+	SourceMapBuilder map = SourceMapBuilder(Writer(test.allocPtr));
+	Uri a_crow = mustParseUri("file://foo/a.crow");
+	assert(fileType(a_crow) == FileType.crow);
+
 	map ~= SingleSourceMapping(
-		Source(mustParseUri("file://a.crow"), symbol!"foo", LineAndColumn(1, 1)),
-		LineAndColumn(1, 1));
-	assertEqual(finish(map), q"({"version":3,"sources":["file://a.crow"],"names":["foo"],"mappings":";CACCA"})");
+		Source(a_crow, symbol!"foo", LineAndCharacter(1, 1)),
+		LineAndCharacter(1, 1));
+	map ~= SingleSourceMapping(
+		Source(a_crow, symbol!"foo", LineAndCharacter(2, 1)),
+		LineAndCharacter(2, 1));
+	
+	Storage storage = Storage(test.metaAlloc);
+	setFileAssumeUtf8(test.perf, storage, a_crow, "hello");
+	ModulePaths modulePaths = ModulePaths(newMap(test.alloc, [KeyValuePair!(Uri, Path)(a_crow, parsePath("mapped/a.crow"))]));
+	assertEqual(
+		finish(map, FileContentGetters(&storage), modulePaths),
+		q"({"version":3,"sources":["mapped/a.crow"],"sourcesContent":["hello"],"names":["foo"],"mappings":";CACCA;CACAA"})");
 }

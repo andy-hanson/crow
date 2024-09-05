@@ -2,6 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
+import backend.js.sourceMap : JsAndMap;
 import backend.js.translateToJs : JsModules, translateToJsModules, translateToJsScript;
 import backend.writeToC : writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
@@ -132,7 +133,7 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
-import util.symbol : initSymbols;
+import util.symbol : initSymbols, Symbol;
 import util.uri : FilePath, initUris, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
@@ -318,7 +319,7 @@ private LspOutResult handleLspRequestWithProgram(
 			return LspOutResult(BuildJsScriptResult(
 				showDiagnostics(alloc, server, pwm, x.diagnosticsOnlyForUris),
 				optIf(!hasFatalDiagnostics(pwm), () =>
-					buildToJsScript(alloc, server, pwm, JsTarget.browser))));
+					buildToJsScript(alloc, server, pwm, JsTarget.browser, none!Symbol).js)));
 		},
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
@@ -745,15 +746,16 @@ BuildToCResult buildToC(
 		lowProgram.externLibraries);
 }
 
-string buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target) {
+JsAndMap buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target, Opt!Symbol sourceMapName) {
 	assert(!hasFatalDiagnostics(program));
 	return translateToJsScript(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
-		LineAndColumnGetters(&server.storage),
+		LineAndCharacterGetters(&server.storage),
 		FileContentGetters(&server.storage),
-		target);
+		target,
+		sourceMapName);
 }
 
 JsModules buildToJsModules(
@@ -766,7 +768,7 @@ JsModules buildToJsModules(
 		alloc,
 		program,
 		getShowDiagCtx(server, program.program, forceNoColor: true),
-		LineAndColumnGetters(&server.storage),
+		LineAndCharacterGetters(&server.storage),
 		FileContentGetters(&server.storage),
 		target);
 

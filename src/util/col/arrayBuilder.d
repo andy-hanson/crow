@@ -16,7 +16,7 @@ struct Builder(T) {
 	private Alloc* allocPtr;
 	private ArrayBuilder!T inner;
 
-	private ref Alloc alloc() =>
+	ref Alloc alloc() return scope =>
 		*allocPtr;
 
 	void opOpAssign(string op)(in T x) scope if (op == "~") {

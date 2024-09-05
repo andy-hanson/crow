@@ -242,6 +242,8 @@ private Path alterExtension(Path a, Extension newExtension) =>
 // Adds an extension after any already existing extension.
 Uri addExtension(Uri a, Extension extension) =>
 	Uri(addExtension(a.path, extension));
+FilePath addExtension(FilePath a, Extension extension) =>
+	FilePath(addExtension(a.path, extension));
 private Path addExtension(Path a, Extension extension) =>
 	modifyBaseName(a, (Symbol name) =>
 		addExtension(name, extension));

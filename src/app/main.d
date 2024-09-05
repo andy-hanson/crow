@@ -37,6 +37,7 @@ import app.parseCommand : defaultExecutableExtension, defaultExecutablePath, par
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
+import backend.js.sourceMap : JsAndMap;
 import backend.js.translateToJs : JsModules;
 import backend.writeToC : PathAndArgs, WriteToCParams;
 import document.document : documentModules;
@@ -107,6 +108,7 @@ import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
 import util.uri :
+	addExtension,
 	baseName,
 	concatFilePathAndPath,
 	cStringOfUriPreferRelative,
@@ -470,7 +472,7 @@ ExitCodeOrSignal buildAndRunNodeJs(
 	in CString[] programArgs,
 ) =>
 	withTempPath(program.mainUri, Extension.js, (FilePath js) =>
-		withWriteToJsScript(perf, alloc, server, program, js, JsTarget.node, () =>
+		withWriteToJsScript(perf, alloc, server, program, js, JsTarget.node, false, () =>
 			runNodeJsProgram(PathAndArgs(js, programArgs))));
 
 ExitCodeOrSignal buildAllOutputs(
@@ -498,7 +500,7 @@ ExitCodeOrSignal buildAllOutputs(
 			});
 
 	ExitCodeOrSignal buildJsScript(FilePath path, JsTarget target) =>
-		withWriteToJsScript(perf, alloc, server, program, path, target, () =>
+		withWriteToJsScript(perf, alloc, server, program, path, target, true, () =>
 			ExitCodeOrSignal.ok);
 	ExitCodeOrSignal buildJsModules(FilePath dir, JsTarget target) =>
 		withWriteToJsModules(perf, alloc, server, program, dir, target, (FilePath main) =>
@@ -541,10 +543,25 @@ ExitCodeOrSignal withWriteToJsScript(
 	ref ProgramWithMain program,
 	FilePath outFile,
 	JsTarget target,
+	bool includeSourceMap,
 	in ExitCodeOrSignal delegate() @safe @nogc nothrow cb,
 ) {
-	string result = buildToJsScript(alloc, server, program, target);
-	return okAnd(ExitCodeOrSignal(writeFile(outFile, result, FilePermissions.executable)), cb);
+	Opt!FilePath sourceMapPath = optIf(includeSourceMap, () => addExtension(outFile, Extension.map));
+	JsAndMap result = buildToJsScript(alloc, server, program, target, optIf(has(sourceMapPath), () => baseName(force(sourceMapPath))));
+	FilePermissions mainPermissions = () {
+		final switch (target) {
+			case JsTarget.browser:
+				return FilePermissions.regular;
+			case JsTarget.node:
+				return FilePermissions.executable;
+		}
+	}();
+	return okAnd(
+		ExitCodeOrSignal(writeFile(outFile, result.js, mainPermissions)),
+		() => has(sourceMapPath)
+			? ExitCodeOrSignal(writeFile(force(sourceMapPath), force(result.map), FilePermissions.regular))
+			: ExitCodeOrSignal.ok,
+		cb);
 }
 
 ExitCodeOrSignal withWriteToJsModules(

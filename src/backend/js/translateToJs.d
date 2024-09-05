@@ -62,14 +62,14 @@ import backend.js.jsAst :
 	JsStatement,
 	Shebang,
 	SyncOrAsync;
-import backend.js.sourceMap : noSource, Source;
+import backend.js.sourceMap : JsAndMap, ModulePaths, noSource, Source;
 import backend.js.translateExpr : genAssertType, genNewPair, translateFunDecl, translateTest, variantMethodImpl;
 import backend.js.translateModuleCtx :
+	aliasSource,
 	funSource,
 	jsNameForDecl,
 	makeDecl,
 	ModuleExportMangledNames,
-	source,
 	structSource,
 	translateFunReference,
 	TranslateProgramCtx,
@@ -77,7 +77,7 @@ import backend.js.translateModuleCtx :
 	translateStructReference;
 import backend.js.writeJsAst : writeJsModuleAst, writeJsScriptAst;
 import frontend.showModel : ShowTypeCtx;
-import frontend.storage : FileContentGetters, LineAndColumnGetters;
+import frontend.storage : FileContentGetters, LineAndCharacterGetters;
 import model.ast : ImportOrExportAstKind, PathOrRelPath;
 import model.model :
 	allExterns,
@@ -124,11 +124,10 @@ import util.col.tempSet : mustAdd, TempSet, tryAdd, withTempSet;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, Opt, optIf, optFromMut, some, someMut;
-import util.symbol : compareSymbolsAlphabetically, Extension, Symbol, symbol;
+import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : Union;
 import util.uri :
-	alterExtension,
 	countComponents,
 	FilePermissions,
 	firstNComponents,
@@ -143,19 +142,20 @@ import util.uri :
 	relativePath,
 	resolvePath,
 	Uri;
-import util.util : castNonScope, castNonScope_ref, min, ptrTrustMe, typeAs;
+import util.util : castNonScope_ref, min, ptrTrustMe, typeAs;
 import versionInfo : JsTarget, VersionInfo, versionInfoForBuildToJS;
 
-string translateToJsScript(
+JsAndMap translateToJsScript(
 	ref Alloc alloc,
 	ref ProgramWithMain program,
 	in ShowTypeCtx showCtx,
-	in LineAndColumnGetters lineAndColumnGetters,
+	in LineAndCharacterGetters lineAndCharacterGetters,
 	in FileContentGetters fileContentGetters,
 	JsTarget jsTarget,
+	Opt!Symbol sourceMapName,
 ) =>
-	withTranslateProgram(alloc, program, showCtx, lineAndColumnGetters, fileContentGetters, jsTarget, true, (ref TranslateProgramCtx ctx) =>
-		writeJsScriptAst(alloc, showCtx, translateProgramToScript(ctx)));
+	withTranslateProgram(alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, true, (ref TranslateProgramCtx ctx) =>
+		writeJsScriptAst(alloc, showCtx, fileContentGetters, modulePaths(alloc, program), translateProgramToScript(ctx), sourceMapName));
 
 immutable struct JsModules {
 	Path mainJs;
@@ -165,18 +165,18 @@ JsModules translateToJsModules(
 	ref Alloc alloc,
 	ref ProgramWithMain program,
 	in ShowTypeCtx showCtx,
-	in LineAndColumnGetters lineAndColumnGetters,
+	in LineAndCharacterGetters lineAndCharacterGetters,
 	in FileContentGetters fileContentGetters,
 	JsTarget jsTarget,
 ) =>
-	withTranslateProgram(alloc, program, showCtx, lineAndColumnGetters, fileContentGetters, jsTarget, false, (ref TranslateProgramCtx ctx) {
+	withTranslateProgram(alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, false, (ref TranslateProgramCtx ctx) {
 		ModulePaths modulePaths = modulePaths(alloc, program);
 		// None for unused modules
 		MutMap!(Module*, Opt!JsModuleAst) done;
 		doTranslateModule(ctx, modulePaths, done, program.mainModule);
 		return JsModules(
-			mustGet(modulePaths, program.mainUri),
-			getOutputFiles(alloc, showCtx, modulePaths, done, jsTarget));
+			modulePaths.jsPath(program.mainUri),
+			getOutputFiles(alloc, showCtx, fileContentGetters, modulePaths, done, jsTarget));
 	});
 
 private:
@@ -185,7 +185,7 @@ Out withTranslateProgram(Out)(
 	ref Alloc alloc,
 	ref ProgramWithMain program,
 	in ShowTypeCtx showCtx,
-	in LineAndColumnGetters lineAndColumnGetters,
+	in LineAndCharacterGetters lineAndCharacterGetters,
 	in FileContentGetters fileContentGetters,
 	JsTarget jsTarget,
 	bool isScript,
@@ -198,7 +198,7 @@ Out withTranslateProgram(Out)(
 	TranslateProgramCtx ctx = TranslateProgramCtx(
 		ptrTrustMe(alloc),
 		castNonScope_ref(showCtx),
-		castNonScope_ref(lineAndColumnGetters),
+		castNonScope_ref(lineAndCharacterGetters),
 		ptrTrustMe(fileContentGetters),
 		ptrTrustMe(program),
 		version_,
@@ -210,7 +210,6 @@ Out withTranslateProgram(Out)(
 	return cb(ctx);
 }
 
-alias ModulePaths = Map!(Uri, Path);
 ModulePaths modulePaths(ref Alloc alloc, in ProgramWithMain program) {
 	Module* main = program.mainModule;
 	Uri mainCommon = findCommonMainDirectory(main);
@@ -220,7 +219,7 @@ ModulePaths modulePaths(ref Alloc alloc, in ProgramWithMain program) {
 			Path path = pr.match!Path(
 				(Path x) => x,
 				(RelPath x) => force(resolvePath(force(parent(force(fromPath))), x)));
-			mustAdd(alloc, res, x.uri, alterExtension(path, Extension.js));
+			mustAdd(alloc, res, x.uri, path);
 			eachImportOrReExport(x, (ref ImportOrExport im) @safe nothrow {
 				recur(
 					im.module_,
@@ -230,7 +229,7 @@ ModulePaths modulePaths(ref Alloc alloc, in ProgramWithMain program) {
 		}
 	}
 	recur(*main, none!Path, PathOrRelPath(prefixPathComponent(symbol!"main", pathFromAncestor(mainCommon, main.uri))));
-	return moveToMap(alloc, res);
+	return ModulePaths(moveToMap(alloc, res));
 }
 Uri findCommonMainDirectory(Module* main) =>
 	withTempSet!(Uri, Module*)(0x100, (scope ref TempSet!(Module*) globalImports) @safe {
@@ -286,7 +285,8 @@ void eachRelativeImportModule(Module* main, in void delegate(Module*) @safe @nog
 PathAndContent[] getOutputFiles(
 	ref Alloc alloc,
 	in ShowTypeCtx showCtx,
-	in Map!(Uri, Path) modulePaths,
+	in FileContentGetters fileContentGetters,
+	in ModulePaths modulePaths,
 	in MutMap!(Module*, Opt!JsModuleAst) done,
 	JsTarget target,
 ) =>
@@ -296,9 +296,9 @@ PathAndContent[] getOutputFiles(
 		foreach (const Module* module_, ref Opt!JsModuleAst ast; done)
 			if (has(ast))
 				out_ ~= PathAndContent(
-					mustGet(modulePaths, module_.uri),
+					modulePaths.jsPath(module_.uri),
 					force(ast).shebang == Shebang.none ? FilePermissions.regular : FilePermissions.executable,
-					writeJsModuleAst(alloc, showCtx, module_.uri, force(ast)));
+					writeJsModuleAst(alloc, showCtx, fileContentGetters, modulePaths, module_.uri, force(ast)));
 	});
 
 void doTranslateModule(
@@ -540,7 +540,7 @@ JsImport[] translateImports(
 
 	Opt!(Set!AnyDecl) opt = ctx.allUsed.usedByModule[module_.uri];
 	if (has(opt)) {
-		Path importerPath = mustGet(modulePaths, module_.uri);
+		Path importerPath = modulePaths.jsPath(module_.uri);
 		MutMap!(Uri, MutArr!AnyDecl) byModule;
 		foreach (AnyDecl x; force(opt))
 			if (x.moduleUri != module_.uri)
@@ -552,7 +552,7 @@ JsImport[] translateImports(
 						out_ ~= jsNameForDecl(decl, force(ctx.exportMangledNames).mangledNames[decl]);
 				});
 				sortInPlace!(JsName, compareJsName)(names);
-				outImports ~= JsImport(some(names), relativePath(importerPath, mustGet(modulePaths, importedUri)));
+				outImports ~= JsImport(some(names), relativePath(importerPath, modulePaths.jsPath(importedUri)));
 			}
 		});
 	} else
@@ -560,9 +560,9 @@ JsImport[] translateImports(
 }
 
 JsImport[] translateReExports(ref TranslateProgramCtx ctx, in ModulePaths modulePaths, in Module module_) {
-	Path importerPath = mustGet(modulePaths, module_.uri);
+	Path importerPath = modulePaths.jsPath(module_.uri);
 	return mapOp!(JsImport, ImportOrExport)(ctx.alloc, module_.reExports, (ref ImportOrExport x) {
-		RelPath relPath() => relativePath(importerPath, mustGet(modulePaths, x.module_.uri));
+		RelPath relPath() => relativePath(importerPath, modulePaths.jsPath(x.module_.uri));
 		if (isImportModuleWhole(x))
 			return optIf(isModuleUsed(ctx.allUsed, x.modulePtr), () =>
 				JsImport(none!(JsName[]), relPath));
@@ -603,7 +603,7 @@ JsDecl translateDecl(ref TranslateModuleCtx ctx, AnyDecl x) =>
 			translateVarDecl(ctx, x));
 
 JsDecl translateStructAlias(ref TranslateModuleCtx ctx, StructAlias* a) =>
-	makeDecl(ctx, AnyDecl(a), JsDeclKind(translateStructReference(ctx, source(ctx, a.range, a.name), a.target.decl)));
+	makeDecl(ctx, AnyDecl(a), JsDeclKind(translateStructReference(ctx, aliasSource(ctx, a), a.target.decl)));
 
 JsDecl translateStructDecl(ref TranslateModuleCtx ctx, StructDecl* a) {
 	Source source = structSource(ctx, a);

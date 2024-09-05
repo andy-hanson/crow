@@ -48,6 +48,7 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	caseNameRange,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
@@ -614,10 +615,11 @@ void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* me
 		fun.body_.isA!(FunBody.CreateEnumOrFlags) && fun.body_.as!(FunBody.CreateEnumOrFlags).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchEnumExpr*)) {
-			if (x.expr.kind.as!(MatchEnumExpr*).enum_ == enum_)
-				foreach (size_t caseIndex, MatchEnumExpr.Case case_; x.expr.kind.as!(MatchEnumExpr*).cases)
+			MatchEnumExpr* matchEnum = x.expr.kind.as!(MatchEnumExpr*);
+			if (matchEnum.enum_ == enum_)
+				foreach (size_t caseIndex, MatchEnumExpr.Case case_; matchEnum.cases)
 					if (case_.member == member)
-						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+						cb(UriAndRange(m.uri, caseNameRange(*x.expr, caseIndex)));
 		} else
 			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});
@@ -630,10 +632,11 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 		fun.body_.isA!(FunBody.CreateUnion) && fun.body_.as!(FunBody.CreateUnion).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchUnionExpr*)) {
-			if (x.expr.kind.as!(MatchUnionExpr*).union_.decl == union_) {
-				foreach (size_t caseIndex, ref MatchUnionExpr.Case case_; x.expr.kind.as!(MatchUnionExpr*).cases) {
+			MatchUnionExpr* matchUnion = x.expr.kind.as!(MatchUnionExpr*);
+			if (matchUnion.union_.decl == union_) {
+				foreach (size_t caseIndex, ref MatchUnionExpr.Case case_; matchUnion.cases) {
 					if (case_.member == member)
-						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+						cb(UriAndRange(m.uri, caseNameRange(*x.expr, caseIndex)));
 				}
 			}
 		} else

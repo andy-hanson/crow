@@ -8,6 +8,7 @@ import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.storage : FileContentGetters;
 import model.ast :
 	AssertOrForbidAst,
+	CaseAst,
 	ConditionAst,
 	DestructureAst,
 	EnumOrFlagsMemberAst,
@@ -16,6 +17,7 @@ import model.ast :
 	FunDeclAst,
 	IfAst,
 	ImportOrExportAst,
+	MatchAst,
 	ModifierAst,
 	NameAndRange,
 	RecordOrUnionMemberAst,
@@ -24,6 +26,7 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
+	TryAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -2607,6 +2610,18 @@ immutable struct MatchEnumExpr {
 
 	StructBody.Enum* enumBody() =>
 		enum_.body_.as!(StructBody.Enum*);
+}
+
+Range caseNameRange(in Expr matchExpr, size_t caseIndex) {
+	assert(
+		matchExpr.kind.isA!(MatchEnumExpr*) ||
+		matchExpr.kind.isA!(MatchUnionExpr*) ||
+		matchExpr.kind.isA!(MatchVariantExpr*) ||
+		matchExpr.kind.isA!(TryExpr*));
+	SmallArray!CaseAst cases = matchExpr.ast.kind.isA!TryAst
+		? matchExpr.ast.kind.as!TryAst.catches
+		: matchExpr.ast.kind.as!MatchAst.cases;
+	return cases[caseIndex].member.nameRange;
 }
 
 // Match on charX, intX, natX type

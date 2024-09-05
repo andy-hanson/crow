@@ -58,11 +58,9 @@ import backend.js.jsAst :
 	genVarDecl,
 	genWhile,
 	genWhileTrue,
-	JsArrowFunction,
-	JsBinaryExpr,
+	JsBinaryExpr, // use a gen function? --------------------------------------------------------------------------------------------
 	JsBlockStatement,
 	JsClassMember,
-	JsContinueStatement,
 	JsDecl,
 	JsDeclKind,
 	JsDefaultDestructure,
@@ -76,7 +74,6 @@ import backend.js.jsAst :
 	JsStatement,
 	JsStatementKind,
 	JsSwitchStatement,
-	JsTryFinallyStatement,
 	JsUnaryExpr,
 	JsVarDecl,
 	SyncOrAsync;
@@ -85,8 +82,8 @@ import backend.js.translateModuleCtx :
 	funSource,
 	localName,
 	makeDecl,
-	source,
-	structSource,
+	sourceAtRange,
+	testSource,
 	TranslateModuleCtx,
 	translateFunReference,
 	translateStructReference,
@@ -114,6 +111,7 @@ import model.model :
 	CalledSpecSig,
 	CallExpr,
 	CallOptionExpr,
+	caseNameRange,
 	ClosureGetExpr,
 	ClosureSetExpr,
 	CommonTypes,
@@ -290,7 +288,7 @@ private Opt!JsExpr genIsNotBuiltinType(ref TranslateModuleCtx ctx, in Source sou
 JsDecl translateTest(ref TranslateModuleCtx ctx, Test* a) {
 	TranslateExprCtx exprCtx = TranslateExprCtx(ptrTrustMe(ctx), a.moduleUri, FunOrTest(a));
 	return makeDecl(ctx, AnyDecl(a), JsDeclKind(genArrowFunction(
-		source(ctx, a.range, a.name),
+		testSource(ctx, a),
 		SyncOrAsync.async,
 		JsParams(),
 		translateExprToExprOrBlockStatement(exprCtx, a.body_, Type(ctx.commonTypes.void_)))));
@@ -696,10 +694,10 @@ struct TranslateExprCtx {
 	ref FileContentGetters fileContentGetters() =>
 		*ctx.ctx.fileContentGetters;
 }
-Source source(in TranslateExprCtx ctx, in Expr expr) =>
-	source(ctx, expr.range);
-Source source(in TranslateExprCtx ctx, in Range range) =>
-	source(ctx.ctx, UriAndRange(ctx.curUri, range), ctx.curFun.name);
+Source exprSource(in TranslateExprCtx ctx, in Expr expr) =>
+	exprSource(ctx, expr.range);
+Source exprSource(in TranslateExprCtx ctx, in Range range) =>
+	sourceAtRange(ctx.ctx, UriAndRange(ctx.curUri, range), ctx.curFun.name);
 
 JsExpr translateStructReference(in TranslateExprCtx ctx, in Source source, in StructDecl* a) =>
 	translateStructReference(ctx.ctx, source, a);
@@ -767,10 +765,10 @@ JsExprOrBlockStatement toExprOrBlockStatement(ref Alloc alloc, ExprResult result
 JsBlockStatement translateExprToSwitchBlockStatement(ref TranslateExprCtx ctx, ref Expr a, Type type) =>
 	isVoid(type)
 		? translateToBlockStatement(ctx.alloc, (scope ExprPos pos) =>
-			forceStatements(ctx, source(ctx, a), pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
+			forceStatements(ctx, exprSource(ctx, a), pos, (scope ref ArrayBuilder!JsStatement out_, scope ExprPos inner) {
 				ExprResult result = translateExpr(ctx, a, type, inner);
 				assert(result.isA!(ExprResult.Done));
-				add(ctx.alloc, out_, genBreakNoLabel(source(ctx, a)));
+				add(ctx.alloc, out_, genBreakNoLabel(exprSource(ctx, a)));
 				return result;
 			}))
 		: translateExprToBlockStatement(ctx, a, type);
@@ -820,7 +818,7 @@ ExprResult forceStatement(ref Alloc alloc, SyncOrAsync curFunAsync, scope ExprPo
 		});
 
 ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope ExprPos pos) {
-	Source source = source(ctx, a);
+	Source source = exprSource(ctx, a);
 	return a.kind.match!ExprResult(
 		(ref AssertOrForbidExpr x) =>
 			translateAssertOrForbid(ctx, a, source, x, type, pos),
@@ -891,15 +889,15 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ref LoopWhileOrUntilExpr x) =>
 			translateLoopWhileOrUntil(ctx, source, x, type, pos),
 		(ref MatchEnumExpr x) =>
-			translateMatchEnum(ctx, source, x, type, pos),
+			translateMatchEnum(ctx, source, a, x, type, pos),
 		(ref MatchIntegralExpr x) =>
 			translateMatchIntegral(ctx, source, x, type, pos),
 		(ref MatchStringLikeExpr x) =>
 			translateMatchStringLike(ctx, source, x, type, pos),
 		(ref MatchUnionExpr x) =>
-			translateMatchUnion(ctx, source, x, type, pos),
+			translateMatchUnion(ctx, source, a, x, type, pos),
 		(ref MatchVariantExpr x) =>
-			translateMatchVariant(ctx, source, x, type, pos),
+			translateMatchVariant(ctx, source, a, x, type, pos),
 		(ref RecordFieldPointerExpr x) =>
 			assert(false),
 		(ref SeqExpr x) =>
@@ -916,7 +914,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 		(ref TrustedExpr x) =>
 			translateExpr(ctx, x.inner, type, pos),
 		(ref TryExpr x) =>
-			translateTry(ctx, source, x, type, pos),
+			translateTry(ctx, source, a, x, type, pos),
 		(ref TryLetExpr x) =>
 			translateTryLet(ctx, source, x, type, pos),
 		(ref TypedExpr x) =>
@@ -2007,14 +2005,14 @@ ExprResult translateLoopWhileOrUntil(
 				}
 			}));
 
-ExprResult translateMatchEnum(ref TranslateExprCtx ctx, in Source source, ref MatchEnumExpr a, Type type, scope ExprPos pos) =>
+ExprResult translateMatchEnum(ref TranslateExprCtx ctx, in Source source, in Expr expr, ref MatchEnumExpr a, Type type, scope ExprPos pos) =>
 	forceStatement(ctx, pos, genSwitch(
 		ctx.alloc,
 		source,
 		translateExprToExpr(ctx, a.matched),
-		map(ctx.alloc, a.cases, (ref MatchEnumExpr.Case case_) =>
+		mapWithIndex!(JsSwitchStatement.Case, MatchEnumExpr.Case)(ctx.alloc, a.cases, (size_t caseIndex, ref MatchEnumExpr.Case case_) =>
 			JsSwitchStatement.Case(
-				translateEnumValue(ctx.ctx, source, case_.member),
+				translateEnumValue(ctx.ctx, exprSource(ctx, caseNameRange(expr, caseIndex)), case_.member),
 				translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateSwitchDefault(ctx, source, a.else_, type, "Invalid enum value")));
 
@@ -2044,31 +2042,32 @@ ExprResult translateMatchStringLike(
 			JsSwitchStatement.Case(genString(source, case_.value), translateExprToSwitchBlockStatement(ctx, case_.then, type))),
 		translateExprToSwitchBlockStatement(ctx, a.else_, type)));
 
-ExprResult translateMatchUnion(ref TranslateExprCtx ctx, in Source source, ref MatchUnionExpr a, Type type, scope ExprPos pos) =>
+ExprResult translateMatchUnion(ref TranslateExprCtx ctx, in Source source, in Expr expr, ref MatchUnionExpr a, Type type, scope ExprPos pos) =>
 	withTemp(ctx, symbol!"matched", a.matched, pos, (JsName matched, scope ExprPos inner) =>
 		translateMatchUnionOrVariant!(MatchUnionExpr.Case)(
-			ctx, source, matched, a.cases, type, inner,
+			ctx, source, matched, expr, a.cases, type, inner,
 			translateSwitchDefault(ctx, source, has(a.else_) ? some(*force(a.else_)) : none!Expr, type, "Invalid union value"),
-			(ref MatchUnionExpr.Case case_) =>
+			(ref MatchUnionExpr.Case case_, in Source caseSource) =>
 				MatchUnionOrVariantCase(
-					genIn(ctx.alloc, source, JsMemberName.unionMember(case_.member.name), genLocalGet(source, matched)),
+					genIn(ctx.alloc, caseSource, JsMemberName.unionMember(case_.member.name), genLocalGet(source, matched)),
 					genPropertyAccess(ctx.alloc, source, genLocalGet(source, matched), JsMemberName.unionMember(case_.member.name)))));
 
-ExprResult translateMatchVariant(ref TranslateExprCtx ctx, in Source source, ref MatchVariantExpr a, Type type, scope ExprPos pos) =>
+ExprResult translateMatchVariant(ref TranslateExprCtx ctx, in Source source, in Expr expr, ref MatchVariantExpr a, Type type, scope ExprPos pos) =>
 	withTemp(ctx, symbol!"matched", a.matched, pos, (JsName matched, scope ExprPos inner) =>
-		translateMatchVariant(ctx, source, matched, a.cases, translateExprToBlockStatement(ctx, a.else_, type), type, inner));
+		translateMatchVariant(ctx, source, matched, expr, a.cases, translateExprToBlockStatement(ctx, a.else_, type), type, inner));
 ExprResult translateMatchVariant(
 	ref TranslateExprCtx ctx,
 	in Source source,
 	JsName matched,
+	in Expr expr,
 	MatchVariantExpr.Case[] cases,
 	JsBlockStatement else_,
 	Type type,
 	scope ExprPos pos,
 ) =>
 	translateMatchUnionOrVariant!(MatchVariantExpr.Case)(
-		ctx, source, matched, cases, type, pos, else_,
-		(ref MatchVariantExpr.Case case_) =>
+		ctx, source, matched, expr, cases, type, pos, else_,
+		(ref MatchVariantExpr.Case case_, in Source caseSource) =>
 			MatchUnionOrVariantCase(
 				genInstanceof(ctx.alloc, source, genLocalGet(source, matched), translateStructReference(ctx, source, case_.member.decl)),
 				genLocalGet(source, matched)));
@@ -2081,16 +2080,17 @@ ExprResult translateMatchUnionOrVariant(Case)(
 	ref TranslateExprCtx ctx,
 	in Source source,
 	JsName matched,
+	in Expr expr,
 	Case[] cases,
 	Type type,
 	scope ExprPos pos,
 	JsBlockStatement default_,
-	in MatchUnionOrVariantCase delegate(ref Case) @safe @nogc pure nothrow cbCase,
+	in MatchUnionOrVariantCase delegate(ref Case, in Source) @safe @nogc pure nothrow cbCase,
 ) =>
 	forceStatement(
 		ctx, pos,
-		foldReverse!(JsStatement, Case)(JsStatement(source, JsStatementKind(default_)), cases, (JsStatement else_, ref Case case_) {
-			MatchUnionOrVariantCase x = cbCase(case_);
+		foldReverseWithIndex!(JsStatement, Case)(JsStatement(source, JsStatementKind(default_)), cases, (JsStatement else_, size_t caseIndex, ref Case case_) {
+			MatchUnionOrVariantCase x = cbCase(case_, exprSource(ctx, caseNameRange(expr, caseIndex)));
 			return genIf(
 				ctx.alloc,
 				source,
@@ -2159,7 +2159,7 @@ ExprResult translateFinally(ref TranslateExprCtx ctx, in Source source, ref Fina
 		translateExprToBlockStatement(ctx, a.below, type),
 		translateExprToBlockStatement(ctx, a.right, Type(ctx.commonTypes.void_))));
 
-ExprResult translateTry(ref TranslateExprCtx ctx, in Source source, ref TryExpr a, Type type, scope ExprPos pos) {
+ExprResult translateTry(ref TranslateExprCtx ctx, in Source source, in Expr expr, ref TryExpr a, Type type, scope ExprPos pos) {
 	JsName exceptionName = JsName.specialLocal(symbol!"exception");
 	return forceStatement(ctx, pos, genTryCatch(
 		ctx.alloc,
@@ -2168,7 +2168,7 @@ ExprResult translateTry(ref TranslateExprCtx ctx, in Source source, ref TryExpr 
 		exceptionName,
 		translateToBlockStatement(ctx.alloc, (scope ExprPos inner) =>
 			translateMatchVariant(
-				ctx, source, exceptionName, a.catches,
+				ctx, source, exceptionName, expr, a.catches,
 				genBlockStatement(ctx.alloc, [genThrow(ctx.alloc, source, genLocalGet(source, exceptionName))]),
 				type, inner))));
 }

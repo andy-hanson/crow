@@ -43,6 +43,9 @@ struct Writer {
 		res = Builder!(immutable char)(allocPtr);
 	}
 
+	public ref Alloc alloc() return scope =>
+		res.alloc;
+
 	void opOpAssign(string op : "~")(bool a) {
 		res ~= (a ? "true" : "false");
 	}

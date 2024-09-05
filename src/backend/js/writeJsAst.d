@@ -54,35 +54,35 @@ import backend.js.jsAst :
 	JsWhileStatement,
 	Shebang,
 	SyncOrAsync;
-import backend.js.sourceMap : SingleSourceMapping, Source, SourceMapBuilder;
+import backend.js.sourceMap : finish, JsAndMap, ModulePaths, SingleSourceMapping, Source, SourceMapBuilder;
 import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
 import frontend.showModel : ShowTypeCtx, writeFunDecl;
+import frontend.storage : FileContentGetters;
 import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, isEmpty, only;
 import util.col.map : KeyValuePair;
-import util.col.mutArr : moveToArray, MutArr, push;
-import util.opt : force, has, none;
-import util.sourceRange : LineAndColumn, LineAndColumnRange;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, someMut;
+import util.sourceRange : LineAndCharacter, LineAndColumn, LineAndColumnRange;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : RelPath, Uri;
-import util.util : ptrTrustMe, stringOfEnum, todo;
+import util.util : ptrTrustMe, stringOfEnum;
 import util.writer : finish, writeAndVerify, writeFloatLiteral, writeNewline, writeQuotedString, Writer;
 
-string writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in JsScriptAst a) =>
-	buildOutput(alloc, (scope ref Output writer) {
+JsAndMap writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileContentGetters files, in ModulePaths modulePaths, in JsScriptAst a, Opt!Symbol sourceMapName) =>
+	buildOutput(alloc, files, modulePaths, has(sourceMapName), (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
+		if (has(sourceMapName))
+			writeSourceMapUrl(writer, force(sourceMapName));
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x, neverExport: true);
 		writeStatements(writer, a.statements);
 	});
 
-string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, in JsModuleAst a) =>
-	buildOutput(alloc, (scope ref Output writer) {
+string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileContentGetters files, in ModulePaths modulePaths, Uri sourceUri, in JsModuleAst a) =>
+	buildOutput(alloc, files, modulePaths, false, (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
-		writer ~= "// ";
-		writer ~= sourceUri;
-		writer ~= '\n';
+		//TODO:writeSourceMapUrl(writer); // --------------------------------------------------------------------------------------
 		foreach (JsImport x; a.imports)
 			writeImportOrReExport(writer, "import", x);
 		foreach (JsImport x; a.reExports)
@@ -90,26 +90,30 @@ string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, Uri sourceUri, 
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x);
 		writeStatements(writer, a.statements);
-	});
+	}).js; // -------------------------------------------------------------------------------------------------------------------------
 
 private:
 
-string buildOutput(ref Alloc alloc, in void delegate(scope ref Output) @safe @nogc pure nothrow cb) {
-	Output writer = Output(SourceMapBuilder(ptrTrustMe(alloc)), Writer(ptrTrustMe(alloc)));
+JsAndMap buildOutput(ref Alloc alloc, in FileContentGetters files, in ModulePaths modulePaths, bool includeSourceMap, in void delegate(scope ref Output) @safe @nogc pure nothrow cb) {
+	Output writer = Output(
+		Writer(ptrTrustMe(alloc)),
+		includeSourceMap ? someMut(SourceMapBuilder(Writer(ptrTrustMe(alloc)))) : noneMut!SourceMapBuilder);
 	cb(writer);
-	return finish(writer.writer);
+	return JsAndMap(
+		finish(writer.writer),
+		optIf(has(writer.map), () => finish(force(writer.map), files, modulePaths)));
 }
 
 struct Output {
 	@safe @nogc pure nothrow:
 
-	SourceMapBuilder map;
 	Writer writer;
+	MutOpt!SourceMapBuilder map;
 	uint line;
-	uint column;
+	uint character;
 
 	ref Alloc alloc() return scope =>
-		map.alloc;
+		writer.alloc;
 
 	void opOpAssign(string op : "~")(in string s) scope {
 		foreach (char x; s)
@@ -119,17 +123,17 @@ struct Output {
 		writer ~= x;
 		if (x == '\n') {
 			line += 1;
-			column = 0;
+			character = 0;
 		} else
-			column += 1;
+			character += 1;
 	}
 	void opOpAssign(string op : "~")(in dchar x) scope {
 		writer ~= x;
 		if (x == '\n') {
 			line += 1;
-			column = 0;
+			character = 0;
 		} else
-			column += 1;
+			character += 1;
 	}
 
 	void opOpAssign(string op : "~")(bool x) scope {
@@ -151,27 +155,19 @@ struct Output {
 		writeOnSingleLine(this, x);
 	}
 
-	void opOpAssign(string op : "~")(in LineAndColumn x) scope {
-		writeOnSingleLine!LineAndColumn(this, x);
-	}
-	void opOpAssign(string op : "~")(in LineAndColumnRange x) scope {
-		writeOnSingleLine!LineAndColumnRange(this, x);
-	}
-	void opOpAssign(string op : "~")(in RelPath x) scope {
+	void opOpAssign(string op  : "~")(in RelPath x) scope {
 		writeOnSingleLine!RelPath(this, x);
 	}
 	void opOpAssign(string op  : "~")(Symbol x) scope {
 		writeOnSingleLine!Symbol(this, x);
-	}
-	void opOpAssign(string op : "~")(Uri x) {
-		writeOnSingleLine!Uri(this, x);
 	}
 }
 string finish(ref Output writer) => // TODO: include the source map! -----------------------------------------------------------------------------------
 	finish(writer.writer);
 
 void markMap(scope ref Output a, in Source source) {
-	a.map ~= SingleSourceMapping(source, LineAndColumn(a.line, a.column));
+	if (has(a.map))
+		force(a.map) ~= SingleSourceMapping(source, LineAndCharacter(a.line, a.character));
 }
 
 void writeOnSingleLine(T)(scope ref Output writer, in T x) {
@@ -187,7 +183,7 @@ void writeOnSingleLine(scope ref Output writer, in void delegate(scope ref Write
 		},
 		(in string x) {
 			assert(!contains(x, '\n'));
-			writer.column += x.length;
+			writer.character += x.length;
 		});
 }
 
@@ -215,6 +211,12 @@ void writeShebang(scope ref Output writer, Shebang a) {
 		case Shebang.node:
 			writer ~= "#!/usr/bin/env node\n";
 	}
+}
+
+void writeSourceMapUrl(scope ref Output writer, in Symbol sourceMapName) {
+	writer ~= "//# sourceMappingURL=";
+	writer ~= sourceMapName;
+	writer ~= '\n';
 }
 
 void writeStatements(scope ref Output writer, in JsStatement[] statements) {
@@ -354,8 +356,8 @@ void writeQuotedRelPath(scope ref Output writer, RelPath path) {
 }
 
 void writeDecl(scope ref Output writer, in ShowTypeCtx showCtx, in JsDecl decl, bool neverExport = false) {
-	writeDeclComment(writer, showCtx, decl.source);
 	writer ~= '\n';
+	markMap(writer, decl.source);
 	if (!neverExport) {
 		final switch (decl.exported) {
 			case JsDecl.Exported.private_:
@@ -380,25 +382,6 @@ void writeDecl(scope ref Output writer, in ShowTypeCtx showCtx, in JsDecl decl, 
 			writeJsName(writer, decl.name);
 		});
 	writer ~= "\n";
-}
-
-void writeDeclComment(scope ref Output writer, in ShowTypeCtx showCtx, in AnyDecl a) {
-	writer ~= "// ";
-	writer ~= a.range.uri;
-	writer ~= ' ';
-	writer ~= showCtx.lineAndColumnGetters[a.range].range;
-	a.matchWithPointers!void(
-		(FunDecl* x) {
-			writer ~= ' ';
-			writeOnSingleLine(writer, (scope ref Writer w) {
-				writeFunDecl(w, showCtx, x);
-			});
-		},
-		(SpecDecl*) {},
-		(StructAlias*) {},
-		(StructDecl*) {},
-		(Test*) {},
-		(VarDecl*) {});
 }
 
 void writeClass(scope ref Output writer, JsName name, in JsClassDecl x) {

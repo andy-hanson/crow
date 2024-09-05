@@ -6,7 +6,7 @@ import backend.js.allUsed : AllUsed, allUsed, AnyDecl;
 import backend.js.jsAst : genLocalGet, JsDecl, JsDeclKind, JsExpr, JsName;
 import backend.js.sourceMap : Source;
 import frontend.showModel : ShowCtx;
-import frontend.storage : FileContentGetters, LineAndColumnGetters;
+import frontend.storage : FileContentGetters, LineAndCharacterGetters;
 import model.model :
 	CommonTypes,
 	FunDecl,
@@ -34,7 +34,7 @@ struct TranslateProgramCtx {
 
 	Alloc* allocPtr;
 	const ShowCtx showCtx;
-	const LineAndColumnGetters lineAndColumnGetters;
+	const LineAndCharacterGetters lineAndCharacterGetters;
 	const FileContentGetters* fileContentGetters;
 	immutable ProgramWithMain* programWithMainPtr;
 	immutable VersionInfo version_;
@@ -79,14 +79,20 @@ struct TranslateModuleCtx {
 		ctx.isBrowser;
 }
 
-Source source(in TranslateModuleCtx ctx, in UriAndRange range, Symbol name) =>
-	Source(range.uri, name, ctx.ctx.lineAndColumnGetters[range].range.start);
+Source sourceAtRange(in TranslateModuleCtx ctx, in UriAndRange range, Symbol name) =>
+	Source(range.uri, name, ctx.ctx.lineAndCharacterGetters[range].range.start);
+Source aliasSource(in TranslateModuleCtx ctx, in StructAlias* a) =>
+	declSource(ctx, AnyDecl(a));
+Source declSource(in TranslateModuleCtx ctx, in AnyDecl a) =>
+	sourceAtRange(ctx, a.range, a.name);
 Source funSource(in TranslateModuleCtx ctx, in FunDecl* a) =>
-	source(ctx, a.range, a.name);
+	declSource(ctx, AnyDecl(a));
 Source structSource(in TranslateModuleCtx ctx, in StructDecl* a) =>
-	source(ctx, a.range, a.name);
+	declSource(ctx, AnyDecl(a));
+Source testSource(in TranslateModuleCtx ctx, in Test* a) =>
+	declSource(ctx, AnyDecl(a));
 Source variantMethodSource(in TranslateModuleCtx ctx, in FunDeclSource.VariantMethod a) =>
-	source(ctx, a.method.range, a.method.name);
+	sourceAtRange(ctx, a.method.range, a.method.name);
 
 // This will be empty whne compiling to a bundle.
 immutable struct ModuleExportMangledNames {
@@ -102,7 +108,7 @@ immutable struct ModuleExportMangledNames {
 
 JsDecl makeDecl(in TranslateModuleCtx ctx, AnyDecl source, JsDeclKind value) =>
 	JsDecl(
-		source,
+		declSource(ctx, source),
 		source.visibility == Visibility.private_ ? JsDecl.Exported.private_ : JsDecl.Exported.export_,
 		mangledNameForDecl(ctx, source),
 		value);

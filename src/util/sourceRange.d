@@ -78,7 +78,7 @@ immutable struct UriAndRange {
 		UriAndRange(uri, Range.empty);
 }
 
-Comparison compareUriAndRange(UriAndRange a, UriAndRange b) {
+Comparison compareUriAndRange(in UriAndRange a, in UriAndRange b) {
 	Comparison cmpUri = compareUriAlphabetically(a.uri, b.uri);
 	return cmpUri != Comparison.equal ? cmpUri : compareRange(a.range, b.range);
 }
@@ -99,6 +99,9 @@ immutable struct LineAndCharacter {
 		writer ~= character;
 	}
 }
+Comparison compareLineAndCharacter(LineAndCharacter a, LineAndCharacter b) =>
+	compareOr(compareUint(a.line, b.line), () =>
+		compareUint(a.character, b.character));
 
 immutable struct LineAndColumnRange {
 	@safe @nogc pure nothrow:
@@ -141,9 +144,6 @@ immutable struct LineAndColumn {
 		writer ~= column1Indexed;
 	}
 }
-Comparison compareLineAndColumn(LineAndColumn a, LineAndColumn b) =>
-	compareOr(compareUint(a.line0Indexed, b.line0Indexed), () =>
-		compareUint(a.column0Indexed, b.column0Indexed));
 
 immutable struct LineAndCharacterRange {
 	LineAndCharacter start;

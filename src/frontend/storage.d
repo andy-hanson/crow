@@ -300,10 +300,10 @@ const struct FileContentGetters {
 		return has(res) ? some(force(res).value) : none!FileInfo;
 	}
 
-	string getSourceText(Uri uri, Range range) scope {
-		Opt!FileInfo res = getFileInfo(uri);
-		return force(res).as!(CrowFileInfo*).content.asString[range.start .. range.end];
-	}
+	string getSourceText(Uri uri) scope =>
+		force(getFileInfo(uri)).as!(CrowFileInfo*).content.asString;
+	string getSourceText(Uri uri, Range range) scope =>
+		getSourceText(uri)[range.start .. range.end];
 }
 
 const struct LineAndCharacterGetters {

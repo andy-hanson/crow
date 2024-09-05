@@ -111,7 +111,7 @@ import util.col.set : moveToSet, Set;
 import util.hash : HashCode, hashPointers;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : UriAndRange;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol;
 import util.symbolSet : SymbolSet;
 import util.union_ : TaggedUnion;
 import util.uri : Uri;
@@ -162,6 +162,30 @@ immutable struct AnyDecl {
 			(in Test x) => Visibility.public_,
 			(in VarDecl x) => x.visibility);
 }
+
+immutable struct FunOrTest {
+	@safe @nogc pure nothrow:
+	mixin TaggedUnion!(FunDecl*, Test*);
+
+	Uri moduleUri() scope =>
+		matchIn!Uri(
+			(in FunDecl x) =>
+				x.moduleUri,
+			(in Test x) =>
+				x.moduleUri);
+	
+	Symbol name() scope =>
+		matchIn!Symbol(
+			(in FunDecl x) =>
+				x.name,
+			(in Test x) =>
+				x.name);
+}
+private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
+	a.matchWithPointers!(Opt!(FunDecl*))(
+		(FunDecl* x) => some(x),
+		(Test* _) => none!(FunDecl*));
+
 // This does not include FunDecl if the body would be inlined
 immutable struct AllUsed {
 	// Maps a module to decls it uses.
@@ -208,30 +232,6 @@ SyncOrAsync isAsyncCall(in AllUsed a, in FunOrTest caller, in Called called) =>
 			FunAndSpecSig(caller.as!(FunDecl*), x.nonInstantiatedSig) in a.async.asyncSpecSigs
 				? SyncOrAsync.async
 				: SyncOrAsync.sync);
-
-// TODO: MOVE ------------------------------------------------------------------------------------------------------------------
-immutable struct FunOrTest {
-	@safe @nogc pure nothrow:
-	mixin TaggedUnion!(FunDecl*, Test*);
-
-	Uri moduleUri() scope =>
-		matchIn!Uri(
-			(in FunDecl x) =>
-				x.moduleUri,
-			(in Test x) =>
-				x.moduleUri);
-	
-	Symbol name() scope =>
-		matchIn!Symbol(
-			(in FunDecl x) =>
-				x.name,
-			(in Test x) =>
-				x.name);
-}
-private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
-	a.matchWithPointers!(Opt!(FunDecl*))(
-		(FunDecl* x) => some(x),
-		(Test* _) => none!(FunDecl*));
 
 AllUsed allUsed(ref Alloc alloc, ref ProgramWithMain program, VersionInfo version_, SymbolSet allExterns) {
 	AllUsedBuilder res = AllUsedBuilder(ptrTrustMe(alloc), ptrTrustMe(program.program), version_, allExterns);
@@ -463,7 +463,7 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 				if (has(*impl))
 					trackAllUsedInCalled(
 						res, a.moduleUri,
-						some(variantMethodCaller(*res.program, FunDeclSource.VariantMethod(x.variant.decl, method))),
+						FunOrTest(variantMethodCaller(*res.program, FunDeclSource.VariantMethod(x.variant.decl, method))),
 						force(*impl), FunUse.regular);
 			});
 		}
@@ -528,11 +528,11 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 					case AutoFun.Kind.toJson:
 						usedReturnType();
 						trackAllUsedInCalled(
-							res, a.moduleUri, some(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
+							res, a.moduleUri, FunOrTest(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
 						break;
 				}
 				foreach (Called called; x.members)
-					trackAllUsedInCalled(res, a.moduleUri, some(a), called, FunUse.regular);
+					trackAllUsedInCalled(res, a.moduleUri, FunOrTest(a), called, FunUse.regular);
 			},
 			(BuiltinFun x) {
 				if (x.isA!(BuiltinFun.AllTests)) {
@@ -613,7 +613,7 @@ void trackAllUsedInDestructure(ref AllUsedBuilder res, Uri from, Destructure a) 
 
 // 'from' may differ from 'caller' for a variant method.
 // 'called' is used from the variant member, but the caller is the variant method.
-void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) caller, Called called, FunUse funUse) {
+void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, FunOrTest caller, Called called, FunUse funUse) {
 	called.match!void(
 		(ref Called.Bogus) {},
 		(ref FunInst calledInst) {
@@ -626,14 +626,19 @@ void trackAllUsedInCalled(ref AllUsedBuilder res, Uri from, Opt!(FunDecl*) calle
 void trackAllUsedInCalledFunInst(
 	ref AllUsedBuilder res,
 	Uri from,
-	Opt!(FunDecl*) caller,
+	FunOrTest caller,
 	ref FunInst calledInst,
 	FunUse funUse,
 ) {
 	FunDecl* calledDecl = calledInst.decl;
 	trackAllUsedInFun(res, from, calledDecl, funUse);
-	if (has(caller))
-		add(res.alloc, res.funToCallers, calledDecl, force(caller));
+	caller.matchWithPointers!void(
+		(FunDecl* x) {
+			add(res.alloc, res.funToCallers, calledDecl, x);
+		},
+		(Test*) {
+			// Do nothing for tests since they are all assumed async anyway
+		});
 	eachSpecSigAndImpl(*calledDecl, calledInst.specImpls, (SpecInst* spec, Signature* sig, Called impl) {
 		trackAllUsedInSpecImpl(res, caller, calledDecl, spec, sig, impl);
 		trackAllUsedInCalled(res, from, caller, impl, FunUse.noInline);
@@ -641,7 +646,7 @@ void trackAllUsedInCalledFunInst(
 }
 void trackAllUsedInSpecImpl(
 	ref AllUsedBuilder res,
-	Opt!(FunDecl*) caller,
+	FunOrTest caller,
 	FunDecl* calledDecl,
 	SpecInst* spec,
 	Signature* sig,
@@ -656,12 +661,11 @@ void trackAllUsedInSpecImpl(
 			});
 		},
 		(CalledSpecSig x) {
-			if (has(caller))
-				add(
-					res.alloc,
-					res.specSigToUsedAsSpecImpl,
-					FunAndSpecSig(force(caller), x.nonInstantiatedSig),
-					FunAndSpecSig(calledDecl, sig));
+			add(
+				res.alloc,
+				res.specSigToUsedAsSpecImpl,
+				FunAndSpecSig(caller.as!(FunDecl*), x.nonInstantiatedSig),
+				FunAndSpecSig(calledDecl, sig));
 		});
 }
 
@@ -675,7 +679,7 @@ void trackAllUsedInExprRef(ref AllUsedBuilder res, FunOrTest curFunc, ExprRef a)
 	Opt!Called called = getCalledAtExpr(a.expr.kind);
 	if (has(called))
 		trackAllUsedInCalled(
-			res, from, optAsFun(curFunc), force(called),
+			res, from, curFunc, force(called),
 			a.expr.kind.isA!FunPointerExpr ? FunUse.noInline : FunUse.regular);
 
 	void trackChildren() {

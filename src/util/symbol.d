@@ -167,6 +167,7 @@ enum Extension {
 	js,
 	json,
 	lib,
+	map,
 	none, // ""
 	obj,
 	other,
@@ -826,6 +827,7 @@ immutable string[] specialSymbols = [
 	"size-bytes",
 	"size-of",
 	"sources",
+	"sourcesContent",
 	"spec-impls",
 	"specInsts",
 	"static_",

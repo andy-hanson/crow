@@ -46,6 +46,9 @@ Map!(immutable K, immutable V) zipToMap(K, V, X, Y)(
 	return moveToMap!(immutable K, immutable V)(alloc, res);
 }
 
+Map!(K, V) newMap(K, V)(ref Alloc alloc, in immutable KeyValuePair!(K, V)[] pairs) =>
+	makeMap!(K, V, immutable KeyValuePair!(K, V))(alloc, pairs, (in immutable KeyValuePair!(K, V) x) => x);
+
 Map!(K, V) makeMap(K, V, T)(
 	ref Alloc alloc,
 	in T[] inputs,

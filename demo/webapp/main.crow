@@ -8,6 +8,7 @@ import
 	./db
 	./index.html as index-html string
 	./index.js as index-js string
+	./index.js.map as index-js-map string
 	./model
 
 main void() summon, (libc, lmdb, native, posix, sodium) extern
@@ -26,6 +27,8 @@ main void() summon, (libc, lmdb, native, posix, sodium) extern
 			index-html http-ok
 		as "/index.js"
 			index-js http-ok
+		as "/index.js.map"
+			index-js-map http-ok
 		as "/posts"
 			(("posts", db.list-posts.to),)::json http-ok
 		as "/user-name"
