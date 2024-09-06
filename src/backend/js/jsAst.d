@@ -99,6 +99,7 @@ immutable struct JsClassDecl {
 }
 immutable struct JsClassMember {
 	enum Static { instance, static_ }
+	Source source;
 	Static isStatic;
 	JsMemberName name;
 	JsClassMemberKind kind;
@@ -335,14 +336,32 @@ JsExpr genArray(in Source source, JsExpr[] elements) =>
 	JsExpr(source, JsExprKind(JsArrayExpr(elements)));
 JsExpr genArrowFunction(in Source source, SyncOrAsync async, JsParams params, JsExprOrBlockStatement body_) =>
 	JsExpr(source, JsExprKind(JsArrowFunction(async, params, body_)));
-JsExpr genArrowFunction(ref Alloc alloc, in Source source, SyncOrAsync async, in JsDestructure[] params, JsExpr body_) =>
-	genArrowFunction(source, async, JsParams(newSmallArray(alloc, params)), JsExprOrBlockStatement(allocate(alloc, body_)));
-JsExpr genArrowFunction(ref Alloc alloc, in Source source, SyncOrAsync async, in JsDestructure[] params, in JsStatement[] body_) =>
+JsExpr genArrowFunction(
+	ref Alloc alloc,
+	in Source source,
+	SyncOrAsync async,
+	in JsDestructure[] params,
+	JsExpr body_,
+) =>
+	genArrowFunction(
+		source, async,
+		JsParams(newSmallArray(alloc, params)),
+		JsExprOrBlockStatement(allocate(alloc, body_)));
+JsExpr genArrowFunction(
+	ref Alloc alloc,
+	in Source source,
+	SyncOrAsync async,
+	in JsDestructure[] params,
+	in JsStatement[] body_,
+) =>
 	genArrowFunction(
 		source,
 		async,
 		JsParams(newSmallArray(alloc, params)),
 		JsExprOrBlockStatement(genBlockStatement(alloc, body_)));
+
+JsExprOrBlockStatement exprFunBody(ref Alloc alloc, JsExpr expr) =>
+	JsExprOrBlockStatement(allocate(alloc, expr));
 JsStatement genAssign(ref Alloc alloc, in Source source, JsExpr left, JsExpr right) =>
 	JsStatement(source, JsStatementKind(allocate(alloc, JsAssignStatement(left, right))));
 JsStatement genAssign(ref Alloc alloc, in Source source, JsName left, JsExpr right) =>
@@ -365,6 +384,8 @@ JsExpr genBitwiseNot(ref Alloc alloc, in Source source, JsExpr arg) =>
 	genUnary(alloc, source, JsUnaryExpr.Kind.bitwiseNot, arg);
 JsBlockStatement genBlockStatement(ref Alloc alloc, in JsStatement[] statements) =>
 	JsBlockStatement(newArray(alloc, statements));
+JsStatement genBlockStatementStatement(in Source source, JsStatement[] statements) =>
+	JsStatement(source, JsStatementKind(JsBlockStatement(statements)));
 JsExpr genBool(in Source source, bool value) =>
 	JsExpr(source, JsExprKind(JsLiteralBool(value)));
 JsStatement genBreakNoLabel(in Source source) =>
@@ -485,7 +506,7 @@ JsStatement genLet(in Source source, JsName name) =>
 	genVarDecl(source, JsVarDecl.Kind.let, JsDestructure(name), none!(JsExpr*));
 JsStatement genLet(ref Alloc alloc, in Source source, JsDestructure destructure, JsExpr initializer) =>
 	genVarDecl(source, JsVarDecl.Kind.let, destructure, some(allocate(alloc, initializer)));
-JsExpr genIdentifier(in Source source, JsName name) => // TODO: this is not always a local, rename? ------------------------------------
+JsExpr genIdentifier(in Source source, JsName name) =>
 	JsExpr(source, JsExprKind(name));
 JsExpr genObject(ref Alloc alloc, in Source source, JsMemberName name, JsExpr value) =>
 	JsExpr(source, JsExprKind(JsObject1Expr(name, allocate(alloc, value))));
@@ -513,33 +534,48 @@ JsStatement genWhileTrue(ref Alloc alloc, in Source source, Opt!JsName label, Js
 	genWhile(alloc, source, label, genBool(source, true), body_);
 
 private JsClassMember genMethod(
+	in Source source,
 	JsClassMember.Static static_,
 	SyncOrAsync async,
 	JsMemberName name,
 	JsParams params,
 	JsBlockStatement body_,
 ) =>
-	JsClassMember(static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
-JsClassMember genInstanceMethod(SyncOrAsync async, JsMemberName name, JsParams params, JsBlockStatement body_) =>
-	genMethod(JsClassMember.Static.instance, async, name, params, body_);
-JsClassMember genStaticMethod(SyncOrAsync async, JsMemberName name, JsParams params, JsBlockStatement body_) =>
-	genMethod(JsClassMember.Static.static_, async, name, params, body_);
+	JsClassMember(source, static_, name, JsClassMemberKind(JsClassMethod(async, params, body_)));
+JsClassMember genInstanceMethod(
+	in Source source,
+	SyncOrAsync async,
+	JsMemberName name,
+	JsParams params,
+	JsBlockStatement body_,
+) =>
+	genMethod(source, JsClassMember.Static.instance, async, name, params, body_);
+JsClassMember genStaticMethod(
+	in Source source,
+	SyncOrAsync async,
+	JsMemberName name,
+	JsParams params,
+	JsBlockStatement body_,
+) =>
+	genMethod(source, JsClassMember.Static.static_, async, name, params, body_);
 JsClassMember genInstanceMethod(
 	ref Alloc alloc,
+	in Source source,
 	SyncOrAsync async,
 	JsMemberName name,
 	in JsDestructure[] params,
 	in JsStatement[] body_,
 ) =>
-	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, body_));
+	genInstanceMethod(alloc, source, async, name, params, genBlockStatement(alloc, body_));
 JsClassMember genInstanceMethod(
 	ref Alloc alloc,
+	in Source source,
 	SyncOrAsync async,
 	JsMemberName name,
 	in JsDestructure[] params,
 	JsBlockStatement body_,
 ) =>
-	genInstanceMethod(async, name, JsParams(newSmallArray(alloc, params)), body_);
+	genInstanceMethod(source, async, name, JsParams(newSmallArray(alloc, params)), body_);
 JsClassMember genInstanceMethod(
 	ref Alloc alloc,
 	in Source source,
@@ -548,6 +584,6 @@ JsClassMember genInstanceMethod(
 	in JsDestructure[] params,
 	JsExpr body_,
 ) =>
-	genInstanceMethod(alloc, async, name, params, genBlockStatement(alloc, [genReturn(alloc, source, body_)]));
-JsClassMember genField(JsClassMember.Static static_, JsMemberName name, JsExpr value) =>
-	JsClassMember(static_, name, JsClassMemberKind(value));
+	genInstanceMethod(alloc, source, async, name, params, genBlockStatement(alloc, [genReturn(alloc, source, body_)]));
+JsClassMember genField(in Source source, JsClassMember.Static static_, JsMemberName name, JsExpr value) =>
+	JsClassMember(source, static_, name, JsClassMemberKind(value));

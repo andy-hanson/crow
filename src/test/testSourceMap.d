@@ -60,7 +60,8 @@ void testBuilder(ref Test test) {
 
 	Storage storage = Storage(test.metaAlloc);
 	setFileAssumeUtf8(test.perf, storage, a_crow, "hello");
-	ModulePaths modulePaths = ModulePaths(newMap(test.alloc, [KeyValuePair!(Uri, Path)(a_crow, parsePath("mapped/a.crow"))]));
+	ModulePaths modulePaths = ModulePaths(newMap(test.alloc, [
+		KeyValuePair!(Uri, Path)(a_crow, parsePath("mapped/a.crow"))]));
 	assertEqual(
 		finish(map, FileContentGetters(&storage), modulePaths),
 		q"({"version":3,"sources":["mapped/a.crow"],"sourcesContent":["hello"],"names":["foo"],)" ~

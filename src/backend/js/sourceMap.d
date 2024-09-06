@@ -38,7 +38,7 @@ struct SourceMapBuilder {
 	Writer mappings;
 	MutArr!Uri sources;
 	MutArr!Symbol names;
-	
+
 	public ref Alloc alloc() return scope =>
 		mappings.alloc;
 

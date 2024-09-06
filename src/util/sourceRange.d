@@ -103,7 +103,7 @@ Comparison compareLineAndCharacter(LineAndCharacter a, LineAndCharacter b) =>
 	compareOr(compareUint(a.line, b.line), () =>
 		compareUint(a.character, b.character));
 
-immutable struct LineAndColumnRange {
+private immutable struct LineAndColumnRange {
 	@safe @nogc pure nothrow:
 
 	LineAndColumn start;

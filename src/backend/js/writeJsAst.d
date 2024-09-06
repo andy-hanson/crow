@@ -136,13 +136,8 @@ struct Output {
 		foreach (char x; s)
 			this ~= x;
 	}
-	void opOpAssign(string op  : "~")(in char x) scope {
-		writer ~= x;
-		if (x == '\n') {
-			line += 1;
-			character = 0;
-		} else
-			character += 1;
+	void opOpAssign(string op : "~")(in char x) scope {
+		this ~= dchar(x);
 	}
 	void opOpAssign(string op : "~")(in dchar x) scope {
 		writer ~= x;
@@ -409,6 +404,7 @@ void writeClass(scope ref Output writer, JsName name, in JsClassDecl x) {
 
 	writer ~= " {";
 	foreach (JsClassMember member; x.members) {
+		markMap(writer, member.source);
 		writeNewline(writer, 1);
 		writeClassMember(writer, member);
 	}

@@ -691,6 +691,7 @@ void translateExceptionClass(ref TranslateModuleCtx ctx, in Source source, scope
 	JsExpr this_stack = genPropertyAccess(ctx.alloc, source, this_, JsMemberName.noPrefix(symbol!"stack"));
 	out_ ~= genInstanceMethod(
 		ctx.alloc,
+		source,
 		SyncOrAsync.sync,
 		finishConstructorName,
 		[],
@@ -730,6 +731,7 @@ void translateEnumDecl(
 		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genIdentifier(source, value))]);
 	foreach (ref EnumOrFlagsMember member; a.members)
 		out_ ~= genField(
+			source,
 			JsClassMember.Static.static_,
 			JsMemberName.enumMember(member.name),
 			genNew(ctx.alloc, source, genThis(source), [genInteger(source, isSigned(a.storage), member.value)]));
@@ -739,6 +741,7 @@ JsStatement genAssignToThis(ref Alloc alloc, Source source, JsMemberName name, J
 	genAssign(alloc, source, genPropertyAccess(alloc, source, genThis(source), name), value);
 JsClassMember enumOrFlagsMembers(ref TranslateModuleCtx ctx, in Source source, in EnumOrFlagsMember[] members) =>
 	genField(
+		source,
 		JsClassMember.Static.static_,
 		JsMemberName.special(symbol!"members"),
 		genArray(source, map(ctx.alloc, members, (ref EnumOrFlagsMember member) =>
@@ -782,11 +785,13 @@ void translateFlagsDecl(
 		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genIdentifier(source, value))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
 		out_ ~= genField(
+			source,
 			JsClassMember.Static.static_,
 			JsMemberName.enumMember(member.name),
 			genNew(ctx.alloc, source, genThis(source), [genIntegerUnsigned(source, member.value.asUnsigned())]));
 	}
 	out_ ~= genField(
+		source,
 		JsClassMember.Static.static_,
 		JsMemberName.special(symbol!"none"),
 		genNew(ctx.alloc, source, genThis(source), [genIntegerUnsigned(source, 0)]));
@@ -906,12 +911,14 @@ void translateUnionDecl(
 							JsMemberName.unionMember(member.name),
 							genIdentifier(source, value))])));
 				return genStaticMethod(
+					source,
 					SyncOrAsync.sync,
 					JsMemberName.unionConstructor(member.name),
 					params,
 					genBlockStatement(ctx.alloc, finish(ctx.alloc, out_)));
 			} else
 				return genField(
+					source,
 					JsClassMember.Static.static_,
 					JsMemberName.unionConstructor(member.name),
 					genNew(ctx.alloc, source, genThis(source), [
@@ -944,6 +951,7 @@ JsClassMember genConstructor(
 	if (has(super_) && force(super_).callFinishConstructor)
 		add(alloc, out_, exprStatement(genCallPropertySync(alloc, source, genThis(source), finishConstructorName, [])));
 	return genInstanceMethod(
+		source,
 		SyncOrAsync.sync,
 		JsMemberName.noPrefix(symbol!"constructor"),
 		JsParams(params),
