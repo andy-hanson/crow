@@ -17,7 +17,7 @@ import concretize.generate :
 	genConstant,
 	genCreateRecord,
 	genCreateUnion,
-	genLocalGet,
+	genIdentifier,
 	genRecordFieldCall,
 	genRecordFieldGet,
 	genRecordFieldPointer,
@@ -781,21 +781,21 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		(FunBody.RecordFieldGet x) =>
 			ConcreteFunBody(genRecordFieldGet(
 				cf.returnType, cf.range,
-				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
+				allocate(ctx.alloc, genIdentifier(cf.range, onlyPointer(cf.params))),
 				fieldIndexFromField(only(cf.params).type, x.field))),
 		(FunBody.RecordFieldPointer x) =>
 			ConcreteFunBody(genRecordFieldPointer(
 				cf.returnType, cf.range,
-				allocate(ctx.alloc, genLocalGet(cf.range, onlyPointer(cf.params))),
+				allocate(ctx.alloc, genIdentifier(cf.range, onlyPointer(cf.params))),
 				fieldIndexFromField(pointeeType(only(cf.params).type), x.field))),
 		(FunBody.RecordFieldSet x) {
 			assert(cf.params.length == 2);
 			return ConcreteFunBody(genRecordFieldSet(
 				ctx,
 				cf.range,
-				genLocalGet(cf.range, &cf.params[0]),
+				genIdentifier(cf.range, &cf.params[0]),
 				fieldIndexFromField(pointeeTypeIfIsPointer(cf.params[0].type), x.field),
-				genLocalGet(cf.range, &cf.params[1])));
+				genIdentifier(cf.range, &cf.params[1])));
 		},
 		(FunBody.UnionMemberGet x) =>
 			genUnionMemberGet(ctx, cf, unionMemberIndex(only(concreteParams).type, x.member)),
@@ -826,13 +826,13 @@ ConcreteExpr genCreateRecordFromParams(
 	ConcreteLocal[] params,
 ) =>
 	genCreateRecord(recordType, range, mapPointers(alloc, params, (ConcreteLocal* param) =>
-		genLocalGet(range, param)));
+		genIdentifier(range, param)));
 
 ConcreteFunBody createUnionBody(ref Alloc alloc, ConcreteFun* cf, size_t memberIndex) =>
 	isEmpty(cf.params)
 		? ConcreteFunBody(genConstantUnionEmptyMemberType(alloc, cf.returnType, cf.range, memberIndex))
 		: ConcreteFunBody(genCreateUnion(
-			alloc, cf.returnType, cf.range, memberIndex, genLocalGet(cf.range, onlyPointer(cf.params))));
+			alloc, cf.returnType, cf.range, memberIndex, genIdentifier(cf.range, onlyPointer(cf.params))));
 
 ConcreteExpr genConstantUnionEmptyMemberType(
 	ref Alloc alloc,

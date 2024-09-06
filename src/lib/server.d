@@ -746,7 +746,13 @@ BuildToCResult buildToC(
 		lowProgram.externLibraries);
 }
 
-JsAndMap buildToJsScript(ref Alloc alloc, ref Server server, ref ProgramWithMain program, JsTarget target, Opt!Symbol sourceMapName) {
+JsAndMap buildToJsScript(
+	ref Alloc alloc,
+	ref Server server,
+	ref ProgramWithMain program,
+	JsTarget target,
+	Opt!Symbol sourceMapName,
+) {
 	assert(!hasFatalDiagnostics(program));
 	return translateToJsScript(
 		alloc,

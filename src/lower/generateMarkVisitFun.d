@@ -38,12 +38,12 @@ import lower.lowExprHelpers :
 	genDrop,
 	genGetArrayOrMutArrayConstPointer,
 	genGetArrayOrMutArraySize,
+	genIdentifier,
 	genIf,
 	genIncrPointer,
 	genLetNoGcRoot,
 	genLocal,
 	genLocalByValue,
-	genLocalGet,
 	genLocalSet,
 	genLoop,
 	genLoopBreak,
@@ -224,8 +224,8 @@ LowFun generateMarkRoot(
 		genLocalByValue(alloc, symbol!"mark-ctx", isMutable: false, 0, markCtxType),
 		genLocalByValue(alloc, symbol!"pointer", isMutable: false, 1, getPointerConst(getLowTypeCtx, voidType))]);
 	UriAndRange range = UriAndRange.empty;
-	LowExpr markCtx = genLocalGet(range, &params[0]);
-	LowExpr pointer = genLocalGet(range, &params[1]);
+	LowExpr markCtx = genIdentifier(range, &params[0]);
+	LowExpr pointer = genIdentifier(range, &params[1]);
 	LowType tPointer = getPointerConst(getLowTypeCtx, type);
 	LowExpr deref = genDerefRawPointer(alloc, range, genPointerCast(alloc, tPointer, range, pointer));
 	LowExpr callVisit = genCallNoGcRoots(alloc, voidType, range, visit, [markCtx, deref]);
@@ -250,8 +250,8 @@ LowFun generateMarkVisit(
 	SmallArray!LowLocal params = newSmallArray!LowLocal(alloc, [
 		genLocalByValue(alloc, symbol!"mark-ctx", isMutable: false, 0, markCtxType),
 		genLocalByValue(alloc, symbol!"value", isMutable: false, 1, type)]);
-	LowExpr markCtx = genLocalGet(range, &params[0]);
-	LowExpr value = genLocalGet(range, &params[1]);
+	LowExpr markCtx = genIdentifier(range, &params[0]);
+	LowExpr value = genIdentifier(range, &params[1]);
 	Opt!LowFunIndex getMarkVisit(LowType x) =>
 		getMarkVisitForType(alloc, lowFunCauses, markVisitFuns, x);
 	ref AllLowTypes allTypes() => markVisitFuns.allTypes;
@@ -362,9 +362,9 @@ LowExpr generateMarkVisitArray(
 	if (has(markVisitElementFun)) {
 		LowExpr voidValue = genVoid(range);
 		LowLocal* cur = genLocal(alloc, symbol!"cur", isMutable: true, 2, LowType(constPointerType));
-		LowExpr getCur = genLocalGet(range, cur);
+		LowExpr getCur = genIdentifier(range, cur);
 		LowLocal* end = genLocal(alloc, symbol!"end", isMutable: false, 3, LowType(constPointerType));
-		LowExpr getEnd = genLocalGet(range, end);
+		LowExpr getEnd = genIdentifier(range, end);
 		LowExpr loop = genLoop(alloc, voidType, range, genSeq(
 			alloc, range,
 			// mark-ctx mark-visit *cur
@@ -429,7 +429,7 @@ LowExpr generateMarkVisitFiber(
 	LowExpr getGcRoot = genRecordFieldGet(alloc, gcRoot.type, range, fiber, 3);
 
 	LowLocal* cur = genLocal(alloc, symbol!"cur", isMutable: true, 2, gcRoot.type);
-	LowExpr getCur = genLocalGet(range, cur);
+	LowExpr getCur = genIdentifier(range, cur);
 	LowRecord* gcRootRecord = cur.type.as!(LowType.PointerMut).pointee.as!(LowRecord*);
 	LowExpr gcRootField(size_t fieldIndex) =>
 		genRecordFieldGet(alloc, gcRootRecord.fields[fieldIndex].type, range, getCur, fieldIndex);

@@ -3,10 +3,10 @@ module frontend.ide.ideUtil;
 @safe @nogc pure nothrow:
 
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
-import model.model : Expr, FunDecl, FunDeclSource, SpecInst, SpecDecl, StructInst, Type, TypeParamIndex;
+import model.model : FunDecl, FunDeclSource, SpecInst, SpecDecl, StructInst, Type, TypeParamIndex;
 import util.col.array : arrayOfSingle, count, firstZip, isEmpty, only, only2;
 import util.opt : force, has, none, Opt, optOr, some;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : UriAndRange;
 import util.util : ptrTrustMe;
 
 alias ReferenceCb = void delegate(in UriAndRange) @safe @nogc pure nothrow;

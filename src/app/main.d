@@ -547,7 +547,8 @@ ExitCodeOrSignal withWriteToJsScript(
 	in ExitCodeOrSignal delegate() @safe @nogc nothrow cb,
 ) {
 	Opt!FilePath sourceMapPath = optIf(includeSourceMap, () => addExtension(outFile, Extension.map));
-	JsAndMap result = buildToJsScript(alloc, server, program, target, optIf(has(sourceMapPath), () => baseName(force(sourceMapPath))));
+	JsAndMap result = buildToJsScript(alloc, server, program, target, optIf(has(sourceMapPath), () =>
+		baseName(force(sourceMapPath))));
 	FilePermissions mainPermissions = () {
 		final switch (target) {
 			case JsTarget.browser:

@@ -27,11 +27,11 @@ import backend.js.jsAst :
 	genConst,
 	genField,
 	genGlobal,
+	genIdentifier,
 	genIf,
 	genInstanceMethod,
 	genInteger,
 	genIntegerUnsigned,
-	genLocalGet,
 	genNew,
 	genNotEqEq,
 	genNull,
@@ -62,7 +62,7 @@ import backend.js.jsAst :
 	JsStatement,
 	Shebang,
 	SyncOrAsync;
-import backend.js.sourceMap : JsAndMap, ModulePaths, noSource, Source;
+import backend.js.sourceMap : JsAndMap, ModulePaths, Source;
 import backend.js.translateExpr : genAssertType, genNewPair, translateFunDecl, translateTest, variantMethodImpl;
 import backend.js.translateModuleCtx :
 	aliasSource,
@@ -154,8 +154,13 @@ JsAndMap translateToJsScript(
 	JsTarget jsTarget,
 	Opt!Symbol sourceMapName,
 ) =>
-	withTranslateProgram(alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, true, (ref TranslateProgramCtx ctx) =>
-		writeJsScriptAst(alloc, showCtx, fileContentGetters, modulePaths(alloc, program), translateProgramToScript(ctx), sourceMapName));
+	withTranslateProgram(
+		alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, true,
+		(ref TranslateProgramCtx ctx) =>
+			writeJsScriptAst(
+				alloc, showCtx, fileContentGetters,
+				modulePaths(alloc, program),
+				translateProgramToScript(ctx), sourceMapName));
 
 immutable struct JsModules {
 	Path mainJs;
@@ -169,15 +174,17 @@ JsModules translateToJsModules(
 	in FileContentGetters fileContentGetters,
 	JsTarget jsTarget,
 ) =>
-	withTranslateProgram(alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, false, (ref TranslateProgramCtx ctx) {
-		ModulePaths modulePaths = modulePaths(alloc, program);
-		// None for unused modules
-		MutMap!(Module*, Opt!JsModuleAst) done;
-		doTranslateModule(ctx, modulePaths, done, program.mainModule);
-		return JsModules(
-			modulePaths.jsPath(program.mainUri),
-			getOutputFiles(alloc, showCtx, fileContentGetters, modulePaths, done, jsTarget));
-	});
+	withTranslateProgram(
+		alloc, program, showCtx, lineAndCharacterGetters, fileContentGetters, jsTarget, false,
+		(ref TranslateProgramCtx ctx) {
+			ModulePaths modulePaths = modulePaths(alloc, program);
+			// None for unused modules
+			MutMap!(Module*, Opt!JsModuleAst) done;
+			doTranslateModule(ctx, modulePaths, done, program.mainModule);
+			return JsModules(
+				modulePaths.jsPath(program.mainUri),
+				getOutputFiles(alloc, showCtx, fileContentGetters, modulePaths, done, jsTarget));
+		});
 
 private:
 
@@ -375,7 +382,11 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 	return ctx.ctx.programWithMainPtr.mainFun.matchIn!(JsStatement[])(
 		(in MainFun.Nat64OfArgs) {
 			JsName exitCode = JsName.specialLocal(symbol!"exitCode");
-			JsExpr exitCodeNotZero = genNotEqEq(ctx.alloc, source, genLocalGet(source, exitCode), genIntegerUnsigned(source, 0));
+			JsExpr exitCodeNotZero = genNotEqEq(
+				ctx.alloc,
+				source,
+				genIdentifier(source, exitCode),
+				genIntegerUnsigned(source, 0));
 			if (ctx.isBrowser) {
 				/*
 				const exit = await main(newList([]))
@@ -390,7 +401,10 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 						source,
 						exitCodeNotZero,
 						genThrow(ctx.alloc, source, genNew(ctx.alloc, source, genGlobal(source, symbol!"Error"), [
-							genPlus(ctx.alloc, source, genString(source, "Exited with code "), genLocalGet(source, exitCode))])))]);
+							genPlus(
+								ctx.alloc, source,
+								genString(source, "Exited with code "),
+								genIdentifier(source, exitCode))])))]);
 			} else {
 				/*
 				main(newList(process.argv.slice(2))).then(exitCode => {
@@ -412,8 +426,14 @@ JsStatement[] callMain(ref TranslateModuleCtx ctx) {
 						ctx.alloc,
 						source,
 						exitCodeNotZero,
-						exprStatement(genCallPropertySync(ctx.alloc, source, process, JsMemberName.noPrefix(symbol!"exit"), [
-							genCallSync(ctx.alloc, source, genGlobal(source, symbol!"Number"), [genLocalGet(source, exitCode)])])))]);
+						exprStatement(genCallPropertySync(
+							ctx.alloc, source, process,
+							JsMemberName.noPrefix(symbol!"exit"),
+							[
+								genCallSync(
+									ctx.alloc, source,
+									genGlobal(source, symbol!"Number"),
+									[genIdentifier(source, exitCode)])])))]);
 				return newArray(ctx.alloc, [
 					exprStatement(genCallPropertySync(
 						ctx.alloc, source, callMain, JsMemberName.noPrefix(symbol!"then"), [arg]))]);
@@ -654,7 +674,10 @@ void translateExceptionClass(ref TranslateModuleCtx ctx, in Source source, scope
 	// constructor() { super("<<message>>") }
 	JsMemberName messageName = JsMemberName.noPrefix(symbol!"message");
 	JsExpr messagePlaceholder = genString(source, "<<message>>");
-	out_ ~= genConstructor(ctx.alloc, source, [], some(Super(newSmallArray!JsExpr(ctx.alloc, [messagePlaceholder]))), []);
+	out_ ~= genConstructor(
+		ctx.alloc, source, [],
+		some(Super(newSmallArray!JsExpr(ctx.alloc, [messagePlaceholder]))),
+		[]);
 
 	/*:
 	"finish-constructor"() {
@@ -704,7 +727,7 @@ void translateEnumDecl(
 	*/
 	JsName value = JsName.specialLocal(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, source, [JsDestructure(value)], super_, [
-		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genLocalGet(source, value))]);
+		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genIdentifier(source, value))]);
 	foreach (ref EnumOrFlagsMember member; a.members)
 		out_ ~= genField(
 			JsClassMember.Static.static_,
@@ -756,7 +779,7 @@ void translateFlagsDecl(
 	*/
 	JsName value = JsName.specialLocal(symbol!"value");
 	out_ ~= genConstructor(ctx.alloc, source, [JsDestructure(value)], super_, [
-		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genLocalGet(source, value))]);
+		genAssignToThis(ctx.alloc, source, JsMemberName.special(symbol!"value"), genIdentifier(source, value))]);
 	foreach (ref EnumOrFlagsMember member; a.members) {
 		out_ ~= genField(
 			JsClassMember.Static.static_,
@@ -792,7 +815,7 @@ JsClassMember intersectOrUnionMethod(
 			genBinary(
 				ctx.alloc, source, kind,
 				getValue(ctx.alloc, genThis(source)),
-				getValue(ctx.alloc, genLocalGet(source, b)))]));
+				getValue(ctx.alloc, genIdentifier(source, b)))]));
 }
 JsClassMember negateMethod(ref TranslateModuleCtx ctx, in Source source, in StructDecl* struct_, ulong allFlagsValue) =>
 	genInstanceMethod(
@@ -833,7 +856,7 @@ void translateRecordDecl(
 		super_,
 		(scope ref ArrayBuilder!JsStatement out_) {
 			foreach (ref RecordField x; a.fields) {
-				JsExpr value = genLocalGet(source, JsName.local(x.name));
+				JsExpr value = genIdentifier(source, JsName.local(x.name));
 				genAssertType(out_, ctx, source, x.type, value);
 				add(ctx.alloc, out_, genAssignToThis(ctx.alloc, source, JsMemberName.recordField(x.name), value));
 			}
@@ -865,7 +888,7 @@ void translateUnionDecl(
 			source,
 			genGlobal(source, symbol!"Object"),
 			JsMemberName.noPrefix(symbol!"assign"),
-			[genThis(source), genLocalGet(source, arg)]))]);
+			[genThis(source), genIdentifier(source, arg)]))]);
 
 	foreach (ref UnionMember member; a.members) {
 		out_ ~= () {
@@ -873,12 +896,15 @@ void translateUnionDecl(
 				JsName value = JsName.specialLocal(symbol!"value");
 				JsParams params = JsParams(newSmallArray!JsDestructure(ctx.alloc, [JsDestructure(value)]));
 				ArrayBuilder!JsStatement out_;
-				genAssertType(out_, ctx, source, member.type, genLocalGet(source, value));
+				genAssertType(out_, ctx, source, member.type, genIdentifier(source, value));
 				add(ctx.alloc, out_, genReturn(
 					ctx.alloc,
 					source,
 					genNew(ctx.alloc, source, genThis(source), [
-						genObject(ctx.alloc, source, JsMemberName.unionMember(member.name), genLocalGet(source, value))])));
+						genObject(
+							ctx.alloc, source,
+							JsMemberName.unionMember(member.name),
+							genIdentifier(source, value))])));
 				return genStaticMethod(
 					SyncOrAsync.sync,
 					JsMemberName.unionConstructor(member.name),
@@ -913,7 +939,7 @@ JsClassMember genConstructor(
 ) {
 	ArrayBuilder!JsStatement out_;
 	if (has(super_))
-		add(alloc, out_, genSuper(source, force(super_).args));
+		add(alloc, out_, genSuper(alloc, source, force(super_).args));
 	cb(out_);
 	if (has(super_) && force(super_).callFinishConstructor)
 		add(alloc, out_, exprStatement(genCallPropertySync(alloc, source, genThis(source), finishConstructorName, [])));
@@ -928,10 +954,8 @@ immutable struct Super {
 	SmallArray!JsExpr args;
 	bool callFinishConstructor;
 }
-
-JsExpr super_ = genGlobal(noSource, symbol!"super");
-JsStatement genSuper(in Source source, SmallArray!JsExpr args) =>
-	exprStatement(genCallSync(source, &super_, args));
+JsStatement genSuper(ref Alloc alloc, in Source source, SmallArray!JsExpr args) =>
+	exprStatement(genCallSync(source, allocate(alloc, genGlobal(source, symbol!"super")), args));
 
 JsDecl translateVarDecl(ref TranslateModuleCtx ctx, VarDecl* a) =>
 	makeDecl(ctx, AnyDecl(a), JsDeclKind(JsDeclKind.Let()));

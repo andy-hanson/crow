@@ -12,13 +12,13 @@ import util.uri : mustParseUri, parsePath, Path, Uri;
 import util.writer : withStackWriter, Writer;
 
 void testSourceMap(ref Test test) {
-	testVLQ();
-	foo(test);
+	testBase64VLQ();
+	testBuilder(test);
 }
 
 private:
 
-void testVLQ() {
+void testBase64VLQ() {
 	void test(int value, string expected) {
 		withStackWriter!0x10000(
 			(scope ref Writer writer) {
@@ -46,7 +46,7 @@ void testVLQ() {
 	test(513, "igB");
 }
 
-void foo(ref Test test) { // NAME ---------------------------------------------------------------------------------------------------------
+void testBuilder(ref Test test) {
 	SourceMapBuilder map = SourceMapBuilder(Writer(test.allocPtr));
 	Uri a_crow = mustParseUri("file://foo/a.crow");
 	assert(fileType(a_crow) == FileType.crow);
@@ -57,11 +57,12 @@ void foo(ref Test test) { // NAME ----------------------------------------------
 	map ~= SingleSourceMapping(
 		Source(a_crow, symbol!"foo", LineAndCharacter(2, 1)),
 		LineAndCharacter(2, 1));
-	
+
 	Storage storage = Storage(test.metaAlloc);
 	setFileAssumeUtf8(test.perf, storage, a_crow, "hello");
 	ModulePaths modulePaths = ModulePaths(newMap(test.alloc, [KeyValuePair!(Uri, Path)(a_crow, parsePath("mapped/a.crow"))]));
 	assertEqual(
 		finish(map, FileContentGetters(&storage), modulePaths),
-		q"({"version":3,"sources":["mapped/a.crow"],"sourcesContent":["hello"],"names":["foo"],"mappings":";CACCA;CACAA"})");
+		q"({"version":3,"sources":["mapped/a.crow"],"sourcesContent":["hello"],"names":["foo"],)" ~
+		q"("mappings":";CACCA;CACAA"})");
 }

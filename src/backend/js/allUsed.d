@@ -173,7 +173,7 @@ immutable struct FunOrTest {
 				x.moduleUri,
 			(in Test x) =>
 				x.moduleUri);
-	
+
 	Symbol name() scope =>
 		matchIn!Symbol(
 			(in FunDecl x) =>
@@ -181,10 +181,6 @@ immutable struct FunOrTest {
 			(in Test x) =>
 				x.name);
 }
-private Opt!(FunDecl*) optAsFun(FunOrTest a) =>
-	a.matchWithPointers!(Opt!(FunDecl*))(
-		(FunDecl* x) => some(x),
-		(Test* _) => none!(FunDecl*));
 
 // This does not include FunDecl if the body would be inlined
 immutable struct AllUsed {
@@ -463,7 +459,9 @@ void trackAllUsedInStruct(ref AllUsedBuilder res, Uri from, StructDecl* a) {
 				if (has(*impl))
 					trackAllUsedInCalled(
 						res, a.moduleUri,
-						FunOrTest(variantMethodCaller(*res.program, FunDeclSource.VariantMethod(x.variant.decl, method))),
+						FunOrTest(variantMethodCaller(
+							*res.program,
+							FunDeclSource.VariantMethod(x.variant.decl, method))),
 						force(*impl), FunUse.regular);
 			});
 		}
@@ -528,7 +526,9 @@ void trackAllUsedInFun(ref AllUsedBuilder res, Uri from, FunDecl* a, FunUse use)
 					case AutoFun.Kind.toJson:
 						usedReturnType();
 						trackAllUsedInCalled(
-							res, a.moduleUri, FunOrTest(a), Called(res.program.commonFuns.newJsonFromPairs), FunUse.regular);
+							res, a.moduleUri, FunOrTest(a),
+							Called(res.program.commonFuns.newJsonFromPairs),
+							FunUse.regular);
 						break;
 				}
 				foreach (Called called; x.members)

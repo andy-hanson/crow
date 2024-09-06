@@ -42,7 +42,7 @@ struct SourceMapBuilder {
 	public ref Alloc alloc() return scope =>
 		mappings.alloc;
 
-	Cell!SingleSourceMapping prev = Cell!SingleSourceMapping(SingleSourceMapping(noSource));
+	Cell!SingleSourceMapping prev = Cell!SingleSourceMapping(SingleSourceMapping(Source(Uri.empty, symbol!"")));
 	uint prevSourceUriIndex;
 	uint prevSourceNameIndex;
 
@@ -68,8 +68,6 @@ immutable struct Source {
 	Symbol name; // E.g. a function name
 	LineAndCharacter pos;
 }
-Source noSource() =>
-	Source(Uri.empty, symbol!"");
 
 immutable struct SingleSourceMapping {
 	Source source;
@@ -80,7 +78,7 @@ private:
 
 void add(scope ref SourceMapBuilder a, in SingleSourceMapping mapping) {
 	SingleSourceMapping prev = cellGet(a.prev);
-	if (mapping.source == noSource || mapping.source == prev.source) return;
+	if (mapping.source == prev.source) return;
 
 	assert(compareLineAndCharacter(prev.outPos, mapping.outPos) != Comparison.greater);
 

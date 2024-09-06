@@ -163,7 +163,7 @@ LowExpr genCallNoGcRoots(ref Alloc alloc, LowType type, UriAndRange range, LowFu
 LowExpr genSizeOf(in AllLowTypes allTypes, UriAndRange range, LowType t) =>
 	genConstantNat64(range, typeSizeBytes(allTypes, t));
 
-LowExpr genLocalGet(UriAndRange range, LowLocal* local) =>
+LowExpr genIdentifier(UriAndRange range, LowLocal* local) =>
 	LowExpr(local.type, range, LowExprKind(LowExprKind.LocalGet(local)));
 
 LowExpr genLocalSet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr value) =>
@@ -354,7 +354,7 @@ LowExpr genLetTempConstNoGcRoot(
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
 	LowLocal* local = genLocal(alloc, symbol!"temp", isMutable: false, localIndex, value.type);
-	return genLetNoGcRoot(alloc, range, local, value, cbThen(genLocalGet(range, local)));
+	return genLetNoGcRoot(alloc, range, local, value, cbThen(genIdentifier(range, local)));
 }
 
 LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>

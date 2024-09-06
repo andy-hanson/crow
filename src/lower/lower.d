@@ -33,12 +33,12 @@ import lower.lowExprHelpers :
 	genEnumUnion,
 	genFalse,
 	genFunPointer,
+	genIdentifier,
 	genIf,
 	genLetNoGcRoot,
 	genLetTempConstNoGcRoot,
 	genLocal,
 	genLocalByValue,
-	genLocalGet,
 	genLocalPointer,
 	genLocalSet,
 	genLoopContinue,
@@ -724,8 +724,8 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 	LowExpr userMainFunPointer =
 		genFunPointer(userMainFunPointerType, UriAndRange.empty, userMain);
 	LowExpr call = genCallNoGcRoots(ctx.alloc, int32Type, UriAndRange.empty, rtMainIndex, [
-		genLocalGet(UriAndRange.empty, &params[0]),
-		genLocalGet(UriAndRange.empty, &params[1]),
+		genIdentifier(UriAndRange.empty, &params[0]),
+		genIdentifier(UriAndRange.empty, &params[1]),
 		userMainFunPointer
 	]);
 	LowFunBody body_ = LowFunBody(LowFunExprBody(LowFunFlags.none, call));
@@ -846,7 +846,7 @@ LowExpr genLetTempPossiblyGcRoot(
 ) {
 	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", isMutable: false, nextTempLocalIndex(ctx), value.type);
 	return genLetPossiblyGcRoot(ctx, range, local, value, exprPos, thenMayYield, (ExprPos inner) =>
-		cbThen(inner, genLocalGet(range, local)));
+		cbThen(inner, genIdentifier(range, local)));
 }
 
 LowExpr genSeqThenReturnFirstPossiblyGcRoot(
@@ -914,7 +914,7 @@ LowExpr maybeAddGcRoot(
 	LowExpr pointerToLocal = () {
 		final switch (markRoot.kind) {
 			case MarkRoot.Kind.localAlreadyPointer:
-				return genLocalGet(range, local);
+				return genIdentifier(range, local);
 			case MarkRoot.Kind.pointerToLocal:
 				return genLocalPointer(getPointerMut(ctx.typeCtx, local.type), range, local);
 		}
@@ -1090,7 +1090,7 @@ LowExpr getLowExpr(
 		(ref ConcreteExprKind.Let x) =>
 			genLet(ctx, locals, exprPos, type, range, x.local, x.value, x.then, (LowExpr x) => x),
 		(ConcreteExprKind.LocalGet x) =>
-			handleExprPos(ctx, exprPos, genLocalGet(range, getLocal(ctx, locals, x.local))),
+			handleExprPos(ctx, exprPos, genIdentifier(range, getLocal(ctx, locals, x.local))),
 		(ConcreteExprKind.LocalPointer x) =>
 			handleExprPos(ctx, exprPos, genLocalPointer(type, range, getLocal(ctx, locals, x.local))),
 		(ref ConcreteExprKind.LocalSet x) =>
@@ -1760,7 +1760,7 @@ LowExpr getFinallyExpr(
 				getLowExpr(ctx, locals, a.right, ExprPos.nonTail),
 				genIf(
 					ctx.alloc, range,
-					genLocalGet(range, err),
+					genIdentifier(range, err),
 					genRethrowCurrentException(ctx, range),
 					genVoid(range)));
 			return genLetNoGcRoot(

@@ -150,7 +150,7 @@ ConcreteExpr genLet(
 ConcreteExpr genDrop(ref ConcretizeCtx ctx, in UriAndRange range, ConcreteExpr inner) =>
 	ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Drop(inner))));
 
-ConcreteExpr genLocalGet(in UriAndRange range, ConcreteLocal* local) =>
+ConcreteExpr genIdentifier(in UriAndRange range, ConcreteLocal* local) =>
 	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
 
 ConcreteExpr genLocalPointer(ConcreteType type, in UriAndRange range, ConcreteLocal* local) =>
@@ -416,8 +416,8 @@ ConcreteExpr equalOrCompareRecord(
 		UriAndRange range = ctx.curFun.range;
 		ConcreteLocal[] params = ctx.curFun.params;
 		assert(params.length == 2);
-		ConcreteExpr* p0 = allocate(ctx.alloc, genLocalGet(range, &params[0]));
-		ConcreteExpr* p1 = allocate(ctx.alloc, genLocalGet(range, &params[1]));
+		ConcreteExpr* p0 = allocate(ctx.alloc, genIdentifier(range, &params[0]));
+		ConcreteExpr* p1 = allocate(ctx.alloc, genIdentifier(range, &params[1]));
 		return foldRange(
 			fields.length,
 			(size_t index) =>
@@ -577,7 +577,7 @@ ConcreteExpr genMatchUnion(
 				ConcreteLocal* local = allocate(ctx.alloc, ConcreteLocal(
 					ConcreteLocalSource(ConcreteLocalSource.Generated(ConcreteLocalSource.Generated.member)),
 					memberType));
-				return ConcreteExprKind.MatchUnion.Case(some(local), cb(memberIndex, genLocalGet(range, local)));
+				return ConcreteExprKind.MatchUnion.Case(some(local), cb(memberIndex, genIdentifier(range, local)));
 			}),
 		none!(ConcreteExpr*)))));
 

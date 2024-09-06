@@ -2,7 +2,6 @@ module backend.js.writeJsAst;
 
 @safe @nogc pure nothrow:
 
-import backend.js.allUsed : AnyDecl;
 import backend.js.jsAst :
 	JsArrayExpr,
 	JsArrowFunction,
@@ -56,20 +55,26 @@ import backend.js.jsAst :
 	SyncOrAsync;
 import backend.js.sourceMap : finish, JsAndMap, ModulePaths, SingleSourceMapping, Source, SourceMapBuilder;
 import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
-import frontend.showModel : ShowTypeCtx, writeFunDecl;
+import frontend.showModel : ShowTypeCtx;
 import frontend.storage : FileContentGetters;
-import model.model : FunDecl, SpecDecl, StructAlias, StructDecl, Test, VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, isEmpty, only;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, someMut;
-import util.sourceRange : LineAndCharacter, LineAndColumn, LineAndColumnRange;
+import util.sourceRange : LineAndCharacter;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : RelPath, Uri;
 import util.util : ptrTrustMe, stringOfEnum;
 import util.writer : finish, writeAndVerify, writeFloatLiteral, writeNewline, writeQuotedString, Writer;
 
-JsAndMap writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileContentGetters files, in ModulePaths modulePaths, in JsScriptAst a, Opt!Symbol sourceMapName) =>
+JsAndMap writeJsScriptAst(
+	ref Alloc alloc,
+	in ShowTypeCtx showCtx,
+	in FileContentGetters files,
+	in ModulePaths modulePaths,
+	in JsScriptAst a,
+	Opt!Symbol sourceMapName,
+) =>
 	buildOutput(alloc, files, modulePaths, has(sourceMapName), (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
 		if (has(sourceMapName))
@@ -79,10 +84,16 @@ JsAndMap writeJsScriptAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileConten
 		writeStatements(writer, a.statements);
 	});
 
-string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileContentGetters files, in ModulePaths modulePaths, Uri sourceUri, in JsModuleAst a) =>
+string writeJsModuleAst(
+	ref Alloc alloc,
+	in ShowTypeCtx showCtx,
+	in FileContentGetters files,
+	in ModulePaths modulePaths,
+	Uri sourceUri,
+	in JsModuleAst a,
+) =>
 	buildOutput(alloc, files, modulePaths, false, (scope ref Output writer) {
 		writeShebang(writer, a.shebang);
-		//TODO:writeSourceMapUrl(writer); // --------------------------------------------------------------------------------------
 		foreach (JsImport x; a.imports)
 			writeImportOrReExport(writer, "import", x);
 		foreach (JsImport x; a.reExports)
@@ -90,11 +101,17 @@ string writeJsModuleAst(ref Alloc alloc, in ShowTypeCtx showCtx, in FileContentG
 		foreach (JsDecl x; a.decls)
 			writeDecl(writer, showCtx, x);
 		writeStatements(writer, a.statements);
-	}).js; // -------------------------------------------------------------------------------------------------------------------------
+	}).js;
 
 private:
 
-JsAndMap buildOutput(ref Alloc alloc, in FileContentGetters files, in ModulePaths modulePaths, bool includeSourceMap, in void delegate(scope ref Output) @safe @nogc pure nothrow cb) {
+JsAndMap buildOutput(
+	ref Alloc alloc,
+	in FileContentGetters files,
+	in ModulePaths modulePaths,
+	bool includeSourceMap,
+	in void delegate(scope ref Output) @safe @nogc pure nothrow cb,
+) {
 	Output writer = Output(
 		Writer(ptrTrustMe(alloc)),
 		includeSourceMap ? someMut(SourceMapBuilder(Writer(ptrTrustMe(alloc)))) : noneMut!SourceMapBuilder);
@@ -155,15 +172,13 @@ struct Output {
 		writeOnSingleLine(this, x);
 	}
 
-	void opOpAssign(string op  : "~")(in RelPath x) scope {
+	void opOpAssign(string op : "~")(in RelPath x) scope {
 		writeOnSingleLine!RelPath(this, x);
 	}
-	void opOpAssign(string op  : "~")(Symbol x) scope {
+	void opOpAssign(string op : "~")(Symbol x) scope {
 		writeOnSingleLine!Symbol(this, x);
 	}
 }
-string finish(ref Output writer) => // TODO: include the source map! -----------------------------------------------------------------------------------
-	finish(writer.writer);
 
 void markMap(scope ref Output a, in Source source) {
 	if (has(a.map))
@@ -540,7 +555,6 @@ void writeStatement(scope ref Output writer, uint indent, in JsStatement a, Stat
 }
 // Optimized build has infinite compile time inlining 'writeStatement' into itself recursively.
 // May be a similar issue to https://github.com/ldc-developers/ldc/issues/3879
-// TODO: IS THIS STILL TRUE? -------------------------------------------------------------------------------------------------------
 pragma(inline, false)
 void writeAssign(scope ref Output writer, uint indent, in JsAssignStatement a) {
 	writeExpr(writer, indent, a.left);
