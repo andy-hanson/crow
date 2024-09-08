@@ -21,6 +21,7 @@ immutable struct Range {
 	Pos start;
 	Pos end;
 
+	@disable this();
 	this(Pos s, Pos e) {
 		start = s;
 		end = e;

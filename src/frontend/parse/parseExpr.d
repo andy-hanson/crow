@@ -551,7 +551,7 @@ CaseMemberAst parseStringLiteralForMatchCase(ref Lexer lexer) {
 		return CaseMemberAst(CaseMemberAst.String(range(lexer, start), part.text));
 	} else {
 		skipUntilNewlineNoDiag(lexer);
-		return CaseMemberAst(CaseMemberAst.Bogus());
+		return CaseMemberAst(CaseMemberAst.Bogus(range(lexer, start)));
 	}
 }
 

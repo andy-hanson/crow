@@ -42,7 +42,7 @@ import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
-import util.sourceRange : Pos;
+import util.sourceRange : Pos, Range;
 import util.symbol : Symbol, symbol;
 import util.util : optEnumConvert;
 
@@ -252,8 +252,9 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) 
 	SmallArray!TypeAst args = parseTypesWithCommasThenClosingParen(lexer);
 	switch (args.length) {
 		case 0:
-			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeEmptyParens()));
-			return TypeAst(TypeAst.Bogus());
+			Range range = range(lexer, start);
+			addDiag(lexer, range, ParseDiag(ParseDiag.TypeEmptyParens()));
+			return TypeAst(TypeAst.Bogus(range));
 		case 1:
 			if (parens != ParenthesesNecessary.necessary)
 				addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeUnnecessaryParens()));
