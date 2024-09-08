@@ -141,7 +141,7 @@ Json jsonInt(long a) =>
 	Json(a);
 
 Json jsonString(string a) =>
-	Json(small!(immutable char)(a));
+	Json(a);
 
 Json jsonString(ref Alloc alloc, in string a) =>
 	jsonString(copyString(alloc, a));

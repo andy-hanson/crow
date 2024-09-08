@@ -405,9 +405,17 @@ private @system MutOpt!(FILE*) openFileForRead(FilePath path) {
 		fopen(x.ptr, "rb"));
 	return res == null ? noneMut!(FILE*) : someMut(res);
 }
-private @system MutOpt!(FILE*) openFileForWrite(FilePath path, FilePermissions permissions) {
+private @system MutOpt!(FILE*) openFileForWrite(FilePath path, FilePermissions permissions, FileOverwrite overwrite) {
+	int flags = () {
+		final switch (overwrite) {
+			case FileOverwrite.forbid:
+				return O_CREAT | O_EXCL | O_WRONLY;
+			case FileOverwrite.allow:
+				return O_CREAT | O_WRONLY;
+		}
+	}();
 	int res = withCStringOfFilePath(path, (in CString x) @trusted =>
-		open(x.ptr, O_CREAT | O_EXCL | O_WRONLY, filePermissionsInt(permissions)));
+		open(x.ptr, flags, filePermissionsInt(permissions)));
 	return res == -1 ? noneMut!(FILE*) : someMut(fdopen(res, "wb"));
 }
 private int filePermissionsInt(FilePermissions permissions) {
@@ -419,8 +427,10 @@ private int filePermissionsInt(FilePermissions permissions) {
 	}
 }
 
-@trusted ExitCode writeFile(FilePath path, in string content, FilePermissions permissions) {
-	MutOpt!(FILE*) fd = tryOpenFileForWrite(path, permissions);
+enum FileOverwrite { forbid, allow }
+
+@trusted ExitCode writeFile(FilePath path, in string content, FilePermissions permissions, FileOverwrite overwrite) {
+	MutOpt!(FILE*) fd = tryOpenFileForWrite(path, permissions, overwrite);
 	if (has(fd)) {
 		scope(exit) fclose(force(fd));
 
@@ -436,14 +446,14 @@ private int filePermissionsInt(FilePermissions permissions) {
 		return ExitCode.error;
 }
 
-private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path, FilePermissions permissions) {
-	MutOpt!(FILE*) res = openFileForWrite(path, permissions);
+private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path, FilePermissions permissions, FileOverwrite overwrite) {
+	MutOpt!(FILE*) res = openFileForWrite(path, permissions, overwrite);
 	if (has(res))
 		return res;
 	else if (errno == ENOENT) {
 		Opt!FilePath par = parent(path);
 		return has(par) && makeDirectoryAndParents(force(par)) == ExitCode.ok
-			? openFileForWrite(path, permissions)
+			? openFileForWrite(path, permissions, overwrite)
 			: noneMut!(FILE*);
 	} else {
 		printErrorCb((scope ref Writer writer) {
@@ -648,7 +658,7 @@ ExitCode writeFilesToDir(FilePath baseDir, in PathAndContent[] files) =>
 	// Make sure to build from the bottom up.
 	okAnd(buildDirectoriesForFiles(baseDir, files), () =>
 		eachUntilError!PathAndContent(files, (ref PathAndContent file) =>
-			writeFile(concatFilePathAndPath(baseDir, file.path), file.content, file.permissions)));
+			writeFile(concatFilePathAndPath(baseDir, file.path), file.content, file.permissions, FileOverwrite.allow)));
 
 private:
 
