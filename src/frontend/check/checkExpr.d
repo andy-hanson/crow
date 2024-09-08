@@ -137,7 +137,6 @@ import model.model :
 	ExprKind,
 	ExternCondition,
 	ExternExpr,
-	ExternName,
 	FinallyExpr,
 	FloatType,
 	FunBody,
@@ -149,6 +148,7 @@ import model.model :
 	IfExpr,
 	IntegralType,
 	IntegralTypes,
+	isBuiltinExtern,
 	isDefinitelyByRef,
 	isEmptyType,
 	isSigned,
@@ -223,10 +223,10 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, optOrDefault, s
 import util.sourceRange : Range;
 import util.string : smallString;
 import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol;
-import util.symbolSet : SymbolSet;
+import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -282,19 +282,17 @@ Expr checkTestBody(
 	return checkAndExpect(castNonScope_ref(exprCtx), locals, ast, Type(commonTypes.void_));
 }
 
-Symbol checkExternNameOrBogus(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
-	Opt!ExternName res = checkExternName(ctx, name, enclosingExterns);
-	return has(res) ? force(res).asSymbol : symbol!"bogus";
-}
-private Opt!ExternName checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
-	ExternName res = ExternName(name.name);
-	if (res.isBuiltin || res.asSymbol in ctx.config.extern_) {
-		if (res.asSymbol in enclosingExterns)
+Symbol checkExternNameOrBogus(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) =>
+	optOrDefault!Symbol(checkExternName(ctx, name, enclosingExterns), () => symbol!"bogus");
+private Opt!Symbol checkExternName(ref CheckCtx ctx, NameAndRange name, SymbolSet enclosingExterns) {
+	Symbol res = name.name;
+	if (isBuiltinExtern(res) || res in ctx.config.extern_) {
+		if (res in enclosingExterns)
 			addDiag(ctx, name.range, Diag(Diag.ExternRedundant(res)));
 		return some(res);
 	} else {
-		addDiag(ctx, name.range, Diag(Diag.ExternInvalidName(res.asSymbol)));
-		return none!ExternName;
+		addDiag(ctx, name.range, Diag(Diag.ExternInvalidName(res)));
+		return none!Symbol;
 	}
 }
 
@@ -497,9 +495,18 @@ Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Trust
 Expr checkExtern(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ExternAst ast, ref Expected expected) {
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.ExternIsUnsafe()));
-	Opt!ExternName name = checkExternName(ctx.checkCtx, ast.name, ctx.externs);
-	return has(name)
-		? check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(force(name))))
+	bool ok = true;
+	SymbolSet names = buildSymbolSet((scope ref SymbolSetBuilder out_) {
+		foreach (NameAndRange nameAst; ast.names) {
+			Opt!Symbol name = checkExternName(ctx.checkCtx, nameAst, ctx.externs);
+			if (has(name))
+				out_ ~= force(name);
+			else
+				ok = false;
+		}
+	});
+	return ok
+		? check(ctx, expected, Type(ctx.commonTypes.bool_), source, ExprKind(ExternExpr(names)))
 		: bogus(expected, source);
 }
 

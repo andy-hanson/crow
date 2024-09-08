@@ -39,6 +39,14 @@
 		As with a C or machine code build, the details of the script are opaque;
 		it contains only what it needs to run <code>main</code>.
 	</p>
+	<p>
+		This will also generate a source map file <code>foo.js.map</code>
+		which browsers will automatically use for debugging the <code>.js</code> file if you serve it.
+		<br />
+		The source map contains all source content in it, so it's all you need for debugging.
+		<br />
+		If you don't need to debug, you can delete the <code>.map</code> file.
+	</p>
 
 	<h4>Modules</h4>
 	<p>

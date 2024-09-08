@@ -18,6 +18,7 @@ import model.ast :
 	AssertOrForbidAst, ConditionAst, ExprAst, ExprAstKind, IfAst, ImportOrExportAstKind, MatchAst, ModifierKeyword;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
+	asBuiltinExtern,
 	AssertOrForbidExpr,
 	BuiltinExtern,
 	BuiltinType,
@@ -623,37 +624,39 @@ void getExprHover(
 			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);
 		},
 		(in ExternExpr x) {
-			writer ~= "";
-			Opt!BuiltinExtern builtin = x.name.asBuiltin;
-			if (has(builtin)) {
-				writer ~= () {
-					final switch (force(builtin)) {
-						case BuiltinExtern.DbgHelp:
-							return "The expression will be 'true' on Windows.";
-						case BuiltinExtern.js:
-							return "The expression will be 'true' in a JavaScript build.";
-						case BuiltinExtern.libc:
-							return "Currently equivalent to 'extern native'.";
-						case BuiltinExtern.linux:
-							return "The expression will be 'true' on Linux.";
-						case BuiltinExtern.native:
-							return "The expression will be 'false' if in a web browser or in node.js. " ~
-								"(The interpreter is still considered native.)";
-						case BuiltinExtern.posix:
-							return "The expression will be 'true' on Posix-compliant operating systems.";
-						case BuiltinExtern.pthread:
-						case BuiltinExtern.sodium:
-						case BuiltinExtern.unwind:
-							return "Currently equivalent to 'extern posix'.";
-						case BuiltinExtern.windows:
-							return "The expression will be 'true' on Windows.";
-					}
-				}();
-			} else {
-				writer ~= "'true' if the '";
-				writer ~= x.name.asNonBuiltin;
-				writer ~= "' library is present.";
+			bool first = true;
+			writer ~= "The expression will be true if ";
+			foreach (Symbol name; x.names) {
+				if (first) writer ~= " and ";
+				first = false;
+				Opt!BuiltinExtern builtin = asBuiltinExtern(name);
+				if (has(builtin)) {
+					writer ~= () {
+						final switch (force(builtin)) {
+							case BuiltinExtern.DbgHelp:
+							case BuiltinExtern.windows:
+								return "run on Windows";
+							case BuiltinExtern.js:
+								return "run in a JavaScript build";
+							case BuiltinExtern.linux:
+								return "run on Linux";
+							case BuiltinExtern.native:
+							case BuiltinExtern.libc:
+								return "not run on a JavaScript build";
+							case BuiltinExtern.posix:
+							case BuiltinExtern.pthread:
+							case BuiltinExtern.sodium:
+							case BuiltinExtern.unwind:
+								return "run on a Posix-compliant operating system";
+						}
+					}();
+				} else {
+					writer ~= "the '";
+					writer ~= name;
+					writer ~= "' library is present";
+				}
 			}
+			writer ~= '.';
 		},
 		(in FunPointerExpr x) {
 			writer ~= "Pointer to function ";

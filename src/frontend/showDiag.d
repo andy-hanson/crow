@@ -689,7 +689,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.ExternRedundant x) {
 			writer ~= "Extern ";
-			writeName(writer, ctx, x.name.asSymbol);
+			writeName(writer, ctx, x.name);
 			writer ~= " is already in scope, so this expression is always 'true'.";
 		},
 		(in Diag.ExternFunVariadic) {

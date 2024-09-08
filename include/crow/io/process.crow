@@ -50,7 +50,7 @@ EXE should be a file path and not just a name; this does not search the system p
 		exe-c-string c-string = exe to
 		if extern windows
 			exe-c-string spawn-and-wait-result-windows args
-		elif extern posix && extern libc
+		elif extern (libc, posix)
 			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 		else
 			throw not-implemented

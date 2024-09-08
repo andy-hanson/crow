@@ -11,7 +11,6 @@ import model.model :
 	Destructure,
 	emptyTypeParams,
 	EnumOrFlagsMember,
-	ExternName,
 	FloatType,
 	FunDecl,
 	FunDeclAndTypeArgs,
@@ -276,7 +275,7 @@ immutable struct Diag {
 	}
 	immutable struct ExternIsUnsafe {}
 	immutable struct ExternRedundant {
-		ExternName name;
+		Symbol name;
 	}
 	immutable struct ExternFunVariadic {}
 	immutable struct ExternHasUnnecessaryLibraryName {}

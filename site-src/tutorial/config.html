@@ -55,7 +55,7 @@
 	<h2>Main config</h2>
 
 	<p>
-		Now look at <code>demo/sdl/crow-config.json</code>:
+		Now look at <code>crow-demo/sdl/crow-config.json</code>:
 	</p>
 
 	<code>
@@ -80,8 +80,8 @@
 
 	<p>
 		<code>"extern"</code> is for using external libraries.
-		This specifies that the machine code for SDL2 will be found in the <code>demo/extern/SDL2</code> directory.
-		(Since the path is relative to <code>demo/sdl/crow-config.json</code>.)
+		This specifies that the machine code for SDL2 will be found in the <code>crow-demo/extern/SDL2</code> directory.
+		(Since the path is relative to <code>crow-demo/sdl/crow-config.json</code>.)
 		<br />
 		(That directory has a <code>.dll</code> but not <code>.so</code>;
 		on Linux, it will be searched for in system paths.)
@@ -94,8 +94,8 @@
 		A Crow library containing bindings for an external library will generally have the same name,
 		but they are two separate things.
 		<br />
-		In this example there is <code>SDL2</code>, the Crow library contained in <code>demo/libraries/SDL2</code>, and
-		<code>SDL2</code>, the library installed in a place like <code>demo/extern/SDL2/SDl2.dll</code>
+		In this example there is <code>SDL2</code>, the Crow library contained in <code>crow-demo/libraries/SDL2</code>, and
+		<code>SDL2</code>, the library installed in a place like <code>crow-demo/extern/SDL2/SDl2.dll</code>
 		or <code>/lib/x86_64-linux-gnu/libSDL2.so</code>.
 	</aside>
 

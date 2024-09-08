@@ -35,7 +35,7 @@ immutable struct SymbolSet {
 		fold!(SymbolSet, Symbol)(this, xs, (SymbolSet acc, in Symbol x) =>
 			acc | x);
 
-	int opApply(in int delegate(Symbol) @safe @nogc pure nothrow cb) {
+	int opApply(in int delegate(Symbol) @safe @nogc pure nothrow cb) scope {
 		foreach (IntegralValue x; inner) {
 			int res = cb(toSymbol(x));
 			if (res != 0)

@@ -93,7 +93,7 @@ import model.ast :
 	TypedAst,
 	WithAst;
 import model.parseDiag : ParseDiag;
-import util.col.array : emptySmallArray, isEmpty, newSmallArray, only2, SmallArray;
+import util.col.array : emptySmallArray, isEmpty, newArray, newSmallArray, only2, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, buildArray, buildSmallArray, Builder, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some, some;
@@ -900,8 +900,7 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 		case Token.do_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.do_, () => parseDo(lexer, start));
 		case Token.extern_:
-			NameAndRange name = takeNameAndRange(lexer);
-			return ExprAst(range(lexer, start), ExprAstKind(ExternAst(name)));
+			return parseExtern(lexer, start);
 		case Token.if_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start, false));
 		case Token.for_:
@@ -958,6 +957,18 @@ ExprAst handlePrefixOperator(ref Lexer lexer, AllowedBlock allowedBlock, Pos sta
 	ExprAst arg = parseExprBeforeCall(lexer, allowedBlock);
 	return ExprAst(range(lexer, start), ExprAstKind(
 		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), newSmallArray(lexer.alloc, [arg]))));
+}
+
+ExprAst parseExtern(ref Lexer lexer, Pos start) {
+	NameAndRange[] names = tryTakeToken(lexer, Token.parenLeft)
+		? buildArray!NameAndRange(lexer.alloc, (scope ref Builder!NameAndRange res) {
+			do {
+				res ~= takeNameAndRange(lexer);
+			} while (tryTakeToken(lexer, Token.comma));
+			takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+		})
+		: newArray(lexer.alloc, [takeNameAndRange(lexer)]);
+	return ExprAst(range(lexer, start), ExprAstKind(ExternAst(names)));
 }
 
 ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {

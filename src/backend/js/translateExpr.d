@@ -873,7 +873,7 @@ ExprResult translateExpr(ref TranslateExprCtx ctx, ref Expr a, Type type, scope 
 				localName(*x.local),
 				translateExprToExpr(ctx, *x.value, x.local.type))),
 		(ExternExpr x) =>
-			forceExpr(ctx, pos, type, genBool(source, x.name.asSymbol in ctx.ctx.allExterns)),
+			forceExpr(ctx, pos, type, genBool(source, ctx.ctx.allExterns.containsAll(x.names))),
 		(ref FinallyExpr x) =>
 			translateFinally(ctx, source, x, type, pos),
 		(FunPointerExpr x) =>

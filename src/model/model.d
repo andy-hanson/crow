@@ -62,7 +62,7 @@ import util.opt : force, has, none, Opt, optEqual, optIf, optOr, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : enumOfSymbol, Symbol, symbol, symbolOfEnum;
-import util.symbolSet : buildSymbolSet, SymbolSet, symbolSet, SymbolSetBuilder;
+import util.symbolSet : buildSymbolSet, SymbolSet, SymbolSetBuilder;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : RelPath, Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
@@ -2368,13 +2368,13 @@ private Opt!ExternCondition asExtern(ref Expr a) {
 			return optIf(has(arg0) && !force(arg0).isNegated && has(arg1) && !force(arg1).isNegated, () =>
 				ExternCondition(false, force(arg0).requiredExterns | force(arg1).requiredExterns));
 		} else if (isNot(call.called)) {
-			Opt!ExternName name = asExternExpr(skipTrusted(only(call.args)));
-			return optIf(has(name), () => ExternCondition(true, symbolSet(force(name).asSymbol)));
+			Opt!SymbolSet names = asExternExpr(skipTrusted(only(call.args)));
+			return optIf(has(names), () => ExternCondition(true, force(names)));
 		} else
 			return none!ExternCondition;
 	} else {
-		Opt!ExternName name = asExternExpr(e);
-		return optIf(has(name), () => ExternCondition(false, symbolSet(force(name).asSymbol)));
+		Opt!SymbolSet names = asExternExpr(e);
+		return optIf(has(names), () => ExternCondition(false, force(names)));
 	}
 }
 private bool isAnd(in Called a) =>
@@ -2388,8 +2388,8 @@ private bool isBuiltinFun(in Called a, in bool delegate(in BuiltinFun) @safe @no
 	a.isA!(FunInst*) && a.as!(FunInst*).decl.bodyIsSet && isBuiltinFun(a.as!(FunInst*).decl.body_, cb);
 private bool isBuiltinFun(in FunBody a, in bool delegate(in BuiltinFun) @safe @nogc pure nothrow cb) =>
 	a.isA!BuiltinFun && cb(a.as!BuiltinFun);
-private Opt!ExternName asExternExpr(in Expr a) =>
-	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.name);
+private Opt!SymbolSet asExternExpr(in Expr a) =>
+	optIf(a.kind.isA!ExternExpr, () => a.kind.as!ExternExpr.names);
 private ref Expr skipTrusted(return ref Expr a) =>
 	a.kind.isA!(TrustedExpr*) ? a.kind.as!(TrustedExpr*).inner : a;
 
@@ -2457,22 +2457,13 @@ immutable struct ClosureSetExpr {
 }
 
 immutable struct ExternExpr {
-	ExternName name;
+	SymbolSet names;
 }
-// This type exists as a reminder to check for BuiltinExtern
-immutable struct ExternName {
-	@safe @nogc pure nothrow:
-	Symbol asSymbol;
 
-	bool isBuiltin() =>
-		has(asBuiltin);
-	Opt!BuiltinExtern asBuiltin() =>
-		enumOfSymbol!BuiltinExtern(asSymbol);
-	Symbol asNonBuiltin() {
-		assert(!has(asBuiltin));
-		return asSymbol;
-	}
-}
+bool isBuiltinExtern(Symbol a) =>
+	has(asBuiltinExtern(a));
+Opt!BuiltinExtern asBuiltinExtern(Symbol a) =>
+	enumOfSymbol!BuiltinExtern(a);
 immutable enum BuiltinExtern {
 	DbgHelp,
 	js,

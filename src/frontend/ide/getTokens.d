@@ -534,7 +534,8 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in EmptyAst x) {},
 		(in ExternAst x) {
-			reference(ctx.tokens, TokenType.namespace, x.name.range);
+			foreach (NameAndRange name; x.names)
+				reference(ctx.tokens, TokenType.namespace, name.range);
 		},
 		(in FinallyAst x) {
 			addExprTokens(ctx, x.right);

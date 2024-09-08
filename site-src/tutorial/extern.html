@@ -160,6 +160,8 @@
 		This has a <code class="type">bool</code> value and will be true
 		if the external capability <code>foo</code> is available.
 		<br />
+		There is also <code>extern (foo, bar)</code> which is equivalent to <code>extern foo && extern bar</code>.
+		<br />
 		If the condition of an <code class="keyword">if</code> expression is an <code class="keyword">extern</code>
 		expression, the <code>true</code> branch of the <code class="keyword">if</code>
 		will have those externs in scope.
@@ -178,7 +180,7 @@
 			info log "It is now {get-unix-time}"
 
 		get-unix-time nat() summon, trusted
-			if extern native && extern posix
+			if extern (native, posix)
 				time mut timespec = 0, 0
 				err = CLOCK_REALTIME clock_gettime &time
 				assert err == 0 : "Error getting time" error
@@ -215,11 +217,11 @@
 	<p>
 		Running this in the browser will use the <code>extern js</code> branch,
 		while downloading and using <code>crow time-xplat.crow</code>
-		will use the <code>extern native && extern posix</code> branch.
+		will use the <code>extern (native, posix)</code> branch.
 	</p>
 
 	<p>
-		Above, the body of <code>if extern native && extern posix</code> can assume
+		Above, the body of <code>if extern (native, posix)</code> can assume
 		<code>native</code> and <code>posix</code> externs are available;
 		the body of <code>elif extern js</code> can assume <code>js</code> is available;
 		and the <code>else</code> branch can assume nothing.

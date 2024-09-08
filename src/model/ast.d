@@ -359,7 +359,7 @@ immutable struct DoAst {
 immutable struct EmptyAst {}
 
 immutable struct ExternAst {
-	NameAndRange name;
+	NameAndRange[] names;
 }
 
 immutable struct FinallyAst {

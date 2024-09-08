@@ -77,6 +77,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : map, mapOp;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.json :
 	field,
 	Json,
@@ -91,6 +92,7 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter, Range;
 import util.symbol : compareSymbolsAlphabetically, Symbol, symbol;
+import util.symbolSet : SymbolSet;
 import util.uri : stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
 
@@ -371,7 +373,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in ExternExpr x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
-				field!"name"(x.name.asSymbol)]),
+				field!"name"(jsonOfSymbolSet(alloc, x.names))]),
 		(in FinallyExpr x) =>
 			jsonObject(alloc, [
 				kindField!"finally",
@@ -600,3 +602,9 @@ Json jsonOfMatchVariantCase(ref Alloc alloc, in Ctx ctx, in MatchVariantExpr.Cas
 		field!"member"(a.member.decl.name),
 		field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
 		field!"then"(jsonOfExpr(alloc, ctx, a.then))]);
+
+Json jsonOfSymbolSet(ref Alloc alloc, in SymbolSet a) =>
+	Json(buildArray!Json(alloc, (scope ref Builder!Json out_) {
+		foreach (Symbol x; a)
+			out_ ~= Json(x);
+	}));
