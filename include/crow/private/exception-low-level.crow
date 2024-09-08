@@ -100,7 +100,7 @@ rethrow-current-exception void() bare, unsafe
 +threw-non-exception record(thrown js-any) exception variant-member
 +show string(a threw-non-exception) trusted
 	if extern js
-		"Threw a non-exception value "::string.as-js + a.thrown cast
+		"Threw a non-exception value " + a.thrown cast
 	else
 		"This message should not appear"
 

@@ -12,7 +12,15 @@ import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
 import util.opt : has, force, none, Opt, optIf, optOrDefault, some;
 import util.string :
-	compareStringsAlphabetically, decodeHexDigit, done, CString, next, nextOrDefault, StringIter, stringOfCString;
+	compareStringsAlphabetically,
+	CString,
+	decodeHexDigit,
+	done,
+	isAsciiIdentifierChar,
+	next,
+	nextOrDefault,
+	StringIter,
+	stringOfCString;
 import util.symbol :
 	addExtension,
 	alterExtension,
@@ -541,10 +549,7 @@ private bool isLetter(char a) =>
 	('A' <= a && a <= 'Z');
 
 private bool isUriSafeChar(char x) =>
-	('a' <= x && x <= 'z') ||
-	('A' <= x && x <= 'Z') ||
-	('0' <= x && x <= '9') ||
-	x == '-' || x == '_' || x == '.' || x == '~';
+	isAsciiIdentifierChar(x) || x == '-' || x == '.' || x == '~';
 private char[2] encodeAsHex(ubyte a) =>
 	[encodeAsHexDigit(a >> 4), encodeAsHexDigit(a & 0xf)];
 private char encodeAsHexDigit(ubyte a) {

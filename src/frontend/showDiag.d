@@ -1217,17 +1217,18 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " can't have specs.";
 		},
 		(in Diag.StringLiteralInvalid x) {
-			writeName(writer, ctx, () {
+			writer ~= () {
 				final switch (x.reason) {
 					case Diag.StringLiteralInvalid.Reason.cStringContainsNul:
-						return "c-string";
+						return "'c-string' literal can't contain '\\0'.";
+					case Diag.StringLiteralInvalid.Reason.notExternJs:
+						return "Cant' create a 'js-any' value without 'js extern'.";
 					case Diag.StringLiteralInvalid.Reason.stringContainsNul:
-						return "string";
+						return "'string' literal can't contain '\\0'.";
 					case Diag.StringLiteralInvalid.Reason.symbolContainsNul:
-						return "symbol";
+						return "'symbol' literal can't contain '\\0'.";
 				}
-			}());
-			writer ~= " literal can't contain '\\0'";
+			}();
 		},
 		(in Diag.StorageMissingType) {
 			writer ~= "'storage' needs a type.";

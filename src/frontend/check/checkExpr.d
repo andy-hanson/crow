@@ -226,7 +226,7 @@ import util.symbol : prependSet, prependSetDeref, stringOfSymbol, Symbol, symbol
 import util.symbolSet : SymbolSet;
 import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, ptrTrustMe;
+import util.util : castImmutable, castNonScope_ref, ptrTrustMe, todo;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -848,12 +848,13 @@ Expr checkLiteralIntegral(ref ExprCtx ctx, ExprAst* source, in LiteralIntegral a
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
-	immutable StructInst*[7] allowedTypes = [
+	immutable StructInst*[8] allowedTypes = [
 		ctx.commonTypes.char8,
 		ctx.commonTypes.char32,
 		ctx.commonTypes.char8Array,
 		ctx.commonTypes.char32Array,
 		ctx.commonTypes.cString,
+		ctx.commonTypes.jsAny,
 		ctx.commonTypes.string_,
 		ctx.commonTypes.symbol,
 	];
@@ -864,17 +865,20 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 		LiteralStringLikeExpr.Kind.char8Array,
 		LiteralStringLikeExpr.Kind.char32Array,
 		LiteralStringLikeExpr.Kind.cString,
+		LiteralStringLikeExpr.Kind.jsAny,
 		LiteralStringLikeExpr.Kind.string_,
 		LiteralStringLikeExpr.Kind.symbol,
 	];
 
 	if (has(opTypeIndex)) {
 		size_t typeIndex = force(opTypeIndex);
-		ExprKind expr = () {
+		Opt!ExprKind expr = () {
 			if (typeIndex == 0) // char8
-				return ExprKind(LiteralExpr(Constant(IntegralValue(char8LiteralValue(ctx, source.range, value)))));
-			else if (typeIndex == 1) // CHAR32
-				return ExprKind(LiteralExpr(Constant(IntegralValue(char32LiteralValue(ctx, source.range, value)))));
+				return some(ExprKind(LiteralExpr(Constant(
+					IntegralValue(char8LiteralValue(ctx, source.range, value))))));
+			else if (typeIndex == 1) // char32
+				return some(ExprKind(LiteralExpr(Constant(
+					IntegralValue(char32LiteralValue(ctx, source.range, value))))));
 			else {
 				string checkNoNul(Diag.StringLiteralInvalid.Reason reason) {
 					Opt!size_t index = indexOf(value, '\0');
@@ -885,23 +889,32 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 						return value;
 				}
 				LiteralStringLikeExpr.Kind kind = kinds[typeIndex];
-				string fixedValue = () {
+				Opt!string fixedValue = () {
 					final switch (kind) {
 						case LiteralStringLikeExpr.Kind.char8Array:
 						case LiteralStringLikeExpr.Kind.char32Array:
-							return value;
+							return some(value);
 						case LiteralStringLikeExpr.Kind.cString:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul));
 						case LiteralStringLikeExpr.Kind.string_:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.stringContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.stringContainsNul));
 						case LiteralStringLikeExpr.Kind.symbol:
-							return checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
+							return some(checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul));
+						case LiteralStringLikeExpr.Kind.jsAny:
+							bool ok = symbol!"js" in ctx.externs;
+							if (!ok)
+								addDiag2(ctx, source.range, Diag(
+									Diag.StringLiteralInvalid(Diag.StringLiteralInvalid.Reason.notExternJs)));
+							return optIf(ok, () => value);
 					}
 				}();
-				return ExprKind(LiteralStringLikeExpr(kind, smallString(fixedValue)));
+				return optIf(has(fixedValue), () =>
+					ExprKind(LiteralStringLikeExpr(kind, smallString(force(fixedValue)))));
 			}
 		}();
-		return check(ctx, expected, Type(allowedTypes[typeIndex]), source, expr);
+		return has(expr)
+			? check(ctx, expected, Type(allowedTypes[typeIndex]), source, force(expr))
+			: bogus(expected, source);
 	} else
 		return bogus(expected, source);
 }

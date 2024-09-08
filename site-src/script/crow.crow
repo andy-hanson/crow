@@ -43,7 +43,7 @@ change-file diagnostic[](a crow-server, uri uri, text string) summon, trusted, j
 mark-unknown-files-not-found void(a crow-server) summon, trusted, js extern
 	for uri : a get-unloaded-uris
 		assert uri ends-with "/crow-config.json"
-		params js-any = ("uri", uri.as-js), ("type", "notFound"::string.as-js)
+		params js-any = ("uri", uri.as-js), ("type", "notFound")
 		_ = a.lsp-server handle-message ("custom/readFileResult" make-message params)
 	assert a.get-unloaded-uris is-empty
 
@@ -123,8 +123,8 @@ run-js run-result(a crow-server, main-uri uri) trusted, js extern
 -init void(a crow-server) trusted, summon, js extern
 	include-all = "/include-all.json" fetch-js-object
 	for entry : ("Object".js-global call-property "entries", include-all).cast::js-any[]
-		path string = entry[0] cast
-		text string = entry[1] cast
+		path string = entry["0"] cast
+		text string = entry["1"] cast
 		_ = a open-file "{include-dir}/{path}", text
 	_ = a open-file "file:///crow-config.json", "\{}"
 	_ = a open-file "file:///hello.txt", "Hello, world!"
@@ -135,7 +135,7 @@ run-js run-result(a crow-server, main-uri uri) trusted, js extern
 
 region LSP server
 
--math-keys symbol[]()
+-math-keys string[]()
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
 	"ceil", "cos", "cosh", "floor", "log", "sin", "sinh", "sqrt", "tan", "tanh"
 
@@ -247,7 +247,7 @@ region LSP server
 	res.view := (buffer,)
 	res.parameters-begin := res.wasm getParameterBufferPointer
 	res.parameters-length := res.wasm.getParameterBufferLength to
-	server-params js-any = ("includeDir", include-dir.as-js), ("cwd", "file:///"::string.as-js)
+	server-params js-any = ("includeDir", include-dir.as-js), ("cwd", "file:///")
 	server-params-string = res write-parameters server-params
 	res.server := res.wasm.newServer[server-params-string]
 	res

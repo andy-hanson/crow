@@ -54,7 +54,7 @@ import backend.js.jsAst :
 	Shebang,
 	SyncOrAsync;
 import backend.js.sourceMap : finish, JsAndMap, ModulePaths, SingleSourceMapping, Source, SourceMapBuilder;
-import backend.mangle : isAsciiIdentifierChar, mangleNameCommon;
+import backend.mangle : mangleNameCommon;
 import frontend.showModel : ShowTypeCtx;
 import frontend.storage : FileContentGetters;
 import util.alloc.alloc : Alloc;
@@ -62,6 +62,7 @@ import util.col.array : contains, isEmpty, only;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optIf, someMut;
 import util.sourceRange : LineAndCharacter;
+import util.string : isAsciiIdentifierChar, isDecimalDigit;
 import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.uri : RelPath, Uri;
 import util.util : ptrTrustMe, stringOfEnum;
@@ -307,9 +308,12 @@ string memberNamePrefix(JsMemberName.Kind a) {
 }
 
 bool needsMangle(Symbol a) {
-	foreach (dchar x; a)
-		if (!isAllowedJsIdentifierChar(x))
+	bool first = true;
+	foreach (char x; a) {
+		if ((first && isDecimalDigit(x)) || !isAllowedJsIdentifierChar(x))
 			return true;
+		first = false;
+	}
 	return isJsKeyword(a);
 }
 bool isJsKeyword(Symbol a) {

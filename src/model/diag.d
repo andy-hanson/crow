@@ -550,7 +550,7 @@ immutable struct Diag {
 		DeclKind declKind;
 	}
 	immutable struct StringLiteralInvalid {
-		enum Reason { cStringContainsNul, stringContainsNul, symbolContainsNul }
+		enum Reason { cStringContainsNul, notExternJs, stringContainsNul, symbolContainsNul }
 		Reason reason;
 	}
 	immutable struct StorageMissingType {}

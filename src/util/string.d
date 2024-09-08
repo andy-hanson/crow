@@ -199,8 +199,14 @@ bool isWhitespace(char a) {
 	}
 }
 
-bool isDecimalDigit(char c) =>
+bool isDecimalDigit(dchar c) =>
 	'0' <= c && c <= '9';
+
+bool isAsciiIdentifierChar(dchar a) =>
+	('a' <= a && a <= 'z') ||
+	('A' <= a && a <= 'Z') ||
+	isDecimalDigit(a) ||
+	a == '_';
 
 Opt!ubyte decodeHexDigit(char a) =>
 	isDecimalDigit(a)

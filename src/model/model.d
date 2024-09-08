@@ -1811,6 +1811,7 @@ immutable struct CommonTypes {
 	StructInst* float64;
 	StructDecl* future;
 	IntegralTypes integrals;
+	StructInst* jsAny;
 	StructInst* string_;
 	StructInst* symbol;
 	StructInst* symbolArray;
@@ -2551,7 +2552,7 @@ immutable struct LiteralExpr {
 immutable struct LiteralStringLikeExpr {
 	@safe @nogc pure nothrow:
 
-	enum Kind { char8Array, char32Array, cString, string_, symbol }
+	enum Kind { char8Array, char32Array, cString, jsAny, string_, symbol }
 	Kind kind;
 	SmallString value; // For char32Array, this will be decoded in concretize.
 }

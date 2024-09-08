@@ -19,7 +19,7 @@ import
 	elif extern js
 		xs = "Uint32Array".js-global call-new 1::float64
 		_ = "crypto".js-global call-property "getRandomValues", xs
-		xs[0].cast::float64 to
+		xs["0"].cast::float64 to
 	else
 		todo
 

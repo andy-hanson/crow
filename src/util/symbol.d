@@ -13,7 +13,8 @@ import util.comparison : Comparison;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
-import util.string : compareStringsAlphabetically, copyString, CString, SmallString, smallString, stringsEqual;
+import util.string :
+	compareStringsAlphabetically, copyString, CString, isDecimalDigit, SmallString, smallString, stringsEqual;
 import util.unicode : mustUnicodeDecode;
 import util.util : assertNormalEnum, castImmutable, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
@@ -411,7 +412,7 @@ Opt!Symbol tryPackShortSymbol(in string str) {
 				push(codeForHyphen);
 			else if (x == '_')
 				push(codeForUnderscore);
-			else if ('0' <= x && x <= '9') {
+			else if (isDecimalDigit(x)) {
 				push(codeForNextIsDigit);
 				push(x - '0');
 			} else if ('A' <= x && x <= 'Z') {

@@ -108,7 +108,7 @@
 		main void() summon, trusted, js extern
 			document = "document" js-global
 			abc = document call-property "querySelector", "#abc"::string
-			abc["textContent"] := "This was set by the script"::string.as-js
+			abc["textContent"] := "This was set by the script"
 	</crow-runnable>
 
 	<aside class="small" id="abc">

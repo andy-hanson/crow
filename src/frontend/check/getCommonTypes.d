@@ -68,6 +68,7 @@ CommonTypes* getCommonTypes(
 		float64: nonTemplate(ctx, symbol!"float64"),
 		future: getDecl(ctx, symbol!"future", 1),
 		integrals: integrals,
+		jsAny: nonTemplate(ctx, symbol!"js-any"),
 		string_: nonTemplate(ctx, symbol!"string"),
 		symbol: symbolType,
 		symbolArray: instantiate1(ctx, array, symbolType),

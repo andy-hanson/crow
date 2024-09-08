@@ -180,7 +180,7 @@ prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz 
 
 site/index.js: site-src/script/*.crow site-src/script/*/*.crow
 	mkdir -p site
-	rm -f site/index.js
+	rm -f site/index.js site/index.js.map
 	bin/crow build site-src/script/index.crow --out site/index.js
 
 serve: prepare-site

@@ -44,7 +44,7 @@ region Create nodes
 
 +style record(node node) nominal, mut
 +set-subscript void(a style, key symbol, value string) trusted, js extern
-	a.node.as-js["style"][key] := value
+	a.node.as-js["style"][key.to::string] := value
 
 +classes record(node node) nominal, mut
 +~= void(a classes, class-name string) trusted, js extern
@@ -162,7 +162,7 @@ region Custom elements
 	connected connected-callback,
 ) summon, trusted, js extern
 	constructor method = (this, _) =>
-		args js-any = ("mode", "open"::string.as-js),
+		args js-any = ("mode", "open"),
 		root = this call-property "attachShadow", args
 		root.cast set-style-sheet style-sheet[this cast] as-js
 	connected-callback method = (this, _) => connected[this cast] as-js

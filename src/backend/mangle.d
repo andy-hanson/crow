@@ -30,6 +30,7 @@ import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, Opt;
+import util.string : isAsciiIdentifierChar;
 import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.util : stringOfEnum, todo;
@@ -288,12 +289,6 @@ public void mangleNameCommon(Writer)(scope ref Writer writer, in Symbol a) {
 			writer ~= x;
 	}
 }
-
-public bool isAsciiIdentifierChar(dchar a) =>
-	('a' <= a && a <= 'z') ||
-	('A' <= a && a <= 'Z') ||
-	('0' <= a && a <= '9') ||
-	a == '_';
 
 bool conflictsWithCName(Symbol a) {
 	switch (a.value) {

@@ -371,6 +371,8 @@ stack-pointer alias
 # In a JS build, this is a 'Promise'.
 +future[t] builtin
 
++js-any builtin
+
 ###
 A sequence of `char32`s.
 

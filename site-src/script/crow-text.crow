@@ -141,11 +141,11 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	pos mut float = text-area["selectionStart"].cast min (str["length"].cast - 1)
 	first-non-space mut = pos
 	loop
-		char string = str[pos as-js] cast
+		char string = str[pos] cast
 		if char != " " && char != "\t"
 			first-non-space := pos
 		pos -:= 1
-		if pos >= 0 && str[pos as-js].cast::string != "\n"
+		if pos >= 0 && str[pos].cast::string != "\n"
 			continue
 		else
 			break str call-property "slice", pos + 1, first-non-space cast

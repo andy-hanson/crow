@@ -8,30 +8,31 @@ but many functions that need to be 'bare' for native code need to use these func
 no-std
 import
 	./private/bootstrap: array, bool, float64, gc-safe-value, void, nat64, new-void, string, symbol
-
-+js-any builtin
+export
+	./private/bootstrap: js-any
 
 +as-js[t] js-any(a t) builtin, bare, unsafe, js extern
 +cast[t] t(a js-any) builtin, bare, unsafe, js extern
 
 +js-global js-any() builtin, bare, unsafe, js extern
 +js-global js-any(name symbol) bare, unsafe, js extern
-	js-global[name]
+	js-global[name.js-cast::string]
 # `a[key]`
-+subscript js-any(a js-any, key js-any) builtin, bare, unsafe, js extern
-+subscript js-any(a js-any, name symbol) bare, unsafe, js extern
-	a[name as-js]
-# `a[index]` (This converts 'index' to a string.)
-+subscript js-any(a js-any, index nat64) bare, unsafe, js extern
-	a[index as-js]
++subscript js-any(a js-any, key string) builtin, bare, unsafe, js extern
+###
+In JavaScript, the argument to a subscript is always a string,
+and array indices are implicitly converted to strings.
+###
++subscript js-any(a js-any, key nat64) bare, unsafe, js extern
+	a[key.js-cast::string]
++subscript js-any(a js-any, key float64) bare, unsafe, js extern
+	a[key.js-cast::string]
 # `a[key] = value`
-+set-subscript[t] void(a js-any, key js-any, value t) builtin, bare, unsafe, js extern
-# `a[name] = value`
-+set-subscript[t] void(a js-any, name symbol, value t) bare, unsafe, js extern
-	a[name as-js] := value
-# `a[index] = value` (This converts 'index' to a string.)
-+set-subscript[t] void(a js-any, index nat64, value t) bare, unsafe, js extern
-	a[index as-js] := value
++set-subscript[t] void(a js-any, key string, value t) builtin, bare, unsafe, js extern
++set-subscript[t] void(a js-any, key nat64, value t) bare, unsafe, js extern
+	a[key.js-cast::string] := value
++set-subscript[t] void(a js-any, key float64, value t) bare, unsafe, js extern
+	a[key.js-cast::string] := value
 ###
 `a()`
 WARN: This does not 'await' the result.
@@ -106,7 +107,7 @@ region Utiliies
 
 ###
 Create a new JavaScript object.
-`("x", 1::float.as-js), ("y", "why"::string.as-js)` is like `{ x: 1, y: "why" }` in JavaScript.
+`("x", 1::float.as-js), ("y", "why")` is like `{ x: 1, y: "why" }` in JavaScript.
 ###
 +new js-any(...properties (symbol, js-any)[]) trusted, js extern
 	properties to-js-object
@@ -114,8 +115,8 @@ Create a new JavaScript object.
 	res = "Object".js-global call-new
 	i mut js-any = 0::float64 as-js
 	until i == properties.as-js["length"]
-		key, value = properties.as-js[i].cast::(symbol, js-any)
-		res[key] := value
+		key, value = properties.as-js[i.cast::float64].cast::(symbol, js-any)
+		res[key.js-cast::string] := value
 		i +:= 1::float64.as-js
 	res
 

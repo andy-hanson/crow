@@ -357,8 +357,7 @@ TokenAndData lexToken(ref MutCString ptr, IndentKind indentKind, ref uint curInd
 				default:
 					return plainToken(Token.question);
 			}
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0': .. case '9':
 			ptr = start;
 			return takeNumberAfterSign(ptr, none!Sign);
 		default:

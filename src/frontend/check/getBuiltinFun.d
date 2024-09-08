@@ -411,7 +411,7 @@ FunBody inner(
 		case symbol!"round-up".value:
 			return unaryMath(BuiltinUnaryMath.roundUpFloat32, BuiltinUnaryMath.roundUpFloat64);
 		case symbol!"set-subscript".value:
-			return isVoid(rt) && arity == 3 && isJsAny(p0) && isJsAny(p1) && isTypeParam0(p2)
+			return isVoid(rt) && arity == 3 && isJsAny(p0) && isString(p1) && isTypeParam0(p2)
 				? FunBody(BuiltinFun(JsFun.set))
 				: fail();
 		case symbol!"set-deref".value:
@@ -431,7 +431,7 @@ FunBody inner(
 		case symbol!"switch-fiber-initial".value:
 			return fourary(Builtin4ary.switchFiberInitial);
 		case symbol!"subscript".value:
-			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isJsAny(p1)
+			return isJsAny(rt) && arity == 2 && isJsAny(p0) && isString(p1)
 				? FunBody(BuiltinFun(JsFun.get))
 				: isFunPointer(p0)
 				? FunBody(BuiltinFun(BuiltinFun.CallFunPointer()))

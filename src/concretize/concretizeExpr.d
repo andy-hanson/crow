@@ -850,6 +850,8 @@ ConcreteExpr concretizeLiteralStringLike(
 			return genChar32Array(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.cString:
 			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, value)));
+		case LiteralStringLikeExpr.Kind.jsAny:
+			assert(false);
 		case LiteralStringLikeExpr.Kind.string_:
 			return genStringLiteral(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.symbol:

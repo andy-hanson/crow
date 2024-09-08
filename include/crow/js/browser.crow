@@ -40,10 +40,10 @@ import
 -post-options js-any(body string, credentials include-credentials) trusted, js extern
 	cred js-any = match credentials
 	as include-credentials
-		"include"::string.as-js
+		"include"
 	as exclude-credentials
 		undefined
-	("method", "POST"::string.as-js), ("body", body.show.as-js), ("credentials", cred)
+	("method", "POST"), ("body", body.show.as-js), ("credentials", cred)
 
 -fetch-text string(url string, options js-any) summon, trusted, js extern
 	(url fetch-response options call-property "text").await cast

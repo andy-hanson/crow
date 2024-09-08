@@ -1996,6 +1996,7 @@ JsExpr translateLiteralStringLike(ref TranslateExprCtx ctx, in Source source, re
 			}));
 		case LiteralStringLikeExpr.Kind.cString:
 			assert(false);
+		case LiteralStringLikeExpr.Kind.jsAny:
 		case LiteralStringLikeExpr.Kind.string_:
 		case LiteralStringLikeExpr.Kind.symbol:
 			return genString(source, a.value);

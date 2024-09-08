@@ -171,7 +171,7 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 	as object x
 		res = "Object".js-global call-new
 		for key, value : x
-			res[key] := value
+			res[key to] := value
 		res
 
 # Converts a JS object to the corresponding JSON value.

@@ -1,6 +1,6 @@
 import
 	../js:
-		==, +, as-js, call, cast, call-property, eval, js-any, js-global, null, set-subscript,
+		==, as-js, call, cast, call-property, eval, js-any, js-cast, js-global, null, set-subscript,
 		subscript, typeof, undefined
 
 # Converts a JS nullable / undefined-able value to 't'.
@@ -17,24 +17,24 @@ This won't work on opaque types.
 		true
 	elif a is-array
 		if b.is-array && a["length"] == b["length"]
-			i mut = 0::float64.as-js
+			i mut float64 = 0
 			loop
-				if i == a["length"]
+				if i == a["length"].cast
 					break true
-				elif a[i] deep-equals b[i]
-					i +:= 1::float64.as-js
+				elif a[i] deep-equals b[i.js-cast::string]
+					i +:= 1
 					continue
 				else
 					break false
-	elif a.typeof.as-js == "object"::string.as-js
+	elif a.typeof == "object"
 		keys = a.sorted-keys as-js
 		if keys deep-equals b.sorted-keys.as-js
-			i mut = 0::float64.as-js
+			i mut float64 = 0
 			loop
-				if i == keys["length"]
+				if i == keys["length"].cast
 					break true
-				elif a[keys[i]] deep-equals b[keys[i]]
-					i +:= 1::float64.as-js
+				elif a[keys[i].cast::string] deep-equals b[keys[i].cast::string]
+					i +:= 1
 					continue
 				else
 					break false
@@ -61,7 +61,7 @@ This currently does not support fields, getters/setters, or calling 'super' with
 		}
 	""".eval call constructor, super-class
 	for name, method : methods
-		res["prototype"][name] := method make-method
+		res["prototype"][name.js-cast::string] := method make-method
 	res
 
 +method alias
