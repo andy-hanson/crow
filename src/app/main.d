@@ -593,7 +593,9 @@ ExitCodeOrSignal withProgramForMain(
 	ProgramWithMain program = getProgramForMain(perf, alloc, server, main, targets);
 	if (hasAnyDiagnostics(program))
 		printError(showDiagnostics(alloc, server, program));
-	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
+	return hasFatalDiagnostics(program)
+		? ExitCodeOrSignal(printError("Stopping due to compile errors."))
+		: cb(program);
 }
 ExitCodeOrSignal withProgramForRoots(
 	scope ref Perf perf,
@@ -606,7 +608,7 @@ ExitCodeOrSignal withProgramForRoots(
 	Program program = getProgramForRoots(perf, alloc, server, roots);
 	if (hasAnyDiagnostics(program))
 		printError(showDiagnostics(alloc, server, program));
-	return hasFatalDiagnostics(program) ? ExitCodeOrSignal.error : cb(program);
+	return cb(program);
 }
 
 ExitCodeOrSignal withWriteToC(

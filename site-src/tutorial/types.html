@@ -108,13 +108,11 @@
 <section>
 	<h2>Strings</h2>
 	<p>
-		Strings are technically a library type and not a primitive type.
+		These are similar to other programming languages.
+		Strings are represented as a <code class="type">char8[]</code>,
+		but when iterated they decode to <code class="type">char32</code>s.
 		<br />
-		<code class="type">string</code> wraps a <code class="type">char8[]</code>;
-		a list of UTF-8 bytes.
-		<br />
-		Lists are explained more in {{tutorial/collections}}.
-		What's relevant is that they are efficient to concatenate.
+		(In a JavaScript build, strings represented as are JS strings.)
 	</p>
 
 	<h3>String syntax</h3>
@@ -150,8 +148,10 @@ but I forgot it
 
 	<h3>String functions</h3>
 	<p>
-		Strings act like a collection, so if a function is missing from {{doc/string}},
-		look for it in {{doc/col/collection}} instead.
+		String functions are in {{doc/string}}.
+		<br />
+		A string is also a collection of <code class="type">char32</code>,
+		so many functions in {{doc/col/collection}} will work on strings.
 	</p>
 </section>
 <section>

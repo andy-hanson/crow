@@ -4,3 +4,4 @@ test/end-to-end/compile-errors/main-missing.crow 1:1-1:1 Module should have a fu
 	main void()
 Or:
 	main nat64(args string[])
+Stopping due to compile errors.

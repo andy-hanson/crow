@@ -132,8 +132,10 @@ Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst, in Typ
 			none!T);
 
 Opt!T eachTypeInDestructureParts(T)(in Type type, in DestructureAst[] parts, in TypeCbOpt!T cb) =>
-	firstZip!(T, Type, DestructureAst)(type.as!(StructInst*).typeArgs, parts, (Type typeArg, DestructureAst param) =>
-		eachTypeInDestructure!T(typeArg, param, cb));
+	type.isBogus
+		? none!T
+		: firstZip!(T, Type, DestructureAst)(type.as!(StructInst*).typeArgs, parts, (Type typeArg, DestructureAst param) =>
+			eachTypeInDestructure!T(typeArg, param, cb));
 
 Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in TypeCbOpt!T cb) =>
 	ast.matchIn!(Opt!T)(

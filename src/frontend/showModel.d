@@ -314,11 +314,11 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 		writeFunType(writer, ctx, typeContainer, kind, rp[0], rp[1]);
 	}
 	void map(string open) {
-		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, withContainer(vk[0]));
+		Type[2] keyVal = only2(s.typeArgs);
+		writeTypeUnquoted(writer, ctx, withContainer(keyVal[1]));
 		writer ~= open;
 		writer ~= '[';
-		writeTypeUnquoted(writer, ctx, withContainer(vk[1]));
+		writeTypeUnquoted(writer, ctx, withContainer(keyVal[0]));
 		writer ~= ']';
 	}
 	void suffix(string suffix) {
