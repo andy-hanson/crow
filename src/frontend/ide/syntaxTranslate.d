@@ -11,11 +11,11 @@ import util.alloc.alloc : Alloc;
 import util.col.array : contains, emptySmallArray, isEmpty, map, newArray, prepend, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, Builder, buildArray, buildSmallArray, finish;
 import util.memory : allocate;
-import util.opt : force, has, Opt, optIf;
+import util.opt : force, has, none, Opt, optIf;
 import util.union_ : Union;
 import util.sourceRange : Pos;
 import util.string : copyString, copyToCString, CString, isWhitespace, MutCString, stringOfRange, tryTakeChar;
-import util.symbol : Symbol, symbolOfString;
+import util.symbol : enumOfSymbol, Symbol, symbolOfString;
 import util.util : ptrTrustMe;
 import util.writer : makeStringWithWriter, Writer, writeWithCommas;
 
@@ -30,7 +30,7 @@ SyntaxTranslateResult syntaxTranslate(ref Alloc alloc, in SyntaxTranslateParams 
 		JavaExprAndDiags expr = parseJavaExpr(alloc, source);
 		return SyntaxTranslateResult(
 			output: makeStringWithWriter(alloc, (scope ref Writer writer) {
-				translateToCrow(writer, expr.expr, Position.root);
+				translateToCrow(writer, expr.expr, Position.root, none!Augment);
 			}),
 			diagnostics: expr.diagnostics);
 	} else if (params.from == Language.crow) {
@@ -139,22 +139,51 @@ void writeParenthesized(T)(scope ref Writer writer, in T[] values, in void deleg
 }
 
 enum Position { root, firstArg, nonFirstArg, beforeDot }
-void translateToCrow(scope ref Writer writer, in JavaExpr a, Position position) {
+
+enum Augment { not, force }
+void withAugment(scope ref Writer writer, Opt!Augment augment, Symbol name) {
+	withAugment(writer, augment, () {
+		writer ~= name;
+	});
+}
+void withAugment(scope ref Writer writer, Opt!Augment augment, in void delegate() @safe @nogc pure nothrow cb) {
+	if (has(augment)) {
+		final switch (force(augment)) {
+			case Augment.not:
+				writer ~= '!';
+				break;
+			case Augment.force:
+				break;
+		}
+	}
+	cb();
+	if (has(augment)) {
+		final switch (force(augment)) {
+			case Augment.not:
+				break;
+			case Augment.force:
+				writer ~= '!';
+				break;
+		}
+	}
+}
+
+void translateToCrow(scope ref Writer writer, in JavaExpr a, Position position, Opt!Augment augment) {
 	a.matchIn!void(
 		(in JavaExpr.Bogus _) {
 			writer ~= "bogus";
 		},
 		(in IdentifierAst x) {
-			writer ~= x.name;
+			withAugment(writer, augment, x.name);
 		},
 		(in JavaExpr.Call x) {
-			translateCallToCrow(writer, x, position);
+			translateCallToCrow(writer, x, position, augment);
 		},
 		(in JavaExpr.Dot x) {
-			writeCrowCall(writer, *x.left, x.name, [], position);
+			writeCrowCall(writer, *x.left, x.name, [], position, augment);
 		});
 }
-void translateCallToCrow(scope ref Writer writer, in JavaExpr.Call a, Position position) {
+void translateCallToCrow(scope ref Writer writer, in JavaExpr.Call a, Position position, Opt!Augment augment) {
 	JavaExpr[] args = a.args;
 	a.called.matchIn!void(
 		(in JavaExpr.Bogus _) {
@@ -162,20 +191,22 @@ void translateCallToCrow(scope ref Writer writer, in JavaExpr.Call a, Position p
 		},
 		(in IdentifierAst x) {
 			if (isEmpty(args))
-				writer ~= x.name;
+				withAugment(writer, augment, x.name);
 			else
-				writeCrowCall(writer, args[0], x.name, args[1 .. $], position);
+				writeCrowCall(writer, args[0], x.name, args[1 .. $], position, augment);
 		},
 		(in JavaExpr.Call x) {
-			translateToCrow(writer, JavaExpr(x), position);
-			writer ~= '[';
-			writeWithCommas!JavaExpr(writer, args, (in JavaExpr arg) {
-				translateToCrow(writer, arg, Position.nonFirstArg);
+			withAugment(writer, augment, () {
+				translateToCrow(writer, JavaExpr(x), position, none!Augment);
+				writer ~= '[';
+				writeWithCommas!JavaExpr(writer, args, (in JavaExpr arg) {
+					translateToCrow(writer, arg, Position.nonFirstArg, none!Augment);
+				});
+				writer ~= ']';
 			});
-			writer ~= ']';
 		},
 		(in JavaExpr.Dot x) {
-			writeCrowCall(writer, *x.left, x.name, args, position);
+			writeCrowCall(writer, *x.left, x.name, args, position, augment);
 		});
 }
 void writeCrowCall(
@@ -184,12 +215,26 @@ void writeCrowCall(
 	Symbol name,
 	in JavaExpr[] restArgs,
 	Position position,
+	Opt!Augment augment,
 ) {
 	if (isEmpty(restArgs)) {
-		bool isRoot = position == Position.root;
-		translateToCrow(writer, firstArg, isRoot ? Position.firstArg : Position.beforeDot);
-		writer ~= isRoot ? ' ' : '.';
-		writer ~= name;
+		Opt!Augment newAugment = has(augment) ? none!Augment : enumOfSymbol!Augment(name);
+		if (has(newAugment)) {
+			translateToCrow(writer, firstArg, position, newAugment);
+		} else {
+			bool isRoot = position == Position.root;
+			if (isRoot) {
+				translateToCrow(writer, firstArg, Position.firstArg, none!Augment);
+				writer ~= ' ';
+				withAugment(writer, augment, name);
+			} else {
+				withAugment(writer, augment, () {
+					translateToCrow(writer, firstArg, Position.beforeDot, none!Augment);
+					writer ~= '.';
+					writer ~= name;
+				});
+			}
+		}
 	} else {
 		bool needsParens = () {
 			final switch (position) {
@@ -203,12 +248,12 @@ void writeCrowCall(
 		}();
 		if (needsParens)
 			writer ~= '(';
-		translateToCrow(writer, firstArg, Position.firstArg);
+		translateToCrow(writer, firstArg, Position.firstArg, none!Augment);
 		writer ~= ' ';
-		writer ~= name;
+		withAugment(writer, augment, name);
 		writer ~= ' ';
 		writeWithCommas!JavaExpr(writer, restArgs, (in JavaExpr arg) {
-			translateToCrow(writer, arg, Position.nonFirstArg);
+			translateToCrow(writer, arg, Position.nonFirstArg, none!Augment);
 		});
 		if (needsParens)
 			writer ~= ')';

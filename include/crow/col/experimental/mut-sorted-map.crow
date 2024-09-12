@@ -62,7 +62,7 @@ This is O(log n).
 ###
 +subscript[k, v] v?(a (k, v) mut-sorted-map, key k) k key
 	if iter ?= a find-exact key
-		(_, v), _ = iter.next!
+		(_, v), _ = iter next!
 		v
 
 # Adds a key-value pair, replacing any existing one with that key.
@@ -173,7 +173,7 @@ Else, returns an empty option.
 			_, v = a.pairs remove-at iter.next-index
 			v
 		else
-			(_, old-value), _ = iter.next!
+			(_, old-value), _ = iter next!
 			iter.next := key, ()
 			old-value
 		unless res is-empty
@@ -203,7 +203,7 @@ Else, returns an empty option.
 -compact[k, v] void(a (k, v) mut-sorted-map) k key
 	guard next ?= a next
 	next compact
-	a.pairs filter= (_, v) => !v.is-empty
+	a.pairs filter= (_, v) => v !is-empty
 	a.pairs merge-no-duplicates next.pairs, ((k0, _), (k1, _)) =>
 		k0 <=> k1 assert-comparison-not-equal
 	a.next := ()

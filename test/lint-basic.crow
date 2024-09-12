@@ -17,7 +17,7 @@ main nat(_ string[]) summon, native extern
 
 -list-lintable-files string[]() summon, native extern
 	res string mut[] = ()
-	"." each-child-recursive (child => !child.excluded-from-lint), child =>
+	"." each-child-recursive (child => child !excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to

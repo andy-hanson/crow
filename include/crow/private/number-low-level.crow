@@ -1,7 +1,7 @@
 no-std
 import
 	../compare: >=, comparison, equal, greater, less
-	./bool-low-level: bool, not
+	./bool-low-level: bool
 export
 	./bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
@@ -177,10 +177,6 @@ is-less bool(a nat64, b nat64) builtin, bare
 # Equivlaent to `a is-multiple-of 2`.
 +is-even bool(a nat64) bare
 	(trusted a unsafe-mod 2) == 0
-
-# Equivalent to `!a.is-even`.
-+is-odd bool(a nat64) bare
-	!a.is-even
 
 region constants
 

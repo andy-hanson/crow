@@ -147,8 +147,8 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	lo mut = a begin
 	hi mut = a end
 	while hi - lo > 1
-		pair0 = lo.next!
-		pair1 = hi.prev!
+		pair0 = lo next!
+		pair1 = hi prev!
 		lo set-next pair1.b
 		hi set-prev pair0.a
 		lo := pair0 b
@@ -254,7 +254,7 @@ sequence-equal[col, iter, elem] bool(
 	bi mut = b begin
 	loop
 		if na ?= ai next
-			nb = bi.next!
+			nb = bi next!
 			if na.a == nb.a
 				ai := na b
 				bi := nb b
@@ -297,10 +297,10 @@ For sets, prefer `in`.
 	a iterate x => x == value
 
 +starts-with[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
-	!(a.begin iter-starts-with b).is-empty
+	a.begin iter-starts-with b !is-empty
 
 +ends-with[col, iter, elem] bool(a col, b col) (iter, col) end, (elem, iter) prev, elem equal
-	!(a.end iter-ends-with b).is-empty
+	a.end iter-ends-with b !is-empty
 
 +try-remove-start[col, iter, elem] col?(
 	a col,
@@ -368,7 +368,7 @@ For sets, prefer `in`.
 That means: The elements in `b` appear in `a`, in order, without interruptions.
 ###
 +contains-seq[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
-	!(a iters-of-seq b).is-empty
+	a iters-of-seq b !is-empty
 
 ###
 Finds the first appearance of `b` in `a`,
@@ -481,7 +481,7 @@ Calls `f` on each element of `a` and returns `false` the fist time `f` does.
 Returns `true` iff `f` returned `true` every time.
 ###
 +every[col, elem] bool(a col, f bool mut(elem elem)) (col, elem) iterate
-	!(a iterate x => !f[x])
+	a !iterate x => !f[x]
 
 ###
 Drops elements from the left until `f` returns `false`.
@@ -643,7 +643,7 @@ region with-index
 		loop
 			if x, i0n ?= i0 next
 				i0 := i0n
-				y, i1n = i1.next!
+				y, i1n = i1 next!
 				i1 := i1n
 				if f[x, y]
 					continue

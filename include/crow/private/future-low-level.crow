@@ -17,7 +17,7 @@ import
 	# The future is not resolved and nothing is awaiting it yet.
 	empty
 	# The future is not resolved, and fibers are waiting on it.
-	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future!'.
+	# Fibers are stored in a linked list. The next fiber in is 'fiber.state.awaiting-future'.
 	awaited-by fiber
 	# The future completed successfully.
 	resolved t

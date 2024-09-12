@@ -131,7 +131,7 @@ This is amortized O(log n).
 	if mid.n-before-mid == 0
 		a
 	else
-		root = a.root!
+		root = a root!
 		match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			# TODO: type annotation should not be necessary
@@ -242,7 +242,7 @@ region spec impls (see collection.crow)
 		cur := node next
 
 -walk[k, v] bool(a (k, v) each-part mut-slice, f bool mut(key k, value v)) k compare
-	guard !a.is-empty
+	guard a !is-empty
 	head = a[0]
 	if f[head min]
 		true
@@ -284,7 +284,7 @@ test
 	p2.dbg is "6 6 []; 5 5 []"
 	p2.compact-leading-nodes.dbg is "5 5 [6 6]"
 
-	p2pop = p2.pop!
+	p2pop = p2 pop!
 	p2pop.a is (5, "5")
 	p2pop.b.dbg is "6 6 []"
 
@@ -293,14 +293,14 @@ test
 
 	p4.dbg is "7 7 []; 4 4 []; 6 6 []; 5 5 []"
 
-	p4pop = p4.pop!
+	p4pop = p4 pop!
 	p4pop.a is (4, "4")
 	p4pop.b.dbg is "5 5 [6 6, 7 7]"
 
 	p5 = p4pop.b ~ (6, "6b") ~ (6, "6c")
 	p5.dbg is "6 6c []; 6 6b []; 5 5 [6 6, 7 7]"
 
-	p5pop = p5.pop!
+	p5pop = p5 pop!
 	p5pop.a is (5, "5")
 	p5pop.b.dbg is "6 6 [7 7]; 6 6b [6 6c]"
 
@@ -310,7 +310,7 @@ test
 	p6-pairs (nat64, string)[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	p6.to::(nat64, string)[] is p6-pairs
 
-	p6pop = p6.pop!
+	p6pop = p6 pop!
 	p6pop.a is (6, "6")
 	p6pop.b.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
 

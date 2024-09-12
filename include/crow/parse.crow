@@ -118,7 +118,7 @@ region basic building blocks
 		iter mut = start
 		res string = with out : build
 			loop
-				if possible-endings exists x => !(iter try-take-exact x).is-empty
+				if possible-endings exists x => iter try-take-exact x !is-empty
 					break
 				elif x, rest ?= iter next
 					out ~= x

@@ -516,6 +516,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					addName();
 					addExprsTokens(ctx, x.args);
 					break;
+				case CallAst.Style.augment:
 				case CallAst.Style.comma:
 				case CallAst.Style.subscript:
 				case CallAst.Style.questionSubscript:

@@ -21,7 +21,7 @@ import
 		set-subscript, size, subscript, swap, temp-as-array, to
 
 binary-search-has[t] bool(a t[], value t) t compare
-	!(a binary-search-exact value is-empty)
+	a binary-search-exact value !is-empty
 
 binary-search-key[k, v] v?(a (k, v)[], key k) k compare
 	left mut = a begin
@@ -79,7 +79,7 @@ binary-search-exact[t] t array-iterator?(a t[], value t) t compare
 	cur mut = left
 	loop
 		if cur < right
-			pair = cur.next!
+			pair = cur next!
 			if pair.a == value
 				break cur,
 			else
@@ -167,7 +167,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
-	guard !b.is-empty
+	guard b !is-empty
 	trusted
 		a-old-size = a size
 		a push-gc-safe-values b.size

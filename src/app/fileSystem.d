@@ -446,7 +446,11 @@ enum FileOverwrite { forbid, allow }
 		return ExitCode.error;
 }
 
-private @system MutOpt!(FILE*) tryOpenFileForWrite(FilePath path, FilePermissions permissions, FileOverwrite overwrite) {
+private @system MutOpt!(FILE*) tryOpenFileForWrite(
+	FilePath path,
+	FilePermissions permissions,
+	FileOverwrite overwrite,
+) {
 	MutOpt!(FILE*) res = openFileForWrite(path, permissions, overwrite);
 	if (has(res))
 		return res;

@@ -93,6 +93,7 @@ import model.ast :
 	TypedAst,
 	WithAst;
 import model.parseDiag : ParseDiag;
+import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, isEmpty, newArray, newSmallArray, only2, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, buildArray, buildSmallArray, Builder, finish;
 import util.memory : allocate;
@@ -230,6 +231,8 @@ bool isExpressionStartToken(Token a) {
 		case Token.loop:
 		case Token.match:
 		case Token.name:
+		case Token.nameAfterBang:
+		case Token.nameBang:
 		case Token.operator:
 		case Token.parenLeft:
 		case Token.quoteDouble:
@@ -306,12 +309,6 @@ ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, Pos co
 		CallAst(CallAst.Style.comma, commaPos, NameAndRange(range.start, symbol!"new"), args)));
 }
 
-struct NameAndPrecedence {
-	Token token;
-	Symbol name;
-	int precedence;
-}
-
 ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	Pos pos = curPos(lexer);
 	Opt!NameAndPrecedence optName = tryTakeNameAndPrecedence(lexer, argCtx);
@@ -319,7 +316,7 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 		return lhs;
 
 	Token funToken = force(optName).token;
-	NameAndRange funName = NameAndRange(pos, force(optName).name);
+	NameAndRange funName = NameAndRange(pos + (funToken == Token.nameAfterBang ? 1 : 0), force(optName).name);
 	int precedence = force(optName).precedence;
 	Opt!AssignmentKind assignment = () {
 		switch (funToken) {
@@ -350,9 +347,23 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 			return ExprAstKind(CallAst(CallAst.Style.infix, funName, args, typeArg));
 	}();
 	ExprAst expr = ExprAst(range(lexer, start), exprKind);
-	return parseCalls(lexer, start, expr, argCtx);
+	ExprAst res = funToken == Token.nameAfterBang
+		? makeAugment(lexer.alloc, range(lexer, start), funName.range.start - 1, symbol!"not", expr)
+		: funToken == Token.nameBang
+		? makeAugment(lexer.alloc, range(lexer, start), funName.range.end, symbol!"force", expr)
+		: expr;
+	return parseCalls(lexer, start, res, argCtx);
 }
 
+ExprAst makeAugment(ref Alloc alloc, Range range, Pos pos, Symbol name, ExprAst inner) =>
+	ExprAst(range, ExprAstKind(
+		CallAst(CallAst.Style.augment, pos, NameAndRange(pos, name), newSmallArray!ExprAst(alloc, [inner]))));
+
+immutable struct NameAndPrecedence {
+	Token token;
+	Symbol name;
+	int precedence;
+}
 Opt!NameAndPrecedence tryTakeNameAndPrecedence(scope ref Lexer lexer, ArgCtx argCtx) {
 	TokenAndData x = getPeekTokenAndData(lexer);
 	if (x.isSymbol) {
@@ -394,6 +405,8 @@ int commaPrecedence() =>
 int ternaryPrecedence() =>
 	-5;
 
+int namePrecedence() =>
+	0;
 int symbolPrecedence(Symbol a, bool isAssignment) {
 	if (isAssignment) return -4;
 	switch (a.value) {
@@ -436,7 +449,7 @@ int symbolPrecedence(Symbol a, bool isAssignment) {
 			return 10;
 		default:
 			// All other names
-			return 0;
+			return namePrecedence;
 	}
 }
 
@@ -448,12 +461,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		case Token.dot:
 		case Token.questionDot:
 			takeNextToken(lexer);
-			NameAndRange name = takeNameAndRange(lexer);
-			Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
-			CallAst call = CallAst(
-				token == Token.dot ? CallAst.Style.dot : CallAst.Style.questionDot,
-				dotPos, name, newSmallArray(lexer.alloc, [initial]), typeArg);
-			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(call)));
+			return handleDotOrQuestionDot(lexer, initial, start, dotPos, isQuestionDot: token == Token.questionDot);
 		case Token.arrowAccess:
 			takeNextToken(lexer);
 			NameAndRange name = takeNameAndRange(lexer);
@@ -481,6 +489,27 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		default:
 			return initial;
 	}
+}
+ExprAst handleDotOrQuestionDot(ref Lexer lexer, ExprAst initial, Pos start, Pos dotPos, bool isQuestionDot) {
+	CallAst call(NameAndRange name, Opt!(TypeAst*) typeArg) =>
+		CallAst(
+			isQuestionDot ? CallAst.Style.questionDot : CallAst.Style.dot,
+			dotPos, name, newSmallArray(lexer.alloc, [initial]), typeArg);
+
+	ExprAst res = () {
+		if (peekToken(lexer, Token.nameBang)) {
+			Pos nameStart = curPos(lexer);
+			NameAndRange name = NameAndRange(nameStart, getPeekTokenAndData(lexer).asSymbol);
+			takeNextToken(lexer);
+			return makeAugment(
+				lexer.alloc, range(lexer, start), name.range.end, symbol!"force",
+				ExprAst(range(lexer, start), ExprAstKind(call(name, none!(TypeAst*)))));
+		} else {
+			NameAndRange name = takeNameAndRange(lexer);
+			return ExprAst(range(lexer, start), ExprAstKind(call(name, tryParseTypeArgForExpr(lexer))));
+		}
+	}();
+	return tryParseDotsAndSubscripts(lexer, res);
 }
 
 ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos subscriptPos, bool isQuestionBracket) {
@@ -913,6 +942,16 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name, arrowPos)
 				: handleName(lexer, start, NameAndRange(start, name));
+		case Token.nameAfterBang:
+			ExprAst inner = ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(token.asSymbol)));
+			return makeAugment(
+				lexer.alloc, range(lexer, start), start, symbol!"not", tryParseDotsAndSubscripts(lexer, inner));
+		case Token.nameBang:
+			Range nameBangRange = range(lexer, start);
+			ExprAst inner = ExprAst(nameBangRange, ExprAstKind(IdentifierAst(token.asSymbol)));
+			return tryParseDotsAndSubscripts(
+				lexer,
+				makeAugment(lexer.alloc, nameBangRange, nameBangRange.end - 1, symbol!"force", inner));
 		case Token.operator:
 			Symbol operator = token.asSymbol;
 			if (operator == symbol!"&") {

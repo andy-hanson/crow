@@ -41,7 +41,7 @@ test trusted, native extern
 		f2 is found
 		assert ptr2 == ptr
 
-		a must-find 0 is ptr
+		a find! 0 is ptr
 		a.as-const.slow-is-empty is false
 		a remove ptr
 		a.as-const.slow-is-empty is true
@@ -50,12 +50,12 @@ test trusted, native extern
 	with a : bm
 		p3 = a find-or-insert 3
 		p7 = a find-or-insert 7
-		assert (a must-find 3) == p3
-		assert (a must-find 7) == p7
+		assert (a find! 3) == p3
+		assert (a find! 7) == p7
 		a remove p3
 
 		assert a find 3 is-empty
-		assert (a must-find 7) == p7
+		assert (a find! 7) == p7
 		a find-or-insert 7 is p7
 		()
 
@@ -65,7 +65,7 @@ test trusted, native extern
 			p = a find-or-insert i * 4
 			p->id := "{i}"
 		for i : 0::nat64 .. 10
-			(a.as-const must-find i * 4)->id is "{i}"
+			(a.as-const find! i * 4)->id is "{i}"
 
 test trusted, native extern
 	with a : bm
@@ -73,5 +73,5 @@ test trusted, native extern
 			p = a find-or-insert i
 			p->id := "{i}"
 		for i : 0::nat64 .. 10
-			a remove (a must-find i)
+			a remove (a find! i)
 		assert a.as-const slow-is-empty

@@ -78,7 +78,7 @@ other-links link[]()
 	("include-all.json", content),
 
 -remove-include string(a string)
-	(a try-remove-start "include/")!
+	a try-remove-start! "include/"
 
 -search-all-with-content path-and-content[](path string, remove-prefix string) summon, native extern
 	paths = path search-dir-recursive

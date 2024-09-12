@@ -284,6 +284,7 @@ immutable struct CallAst {
 	@safe @nogc pure nothrow:
 
 	enum Style : ubyte {
+		augment, // This is the call for '!' in 'x !f y' or for '?!' in 'x f?! y'
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		emptyParens, // `()`
@@ -316,6 +317,8 @@ immutable struct CallAst {
 
 	Opt!Range keywordRange() scope {
 		final switch (style) {
+			case Style.augment:
+				return some(funName.range);
 			case Style.comma:
 			case Style.dot:
 			case Style.subscript:

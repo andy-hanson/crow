@@ -19,6 +19,8 @@ void testSyntaxTranslate(ref Test test) {
 	testAllWays(test, "a g b f c, d", "f(g(a, b), c, d)", "a.g(b).f(c, d)");
 	testAllWays(test, "a g b, c f d, e", "f(g(a, b, c), d, e)", "a.g(b, c).f(d, e)");
 	testAllWays(test, "a g b f (c h d), e.i", "f(g(a, b), h(c, d), i(e))", "a.g(b).f(c.h(d), e.i())");
+	testAllWays(test, "a !f b", "not(f(a, b))", "a.f(b).not()");
+	testAllWays(test, "a f! b", "force(f(a, b))", "a.f(b).force()");
 
 	testOneWay(test, Language.c, "f(a) x", Language.crow, "a f", [5]);
 	testOneWay(test, Language.crow, "x\n", Language.c, "", [0]);

@@ -78,15 +78,12 @@ destroy[t] void(a t bare-map mut*) bare, unsafe, t destroy, native extern
 -free-table-not-values[t] void(a t bare-map mut*) bare, unsafe, native extern
 	a->begin-full unmanaged-free-elements a->full-capacity
 
-must-find[t, k] t*(a t bare-map*, key k) bare, unsafe, (t, k) entry, native extern
-	(a.as-mut must-find key).as-const
-
-must-find[t, k] t mut*(a t bare-map mut*, key k) bare, unsafe, (t, k) entry, native extern
-	(a find key)!
-
 remove[t, k] void(_ t bare-map mut*, entry t mut*) bare, unsafe, (t, k) entry, native extern
 	*entry := (invalid-key,)
 
+find[t, k] t*?(a t bare-map*, key k) bare, unsafe, (t, k) entry, native extern
+	if x ?= a.as-mut find key
+		x.as-const,
 find[t, k] t mut*?(a t bare-map mut*, key k) bare, unsafe, (t, k) entry, native extern
 	hash = key hash
 	left = a entry-left hash
@@ -181,7 +178,7 @@ find-or-insert-and-inserted[t, k] (t mut*, found-or-inserted)(
 	cur mut = a->begin-full.as-const
 	until cur == a->end-full.as-const
 		unless cur->key == invalid-key
-			&out must-find cur->key move-from cur
+			&out find! cur->key move-from cur
 		cur +:= 1
 
 	a free-table-not-values

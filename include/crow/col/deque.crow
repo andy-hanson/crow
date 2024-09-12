@@ -52,7 +52,7 @@ Returns an empty option iff `a` is empty.
 +pop-left[t] (t, t deque)?(a t deque)
 	if popped ?= a.left pop
 		(popped.b, (popped.a, a.mid, a.right)),
-	elif !a.mid.is-empty
+	elif a.mid !is-empty
 		# TODO: should not need type annotation
 		(a.mid[0], (()::(t stack), a.mid[1 .. end], a.right)),
 	else
@@ -67,7 +67,7 @@ Returns an empty option iff `a` is empty.
 +pop-right[t] (t deque, t)?(a t deque)
 	if popped ?= a.right pop
 		((a.left, a.mid, popped.a), popped.b),
-	elif !a.mid.is-empty
+	elif a.mid !is-empty
 		((a.left, a.mid[0 .. end - 1], ()), a.mid[end - 1]),
 	else
 		left-arr = a.left to-array-reverse
@@ -99,37 +99,37 @@ test
 	bl nat64 deque = 1 ~ a
 	bl.dbg is "1 []"
 	bl.to::nat64[] is (1,)
-	bl-pop-left = bl.pop-left!
+	bl-pop-left = bl pop-left!
 	bl-pop-left.a is 1
 	# TODO: 'is deque'
 	bl-pop-left.b.to::nat64[] is ()
-	bl-pop-right = bl.pop-right!
+	bl-pop-right = bl pop-right!
 	bl-pop-right.b is 1
 	bl-pop-right.a.to::nat64[] is ()
 
 	br = a ~ 1
 	br.dbg is "[] 1"
 	br.to::nat64[] is bl.to
-	br-pop-left = br.pop-left!
+	br-pop-left = br pop-left!
 	br-pop-left.a is 1
 	br-pop-left.b.to::nat64[] is ()
-	br-pop-right = br.pop-right!
+	br-pop-right = br pop-right!
 	br-pop-right.b is 1
 	br-pop-right.a.to::nat64[] is ()
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
-	c-pop = c.pop-left!
+	c-pop = c pop-left!
 	c-pop.a is 1
 
 	# Forces it to convert to an array
 	d = c-pop b
 	d.dbg is "[] 2 3"
-	d-pop-left = d.pop-left!
+	d-pop-left = d pop-left!
 	d-pop-left.a is 2
 	d-pop-left.b.to::nat64[] is (3,)
 
-	d-pop = d.pop-left!
+	d-pop = d pop-left!
 	d-pop.a is 2
 	d-pop.b.dbg is "[3]"
 
@@ -137,7 +137,7 @@ test
 	e nat64 deque = 1 ~ (2 ~ (3 ~ ()))
 	e.to::nat64[] is (1, 2, 3)
 	e.dbg is "1 2 3 []"
-	e-pop = e.pop-right!
+	e-pop = e pop-right!
 	e-pop.b is 3
 	e-pop.a.dbg is "[1 2]"
 

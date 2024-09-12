@@ -229,7 +229,7 @@ region spec impls (see collection.crow)
 		(key, _), rest = popped
 		overlays drop-overlays-with-key key
 		overlays maybe-add-back popped
-		guard !rest.is-empty : continue
+		guard rest !is-empty : continue
 		if f[key, rest[0] b]
 			break true
 		else

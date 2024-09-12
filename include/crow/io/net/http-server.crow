@@ -65,13 +65,13 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		()
 	as finished
 		request = state finish-request
-		_ = (client-states remove sock)!
+		_ = client-states remove! sock
 		with : fire-and-forget
 			sock write-until-finished (handler run-handler-and-catch request).response-to-array
 			sock close-client
 			()
 	as abandon
-		_ = (client-states remove sock)!
+		_ = client-states remove! sock
 
 -run-handler-and-catch http-response(handler http-handler, request http-request) unsafe
 	cb http-response mut() = () =>
@@ -124,7 +124,7 @@ http-initial-state enum(needs-more, finished, abandon)
 -handle-http-initial http-initial-state(state http-parse-state)
 	loop
 		guard line ?= state.unparsed try-take-first-line : break needs-more
-		guard !line.is-empty : break state.content-length == 0 ? finished : needs-more
+		guard line !is-empty : break state.content-length == 0 ? finished : needs-more
 		if state.path-and-query is-empty
 			# Expect something like "GET / HTTP/1.1"
 			parts string[] = line split " "

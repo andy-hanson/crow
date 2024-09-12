@@ -95,7 +95,7 @@ height nat()
 	x * (height + 1) + y
 
 can-place bool(a board, x nat)
-	!(a.both-players bits-intersect x.top-mask)
+	a.both-players !bits-intersect x.top-mask
 
 place board(a board, x nat)
 	assert a can-place x

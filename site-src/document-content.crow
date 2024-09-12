@@ -81,7 +81,7 @@ module-content string(a module, all-exports all-exports)
 	assert module ?= map[name] :
 		"Could not find {kind} {name} in {ctx current-module} member {ctx current-export}" error
 	module-path string = if module != ctx.current-module
-		"/doc/{(module.to::string try-remove-end ".crow")!}.html"
+		"/doc/{module.to::string try-remove-end! ".crow"}.html"
 	"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 
 -module-top string(path module-path)
@@ -154,7 +154,7 @@ module-content string(a module, all-exports all-exports)
 		"type"
 
 -type-params-content string(a type-param[])
-	guard !a.is-empty
+	guard a !is-empty
 	type-params = ", " join for x : a
 		"""<code class="typeParameter">{x name}</code>"""
 	"""<span class="type-params">[{type-params}]</span>"""

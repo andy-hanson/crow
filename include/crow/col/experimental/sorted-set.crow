@@ -69,7 +69,7 @@ Nodes are added to the right.
 # True if `value` is an element of the set.
 +in[t] bool(value t, a t sorted-set) t key
 	if index ?= a.add find-in-add value
-		!(index in a.remove)
+		index !in a.remove
 
 -find-in-add[t] nat64?(a t add-node, value t) t key
 	if iter ?= a.values binary-search-exact value
@@ -237,7 +237,7 @@ Or a combination of the two.
 			break compactor.finish, cur.left
 		else
 			add-size-here-and-left -:= cur.values size
-			cur := cur.left!
+			cur := cur left!
 			continue
 
 -merge[t] void(

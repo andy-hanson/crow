@@ -1691,6 +1691,10 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'mut'.";
 		case Token.name:
 			return "Did not expect a name here.";
+		case Token.nameAfterBang:
+			return "Did not expect a '!name' here.";
+		case Token.nameBang:
+			return "Did not expect a 'name!' here.";
 		case Token.nameOrOperatorColonEquals:
 			return "Did not expect a 'name:=' here.";
 		case Token.nameOrOperatorEquals:

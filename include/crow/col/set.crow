@@ -62,7 +62,7 @@ to[t] t set(a t frozen-set) t key
 # `true` iff `value` is an element of `a`.
 +in[t] bool(value t, a t set) t key
 	if index ?= a.add find-in-add value
-		!(index in a.remove)
+		index !in a.remove
 
 # Alternative way of writing 'value in a'
 +subscript[t] bool(a t set, value t) t key
@@ -117,7 +117,7 @@ Set difference.
 This is a set containing all elements in `a` but not in `b`.
 ###
 +-[t] t set(a t set, b t set) t key
-	a filter x => !(x in b)
+	a filter x => x !in b
 
 ###
 If `value` is already in the set, returns an empty option.
@@ -201,7 +201,7 @@ Else, adds it and returns the new set.
 		if out.size == compacted-size
 			break cur left
 		else
-			cur := cur.left!
+			cur := cur left!
 			add-size-here-and-left -:= cur.here size
 			continue
 

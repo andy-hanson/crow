@@ -47,7 +47,7 @@ and it never stores two of the same value.
 	value in a
 
 +in[t] bool(value t, a t mut-sorted-set) t key
-	!a.inner[value].is-empty
+	a.inner[value] !is-empty
 
 ###
 Adds a value to the set.
@@ -73,7 +73,7 @@ If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
 +remove[t] bool(a t mut-sorted-set, value t) t key
-	!(a.inner remove-key value is-empty)
+	a.inner remove-key value !is-empty
 
 # Convert to a list, clearing the original `mut-sorted-set` in the process.
 +move-to[t] t[](a t mut-sorted-set) t key

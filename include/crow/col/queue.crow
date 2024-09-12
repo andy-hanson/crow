@@ -82,18 +82,18 @@ test
 
 	b = a ~ 1
 	b.to::nat64[] is (1,)
-	bd = b.dequeue!
+	bd = b dequeue!
 	bd.a is 1
 	assert bd.b is-empty
 
 	c = b ~ 2
 	c.to::nat64[] is (1, 2)
-	cd = c.dequeue!
+	cd = c dequeue!
 	cd.a is 1
 	cdr = cd b
 
 	cdr.to::nat64[] is (2,)
-	cdd = cdr.dequeue!
+	cdd = cdr dequeue!
 	cdd.a is 2
 	assert cdd.b is-empty
 

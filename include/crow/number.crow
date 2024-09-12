@@ -11,7 +11,7 @@ import
 		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul
 export
 	./private/number-low-level:
-		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-value, min-value,
+		==, <=>, float32, float64, int8, int16, int32, int64, is-even, max-value, min-value,
 		nat8, nat16, nat32, nat64, new, round-up-to-power-of-two, to, wrap-to
 
 +int alias

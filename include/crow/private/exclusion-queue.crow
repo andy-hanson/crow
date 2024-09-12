@@ -9,7 +9,7 @@ import
 	../tuple: new
 	./alloc: gc
 	./bare-map:
-		add-gc-roots, bare-map, destroy, find-or-insert-and-inserted, must-find, new, remove,
+		add-gc-roots, bare-map, destroy, find, find-or-insert-and-inserted, new, remove,
 		slow-is-empty
 	./bare-queue: add-gc-roots, bare-queue, dequeue, destroy, enqueue, is-empty, new
 	./bootstrap: exclusion
@@ -111,7 +111,7 @@ Takes the first runnable value out of the queue.
 This acquires the exclusion; call `release-exclusion` when done.
 ###
 dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe, native extern
-	guard !a.as-const.queue-is-empty
+	guard a.as-const !queue-is-empty
 	first = a.queue->next
 	value = first.values.dequeue!
 	a.queue->next := first->next
@@ -123,7 +123,7 @@ dequeue[v] (exclusion, v)?(a v exclusion-queue mut*) bare, unsafe, native extern
 
 # Make the exclusion available so that `dequeue` can call it.
 release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe, native extern
-	entry = a.by-exclusion must-find key
+	entry = a.by-exclusion find! key
 	forbid entry.as-const is-in-queue
 	if entry.as-const.values is-empty
 		a.by-exclusion remove entry

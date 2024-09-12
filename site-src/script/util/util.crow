@@ -1,6 +1,7 @@
 import
 	crow/io/duration: duration, milliseconds
-	crow/js: await, call, call-property, cast, js-any, js-global, null
+	crow/js
+	crow/js/dom
 
 to-base-64 string(a string) trusted, js extern
 	"btoa".js-global call a cast
@@ -20,7 +21,15 @@ with-block void(a debouncer, action void mut()) trusted, js extern
 	_ = "clearTimeout".js-global call a.timeout
 	a.timeout := "setTimeout".js-global call action, a.msec
 
-reduce-indent string(a string)
+get-child-text string(node node) trusted, js extern
+	child-nodes = node child-nodes
+	assert child-nodes.size == 1
+	child-nodes[0] get-text-from-node
+-get-text-from-node string(node node) trusted, js extern
+	assert node.as-js instanceof "Text".js-global
+	node.as-js["data"].cast reduce-indent
+
+-reduce-indent string(a string)
 	# Find first non-whtespace
 	a replace-all "\n{"\t"::string repeat a.count-indent}", "\n" strip
 -count-indent nat(a string)

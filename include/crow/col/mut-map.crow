@@ -116,7 +116,7 @@ Gets the value associated with a key.
 Returns an empty option if the key is not in the map.
 ###
 +subscript[k, v] v?(a v mut[k], key k) k key
-	guard !a.is-empty
+	guard a !is-empty
 	match a.entries[key.hash % a.entries.size]
 	as none
 		()

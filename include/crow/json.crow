@@ -130,7 +130,7 @@ If you do, you can test `if obj ?= a object` and `if value ?= object[key]`.
 	(quoted-string map x => x.to) / (float map x => x.to) / literal
 
 +to[t] t[](a json) (t, json) to
-	for x : a.list!
+	for x : a list!
 		x to
 
 +to nat64(a json) bare

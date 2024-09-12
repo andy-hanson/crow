@@ -310,7 +310,7 @@ Result is only digits, no punctuation.
 
 +show string(a float64) trusted
 	guard !(extern js) : a js-to-string
-	guard !a.is-nan : "NaN"
+	guard a !is-nan : "NaN"
 	guard a != infinity : "Infinity"
 	guard a != -infinity : "-Infinity"
 	guard a != a.truncate-to::int64.to : a.truncate-to show

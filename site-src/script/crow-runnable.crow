@@ -1,10 +1,7 @@
 import
-	crow/js: as-js, cast, instanceof, js-global, subscript
-	crow/js/dom:
-		~=, as-node, attributes, child-nodes, classes, custom-element-node, create-button,
-		create-div, create-node, create-span, create-text-node, define-custom-element, node,
-		remove-all-children, remove-class, set-classes, set-subscript, shadow-root, style, subscript
-	./crow: crow-server, get-hover, get-tokens, make-crow-server, open-file, run, run-js
+	crow/js
+	crow/js/dom
+	./crow: crow-server, get-hover, get-tokens, open-file, run, run-js
 	./crow-text: create-crow-text, new
 	./icon: copy-icon, download-icon, link-icon, play-icon, up-icon
 	./loading-spinner: create-loading-spinner
@@ -15,10 +12,9 @@ import
 		copy-text-to-clipboard, download-text, get-url-search, location, origin, pathname,
 		push-history
 	./util/mutable-observable: get, mutable-observable, observable, new, now-and-subscribe, set
-	./util/util: from-base-64, reduce-indent, to-base-64
+	./util/util: from-base-64, get-child-text, to-base-64
 
-define-crow-runnable-custom-element void() summon, trusted, js extern
-	crow = make-crow-server
+define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js extern
 	names names = ()
 	"crow-runnable" define-custom-element (x => x.is-play.css), x =>
 		x connected crow, names
@@ -43,13 +39,6 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 -get-code-from-url string?() summon, unsafe, js extern
 	if code ?= "code" get-url-search
 		code.from-base-64,
--get-child-text string(node node) trusted, js extern
-	child-nodes = node child-nodes
-	assert child-nodes.size == 1
-	child-nodes[0] get-text-from-node
--get-text-from-node string(node node) trusted, js extern
-	assert node.as-js instanceof "Text".js-global
-	node.as-js["data"].cast reduce-indent
 
 -copy-play-link-from-text void(text string) summon, unsafe, js extern
 	url string = "{location origin}{location pathname}?code={text to-base-64}"
@@ -57,12 +46,12 @@ define-crow-runnable-custom-element void() summon, trusted, js extern
 	url copy-text-to-clipboard
 
 -is-play bool(a custom-element-node) unsafe, js extern
-	!a.attributes["play"].is-empty
+	a.attributes["play"] !is-empty
 
 -connected void(a custom-element-node, crow crow-server, names names) summon, unsafe, js extern
 	name = names get-crow-runnable-name a.attributes["name"]
-	no-run = !a.attributes["no-run"].is-empty
-	run-js = !a.attributes["run-js"].is-empty
+	no-run = a.attributes["no-run"] !is-empty
+	run-js = a.attributes["run-js"] !is-empty
 	play = a is-play
 	initial-text = play get-crow-runnable-initial-text a.as-node
 	main-uri string = "file:///{name}"

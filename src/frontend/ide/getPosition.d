@@ -790,6 +790,7 @@ bool posIsAtCall(in ExprAst a, Pos pos) {
 			case CallAst.Style.subscript:
 			case CallAst.Style.questionSubscript:
 				return false;
+			case CallAst.Style.augment:
 			case CallAst.Style.dot:
 			case CallAst.Style.infix:
 			case CallAst.Style.prefixBang:

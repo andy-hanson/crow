@@ -39,7 +39,7 @@ dequeue-if-less-or-equal[k, v] v?(
 	a.dequeue!.b,
 
 -dequeue[k, v] (k, v)?(a (k, v) bare-priority-queue mut*) bare, unsafe, native extern
-	guard !a.as-const.is-empty
+	guard a.as-const !is-empty
 	res = *a->begin
 	a->end -:= 1
 	a->begin mem-move a->begin.as-const + 1, a->end - a->begin

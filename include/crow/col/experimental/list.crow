@@ -185,7 +185,7 @@ It does not support efficient access by an index, so iterators should be used in
 		b.down,
 
 -get-l2[t] t l2(a t list) bare
-	a.try-get-l2!
+	a try-get-l2!
 
 -get-l2-branch[t] (t array2d, t l3) branch(a t list) bare
 	a.get-l1-branch.down.node as-branch
@@ -248,8 +248,8 @@ Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
 +~~[t] t list(a t list, b t list)
-	guard !a.is-empty : b
-	guard !b.is-empty : a
+	guard a !is-empty : b
+	guard b !is-empty : a
 	# Concatenate the smaller list onto the bigger one.
 	match a.depth <=> b.depth
 	as less
@@ -976,7 +976,7 @@ region test
 		iter.next-index is index
 		a.begin slice iter is a-array[0 .. index].to
 		iter slice a.end is a-array[index .. end].to
-		next-pair = iter.next!
+		next-pair = iter next!
 		next-pair.a is a[index]
 		iter := next-pair b
 	iter.next-index is a.size
@@ -984,7 +984,7 @@ region test
 
 	iter := a end
 	for index : 0::nat64 .. a.size reversed
-		prev-pair = iter.prev!
+		prev-pair = iter prev!
 		iter := prev-pair a
 		prev-pair.b is a[index]
 		iter.next-index is index
@@ -1119,21 +1119,21 @@ test
 	b big-nat list = 4.big ~ a
 	b verify (js ? "[4 5 6]" : "([4] [] [5 6])")
 
-	b-split = (b try-split-once (5.big,))!
+	b-split = b try-split-once! (5.big,)
 	b-split.a verify "[4]"
 	b-split.b verify "[6]"
 
 	c big-nat list = b ~ 7.big
 	c verify (js ? "[4 5 6 7]" : "([4] [[5 6]] [7])")
 
-	c-split = (c try-split-once (5.big,))!
+	c-split = c try-split-once! (5.big,)
 	c-split.a verify "[4]"
 	c-split.b verify "[6 7]"
 
 	d big-nat list = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
 	d verify (js ? "[4 5 6 7 8 9 10 11]" : "([4] [[5 6] [7 8] [9 10]] [11])")
 
-	d-split = (d try-split-once (6.big, 7.big))!
+	d-split = d try-split-once! (6.big, 7.big)
 	d-split.a verify "[4 5]"
 	d-split.b verify (js ? "[8 9 10 11]" : "([8] [[9 10]] [11])")
 
@@ -1148,7 +1148,7 @@ test
 	else
 		"([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
 
-	f-split = (f try-split-once (4.big, 5.big))!
+	f-split = f try-split-once! (4.big, 5.big)
 	f-split.a verify (js ? "[0 1 2 3]" : "([0] [[1 2]] [3])")
 	f-split.b verify (js ? "[6 7 8 9 10 11 12 13]" : "([6] [[7 8] [9 10] [11 12]] [13])")
 

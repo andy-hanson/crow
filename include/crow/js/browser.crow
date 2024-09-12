@@ -12,7 +12,7 @@ import
 	cookie-string string = "document".js-global["cookie"] cast
 	unless cookie-string is-empty
 		for part : cookie-string split ";"
-			name, value = (part try-split-once "=")!
+			name, value = part try-split-once! "="
 			if name == cookie-name
 				break value
 

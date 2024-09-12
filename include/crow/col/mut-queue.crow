@@ -54,7 +54,7 @@ import
 		a ~= x
 
 +dequeue[t] t?(a t mut-queue)
-	guard !a.is-empty
+	guard a !is-empty
 	res = a.values[a.begin]
 	a.begin := a advance a.begin
 	if a.begin == a.end
@@ -68,7 +68,7 @@ import
 region spec impls (see collection.crow)
 
 +iterate[t] bool(a t mut-queue, f bool mut(elem t))
-	guard !a.is-empty
+	guard a !is-empty
 	cur mut = a begin
 	loop
 		if f[a.values[cur]]

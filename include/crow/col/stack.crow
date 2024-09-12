@@ -130,7 +130,7 @@ test
 	b = a ~ 1
 	b.to::nat64[] is (1,)
 	b.peek is (1,)
-	b-popped = b.pop!
+	b-popped = b pop!
 	b.pop!.a.to::nat64[] is ()
 	b-popped.b is 1
 	forbid b is-empty

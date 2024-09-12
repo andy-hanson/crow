@@ -14,4 +14,4 @@ main nat(_ string[]) summon
 	()
 
 is-prime bool(a nat)
-	!(2::nat .. a exists x => a is-multiple-of x)
+	2::nat .. a !exists x => a is-multiple-of x

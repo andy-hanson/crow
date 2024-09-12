@@ -57,6 +57,7 @@
 
 	<p>
 		Without a <code>.</code>, function names bind loosely.
+		<br />
 		When you see a function name, everything to the left of it is the first argument.
 	</p>
 
@@ -64,6 +65,16 @@
 		<syntax-translate-row>then(then(a, b), c)</syntax-translate-row>
 		<syntax-translate-row>in(a, allowed(b, purpose))</syntax-translate-row>
 		<syntax-translate-row>draw(triangle(a, b, c))</syntax-translate-row>
+	</syntax-translate>
+
+	<p>
+		If the function name is prefixed with <code>!</code> or suffixed with <code>!</code>,
+		<code>not</code> or <code>force</code> (respectiely) are called after the function.
+	</p>
+
+	<syntax-translate>
+		<syntax-translate-row>not(in(x, xs))</syntax-translate-row>
+		<syntax-translate-row>force(parse(nat, str))</syntax-translate-row>
 	</syntax-translate>
 </section>
 

@@ -86,7 +86,7 @@ This is amortized O(log n).
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert a.mins.size + 1 == a.buckets.size
-		bucket = a.buckets.pop!
+		bucket = a.buckets pop!
 		# Mins are popped off from the right.
 		# This preserves insertion order: 'sort' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.

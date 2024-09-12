@@ -1,17 +1,21 @@
 import
 	crow/js: as-js, call-property, ==, null, set-subscript
 	crow/js/dom: query-all
+	./crow: make-crow-server
 	./crow-runnable: define-crow-runnable-custom-element
 	./crow-text: define-crow-text-custom-element
 	./icon: define-icon-custom-element
 	./loading-spinner: define-loading-spinner-element
+	./syntax-translate: define-syntax-translate-element
 
 main void() summon, js extern
+	crow = make-crow-server
 	open-details-on-click
 	define-icon-custom-element
-	define-crow-runnable-custom-element
+	crow define-crow-runnable-custom-element
 	define-crow-text-custom-element
 	define-loading-spinner-element
+	crow define-syntax-translate-element
 
 -open-details-on-click void() summon, trusted, js extern
 	for details : "details" query-all

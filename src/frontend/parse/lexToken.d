@@ -167,7 +167,9 @@ enum Token {
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use TokenAndData.asSymbol with this
-	// Tokens for a name with ':', ':=', or '=' on the end.
+	nameAfterBang, // '!name'
+	// Tokens for a name with '!', ':', ':=', or '=' on the end.
+	nameBang,
 	nameOrOperatorColonEquals, // 'TokenAndData.asSymbol' does NOT include the ':='
 	nameOrOperatorEquals, // 'TokenAndData.asSymbol' DOES include the '='
 	// End of line followed by another line at lesser indentation.
@@ -231,9 +233,11 @@ bool isNewlineToken(Token a) {
 bool isSymbolToken(Token a) {
 	switch (a) {
 		case Token.name:
-		case Token.operator:
+		case Token.nameAfterBang:
+		case Token.nameBang:
 		case Token.nameOrOperatorEquals:
 		case Token.nameOrOperatorColonEquals:
+		case Token.operator:
 			return true;
 		default:
 			return false;
@@ -267,9 +271,14 @@ TokenAndData lexToken(ref MutCString ptr, IndentKind indentKind, ref uint curInd
 		case '@':
 			return plainToken(Token.at);
 		case '!':
-			return !startsWith(ptr, "==") && tryTakeChar(ptr, '=')
-				? operatorToken(ptr, symbol!"!=")
-				: plainToken(Token.bang);
+			if (!startsWith(ptr, "==") && tryTakeChar(ptr, '='))
+				return operatorToken(ptr, symbol!"!=");
+			else {
+				CString beforeName = ptr;
+				return tryTakeIdentifier(ptr)
+					? TokenAndData(Token.nameAfterBang, symbolOfString(stringOfRange(beforeName, ptr)))
+					: plainToken(Token.bang);
+			}
 		case '%':
 			return operatorToken(ptr, symbol!"%");
 		case '^':
@@ -491,7 +500,13 @@ TokenAndData operatorToken(scope ref MutCString ptr, Symbol a) =>
 TokenAndData nameLikeToken(scope ref MutCString ptr, Symbol a, Token regularToken) =>
 	!startsWith(ptr, "==") && tryTakeChar(ptr, '=')
 		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(a))
-		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
+		: TokenAndData(
+			regularToken == Token.name && tryTakeChar(ptr, '!')
+				? Token.nameBang
+				: tryTakeChars(ptr, ":=")
+				? Token.nameOrOperatorColonEquals
+				: regularToken,
+			a);
 
 Token tokenForSymbol(Symbol a) {
 	switch (a.value) {
@@ -705,9 +720,7 @@ public NatAndOverflow takeNat(ref MutCString ptr, ulong base) {
 }
 
 public bool tryTakeIdentifier(ref MutCString ptr) {
-	if (isDecimalDigit(*ptr) || *ptr == '-')
-		return false;
-	if (tryTakeOneIdentifierChar(ptr)) {
+	if (tryTakeInitialIdentifierChar(ptr)) {
 		while (true) {
 			CString beforeHyphen = ptr;
 			while (*ptr == '-') ptr++;
@@ -720,6 +733,8 @@ public bool tryTakeIdentifier(ref MutCString ptr) {
 	} else
 		return false;
 }
+bool tryTakeInitialIdentifierChar(ref MutCString ptr) =>
+	!isDecimalDigit(*ptr) && *ptr != '-' && tryTakeOneIdentifierChar(ptr);
 
 bool tryTakeOneIdentifierChar(ref MutCString ptr) {
 	if (isSingleByteIdentifierChar(*ptr)) {

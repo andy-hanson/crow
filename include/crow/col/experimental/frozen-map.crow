@@ -47,7 +47,7 @@ However, this is more compact than `map` and has faster lookups.
 		a.pairs[index].b,
 
 +in[k, v] bool(key k, a (k, v) frozen-map) k key
-	!(a try-get-unordered-index key is-empty)
+	a try-get-unordered-index key !is-empty
 
 try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
 	for i : a bucket-indices key

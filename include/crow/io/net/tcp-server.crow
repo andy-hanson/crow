@@ -117,7 +117,7 @@ close-client void(client SOCKET) summon, unsafe, (libc, posix) extern
 			event-flags = event events
 			fd int32 = event.event_data to
 			if event-flags bits-intersect (EPOLLERR | EPOLLHUP) ||
-					!(event-flags bits-intersect EPOLLIN)
+					event-flags !bits-intersect EPOLLIN
 				err print "SOME KINDA ERROR"
 				err = fd close
 				assert err == 0

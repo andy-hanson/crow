@@ -7,19 +7,19 @@ main void() summon, js extern
 	wait-until-window-loaded
 	show-logged-in
 
-	register = (document query "form[name='register']")!
+	register = document query! "form[name='register']"
 	register on-click-submit () =>
 		args register-args = (register input-value "user-name"), (register input-value "password")
 		if _ ?= "/register" post-and-alert-errors args.to
 			render-users
 
-	login = (document query "form[name='login']")!
+	login = document query! "form[name='login']"
 	login on-click-submit () =>
 		args login-args = (login input-value "user-name"), (login input-value "password")
 		if _ ?= "/login" post-and-alert-errors args.to
 			show-logged-in
 
-	post = (document query "form[name='post']")!
+	post = document query! "form[name='post']"
 	post on-click-submit () =>
 		args post-args = (post input-value "content"),
 		if _ ?= "/post" post-and-alert-errors args.to, include-credentials
@@ -42,29 +42,29 @@ main void() summon, js extern
 	response,
 
 -on-click-submit void(form node, f void mut()) summon, js extern
-	(form query "input[type='submit']")! on-click f
+	form query! "input[type='submit']" on-click f
 -input-value string(form node, name string) js extern
-	(form query "input[name='{name}']")! value
+	form query! "input[name='{name}']" value
 
 -render-users void() summon, js extern
-	(document element "users")!.children := for x : fetch-users
+	(document element! "users").children := for x : fetch-users
 		"{x}" create-div-with-text
 -fetch-users user-info[]() summon, js extern
 	("/users".fetch::json)["users"] to
 
 -render-posts void() summon, js extern
-	(document element "posts")!.children := for x : fetch-posts
+	(document element! "posts").children := for x : fetch-posts
 		"{x}" create-div-with-text
 -fetch-posts post-info[]() summon, js extern
 	("/posts".fetch::json)["posts"] to
 
 -get-user-name string?() summon, js extern
 	if login-cookie ?= cookies["login"]
-		user-id, _ = (login-cookie try-split-once "|")!
+		user-id, _ = login-cookie try-split-once! "|"
 		"/user-name?user={user-id}".fetch,
 
 -show-logged-in void() summon, js extern
-	(document element "showLoggedIn")!.text-content := if x ?= get-user-name
+	(document element! "showLoggedIn").text-content := if x ?= get-user-name
 		"Logged in as {x}"
 	else
 		"Not logged in"

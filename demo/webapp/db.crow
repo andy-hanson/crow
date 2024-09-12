@@ -64,12 +64,12 @@ list-users user-info[](db db) summon, (lmdb, native) extern
 
 user-name string(db db, user user) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
-		(txn get db.user-name, user)!
+		txn get! db.user-name, user
 
 list-posts post-info[](db db) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
 		txn zip db.post-user, db.post-content, (post, user, content) =>
-			user-name = (txn get db.user-name, user)!
+			user-name = txn get! db.user-name, user
 			post, user, user-name, content
 
 register-user-result union
@@ -98,7 +98,7 @@ login user-cookie(db db, args login-args) summon, (lmdb, native, sodium) extern
 	assert !args.user-name.is-empty && !args.password.is-empty : http-forbidden
 	with txn : db.env write-transaction
 		assert user ?= db get-user txn, args.user-name : http-forbidden
-		hash = (txn get db.user-password-hash, user)!
+		hash = txn get! db.user-password-hash, user
 		assert args.password password-matches-hash hash : http-forbidden
 		cookie = generate-login-cookie
 		txn set db.user-login-cookie, user, cookie
@@ -106,9 +106,9 @@ login user-cookie(db db, args login-args) summon, (lmdb, native, sodium) extern
 
 -get-post-info post-info(db db, post post) summon, (lmdb, native) extern
 	with txn : db.env read-transaction
-		user = (txn get db.post-user, post)!
-		user-name = (txn get db.user-name, user)!
-		content = (txn get db.post-content, post)!
+		user = txn get! db.post-user, post
+		user-name = txn get! db.user-name, user
+		content = txn get! db.post-content, post
 		post, user, user-name, content
 
 add-post post(db db, cookie user-cookie, content string) summon, (lmdb, native) extern

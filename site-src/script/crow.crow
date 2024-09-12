@@ -68,6 +68,20 @@ get-tokens token[](a crow-server, uri uri) trusted, js extern
 	encoded = (a request "textDocument/semanticTokens/full", args)["data"]
 	encoded decode-tokens a.tokens-legend
 
+syntax-translate string(
+	crow crow-server,
+	from-lang string,
+	source string,
+	to-lang string,
+) trusted, js extern
+	args js-any = ("source", source.as-js), ("from", from-lang.as-js), ("to", to-lang.as-js)
+	response js-any = crow request "custom/syntaxTranslate", args
+	diagnostics nat[] = response["diagnostics"] cast
+	if diagnostics is-empty
+		response["output"].cast
+	else
+		"Parse error at ${diagnostics[0]}"
+
 run run-result(a crow-server, main-uri uri) trusted, js extern
 	uris = (main-uri.as-js,)::js-any[] as-js
 	args js-any = ("uri", main-uri.as-js), ("diagnosticsOnlyForUris", uris)
@@ -278,7 +292,7 @@ region LSP server
 	params-string string = params json-stringify
 	a.view write-c-string a.parameters-begin, a.parameters-length, params-string
 
--request js-any(a crow-lsp-server, method symbol, params js-any) unsafe, js extern
+request js-any(a crow-lsp-server, method symbol, params js-any) unsafe, js extern
 	res = a handle-message (("id", 1::float.as-js), ("method", method.as-js), ("params", params))
 	assert res.exitCode is-empty
 	res.messages.size is 1

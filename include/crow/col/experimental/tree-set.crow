@@ -210,7 +210,7 @@ This is O(a.size ln).
 
 ~ -[t] t tree-set(a t tree-set, b t tree-set) t key
 	b-iter = b iter
-	a filter x => !(b-iter walk-iter-has x)
+	a filter x => b-iter !walk-iter-has x
 
 -iter[t] record mut
 	cur mut t[]
@@ -494,6 +494,6 @@ test
 
 	"-" join (for x : s8; x) is "h-i-j-ji-jj-jk-k-l"
 
-	s8 filter (x => !(x starts-with "j")) verify "[h i k l]"
+	s8 filter (x => x !starts-with "j") verify "[h i k l]"
 
 	(for x : s8; "{x}{x}") verify "[hh ii jiji jj jjjj jkjk kk ll]"

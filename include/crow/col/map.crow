@@ -66,7 +66,7 @@ Converts a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v[k](a (k, v)[]) k key
-	if a.size <= 4 && !a.has-duplicate-keys
+	if a.size <= 4 && a !has-duplicate-keys
 		a.leaf-node,
 	else
 		res mut v[k] = empty-leaf-node::((k, v) node),
@@ -315,7 +315,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		pairs.leaf-node,
 
 -find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node[])
-	first-non-empty-index = (children find-index it => !it.node-is-empty)!
+	first-non-empty-index = children find-index! x => x !node-is-empty
 	if children[first-non-empty-index + 1 .. end] every it => it node-is-empty
 		children[first-non-empty-index],
 

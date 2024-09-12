@@ -47,7 +47,7 @@ This is O(n).
 	trusted a.to cast-immutable
 
 -to[t] t mut-slice(a t mut-deque)
-	guard !a.is-empty
+	guard a !is-empty
 	res t mut-slice = trusted a.size gc-safe-mut-slice
 	res copy-from-deque a
 	res

@@ -297,11 +297,11 @@ create-crow-text node(props crow-text-props) trusted, js extern
 	text string
 
 -is-line bool(a container)
-	!a.line.is-empty
+	a.line !is-empty
 -is-diag bool(a container)
-	!a.diag.is-empty
+	a.diag !is-empty
 -is-text bool(a container)
-	!a.text.is-empty
+	a.text !is-empty
 
 -children node mut[](a container)
 	match a

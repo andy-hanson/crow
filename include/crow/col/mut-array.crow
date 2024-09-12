@@ -239,7 +239,7 @@ Throws if `n > a.size`.
 		todo
 
 +peek[t] t?(a t mut[])
-	guard !a.is-empty
+	guard a !is-empty
 	a[end - 1],
 
 ###
@@ -247,7 +247,7 @@ Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
 +pop[t] t?(a t mut[]) bare
-	guard !a.is-empty
+	guard a !is-empty
 	if trusted extern native
 		new-size = a.size - 1
 		res = a[new-size]
@@ -336,7 +336,7 @@ Throws if `index >= a.size`.
 ###
 remove-unordered-at[t] t(a t mut[], index nat64) bare
 	res = a[index]
-	replacement = a.pop!
+	replacement = a pop!
 	unless index == a.size
 		a[index] := replacement
 	res

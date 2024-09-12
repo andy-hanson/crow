@@ -561,7 +561,8 @@ ExitCodeOrSignal withWriteToJsScript(
 	return okAnd(
 		ExitCodeOrSignal(writeFile(outFile, result.js, mainPermissions, FileOverwrite.allow)),
 		() => has(sourceMapPath)
-			? ExitCodeOrSignal(writeFile(force(sourceMapPath), force(result.map), FilePermissions.regular, FileOverwrite.allow))
+			? ExitCodeOrSignal(
+				writeFile(force(sourceMapPath), force(result.map), FilePermissions.regular, FileOverwrite.allow))
 			: ExitCodeOrSignal.ok,
 		cb);
 }
@@ -631,7 +632,8 @@ ExitCodeOrSignal withWriteToC(
 			cCompileOptions);
 		BuildToCResult result = buildToC(perf, alloc, server, os, version_, params, program);
 		return okAnd(
-			ExitCodeOrSignal(writeFile(cPath, result.writeToCResult.cSource, FilePermissions.regular, FileOverwrite.allow)),
+			ExitCodeOrSignal(
+				writeFile(cPath, result.writeToCResult.cSource, FilePermissions.regular, FileOverwrite.allow)),
 			() => cb(result.writeToCResult.compileCommand, result.externLibraries));
 	} else
 		return ExitCodeOrSignal.error;
