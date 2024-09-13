@@ -95,7 +95,7 @@ register-user register-user-result(db db, args register-args) summon, (lmdb, nat
 		new-user-id.register-user-success, transaction-commit
 
 login user-cookie(db db, args login-args) summon, (lmdb, native, sodium) extern
-	assert !args.user-name.is-empty && !args.password.is-empty : http-forbidden
+	assert args.user-name !is-empty && args.password !is-empty : http-forbidden
 	with txn : db.env write-transaction
 		assert user ?= db get-user txn, args.user-name : http-forbidden
 		hash = txn get! db.user-password-hash, user

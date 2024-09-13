@@ -16,7 +16,7 @@ region request
 	a.body as-string
 
 +body-json json(a http-request)
-	(json parse a.body).ok ?? throw "Body must be JSON" http-bad-query
+	json parse a.body ok ?? throw "Body must be JSON" http-bad-query
 
 +cookies alias
 	string[symbol]

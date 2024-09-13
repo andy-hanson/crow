@@ -162,7 +162,7 @@ add-new-fiber void(a global-ctx mut*, action void mut()) unsafe, native extern
 -fiber-func void(fiber fiber) force-ctx, unsafe, native extern
 	cur-fiber := fiber,
 	gc-root == null hard-assert
-	func = fiber.state.queued-initial ?? hard-unreachable
+	func = fiber.state queued-initial ?? hard-unreachable
 	fiber.state := running
 	# It will 'mutator-end' every time it yields and 'mutator-begin' upon resuming
 	get-global-ctx.gc mutator-begin
@@ -251,7 +251,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 
 	state = fiber state
 	fiber.state := queued # Since most cases don't overwrite this
-	match state.yield-request ?? hard-unreachable
+	match state yield-request ?? hard-unreachable
 	as add-to-queue
 		gctx enqueue-fiber fiber
 	as await-future future, add-awaiting-fiber
@@ -303,7 +303,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 			x fiber
 		as no-immediate first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
-			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
+			if (n-waiting == gctx->n-threads && first-task-time is-empty) || gctx->is-shut-down
 				# Can't possibly be any more tasks:
 				# No timed tasks, no threads doing work to add tasks.
 				gctx->is-shut-down := true

@@ -41,7 +41,7 @@ region env
 	env mdb_env_set_mapsize mapsize check-lmdb-error
 
 	db-dir = options db-dir
-	if options.create-if-not-exists && !db-dir.path-exists
+	if options create-if-not-exists && db-dir !path-exists
 		info log "Creating database directory {db-dir}"
 		db-dir make-directory
 

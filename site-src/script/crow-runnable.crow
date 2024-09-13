@@ -35,7 +35,7 @@ define-crow-runnable-custom-element void(crow crow-server) summon, trusted, js e
 	name
 
 -get-crow-runnable-initial-text string(play bool, node node) summon, unsafe, js extern
-	(play ? get-code-from-url) ?? node.get-child-text
+	(play ? get-code-from-url) ?? node get-child-text
 -get-code-from-url string?() summon, unsafe, js extern
 	if code ?= "code" get-url-search
 		code.from-base-64,

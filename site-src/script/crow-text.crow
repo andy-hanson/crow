@@ -110,7 +110,7 @@ create-crow-text node(props crow-text-props) trusted, js extern
 		state.mouse-move-index := 0
 	save-mouse-move-index = state.mouse-move-index
 	timeout void mut() = () =>
-		if state.mouse-is-in && state.mouse-move-index == save-mouse-move-index
+		if state mouse-is-in && state mouse-move-index == save-mouse-move-index
 			hover = state.props.getHover[line, character]
 			if hover != ""
 				hover-tooltip = "hover-tooltip" create-div (hover.create-text-node,)

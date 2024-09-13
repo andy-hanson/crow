@@ -89,7 +89,7 @@ import
 	as awaited-by fiber
 		cur mut = fiber
 		loop
-			opt-next = cur.state.awaiting-future ?? hard-unreachable
+			opt-next = cur.state awaiting-future ?? hard-unreachable
 			cur.state := queued
 			get-global-ctx enqueue-fiber cur
 			if next ?= opt-next

@@ -73,7 +73,7 @@ options:
 -list-tests string[](path string, match-test string) summon, native extern
 	res string mut[] = ()
 	path each-child-recursive child =>
-		if child contains-seq match-test && child.ext-is-crow && child !is-excluded
+		if child contains-seq match-test && child ext-is-crow && child !is-excluded
 			res ~= child
 	res move-to
 

@@ -16,7 +16,7 @@ This won't work on opaque types.
 	if a == b
 		true
 	elif a is-array
-		if b.is-array && a["length"] == b["length"]
+		if b is-array && a["length"] == b["length"]
 			i mut float64 = 0
 			loop
 				if i == a["length"].cast

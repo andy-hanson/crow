@@ -39,7 +39,7 @@ main nat(_ string[]) summon, native extern
 -lint-file failure[](path string) summon, native extern
 	text string = path read-file
 	res failure mut[] = ()
-	ext = path.get-extension ?? ""
+	ext = path get-extension ?? ""
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	max-line-length = path max-line-length
 	for line-num, line : text.lines with-index
@@ -64,7 +64,7 @@ main nat(_ string[]) summon, native extern
 -should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
 		# Ignore 'lint-basic.xyz' where xyz is random hex (happens when running with '--aot')
-		ext.should-ignore-extension || name starts-with "lint-basic."
+		ext should-ignore-extension || name starts-with "lint-basic."
 	else
 		# Ignore extensionless files since those are executables
 		name != "GNUmakefile" && name != "NMakefile"

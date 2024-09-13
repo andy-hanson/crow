@@ -25,7 +25,7 @@ fiber-queue record by-val, mut
 
 # Use for asserts only
 slow-is-empty bool(a fiber-queue*) bare, unsafe, native extern
-	a.non-timed.slow-is-empty && a.timed.is-empty
+	a.non-timed slow-is-empty && a.timed is-empty
 
 uninit fiber-queue() bare, unsafe, native extern
 	uninit, ()

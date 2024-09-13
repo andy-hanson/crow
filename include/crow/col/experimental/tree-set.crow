@@ -289,7 +289,7 @@ This is O(a.size ln).
 
 -add-to-array[t] t add-result(a t[], value t, max-height nat64) t key
 	insert = a binary-search-insert value
-	if !insert.is-at-end && insert.next!.a == value
+	if insert !is-at-end && insert.next!.a == value
 		none
 	elif a.size < 4
 		(a insert-at insert.next-index, value).leaf inserted

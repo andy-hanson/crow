@@ -147,10 +147,10 @@ SmallArray!ExprAst parseArgs(ref Lexer lexer, ArgCtx ctx, ExprAst first) =>
 	});
 
 bool peekTokenExpression(ref Lexer lexer) =>
-	isExpressionStartToken(getPeekToken(lexer));
+	isExpressionStartToken(getPeekTokenAndData(lexer));
 
-bool isExpressionStartToken(Token a) {
-	final switch (a) {
+bool isExpressionStartToken(in TokenAndData a) {
+	final switch (a.token) {
 		case Token.alias_:
 		case Token.arrowAccess:
 		case Token.arrowLambda:
@@ -233,7 +233,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.name:
 		case Token.nameAfterBang:
 		case Token.nameBang:
-		case Token.operator:
 		case Token.parenLeft:
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
@@ -247,6 +246,20 @@ bool isExpressionStartToken(Token a) {
 		case Token.with_:
 		case Token.while_:
 			return true;
+		case Token.operator:
+			return isPrefixUnaryOperator(a.asSymbol);
+	}
+}
+bool isPrefixUnaryOperator(Symbol a) {
+	switch (a.value) {
+		case symbol!"!".value:
+		case symbol!"-".value:
+		case symbol!"~".value:
+		case symbol!"*".value:
+		case symbol!"&".value:
+			return true;
+		default:
+			return false;
 	}
 }
 
@@ -877,9 +890,8 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 	ExprAst ifAllowBlock(
 		ParseDiag.NeedsBlockCtx.Kind kind,
 		in ExprAst delegate() @safe @nogc pure nothrow cbAllowBlock,
-	) {
-		return .ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
-	}
+	) =>
+		.ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
 
 	// Don't skip newline tokens
 	if (isNewlineToken(getPeekToken(lexer)))
@@ -954,11 +966,14 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 				makeAugment(lexer.alloc, nameBangRange, nameBangRange.end - 1, symbol!"force", inner));
 		case Token.operator:
 			Symbol operator = token.asSymbol;
-			if (operator == symbol!"&") {
-				ExprAst inner = parseExprBeforeCall(lexer, AllowedBlock.no);
-				return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, PtrAst(inner))));
+			if (isPrefixUnaryOperator(operator)) {
+				if (operator == symbol!"&") {
+					ExprAst inner = parseExprBeforeCall(lexer, AllowedBlock.no);
+					return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, PtrAst(inner))));
+				} else
+					return handlePrefixUnaryOperator(lexer, allowedBlock, start, operator);
 			} else
-				return handlePrefixOperator(lexer, allowedBlock, start, operator);
+				return badToken(lexer, start, token);
 		case Token.literalFloat:
 			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat)));
 		case Token.literalIntegral:
@@ -992,7 +1007,7 @@ ExprAst badToken(ref Lexer lexer, Pos start, TokenAndData token) {
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
-ExprAst handlePrefixOperator(ref Lexer lexer, AllowedBlock allowedBlock, Pos start, Symbol operator) {
+ExprAst handlePrefixUnaryOperator(ref Lexer lexer, AllowedBlock allowedBlock, Pos start, Symbol operator) {
 	ExprAst arg = parseExprBeforeCall(lexer, allowedBlock);
 	return ExprAst(range(lexer, start), ExprAstKind(
 		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), newSmallArray(lexer.alloc, [arg]))));

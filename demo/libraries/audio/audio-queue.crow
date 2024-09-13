@@ -28,7 +28,7 @@ new audio-queue(format sound-format) native extern
 	a.cur := trusted a.samples begin-pointer
 
 -is-over bool(a entry) bare, native extern
-	!a.looping && trusted a.cur == a.samples.end-pointer
+	a !looping && trusted a.cur == a.samples.end-pointer
 
 clear void(a audio-queue) bare, native extern
 	trusted

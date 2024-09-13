@@ -395,7 +395,7 @@ region spec impls (see collection.crow)
 	prev + a.values.size
 
 -remove-from-front[t] t iter-part(a t iter-part, remove index-set)
-	if !a.values.is-empty && a.remove-index in remove
+	if a.values !is-empty && a.remove-index in remove
 		(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 	else
 		a

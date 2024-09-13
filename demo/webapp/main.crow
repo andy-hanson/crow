@@ -66,4 +66,4 @@ main void() summon, (libc, lmdb, native, posix, sodium) extern
 -get-login-cookie user-cookie(req http-request)
 	cookies = req parse-cookies
 	assert cookie ?= cookies["login"] : "Missing login cookie" http-forbidden
-	(user-cookie parse cookie).ok ?? throw "Error parsing 'login' cookie" http-forbidden
+	user-cookie parse cookie ok ?? throw "Error parsing 'login' cookie" http-forbidden

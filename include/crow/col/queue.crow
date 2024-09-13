@@ -39,7 +39,7 @@ This is O(n).
 
 # `true` iff `a.size == 0`.
 +is-empty[t] bool(a t queue)
-	a.left.is-empty && a.right.is-empty
+	a.left is-empty && a.right is-empty
 
 # Number of elements in the queue.
 +size[t] nat64(a t queue)

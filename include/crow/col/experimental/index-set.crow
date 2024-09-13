@@ -218,7 +218,7 @@ import
 -simplify-after-remove-or-filter index-set(node node, capacity nat64)
 	match node
 	as inner i
-		if i.b.is-empty && i.c.is-empty && i.d.is-empty
+		if i.b is-empty && i.c is-empty && i.d is-empty
 			forbid i.a is-empty
 			i.a simplify-after-remove-or-filter capacity / 4
 		else
@@ -231,7 +231,7 @@ import
 		0, empty
 
 -is-all-empty bool(a inner-node)
-	a.a.is-empty && a.b.is-empty && a.c.is-empty && a.d.is-empty
+	a.a is-empty && a.b is-empty && a.c is-empty && a.d is-empty
 
 # TODO:MOVE
 -with-a inner-node(a inner-node, new-a node)

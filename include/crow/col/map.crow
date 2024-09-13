@@ -90,7 +90,7 @@ Later pairs overwrite earlier pairs with the same key.
 	as 3
 		a[0].a == a[1].a || a[0].a == a[2].a || a[1].a == a[2].a
 	as 4
-		a[0].a == a[1].a || a[0].a == a[2].a || a[0].a == a[3].a || a[1 .. end].has-duplicate-keys
+		a[0].a == a[1].a || a[0].a == a[2].a || a[0].a == a[3].a || a[1 .. end] has-duplicate-keys
 
 # True iff the map has no entries.
 +is-empty[k, v] bool(a v[k]) k key

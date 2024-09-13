@@ -9,7 +9,7 @@ import
 
 main void() summon, native extern
 	settings = ask-settings
-	if settings.has-slow-ai && trusted is-interpreted
+	if settings has-slow-ai && trusted is-interpreted
 		warn log "AI may be slow in interpreter, try running with '--aot'"
 	empty-board print-board red, ()
 	winner = empty-board play-recur red, settings
@@ -49,7 +49,7 @@ CPU: CPU vs CPU
 -ai-settings record(ai-depth-red nat?, ai-depth-blue nat?)
 
 -has-slow-ai bool(a ai-settings)
-	a.ai-depth-red.is-slow-ai || a.ai-depth-blue.is-slow-ai
+	a.ai-depth-red is-slow-ai || a.ai-depth-blue is-slow-ai
 -is-slow-ai bool(a nat?)
 	if x ?= a
 		x > 6

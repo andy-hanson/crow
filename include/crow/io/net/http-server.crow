@@ -129,7 +129,7 @@ http-initial-state enum(needs-more, finished, abandon)
 			# Expect something like "GET / HTTP/1.1"
 			parts string[] = line split " "
 			assert parts.size == 3
-			state.method := parts[0].to ?? todo
+			state.method := parts[0] to ?? todo
 			state.path-and-query := parts[1]
 			assert parts[2] == "HTTP/1.1"
 			forbid state.path-and-query is-empty
@@ -174,7 +174,7 @@ http-initial-state enum(needs-more, finished, abandon)
 		a, ()
 
 -parse-query string[symbol](a string)
-	(query parse a).ok ?? ()
+	query parse a ok ?? ()
 
 -query string[symbol] grammar()
 	query-part separated-by "&" map parts =>

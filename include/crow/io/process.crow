@@ -121,7 +121,7 @@ The child process shares stdout and stderr with the parent process.
 	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), &startup-info, &process-info
 	assert ok4
 
-	assert stdout-write.CloseHandle && stderr-write.CloseHandle
+	assert stdout-write CloseHandle && stderr-write CloseHandle
 
 	stdout, stderr = stdout-read read-from-pipes-windows stderr-read
 	assert stdout-read CloseHandle
@@ -133,7 +133,7 @@ The child process shares stdout and stderr with the parent process.
 	ok5 = process-info.hProcess GetExitCodeProcess &exit-code
 	assert ok5
 	# TODO: should be in a 'finally'
-	assert process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
+	assert process-info.hProcess CloseHandle && process-info.hThread CloseHandle
 
 	exit-code.wrap-to.exited, stdout, stderr
 
@@ -255,13 +255,13 @@ The child process shares stdout and stderr with the parent process.
 		b = poll-fds[1] handle-revents stderr-builder
 		assert a.any.to + b.any.to == n-pollfds-with-events.to
 		# Apparently stdout and stderr can hang up at slightly different times.
-		unless a.hung-up && b.hung-up
+		unless a hung-up && b hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
 
 -handle-revents-result record(had-POLLIN bool, hung-up bool)
 
 -any bool(r handle-revents-result)
-	r.had-POLLIN || r.hung-up
+	r had-POLLIN || r hung-up
 
 -handle-revents handle-revents-result(
 	pollfd pollfd,
@@ -272,7 +272,7 @@ The child process shares stdout and stderr with the parent process.
 	if had-POLLIN
 		pollfd.fd read-some-to-buffer builder
 	hung-up = revents has-POLLHUP
-	if revents.has-POLLPRI || revents.has-POLLOUT || revents.has-POLLERR || revents.has-POLLNVAL
+	if revents has-POLLPRI || revents has-POLLOUT || revents has-POLLERR || revents has-POLLNVAL
 		todo
 	had-POLLIN, hung-up
 

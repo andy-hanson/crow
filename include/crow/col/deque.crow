@@ -28,7 +28,7 @@ Deque containing the given elements.
 This is O(1).
 ###
 +is-empty[t] bool(a t deque)
-	a.left.is-empty && a.mid.is-empty && a.right.is-empty
+	a.left is-empty && a.mid is-empty && a.right is-empty
 
 ###
 Number of elements in the deque.

@@ -46,7 +46,7 @@ Returns an empty option if `a` is not the name of an enum member.
 			break value
 
 +to[t] t(a symbol) t enum-like
-	a.to ?? throw a.not-in-enum
+	a to ?? throw a.not-in-enum
 
 +to[t] t?(a string) t enum-like
 	for name, value : enum-members
@@ -54,4 +54,4 @@ Returns an empty option if `a` is not the name of an enum member.
 			break value
 
 +to[t] t(a string) t enum-like
-	a.to ?? throw a.to.not-in-enum
+	a to ?? throw a.to.not-in-enum
