@@ -36,7 +36,12 @@ static void __attribute__((naked, noinline)) switch_fiber(uint64_t** from, uint6
 
 struct fiber;
 // This should match 'makeSwitchFiberInitialFunction' in 'jit.d'
-static void __attribute__((naked, noinline)) switch_fiber_initial(struct fiber* fiber, uint64_t** from, uint64_t* stack_high, void (*func)(struct fiber*)) {
+static void __attribute__((naked, noinline)) switch_fiber_initial(
+	struct fiber* fiber,
+	uint64_t** from,
+	uint64_t* stack_high,
+	void (*func)(struct fiber*),
+) {
 	__asm(
 		// fiber = %rdi, from = %rsi, stack_high = %rdx, func = %rcx
 		// Note: We just leave 'fiber' alone, since it is the first argument to 'func'

@@ -144,7 +144,8 @@ void checkStructBodies(
 			(StructBodyAst.Enum x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
 				IntegralType storage = checkEnumOrFlagsModifiers(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers);
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers,
+					isFlags: false);
 				return checkEnum(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage);
 			},
@@ -153,7 +154,8 @@ void checkStructBodies(
 			(StructBodyAst.Flags x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
 				IntegralType storage = checkEnumOrFlagsModifiers(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.flags, ast.modifiers);
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.flags, ast.modifiers,
+					isFlags: false);
 				return StructBody(checkFlags(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage));
 			},
@@ -899,6 +901,7 @@ IntegralType checkEnumOrFlagsModifiers(
 	StructDecl* struct_,
 	DeclKind declKind,
 	ModifierAst[] modifiers,
+	bool isFlags,
 ) {
 	MutOpt!(ModifierAst.Keyword*) storage;
 	foreach (ref ModifierAst modifier; modifiers) {
@@ -925,7 +928,10 @@ IntegralType checkEnumOrFlagsModifiers(
 			Type type = typeFromAst(
 				ctx, commonTypes, structsAndAliasesMap,
 				force(x.typeArg), emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)), AliasAllowed.yes);
-			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
+			IntegralType res = getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
+			if (isFlags && isSigned(res))
+				addDiag(ctx, x.keywordRange, Diag(Diag.FlagsSigned()));
+			return res;
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
 			return IntegralType.nat32;

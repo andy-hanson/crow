@@ -7,8 +7,12 @@ e enum
 	c = 4294967295
 	d = 4294967296
 
-f flags int8 storage
+e enum int8 storage
 	a = -129
 	b = -128
 	c = 127
 	d = 128
+
+f flags nat16 storage
+	a = 65535
+	b = 65536

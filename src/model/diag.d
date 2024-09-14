@@ -288,6 +288,7 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct ExternUnion {}
+	immutable struct FlagsSigned {}
 	immutable struct FunctionWithSignatureNotFound {
 		Symbol name;
 		TypeContainer typeContainer;
@@ -690,6 +691,7 @@ immutable struct Diag {
 		ExternRecordImplicitlyByVal,
 		ExternTypeError,
 		ExternUnion,
+		FlagsSigned,
 		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
 		IfThrow,

@@ -721,6 +721,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
 		},
+		(in Diag.FlagsSigned) {
+			writer ~= "A 'flags' type can't use a signed storage type.";
+		},
 		(in Diag.FunctionWithSignatureNotFound x) {
 			writer ~= "Could not find a function '";
 			writer ~= x.name;

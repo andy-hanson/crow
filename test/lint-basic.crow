@@ -56,7 +56,7 @@ main nat(_ string[]) summon, native extern
 	res move-to
 
 -ignored-extensions string set()
-	"c", "data", "json", "o", "out", "repr", "tmLanguage"
+	"data", "json", "o", "out", "repr", "tmLanguage"
 
 -should-ignore-extension bool(ext string)
 	ext in ignored-extensions
@@ -64,7 +64,7 @@ main nat(_ string[]) summon, native extern
 -should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
 		# Ignore 'lint-basic.xyz' where xyz is random hex (happens when running with '--aot')
-		ext should-ignore-extension || name starts-with "lint-basic."
+		ext should-ignore-extension
 	else
 		# Ignore extensionless files since those are executables
 		name != "GNUmakefile" && name != "NMakefile"

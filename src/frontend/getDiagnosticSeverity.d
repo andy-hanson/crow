@@ -75,6 +75,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.FlagsSigned) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.FunctionWithSignatureNotFound) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerExprMustBeName) =>
