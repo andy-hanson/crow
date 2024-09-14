@@ -272,7 +272,6 @@ immutable struct LowLocalSource {
 	immutable struct Generated {
 		Symbol name;
 		bool isMutable;
-		size_t index;
 	}
 	mixin TaggedUnion!(Local*, Generated*);
 }
@@ -280,13 +279,22 @@ immutable struct LowLocalSource {
 immutable struct LowLocal {
 	@safe @nogc pure nothrow:
 	@disable this(ref const LowLocal);
-	this(LowLocalSource s, LowType t) {
+	this(LowLocalSource s, uint i, LowType t) {
 		source = s;
+		index = i;
 		type = t;
 	}
 
 	LowLocalSource source;
+	uint index; // index within this function
 	LowType type;
+
+	Symbol name() scope =>
+		source.matchIn!Symbol(
+			(in Local x) =>
+				x.name,
+			(in LowLocalSource.Generated x) =>
+				x.name);
 
 	// This is whether the local itself is mutable, not whether its value is.
 	bool isMutable() scope =>

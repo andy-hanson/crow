@@ -764,6 +764,7 @@ immutable string[] specialSymbols = [
 	"modifiers",
 	"modules",
 	"mutability",
+	"mutable",
 	"mut-slice",
 	"mut-array",
 	"mut-array-impl",

@@ -737,23 +737,17 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 }
 
 LowLocal getLowLocalForParameter(ref GetLowTypeCtx ctx, size_t index, ConcreteLocal* a) =>
-	LowLocal(
-		getLowLocalSource(ctx.alloc, a.source, () => index),
-		lowTypeFromConcreteType(ctx, a.type));
+	LowLocal(getLowLocalSource(ctx.alloc, a.source), safeToUint(index), lowTypeFromConcreteType(ctx, a.type));
 
 LowLocalSource getLowLocalSource(ref GetLowExprCtx ctx, ConcreteLocalSource a) =>
-	getLowLocalSource(ctx.alloc, a, () => nextTempLocalIndex(ctx));
+	getLowLocalSource(ctx.alloc, a);
 
-LowLocalSource getLowLocalSource(
-	ref Alloc alloc,
-	ConcreteLocalSource a,
-	scope size_t delegate() @safe @nogc pure nothrow getIndex,
-) =>
+LowLocalSource getLowLocalSource(ref Alloc alloc, ConcreteLocalSource a) =>
 	a.matchWithPointers!LowLocalSource(
 		(Local* x) =>
 			LowLocalSource(x),
 		(ConcreteLocalSource.Closure x) =>
-			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", isMutable: false, getIndex()))),
+			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", isMutable: false))),
 		(ConcreteLocalSource.Generated x) {
 			bool isMutable = () {
 				final switch (x) {
@@ -765,7 +759,7 @@ LowLocalSource getLowLocalSource(
 						return false;
 				}
 			}();
-			return LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbolOfEnum(x), isMutable, getIndex())));
+			return LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbolOfEnum(x), isMutable)));
 		});
 
 T withLowLocal(T)(
@@ -775,7 +769,8 @@ T withLowLocal(T)(
 	in T delegate(in Locals, LowLocal*) @safe @nogc pure nothrow cb,
 ) {
 	LowType type = lowTypeFromConcreteType(ctx.typeCtx, concreteLocal.type);
-	LowLocal* local = allocate(ctx.alloc, LowLocal(getLowLocalSource(ctx, concreteLocal.source), type));
+	LowLocal* local = allocate(ctx.alloc, LowLocal(
+		getLowLocalSource(ctx, concreteLocal.source), nextLocalIndex(ctx), type));
 	return cb(addLocal(locals, concreteLocal, local), local);
 }
 
@@ -813,7 +808,7 @@ LowFunBody getLowFunBody(
 			curFunIsYielding: a in concreteProgram.yieldingFuns,
 			hasSetupCatch: false,
 			hasTailRecur: false,
-			tempLocalIndex: a.params.length);
+			localIndex: safeToUint(a.params.length));
 		LowExpr body_ = withStackMap!(LowExpr, ConcreteLocal*, LowLocal*)((ref Locals locals) =>
 			getLowExpr(exprCtx, locals, expr, ExprPos(0, ExprPos.Kind.tail)));
 		return LowFunBody(LowFunExprBody(
@@ -844,7 +839,7 @@ LowExpr genLetTempPossiblyGcRoot(
 	bool thenMayYield,
 	in LowExpr delegate(ExprPos, LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
-	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", isMutable: false, nextTempLocalIndex(ctx), value.type);
+	LowLocal* local = genLocal(ctx.alloc, symbol!"temp", isMutable: false, nextLocalIndex(ctx), value.type);
 	return genLetPossiblyGcRoot(ctx, range, local, value, exprPos, thenMayYield, (ExprPos inner) =>
 		cbThen(inner, genIdentifier(range, local)));
 }
@@ -942,7 +937,7 @@ LowExpr maybeAddGcRoot(
 		markRootFunction,
 		genGetGcRoot(ctx, range)]);
 	LowLocal* root = genLocal(
-		ctx.alloc, symbol!"root", isMutable: false, nextTempLocalIndex(ctx), ctx.commonFuns.gcRootType);
+		ctx.alloc, symbol!"root", isMutable: false, nextLocalIndex(ctx), ctx.commonFuns.gcRootType);
 	return genLetNoGcRoot(
 		ctx.alloc, range, root,
 		initRoot,
@@ -970,7 +965,7 @@ struct GetLowExprCtx {
 	immutable bool curFunIsYielding;
 	bool hasSetupCatch;
 	bool hasTailRecur;
-	size_t tempLocalIndex;
+	uint localIndex;
 
 	ref Alloc alloc() return scope =>
 		typeCtx.alloc;
@@ -997,9 +992,9 @@ LowLocal* getLocal(ref GetLowExprCtx ctx, in Locals locals, in ConcreteLocal* lo
 Opt!LowFunIndex tryGetLowFunIndex(in GetLowExprCtx ctx, ConcreteFun* it) =>
 	ctx.concreteFunToLowFunIndex[it];
 
-size_t nextTempLocalIndex(ref GetLowExprCtx ctx) {
-	size_t res = ctx.tempLocalIndex;
-	ctx.tempLocalIndex++;
+uint nextLocalIndex(ref GetLowExprCtx ctx) {
+	uint res = ctx.localIndex;
+	ctx.localIndex++;
 	return res;
 }
 
@@ -1032,7 +1027,7 @@ LowExpr handleExprPos(ref GetLowExprCtx ctx, ExprPos exprPos, LowExpr expr) {
 LowExpr doThenPopGcRoots(ref GetLowExprCtx ctx, uint nGcRootsToPop, LowExpr expr) =>
 	applyNTimes(expr, nGcRootsToPop, (LowExpr x) =>
 		genSeqThenReturnFirstNoGcRoot(
-			ctx.alloc, x.source, nextTempLocalIndex(ctx), x,
+			ctx.alloc, x.source, nextLocalIndex(ctx), x,
 			genCallNoGcRoots(ctx.alloc, voidType, x.source, ctx.commonFuns.popGcRoot, [])));
 
 LowExpr popGcRootsThenDo(ref GetLowExprCtx ctx, uint nGcRootsToPop, LowExpr expr) =>
@@ -1630,7 +1625,7 @@ LowExpr genLetTempConstNoGcRoot(
 	LowExpr value,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cb,
 ) =>
-	genLetTempConstNoGcRoot(ctx.alloc, range, nextTempLocalIndex(ctx), value, cb);
+	genLetTempConstNoGcRoot(ctx.alloc, range, nextLocalIndex(ctx), value, cb);
 
 LowExpr getMatchStringLikeExpr(
 	ref GetLowExprCtx ctx,
@@ -1745,7 +1740,7 @@ LowExpr getFinallyExpr(
 	*/
 	withRestorableCatchPoint(ctx, range, (LowExpr restoreCurCatchPoint) =>
 		withRestorableGcRoot(ctx, range, (LowExpr restoreGcRoot) {
-			LowLocal* err = genLocal(ctx.alloc, symbol!"err", isMutable: true, nextTempLocalIndex(ctx), boolType);
+			LowLocal* err = genLocal(ctx.alloc, symbol!"err", isMutable: true, nextLocalIndex(ctx), boolType);
 			LowExpr res = genSetupCatch(
 				ctx, range,
 				getLowExpr(ctx, locals, a.below, ExprPos.nonTail),
@@ -1783,7 +1778,7 @@ LowExpr getTryExpr(
 		a.exceptionMemberIndices, a.catchCases,
 		(LowExpr restoreCurCatchPoint) =>
 			genSeqThenReturnFirstNoGcRoot( // 'tried' type may be a GC root, but 'restoreCurCatchPoint' never yields.
-				ctx.alloc, range, nextTempLocalIndex(ctx),
+				ctx.alloc, range, nextLocalIndex(ctx),
 				getLowExpr(ctx, locals, a.tried, exprPos),
 				restoreCurCatchPoint));
 
@@ -1889,7 +1884,7 @@ LowExpr genSetupCatch(ref GetLowExprCtx ctx, UriAndRange range, LowExpr tried, L
 		onCatch
 	*/
 	LowLocal* store = genLocal(
-		ctx.alloc, symbol!"store", isMutable: true, nextTempLocalIndex(ctx), ctx.commonTypes.catchPoint);
+		ctx.alloc, symbol!"store", isMutable: true, nextLocalIndex(ctx), ctx.commonTypes.catchPoint);
 	LowExpr then = genIf(
 		ctx.alloc, range,
 		genUnary(

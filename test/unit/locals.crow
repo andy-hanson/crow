@@ -1,0 +1,10 @@
+dummy-locals nat()
+	0
+
+test
+	message string = match ("a",)::string?
+	as some message
+		message
+	as none
+		"b"
+	message is "a"

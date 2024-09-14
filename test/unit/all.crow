@@ -14,6 +14,7 @@ import
 	./gc-roots: dummy-gc-roots
 	./globals: dummy-globals
 	./library/all: dummy-library-tests
+	./locals: dummy-locals
 	./log: dummy-log
 	./loops: dummy-loops
 	./matches: dummy-matches
@@ -42,6 +43,7 @@ dummy-unit-tests nat()
 	_ = dummy-gc-roots
 	_ = dummy-globals
 	_ = dummy-library-tests
+	_ = dummy-locals
 	_ = dummy-log
 	_ = dummy-loops
 	_ = dummy-matches

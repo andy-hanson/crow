@@ -337,10 +337,10 @@ LowExpr genVoid(UriAndRange source) =>
 LowExpr genZeroed(LowType type, UriAndRange range) =>
 	LowExpr(type, range, LowExprKind(constantZero));
 
-LowLocal* genLocal(ref Alloc alloc, Symbol name, bool isMutable, size_t index, LowType type) =>
+LowLocal* genLocal(ref Alloc alloc, Symbol name, bool isMutable, uint index, LowType type) =>
 	allocate(alloc, genLocalByValue(alloc, name, isMutable, index, type));
-LowLocal genLocalByValue(ref Alloc alloc, Symbol name, bool isMutable, size_t index, LowType type) =>
-	LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, isMutable, index))), type);
+LowLocal genLocalByValue(ref Alloc alloc, Symbol name, bool isMutable, uint index, LowType type) =>
+	LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, isMutable))), index, type);
 
 // 'local.type' should not contain GC roots
 LowExpr genLetNoGcRoot(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr init, LowExpr then) =>
@@ -349,7 +349,7 @@ LowExpr genLetNoGcRoot(ref Alloc alloc, UriAndRange range, LowLocal* local, LowE
 LowExpr genLetTempConstNoGcRoot(
 	ref Alloc alloc,
 	UriAndRange range,
-	size_t localIndex,
+	uint localIndex,
 	LowExpr value,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
@@ -357,7 +357,7 @@ LowExpr genLetTempConstNoGcRoot(
 	return genLetNoGcRoot(alloc, range, local, value, cbThen(genIdentifier(range, local)));
 }
 
-LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>
+LowExpr genSeqThenReturnFirstNoGcRoot(ref Alloc alloc, UriAndRange range, uint localIndex, LowExpr a, LowExpr b) =>
 	genLetTempConstNoGcRoot(alloc, range, localIndex, a, (LowExpr getA) =>
 		genSeq(alloc, range, b, getA));
 

@@ -16,14 +16,12 @@ import model.lowModel :
 	LowFunPointerType,
 	LowFunSource,
 	LowLocal,
-	LowLocalSource,
 	LowProgram,
 	LowRecord,
 	LowType,
 	LowUnion,
 	LowVar,
 	LowVarIndex;
-import model.model : Local;
 import util.alloc.alloc : Alloc;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
@@ -197,16 +195,9 @@ private void maybeWriteIndexSuffix(scope ref Writer writer, Opt!size_t index) {
 }
 
 void writeLowLocalName(scope ref Writer writer, in MangledNames mangledNames, in LowLocal a) {
-	a.source.matchIn!void(
-		(in Local it) {
-			// Need to distinguish local names from function names
-			writer ~= "__local";
-			writeMangledName(writer, mangledNames, it.name);
-		},
-		(in LowLocalSource.Generated it) {
-			writeMangledName(writer, mangledNames, it.name);
-			writer ~= it.index;
-		});
+	writer ~= "__local";
+	writeMangledName(writer, mangledNames, a.name);
+	writer ~= a.index;
 }
 
 void writeConstantArrStorageName(
