@@ -109,9 +109,9 @@ region Utiliies
 Create a new JavaScript object.
 `("x", 1::float.as-js), ("y", "why")` is like `{ x: 1, y: "why" }` in JavaScript.
 ###
-+new js-any(...properties (symbol, js-any)[]) trusted, js extern
++new js-any(...properties (symbol, js-any)[]) bare, trusted, js extern
 	properties to-js-object
-+to-js-object js-any(properties (symbol, js-any)[]) trusted, js extern
++to-js-object js-any(properties (symbol, js-any)[]) bare, trusted, js extern
 	res = "Object".js-global call-new
 	i mut js-any = 0::float64 as-js
 	until i == properties.as-js["length"]

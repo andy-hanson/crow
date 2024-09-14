@@ -10,8 +10,8 @@ import
 	./col/mut-slice: cast-immutable, cast-mutable, copy, mut-slice
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-break, for-loop,
-		try-remove-end, try-split-once, with-block
-	./col/mut-array: ~=, insert-at, move-to, mut-array, new, reverse-in-place, size
+		reverse-in-place, try-remove-end, try-split-once, with-block
+	./col/mut-array: ~=, insert-at, move-to, mut-array, new, size, subscript, set-subscript
 	./col/util: split
 	./fun-util: subscript
 	./hash: hasher, hash-mix

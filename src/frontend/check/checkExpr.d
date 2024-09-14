@@ -121,6 +121,7 @@ import model.model :
 	BuiltinType,
 	BuiltinUnary,
 	Called,
+	CalledSpecSig,
 	CallExpr,
 	CharType,
 	ClosureGetExpr,
@@ -1229,9 +1230,21 @@ Expr checkFunPointerInner(
 		Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, called.paramTypes, () => source.range);
 		StructInst* structInst = instantiateStructNeverDelay(
 			ctx.instantiateCtx, ctx.commonTypes.funPointerStruct, [called.returnType, paramType]);
+		if (symbol!"js" !in ctx.externs && !isBareForFunctionPointer(called))
+			addDiag2(ctx, source, Diag(Diag.FunPointerNotBare()));
 		return check(ctx, expected, Type(structInst), source, ExprKind(FunPointerExpr(called)));
 	}
 }
+
+bool isBareForFunctionPointer(in Called a) =>
+	a.matchIn!bool(
+		(in Called.Bogus) =>
+			true,
+		(in FunInst x) =>
+			x.decl.isBareOrForceCtx &&
+			every!Called(x.specImpls, (in Called x) => isBareForFunctionPointer(x)),
+		(in CalledSpecSig _) =>
+			false);
 
 Out withReturnAndParamTypes(Out)(
 	ref CommonTypes commonTypes,

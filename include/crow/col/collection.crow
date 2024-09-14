@@ -4,7 +4,7 @@ import
 	../compare: <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, nat64
+	../number: ==, <=>, +, -, /, nat64
 	../option: ??, force, is-empty, new, option
 	../private/bootstrap: exception, string
 	../private/range-low-level: .., iterate, range, size, subtract-to-nat
@@ -170,6 +170,10 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	j index-relative-to-end,
 ) col size, (col, elem) at-index, (col, elem) set-at-index
 	a swap-at (a to-index i), (a to-index j)
+
++reverse-in-place[col, elem] void(a col) col size, (col, elem) at-index, (col, elem) set-at-index
+	for i : 0::nat64 .. a.size / 2
+		a swap-at i, a.size - 1 - i
 
 region 'for' loops
 

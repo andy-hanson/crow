@@ -81,6 +81,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunPointerExprMustBeName) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.FunPointerNotBare) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.IfThrow) =>
 			DiagnosticSeverity.warning,
 		(in Diag.ImportFileDiag) =>

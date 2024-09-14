@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../js: as-js, call, call-property, cast, eval, js-cast, set-subscript, subscript
 	../misc: new, void
-	../number: ==, <=>, +, -, /, float64, nat64, to
+	../number: ==, <=>, +, -, float64, nat64, to
 	../option: force, new, option
 	../pointer:
 		+, -, as-const, gc-safe-value, mem-clear, mem-copy, mem-move, mut-pointer, reference-equal,
@@ -400,15 +400,6 @@ Throws if `index >= a.size`.
 	else
 		todo
 	res
-
-+swap[t] void(a t mut[], i nat64, j nat64)
-	temp = a[i]
-	a[i] := a[j]
-	a[j] := temp
-
-+reverse-in-place[t] void(a t mut[])
-	for i : 0::nat64 .. a.size / 2
-		a swap i, a.size - 1 - i
 
 region mutating iteration
 

@@ -739,6 +739,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.FunPointerExprMustBeName) {
 			writer ~= "Function pointer expression must be a plain identifier ('&f').";
 		},
+		(in Diag.FunPointerNotBare) {
+			writer ~= "The target of a function pointer must be a 'bare' function.";
+		},
 		(in Diag.IfThrow) {
 			writer ~= "Instead of throwing from a conditional expression, use 'assert' or 'forbid'.";
 		},

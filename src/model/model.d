@@ -1382,6 +1382,8 @@ immutable struct FunDecl {
 
 	bool isBare() scope =>
 		flags.bare;
+	bool isBareOrForceCtx() scope =>
+		flags.bare || flags.forceCtx;
 	bool isGenerated() scope =>
 		body_.isGenerated;
 	bool isSummon() scope =>

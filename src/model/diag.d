@@ -295,6 +295,7 @@ immutable struct Diag {
 		ReturnAndParamTypes returnAndParamTypes;
 	}
 	immutable struct FunPointerExprMustBeName {}
+	immutable struct FunPointerNotBare {}
 	immutable struct IfThrow {}
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
@@ -694,6 +695,7 @@ immutable struct Diag {
 		FlagsSigned,
 		FunctionWithSignatureNotFound,
 		FunPointerExprMustBeName,
+		FunPointerNotBare,
 		IfThrow,
 		ImportFileDiag*,
 		ImportRefersToNothing,

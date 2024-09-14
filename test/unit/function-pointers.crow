@@ -10,7 +10,7 @@ test
 -get-fun-void nat function()(xs string mut[])
 	xs ~= "get-fun"
 	&foo
--foo nat()
+-foo nat() bare
 	3
 
 test
@@ -22,7 +22,7 @@ test
 -get-fun-tuple nat function(x bool, y char8)(xs string mut[])
 	xs ~= "get-fun"
 	&foo
--foo nat(_ bool, _ char8)
+-foo nat(_ bool, _ char8) bare
 	3
 
 -get-pair (bool, char8)(xs string mut[])
