@@ -104,6 +104,8 @@ LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteEr
 			case symbolOfEnum(BuiltinExtern.pthread).value:
 				// TODO: understand why this is different
 				return loadLibraryFromName(cString!"libpthread.so.0", writeError);
+			case symbolOfEnum(BuiltinExtern.windows).value:
+				return loadLibraryFromName(cString!"kernel32.dll", writeError);
 			default:
 				return loadLibraryFromName(fileName, writeError);
 		}

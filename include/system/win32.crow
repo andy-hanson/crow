@@ -102,7 +102,7 @@ import
 	arglist any-mut-pointer,
 	initflag u-int,
 	thrdaddr u-int mut*,
-) windows extern
+) ucrtbase extern
 
 +WAIT_OBJECT_0 DWORD() bare
 	0
@@ -194,10 +194,10 @@ import
 +FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) windows extern
 +FindClose bool(hFindFile HANDLE) windows extern
 
-+_getcwd c-char mut*(buffer c-char mut*, size size_t) windows extern
-+_mkdir err-t(path c-string, mode mode_t) windows extern
-+_pclose err-t(stream FILE mut*) windows extern
-+_popen FILE mut*(command c-string, mode c-string) windows extern
++_getcwd c-char mut*(buffer c-char mut*, size size_t) ucrtbase extern
++_mkdir err-t(path c-string, mode mode_t) ucrtbase extern
++_pclose err-t(stream FILE mut*) ucrtbase extern
++_popen FILE mut*(command c-string, mode c-string) ucrtbase extern
 
 +ERROR_FILE_NOT_FOUND DWORD() bare
 	2

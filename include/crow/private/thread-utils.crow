@@ -341,7 +341,7 @@ thread-handle record by-val, mut
 ) bare, summon, unsafe, native extern
 	if is-single-threaded
 		hard-unreachable
-	elif extern windows
+	elif extern ucrtbase
 		thread-id mut nat32 = 0
 		res = null _beginthreadex 0, thread-fun, thread-arg, 0, &thread-id
 		res,

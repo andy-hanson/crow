@@ -193,6 +193,8 @@ public void getLinkOptions(
 				switch (x.libraryName.value) {
 					case symbol!"libc".value:
 					case symbol!"m".value:
+					case symbol!"ucrtbase".value:
+					case symbol!"windows".value:
 						break;
 					default:
 						cb(cStringOfSymbol(alloc, xDotLib));

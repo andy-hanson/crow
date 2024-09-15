@@ -257,7 +257,7 @@ If the file already exists, overwrites it.
 # Gets the current directory (of the user that ran the program).
 +current-directory string() summon, trusted, native extern
 	buff char8 mut-slice = 256 gc-safe-mut-slice
-	b = if extern windows
+	b = if extern ucrtbase
 		buff.begin-pointer _getcwd buff.size
 	elif extern posix
 		buff.begin-pointer getcwd buff.size
@@ -334,7 +334,7 @@ and skips them if `filter` returns false.
 -make-directory-inner bool(path string, permissions file-permissions) summon, native extern
 	trusted
 		mode = permissions to-mode
-		err = if extern windows
+		err = if extern ucrtbase
 			path.to _mkdir mode
 		elif extern posix
 			path.to mkdir mode

@@ -1960,7 +1960,11 @@ SymbolSet allExternsForMainConfig(in Config mainConfig, Opt!BuildTarget target) 
 					break;
 				case BuildTarget.native:
 					version (Windows)
-						out_ ~= [symbolOfEnum(BuiltinExtern.DbgHelp), symbolOfEnum(BuiltinExtern.windows)];
+						out_ ~= [
+							symbolOfEnum(BuiltinExtern.DbgHelp),
+							symbolOfEnum(BuiltinExtern.ucrtbase),
+							symbolOfEnum(BuiltinExtern.windows),
+						];
 					else
 						out_ ~= [
 							symbolOfEnum(BuiltinExtern.linux),
@@ -2475,6 +2479,7 @@ immutable enum BuiltinExtern {
 	posix,
 	pthread,
 	sodium,
+	ucrtbase,
 	unwind,
 	windows,
 }

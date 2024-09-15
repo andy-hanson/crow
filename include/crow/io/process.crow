@@ -86,12 +86,12 @@ The child process shares stdout and stderr with the parent process.
 # Executes a shell command and returns its output.
 +shell-exec string(command string) summon, trusted, native extern
 	assert extern libc : not-implemented
-	pipe = extern windows ? command.to _popen "r" : command.to popen "r"
+	pipe = extern ucrtbase ? command.to _popen "r" : command.to popen "r"
 	if pipe == null
 		todo
 	res char8 mut[] = ()
 	res keep-reading pipe
-	err = extern windows ? pipe _pclose : pipe pclose
+	err = extern ucrtbase ? pipe _pclose : pipe pclose
 	assert err == 0
 	res move-to
 

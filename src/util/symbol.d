@@ -875,6 +875,7 @@ immutable string[] specialSymbols = [
 	"updates",
 	"user-main",
 	"re-exports",
+	"ucrtbase",
 	"variadic",
 	"variant-member-get",
 	"variants",

@@ -268,7 +268,7 @@ test
 
 -update-lines string(a string, cb string[] mut(line string))
 	"\n" join with out : build
-		for line : a split "\n"
+		for line : a lines
 			for new-line : cb[line]
 				out ~= new-line
 

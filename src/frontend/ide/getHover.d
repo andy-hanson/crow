@@ -635,6 +635,7 @@ void getExprHover(
 						final switch (force(builtin)) {
 							case BuiltinExtern.DbgHelp:
 							case BuiltinExtern.windows:
+							case BuiltinExtern.ucrtbase:
 								return "run on Windows";
 							case BuiltinExtern.js:
 								return "run in a JavaScript build";

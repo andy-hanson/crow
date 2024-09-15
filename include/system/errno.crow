@@ -5,13 +5,13 @@ import
 	../crow/private/bootstrap: todo
 
 +errno err-t() bare, summon, unsafe, (libc, native) extern
-	if extern windows
+	if extern ucrtbase
 		*_errno
 	elif extern posix
 		*__errno_location
 	else
 		todo
--_errno err-t mut*() windows extern
+-_errno err-t mut*() ucrtbase extern
 -__errno_location err-t mut*() posix extern
 
 +ENOENT err-t() bare
