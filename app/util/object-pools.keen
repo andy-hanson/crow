@@ -11,21 +11,18 @@ new[t] t buffer-allocator()
 assert-all-free[t] void(a t buffer-allocator)
 	a.count-allocated is 0
 
-allocate-gc-safe-values[t] t buffer(a t buffer-allocator, size nat) unsafe
+allocate-gc-safe-values[t] t buffer(a t buffer-allocator, size nat32) unsafe
 	do unless size == 0
 	i = size - 1
 	until i < a.by-size.size
 		a.by-size ~= ()
 	xs = a.by-size[i]
 	a.count-allocated +:= 1
-	if is-empty xs
-		uninitialized-buffer size
-	else
-		pop! xs
+	pop xs else uninitialized-buffer size
 
 free[t] void(a t buffer-allocator, array t buffer) unsafe
-	do unless is-empty array
-	for i in 0::nat .. array.size
+	do if any array
+	for i in array.size
 		array[i] := gc-safe-value
 	a.by-size[array.size - 1] ~= array
 	a.count-allocated -:= 1
@@ -36,7 +33,7 @@ test
 	x = allocate-gc-safe-values a, 0
 	x.size is 0
 	free a, x
-	assert is-empty a.by-size
+	forbid any a.by-size
 test
 	do trusted
 	a string buffer-allocator = ()
@@ -69,7 +66,7 @@ allocate[t] t mut[](a t mut-array-allocator)
 	a.pool.pop else ()
 
 free[t] void(a t mut-array-allocator, value t mut[])
-	assert is-empty value
+	forbid any value
 	a.pool ~= value
 	a.count-allocated -:= 1
 

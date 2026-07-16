@@ -7,7 +7,6 @@ import
 	./col/mut-array
 	./col/buffer
 	./col/collection
-	./col/private/private-util
 	./col/util
 	./exception
 	./hash
@@ -56,11 +55,11 @@ export
 +new string()
 	""
 
-| Same as `{a} == ""`.
-+is-empty bool(a string)
-	is-empty a.to::char8[]
+| True for all strings but "".
++any bool(a string)
+	any to::char8[] a
 
-+size nat64(a string)
++size nat32(a string)
 	a.to::char8[].size
 
 + == bool(a string, b string)
@@ -80,11 +79,11 @@ export
 +hash void(a char32, state hash-state)
 	trusted hash a.to::nat32, state
 
-+subscript char8(a string, index nat)
++subscript char8(a string, index nat32)
 	a.chars[index]
 +subscript char8(a string, index index-relative-to-end)
 	a.chars[to-index a, index]
-+subscript string-view(a string, indices nat range)
++subscript string-view(a string, indices nat32 range)
 	a.chars[indices]
 +subscript string-view(a string, indices range-relative-to-end)
 	a.chars[to-range a, indices]
@@ -148,14 +147,14 @@ region conversion
 	a.to::nat8 < 0b1000_0000
 
 +show string(a nat8)
-	show a::nat
+	show a::nat64
 +show string(a nat16)
-	show a::nat
+	show a::nat64
 +show string(a nat32)
-	show a::nat
+	show a::nat64
 | Converts a {nat} to a {string}.
 | Returns only digits without punctuation, e.g. `1234`.
-+show string(a nat)
++show string(a nat64)
 	to-base a, 10
 
 -js-to-string string(a js-any) unsafe, js
@@ -200,12 +199,12 @@ region conversion
 	else
 		throw unreachable
 
-+to-binary string(a nat)
++to-binary string(a nat64)
 	to-base a, 2
-+to-hex string(a nat)
++to-hex string(a nat64)
 	to-base a, 16
 
--to-base string(a nat, base nat)
+-to-base string(a nat64, base nat64)
 	if a < base
 		digit-to-string a
 	else
@@ -215,12 +214,12 @@ region conversion
 	a
 
 +show string(a int8)
-	show a::int
+	show a::int64
 +show string(a int16)
-	show a::int
+	show a::int64
 +show string(a int32)
-	show a::int
-+show string(a int)
+	show a::int64
++show string(a int64)
 	if a == min-value
 		"-9223372036854775808"
 	else
@@ -271,13 +270,10 @@ region utilities
 	else
 		join-with-multiple-parts joiner, parts
 -join-with-multiple-parts string(joiner string, parts string[])
-	res-size mut nat64 = 0
-	for part in parts
-		res-size +:= part.size
-	res-size +:= joiner.size * (parts.size - 1)
+	res-size = (sum parts, it.size) + joiner.size * (parts.size - 1)
 	res char8 buffer = trusted uninitialized-buffer res-size
-	out-i mut = 0
-	for i in 0 .. parts.size
+	out-i mut nat32 = 0
+	for i in parts.size
 		if i != 0
 			res[out-i .. out-i + joiner.size] := joiner.chars
 			out-i +:= joiner.size

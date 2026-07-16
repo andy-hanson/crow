@@ -82,7 +82,7 @@ do show-ctx
 			throw unreachable
 
 -add-inlay-hints-for-ref void(out inlay-hint builder, lcg line-and-character-getter, decl any-decl, uses uri set)
-	do unless is-empty uses
+	do if any uses
 	parts inlay-hint-label-part[] = uris-or-count-label-parts "Used by ", uses, 3
 	out ~=
 		position: end-of-line-for-decl lcg, decl
@@ -114,7 +114,7 @@ do
 		location: lcgs[range]
 		command: ()
 
--uris-or-count-label-parts inlay-hint-label-part[](description string, uris uri set, max-uris nat)
+-uris-or-count-label-parts inlay-hint-label-part[](description string, uris uri set, max-uris nat32)
 	if uris.size > max-uris
 		-
 			value: "{description}{uris.size} other modules"
@@ -184,17 +184,15 @@ do
 
 -inlay-hint-pos pos?(a local-source)
 	match a
-	as catch-ast
+	as catch-ast or it-scope-ast or local-source-generated
 		()
-	as it-scope-ast
-		()
+	as record-field
+		a.range.range.start
 	as name-and-range
 		a.end
 	as single-destructure-ast
 		unless a.type
 			a.mut-range.?end else a.name.end
-	as local-source-generated
-		()
 
 -end-of-line-for-decl line-and-character(lcg line-and-character-getter, decl any-decl)
 	end-of-line lcg, decl.range.range.start
@@ -232,7 +230,7 @@ do show-type-ctx
 			arguments: run-test where
 
 -tooltip-for-run-result string?(result run-test-result)
-	do if is-ok result.exit or not is-empty result.writes
+	do if is-ok result.exit or any result.writes
 	lines string[] = if every result.writes, it.pipe == out
 		map result.writes, it.text
 	else

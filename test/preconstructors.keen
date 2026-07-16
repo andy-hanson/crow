@@ -1,0 +1,42 @@
+test
+	try
+		_ r = 1, ("a",)
+		should-throw
+	catch e as index-too-big
+		e.actual is 1
+		e.max-exclusive is 1
+
+test
+	try
+		_ = r 1, ("a",)
+		should-throw
+	catch e as index-too-big
+		e.actual is 1
+		e.max-exclusive is 1
+
+r record
+	index nat
+	array string[]
+do
+	assert index < array.size else index-too-big index, array.size
+
+test
+	try
+		_ r2 = 3,
+		should-throw
+	catch as not-implemented
+		()
+
+r2 record(x nat)
+	x isnt 3 else not-implemented
+
+test global
+	trusted did-something-global is false
+	a rg = 1,
+	trusted did-something-global is true
+	a.x is 1
+rg record(x nat) global, mut
+	something-global
+-something-global void() global
+	trusted did-something-global := true
+-did-something-global global(bool) = false

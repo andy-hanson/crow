@@ -1,19 +1,11 @@
-test
-	n = 1
-	n is 1::nat
-	i = -1
-	i is -1::int
-	f = 1.1
-	f is 1.1::float
-
 # Test that Java can handle unsigned numbers that exceed the range of the corresponding signed type.
 # Previously there was a bug where it would throw an exception in the java/lang/Byte constructor with a too-big value.
 test
 	optional-nat8 is 0xff
 	optional-nat16 is 0xffff
-	optional-nat32 is 0xffffffff
-	optional-nat64 is 0xffffffffffffffff
-optional-nat8 nat8?() = max-value
-optional-nat16 nat16?() = max-value
-optional-nat32 nat32?() = max-value
-optional-nat64 nat64?() = max-value
+	optional-nat32 is 0xffff_ffff
+	optional-nat64 is 0xffff_ffff_ffff_ffff
+optional-nat8 nat8?() = max-value::nat8
+optional-nat16 nat16?() = max-value::nat16
+optional-nat32 nat32?() = max-value::nat32
+optional-nat64 nat64?() = max-value::nat64

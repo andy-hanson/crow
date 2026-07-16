@@ -1,17 +1,16 @@
 import
 	../model/low-model
-	../model/model
 	./all-constants-builder
 	./lower-ctx
-	./generate
 
 replace-constants void() lower-ctx
 	ctx = the::lower-context
-	assert is-empty ctx.all-unprocessed-low-funs
-	constants-map constant mut[low-fun] = for* fun in ctx.all-processed-low-funs
+	forbid any ctx.all-unprocessed-low-funs
+	constants-map constant mut[low-fun] = for? fun in ctx.all-processed-low-funs
 		body = fun.body
 		if body.low-expr and body.constant-low-expr
-			- fun, body.value
+			fun, body.value
+
 	do while
 	added-any-new-constants mut = false
 	for fun in ctx.all-processed-low-funs
@@ -43,8 +42,13 @@ replace-constants void() lower-ctx
 		do if input, body = replace-constants-in-args-exprs a.input, a.body
 		array-op-low-expr type, range, input, a.local, a.empty-out-array, body
 	as builtin-unary-low-expr
-		do if new-arg = replace-constants a.arg
-		builtin-unary-low-expr type, range, a.fun, new-arg
+		new-arg = replace-constants a.arg
+		arg = new-arg else a.arg
+		if a.fun == wrap-convert-integral and builtin-unary-low-expr arg and arg.fun == wrap-convert-integral
+			# Avoid double conversion. Converting up to a 64-bit type and back down hurts performance in JS.
+			builtin-unary-low-expr type, range, wrap-convert-integral, arg.arg
+		elif new-arg
+			builtin-unary-low-expr type, range, a.fun, new-arg
 	as builtin-binary-low-expr
 		do if new-arg0, new-arg1 = replace-constants-in-args-exprs a.arg0, a.arg1
 		builtin-binary-low-expr type, range, a.fun, new-arg0, new-arg1
@@ -137,24 +141,23 @@ replace-constants void() lower-ctx
 		:: match-scalar-low-expr
 		range: range
 		matched: matched else a.matched
-		case-values: a.case-values
+		switch: a.switch
 		case-exprs: cases else a.case-exprs
 		else_: else_ or a.else_
-	as match-string-like-low-expr
+	as match-symbol-low-expr
 		matched = replace-constants a.matched
 		# TODO: if 'matched' is a constant, use just that branch
 		updated-case mut = false
-		cases low-match-string-like-case[] = for case_ in a.cases
+		cases match-symbol-low-expr-case[] = for case_ in a.cases
 			then_ = replace-constants case_.then_
 			updated-case := updated-case or then_
-			value: case_.value
+			value-or-values: case_.value-or-values
 			then_: then_ else case_.then_
 		else_ = replace-constants a.else_
 		do if matched or updated-case or else_
-		:: match-string-like-low-expr
+		:: match-symbol-low-expr
 		range: range
 		matched: matched else a.matched
-		equals: a.equals
 		cases: cases
 		else_: else_ else a.else_
 	as match-union-low-expr
@@ -166,7 +169,7 @@ replace-constants void() lower-ctx
 		:: match-union-low-expr
 		range: range
 		matched: matched else a.matched
-		case-indices: a.case-indices
+		switch: a.switch
 		cases: cases else a.cases
 		else_: else_ or a.else_
 	as new-interface-low-expr
@@ -181,9 +184,9 @@ replace-constants void() lower-ctx
 		record-field-set-low-expr range, record_, a.field, value
 	as seq-low-expr
 		do if new-parts = replace-constants-in-args-exprs a.parts
-		without-constants low-expr[] = for* index, part in with-index new-parts
+		without-constants low-expr[] = for? index, part in with-index new-parts
 			if index == new-parts.size - 1 or not constant-low-expr part
-				- part
+				part
 		only without-constants else seq-low-expr range, without-constants
 	as throw-low-expr
 		do if thrown = replace-constants a.thrown
@@ -293,24 +296,10 @@ do replace-constants-ctx
 	match body = fn.body
 	as low-expr
 		eval-as-constant fn, body, args
-	as low-fun-body-extern-java
-		()
-	as low-fun-body-method
-		()
-	as low-fun-body-deferred
+	as low-fun-body-extern-java or low-fun-body-method or low-fun-body-deferred
 		()
 	as low-fun-body-always-inline
 		throw unreachable
-	as low-builtin-unary
-		()
-	as low-builtin-binary
-		()
-	as low-builtin-ternary
-		()
-	as java-fun
-		()
-	as js-fun
-		()
 -eval-as-constant constant?(fn low-fun, a low-expr, fn-args constant[]) lower-ctx
 	match a
 	as constant-low-expr

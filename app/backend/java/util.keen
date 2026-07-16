@@ -37,26 +37,17 @@ as-java-primitive-type java-primitive-type?(type low-type)
 	match x = type.body
 	as builtin-type
 		match x
-		as array
-			if is-empty-type as-array! type
-				T_INT
-		as buffer
-			if is-empty-type as-buffer! type
+		as array or buffer
+			if is-empty-type as-array-or-buffer! type
 				T_INT
 		as bool then T_BOOLEAN
-		as char8 then T_BYTE
+		as char8 or int8 or nat8 then T_BYTE
 		as char16 then T_CHAR
-		as char32 then T_INT
+		as char32 or int32 or nat32 then T_INT
 		as float32 then T_FLOAT
 		as float64 then T_DOUBLE
-		as int8 then T_BYTE
-		as int16 then T_SHORT
-		as int32 then T_INT
-		as int64 then T_LONG
-		as nat8 then T_BYTE
-		as nat16 then T_SHORT
-		as nat32 then T_INT
-		as nat64 then T_LONG
+		as int16 or nat16 then T_SHORT
+		as int64 or nat64 then T_LONG
 		else then ()
 	as low-enum
 		primitive-for-nat x.storage
@@ -78,7 +69,7 @@ as-java-primitive-type java-primitive-type?(type low-type)
 erased-signature (low-type, low-type array-view)?(fun low-fun)
 	match body = fun.body
 	as low-fun-body-method
-		unless is-empty body.erased-signature
+		if any body.erased-signature
 			body.erased-signature[0], body.erased-signature[1 .. end]
 	as low-fun-body-extern-java
 		body.erased-return-type, body.erased-param-types

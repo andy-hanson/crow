@@ -68,14 +68,14 @@ new single-source-mapping()
 			write-base-64-vlq a.mappings, 0
 		else
 			name-index = find-index-or-push a.names, mapping.source.name
-			write-base-64-vlq a.mappings, name-index.to - a.prev-source-name-index.to
+			write-base-64-vlq a.mappings, name-index.to::int32 - a.prev-source-name-index.to
 			a.prev-source-name-index := name-index
 
 	a.prev := mapping
 
-write-base-64-vlq void(out char8 mut[], value int)
-	sign-bit = value < 0
-	value-remaining mut = value.abs << 1 | sign-bit.to
+write-base-64-vlq void(out char8 mut[], value int32)
+	sign-bit nat = if value < 0 then 1
+	value-remaining mut = value.abs << 1 | sign-bit
 	if value-remaining == 0
 		out ~= base-64-char 0
 	else
@@ -84,7 +84,7 @@ write-base-64-vlq void(out char8 mut[], value int)
 		value-remaining >>:= 5
 		out ~= base-64-char (if value-remaining == 0 then 0 else 0b100000) | code
 
--base-64-char char8(number nat64)
+-base-64-char char8(number nat32)
 	number & 0b111111 is number
 	base-64-chars[number]
 

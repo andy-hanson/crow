@@ -28,12 +28,12 @@ import
 	clear a.buckets
 
 | {true} if `{a}.{size} == 0`.
-+is-empty[k, v] bool(a (k, v) mut-priority-queue) k sorted-key
-	is-empty a.mins
++any[k, v] bool(a (k, v) mut-priority-queue) k sorted-key
+	any a.mins
 
 | Number of pairs in the queue.
 | This is O({a} {size}).
-+size[k, v] nat64(a (k, v) mut-priority-queue) k sorted-key
++size[k, v] nat32(a (k, v) mut-priority-queue) k sorted-key
 	res mut = a.mins.size
 	for b in a.buckets
 		res +:= b.size
@@ -71,6 +71,10 @@ import
 		a.mins ~~= bucket
 	res
 
++pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f bool mut(key k, value v)) k sorted-key
+	if p = peek a and f[p]
+		pop a
+
 | Copy pairs to a new priority queue.
 | This is O(n).
 +copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k sorted-key
@@ -94,7 +98,7 @@ import
 		a.mins ~= old-min
 	clear a.buckets
 
--add-to-bucket[k, v] void(buckets (k, v) mut[] mut[], index nat64, pair (k, v))
+-add-to-bucket[k, v] void(buckets (k, v) mut[] mut[], index nat32, pair (k, v))
 	until index < buckets.size then buckets ~= ()
 	buckets[index] ~= pair
 
@@ -103,7 +107,7 @@ import
 	join ", ", for i, min in with-index a.mins
 		show-bucket = if i < a.buckets.size
 			bucket = a.buckets[i]
-			unless is-empty bucket
+			if any bucket
 				parts = join ", ", map bucket, it.dbg
 				" [{parts}]"
 		"{dbg min}{show-bucket}"

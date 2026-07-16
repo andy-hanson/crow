@@ -1,0 +1,38 @@
+import
+	../bits
+	../enums
+
++mut-enum-set[t] record mut
+	~bits mut nat buffer
+
++list-new[t] t mut-enum-set(a t[]) t enum-like
+	a.to
+
++to[t] t mut-enum-set(a t[]) t enum-like
+	res t mut-enum-set = bits: ()
+	for x in a
+		res |= x
+	res
+
++any[t] bool(a t mut-enum-set)
+	any a.bits
++is-full[t] bool(a t mut-enum-set) t enum-like
+	every members::t[], a[it]
++size[t] nat(a t mut-enum-set) t enum-like
+	sum a.bits, it.count-ones
+
++subscript[t] bool(a t mut-enum-set, value t) t enum-like
+	v = to::nat value
+	word = v / 32
+	word < a.bits.size and has-bit a.bits[word], v % 32
+
++ |=[t] void(a t mut-enum-set, value t) t enum-like
+	v = to::nat value
+	if v >= a.bits.size * 32
+		new-bits nat buffer = trusted uninitialized-buffer (v / 32) + 1
+		new-bits[0 .. a.bits.size] := a.bits
+		for i in a.bits.size .. new-bits.size
+			new-bits[i] := 0
+		a.bits := new-bits
+	assert v < a.bits.size * 32
+	a.bits[v / 32] |:= nth-bit v % 32

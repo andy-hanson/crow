@@ -2,13 +2,13 @@ no-std
 import
 	./private/bootstrap
 
-| Returns a value which the GC will ignore.
-| This is 'null' for pointers, or an arbitrary value for non-pointer types.
-| In JS, this is the JS 'null' value.
+| Returns an arbitrary value of the type.
+| The main use of this is to overwrite unused values in a buffer, to free the memory.
 +gc-safe-value[t] t() unsafe
 
-| True if two references have the same pointer.
-| Contrast with `a == b` which can also be true for different pointers with equal contents.
+| True if two values are considered exactly equal.
+| In a Java build, this is like the '==' operator from Java.
+| In a JS build, this uses '===' for most types or 'Object.is' for floats (to ensure NaN equals itself).
 +reference-equal[t] bool(a t, b t) unsafe
 
 | Treat an {input} as if it were an {output}.

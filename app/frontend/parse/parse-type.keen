@@ -19,9 +19,7 @@ try-take-visibility visibility?() parser
 	match peek
 	as list-dash
 		private
-	as operator-binary
-		as-visibility next-symbol
-	as operator-prefix
+	as operator-binary or operator-prefix
 		as-visibility next-symbol
 	else
 		()
@@ -94,6 +92,14 @@ parse-modifiers modifier-ast[]() parser
 parse-type-for-typed-expr type-ast() parser
 	parse-type-suffixes-non-name parse-type-before-suffixes necessary
 
+parse-parameter-require-parens parameter-ast() parser, parse-expr-for-param-default
+	destructure: parse-destructure-require-parens
+	default: try-parse-default
+
+try-parse-default expr-ast?() parser, parse-expr-for-param-default
+	if try-take-token equal
+		parse-expr-for-param-default the::parser
+
 parse-destructure-require-parens destructure-ast() parser
 	start = next-start
 	match peek
@@ -128,6 +134,14 @@ parse-destructure-require-parens destructure-ast() parser
 -try-take-type type-ast?() parser
 	?parse-type-suffixes try-parse-type-before-suffixes unnecessary
 
+parse-expr-for-param-default spec
+	parse-expr-for-param-default expr-ast(parser parser)
+
+-parse-parameter-no-require-parens parameter-ast() parser, parse-expr-for-param-default
+	destructure: parse-destructure-no-require-parens
+	default: if try-take-token equal
+		parse-expr-for-param-default the::parser
+
 parse-destructure-no-require-parens destructure-ast() parser
 	destructure-from-parts next-start, parse-comma-separated {parse-destructure-require-parens}
 
@@ -135,31 +149,35 @@ try-parse-sum-type-listed-types-parenthesized type-ast[]?() parser
 	if try-take-token paren-left
 		parse-types-with-commas-then-closing-paren
 
-try-parse-params-parenthesized destructure-ast[]?() parser
+try-parse-params-parenthesized parameter-ast[]?() parser, parse-expr-for-param-default
 	if peek paren-left
 		parse-params-parenthesized
 
 params-kind enum(indented, parenthesized)
-parse-params (destructure-ast[], params-kind)() parser
+parse-params (parameter-ast[], params-kind)() parser, parse-expr-for-param-default
 	if try-take-token newline-indent
-		params = parse-indented-lines-after-indent {parse-destructure-no-require-parens}
-		_ = try-take-token newline-same-indent
+		params = parse-indented-lines-after-indent {parse-parameter-no-require-parens}
 		params, indented
 	else
 		parse-params-parenthesized, parenthesized
 
-parse-params-parenthesized destructure-ast[]() parser
+-parse-params-parenthesized parameter-ast[]() parser, parse-expr-for-param-default
+	parse-parenthesized {parse-parameter-require-parens}
+
+-parse-destructures-parenthesized destructure-ast[]() parser
+	parse-parenthesized {parse-destructure-require-parens}
+
+-parse-parenthesized[t] t[](parse-one t mut()) parser
 	if not take-or-add-diag-expected-token paren-left, open-paren
 		skip-until-newline-no-diag
 		()
 	elif try-take-token paren-right
 		()
 	else
-		params = parse-comma-separated {parse-destructure-require-parens}
+		res = parse-comma-separated parse-one
 		unless take-or-add-diag-expected-token paren-right, closing-paren
 			skip-until-newline-no-diag
-		params
-
+		res
 -parentheses-necessary enum(unnecessary, necessary)
 
 -parse-type-before-suffixes type-ast(parens parentheses-necessary) parser
@@ -289,9 +307,8 @@ parse-params-parenthesized destructure-ast[]() parser
 	do if peek2 paren-left
 	advance
 	before-params = next-start
-	params-array = parse-params-parenthesized
-	params destructure-ast = destructure-from-parts before-params, params-array
-	return-type, keyword-pos, kind, params
+	params-array = parse-destructures-parenthesized
+	return-type, keyword-pos, kind, destructure-from-parts before-params, params-array
 
 -destructure-from-parts destructure-ast(start pos, parts destructure-ast[]) parser
 	match parts.size

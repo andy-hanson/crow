@@ -26,13 +26,13 @@ import
 	base64-digits[a]
 
 +base64-decode nat8[](a string)
-	do unless is-empty a
+	do if any a
 	# Walk the string and emit 6 bits at a time.
 	cur mut nat32 = 0
 	cur-bits mut nat32 = 0
 	do with out in build
 	chars mut string-view = a.to
-	while not is-empty chars and chars[end - 1] == "="
+	while any chars and chars[end - 1] == "="
 		chars := chars[0 .. end - 1]
 	for char in chars
 		value = base64-decode-single char

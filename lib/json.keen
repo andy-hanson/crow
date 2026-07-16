@@ -25,9 +25,9 @@ import
 export
 	./private/bootstrap: from-json, json, json-object, keys, null, to-json, values
 
-+is-empty bool(a json-object)
-	is-empty a.keys
-+size nat(a json-object)
++any bool(a json-object)
+	any a.keys
++size nat32(a json-object)
 	size zip a.keys, a.values
 +some bool(a json-object, f bool mut(key symbol, value json))
 	some (zip a.keys, a.values), f
@@ -74,8 +74,8 @@ export
 	match a
 	as null then a
 	as bool then a
-	as nat then a
-	as int then a
+	as nat64 then a
+	as int64 then a
 	as float then a
 	as string then a
 	as array then a
@@ -88,28 +88,28 @@ export
 		key, only! a.values
 	else
 		"", null
-~to-flags-from-json nat(a json, expected string, member-names symbol[], member-values nat[])
+~to-flags-from-json nat64(a json, expected string, member-names symbol[], member-values nat64[])
 	match a
 	as null
 		()
 	as array
-		res mut nat = 0
+		res mut nat64 = 0
 		for x in a
 			res |:= to-flags-from-string x, expected, member-names, member-values
 		res
 	else
 		to-flags-from-string a, expected, member-names, member-values
--to-flags-from-string nat(a json, expected string, member-names symbol[], member-values nat[])
+-to-flags-from-string nat64(a json, expected string, member-names symbol[], member-values nat64[])
 	assert string a and index = index-of member-names, a.to else deserialize-error expected, a
 	member-values[index]
 
 | If no arguments are passed this is {null}. Otherwise it is a JSON array.
 | For an empty array, use {empty-array} or `()::json[]`
 +list-new json(args json[])
-	if is-empty args
-		null
-	else
+	if any args
 		args
+	else
+		null
 +named-new json(keys symbol[], values json[])
 	assert keys.size == values.size
 	new-json-object keys, values
@@ -136,7 +136,8 @@ export
 +to json(a nat32) = a
 +to nat32(a json) = a.to::nat64.to
 +to json(a nat64) = a
-+to nat64(a json) = a.to::float64.to
++to nat64(a json)
+	nat64 a else throw deserialize-error "nat", a
 +to json(a int8) = a
 +to int8(a json) = a.to::int64.to
 +to json(a int16) = a
@@ -144,7 +145,14 @@ export
 +to json(a int32) = a
 +to int32(a json) = a.to::int64.to
 +to json(a int64) = a
-+to int64(a json) = a.to::float64.to
++to int64(a json)
+	match a
+	as nat64
+		a.to
+	as int64
+		a
+	else
+		throw deserialize-error "int", a
 +to json(a float32) = a
 +to float32(a json) = a.to::float64.to
 +to json(a float64) = a
@@ -298,6 +306,19 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 			"{quoted k.to, false}:{to-json v}"
 		"\{{parts}\}"
 
+-to-quote string[](a string)
+	lines = split a, "\n"
+	do with out in build lines.size + 1
+	out ~= "quote"
+	do for line in lines
+	out ~= with out-line in build line.size
+		out-line ~= "\t"
+		do for x in line
+		if esc = escape x, true
+			out-line ~~= esc
+		else
+			out-line ~= x
+
 -quoted string(a string, is-kid bool)
 	do with out in build
 	out ~= "\""
@@ -351,15 +372,15 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 	as null
 		true
 	as array
-		is-empty a
+		not any a
 	as json-object
-		is-empty a
+		not any a
 	else
 		false
 
 | Converts a value to {json} and renders it as Kid.
 +to-kid[t] string(a t) t to-json
-	match x = to-kid-inner a.to, 100
+	match x = to-kid-inner a.to, 120
 	as lines
 		join "\n", x.lines
 	as single
@@ -369,7 +390,7 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 -single record(text string, needs-parens bool)
 -parenthesize string(a single)
 	if a.needs-parens then "({a.text})" else a.text
--to-kid-inner to-kid-result(a json, max-columns nat)
+-to-kid-inner to-kid-result(a json, max-columns nat32)
 	match a
 	as null
 		single "()", false
@@ -382,38 +403,45 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 	as float
 		single "{a}", false
 	as string
-		single (quoted a, true), false
+		if contains a, "\n"
+			lines to-quote a
+		else
+			single (quoted a, true), false
 	as array
-		if is-empty a
-			single "empty-array", false
-		else
+		if any a
 			to-kid-array-or-object (), a, max-columns
-	as json-object
-		if is-empty a
-			single "empty-object", false
 		else
+			single "empty-array", false
+	as json-object
+		if any a
 			to-kid-array-or-object a.keys, a.values, max-columns
--tab-size nat()
+		else
+			single "empty-object", false
+-tab-size nat32()
 	4
--to-kid-array-or-object to-kid-result(keys symbol[]?, values json[], max-columns nat)
-	forbid is-empty values
+-to-kid-array-or-object to-kid-result(keys symbol[]?, values json[], max-columns nat32)
+	max-columns isnt max-value
+	assert any values
 	if keys
 		assert keys.size == values.size
-	size mut = 0
-	multi-line mut = false
+	size mut nat32 = 0
 	parts to-kid-result[] = for index, x in with-index values
 		key-size = if keys then keys[index].quote-if-necessary.size + ": ".size
-		part = to-kid-inner x, safe-subtract max-columns, tab-size + key-size
+		part = to-kid-inner x, saturating-subtract max-columns, tab-size + key-size
 		match part
 		as lines
-			multi-line := true
+			size := max-value
 		as single
 			if keys
-				size +:= key-size + 1
-			size +:= part.text.size
+				size saturating-add:= key-size
+				size saturating-add:= 1
+			# Objects are complex enough to deserve their own lines
+			if array x or json-object x
+				size := max-value
+			size saturating-add:= part.text.size
 		part
-	size +:= ", ".size * values.size - 1
-	if multi-line or size > max-columns
+	size saturating-add:= ", ".size * values.size - 1
+	if size > max-columns
 		lines: with out in build
 			do for index, part in with-index parts
 			key = if keys then "{quote-if-necessary keys[index]}:" else "-"
@@ -430,8 +458,6 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 			if keys then "{quote-if-necessary keys[index]}: {p}" else p
 		text: if not keys and parts.size == 1 then "{text}," else text
 		needs-parens: true
--safe-subtract nat(a nat, b nat)
-	if a >= b then a - b else 0
 -quote-if-necessary string(key symbol)
 	s string = key.to
 	if is-keen-identifier s then s else quoted s, true

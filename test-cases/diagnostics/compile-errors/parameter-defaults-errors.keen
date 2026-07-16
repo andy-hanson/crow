@@ -1,0 +1,23 @@
+r record
+new r(x nat, y nat) = ()
+new r(y nat, z nat) = ()
+
+test
+	_ r = x: 1
+	_ r = y: 1, x: 2
+	_ r = x: 1, w: 2
+
+s record
+new s(x nat, y nat = 1) = ()
+new s(x nat, z nat = 2) = ()
+test
+	_ s = x: 1
+
+t record
+new t(x nat, y nat) = ()
+named-new t(names symbol[], values nat[]) = ()
+test
+	_ t = x: 1, y: 2
+
+u record
+new u(x nat, y nat = x) = ()

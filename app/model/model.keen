@@ -23,13 +23,13 @@ is-always-compatible bool(referencer mutability, referenced mutability-range)
 is-possibly-compatible bool(referencer mutability, referenced mutability-range)
 	referenced.best-case <= referencer
 
-max-type-params nat()
+max-type-params nat32()
 	8
 
 -type-arrays global((type-array, type-array-key) object-memoizer) = ()
 -type-params-type-args global(type-args[])
-	for n nat in 0 .. max-type-params + 1
-		to-type-args for i nat in 0 .. n then (i,)::type-param-index
+	for n in max-type-params + 1
+		to-type-args for i in 0 .. n then (i,)::type-param-index
 -spec-arrays global((specs, specs-key) object-memoizer) = ()
 
 | This should only be called if there is nothing from the 'model' alive any more.
@@ -38,21 +38,21 @@ clear-object-memoizers void() global, unsafe
 	spec-arrays := ()
 
 to-type-array type-array(types type[])
-	hash = deterministic-hash types
+	hash nat32 = wrap-to deterministic-hash types
 	trusted memoize type-arrays, (types, hash), {types, hash}
 type-array record
 	inner type[]
-	hash nat
+	hash nat32
 -type-array-key record
 	inner type[]
-	hash nat
+	hash nat32
 - == bool(a type-array-key, b type-array-key)
 	trusted a.inner == b.inner
 -memoizer-key type-array-key(a type-array)
 	a.inner, a.hash
-size nat(a type-array)
+size nat32(a type-array)
 	a.inner.size
-subscript type(a type-array, index nat)
+subscript type(a type-array, index nat32)
 	a.inner[index]
 subscript type(a type-array, index index-relative-to-end)
 	a.inner[index]
@@ -63,7 +63,7 @@ hash void(a type-array, state hash-state)
 	trusted hash a.hash, state
 to json(a type-array)
 	a.inner.to
--type-params-type-args type-args(n nat)
+-type-params-type-args type-args(n nat32)
 	trusted type-params-type-args[n]
 
 type-params alias
@@ -85,7 +85,7 @@ as-type-args type-args(a type)
 	as bogus-type then a
 	as type-param-index then a
 	as type-inst then a
-hash nat(a type-args)
+hash nat32(a type-args)
 	trusted match a
 	as no-type-args
 		0
@@ -145,9 +145,9 @@ to-type-args type-args(a type[])
 		to-type-array a
 == bool(a type-args, b type-args)
 	trusted a 'reference-equal b
-is-empty bool(a type-args)
-	a.no-type-args
-subscript type(a type-args, index nat)
+any bool(a type-args)
+	not no-type-args a
+subscript type(a type-args, index nat32)
 	match a
 	as no-type-args
 		throw unreachable
@@ -211,15 +211,11 @@ some bool(a type-args, f bool mut(x type))
 		f[a]
 	as type-array
 		some a.inner, f
-size nat(a type-args)
+size nat32(a type-args)
 	match a
 	as no-type-args
 		0
-	as bogus-type
-		1
-	as type-param-index
-		1
-	as type-inst
+	as bogus-type or type-param-index or type-inst
 		1
 	as type-array
 		a.inner.size
@@ -241,14 +237,14 @@ return-type type(a return-and-param-types)
 	a.return-and-param-types[0]
 param-types type array-view(a return-and-param-types)
 	a.return-and-param-types[1 .. end]
-hash-value nat(a return-and-param-types)
+hash-value nat32(a return-and-param-types)
 	a.return-and-param-types.hash
 # It doesn't seem to be worth memoizing these
 spec-impls alias
 	called[]
 specs record -new
 	inner spec-or-type-inst[]
-	hash nat
+	hash nat32
 	all-builtin (builtin-spec, type-args)[]
 	all-contexts type-args
 	instantiated-sigs called-spec-sig[]
@@ -256,18 +252,18 @@ to json(a specs)
 	a.inner.to
 new specs()
 	(), 0, (), (), ()
-is-empty bool(a specs)
-	trusted a 'reference-equal ()
+any bool(a specs)
+	not trusted reference-equal a, ()
 -specs-key record
 	inner spec-or-type-inst[]
-	hash nat
+	hash nat32
 - == bool(a specs-key, b specs-key)
 	trusted a.inner == b.inner
 -memoizer-key specs-key(a specs)
 	a.inner, a.hash
 get-or-add-specs specs(specs spec-or-type-inst[])
-	do unless is-empty specs
-	hash = deterministic-hash specs
+	do if any specs
+	hash nat32 = wrap-to deterministic-hash specs
 	trusted memoize spec-arrays, (specs, hash), of
 		inner: specs
 		hash: hash
@@ -281,7 +277,7 @@ get-or-add-specs specs(specs spec-or-type-inst[])
 			as type-inst
 				- x
 		instantiated-sigs:
-			index mut = 0
+			index mut nat32 = 0
 			for* x in specs
 				do if x.spec-inst
 				for sig, sig-type in zip x.all-sigs, x.sig-types
@@ -307,12 +303,12 @@ to json(_ bogus-type) = "bogus"
 | Represent type parameter as the index, so we don't generate different types for every 't[]'.
 | (These are disambiguated in the type checker using 'type-and-context')
 type-param-index record
-	-index_ nat
-	# This is needed to force this type to be wrapped and not use 'nat' directly.
-	-dummy nat
-index nat(a type-param-index)
+	-index_ nat32
+	# This is needed to force this type to be wrapped and not use 'nat32' directly.
+	-dummy nat32
+index nat32(a type-param-index)
 	a.index_
-new type-param-index(index nat)
+new type-param-index(index nat32)
 	# This silly-looking code ensures that each type-param-index value is a compile-time constant,
 	# avoiding runtime allocation.
 	match index
@@ -350,7 +346,7 @@ new type-param-index(index nat)
 		15, 15
 	else
 		throw unreachable
-type-param-index type-param-index(index nat)
+type-param-index type-param-index(index nat32)
 	index,
 == bool(a type-param-index, b type-param-index)
 	trusted a 'reference-equal b
@@ -392,10 +388,12 @@ is-float32 bool(a type)
 	is-builtin-type a, float32
 is-float64 bool(a type)
 	is-builtin-type a, float64
-is-int64 bool(a type)
-	is-builtin-type a, int64
 is-js-any bool(a type)
 	is-builtin-type a, js-any
+is-int32 bool(a type)
+	is-builtin-type a, int32
+is-int64 bool(a type)
+	is-builtin-type a, int64
 is-nat32 bool(a type)
 	is-builtin-type a, nat32
 is-nat64 bool(a type)
@@ -438,7 +436,7 @@ unwrap-option type?(a type)
 	a.type-inst.?unwrap-option
 unwrap-option type?(a type-inst)
 	if is-option a
-		only a.type-args
+		only! a.type-args
 
 is-option bool(a type)
 	is-builtin-type a, option
@@ -512,7 +510,7 @@ doc-comment-ast doc-comment-ast(a signature)
 		()
 doc-comment doc-comment(a signature)
 	a.doc-comment-ast, a.doc-comment-references
-index-of-signature nat(a signature)
+index-of-signature nat32(a signature)
 	match container = a.container
 	as spec-decl
 		index-of! container.sigs, a
@@ -536,6 +534,7 @@ record-field record force-data
 	visibility visibility
 	mutability visibility?
 	type type
+	# Record field defaults are stored on the {non-nominal-constructor}
 	doc-comment-references mut doc-comment-reference[]
 == bool(a record-field, b record-field)
 	trusted a 'reference-equal b
@@ -574,7 +573,7 @@ enum-member alias
 enum-or-flags-member record force-data
 	source enum-member-source
 	containing-enum type-decl
-	value nat
+	value nat64
 	doc-comment-references mut doc-comment-reference[]
 == bool(a enum-or-flags-member, b enum-or-flags-member)
 	trusted a.source == b.source
@@ -624,9 +623,17 @@ flags_ record
 	storage nat-type
 	| Always sorted by value
 	members enum-or-flags-member[]
-record_ record
+record_ record force-data
 	new-visibility visibility
 	fields record-field[]
+	nominal-constructor_ mut fun-decl?
+nominal-constructor fun-decl(a record_) = a.nominal-constructor_!
+non-nominal-constructor fun-decl(a record_)
+	a.nominal-constructor_!.body.new-record!.kind.fun-decl!
+field-defaults expr?[]?(a record_)
+	a.non-nominal-constructor.param-defaults
+preconstructor expr-maybe-allocated-locals?(a record_)
+	expr-maybe-allocated-locals a.non-nominal-constructor.body.new-record!.kind
 | interface, union, or variant
 sum-type record
 	kind sum-type-kind
@@ -638,8 +645,8 @@ as-union sum-type-case-and-method-impls[]?(a sum-type)
 	if a.kind == union_
 		a.listed-members
 
-get-all-flags-value nat(body flags_)
-	res mut = 0
+get-all-flags-value nat64(body flags_)
+	res mut nat64 = 0
 	for member in body.members
 		res |:= member.value
 	res
@@ -871,7 +878,7 @@ do
 	res.insts := if res.is-template
 		()::((type-inst, type-args) object-memoizer)
 	else
-		(res, (), res.hash, ())::type-inst
+		(res, (), res.hash, (), ())::type-inst
 	res
 == bool(a type-decl, b type-decl)
 	trusted a 'reference-equal b
@@ -897,13 +904,13 @@ is-template bool(a type-decl)
 	a.n-type-params != 0
 | Given a type `foo[t, u], this is the type `(t, u) foo`.
 instantiated-with-own-type-params type-inst(a type-decl)
-	match x = a.insts
+	match a.insts
 	as type-inst
-		x
+		a.insts
 	as object-memoizer
 		a[a.n-type-params.type-params-type-args]
 
-fill-narrow-types-for-type-decl void(depth nat, type type-decl, on-cycle void mut(type type-decl)) common-types
+fill-narrow-types-for-type-decl void(depth nat32, type type-decl, on-cycle void mut(type type-decl)) common-types
 	forbid type.narrow-types
 	match body = type.body
 	as builtin-type
@@ -934,48 +941,34 @@ fill-narrow-types-for-type-decl void(depth nat, type type-decl, on-cycle void mu
 
 -builtin-narrow-types type-decl[](body builtin-type) common-types
 	match body
-	as array then ()
 	as bool then option,
-	as buffer then ()
-	as char8 then ()
-	as char16 then ()
-	as char32 then ()
-	as float32 then ()
 	as float64 then float32.decl,
-	as int8 then ()
 	as int16 then int8.decl,
 	as int32 then int8.decl, int16.decl
 	as int64 then int8.decl, int16.decl, int32.decl
-	as js-any then ()
-	as lambda-data then ()
-	as lambda-mut then ()
-	as lambda-shared then ()
-	as nat8 then ()
 	as nat16 then nat8.decl,
 	as nat32 then nat8.decl, nat16.decl
 	as nat64 then nat8.decl, nat16.decl, nat32.decl
-	as option then () # Option narrowed type is the type argument, can't be determined by the decl
-	as void then ()
-	as weak-ref then ()
+	# Note: For 'option', the narrowed type is the type argument, so we can't determine it from the decl
+	else then ()
 
 -fill-narrow-types-for-type-inst void(type type-inst)
 	forbid type.narrow-types
 	match body = type.decl.body
 	as builtin-type
 		match body
-		as bool
+		as bool or option
 			# Every option is a narrow type of bool. We can't list them all, so omit.
-			()
-		as option
 			# We don't bother for options, they will just be handled specially.
 			()
 		else
 			type.narrow-types := map type.decl.narrow-types!, it.only-inst
 	as sum-type
 		do if body.kind == union_
+		type.listed-members := for member in body.listed-members
+			member.case-type.decl, instantiate-type-inst member.case-type, type.type-args
 		type.narrow-types := with out in build
-			for member in body.listed-members
-				case-type = instantiate-type-inst member.case-type, type.type-args
+			for _, case-type in type.listed-members!
 				unless case-type.narrow-types
 					fill-narrow-types-for-type-inst case-type
 				out ~= case-type
@@ -1054,9 +1047,7 @@ range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 name symbol(a type-decl-source)
 	match a
@@ -1070,25 +1061,19 @@ doc-comment doc-comment-ast(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.doc-comment
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 keyword-range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.keyword-range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 name-range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.name-range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 can-have-type-params bool(a type-decl-source)
 	match a
@@ -1100,27 +1085,23 @@ can-have-type-params bool(a type-decl-source)
 		false
 can-have-type-params bool(a type-decl-ast)
 	match a.body
-	as builtin-type-ast
+	as builtin-type-ast or record-ast or sum-type-ast
 		true
-	as enum-ast
+	as enum-ast or flags-ast
 		false
-	as flags-ast
-		false
-	as record-ast
-		true
-	as sum-type-ast
-		true
 
 type-inst record force-data, -new
 	decl type-decl
 	type-args type-args
-	hash nat
+	hash nat32
 	| Set of types that can implicitly convert to this.
 	| This will be missing when the set can't be determined.
 	| This is the case for interfaces and variants, and for {bool} since every option type converts to it.
 	| We also don't bother to fill this in for {option} instances since that is easier to handle specially.
 	| This will only be non-empty for unions, numeric types, {array-view} and {buffer-view}.
 	narrow-types mut type-inst[]?
+	# For a union type, this gives all case types of the union, keyed by the decl.
+	listed-members mut type-inst[type-decl]?
 subscript type-inst(decl type-decl, type-arg type-inst)
 	decl[type-arg::type-args]
 subscript type-inst(decl type-decl, type-arg type)
@@ -1133,8 +1114,8 @@ subscript type-inst(decl type-decl, type-args type-args)
 		insts
 	as object-memoizer
 		trusted memoize insts, type-args, of
-			hash = decl.hash::nat ^ type-args.hash
-			res type-inst = decl, type-args, hash, ()
+			hash = decl.hash ^ type-args.hash
+			res type-inst = decl, type-args, hash, (), ()
 			# If narrow-types aren't available on the decl yet,
 			# they'll be filled in on the insts immediately after filling them in for the decl.
 			if decl.narrow-types
@@ -1150,7 +1131,7 @@ instantiate-type type(type type, type-args type-args)
 	as type-inst
 		instantiate-type-inst type, type-args
 instantiate-type-inst type-inst(type-inst type-inst, type-args type-args)
-	do unless is-empty type-args else type-inst
+	do if any type-args else type-inst
 	type-inst.decl[instantiate-type-args type-inst.type-args, type-args]
 instantiate-type-args type-args(a type-args, type-args type-args)
 	make-type-args a, {instantiate-type it, type-args}
@@ -1168,11 +1149,11 @@ memoizer-key type-args(a type-inst)
 		res
 hash void(a type-inst, state hash-state) = trusted hash a.hash, state
 to json(a type-inst)
-	if is-empty a.type-args
-		a.decl.name.to
-	else
+	if any a.type-args
 		decl: a.decl.name.to
 		type-args: a.type-args.to
+	else
+		a.decl.name.to
 mutability-range mutability-range(a type-inst)
 	res mut mutability-range = a.decl.mutability, a.decl.mutability
 	for x in a.type-args
@@ -1368,6 +1349,14 @@ fun-body union
 	sum-type-case-get
 	var-get
 	var-set
+body-expr expr?(a fun-body)
+	match a
+	as fun-body-expr
+		a.expr
+	as new-record
+		?as-expr expr-maybe-allocated-locals a.kind
+	else
+		()
 -fun-name symbol(body fun-body, return-type type)
 	match body
 	as fun-body-uninitialized then throw unreachable
@@ -1393,7 +1382,7 @@ fun-body union
 	as fun-body-flags-function then body.function.to
 	as fun-body-method then body.method.name
 	as new-interface then "new"
-	as new-record then if body.nominal_ then body.type.name else "new"
+	as new-record then if is-nominal body then body.type.name else "new"
 	as record-field-get then body.field.name
 	as record-field-lens then body.field.name
 	as record-field-set then "set-{body.field.name}"
@@ -1418,8 +1407,7 @@ type-params type-params(a fun-body)
 	as record-field-lens then a.type.type-params
 	as record-field-set then a.type.type-params
 	as sum-type-case-get then a.type.type-params
-	as var-get then ()
-	as var-set then ()
+	as var-get or var-set then ()
 module-uri uri(a fun-body)
 	match a
 	as fun-body-uninitialized then a.module-uri
@@ -1442,12 +1430,12 @@ module-uri uri(a fun-body)
 	as var-set then a.var.module-uri
 range uri-and-range(a fun-body)
 	match a
-	as fun-body-uninitialized then a.module-uri, a.range
+	as fun-body-uninitialized then a.ast.uri-and-range
 	as fun-body-bogus then a.module-uri, (a.ast.?range else ())
-	as fun-body-expr then a.module-uri, a.ast.range
+	as fun-body-expr then a.ast.uri-and-range
 	as fun-body-extern-java then a.module-uri, ()
 	as auto-fun then a.source.range
-	as fun-body-builtin then a.module-uri, a.ast.range
+	as fun-body-builtin then a.ast.uri-and-range
 	as enum-or-flags-member then a.range
 	as fun-body-file-import then a.module-uri, a.ast.range
 	as fun-body-flags-function then a.type.range
@@ -1511,7 +1499,7 @@ expr-with-allocated-locals record
 	allocated-locals type-inst[local]
 
 fun-body-bogus record(module-uri uri, name symbol, type-params type-params, ast fun-decl-ast?)
-fun-body-uninitialized record(module-uri uri, range source-range)
+fun-body-uninitialized record(ast fun-decl-ast)
 fun-body-extern-java record
 	| Never {interface_}
 	kind java-method-kind
@@ -1544,13 +1532,29 @@ name symbol(a fun-body-file-import) = a.ast.kind.import-file-ast!.name.name
 fun-body-flags-function record(type type-decl, function flags-function)
 fun-body-method record
 	type type-decl
-	method-index nat
+	method-index nat32
 	method signature
 	erased-signature type[]?
 to json(a fun-body-method)
 	a.method.name.to
 new-interface record(type type-decl)
-new-record record(type type-decl, nominal_ bool)
+new-record record force-data
+	type type-decl
+	kind mut new-record-kind
+| {void}: This is 'new' with no preconstructor
+| {expr-maybe-allocated-locals}: This is 'new' with a preconstructor
+| {fun-decl}: this is the nominal version (named same as the type), and the fun-decl references the non-nominal one
+new-record-kind union(void, expr-maybe-allocated-locals, fun-decl)
+has-preconstructor bool(a new-record)
+	match a.kind
+	as void
+		false
+	as expr-maybe-allocated-locals
+		true
+	as fun-decl
+		has-preconstructor new-record! a.kind.body
+is-nominal bool(a new-record)
+	fun-decl a.kind
 record-field-get record(type type-decl, field record-field)
 to json(a record-field-get)
 	a.field.name.to
@@ -1614,6 +1618,7 @@ builtin-unary enum
 	bits-of-float32
 	bits-of-float64
 	bitwise-not
+	count-ones
 	float32-from-bits
 	float64-from-bits
 	not
@@ -1621,9 +1626,8 @@ builtin-unary enum
 	reinterpret-cast
 	to-float32-from-float64
 	to-float64-from-float32
-	to-float64-from-int64
-	to-float64-from-nat64
-	truncate-to-int64-from-float64
+	to-float-from-integral
+	truncate-to
 	weak-ref-get
 	weak-ref-new
 	# This includes all conversions from one integral type to another, including char types.
@@ -1631,21 +1635,27 @@ builtin-unary enum
 	wrap-convert-integral
 
 builtin-binary enum
-	array-get
+	unsafe-at
 	bitwise-and
 	bitwise-or
 	bitwise-xor
 	call-lambda
 	compare
+	compare-less
+	compare-less-or-equal
+	compare-greater
+	compare-greater-or-equal
 	equal-exact
 	equal-float-ieee
 	less-float-ieee
+	not-equal-exact
+	rotate-left
+	rotate-right
 	unsafe-add-float
 	unsafe-bit-shift-left
 	unsafe-bit-shift-right
 	unsafe-div
-	unsafe-mod-float64
-	unsafe-mod-nat64
+	unsafe-mod
 	unsafe-mul-float
 	unsafe-sub-float
 	wrap-add
@@ -1653,7 +1663,7 @@ builtin-binary enum
 	wrap-sub
 
 builtin-ternary enum
-	array-set
+	unsafe-set-at
 
 fun-decl record force-data, -new
 	hash nat32
@@ -1662,6 +1672,8 @@ fun-decl record force-data, -new
 	n-type-params nat8
 	return-and-param-types mut return-and-param-types
 	params mut destructure[]
+	| Will only exist for 'new' functions
+	param-defaults mut expr?[]?
 	specs mut specs
 	doc-comment-references mut doc-comment-reference[]
 	body mut fun-body
@@ -1675,39 +1687,38 @@ to json(a fun-decl)
 	n-type-params: a.n-type-params.to
 	return-type: a.return-type.to
 	params: a.params.to
+	param-defaults: a.param-defaults.to
 	specs: a.specs.to
 	doc-comment-references: a.doc-comment-references.to
 	body: a.body.to
 | Used by {funs-map}
 -key symbol(a fun-decl) = a.name
--key name-and-arity(a fun-decl) = a.name-and-arity
 -key return-and-param-types(a fun-decl) = a.return-and-param-types
 -key type-decl(a fun-decl) = a.return-type.type-inst!.decl
--hash-value nat(a type-decl) = a.hash
+-hash-value nat32(a type-decl) = a.hash
 | Used by {funs-set}
 -key arg0-type-decl(a fun-decl) = decl: a.params[0].type.type-inst!.decl
 -arg0-type-decl record(decl type-decl)
--hash-value nat(a arg0-type-decl) = a.decl.hash
+-hash-value nat32(a arg0-type-decl) = a.decl.hash
 
 | For a non-template, this will be its only {fun-inst}.
 fun-decl-insts union(fun-inst, (fun-inst, fun-inst-key) object-memoizer) mut
 unfinished-fun-decl fun-decl
 	hash nat32
 	visibility visibility
-	name-and-arity name-and-arity
-	type-params type-params
-	range uri-and-range
+	ast fun-decl-ast
 	specs specs
 do
 	hash: hash
 	visibility: visibility
-	name-and-arity: name-and-arity
-	n-type-params: type-params.size.to
+	name-and-arity: ast.name
+	n-type-params: ast.type-params.size.to
 	return-and-param-types: trusted gc-safe-value
 	params: ()
+	param-defaults: ()
 	specs: specs
 	doc-comment-references: ()
-	body: fun-body-uninitialized range.uri, range.range
+	body: fun-body-uninitialized ast
 	insts: trusted gc-safe-value
 fill-in-fun-types void(fun fun-decl, return-type type, params destructure[])
 	fun.params := params
@@ -1726,10 +1737,33 @@ new fun-decl
 	body fun-body
 do
 	name-and-arity = get-name-and-arity (fun-name body, return-type), params.size
-	fun = unfinished-fun-decl hash, visibility, name-and-arity, body.type-params, body.range, specs
+	fun fun-decl =
+		hash: hash
+		visibility: visibility
+		name-and-arity: name-and-arity
+		n-type-params: body.type-params.size.to
+		return-and-param-types: trusted gc-safe-value
+		params: ()
+		param-defaults: ()
+		specs: specs
+		doc-comment-references: ()
+		body: body
+		insts: trusted gc-safe-value
 	fill-in-fun-types fun, return-type, params
-	fun.body := body
 	fun
+new fun-decl
+	hash nat32
+	visibility visibility
+	return-type type
+	params destructure[]
+	param-defaults expr?[]?
+	specs specs
+	body fun-body
+do
+	res fun-decl =
+		hash: hash, visibility: visibility, return-type: return-type, params: params, specs: specs, body: body
+	res.param-defaults := param-defaults
+	res
 | WARN: For this to work, none of the {fun-inst}s can be referenced.
 update-fun-specs-and-reset-insts void(a fun-decl, specs specs)
 	a.insts := ()::((fun-inst, fun-inst-key) object-memoizer)
@@ -1755,9 +1789,35 @@ doc-comment-ast doc-comment-ast(a fun-decl)
 doc-comment doc-comment(a fun-decl)
 	a.doc-comment-ast, a.doc-comment-references
 is-template bool(a fun-decl)
-	a.n-type-params != 0 or not is-empty a.specs.instantiated-sigs
+	a.n-type-params != 0 or any a.specs.instantiated-sigs
 arity nat(a fun-decl)
 	a.params.size
+each-arity void(a fun-decl, f void mut(x name-and-arity))
+	match a.body
+	as fun-body-uninitialized
+		each-arity-from-params a, a.body.ast.params, f
+	as fun-body-expr
+		each-arity-from-params a, a.body.ast.params, f
+	as new-record
+		type = a.body.type
+		ast = type.source.type-decl-ast!.body.record-ast!
+		if ast.params
+			each-arity-from-params a, ast.params, f
+		else
+			each-arity-from-params a, ast.fields, it.default, f
+	else
+		f[a.name-and-arity]
+-each-arity-from-params void(a fun-decl, params parameter-ast[], f void mut(x name-and-arity))
+	each-arity-from-params a, params, it.default, f
+-each-arity-from-params[t] void(a fun-decl, params t[], has-default bool mut(param t), f void mut(x name-and-arity))
+	low-arity mut = params.size
+	while low-arity != 0 and has-default[params[low-arity - 1]]
+		low-arity -:= 1
+	for arity in low-arity .. params.size + 1
+		if arity == params.size
+			f[a.name-and-arity]
+		else
+			f[get-name-and-arity a.name, arity]
 only-inst fun-inst(a fun-decl)
 	forbid is-template a
 	fun-inst! a.insts
@@ -1793,21 +1853,20 @@ type-params type-params(_ test_)
 visibility visibility(_ test_)
 	private
 
-expr-container union(fun-decl, test_, var-decl)
+expr-container union(fun-decl, test_, var-decl, type-decl)
 	doc-comment doc-comment()
 to type-container(a expr-container)
 	match a
 	as fun-decl then a
 	as test_ then a
+	as type-decl then a
 	as var-decl then a
 specs specs(a expr-container) common-types
 	match a
-	as fun-decl
-		a.specs
-	as test_
-		a.specs
-	as var-decl
-		global-unsafe-specs
+	as fun-decl then a.specs
+	as test_ then a.specs
+	as type-decl then a.specs
+	as var-decl then global-unsafe-specs
 
 fun-inst record force-data, -new
 	decl fun-decl
@@ -1821,21 +1880,21 @@ get-or-add-fun-inst fun-inst
 	spec-impls spec-impls
 	cb-return-and-param-types (return-and-param-types, specs) mut()
 do
-	if type-args.is-empty and spec-impls.is-empty
-		decl.insts.fun-inst!
-	else
+	if any type-args or any spec-impls
 		trusted memoize decl.insts.object-memoizer!, (type-args, spec-impls), of
 			rp, specs = cb-return-and-param-types[]
 			decl, type-args, specs, spec-impls, rp
+	else
+		fun-inst! decl.insts
 -fun-inst-key record
 	type-args type-args
 	spec-impls spec-impls
--hash nat(a fun-inst-key)
+-hash nat32(a fun-inst-key)
 	do trusted
 	state hash-state = ()
 	hash a.type-args, state
 	hash a.spec-impls, state
-	finish state
+	wrap-to finish state
 -memoizer-key fun-inst-key(a fun-inst)
 	a.type-args, a.spec-impls
 == bool(a fun-inst, b fun-inst)
@@ -1849,12 +1908,13 @@ to json(a fun-inst)
 	decl: a.decl.name.to
 	type-args: a.type-args.to
 	spec-impls: a.spec-impls.to
+arity nat(a fun-inst) = arity a.decl
 return-type type(a fun-inst) = a.return-and-param-types.return-type
 param-types type array-view(a fun-inst) = a.return-and-param-types.param-types
 
 | Represents calling the n'th signature on this function's {specs}
 called-spec-sig record
-	index-in-specs nat
+	index-in-specs nat32
 	containing-spec spec-decl
 	non-instantiated-sig signature
 	return-and-param-types return-and-param-types
@@ -1885,7 +1945,7 @@ module-uri uri(a called-spec-sig)
 	a.non-instantiated-sig.module-uri
 name symbol(a called-spec-sig)
 	a.non-instantiated-sig.name
-arity nat(a called-spec-sig)
+arity nat32(a called-spec-sig)
 	a.non-instantiated-sig.params.size
 n-type-params nat8(_ called-spec-sig)
 	0
@@ -1897,7 +1957,7 @@ called-decl union(fun-decl, called-spec-sig)
 	module-uri uri()
 	n-type-params nat8()
 	return-and-param-types return-and-param-types()
-	arity nat()
+	arity nat32()
 	doc-comment doc-comment()
 	name symbol()
 return-type type(a called-decl)
@@ -1919,6 +1979,7 @@ range uri-and-range(a called-decl)
 		a.non-instantiated-sig.range
 
 called union(called-bogus, fun-inst, called-spec-sig)
+	arity nat()
 	return-and-param-types return-and-param-types()
 	hash void(state hash-state)
 return-type type(a called)
@@ -1926,6 +1987,8 @@ return-type type(a called)
 param-types type array-view(a called)
 	a.return-and-param-types.param-types
 called-bogus record(decl called-decl, return-and-param-types return-and-param-types)
+arity nat(a called-bogus)
+	arity a.decl
 hash void(a called-bogus, state hash-state)
 	trusted hash a.decl.name, state
 as-builtin-fun builtin-fun?(a called)
@@ -2078,11 +2141,11 @@ exports record
 	types-and-specs types-and-specs-map
 new exports()
 	(), ()
-is-empty bool(a exports)
-	is-empty a.funs and is-empty a.types-and-specs
+any bool(a exports)
+	any a.funs or any a.types-and-specs
 test
 	# Hack to make it appear used. This is used by the site.
-	assert is-empty ()::exports
+	any ()::exports is false
 
 types-and-specs-map alias
 	(symbol, spec-or-type) by-key
@@ -2090,6 +2153,8 @@ types-and-specs-map alias
 equal-2 name-and-arity() = trusted equal-2-var
 -equal-2-var global(name-and-arity) = get-name-and-arity "==", 2
 for-loop-2 name-and-arity() = trusted for-loop-2-var
+-for-option-2-var global(name-and-arity) = get-name-and-arity "for-option", 2
+for-option-2 name-and-arity() = trusted for-option-2-var
 -for-loop-2-var global(name-and-arity) = get-name-and-arity "for-loop", 2
 for-star-2 name-and-arity() = trusted for-star-2-var
 -for-star-2-var global(name-and-arity) = get-name-and-arity "for-star", 2
@@ -2104,7 +2169,7 @@ list-new-1 name-and-arity() = trusted list-new-1-var
 named-new-2 name-and-arity() = trusted named-new-2-var
 -named-new-2-var global(name-and-arity) = get-name-and-arity "named-new", 2
 new-0 name-and-arity() = new-n 0
-new-n name-and-arity(n nat)
+new-n name-and-arity(n nat32)
 	trusted if n < news.size then news[n] else get-name-and-arity "new", n
 -news global(name-and-arity[])
 	for i in 0 .. 8
@@ -2120,13 +2185,22 @@ with-block-2 name-and-arity() = trusted with-block-2-var
 
 funs-map record
 	by-name (symbol, fun-decl) multi-by-key
-	by-name-and-arity (name-and-arity, funs-set) by-key
-new funs-map() = (), ()
+	by-name-and-arity funs-set[name-and-arity]
+	| Functions named 'new' (regardless of arity), keyed by return type
+	new-funs-by-return-type (type-decl, fun-decl) multi-by-key
+new funs-map() = (), (), ()
 make-funs-map funs-map(funs fun-decl[])
 	by-name: to funs
-	by-name-and-arity: to-by-key-combine-duplicates funs, it.to-funs-set
-is-empty bool(a funs-map) = is-empty a.by-name
-size nat(a funs-map) = size a.by-name
+	by-name-and-arity:
+		out fun-decl mut[] mut[name-and-arity] = ()
+		for fun in funs
+			each-arity fun, of name-and-arity
+				ensure out, name-and-arity ~= fun
+		for key, values in out
+			key, to-funs-set move-to values
+	new-funs-by-return-type: filter funs, {it.name == "new" and it.return-type.type-inst}
+any bool(a funs-map) = any a.by-name
+size nat32(a funs-map) = size a.by-name
 test
 	# Hack to make it appear used. This is used by the site.
 	size ()::funs-map is 0
@@ -2134,10 +2208,15 @@ some bool(a funs-map, f bool mut(a fun-decl))
 	some a.by-name.all, f
 filter-by-names funs-map(a funs-map, names symbol set)
 	by-name: choose-keys a.by-name, names
-	by-name-and-arity: filter-keys a.by-name-and-arity, names[it.name]
+	by-name-and-arity: filter a.by-name-and-arity, names[it.a.name]
+	new-funs-by-return-type: if names["new"] then a.new-funs-by-return-type
 any-for-name bool(a funs-map, name symbol)
-	not is-empty a.by-name[name]
+	any a.by-name[name]
 all-with-name fun-decl array-view(a funs-map, name symbol) = a.by-name[name]
+each-new-fun void(a funs-map, f void mut(x fun-decl))
+	each a.new-funs-by-return-type.all, f
+each-new-fun void(a funs-map, return-type type-decl, f void mut(x fun-decl))
+	each a.new-funs-by-return-type[return-type], f
 all-with-name-and-arity record(map funs-map, key name-and-arity)
 some bool(a all-with-name-and-arity, f bool mut(x fun-decl))
 	(set = a.map.by-name-and-arity[a.key]) and some set, f
@@ -2165,21 +2244,7 @@ is-highly-overloaded bool(a fun-name)
 	name-and-arity a and is-highly-overloaded a.name
 is-highly-overloaded bool(name symbol)
 	match name
-	as "==" then true
-	as "<=>" then true
-	as "~=" then true
-	as "~~=" then true
-	as a then true
-	as b then true
-	as c then true
-	as d then true
-	as e then true
-	as f then true
-	as g then true
-	as "is-empty" then true
-	as "size" then true
-	as "show" then true
-	as "some" then true
+	as "==" or "<=>" or "~=" or "~~=" or a or b or c or d or e or f or g or is-empty or size or show or some then true
 	else then false
 
 | Set of functions with the same name and arity.
@@ -2192,13 +2257,8 @@ is-highly-overloaded bool(name symbol)
 	by-signature (return-and-param-types, fun-decl) multi-by-key
 -all fun-decl[](a large-funs-set)
 	a.by-signature.all
--key name-and-arity(a funs-set)
-	match a
-	as fun-decl then a.name-and-arity
-	as array then a[0].name-and-arity
-	as large-funs-set then a.all[0].name-and-arity
 -to-funs-set funs-set(funs fun-decl[])
-	forbid is-empty funs
+	assert any funs
 	if f = only funs
 		f
 	elif funs.size <= 4
@@ -2309,11 +2369,11 @@ some bool(a walk-all-imports, f bool mut(kind import-or-export-kind, ast import-
 	module = a.module
 	imports-and-re-exports = module.imports-and-re-exports
 	ast = module.ast
-	ast-total = ast.imports.count-non-file-imports + ast.re-exports.count-non-file-imports + ast.no-std_.not.to
+	ast-total = ast.imports.count-non-file-imports + ast.re-exports.count-non-file-imports + (unless ast.no-std_ then 1)
 	do if ast-total == imports-and-re-exports.size
 	import-asts = ast.imports.?paths else ()
 	do unless not ast.no-std_ and f[standard-import, (), imports-and-re-exports[0]]
-	i mut nat = to not ast.no-std_
+	i mut nat32 = unless ast.no-std_ then 1
 	res-imports = some import-asts, of import-ast
 		do unless import-ast.kind.import-file-ast
 		res = f[import_, import-ast, imports-and-re-exports[i]]
@@ -2359,7 +2419,7 @@ get-imported-spec-or-type spec-or-type?(ast import-or-export-ast?, imported modu
 	match ast.path
 	as path then imported.public-exports
 	as rel-path then imported.public-and-internal-exports
--count-non-file-imports nat(a imports-or-exports-ast?)
+-count-non-file-imports nat32(a imports-or-exports-ast?)
 	do if a
 	count a.paths, it.kind.import-file-ast.not
 
@@ -2390,13 +2450,7 @@ specs specs(a any-decl)
 		a.specs
 	as spec-decl
 		a.parents
-	as test_
-		()
-	as type-alias
-		()
-	as type-decl
-		()
-	as var-decl
+	as test_ or type-alias or type-decl or var-decl
 		()
 
 type-with-container record(type type, container type-container)
@@ -2429,6 +2483,9 @@ to type-container(a any-decl)
 common-funs record
 	deserialize-error type-inst
 	error type-inst
+	for-loop-void fun-decl
+	for-loop-out fun-decl
+	map fun-decl
 	is-impl fun-decl
 	isnt-impl fun-decl
 	json-array type-inst
@@ -2618,12 +2675,12 @@ extern-spec spec-inst(value build-target) common-types
 		common-types.java-spec
 	as js
 		common-types.js-spec
-tuple type-decl?(arity nat) common-types
+tuple type-decl?(arity nat32) common-types
 	if arity 'in 2 .. max-type-params + 1
 		common-types.tuples[arity - 2]
 tuple type-inst(a type, b type) common-types
 	2.tuple![to-type-args (a, b)]
-max-tuple-size nat()
+max-tuple-size nat32()
 	max-type-params
 to type-inst(type char-type) common-types
 	match type
@@ -2705,6 +2762,15 @@ to builtin-type(a nat-type)
 	as nat16 then nat16
 	as nat32 then nat32
 	as nat64 then nat64
+min-nat-type-for-value nat-type(value nat64)
+	if value <= max-value::nat8
+		nat8
+	elif value <= max-value::nat16
+		nat16
+	elif value <= max-value::nat32
+		nat32
+	else
+		nat64
 
 int-type enum(int8, int16, int32, int64)
 signed int-type(a nat-type)
@@ -2742,21 +2808,9 @@ show string(a integral-type)
 	a.to::symbol.to
 is-signed bool(a integral-type)
 	match a
-	as int8
+	as int8 or int16 or int32 or int64
 		true
-	as int16
-		true
-	as int32
-		true
-	as int64
-		true
-	as nat8
-		false
-	as nat16
-		false
-	as nat32
-		false
-	as nat64
+	as nat8 or nat16 or nat32 or nat64
 		false
 signed int-type(a integral-type)
 	match x = a.to::nat-or-int
@@ -2789,7 +2843,7 @@ is-signed bool(a char-or-integral-type)
 	as integral-type
 		is-signed a
 
-min-value int(a integral-type)
+min-value int64(a integral-type)
 	match a
 	as int8
 		min-value::int8
@@ -2798,26 +2852,12 @@ min-value int(a integral-type)
 	as int32
 		min-value::int32
 	as int64
-		min-value
-	as nat8
-		0
-	as nat16
-		0
-	as nat32
-		0
-	as nat64
+		min-value::int64
+	as nat8 or nat16 or nat32 or nat64
 		0
 
-max-value nat(a integral-type)
+max-value nat64(a nat-type)
 	match a
-	as int8
-		max-value::int8.to
-	as int16
-		max-value::int16.to
-	as int32
-		max-value::int32.to
-	as int64
-		max-value::int64.to
 	as nat8
 		max-value::nat8
 	as nat16
@@ -2825,7 +2865,23 @@ max-value nat(a integral-type)
 	as nat32
 		max-value::nat32
 	as nat64
-		max-value
+		max-value::nat64
+max-value nat64(a int-type)
+	match a
+	as int8
+		to max-value::int8
+	as int16
+		to max-value::int16
+	as int32
+		to max-value::int32
+	as int64
+		to max-value::int64
+max-value nat64(a integral-type)
+	match x = to::nat-or-int a
+	as nat-type
+		max-value x
+	as int-type
+		max-value x
 
 program-with-main record(program program, main-fun-and-diagnostics main-fun-and-diagnostics)
 jar-files file-path[](a program-with-main) = a.program.jar-files
@@ -2930,16 +2986,16 @@ diagnostics program-with-opt-main-diagnostics(a program-with-main)
 	a.as-program-with-opt-main,
 diagnostics program-with-opt-main-diagnostics(a program-with-opt-main)
 	a,
-is-empty bool(a program-with-opt-main-diagnostics)
-	not some a, {true}
+any bool(a program-with-opt-main-diagnostics)
+	some a, {true}
 some bool(a program-with-opt-main-diagnostics, f bool mut(x uri-and-diagnostic))
 	some a.program.main-fun-diagnostics, f or some a.program.program.diagnostics, f
 
 program-diagnostics record(program program)
 diagnostics program-diagnostics(a program)
 	a,
-is-empty bool(a program-diagnostics)
-	not some a, {true}
+any bool(a program-diagnostics)
+	some a, {true}
 some bool(a program-diagnostics, f bool mut(x uri-and-diagnostic))
 	some a.program.additional-diagnostics, f or
 	some-diagnostic-in-configs a.program, f or
@@ -2953,7 +3009,7 @@ some bool(a program-diagnostics, f bool mut(x uri-and-diagnostic))
 		some module.check-diagnostics, {f[module.uri, it]}
 
 tests record(program program, selector test-selector, target build-target)
-size nat(a tests)
+size nat32(a tests)
 	sum a, {1}
 some bool(a tests, f bool mut(x test_))
 	match selector = a.selector
@@ -2973,18 +3029,14 @@ some bool(a tests, f bool mut(x test_))
 -specs-allow-target bool(a specs, target build-target)
 	every a.all-builtin, of b, _
 		match b
-		as data_
+		as data_ or shared_
 			throw todo
-		as global_
+		as global_ or unsafe
 			true
 		as java
 			target == java
 		as js
 			target == js
-		as shared_
-			throw todo
-		as unsafe
-			true
 
 config record
 	| Empty only for {default-config}
@@ -3004,9 +3056,9 @@ config-for-diag config(uri uri, diag diag, range source-range, line-and-column-g
 config-imports record
 	imports configured-import[]
 all-jar-files file-path[](a config-imports)
-	for* x in a.imports
+	for? x in a.imports
 		if x.kind == jar
-			- as-file-path! x.uri
+			as-file-path! x.uri
 configured-import record
 	path-prefix path
 	uri uri
@@ -3021,7 +3073,13 @@ subscript (configured-import, path)?(a config-imports, imported path)
 				res := x, path
 	res
 
-local-source union(catch-ast, it-scope-ast, name-and-range, single-destructure-ast, local-source-generated)
+local-source union
+	catch-ast
+	it-scope-ast
+	name-and-range
+	single-destructure-ast
+	local-source-generated
+	record-field
 local-source-generated record(name symbol)
 
 local record force-data
@@ -3043,6 +3101,8 @@ name symbol(a local)
 		"it"
 	as name-and-range
 		source.name
+	as record-field
+		source.name
 	as single-destructure-ast
 		source.name.name
 	as local-source-generated
@@ -3058,6 +3118,8 @@ local-must-have-name-range source-range(a local)
 		it-range source
 	as name-and-range
 		source.range
+	as record-field
+		source.name-range.range
 	as single-destructure-ast
 		source.name-range
 	as local-source-generated
@@ -3093,24 +3155,20 @@ to destructure(a simple-destructure)
 
 name symbol?(a destructure)
 	match a
-	as destructure-ignore
+	as destructure-ignore or destructure-split
 		()
 	as local
 		a.name
-	as destructure-split
-		()
 range source-range(a destructure)
 	match a
 	as destructure-ignore
-		match source = a.source
-		as catch-ast
-			()
-		as type-decl
+		match a.source
+		as catch-ast or type-decl
 			()
 		as ignore-destructure-ast
-			source.range
+			a.source.range
 		as void-destructure-ast
-			source.range
+			a.source.range
 	as local
 		a.local-must-have-range
 	as destructure-split
@@ -3140,10 +3198,8 @@ some bool(a locals, f bool mut(x local))
 doc-comment record
 	ast doc-comment-ast
 	references doc-comment-reference[]
-is-empty bool(a doc-comment)
-	a.ast.is-empty
 doc-comment-string string(uri uri, a doc-comment) file-content-getters
-	unless is-empty a
+	if any a.ast
 		strip-doc-comment (the::file-content-getters)[uri, a.ast.range!]
 -strip-doc-comment string(a string-view)
 	# This filters out '| ' at the beginning of lines
@@ -3208,6 +3264,7 @@ expr union
 	bogus-expr
 	bogus-wrong-type-expr
 	call-expr
+	call-expr-with-which-params
 	call-named-new-expr
 	call-option-expr
 	finally-expr
@@ -3231,6 +3288,7 @@ expr union
 	match-sum-type-expr
 	seq-expr
 	the-expr
+	then-if-or-unless-expr
 	throw-expr
 	trusted-expr
 	try-expr
@@ -3257,6 +3315,8 @@ type type(a expr) common-types
 	as bogus-wrong-type-expr
 		type a
 	as call-expr
+		type a
+	as call-expr-with-which-params
 		type a
 	as call-named-new-expr
 		type a
@@ -3303,6 +3363,8 @@ type type(a expr) common-types
 	as seq-expr
 		type a
 	as the-expr
+		type a
+	as then-if-or-unless-expr
 		type a
 	as throw-expr
 		type a
@@ -3385,6 +3447,7 @@ call-expr-source union
 	list-ast
 	literal-string-ast
 	name-and-range
+	then-if-or-unless-ast
 	typed-ast # Used when this has an empty value
 do
 	range source-range()
@@ -3428,6 +3491,8 @@ name-range source-range(a call-expr-source)
 		a.range
 	as name-and-range
 		a.range
+	as then-if-or-unless-ast
+		a.fun-name-range
 	as typed-ast
 		a.keyword-range
 
@@ -3440,12 +3505,65 @@ bogus-call-expr record
 	type type
 range source-range(a bogus-call-expr) = a.ast.range
 
+| {args} may not have an entry for every parameter if they have defaults
 call-expr record(ast call-expr-source, called called, args expr[])
 range source-range(a call-expr) = a.ast.range
 type type(a call-expr) = a.called.return-type
 
+| Like {call-expr}, but skips some parameters (assuming they have default values)
+call-expr-with-which-params record
+	ast call-expr-source
+	called called
+	args expr[]
+	| Arguments correspond to these parameters from {called}
+	which-params indices
+do
+	which-params.size is args.size
+	forbid is-range which-params # Otherwise this should be a {call-expr}
+range source-range(a call-expr-with-which-params) = a.ast.range
+type type(a call-expr-with-which-params) = a.called.return-type
+
+indices record -new
+	values nat[]
+	hash nat
+	is-range bool
+	| 0 for empty indices
+	max nat
+-indices-cache global((indices, indices-key) object-memoizer) = ()
+-indices-ranges global(indices[]) = ()
+-indices-key record(values nat[], hash nat)
+-memoizer-key indices-key(a indices) = a.values, a.hash
+list-new indices(values nat[])
+	values.to
+to json(a indices)
+	a.values.to
+to indices(a nat)
+	a,
+indices-range indices(a nat)
+	do trusted
+	if a >= indices-ranges.size
+		indices-ranges := for i in a + 1
+			(0 .. i).to::nat[].to
+	indices-ranges[a]
+to indices(a nat[])
+	hash mut nat = 0
+	for x in a
+		hash wrap-mul:= 31
+		hash wrap-add:= x
+	trusted memoize indices-cache, (a, hash), of
+		values: a
+		hash: hash
+		is-range: every a.size, a[it] == it
+		max: max-of a else 0
+size nat32(a indices)
+	a.values.size
+subscript nat32(a indices, index nat32)
+	a.values[index]
+some bool(a indices, f bool mut(x nat))
+	some a.values, f
+
 | This is for a call to 'named-new' where it provides symbols and args.
-| Calls matching parameter names will use {call-expr}.
+| Calls matching parameter names will use {call-expr} or {call-expr-with-which-params}.
 call-named-new-expr record(ast call-named-ast, called called, args expr[])
 to json(a call-named-new-expr)
 	called: a.called.to
@@ -3453,8 +3571,7 @@ to json(a call-named-new-expr)
 range source-range(a call-named-new-expr) = a.ast.range
 type type(a call-named-new-expr) = a.called.return-type
 names symbol[](a call-named-new-expr)
-	for* x in a.ast.names
-		-- from-option x.name
+	map-optionally a.ast.names, it.name
 
 | Expression for 'x ?foo' or 'x.?foo' or 'x?[y]'
 call-option-expr record
@@ -3632,7 +3749,8 @@ list-expr-part-multi record(arg expr)
 
 scalar-value record
 	bits nat64
-to scalar-value(a bool) = a.to,
+new scalar-value() = bits: 0
+to scalar-value(a bool) = bits: if a then 1
 to bool(a scalar-value)
 	match a.to::nat64
 	as 0 then false
@@ -3643,6 +3761,7 @@ to scalar-value(a char8) = a.to,
 to scalar-value(a char32) = a.to,
 to char32(a scalar-value) = a.to::nat64.to::nat32.to
 to scalar-value(a int64) = a.wrap-to,
+to int32(a scalar-value) = a.to::int64.to
 to int64(a scalar-value) = a.bits.wrap-to
 to scalar-value(a nat64) = a,
 to nat8(a scalar-value) = a.to::nat64.to
@@ -3650,25 +3769,32 @@ to nat64(a scalar-value) = a.bits
 to scalar-value(a float64) = a.bits-of,
 to float64(a scalar-value) = from-bits a.bits
 
-scalar-values record
+scalar-values record -new
 	bits nat64[]
-subscript scalar-value(a scalar-values, index nat)
-	a.bits[index].to
+	hash nat32
+	is-range bool
+-scalar-values-cache global((scalar-values, scalar-values-key) object-memoizer) = ()
+-scalar-values-key record(bits nat64[], hash nat)
+-memoizer-key scalar-values-key(a scalar-values) = a.bits, a.hash
+list-new scalar-values(bits nat64[])
+	bits.to
 to json(a scalar-values)
 	a.bits.to
+to scalar-values(bits nat64[])
+	hash nat = wrap-to deterministic-hash bits
+	trusted memoize scalar-values-cache, (bits, hash), of
+		bits: bits
+		hash: hash
+		is-range: every bits.size, bits[it] == it
+any bool(a scalar-values)
+	any a.bits
 size nat(a scalar-values)
 	a.bits.size
 some bool(a scalar-values, f bool mut(x scalar-value))
-	some a.bits, f[it.to]
-to scalar-values(values nat[])
-	bits: values
-to scalar-values(values scalar-value[])
-	bits: map values, it.to
-is-range bool(a scalar-values)
-	every a.with-index, of i, x
-		i == x.to
-to-array nat64[](a scalar-values)
-	a.bits
+	some a.bits, of value
+		f[value.to]
+subscript scalar-value(a scalar-values, index nat)
+	a.bits[index].to
 
 literal-scalar-expr record
 	range source-range
@@ -3687,10 +3813,6 @@ type type-inst(a literal-string-like-expr) common-types
 
 string-like-type enum(char8-array, char32-array, java-String, js-any, string, symbol)
 matchable-string-like-type enum(string, symbol)
-to string-like-type(a matchable-string-like-type)
-	match a
-	as string then string
-	as symbol then symbol
 
 local-get-expr record
 	ast local-get-source
@@ -3773,9 +3895,9 @@ to json(a match-enum-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-enum-case record(member enum-or-flags-member, then_ expr)
+match-enum-case record(members enum-or-flags-member[], then_ expr)
 to json(a match-enum-case)
-	member: a.member.name.to
+	members: map::json[] a.members, it.name.to
 	then: a.then_.to
 range source-range(a match-enum-expr) = a.ast.range
 enum-type type-inst(a match-enum-expr) common-types
@@ -3794,7 +3916,7 @@ to json(a match-scalar-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-scalar-case record(value scalar-value, then_ expr)
+match-scalar-case record(values scalar-values, then_ expr)
 range source-range(a match-scalar-expr) = a.ast.range
 matched-type type-inst(a match-scalar-expr) common-types
 	type-inst! type a.matched
@@ -3811,7 +3933,7 @@ to json(a match-string-like-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-string-like-case record(value string, then_ expr)
+match-string-like-case record(values symbol[], then_ expr)
 range source-range(a match-string-like-expr) = a.ast.range
 matched-type type-inst(a match-string-like-expr) common-types
 	type-inst! type a.matched
@@ -3827,7 +3949,7 @@ to json(a match-sum-type-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-sum-type-case record(case-type type-inst, then_ expr)
+match-sum-type-case record(case-types type-inst[], then_ expr)
 range source-range(a match-sum-type-expr) = a.ast.range
 sum-type type-inst(a match-sum-type-expr) common-types
 	type-inst! type a.matched
@@ -3840,6 +3962,17 @@ type type(a seq-expr) common-types = type a.then_
 
 the-expr record(ast the-ast, type type-inst)
 range source-range(a the-expr) = a.ast.range
+
+then-if-or-unless-expr record
+	ast then-if-or-unless-ast
+	first expr
+	condition expr
+	called called
+	rest-args expr[]
+range source-range(a then-if-or-unless-expr) = a.ast.range
+type type(a then-if-or-unless-expr) common-types = type a.first
+is-unless bool(a then-if-or-unless-expr)
+	a.ast.is-unless
 
 throw-expr record(ast throw-ast, thrown expr, type type)
 to json(a throw-expr)
@@ -3936,6 +4069,8 @@ some bool(a direct-child-exprs, f bool mut(x expr))
 		f[x.inner]
 	as call-expr
 		some x.args, f
+	as call-expr-with-which-params
+		some x.args, f
 	as call-named-new-expr
 		some x.args, f
 	as call-option-expr
@@ -3989,6 +4124,8 @@ some bool(a direct-child-exprs, f bool mut(x expr))
 		f[x.first] or f[x.then_]
 	as the-expr
 		()
+	as then-if-or-unless-expr
+		f[x.first] or f[x.condition] or some x.rest-args, f
 	as throw-expr
 		f[x.thrown]
 	as trusted-expr
@@ -4057,16 +4194,14 @@ decl-kind enum
 	union_
 	variant_
 
-fun-name union(name-and-arity, fun-name-list-new, named-new)
+fun-name union(name-and-arity, fun-name-list-new)
 fun-name-list-new record(regular name-and-arity)
-named-new record(names symbol[], regular name-and-arity)
 regular-name symbol(a fun-name) = a.regular-name.name
 regular-name name-and-arity(a fun-name)
 	match a
 	as name-and-arity then a
 	as fun-name-list-new then a.regular
-	as named-new then a.regular
-arity nat(a fun-name) = a.regular-name.arity
+arity nat32(a fun-name) = a.regular-name.arity
 
 diag union
 	diag-alias-not-allowed
@@ -4075,8 +4210,10 @@ diag union
 	diag-builtin-unsupported
 	diag-call-deprecated
 	diag-call-multiple-matches
+	diag-call-named-new-multiple-matches
 	diag-call-no-match
 	diag-call-no-match-for-interpolate-or-list-new
+	diag-call-no-match-for-named-new
 	diag-call-option-non-option
 	diag-call-should-use-syntax
 	diag-case-duplicate
@@ -4103,6 +4240,7 @@ diag union
 	diag-duplicate-import-name
 	diag-duplicate-imports
 	diag-empty-enum-or-union
+	diag-enum-value-not-number
 	diag-enum-value-not-sorted
 	diag-expected-type-is-not-a-lambda
 	diag-extern-body-multiple
@@ -4112,7 +4250,6 @@ diag union
 	diag-import-file
 	diag-import-refers-to-nothing
 	diag-it-identity
-	diag-lambda-cant-be-function-pointer
 	diag-lambda-cant-infer-param-type
 	diag-lambda-closure-mutability
 	diag-lambda-multiple-match
@@ -4201,14 +4338,17 @@ diag-call-multiple-matches record
 	type-container type-container
 	| Unlike {diag-call-no-match}, these are only the ones that match
 	matches called-decl[]
+diag-call-named-new-multiple-matches record
+	type-container type-container
+	matches called-decl[]
 diag-call-no-match record
 	type-container type-container
 	fun-name fun-name
 	expected-return-type expected-for-diag
 	| 0 for inferred type args.
 	| This is the unpacked tuple, actualNTypeArgs > 1 may match candidates with 1 type arg.
-	actual-n-type-args nat
-	actual-arity nat
+	actual-n-type-args nat32
+	actual-arity nat32
 	| NOTE: we may have given up early and this may not be as much as actualArity
 	actual-arg-types type[]
 	| All candidates, including those with wrong arity
@@ -4216,8 +4356,11 @@ diag-call-no-match record
 diag-call-no-match-for-interpolate-or-list-new record
 	name symbol
 	expected-return-type type-with-container
+diag-call-no-match-for-named-new record
+	expected expected-for-diag
+	most-likely-match fun-decl?
 diag-call-option-non-option record(fun-name symbol)
-diag-call-should-use-syntax record(arity nat, kind diag-call-should-use-syntax-kind)
+diag-call-should-use-syntax record(arity nat32, kind diag-call-should-use-syntax-kind)
 diag-call-should-use-syntax-kind enum
 	for-loop
 	list-new
@@ -4255,7 +4398,7 @@ diag-destructure-type-mismatch record
 	expected destructure-expected-type
 	actual type-with-container
 destructure-expected-type union(destructure-expected-tuple, type-with-container)
-destructure-expected-tuple record(size nat)
+destructure-expected-tuple record(size nat32)
 diag-duplicate-declaration record(kind diag-duplicate-declaration-kind, name symbol)
 diag-duplicate-declaration-kind enum
 	enum-member
@@ -4272,7 +4415,8 @@ diag-duplicate-import-name record(name symbol)
 | This is for different types of the same name imported from multiple modules
 diag-duplicate-imports record(kind diag-duplicate-exports-kind, name symbol)
 diag-empty-enum-or-union record
-diag-enum-value-not-sorted record(prev-value nat)
+diag-enum-value-not-number record
+diag-enum-value-not-sorted record(prev-value nat64)
 diag-flags-value-not-power-of-2 record
 diag-expected-type-is-not-a-lambda record(expected-type type-with-container?)
 diag-extern-body-multiple record
@@ -4293,7 +4437,6 @@ read-error record(uri uri, diag read-file-diag)
 relative-import-reaches-past-root record(imported rel-path)
 diag-import-refers-to-nothing record(name symbol)
 diag-it-identity record
-diag-lambda-cant-be-function-pointer record
 diag-lambda-cant-infer-param-type record
 diag-lambda-closure-mutability record
 	| This will only ever be 'data' or 'shared', since a 'mut' lambda allows everything
@@ -4313,8 +4456,8 @@ diag-literal-overflow record(type integral-type)
 diag-local-not-mutable record(local local)
 diag-main-has-specs record
 diag-main-incompatible-with-target record(target build-target)
-diag-main-test-missing record(expected-line nat)
-diag-match-case-duplicate union(symbol, string, nat, int)
+diag-main-test-missing record(expected-line nat32)
+diag-match-case-duplicate union(symbol, string, nat64, int64)
 diag-match-case-for-type enum(enum-or-union, numeric, string-like)
 diag-match-case-name-not-in-enum record(actual symbol, enum_ type-decl)
 diag-match-needs-else enum(integral, string-like, variant_)
@@ -4384,7 +4527,7 @@ diag-string-literal-invalid enum
 	not-extern-js
 diag-sum-type-listed-members-non-union record
 diag-trusted-unused record
-diag-tuple-too-big record(actual nat)
+diag-tuple-too-big record(actual nat32)
 diag-type-conflict record(expected expected-for-diag, actual type-with-container)
 diag-type-param-cant-have-type-args record
 diag-type-params-unsupported record(decl-kind decl-kind)
@@ -4430,7 +4573,7 @@ visibility-warning-kind union
 visibility-warning-field record(record_ type-decl, field-name symbol)
 visibility-warning-field-mutability record(field-name symbol)
 visibility-warning-new record(record_ type-decl)
-diag-wrong-number-type-args record(name symbol, n-expected-type-args nat, n-actual-type-args nat)
+diag-wrong-number-type-args record(name symbol, n-expected-type-args nat32, n-actual-type-args nat32)
 
 expected-for-diag union
 	expected-for-diag-choices

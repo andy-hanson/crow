@@ -8,7 +8,7 @@ import
 +named-new js-any(keys symbol[], values js-any[]) unsafe, js
 	keys.size is values.size
 	res js-any = call-new Object
-	for i in 0 .. keys.size
+	for i in keys.size
 		res[keys[i].to] := values[i]
 	res
 

@@ -86,10 +86,10 @@ get-hover hover?(program program, params hover-params) show-ctx
 		as char-type
 			quoted x.value.to::char32.to
 		as integral-type
-			if is-signed t then "{x.value.to::int}" else "{x.value.to::nat}"
+			if is-signed t then "{x.value.to::int64}" else "{x.value.to::nat64}"
 		"Handler for value {value} :: {x.kind}"
 	as position-match-string-like-case
-		"Handler for value {quoted x.value} :: {show-type-unquoted x.type}"
+		"Handler for value {quoted to::string x.value} :: {show-type-unquoted x.type}"
 	as position-match-sum-type-case
 		"Handler for type {show-type-unquoted (x.member, x.container.to)}"
 	as position-modifier
@@ -162,9 +162,7 @@ get-hover hover?(program program, params hover-params) show-ctx
 
 -hover-for-doc-ref string(a position-doc-ref) show-type-ctx
 	match ref = a.ref
-	as doc-comment-reference-bogus
-		""
-	as doc-comment-reference-context
+	as doc-comment-reference-bogus or doc-comment-reference-context
 		""
 	as called-spec-sig
 		"References {show-called-spec-sig quoted, a.container.type-container-for, ref}"
@@ -238,10 +236,8 @@ get-hover hover?(program program, params hover-params) show-ctx
 
 -expr-keyword-hover string(keyword expr-keyword)
 	match keyword
-	as ampersand
-		quote
-			Gets a pointer to an expression.
-			This does not allocate and so is unsafe. This only works for certain expressions.
+	as as_
+		"Introduces a single branch of the 'match'."
 	as colon-colon
 		"Provides an expected type for the expression to its left."
 	as elif_
@@ -275,15 +271,11 @@ get-hover hover?(program program, params hover-params) show-ctx
 			The expression to the right of 'finally' runs second, even if there was an exception.
 			The result is from the below expression; the right expression must be 'void'.
 	as in-after-for
-		quote
-			The expression to the right of 'in' is the first argument to 'for-loop'.
-			Typically, this is the collection to be iterated.
-			The destructuring to the left of 'in' is usually a collection element.
+		in-after-for "for-loop"
+	as in-after-for-option
+		in-after-for "for-option"
 	as in-after-for-star
-		quote
-			The expression to the right of 'in' is the first argument to 'for-star'.
-			Typically, this is the collection to be iterated.
-			The destructuring to the left of 'in' is usually a collection element.
+		in-after-for "for-star"
 	as in-after-with
 		"The expression to the right of 'in' is the first argument to 'with-block'."
 	as force
@@ -313,10 +305,21 @@ get-hover hover?(program program, params hover-params) show-ctx
 		"The expression after 'then' is the body of the lambda starting at 'of'."
 	as then-after-unless
 		"Evaluates the expression to the right of 'then' if the expression between 'unless' and 'then' is false."
+	as then-if
+		quote
+			If the condition is true, calls the function.
+			If the condition is false, returns the first argument unmodified.
+			The first argument is the line before 'then'.
 	as throw_
 		"Throws an exception."
 	as trusted_
 		"Allows 'unsafe' code to be used anywhere."
+
+-in-after-for string(fun-name string)
+	quote
+		The expression to the right of 'in' is the first argument to '{fun-name}'.
+		Typically, this is the collection to be iterated.
+		The destructuring to the left of 'in' is usually a collection element.
 
 -expr-hover string(cur-uri uri, a expression-position) show-type-ctx
 	type-container type-container = a.container.to
@@ -341,6 +344,8 @@ get-hover hover?(program program, params hover-params) show-ctx
 	as bogus-expr
 		"Expression has a problem and will throw an error."
 	as call-expr
+		show-called x.called, type-container
+	as call-expr-with-which-params
 		show-called x.called, type-container
 	as call-named-new-expr
 		show-called x.called, type-container
@@ -371,15 +376,11 @@ get-hover hover?(program program, params hover-params) show-ctx
 			"{do-if}\nOtherwise, the 'do if' evaluates to '()'."
 		as do-if-else
 			"{do-if}\nOtherwise, evaluates the expression after 'else'."
-		as if-elif
+		as if-elif or if-then-elif
 			"{if_}\nOtherwise, evaluates the 'elif' branch."
-		as if-else
+		as if-else or if-then-else
 			"{if_}\nOtherwise, evaluates the 'else' branch."
-		as if-then
-			"{if_}\nOtherwise, the 'if' evaluates to '()'."
-		as if-then-else
-			"{if_}\nOtherwise, evaluates the 'else' branch."
-		as if-without-else
+		as if-then or if-without-else
 			"{if_}\nOtherwise, the 'if' evaluates to '()'."
 	as is-or-isnt-expr
 		if x.is-isnt
@@ -416,26 +417,14 @@ get-hover hover?(program program, params hover-params) show-ctx
 		show-called x.called, type-container
 	as local-ref
 		desc = match x.kind
-		as get
+		as get or closure-get
 			"Gets local variable"
-		as closure-get
-			"Gets local variable"
-		as set
+		as set or closure-set
 			"Sets local variable"
-		as closure-set
-			"Sets local variable"
-		as pointer
-			"Gets pointer to local variable"
 		closure = match x.kind
-		as get
+		as get or set
 			""
-		as set
-			""
-		as pointer
-			""
-		as closure-get
-			" (through closure)"
-		as closure-set
+		as closure-get or closure-set
 			" (through closure)"
 		"{desc} {show-name x.local.name}{closure}."
 	as logical-expr
@@ -449,24 +438,17 @@ get-hover hover?(program program, params hover-params) show-ctx
 		as option-or
 			"The 'or' expression will be the left option if it is non-empty, else the right option."
 	as match-enum-expr
-		match-hover type-container, "enum ", x.enum-type
+		match-hover type-container, "enum", x.enum-type
 	as match-scalar-expr
-		match-hover type-container, "", x.matched-type
+		match-hover type-container, (), x.matched-type
 	as match-string-like-expr
-		match-hover type-container, "", x.matched-type
+		match-hover type-container, (), x.matched-type
 	as match-sum-type-expr
-		type-desc = match x.sum-type-body.kind
-		as interface_
-			"interface "
-		as java-interface
-			"Java interface "
-		as union_
-			"union "
-		as variant_
-			"variant "
-		match-hover type-container, type-desc, x.sum-type
+		match-hover type-container, x.sum-type-body.kind.show-sum-type-kind-lower-case, x.sum-type
 	as the-expr
 		"Gets the context value of type {show-type-quoted (x.type, type-container)}."
+	as then-if-or-unless-expr
+		show-called x.called, type-container
 	as try-expr
 		caught = if c = only x.catches
 			"a {show-type-quoted (c.caught-type, type-container)}"
@@ -514,14 +496,14 @@ get-hover hover?(program program, params hover-params) show-ctx
 	as called-spec-sig
 		""
 	basic = "Calls {show-called quoted, type-container, a}."
-	if is-empty doc
-		basic
-	else
+	if any doc
 		"{basic}\n{doc}"
+	else
+		basic
 
 -match-hover string
 	type-container type-container
-	type-desc string
+	type-desc string?
 	matched-type type-inst
 do show-type-ctx
-	"Match on {type-desc}{show-type-quoted (matched-type, type-container)}."
+	"Match on {if type-desc then "{type-desc} "}{show-type-quoted (matched-type, type-container)}."

@@ -1,20 +1,22 @@
 | See also 'keen/math/math'
 no-std
 import
+	./bits
 	./bool
 	./compare
-	./exception: todo
+	./exception: arithmetic-error, todo
 	./js
 	./misc
-	./private/bootstrap: array, exception, hash-state, json, set-state, state, string
+	./option
+	./private/bootstrap: hash-state, set-state, state, string
 	./private/java-math
 export
 	./private/bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
 +int alias
-	int64
+	int32
 +nat alias
-	nat64
+	nat32
 +float alias
 	float64
 
@@ -62,52 +64,10 @@ export
 +float-less bool(a float32, b float32)
 +float-less bool(a float64, b float64)
 
-# ~unsafe-mod int64(a int64, b int64) unsafe # TODO ------------------------------------------------------------------
--unsafe-mod nat64(a nat64, b nat64) unsafe
-
-# The public versions of these functions are defined in bits.keen
--wrap-to int8(a int64)
--wrap-to int16(a int32)
--wrap-to int16(a int64)
--wrap-to int32(a int64)
--wrap-to int64(a nat64)
--wrap-to nat8(a nat64)
--wrap-to nat16(a nat32)
--wrap-to nat16(a nat64)
--wrap-to nat32(a nat64)
--wrap-to nat64(a int64)
-
--wrap-to nat8(a int8)
--wrap-to nat16(a int16)
--wrap-to nat32(a int32)
-
--wrap-add nat8(a nat8, b nat8)
--wrap-add nat16(a nat16, b nat16)
--wrap-add nat32(a nat32, b nat32)
--wrap-add nat64(a nat64, b nat64)
-
--wrap-add int8(a int8, b int8)
--wrap-add int16(a int16, b int16)
--wrap-add int32(a int32, b int32)
--wrap-add int64(a int64, b int64)
-
--wrap-sub nat8(a nat8, b nat8)
--wrap-sub nat16(a nat16, b nat16)
--wrap-sub nat32(a nat32, b nat32)
--wrap-sub nat64(a nat64, b nat64)
-
--wrap-sub int8(a int8, b int8)
--wrap-sub int16(a int16, b int16)
--wrap-sub int32(a int32, b int32)
--wrap-sub int64(a int64, b int64)
-
--wrap-mul nat32(a nat32, b nat32)
--wrap-mul nat64(a nat64, b nat64)
-
--wrap-mul int8(a int8, b int8)
--wrap-mul int16(a int16, b int16)
--wrap-mul int32(a int32, b int32)
--wrap-mul int64(a int64, b int64)
+~unsafe-mod nat8(a nat8, b nat8) unsafe
+~unsafe-mod nat16(a nat16, b nat16) unsafe
+~unsafe-mod nat32(a nat32, b nat32) unsafe
+~unsafe-mod nat64(a nat64, b nat64) unsafe
 
 ~unsafe-div nat8(a nat8, b nat8) unsafe
 ~unsafe-div nat16(a nat16, b nat16) unsafe
@@ -118,7 +78,7 @@ export
 ~unsafe-div int32(a int32, b int32) unsafe
 ~unsafe-div int64(a int64, b int64) unsafe
 
-# Equivlaent to `a 'is-multiple-of 2`.
+# Equivalaent to `a 'is-multiple-of 2`.
 +is-even bool(a nat64)
 	(trusted unsafe-mod a, 2) == 0
 +is-even bool(a int64)
@@ -142,38 +102,19 @@ region constants
 +max-value int16()
 	0x7fff
 +max-value int32()
-	0x7fffffff
+	0x7fff_ffff
 +max-value int64()
-	0x7fffffffffffffff
+	0x7fff_ffff_ffff_ffff
 +max-value nat8()
 	0xff
 +max-value nat16()
 	0xffff
 +max-value nat32()
-	0xffffffff
+	0xffff_ffff
 +max-value nat64()
-	0xffffffffffffffff
+	0xffff_ffff_ffff_ffff
 
 region arithmetic
-
-| Used to store inputs for {arithmetic-error}
-+number union(nat64, int64, float64)
-+to json(a number)
-	match a
-	as nat64 then a
-	as int64 then a
-	as float64 then a
-+to number(a json)
-	match a
-	as nat64 then a
-	as int64 then a
-	as float64 then a
-	else then throw todo
-+arithmetic-error record(operation string, inputs number[]) exception case
-+arithmetic-error arithmetic-error(operation string, input number) = operation, (input,)
-+arithmetic-error arithmetic-error(operation string, a number, b number) = operation, (a, b)
--list-new[t] t[](a t[]) = a
-+show string(_ arithmetic-error) = "Arithmetic operation can't return a correct value for the given inputs."
 
 | Throws if the result would overflow.
 |
@@ -211,17 +152,38 @@ region arithmetic
 
 | Throws if the result would overflow.
 + * nat8(a nat8, b nat8)
-	res = wrap-mul a::nat32, b::nat32
+	res = wrap-mul::nat32 a, b
 	assert res <= max-value::nat8 else arithmetic-error "*::nat8", a, b
 	res.wrap-to
 + * nat16(a nat16, b nat16)
-	res = wrap-mul a::nat32, b::nat32
+	res = wrap-mul::nat32 a, b
 	assert res <= max-value::nat16 else arithmetic-error "*::nat16", a, b
 	res.wrap-to
 + * nat32(a nat32, b nat32)
-	res = wrap-mul a::nat64, b::nat64
-	assert res <= max-value::nat32 else arithmetic-error "*::nat32", a, b
-	res.wrap-to
+	if trusted java
+		res = wrap-mul::nat64 a, b
+		assert res <= max-value::nat32 else arithmetic-error "*::nat32", a, b
+		res.wrap-to
+	elif trusted js
+		# JS 64-bit arithmetic is slow, so multiply 16-bit parts
+		a0 = low-part a
+		a1 = high-part a
+		b0 = low-part b
+		b1 = high-part b
+		low = wrap-mul a0, b0
+		if a1 == 0 and b1 == 0
+			# Common case
+			low
+		else
+			cross = wrap-add (wrap-mul a0, b1), wrap-mul a1, b0
+			assert (a1 == 0 or b1 == 0) and cross.high-part == 0 else arithmetic-error "*::nat32", a, b
+			wrap-add low, trusted unsafe-bit-shift-left cross, 16
+	else
+		throw todo
+-high-part nat32(a nat32)
+	trusted unsafe-bit-shift-right a, 16
+-low-part nat32(a nat32)
+	a & 0xffff
 + * nat64(a nat64, b nat64)
 	if a <= max-value::nat32 and b <= max-value::nat32
 		# Fast path: Multiplying small numbers always works
@@ -247,23 +209,20 @@ region arithmetic
 	b isnt 0 else arithmetic-error "/", a, b
 	trusted unsafe-div a, b
 
-| Like {a} / {b} but takes the ceil instead of the floor.
-+div-ceil nat64(a nat64, b nat64)
-	res = a / b
-	res + (res * b != a).to
-
 | Remainder of {a} / {b}.
 | Result will be in the range 0 .. {b}.
 | Throws if {b} == 0.
 + % nat8(a nat8, b nat8)
 	b isnt 0 else arithmetic-error "%", a, b
-	trusted unsafe-mod a, b 'wrap-to
+	trusted unsafe-mod a, b
 + % nat16(a nat16, b nat16)
 	b isnt 0 else arithmetic-error "%", a, b
-	trusted unsafe-mod a, b 'wrap-to
+	trusted unsafe-mod a, b
 + % nat32(a nat32, b nat32)
 	b isnt 0 else arithmetic-error "%", a, b
-	trusted unsafe-mod a, b 'wrap-to
+	trusted unsafe-mod a, b
++ % nat32(a nat64, b nat32)
+	to a % b::nat64
 + % nat64(a nat64, b nat64)
 	b isnt 0 else arithmetic-error "%", a, b
 	trusted unsafe-mod a, b
@@ -278,7 +237,7 @@ region arithmetic
 	else
 		a.to::nat64 % b
 
--unsafe-mod float64(a float64, b float64)
+~unsafe-mod float64(a float64, b float64)
 
 + % float32(a float32, b float32)
 	a::float64 % b::float64 'to
@@ -306,12 +265,19 @@ region arithmetic
 + + int16(a int16, b int16)
 	wrap-add::int32 a, b 'to
 + + int32(a int32, b int32)
-	wrap-add::int64 a, b 'to
-+ + int64(a int64, b int64)
-	overflow = if b > 0
-		a > (wrap-sub max-value::int64, b)
+	res = wrap-add a, b
+	overflow = if a < 0
+		b < 0 and res >= 0
 	else
-		a < (wrap-sub min-value::int64, b)
+		b > 0 and res < 0
+	forbid overflow else arithmetic-error "+::int32", a, b
+	res
++ + int64(a int64, b int64)
+	res = wrap-add a, b
+	overflow = if a < 0
+		b < 0 and res >= 0
+	else
+		b > 0 and res < 0
 	forbid overflow else arithmetic-error "+::int64", a, b
 	wrap-add a, b
 
@@ -320,14 +286,21 @@ region arithmetic
 + - int16(a int16, b int16)
 	wrap-sub::int32 a, b 'to
 + - int32(a int32, b int32)
-	wrap-sub::int64 a, b 'to
-+ - int64(a int64, b int64)
-	overflow = if b > 0
-		a < (wrap-add min-value::int64, b)
+	res = wrap-sub a, b
+	overflow = if a < 0
+		b > 0 and res >= 0
 	else
-		a > (wrap-add max-value::int64, b)
+		b < 0 and res < 0
+	forbid overflow else arithmetic-error "-::int32", a, b
+	res
++ - int64(a int64, b int64)
+	res = wrap-sub a, b
+	overflow = if a < 0
+		b > 0 and res >= 0
+	else
+		b < 0 and res < 0
 	forbid overflow else arithmetic-error "-::int64", a, b
-	wrap-sub a, b
+	res
 
 + * int8(a int8, b int8)
 	wrap-mul::int32 a, b 'to
@@ -408,6 +381,36 @@ region misc
 +abs float64(a float64)
 	if a < 0 then -a else a
 
++ ** int8(a int8, b nat8)
+	try
+		to a::int32 ** b::nat32
+	catch as arithmetic-error
+		throw arithmetic-error "**::int8", a, b
++ ** int16(a int16, b nat16)
+	try
+		to a::int32 ** b::nat32
+	catch as arithmetic-error
+		throw arithmetic-error "**::int16", a, b
++ ** int32(a int32, b nat32)
+	try
+		if b == 0
+			1
+		elif is-even b
+			(a * a) ** (b / 2)
+		else
+			a * a ** (b - 1)
+	catch as arithmetic-error
+		throw arithmetic-error "**::int32", a, b
++ ** int64(a int32, b nat64)
+	try
+		if b == 0
+			1
+		elif is-even b
+			(a * a) ** (b / 2)
+		else
+			a * a ** (b - 1)
+	catch as arithmetic-error
+		throw arithmetic-error "**::int64", a, b
 + ** nat8(a nat8, b nat8)
 	try
 		to a::nat32 ** b::nat32
@@ -466,19 +469,19 @@ region float
 	res
 
 | Returns nan for infinity + -infinity
--unsafe-add float32(a float32, b float32) unsafe
--unsafe-add float64(a float64, b float64) unsafe
++unsafe-add float32(a float32, b float32) unsafe
++unsafe-add float64(a float64, b float64) unsafe
 
--unsafe-sub float32(a float32, b float32) unsafe
--unsafe-sub float64(a float64, b float64) unsafe
++unsafe-sub float32(a float32, b float32) unsafe
++unsafe-sub float64(a float64, b float64) unsafe
 
 | Returns nan for infinity * 0
--unsafe-mul float32(a float32, b float32) unsafe
--unsafe-mul float64(a float64, b float64) unsafe
++unsafe-mul float32(a float32, b float32) unsafe
++unsafe-mul float64(a float64, b float64) unsafe
 
 | Divide two floats. Undefined behavior if `{b} == 0`.
--unsafe-div float32(a float32, b float32) unsafe
--unsafe-div float64(a float64, b float64) unsafe
++unsafe-div float32(a float32, b float32) unsafe
++unsafe-div float64(a float64, b float64) unsafe
 
 | Throws if `{b} == 0`.
 + / float32(a float32, b float32)
@@ -509,19 +512,51 @@ region float
 
 region conversion
 
-| Conversions between integral types throw on overflow or underflow.
-| Conversions involving floats (in either direction) are approximate and never throw.
-+to float32(a nat64)
-	a.to::float64.to
-+to float32(a int64)
-	a.to::float64.to
 +to float32(a float64)
 
-+to float64(a nat64)
-+to float64(a int64)
++to float32(a int8)
++to float32(a int16)
++to float32(a int32)
++to float32(a int64)
++to float32(a nat8)
++to float32(a nat16)
++to float32(a nat32)
++to float32(a nat64)
 
++to float64(a int8)
++to float64(a int16)
++to float64(a int32)
++to float64(a int64)
++to float64(a nat8)
++to float64(a nat16)
++to float64(a nat32)
++to float64(a nat64)
+
++to nat8(a float64)
+	clamp-to clamp-to::nat32 to::int32 a
++to nat16(a float64)
+	clamp-to clamp-to::nat32 to::int32 a
++to nat32(a float64)
+	clamp-to clamp-to::nat32 to::int32 a
++to nat64(a float64)
+	if a <= max-value::int64.to
+		clamp-to to::int64 a
+	elif a <= max-value::nat64.to
+		integer = round a
+		low-bits = to::nat32 integer % 0b100000000
+		high-bits = to::nat32 integer / 0b100000000
+		bits-cat high-bits, low-bits
+	else
+		max-value
+
++to int8(a float64)
+	truncate-to round a
++to int16(a float64)
+	truncate-to round a
++to int32(a float64)
+	truncate-to round a
 +to int64(a float64)
-	a.round.truncate-to
+	truncate-to round a
 
 +round float32(a float32)
 	to round a::float64
@@ -559,11 +594,8 @@ region conversion
 -Math js-any() js
 	trusted js-global["Math"]
 
-+to nat64(a float64)
-	a.to::int64.to
-
 +to int64(a nat64)
-	assert a <= max-value::int64.to else arithmetic-error "to::int64", a
+	assert a <= max-value::int64.wrap-to else arithmetic-error "to::int64", a
 	a.wrap-to
 
 # This is not strictly necessary since it could just implicitly convert to int64 first, but this is faster
@@ -572,13 +604,19 @@ region conversion
 	wrap-to a
 +to nat8(a int64)
 	assert a >= 0 else arithmetic-error "to::nat8", a
-	to wrap-to::nat a
+	to wrap-to::nat64 a
++to int8(a nat8)
+	assert a < max-value::int8.wrap-to else arithmetic-error "to::int8", a
+	wrap-to a
 +to int8(a nat64)
-	assert a <= max-value::int8.to else arithmetic-error "to::int8", a
-	to wrap-to::int a
+	assert a <= max-value::int8.wrap-to else arithmetic-error "to::int8", a
+	to wrap-to::int64 a
++to int8(a int32)
+	assert a >= min-value::int8 and a <= max-value::int8 else arithmetic-error "to::int8", a
+	wrap-to a
 +to int8(a int64)
 	assert a >= min-value::int8 and a <= max-value::int8 else arithmetic-error "to::int8", a
-	a.wrap-to
+	wrap-to a
 
 # This is not strictly necessary since it could just implicitly convert to int64 first, but this is faster
 +to nat16(a int16)
@@ -586,10 +624,16 @@ region conversion
 	wrap-to a
 +to nat16(a int64)
 	assert a >= 0 else arithmetic-error "to::nat16", a
-	to wrap-to::nat a
+	to wrap-to::nat64 a
++to int16(a nat16)
+	assert a <= max-value::int16.wrap-to else arithmetic-error "to::int16", a
+	wrap-to a
++to int16(a nat32)
+	assert a <= max-value::int16::int32.wrap-to else arithmetic-error "to::int16", a
+	wrap-to a
 +to int16(a nat64)
-	assert a <= max-value::int16.to else arithmetic-error "to::int16", a
-	to wrap-to::int a
+	assert a <= max-value::int16.wrap-to else arithmetic-error "to::int16", a
+	to wrap-to::int64 a
 +to int16(a int32)
 	assert a >= min-value::int16 and a <= max-value::int16 else arithmetic-error "to::int16", a
 	wrap-to a
@@ -602,15 +646,32 @@ region conversion
 	wrap-to a
 +to nat32(a int64)
 	assert a >= 0 else arithmetic-error "to::nat32", a
-	to wrap-to::nat a
+	to wrap-to::nat64 a
 | Convert an int to 32 bits. Fail if the result would overflow.
 +to int32(a int64)
 	assert a >= min-value::int32 and a <= max-value::int32 else arithmetic-error "to::int32", a
+	wrap-to a
++to int32(a nat32)
+	assert a <= max-value::int32.wrap-to else arithmetic-error "to::int32", a
 	wrap-to a
 +to int32(a nat64)
 	a.to::int64.to
 
 | Return the closest value. Never throws.
++clamp-to int8(a int32)
+	if a < min-value::int8
+		min-value
+	elif a > max-value::int8
+		max-value
+	else
+		wrap-to a
++clamp-to int16(a int32)
+	if a < min-value::int16
+		min-value
+	elif a > max-value::int16
+		max-value
+	else
+		wrap-to a
 +clamp-to int32(a int64)
 	if a < min-value::int32
 		min-value
@@ -618,26 +679,42 @@ region conversion
 		max-value
 	else
 		wrap-to a
++clamp-to int8(a nat8)
+	res int8 = wrap-to a
+	if res < 0 then max-value else res
++clamp-to int16(a nat16)
+	res int16 = wrap-to a
+	if res < 0 then max-value else res
++clamp-to int32(a nat32)
+	res int32 = wrap-to a
+	if res < 0 then max-value else res
 +clamp-to int64(a nat64)
-	if a <= max-value::int64.to then wrap-to a else max-value
+	res int64 = wrap-to a
+	if res < 0 then max-value else res
 +clamp-to nat8(a nat64)
 	if a <= max-value::nat8 then wrap-to a else max-value
 +clamp-to nat16(a nat64)
 	if a <= max-value::nat16 then wrap-to a else max-value
 +clamp-to nat32(a nat64)
 	if a <= max-value::nat32 then wrap-to a else max-value
++clamp-to nat32(a int32)
+	if a >= 0 then wrap-to a
 +clamp-to nat64(a int64)
 	if a >= 0 then wrap-to a
-+clamp-to nat64(a float64)
-	clamp-to to::int64 a
 
 | Throws if the result would not have the same value as the input (due to overflow or underflow).
 +to nat64(a int64)
 	assert a >= 0 else arithmetic-error "to::nat64", a
-	a.wrap-to
+	wrap-to a
++to nat8(a nat16)
+	assert a <= max-value::nat8 else arithmetic-error "to::nat8", a
+	wrap-to a
++to nat8(a nat32)
+	assert a <= max-value::nat8 else arithmetic-error "to::nat8", a
+	wrap-to a
 +to nat8(a nat64)
 	assert a <= max-value::nat8 else arithmetic-error "to::nat8", a
-	a.wrap-to
+	wrap-to a
 +to nat16(a nat32)
 	assert a <= max-value::nat16 else arithmetic-error "to::nat16", a
 	wrap-to a
@@ -648,6 +725,17 @@ region conversion
 	assert a <= max-value::nat32 else arithmetic-error "to::nat32", a
 	a.wrap-to
 
++truncate-to int8(a float32)
+	clamp-to truncate-to::int32 a
++truncate-to int16(a float32)
+	clamp-to truncate-to::int32 a
++truncate-to int32(a float32)
++truncate-to int64(a float32)
++truncate-to int8(a float64)
+	clamp-to truncate-to::int32 a
++truncate-to int16(a float64)
+	clamp-to truncate-to::int32 a
++truncate-to int32(a float64)
 +truncate-to int64(a float64)
 
 +bits-of nat64(a float64)
@@ -655,6 +743,96 @@ region conversion
 +from-bits float32(bits nat32)
 +from-bits float64(bits nat64)
 
+-sign int8(a int8) = if a < 0 then -1 else 1
+-sign int16(a int16) = if a < 0 then -1 else 1
+-sign int32(a int32) = if a < 0 then -1 else 1
+-sign int64(a int64) = if a < 0 then -1 else 1
+
++divide-and-round int8(a int8, b int8)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int16(a int16, b int16)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int32(a int32, b int32)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int64(a int64, b int64)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round nat8(a nat8, b nat8)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat16(a nat16, b nat16)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat32(a nat32, b nat32)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat64(a nat64, b nat64)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
+
+| Rounds towards -infinity
++divide-and-round-down int8(a int8, b int8)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int16(a int16, b int16)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int32(a int32, b int32)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int64(a int64, b int64)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
+
+| Rounds towards +infinity
++divide-and-round-up int8(a int8, b int8)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int16(a int16, b int16)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int32(a int32, b int32)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int64(a int64, b int64)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up nat8(a nat8, b nat8)
+	unless a == 0
+		(a - 1) / b + 1
++divide-and-round-up nat16(a nat16, b nat16)
+	unless a == 0
+		(a - 1) / b + 1
++divide-and-round-up nat32(a nat32, b nat32)
+	unless a == 0
+		(a - 1) / b + 1
 +divide-and-round-up nat64(a nat64, b nat64)
 	unless a == 0
 		(a - 1) / b + 1
@@ -702,13 +880,15 @@ region Spec impls for range
 +prev int64(a int64)
 	a - 1
 
-+difference nat64(a int8, b int8)
++difference nat32(a int8, b int8)
 	a - b 'to
-+difference nat64(a int16, b int16)
++difference nat32(a int16, b int16)
 	a - b 'to
-+difference nat64(a int32, b int32)
++difference nat32(a int32, b int32)
 	a - b 'to
-+difference nat64(a int64, b int64)
++difference nat32(a int64, b int64)
+	a - b 'to
++difference nat32(a nat64, b nat64)
 	a - b 'to
 
 +hash void(a nat8, state hash-state)
@@ -720,7 +900,7 @@ region Spec impls for range
 +hash void(a nat64, state hash-state)
 	do trusted
 	state.state ^:= a
-	state.state := 0x5851f42d4c957f2d 'wrap-mul state.state 'wrap-add 1
+	state.state := 0x5851_f42d_4c95_7f2d 'wrap-mul state.state 'wrap-add 1
 +hash void(a int8, state hash-state)
 	trusted hash a.wrap-to::nat8, state
 +hash void(a int16, state hash-state)
@@ -733,8 +913,6 @@ region Spec impls for range
 	trusted hash a.bits-of, state
 +hash void(a float64, state hash-state)
 	trusted hash a.bits-of, state
-
-- ^ nat(a nat, b nat)
 
 +saturating-add nat8(a nat8, b nat8)
 	res = wrap-add a, b
@@ -767,3 +945,63 @@ region Spec impls for range
 		a * b
 	catch as arithmetic-error
 		max-value
+
++some bool(a nat8, f bool mut(x nat8))
+	i mut nat8 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat8, f bool mut(x nat8))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
++some bool(a nat16, f bool mut(x nat16))
+	i mut nat16 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat16, f bool mut(x nat16))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
++some bool(a nat32, f bool mut(x nat32))
+	i mut nat32 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat32, f bool mut(x nat32))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
+
+| Assists with treating a number as a collection
++size nat(a nat8) = a
++size nat(a nat16) = a
++size nat(a nat32) = a

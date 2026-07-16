@@ -1,0 +1,111 @@
+test
+	x nat =
+		1
+		then + 2 * 3
+	x is 7
+
+test
+	x nat =
+		1
+		then * 2 + 3
+	x is 5
+
+test
+	x =
+		0 .. 10
+		then to::nat[]
+		then filter::nat[] it.is-even
+		then map::nat[] it / 2
+		then sum
+	x is 2/2 + 4/2 + 6/2 + 8/2
+
+test
+	foo 2 is 4
+	foo 3 is 3
+-foo nat(x nat)
+	x
+	then if x < 3 then square
+-square nat(a nat) = a * a
+
+test
+	foo2 2 is 4
+	foo2 3 is 3
+-foo2 nat(x nat)
+	x
+	then unless x >= 3 then square
+
+test
+	bar 2 is 3
+	bar 3 is 3
+-bar nat(x nat)
+	x
+	then if x < 3 then + 1
+
+test
+	bar2 2 is 3
+	bar2 3 is 3
+-bar2 nat(x nat)
+	x
+	then unless x >= 3 then + 1
+
+test
+	baz 2 is 8
+	baz 3 is 3
+-baz nat(x nat)
+	x
+	then if x < 3 then splush 2, 3
+-splush nat(a nat, b nat, c nat)
+	a + b * c
+
+test
+	baz2 2 is 8
+	baz2 3 is 3
+-baz2 nat(x nat)
+	x
+	then unless x >= 3 then splush 2, 3
+
+test
+	buz 1, 2 is 3
+	buz 1, () is 1
+-buz nat(x nat, y nat?)
+	x
+	then if y then + y
+
+test
+	buz2 1, 2 is 3
+	buz2 1, () is 1
+-buz2 nat(x nat, y nat?)
+	x
+	then unless not y then + y
+
+test
+	bez 1 is 1
+	bez 2 is 3
+-bez nat(x nat)
+	x
+	then if y = half x then + y
+-half nat?(a nat)
+	if is-even a
+		a / 2
+
+test
+	bez2 1 is 1
+	bez2 2 is 3
+-bez2 nat(x nat)
+	x
+	then unless not (y = half x) then + y
+
+# Test that the function called by 'then if' can implicitly convert
+test
+	convert-called "foo", false is "foo"
+	convert-called "foo", true is 3
+	convert-called 2::nat, false is 2
+	convert-called 2::nat, true is 20
+-u union(nat, string)
+-convert-called u(a u, b bool)
+	a
+	then if b then returns-nat
+-returns-nat nat(a u)
+	match a
+	as nat then a * 10
+	as string then a.size

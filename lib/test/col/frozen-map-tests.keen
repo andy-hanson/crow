@@ -3,32 +3,37 @@ import
 
 test
 	a (nat64, string) frozen-map = ()
-	is-empty a is true
+	any a is false
 	size a is 0
 	a[0] is ()
 
-	b (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2")
-	b[0] is ()
-	b[1] is "1"
-	b[2] is "2"
-	b[3] is "3"
-	b[4] is ()
-	b[5] is "5"
-	b[6] is ()
-
-	c (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
-	c[0] is ()
-	c[1] is "1"
-	c[2] is "2"
-	c[3] is "3"
-	c[4] is ()
-	c[5] is "5"
-	c[6] is ()
-	c[7] is ()
-	c[8] is "8"
-	c[9] is ()
-
 test
 	a (nat64, string) frozen-map = (1, "1"), (1, "2")
+	any a is true
 	size a is 1
 	a[1] is "2"
+
+test
+	a (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2")
+	size a is 4
+	a[0] is ()
+	a[1] is "1"
+	a[2] is "2"
+	a[3] is "3"
+	a[4] is ()
+	a[5] is "5"
+	a[6] is ()
+
+test
+	a (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
+	size a is 5
+	a[0] is ()
+	a[1] is "1"
+	a[2] is "2"
+	a[3] is "3"
+	a[4] is ()
+	a[5] is "5"
+	a[6] is ()
+	a[7] is ()
+	a[8] is "8"
+	a[9] is ()

@@ -1,27 +1,31 @@
 i0 interface
 	m nat()
 test
-	m (m: {1}) is 1
-	m (m: {2}) is 2
+	m1 i0 = m: {1}
+	m m1 is 1
+	m2 i0 = m: {2}
+	m m2 is 2
 
 i1 interface
 	m nat(x nat)
 test
-	m (m: it + 1), 1 is 2
-	m (m: it * 2), 2 is 4
+	add-1 i1 = m: it + 1
+	add-2 i1 = m: it + 2
+	m add-1, 1 is 2
+	m add-2, 2 is 4
 
 i2 interface
 	m nat(x nat, y nat)
 test
-	m (m: of x, y then x + y), 3, 4 is 7
-	m (m: of x, y then x * y), 3, 4 is 12
+	add i2 = m: of x, y then x + y
+	m add, 3, 4 is 7
+	mul i2 = m: of x, y then x * y
+	m mul, 3, 4 is 12
 
 i3 interface
 	m nat()
 	n nat()
 test
-	a i3 =
-		m: {1}
-		n: {2}
+	a i3 = m: {1}, n: {2}
 	m a is 1
 	n a is 2

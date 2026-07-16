@@ -13,21 +13,21 @@ import
 +to[k, v] (k, v)[](a (k, v) mut-sorted-list) k sorted-key
 	map a, {it}
 
-+is-empty[k, v] bool(a (k, v) mut-sorted-list) k sorted-key
-	is-empty a.inner
-+size[k, v] nat(a (k, v) mut-sorted-list) k sorted-key
++any[k, v] bool(a (k, v) mut-sorted-list) k sorted-key
+	any a.inner
++size[k, v] nat32(a (k, v) mut-sorted-list) k sorted-key
 	sum a.inner, it.b.size
 
 + ~=[k, v] void(a (k, v) mut-sorted-list, (key k, value v)) k sorted-key
 	(ensure a.inner, key) ~= value
 
 +remove-max-key[k, v] (k, v)?(a (k, v) mut-sorted-list) k sorted-key
-	if key = a.inner.max-key
-		values = a.inner[key]!
-		res = pop! values
-		if is-empty values
-			_ = remove-max-key a.inner
-		key, res
+	do if key = max-key a.inner
+	values = a.inner[key]!
+	res = pop! values
+	unless any values
+		_ = remove-max-key a.inner
+	key, res
 
 +some[k, v] bool(a (k, v) mut-sorted-list, f bool mut(key k, value v)) k sorted-key
 	some a.inner, of key, values

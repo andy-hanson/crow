@@ -16,9 +16,6 @@ check-low-program void(a low-program) low-common-types
 		if e = fun.body.low-expr
 			check-expr fun.return-type, e
 
--are-unique[t] bool(a t[]) t key
-	a.to::(t set).size == a.size
-
 -ctx spec low-program, low-common-types
 -program low-program() low-program
 	the::low-program
@@ -97,29 +94,23 @@ check-low-program void(a low-program) low-common-types
 	as loop-continue-low-expr
 		()
 	as match-scalar-low-expr
-		assert is-sorted a.case-values
 		_ = matched-integral-type a
-		a.case-values.size is a.case-exprs.size
 		check-expr-any-type a.matched
 		for case_ in a.case-exprs
 			check-expr type, case_
 		if e = a.else_
 			check-expr type, e
-	as match-string-like-low-expr
-		check-expr-any-type a.matched
-		a.equals.return-type is bool
-		a.equals.params.size is 2
-		assert every a.equals.params, it.type == a.matched.type
+	as match-symbol-low-expr
+		check-expr symbol, a.matched
 		for case_ in a.cases
 			check-expr type, case_.then_
 		check-expr type, a.else_
 	as match-union-low-expr
-		assert is-sorted a.case-indices
-		forbid is-empty a.cases
+		assert any a.cases
 		check-expr-any-type a.matched
 		case-types = a.union_.members
-		assert a.case-indices.size <= case-types.size
-		a.cases.size is a.case-indices.size
+		for input in a.switch.input-values
+			assert input.to::nat < case-types.size
 		for case_ in a.cases
 			check-expr type, case_
 		if e = a.else_
@@ -211,7 +202,7 @@ do ctx
 		check-expr arg-type, a
 	match fun
 	as array-size
-		type is nat64
+		type is nat32
 		assert as-array-or-buffer a.type
 		check-expr a.type, a
 	as bits-of-float32
@@ -221,6 +212,10 @@ do ctx
 	as bitwise-not
 		assert as-integral-type type
 		check-expr type, a
+	as count-ones
+		type is nat32
+		assert as-nat-type a.type
+		check-expr a.type, a
 	as drop
 		type is void
 		check-expr a.type, a
@@ -230,7 +225,7 @@ do ctx
 		check[float64, nat64]
 	as uninitialized-buffer
 		assert as-array-or-buffer type
-		check-expr nat64, a
+		check-expr nat32, a
 	as not
 		check[bool, bool]
 	as reinterpret-cast
@@ -239,12 +234,14 @@ do ctx
 		check[float32, float64]
 	as to-float64-from-float32
 		check[float64, float32]
-	as to-float64-from-int64
-		check[float64, int64]
-	as to-float64-from-nat64
-		check[float64, nat64]
-	as truncate-to-int64-from-float64
-		check[int64, float64]
+	as to-float-from-integral
+		assert as-float-type type
+		assert as-integral-type a.type
+		check-expr a.type, a
+	as truncate-to
+		assert as-float-type a.type
+		assert as-integral-type type
+		check-expr a.type, a
 	as weak-ref-get
 		as-option! type is as-weak-ref! a.type
 		check-expr a.type, a
@@ -262,39 +259,21 @@ do ctx
 	a low-expr
 	b low-expr
 do ctx
-	check = of return-type low-type, a-type low-type, b-type low-type
-		type is return-type
-		check-expr a-type, a
-		check-expr b-type, b
-	check3 = of x low-type then check[x, x, x]
-	binary-integral = of
-		assert as-integral-type type
+	binary = of
 		check-expr type, a
 		check-expr type, b
-	binary-float = of
-		assert as-float-type type
-		check-expr type, a
-		check-expr type, b
-	binary-float-or-integral = of
-		assert as-float-type type or as-integral-type type
-		check-expr type, a
-		check-expr type, b
-	compare-primitive = of
-		assert is-bool type
-		assert is-bool a.type or is-char8-or-32 a.type or as-integral-type a.type or as-float-type a.type
+	compare-same-type = of
+		type is bool
+		a.type is b.type
 		check-expr a.type, a
-		check-expr a.type, b
+		check-expr b.type, b
 	match fun
-	as array-get
-		type is as-array-or-buffer! a.type
-		check-expr a.type, a
-		check-expr nat64, b
-	as bitwise-and
-		binary-integral[]
-	as bitwise-or
-		binary-integral[]
-	as bitwise-xor
-		binary-integral[]
+	as bitwise-and or bitwise-or or bitwise-xor or rotate-left or rotate-right
+		assert as-integral-type type
+		binary[]
+	as unsafe-bit-shift-left or unsafe-bit-shift-right or wrap-add or wrap-mul or wrap-sub
+		assert as-integral-type type
+		binary[]
 	as call-lambda
 		assert _, return-type, param-type = as-lambda a.type
 		type is return-type
@@ -305,34 +284,24 @@ do ctx
 		a.type is b.type
 		check-expr a.type, a
 		check-expr b.type, b
-	as equal-exact
-		check[bool, a.type, a.type]
-	as equal-float-ieee
-		compare-primitive[]
-	as less-float-ieee
-		compare-primitive[]
-	as unsafe-add-float
-		binary-float[]
-	as unsafe-bit-shift-left
-		binary-integral[]
-	as unsafe-bit-shift-right
-		binary-integral[]
-	as unsafe-div
-		binary-float-or-integral[]
-	as unsafe-mod-float64
-		check3[float64]
-	as unsafe-mod-nat64
-		check3[nat64]
-	as unsafe-mul-float
-		binary-float[]
-	as unsafe-sub-float
-		binary-float[]
-	as wrap-add
-		binary-integral[]
-	as wrap-mul
-		binary-integral[]
-	as wrap-sub
-		binary-integral[]
+	as compare-less or compare-less-or-equal or compare-greater or compare-greater-or-equal
+		assert is-bool a.type or is-char8-or-32 a.type or as-integral-type a.type or as-float-type a.type
+		compare-same-type[]
+	as equal-exact or not-equal-exact
+		compare-same-type[]
+	as equal-float-ieee or less-float-ieee
+		assert as-float-type a.type
+		compare-same-type[]
+	as unsafe-add-float or unsafe-mul-float or unsafe-sub-float
+		assert as-float-type type
+		binary[]
+	as unsafe-at
+		type is as-array-or-buffer! a.type
+		check-expr a.type, a
+		check-expr nat32, b
+	as unsafe-div or unsafe-mod
+		assert as-float-type type or as-integral-type type
+		binary[]
 
 -check-builtin-ternary void
 	type low-type
@@ -342,10 +311,10 @@ do ctx
 	c low-expr
 do ctx
 	match fun
-	as array-set
+	as unsafe-set-at
 		type is void
 		check-expr a.type, a
-		check-expr nat64, b
+		check-expr nat32, b
 		check-expr a.type.as-buffer!, c
 
 -check-builtin-js void(type low-type, fun js-fun, args low-expr[]) ctx
@@ -389,7 +358,7 @@ do ctx
 		all-js[]
 	as null
 		type is js-any
-		assert is-empty args
+		forbid any args
 	as plus
 		all-js[]
 	as set-subscript
@@ -399,4 +368,4 @@ do ctx
 		all-js[]
 	as undefined
 		type is js-any
-		assert is-empty args
+		forbid any args

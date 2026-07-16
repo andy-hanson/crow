@@ -1,5 +1,7 @@
 import
+	keen/bits
 	keen/unsafe
+	../../lib/col/experimental/object-memoizer
 	../util/full-index-map
 	../util/util
 	./ast
@@ -84,7 +86,7 @@ range uri-and-range(a low-type-source)
 	as low-type-source-record-field-lens
 		range a.lens.source
 low-type record force-data
-	id nat
+	id nat32
 	source low-type-source
 	body mut low-type-body
 type-args low-type[](a low-type)
@@ -117,18 +119,12 @@ hash void(a low-type, state hash-state)
 	hash a.id, state
 as-extern path?(a low-type)
 	match body = a.body
-	as builtin-type
-		()
-	as low-enum
-		()
-	as low-flags
+	as builtin-type or low-enum or low-flags or low-record
 		()
 	as low-java-class
 		body.path
-	as low-record
-		()
 	as low-union
-		body.java-interface
+		java-interface body
 	as low-type-body-deferred
 		throw unreachable
 
@@ -155,6 +151,11 @@ as-integral-type-allow-char integral-type?(a low-type)
 		as-integral x
 	else
 		as-integral-type a
+as-integral-type-allow-bool-char integral-type?(a low-type)
+	if is-bool a
+		nat8
+	else
+		as-integral-type-allow-char a
 as-float-type float-type?(a low-type) = a.as-builtin.?to
 -as-builtin-single-type-arg low-type?(type low-type, kind builtin-type)
 	if type.body.builtin-type == kind
@@ -203,12 +204,6 @@ low-fun-body union
 	low-fun-body-method
 	low-fun-body-deferred
 	low-fun-body-always-inline
-	# Builtin functions are usually inlined, but not if they are used to implement a method
-	low-builtin-unary
-	low-builtin-binary
-	low-builtin-ternary
-	java-fun
-	js-fun
 to json(a low-fun-body)
 	match a
 	as low-expr
@@ -221,23 +216,13 @@ to json(a low-fun-body)
 		"deferred"
 	as low-fun-body-always-inline
 		"always-inline"
-	as low-builtin-unary
-		a.to
-	as low-builtin-binary
-		a.to
-	as low-builtin-ternary
-		a.to
-	as java-fun
-		a.to
-	as js-fun
-		a.to
 low-fun-body-extern-java record
 	kind java-method-kind
 	class_ path
 	erased-return-type low-type
 	erased-param-types low-type[]
 low-fun-body-method record
-	method-index nat
+	method-index nat32
 	erased-signature low-type[] # return and param types. Empty for no erased signature.
 low-fun-body-deferred record
 # Type for a function body that will never be filled in because the function should always be inlined
@@ -245,15 +230,12 @@ low-fun-body-always-inline record
 
 low-fun-source union
 	low-fun-source-regular
-	low-fun-source-interface-or-lens-method-impl
 	low-fun-source-test
 	low-fun-source-test-all
 range uri-and-range(a low-fun-source)
 	match a
 	as low-fun-source-regular
 		a.decl.range
-	as low-fun-source-interface-or-lens-method-impl
-		a.record-type.source.range
 	as low-fun-source-test
 		a.test_.range
 	as low-fun-source-test-all
@@ -261,15 +243,13 @@ range uri-and-range(a low-fun-source)
 low-fun-source-test record
 	test_ test_
 	| Arbitrary index over all tests
-	test-index nat
+	test-index nat32
 to json(a low-fun-source-test)
 	where: a.test_.name-range.start.to
 low-fun-source-test-all record(range uri-and-range)
-| Used for method impls for the compiler-generated types used to implement functions returning a lens or interface
-low-fun-source-interface-or-lens-method-impl record(record-type low-type)
 
 low-fun record force-data
-	hash nat
+	hash nat32
 	source low-fun-source
 	return-type low-type
 	| This includes regular params and context params (low-model makes no distinction)
@@ -298,8 +278,6 @@ simple-name symbol(a low-fun)
 	match source = a.source
 	as low-fun-source-regular
 		source.decl.name
-	as low-fun-source-interface-or-lens-method-impl
-		"impl"
 	as low-fun-source-test
 		"test"
 	as low-fun-source-test-all
@@ -316,20 +294,8 @@ is-extern bool(a low-fun)
 		true
 	as low-fun-body-method
 		a.params[0].type.as-extern
-	as low-fun-body-deferred
+	as low-fun-body-deferred or low-fun-body-always-inline
 		throw unreachable
-	as low-fun-body-always-inline
-		throw unreachable
-	as low-builtin-unary
-		false
-	as low-builtin-binary
-		false
-	as low-builtin-ternary
-		false
-	as java-fun
-		false
-	as js-fun
-		false
 name symbol?(a low-fun)
 	a.source.low-fun-source-regular.?decl.?name
 
@@ -365,7 +331,7 @@ low-expr union
 	loop-break-low-expr
 	loop-continue-low-expr
 	match-scalar-low-expr
-	match-string-like-low-expr
+	match-symbol-low-expr
 	match-union-low-expr
 	new-interface-low-expr
 	record-field-get-low-expr
@@ -427,7 +393,7 @@ type low-type(a low-expr) low-common-types
 		type a
 	as match-scalar-low-expr
 		type a
-	as match-string-like-low-expr
+	as match-symbol-low-expr
 		type a
 	as match-union-low-expr
 		type a
@@ -457,7 +423,7 @@ type low-type(a low-expr) low-common-types
 		type a
 
 | Specialization of `for local in in-array then inner`
-| where the input is an {array}, {buffer}, or {range} and the output is an {array}, {buffer}, or {void}.
+| where the input is an {array}, {buffer}, {nat}, or {nat} {range} and the output is an {array}, {buffer}, or {void}.
 | If the return type is {void}, this does not return an array.
 array-op-low-expr record
 	type low-type
@@ -470,9 +436,11 @@ array-op-low-expr record
 input-kind for-loop-input-kind(a array-op-low-expr) low-common-types
 	if as-array-or-buffer a.input.type
 		array
+	elif as-nat-type a.input.type
+		nat
 	else
-		range
-for-loop-input-kind enum(array, range)
+		nat-range
+for-loop-input-kind enum(array, nat, nat-range)
 output-kind for-loop-output-kind(_ array-op-low-expr, type low-type)
 	if as-array-or-buffer type
 		array
@@ -484,7 +452,9 @@ in-element low-type(a array-op-low-expr) low-common-types
 	match input-kind a
 	as array
 		as-array-or-buffer! a.input.type
-	as range
+	as nat
+		a.input.type
+	as nat-range
 		range-element-type a.input.type
 range-element-type low-type(range-type low-type)
 	low, high = range-fields range-type
@@ -506,6 +476,7 @@ low-builtin-unary enum
 	bits-of-float32
 	bits-of-float64
 	bitwise-not
+	count-ones
 	drop
 	float32-from-bits
 	float64-from-bits
@@ -514,9 +485,8 @@ low-builtin-unary enum
 	reinterpret-cast
 	to-float32-from-float64
 	to-float64-from-float32
-	to-float64-from-int64
-	to-float64-from-nat64
-	truncate-to-int64-from-float64
+	to-float-from-integral
+	truncate-to
 	weak-ref-get
 	weak-ref-new
 	wrap-convert-integral
@@ -556,6 +526,8 @@ call-low-expr record
 	range uri-and-range
 	called low-fun
 	args low-expr[]
+do
+	args.size is called.params.size
 type low-type(a call-low-expr)
 	a.called.return-type
 
@@ -577,7 +549,7 @@ create-record-low-expr record
 create-union-low-expr record
 	type low-type
 	range uri-and-range
-	case-index nat
+	case-index nat32
 	arg low-expr
 
 finally-low-expr record(range uri-and-range, right low-expr, below low-expr)
@@ -621,10 +593,60 @@ type low-type(a loop-break-low-expr) low-common-types
 
 loop-continue-low-expr record(type low-type, range uri-and-range)
 
+| Indicates that the input values will map to the corresponding cases.
+switch-indices record -new
+	input-values scalar-values
+	| Runs parallel to {input-values} and gives the index of the expression corresponding to that value.
+	| Multiple input values can correspond to the same expression (as in `as 3 or 4`)
+	| (The expressions are not stored in {switch-indices}.)
+	case-indices indices
+	input-values-is-range bool
+	| For each expression, this is an array of input values that should lead to that expression.
+	| Given:
+	| match value
+	| as 1 or 2 then x
+	| ...
+	| Case 0 ('x') would have input values 1 and 2
+	inputs-per-case scalar-values[]
+do
+	assert is-sorted input-values
+	input-values.size is case-indices.size
+-switch-indices-cache global((switch-indices, switch-indices-key) object-memoizer) = ()
+-switch-indices-key record(input-values scalar-values, case-indices indices)
+-hash nat(a switch-indices-key) = trusted a.input-values.hash ^ a.case-indices.hash
+-memoizer-key switch-indices-key(a switch-indices) = a.input-values, a.case-indices
+size nat(a switch-indices)
+	a.input-values.size
+single-switch-index switch-indices(n nat)
+	simple-switch-indices (n,)
+simple-switch-indices switch-indices(n nat)
+	simple-switch-indices for::scalar-values i in n then i
+simple-switch-indices switch-indices(input-values indices)
+	simple-switch-indices for::scalar-values x in input-values then x
+simple-switch-indices switch-indices(input-values scalar-values)
+	make input-values, input-values.size.indices-range
+simple-switch-indices switch-indices(range nat64 range)
+	simple-switch-indices (for::scalar-values x in range then x)
+switch-indices-0-1 switch-indices()
+	simple-switch-indices (0, 1)
+make switch-indices(input-values scalar-values, case-indices indices)
+	trusted memoize switch-indices-cache, (input-values, case-indices), of
+		input-values.size is case-indices.size
+		max-case nat = case-indices.max
+		n-cases = max-case + 1
+		input-values: input-values
+		case-indices: case-indices
+		input-values-is-range: is-range input-values
+		inputs-per-case:
+			res nat64 mut[] buffer = for _ in n-cases then ()
+			for value, case-index in zip input-values, case-indices
+				res[case-index] ~= value.to
+			map res, it.move-to::nat64[].to
+
 match-scalar-low-expr record
 	range uri-and-range
 	matched low-expr
-	case-values scalar-values
+	switch switch-indices
 	case-exprs low-expr[]
 	else_ low-expr?
 type low-type(a match-scalar-low-expr) low-common-types
@@ -638,42 +660,38 @@ matched-integral-type char-or-integral-type(a match-scalar-low-expr) low-common-
 	else
 		throw unreachable
 
-match-string-like-low-expr record
+match-symbol-low-expr record
 	range uri-and-range
 	matched low-expr
-	equals low-fun
-	cases low-match-string-like-case[]
+	cases match-symbol-low-expr-case[]
 	else_ low-expr
-type low-type(a match-string-like-low-expr) low-common-types
+type low-type(a match-symbol-low-expr) low-common-types
 	a.cases[0].then_.type
-low-match-string-like-case record(value constant, then_ low-expr)
-
-indices record(values scalar-values)
-list-new indices(values nat64[])
-	values.to
-to json(a indices)
-	a.values.to
-to indices(a nat)
-	values: (a.to::scalar-value,).to::scalar-values
-to indices(a nat range)
-	a.to::nat[].to
-to indices(a nat[])
-	values: a.to
-size nat(a indices)
-	a.values.size
-some bool(a indices, f bool mut(x nat))
-	some a.values, f[it.to]
-subscript nat(a indices, index nat)
-	a.values[index].to
-to-array nat[](a indices)
-	a.values.to-array
+match-symbol-low-expr-case record
+	value-or-values constant-array-or-symbol
+	| If true, values is a constant array of symbols.
+	| If false, values is a constant symbol.
+	then_ low-expr
+value-is-array bool(a match-symbol-low-expr-case)
+	match a.value-or-values
+	as constant-array then true
+	as constant-symbol then false
+constant-array-or-symbol union(constant-array, constant-symbol)
+to constant(a constant-array-or-symbol)
+	match a
+	as constant-array then a
+	as constant-symbol then a
 
 match-union-low-expr record
 	range uri-and-range
 	matched low-expr
-	case-indices indices
+	| Input value is the case index in the union type
+	switch switch-indices
 	cases low-expr[]
 	else_ low-expr?
+do
+	assert any cases
+	switch.inputs-per-case.size is cases.size
 type low-type(a match-union-low-expr) low-common-types
 	a.cases[0].type
 union-type low-type(a match-union-low-expr) low-common-types
@@ -720,6 +738,8 @@ try-low-expr record
 	catch-cases low-local-and-expr[]
 	| For this, the local type is always 'exception'
 	catch-else low-local-and-expr?
+do
+	assert any catch-cases or catch-else
 type low-type(a try-low-expr) low-common-types
 	a.tried.type
 
@@ -727,7 +747,7 @@ try-let-low-expr record
 	range uri-and-range
 	local low-local?
 	value low-expr
-	exception-member-index nat
+	exception-member-index nat32
 	catch_ low-local-and-expr
 	then_ low-expr
 type low-type(a try-let-low-expr) low-common-types
@@ -753,7 +773,7 @@ union_ low-union(a union-as-case-or-gc-safe-low-expr) low-common-types
 union-is-case-low-expr record
 	range uri-and-range
 	arg low-expr
-	case-index nat
+	case-index nat32
 type low-type(_ union-is-case-low-expr) low-common-types
 	bool
 union-type low-type(a union-is-case-low-expr) low-common-types
@@ -790,7 +810,7 @@ subscript constant[](a all-constants, constant constant-array)
 	a.arrays[constant.type-index].constants[constant.index]
 get-record constant[](a all-constants, type low-type, constant constant-record)
 	a.records[type]![constant]
-get-union (low-type, nat, constant)(a all-constants, type low-type, constant constant-union)
+get-union (low-type, nat32, constant)(a all-constants, type low-type, constant constant-union)
 	res = a.unions[type]![constant]
 	type.body.low-union!.members[res.case-index], res.case-index, res.value
 
@@ -853,19 +873,19 @@ low-method-info record
 	| Note: This is not all methods, only the ones that were accessed
 	methods low-fun[]
 	# This matches the order of types in the union
-	cases low-fun?[][]
+	cases low-expr[][]
 low-common-types record
 	bool low-type
 	exception low-type
 	float32 low-type
 	float64 low-type
-	int64 low-type
 	nat8 low-type
 	nat16 low-type
 	nat32 low-type
 	nat64 low-type
 	string low-type
 	symbol low-type
+	symbol-array low-type
 	void low-type
 bool low-type() low-common-types
 	the::low-common-types.bool
@@ -875,8 +895,6 @@ float32 low-type() low-common-types
 	the::low-common-types.float32
 float64 low-type() low-common-types
 	the::low-common-types.float64
-int64 low-type() low-common-types
-	the::low-common-types.int64
 to low-type(a nat-type) low-common-types
 	match a
 	as nat8
@@ -899,6 +917,8 @@ string low-type() low-common-types
 	the::low-common-types.string
 symbol low-type() low-common-types
 	the::low-common-types.symbol
+symbol-array low-type() low-common-types
+	the::low-common-types.symbol-array
 void low-type() low-common-types
 	the::low-common-types.void
 
@@ -968,7 +988,7 @@ some bool(a low-direct-child-exprs, f bool mut(x low-expr))
 		false
 	as match-scalar-low-expr
 		f[x.matched] or some x.case-exprs, f or cb-option x.else_, f
-	as match-string-like-low-expr
+	as match-symbol-low-expr
 		f[x.matched] or some x.cases, f[it.then_] or f[x.else_]
 	as match-union-low-expr
 		f[x.matched] or some x.cases, f or cb-option x.else_, f
@@ -1040,21 +1060,21 @@ do
 
 constant-array record
 	| Index of the array type in {all-constants}.{arrays} (TODO: maybe that should just be a map keyed by {low-type}?)
-	type-index nat
+	type-index nat32
 	| Index within that array type
-	index nat
+	index nat32
 | Constant Java or JS string
 constant-native-string record(value string)
 | Index into {all-constants}.{records}
-constant-record record(index nat)
+constant-record record(index nat32)
 to json(a constant-record)
 	a.index.to
-constant-symbol record(index nat)
+constant-symbol record(index nat32)
 | Index into {all-constants}.{unions}
-constant-union record(index nat)
+constant-union record(index nat32)
 to json(a constant-union)
 	a.index.to
-constant-union-value record(case-index nat, value constant)
+constant-union-value record(case-index nat32, value constant)
 constant-gc-safe-value record
 as-bool bool(a constant)
 	a.scalar-value!.to

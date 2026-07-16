@@ -7,7 +7,7 @@ import
 	./token-util
 
 parser record mut
-	-next-index mut nat
+	-next-index mut nat32
 	-tokens-starts-ends token-start-end[]
 	-datas token-data[]
 	-uri uri
@@ -43,6 +43,8 @@ add-diag void(range source-range, diag parse-diag) parser
 finish-diagnostics parse-diagnostic[]() parser
 	the::parser.diagnostics-builder.move-to
 
+add-diag-at-prev-token void(diag parse-diag) parser
+	add-diag prev-range, diag
 add-diag-at-next-token void(diag parse-diag) parser
 	add-diag next-range, diag
 
@@ -50,7 +52,7 @@ add-diag-unexpected-next-token void() parser
 	add-diag-unexpected-inner the::parser.next-index
 add-diag-unexpected-prev-token void() parser
 	add-diag-unexpected-inner the::parser.next-index - 1
--add-diag-unexpected-inner void(index nat) parser
+-add-diag-unexpected-inner void(index nat32) parser
 	token = the::parser.tokens-starts-ends[index]
 	add-diag token.range, match token token
 	as operator-binary
@@ -95,21 +97,16 @@ lookahead-equals bool() parser
 	initial = parser.tokens-starts-ends[cur].token
 	if initial == the_ or initial == try_
 		cur +:= 1
-	parens mut = 0
-	brackets mut = 0
+	parens mut nat32 = 0
+	brackets mut nat32 = 0
 	do until
 	token = parser.tokens-starts-ends[cur].token
 	cur +:= 1
 	match token
 	as equal
 		parens == 0 and brackets == 0
-	as comma then ()
-	as data_ then ()
-	as mut_ then ()
-	as name then ()
-	as question then ()
-	as shared_ then ()
-	as underscore then ()
+	as comma or data_ or mut_ or name or question or shared_ or underscore
+		()
 	as paren-left
 		parens +:= 1
 		()

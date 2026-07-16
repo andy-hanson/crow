@@ -5,27 +5,31 @@ import
 +mut-deque[t] record mut
 	-inner mut t buffer
 	| Index of the first element. {nil} for an empty queue.
-	-left mut nat64
+	-left mut nat32
 	| Index of the element after the last. 'nil' for an empty queue.
 	| This should never be inner.size; it wraps around to 0.
-	-right mut nat64
+	-right mut nat32
+	-is-locked mut bool
 
--nil nat64()
+-assert-can-write[t] void(a t mut-deque)
+	forbid a.is-locked else was-locked
+
+-nil nat32()
 	max-value
--prev-index[t] nat64(a t mut-deque, index nat64)
+-prev-index[t] nat32(a t mut-deque, index nat32)
 	index isnt nil
 	(if index == 0 then a.inner.size else index) - 1
--next-index[t] nat64(a t mut-deque, index nat64)
+-next-index[t] nat32(a t mut-deque, index nat32)
 	index isnt nil
 	if index == a.inner.size - 1 then 0 else index + 1
 
 +list-new[t] t mut-deque(values t[]) = values.to
 +to[t] t mut-deque(values t[])
-	if is-empty values
-		(), nil, nil
-	else
+	if any values
 		# It wraps around, so both 'left' and 'right' are 0
-		values.to, 0, 0
+		values.to, 0, 0, false
+	else
+		(), nil, nil, false
 
 | Copy elements to a list.
 | This is O(n).
@@ -33,7 +37,7 @@ import
 	trusted cast-immutable a.to
 
 -to[t] t buffer(a t mut-deque)
-	do unless is-empty a
+	do if any a
 	res t buffer = trusted uninitialized-buffer a.size
 	copy-from-deque res, a
 	res
@@ -41,14 +45,13 @@ import
 | Copy elements to a new deque.
 | This is O(n).
 +copy[t] t mut-deque(a t mut-deque)
-	a.to, 0, 0
+	a.to, 0, 0, false
 
-| {true} iff `{a}.{size} == 0`.
-+is-empty[t] bool(a t mut-deque)
-	a.left == nil
++any[t] bool(a t mut-deque)
+	a.left != nil
 
 | Number of elements in the deque.
-+size[t] nat64(a t mut-deque)
++size[t] nat32(a t mut-deque)
 	match a.left <=> a.right
 	as less
 		a.right - a.left
@@ -77,21 +80,19 @@ import
 	a.inner[a.right] := value
 	a.right := next-index a, a.right
 
-| Returns the leftmost element without removing it.
-| Returns an empty option if `{a} {is-empty}`.
+| Returns the leftmost element (if any) without removing it.
 +peek-left[t] t?(a t mut-deque)
 	unless a.left == nil
 		a.inner[a.left]
 
-| Returns the rightmost element without removing it.
-| Returns an empty option if `{a} {is-empty}`.
+| Returns the rightmost element (if any) without removing it.
 +peek-right[t] t?(a t mut-deque)
 	unless a.right == nil
 		a.inner[prev-index a, a.right]
 
-| Removes and returns the leftmost element.
-| Returns an empty option if `{a} {is-empty}`.
+| Removes and returns the leftmost element (if any).
 +pop-left[t] t?(a t mut-deque)
+	assert-can-write a
 	do unless a.left == nil
 	res = a.inner[a.left]
 	a.inner[a.left] := trusted gc-safe-value
@@ -102,9 +103,9 @@ import
 		# Still hold on to `a inner`
 	res
 
-| Removes and returns the rightmost element.
-| Returns an empty option if `{a} {is-empty}`.
+| Removes and returns the rightmost element (if any).
 +pop-right[t] t?(a t mut-deque)
+	assert-can-write a
 	do unless a.right == nil
 	a.right := prev-index a, a.right
 	res = a.inner[a.right]
@@ -112,13 +113,16 @@ import
 	if a.right == a.left
 		a.left := nil
 		a.right := nil
-		# Still hold on to `a inner`
+		# Still hold on to `a.inner`
 	res
 
 +some[t] bool(a t mut-deque, f bool mut(elem t))
-	do unless is-empty a
-	cur mut = a.left
-	res mut = false
+	do if any a
+	was-locked = a.is-locked
+	a.is-locked := true
+	finally a.is-locked := was-locked
+	res mut = f[a.inner[a.left]]
+	cur mut = a.left + 1
 	until res or cur == a.right or cur == a.inner.size
 		res := f[a.inner[cur]]
 		cur +:= 1
@@ -130,15 +134,16 @@ import
 	res
 
 -ensure-capacity[t] void(a t mut-deque) unsafe
+	assert-can-write a
 	if a.left == nil
 		a.right is nil
-		if is-empty a.inner
+		unless any a.inner
 			a.inner := uninitialized-buffer 2
 		a.left := 0
 		a.right := 0
 	else
 		a.right isnt nil
-		forbid is-empty a.inner
+		assert any a.inner
 		if a.left == a.right
 			old-inner = a.inner
 			old-capacity = old-inner.size
@@ -159,7 +164,7 @@ import
 		dest[0 .. left-to-end-size] := a.inner[a.left .. end]
 		dest[left-to-end-size .. end] := a.inner[0 .. a.right]
 
-~dbg string(a nat64 mut-deque)
+~dbg string(a nat mut-deque)
 	join " ", for i, x in with-index a.inner
 		is-nil = trusted x == gc-safe-value
 		is-right = if i == a.right then "<-R "

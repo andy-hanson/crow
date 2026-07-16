@@ -5,29 +5,30 @@ import
 | Set of {nat}s. This takes up space proportional to the largest value.
 +index-set record
 	# This is one more than the highest number that would currently fit in the tree.
-	-capacity nat64
+	-capacity nat32
 	-root node
-
 + == bool(a index-set, b index-set)
 	trusted a.root == b.root
++ <=> comparison(a index-set, b index-set)
+	trusted a.to::nat[] <=> b.to::nat[]
++hash void(a index-set, state hash-state)
+	trusted hash a.to::nat[], state
++to index-set(a json)
+	a.to::nat[].to
++to json(a index-set)
+	a.to::nat[].to
 
--node union(inner-node, leaf-node, empty)
+# Arrays are always exactly {leaf-elements} elements
+-node union(inner-node, nat32[], empty)
 -inner-node record(n0 node, n1 node, n2 node, n3 node)
--leaf-node record(l0 nat64, l1 nat64, l2 nat64, l3 nat64) # TODO:PERF would probably be better to just use an array
 -empty record
 
--subscript nat64(a leaf-node, n nat64)
-	a.values[n]
+-leaf-elements nat32() = 8
+-bits-in-leaf-node nat32() = leaf-elements * 32
 
--values nat64[](a leaf-node)
-	a.l0, a.l1, a.l2, a.l3
--bits-in-leaf-node nat64()
-	# 64 * 4
-	256
-
-+list-new index-set(a nat64[])
++list-new index-set(a nat32[])
 	a.to
-+to index-set(a nat64[])
++to index-set(a nat32[])
 	res mut index-set = 0, empty
 	for x in a
 		res ~:= x
@@ -39,36 +40,32 @@ import
 	a.words := ()
 	res
 
-+is-empty bool(a index-set)
-	a.capacity == 0
--is-empty bool(a node)
++any bool(a index-set)
+	a.capacity != 0
+-any bool(a node)
 	match a
-	as inner-node
-		false
-	as leaf-node
-		false
-	as empty
-		true
+	as inner-node or array then true
+	as empty then false
 
 | This is O(n) where 'n' is the result.
-+size nat64(a index-set)
++size nat32(a index-set)
 	size-recur 0, a.root
--size-recur nat64(acc nat64, a node)
+-size-recur nat32(acc nat32, a node)
 	match a
 	as inner-node
 		acc 'size-recur a.n0 'size-recur a.n1 'size-recur a.n2 'size-recur a.n3
-	as leaf-node
-		acc + a.l0.count-ones + a.l1.count-ones + a.l2.count-ones + a.l3.count-ones
+	as array
+		acc + sum a, it.count-ones
 	as empty
 		acc
 
-+to nat64[](a index-set)
++to nat32[](a index-set)
 	map a, {it}
 
-+subscript bool(a index-set, index nat64)
++subscript bool(a index-set, index nat32)
 	index < a.capacity and contains a.root, index, a.capacity
 | {n}: capacity of this node
--contains bool(a node, index nat64, n nat64)
+-contains bool(a node, index nat32, n nat32)
 	assert index < n
 	match a
 	as inner-node
@@ -86,13 +83,13 @@ import
 				contains a.n2, index2, quarter
 			else
 				contains a.n3, index2 - quarter, quarter
-	as leaf-node
+	as array
 		n is bits-in-leaf-node
 		a[word-index index] 'has-bit index.bit-index
 	as empty
 		false
 
-+ ~ index-set(a index-set, index nat64)
++ ~ index-set(a index-set, index nat32)
 	try-add a, index else a
 
 -quadruple-capacity index-set(a index-set)
@@ -103,25 +100,28 @@ import
 
 -empty-inner-node inner-node()
 	empty, empty, empty, empty
--empty-leaf-node leaf-node()
-	0, 0, 0, 0
+-empty-leaf-node nat32[]()
+	# Writing it out instead of using {n-of} to ensure it's a constant
+	res nat32[] = 0, 0, 0, 0, 0, 0, 0, 0
+	res.size is leaf-elements
+	res
 
-+try-add index-set?(a index-set, index nat64)
++try-add index-set?(a index-set, index nat32)
 	if index >= a.capacity
 		try-add a.quadruple-capacity, index
 	elif res = try-add a.root, index, a.capacity
 		capacity: a.capacity, root: res
--try-add node?(a node, index nat64, n nat64)
+-try-add node?(a node, index nat32, n nat32)
 	assert index < n
 	match a
 	as inner-node
 		try-add a, index, n
-	as leaf-node
+	as array
 		try-add a, index, n
 	as empty
 		new-node node = if n == bits-in-leaf-node then empty-leaf-node else empty-inner-node
 		try-add new-node, index, n
--try-add node?(i inner-node, index nat64, n nat64)
+-try-add node?(i inner-node, index nat32, n nat32)
 	assert n > bits-in-leaf-node
 	half = n / 2
 	quarter = half / 2
@@ -140,29 +140,29 @@ import
 		else
 			if res = try-add i.n3, index2 - quarter, quarter
 				set i, n3, res
--try-add node?(l leaf-node, index nat64, n nat64)
+-try-add node?(leaf nat32[], index nat32, n nat32)
 	n is bits-in-leaf-node
 	word-index = word-index index
 	bit-index = bit-index index
-	word = l[word-index]
+	word = leaf[word-index]
 	new-word = add-bit word, bit-index
 	unless new-word == word
-		update-leaf l, word-index, new-word
+		update-at leaf, word-index, new-word
 
-+ ~~ index-set(a index-set, indices nat64[])
++ ~~ index-set(a index-set, indices nat32[])
 	res mut = a
 	for index in indices
 		res ~:= index
 	res
 
-+ - index-set(a index-set, index nat64)
++ - index-set(a index-set, index nat32)
 	try-remove a, index else a
 
-+try-remove index-set?(a index-set, index nat64)
++try-remove index-set?(a index-set, index nat32)
 	if index < a.capacity
 		if removed = try-remove a.root, index, a.capacity
 			simplify-after-remove-or-filter removed, a.capacity
--try-remove node?(a node, index nat64, n nat64)
+-try-remove node?(a node, index nat32, n nat32)
 	assert index < n
 	match a
 	as inner-node
@@ -189,7 +189,7 @@ import
 				empty
 			else
 				new-node
-	as leaf-node
+	as array
 		n is bits-in-leaf-node
 		word-index = word-index index
 		bit-index = bit-index index
@@ -199,18 +199,18 @@ import
 			if new-word == 0
 				empty
 			else
-				update-leaf a, word-index, new-word
+				update-at a, word-index, new-word
 	as empty
 		()
--simplify-after-remove-or-filter index-set(node node, capacity nat64)
+-simplify-after-remove-or-filter index-set(node node, capacity nat32)
 	match node
 	as inner-node
-		if is-empty node.n1 and is-empty node.n2 and is-empty node.n3
-			forbid is-empty node.n0
-			simplify-after-remove-or-filter node.n0, capacity / 4
-		else
+		if any node.n1 or any node.n2 or any node.n3
 			capacity, node
-	as leaf-node
+		else
+			assert any node.n0
+			simplify-after-remove-or-filter node.n0, capacity / 4
+	as array
 		capacity is bits-in-leaf-node
 		node isnt empty-leaf-node
 		capacity, node
@@ -218,16 +218,8 @@ import
 		0, empty
 
 -is-all-empty bool(a inner-node)
-	is-empty a.n0 and is-empty a.n1 and is-empty a.n2 and is-empty a.n3
+	not any a.n0 and not any a.n1 and not any a.n2 and not any a.n3
 
--update-leaf leaf-node(a leaf-node, word-index nat64, new-word nat64)
-	to-set = match word-index
-	as 0 then l0
-	as 1 then l1
-	as 2 then l2
-	as 3 then l3
-	else then throw unreachable
-	set a, to-set, new-word
 ###
 # TODO: ~ index-set(a index-set, b index-set)
 
@@ -250,9 +242,9 @@ intersect index-set(a index-set, b index-set)
 ###
 
 | Number of values in that are in both {a} and {range}.
-+count nat64(a index-set, range nat64 range)
++count nat32(a index-set, range nat32 range)
 	count-range a.root, a.capacity, range.low, range.size
--count-range nat64(a node, n nat64, low nat64, len nat64)
+-count-range nat32(a node, n nat32, low nat32, len nat32)
 	if low <= n
 		match a
 		as inner-node
@@ -267,7 +259,7 @@ intersect index-set(a index-set, b index-set)
 			cc = count-range a.n2, quarter, (low 'wrap-sub half), len
 			cd = count-range a.n3, quarter, (low 'wrap-sub three-quarters), len
 			ca + cb + cc + cd
-		as leaf-node
+		as array
 			n is bits-in-leaf-node
 			high = min low + len, (bits-in-leaf-node - 1)
 			low-word-index = word-index low
@@ -275,62 +267,50 @@ intersect index-set(a index-set, b index-set)
 			low-bit-index = bit-index low
 			high-bit-index = bit-index high
 			if low-word-index == high-word-index
-				count-range-in-nat64 a[low-word-index], low-bit-index, high-bit-index
+				count-range-in-nat32 a[low-word-index], low-bit-index, high-bit-index
 			else
-				first-word = count-gte-in-nat64 a[low-word-index], low-bit-index
-				mid-words = count-ones-in-array a.values[low-word-index + 1 .. high-word-index]
-				last-word = count-less-in-nat64 a[high-word-index], high-bit-index
+				first-word = count-ones a[low-word-index] >> low-bit-index
+				mid-words = sum a[low-word-index + 1 .. high-word-index], it.count-ones
+				last-word = count-less-in-nat32 a[high-word-index], high-bit-index
 				first-word + mid-words + last-word
 		as empty
 			0
 
 | Number of values in {a} that are >= {n}.
-+count-greater-or-equal nat64(a index-set, n nat64)
++count-greater-or-equal nat64(a index-set, n nat32)
 	count a, n .. max-value
 
--count-range-in-nat64 nat64(a nat64, low-bit-index nat64, high-bit-index nat64)
-	count-less-in-nat64 a >> low-bit-index, high-bit-index - low-bit-index
+-count-range-in-nat32 nat32(a nat32, low-bit-index nat32, high-bit-index nat32)
+	count-less-in-nat32 a >> low-bit-index, high-bit-index - low-bit-index
 
--count-less-in-nat64 nat64(a nat64, bit-index nat64)
-	count-ones a << (64 - bit-index)
-
--count-gte-in-nat64 nat64(a nat64, bit-index nat64)
-	count-ones a >> bit-index
-
--count-ones-in-array nat64(a nat64 array-view)
-	res mut nat64 = 0
-	for x in a
-		res +:= count-ones x
-	res
+-count-less-in-nat32 nat32(a nat32, bit-index nat32)
+	count-ones a << (32 - bit-index)
 
 | Gets the set with only values < {limit}
-+filter-less index-set(a index-set, limit nat64)
++filter-less index-set(a index-set, limit nat32)
 	if limit < a.capacity
 		simplify-after-remove-or-filter (filter-less-recur a.root, a.capacity, limit), a.capacity
 	else
 		a
--filter-less-recur node(a node, n nat64, limit nat64)
+-filter-less-recur node(a node, n nat32, limit nat32)
 	match a
 	as inner-node
 		assert n > bits-in-leaf-node
 		half = n / 2
 		quarter = half / 2
 		new-a = filter-less-recur a.n0, quarter, limit, 0
-		new-b = filter-less-recur a.n1, quarter, limit, 0x40
-		new-c = filter-less-recur a.n2, quarter, limit, 0x80
-		new-d = filter-less-recur a.n3, quarter, limit, 0xc0
+		new-b = filter-less-recur a.n1, quarter, limit, 0x20
+		new-c = filter-less-recur a.n2, quarter, limit, 0x40
+		new-d = filter-less-recur a.n3, quarter, limit, 0x60
 		new-node inner-node = new-a, new-b, new-c, new-d
 		if is-all-empty new-node then empty else new-node
-	as leaf-node
+	as array
 		n is bits-in-leaf-node
-		new-a = filter-less-word a.l0, limit, 0
-		new-b = filter-less-word a.l1, limit, 0x40
-		new-c = filter-less-word a.l2, limit, 0x80
-		new-d = filter-less-word a.l3, limit, 0xc0
-		(new-a, new-b, new-c, new-d)::leaf-node
+		for index in leaf-elements
+			filter-less-word a[index], limit, 32 * index
 	as empty
 		empty
--filter-less-recur node(a node, n nat64, limit nat64, offset nat64)
+-filter-less-recur node(a node, n nat32, limit nat32, offset nat32)
 	if limit < offset
 		empty
 	elif limit > offset + n
@@ -338,25 +318,25 @@ intersect index-set(a index-set, b index-set)
 	else
 		filter-less-recur a, n, limit - offset
 
--filter-less-word nat64(a nat64, limit nat64, offset nat64)
+-filter-less-word nat32(a nat32, limit nat32, offset nat32)
 	if limit >= offset
-		if limit > offset + 64
+		if limit > offset + 32
 			a
 		else
 			a & (low-n-bits limit - offset)
 
--word-index nat64(a nat64)
-	a / 64
--bit-index nat64(a nat64)
-	a % 64
+-word-index nat32(a nat32)
+	a / 32
+-bit-index nat32(a nat32)
+	a % 32
 
 +show string(a index-set)
 	join ", ", map a, it.show
 
-+some bool(a index-set, f bool mut(elem nat64))
++some bool(a index-set, f bool mut(elem nat32))
 	some-recur a.root, 0, a.capacity, f
 | {offset}: how much to add to indices in this node
--some-recur bool(node node, offset nat64, n nat64, f bool mut(elem nat64))
+-some-recur bool(node node, offset nat32, n nat32, f bool mut(elem nat32))
 	match node
 	as inner-node
 		half = n / 2
@@ -370,10 +350,10 @@ intersect index-set(a index-set, b index-set)
 			true
 		else
 			some-recur node.n3, offset + three-quarters, quarter, f
-	as leaf-node
-		word-index mut nat64 = 0
-		some node.values, of value
-			bit-index-offset = offset + word-index * 64
+	as array
+		word-index mut nat32 = 0
+		some node, of value
+			bit-index-offset = offset + word-index * 32
 			word-index +:= 1
 			some value.one-bits, {f[bit-index-offset + it]}
 	as empty
@@ -385,7 +365,7 @@ intersect index-set(a index-set, b index-set)
 	match a
 	as inner-node
 		"({dbg a.n0} {dbg a.n1} {dbg a.n2} {dbg a.n3})"
-	as leaf-node
-		"[{to-hex a.l0} {to-hex a.l1} {to-hex a.l2} {to-hex a.l3}]"
+	as array
+		"[{join " ", map a, it.to-hex}]"
 	as empty
 		"_"

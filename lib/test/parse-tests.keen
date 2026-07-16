@@ -2,6 +2,11 @@ import
 	keen/parse
 
 test
+	parse nat, "123" is 123
+	parse nat, "0xdead_beef" is 3735928559
+	parse nat, "0b1010_0101" is 165
+
+test
 	parse float, "1.23" is 1.23
 	parse float, "-1.2" is -1.2
 	is-not-float ""

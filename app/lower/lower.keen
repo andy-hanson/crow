@@ -28,12 +28,10 @@ lower low-program(target build-target, program program-with-main) show-ctx
 	ctx.late-only-key-and-value-from-json-function := get-non-template-low-fun common-funs.only-key-and-value-from-json
 	ctx.late-to-flags-from-json-function := get-non-template-low-fun common-funs.to-flags-from-json
 	ctx.late-to-symbol-or-empty-from-json-function := get-non-template-low-fun common-funs.to-symbol-or-empty-from-json
-	ctx.late-equal-string-like-functions := for string-type in make-enum-map
-		get-non-template-low-fun common-funs.equal-string-like[string-type]
-	ctx.late-hash-nat-functions := for nat-type in make-enum-map
+	ctx.late-to-symbol-from-string-function := get-non-template-low-fun common-funs.to-symbol-from-string
+	ctx.late-hash-nat-functions := make of nat-type
 		get-non-template-low-fun common-funs.hash-nat[nat-type]
 	show-exception = get-non-template-low-fun common-funs.show-exception
-	to-symbol-from-string = get-non-template-low-fun common-funs.to-symbol-from-string
 	to-string-from-js-any = get-non-template-low-fun common-funs.to-string-from-js-any
 	low-common-funs low-common-funs = match target
 	as js
@@ -41,14 +39,14 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		js-any: get-low-type-for-type-inst js-any, ()
 		main: lower-main-fun program.main-fun
 		show-exception: show-exception
-		to-symbol-from-string: to-symbol-from-string
+		to-symbol-from-string: to-symbol-from-string-function
 		to-string-from-js-any: to-string-from-js-any
 	as java
 		:: low-common-funs-java
 		show-exception: show-exception
 		start-runtime: get-non-template-low-fun common-funs.start-runtime
 		stop-runtime: get-non-template-low-fun common-funs.stop-runtime
-		to-symbol-from-string: to-symbol-from-string
+		to-symbol-from-string: to-symbol-from-string-function
 		main: lower-main-fun program.main-fun
 
 	while
@@ -61,6 +59,9 @@ lower low-program(target build-target, program program-with-main) show-ctx
 			as fun-body-expr
 				fun.body := lower-fun-or-test-body fun, body.expr, body.allocated-locals
 				any := true
+			as new-record
+				fun.body := lower-new-record fun
+				any := true
 			as fun-body-method
 				()
 			else
@@ -69,7 +70,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 			any := true
 		any
 
-	assert is-empty ctx.all-unprocessed-low-funs
+	forbid any ctx.all-unprocessed-low-funs
 
 	replace-constants
 
@@ -111,12 +112,8 @@ lower low-program(target build-target, program program-with-main) show-ctx
 				impls.size is methods.size
 				choose-indices impls, indices
 
--choose-indices[t] t[](a t[], indices nat[])
+-choose-indices[t] t[](a t[], indices nat32[])
 	map indices, a[it]
--indices-where[t] nat[](a t[], f bool mut(x t))
-	for* i, x in with-index a
-		if f[x]
-			- i
 
 -lower-main-fun low-fun(main main-fun) lower-ctx
 	match main
@@ -127,7 +124,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 
 -make-callers-for-java-interfaces bool() lower-ctx
 	interfaces = the::lower-context.deferred-java-interfaces
-	res = not is-empty interfaces
+	res = any interfaces
 	while type = pop interfaces
 		source = type.source.low-type-source-inst!
 		decl = source.decl
@@ -153,44 +150,43 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		sum-type = fun.params[0].type
 		method-index = fun.source.low-fun-source-regular!.decl.body.fun-body-method!.method-index
 		fun.body := generate-call-method fun, sum-type, ctx.sum-types[sum-type]!.cases, method-index
-	for* sum-type, info in ctx.sum-types
-		if preserve-methods sum-type
-			-
-				- sum-type
-				-
-					methods low-fun[] = sort info.methods-unsorted.to, it.method-index
-					method-indices nat[] = map methods, it.method-index
-					methods: methods
-					cases: for case_ in info.cases
-						if as-extern case_.case-type
-							n-of method-indices.size, ()
-						else
-							map method-indices, case_.method-impls[it]
+	for? sum-type, info in ctx.sum-types
+		do if preserve-methods sum-type
+		- sum-type
+		-
+			methods low-fun[] = sort info.methods-unsorted.to, it.method-index
+			method-indices nat32[] = map methods, it.method-index
+			methods: methods
+			cases: for case_ in info.cases
+				for index in method-indices
+					impl = unless as-extern case_.case-type
+						case_.method-impls[index]
+					impl else gen-bogus methods[index].return-type, case_.case-type.source.range
 
--method-index nat(a low-fun)
+-method-index nat32(a low-fun)
 	a.body.low-fun-body-method!.method-index
 
 -low-fun-for-all-tests low-fun(selector test-selector) lower-ctx
 	range uri-and-range = selector.range.uri, ()
-	res =
+	res low-fun =
 		tests low-expr[] = for test_ in all-tests selector
 			call-low-expr range, test_, ()
 		hash: take-next-id
 		source: low-fun-source-test-all range
 		return-type: void
 		params: ()
-		body: if is-empty tests then gen-void range else seq-low-expr range, tests
+		body: if any tests then seq-low-expr range, tests else gen-void range
 	add-low-fun res
 	res
 
 -all-tests low-fun[](selector test-selector) lower-ctx
-	index mut = 0
+	index mut nat32 = 0
 	for test_ in tests program, selector, the-target
 		fun = low-fun-for-test test_, index
 		index +:= 1
 		fun
 
--low-fun-for-test low-fun(test_ test_, test-index nat) lower-ctx
+-low-fun-for-test low-fun(test_ test_, test-index nat32) lower-ctx
 	res low-fun =
 		hash: take-next-id
 		source: low-fun-source-test test_, test-index

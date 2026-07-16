@@ -6,6 +6,7 @@ import
 	../../util/by-key
 	./check-call/check-call-specs
 	./check-ctx
+	./check-expr
 	./check-util
 	./instantiate
 	./type-from-ast
@@ -78,7 +79,7 @@ do check-ctx, types-get
 	ast sum-type-ast
 do check-ctx, types-get
 	if ast.kind == union_
-		if is-empty ast.types
+		unless any ast.types
 			add-diag sum-type.keyword-range.range, diag-empty-enum-or-union
 		res sum-type-case-and-method-impls mut[] = ()
 		for type-ast in ast.types
@@ -97,12 +98,12 @@ do check-ctx, types-get
 					res ~= type, ()
 		res.move-to
 	else
-		unless is-empty ast.types
+		if any ast.types
 			add-diag ast.types-range!, diag-sum-type-listed-members-non-union
 		()
 
 -check-type-specs specs(decl type-decl, ast type-decl-ast) check-ctx, common-types
-	get-or-add-specs for* modifier in ast.modifiers
+	get-or-add-specs for? modifier in ast.modifiers
 		match modifier
 		as modifier-keyword-ast
 			()
@@ -111,9 +112,9 @@ do check-ctx, types-get
 			if name == "global"
 				if is-data decl
 					add-diag modifier.range, diag-global-data-type
-				- global-spec
+				global-spec
 			elif value build-target = name.to
-				- extern-spec value
+				extern-spec value
 			else
 				add-diag modifier.name.range, ast.body.get-decl-kind.diag-spec-use-invalid
 				()
@@ -153,27 +154,44 @@ do check-ctx, types-get
 	a.type-inst and is-interface-or-variant a.decl.body
 -is-interface-or-variant bool(a type-body)
 	a.sum-type and match a.kind
-	as interface_
-		true
-	as java-interface
-		true
-	as variant_
+	as interface_ or java-interface or variant_
 		true
 	as union_
 		false
 
-check-method-impls void(types type-decl[]) check-ctx, common-types, funs-map
+check-preconstructors-and-method-impls void(types type-decl[]) check-ctx, common-types, funs-map, types-get
 	do for type in types
-	if sum = type.body.sum-type
-		members = sum.listed-members
-		do unless is-empty members
+	match type.body
+	as record_
+		ast = record-ast! type.source.type-decl-ast!.body
+		ctor = type.body.non-nominal-constructor
+		if ctor.param-defaults
+			# Previously it was just bogus-expr placeholders, now give it the real exprs
+			param-defaults expr?[] = if ast.params
+				do if ast.params.size == type.body.fields.size
+				for field, param in zip type.body.fields, ast.params
+					?check-record-field-default type, field, param.default
+			else
+				for field, field-ast in zip type.body.fields, ast.fields
+					?check-record-field-default type, field, field-ast.default
+			ctor.param-defaults := param-defaults
+			type.body.nominal-constructor.param-defaults := param-defaults
+		if preconstructor = ast.preconstructor
+			ctor.body.new-record!.kind :=
+				check-fun-or-test-body type, type.range, type.type-params, void, ctor.params, preconstructor, false
+
+	as sum-type
+		members = type.body.listed-members
+		do if any members
 		inst = type.instantiated-with-own-type-params
 		member-asts = type.source.type-decl-ast!.body.sum-type-ast!.types
 		for i, x in with-index members
 			range = if members.size == member-asts.size then member-asts[i].range else type.name-range.range
 			x.method-impls := check-method-impls-for-case type, x.case-type, range, inst, type.body.sum-type!.methods
+	else
+		()
 
-	unless is-empty type.sum-type-cases
+	if any type.sum-type-cases
 		case-type = type.instantiated-with-own-type-params
 		for x in type.sum-type-cases
 			x.method-impls :=
@@ -292,16 +310,16 @@ do check-ctx, common-types, funs-map
 	members = check-enum-or-flags-members type, ast.params, ast.members, enum-member, of diag-range, last, declared
 		if declared
 			if last and declared <= last
-				add-diag diag-range, last.diag-enum-value-not-sorted
+				add-diag diag-range, diag-enum-value-not-sorted last
 				next-enum-value diag-range, last
 			else
 				declared
 		else
 			next-enum-value diag-range, last
-	if is-empty members.members
+	unless any members.members
 		add-diag type.name-range.range, diag-empty-enum-or-union
 	members.storage, members.members, members.members-by-key
--next-enum-value nat(diag-range source-range, last-value nat?) check-ctx
+-next-enum-value nat64(diag-range source-range, last-value nat64?) check-ctx
 	if last-value
 		try
 			last-value + 1
@@ -326,7 +344,7 @@ do check-ctx, common-types, funs-map
 		else
 			next-flags-value diag-range, last
 	members.storage, members.members
--next-flags-value nat(diag-range source-range, last-value nat?) check-ctx
+-next-flags-value nat64(diag-range source-range, last-value nat64?) check-ctx
 	if last-value
 		try
 			last-value * 2
@@ -342,19 +360,23 @@ do check-ctx, common-types, funs-map
 	members-by-key (symbol, enum-or-flags-member) by-key
 -check-enum-or-flags-members enum-or-flags-members
 	type type-decl
-	params destructure-ast[]?
+	params parameter-ast[]?
 	member-asts enum-or-flags-member-ast[]
 	member-kind diag-duplicate-declaration-kind
-	cb-get-next-value nat mut(diag-range source-range, last-value nat?, declared-value nat?)
+	cb-get-next-value nat64 mut(diag-range source-range, last-value nat64?, declared-value nat64?)
 do check-ctx
-	if params and not is-empty member-asts
+	if params and any member-asts
 		add-diag type.name-range.range,
 			diag-type-decl-params-syntax-error type, has-params-and-fields
 
-	last-value mut nat? = ()
+	last-value mut nat64? = ()
 	cb-value cb-enum-value = of value-range, literal
-		declared-value nat? = if literal
-			check-literal-nat-value nat64, literal
+		declared-value nat64? = if literal
+			if literal-number literal
+				check-literal-nat-value nat64, literal
+			else
+				add-diag literal.range, diag-enum-value-not-number
+				()
 		value = cb-get-next-value[value-range, last-value, declared-value]
 		last-value := value
 		value
@@ -373,48 +395,40 @@ do check-ctx
 	members.enum-storage-type, members, members-by-key
 
 -cb-enum-value alias
-	nat? mut(range source-range, explicit literal-number?)
+	nat64? mut(range source-range, explicit expr-ast?)
 
 -enum-or-flags-members-from-params enum-or-flags-member[]
 	enum-or-flags type-decl
-	params destructure-ast[]
+	params parameter-ast[]
 	cb-value cb-enum-value
 do check-ctx
 	do with out in build params.size
 	do for param in params
-	do if value = cb-value[param.range, ()]
-	if param.name-and-range
-		out ~= param, enum-or-flags, value, ()
+	do if value = cb-value[param.range, param.default]
+	destruct = param.destructure
+	if destruct.name-and-range
+		out ~= destruct, enum-or-flags, value, ()
 	else
-		add-diag param.range, diag-type-decl-params-syntax-error enum-or-flags, destructure
+		add-diag destruct.range, diag-type-decl-params-syntax-error enum-or-flags, destructure
 
 -enum-storage-type nat-type(members enum-or-flags-member[])
-	max = if is-empty members then 0 else members[end - 1].value
-	if max <= max-value::nat8
-		nat8
-	elif max <= max-value::nat16
-		nat16
-	elif max <= max-value::nat32
-		nat32
+	if any members
+		min-nat-type-for-value members[end - 1].value
 	else
-		nat64
+		nat8
 
--check-record record_
-	type type-decl
-	modifier-asts modifier-ast[]
-	ast record-ast
-do check-ctx, types-get
-	new-visibility = accumulate-record-modifiers modifier-asts
+-check-record record_(type type-decl, modifier-asts modifier-ast[], ast record-ast) check-ctx, types-get
 	fields = check-record-fields type, ast
-	new-visibility: record-new-visibility type, fields, new-visibility
+	new-visibility: record-new-visibility type, fields, accumulate-record-modifiers modifier-asts
 	fields: fields
+	nominal-constructor_: ()
 
 -check-record-fields record-field[](type type-decl, ast record-ast) check-ctx, types-get
-	if ast.params and not is-empty ast.fields
+	if ast.params and any ast.fields
 		add-diag type.name-range.range, diag-type-decl-params-syntax-error type, has-params-and-fields
 	res record-field[] = if ast.params
-		for* param in ast.params
-			from-option record-field-from-param type, param
+		for? param in ast.params
+			record-field-from-param type, param
 	else
 		for x in ast.fields
 			check-record-field type, x, x.visibility, x.name, x.mutability, x.type
@@ -424,10 +438,11 @@ do check-ctx, types-get
 				diag-duplicate-declaration record-field, y.name
 	res
 
--record-field-from-param record-field?(record_ type-decl, ast destructure-ast) check-ctx, types-get
-	if ast.single-destructure-ast
-		mutability field-mutability-ast? = if x = ast.mut_ then x, ()
-		check-record-field record_, ast, (), ast.name, mutability, ast.type
+-record-field-from-param record-field?(record_ type-decl, ast parameter-ast) check-ctx, types-get
+	destruct = ast.destructure
+	if single-destructure-ast destruct
+		mutability field-mutability-ast? = if x = destruct.mut_ then x, ()
+		check-record-field record_, destruct, (), destruct.name, mutability, destruct.type
 	else
 		add-diag ast.range, diag-type-decl-params-syntax-error record_, destructure
 		()
@@ -456,7 +471,12 @@ do check-ctx, types-get
 			add-diag mutability-ast.range, diag-mutability-of-field-more-than-parent record_, name.name
 		visibility-from-default-with-diag visibility, mutability-ast.visibility,
 			visibility-warning-field-mutability name.name
-	source, record_, visibility, mutability, field-type, ()
+	source: source
+	containing-record: record_
+	visibility: visibility
+	mutability: mutability
+	type: field-type
+	doc-comment-references: ()
 
 -check-mutability-compatible void(parent type-decl, child type, diag-range source-range) check-context
 	unless is-possibly-compatible parent.mutability, child.mutability-range or mutability-is-forced parent

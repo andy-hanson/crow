@@ -22,13 +22,7 @@ then-interpolated token(kind quote-kind)
 
 is-newline-token bool(a token)
 	match a
-	as end-of-file
-		true
-	as newline-dedent
-		true
-	as newline-indent
-		true
-	as newline-same-indent
+	as end-of-file or newline-dedent or newline-indent or newline-same-indent
 		true
 	else
 		false

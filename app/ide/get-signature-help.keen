@@ -76,7 +76,7 @@ do show-type-ctx
 		end = out.size
 		begin .. end, ""
 	out ~= ")"
-	unless is-empty shown.rest
+	if any shown.rest
 		out ~= " "
 		out ~~= shown.rest.to::char8[]
 

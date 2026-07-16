@@ -37,6 +37,7 @@ common-module enum
 	array
 	bootstrap
 	buffer
+	col-util
 	exception
 	number
 	js
@@ -66,5 +67,5 @@ visibility-from-explicit-top-level visibility(a visibility-and-range?)
 	a.?visibility else internal
 
 check-no-type-params void(type-params type-params, decl-kind decl-kind) check-ctx
-	unless is-empty type-params
+	if any type-params
 		add-diag type-params.type-params-range, diag-type-params-unsupported decl-kind

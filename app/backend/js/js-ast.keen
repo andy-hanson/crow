@@ -70,6 +70,10 @@ js-statement-kind union
 	js-while-statement
 js-assign-statement record(left js-expr, right js-expr)
 js-block-statement record(statements js-statement[])
+list-new js-block-statement(statements js-statement[])
+	statements: statements
+any bool(a js-block-statement)
+	any a.statements
 ~~ js-block-statement(a js-block-statement, b js-block-statement)
 	a.statements ~~ b.statements,
 ~ ~ js-block-statement(a js-block-statement, b js-statement)
@@ -83,7 +87,7 @@ js-if-statement record(cond js-expr, then_ js-block-statement, else_ js-statemen
 js-return-statement record(arg js-expr)
 js-switch-statement record(arg js-expr, cases js-switch-case[], default js-block-statement)
 js-switch-case record
-	value js-expr
+	values js-expr[]
 	| Force a block statement here to ensure each branch has its own scope
 	then_ js-block-statement
 js-throw-statement record(arg js-expr)
@@ -121,6 +125,7 @@ js-expr-kind union
 	js-ternary-expr
 	js-this-expr
 	js-unary-expr
+	js-undefined-expr
 js-array-expr record(elements js-expr[])
 js-assign-expr record(assignee js-name, value js-expr)
 js-binary-expr record(kind js-binary-kind, left js-expr, right js-expr)
@@ -135,11 +140,14 @@ js-binary-kind enum
 	divide
 	eq-eq-eq
 	greater
+	greater-or-equal
 	instanceof
 	less
+	less-or-equal
 	minus
 	| WARN: Not a true modulo. In JS, 'a % b' may return a negative result.
 	modulo
+	not-eq-eq
 	or_
 	plus
 	times
@@ -162,6 +170,7 @@ js-ternary-expr record(condition js-expr, then_ js-expr, else_ js-expr)
 js-this-expr record
 js-unary-expr record(kind js-unary-kind, arg js-expr)
 js-unary-kind enum(await, bitwise-not, not, typeof, void)
+js-undefined-expr record
 
 to js-statement(a js-expr)
 	a.source, a
@@ -223,15 +232,15 @@ gen-global js-expr(source source, name string)
 	source, name.no-prefix
 gen-if js-statement(source source, cond js-expr, then_ js-block-statement)
 	source, js-if-statement cond, then_, ()
-gen-if js-statement(source source, cond js-expr, then_ js-block-statement, else_ js-statement)
+gen-if js-statement(source source, cond js-expr, then_ js-block-statement, else_ js-statement?)
 	source, js-if-statement cond, then_, else_
 gen-instanceof js-expr(source source, arg0 js-expr, arg1 js-expr)
 	gen-binary source, instanceof, arg0, arg1
 -gen-bigint js-expr(source source, is-signed bool, value scalar-value)
 	source, js-literal-bigint is-signed, value
-gen-bigint-signed js-expr(source source, value int)
+gen-bigint-signed js-expr(source source, value int64)
 	gen-bigint source, true, value.to
-gen-bigint-unsigned js-expr(source source, value nat)
+gen-bigint-unsigned js-expr(source source, value nat64)
 	gen-bigint source, false, value.to
 gen-not js-expr(source source, arg js-expr)
 	gen-unary source, not, arg
@@ -245,8 +254,6 @@ gen-new js-expr(source source, class_ js-expr)
 	gen-new source, class_, ()
 gen-new js-expr(source source, class_ js-expr, args js-expr[])
 	source, js-new-expr class_, args
-gen-or js-expr(source source, arg0 js-expr, arg1 js-expr)
-	gen-binary source, or_, arg0, arg1
 -gen-plus js-expr(source source, arg0 js-expr, arg1 js-expr)
 	gen-binary source, plus, arg0, arg1
 gen-minus js-expr(source source, arg0 js-expr, arg1 js-expr)
@@ -277,8 +284,15 @@ gen-typeof js-expr(source source, arg js-expr)
 	gen-unary source, typeof, arg
 gen-eq-eq-eq js-expr(source source, a js-expr, b js-expr)
 	gen-binary source, eq-eq-eq, a, b
+gen-not-eq-eq js-expr(source source, a js-expr, b js-expr)
+	gen-binary source, not-eq-eq, a, b
 gen-less js-expr(source source, a js-expr, b js-expr)
 	gen-binary source, less, a, b
+gen-or js-expr(source source, a js-expr, b js-expr)
+	gen-binary source, or_, a, b
+gen-or js-expr(source source, exprs js-expr[])
+	reduce! exprs, of x, y
+		gen-or source, x, y
 gen-try-catch js-statement
 	source source
 	try-block js-block-statement
@@ -303,14 +317,13 @@ gen-this js-expr(source source)
 gen-unary js-expr(source source, kind js-unary-kind, arg js-expr)
 	source, js-unary-expr kind, arg
 gen-undefined js-expr(source source)
-	source, js-unary-expr void, gen-number64 source, 0
+	source, js-undefined-expr
 gen-while js-statement(source source, condition js-expr, body js-block-statement)
 	gen-while source, (), condition, body
 gen-while js-statement(source source, label js-name?, condition js-expr, body js-block-statement)
 	source, js-while-statement label, condition, body
 gen-while-true js-statement(source source, label js-name?, body js-block-statement)
 	gen-while source, label, (gen-bool source, true), body
-
 gen-increment js-statement(source source, name js-name, is-bigint bool)
 	gen-assign source, name,
 		gen-plus source, (gen-identifier source, name),

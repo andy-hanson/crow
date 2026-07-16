@@ -250,7 +250,7 @@ with-block[t] t(a with-file-reader, f t mut(a file-reader)) global
 	do until
 	key = take service
 	files mut = take-events a, key
-	do unless is-empty files
+	do if any files
 	while extra = poll-and-take-events a
 		files |:= extra
 	files
@@ -266,13 +266,12 @@ with-block[t] t(a with-file-reader, f t mut(a file-reader)) global
 	dir file-path = key.watchable.reinterpret-cast::Path.to
 	events = key.pollEvents.toArray
 	assert reset key
-	for* o in events
+	for? o in events
 		event Path WatchEvent = reinterpret-cast o
 		name string = event.context.toString.to
 		file-path = dir / name
 		if a.watched-files[file-path]
-			- file-path
-
+			file-path
 
 get-builtin-java-paths builtin-java-paths() global
 	if java

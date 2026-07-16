@@ -17,9 +17,9 @@ get-references uri-and-line-and-character-range[](program program, params refere
 get-document-highlights document-highlight-result?(program program, params document-highlight-params)
 	do if position = get-position program, params.params, exact-or-end
 	uri = position.module.uri
-	highlights document-highlight[] = for* x in get-references program, position, document-highlights
+	highlights document-highlight[] = for? x in get-references program, position, document-highlights
 		if x.uri == uri
-			- x.range, Read
+			x.range, Read
 	highlights: sort highlights, it.range.start
 
 references-kind enum(all-references, rename, document-highlights)
@@ -40,6 +40,11 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 			add-definition[]
 			for ref in references-for-local target
 				out ~= lcgs[pos.uri, ref]
+			if fun-decl target.container and target.container.name == "new"
+				do if contains target.container.params, target.local
+				for uri, where, reference-kind, thing in walk-program program
+					if reference-kind == provide-parameter-value and thing == target.local
+						out ~= lcgs[uri, where.reference-range]
 		as keen-module
 			for ref in references-for-module program, target
 				out ~= lcgs[ref]
@@ -91,6 +96,8 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 				ref.body.field == target
 			else
 				()
+		as local
+			ref.source == target
 		as record-field
 			ref == target
 		else
@@ -149,7 +156,7 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 		()
 
 -references-for-local source-range[](a position-local)
-	do if container, body = a.container.container-and-body
+	do if container, body = container-and-body a.container
 	do with out in build
 	walk-doc-comment container.doc-comment, of where, _, ref
 		do if ref.local
@@ -171,7 +178,8 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 	as spec-decl
 		()
 	as type-decl
-		()
+		if record_ a.body
+			a, a.body.preconstructor!.as-expr
 	as var-decl
 		a, a.initializer.as-expr
 

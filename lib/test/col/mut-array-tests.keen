@@ -33,7 +33,7 @@ test
 test
 	xs nat mut[] = 0, 1, 2
 	for _ in xs
-		is-empty xs is false
+		any xs is true
 		xs.size is 3
 		xs[1] is 1
 		xs.copy.to::nat[] is (0, 1, 2)
@@ -86,7 +86,7 @@ test
 		should-throw
 	catch as was-locked
 		()
-	xs.to::nat[] is (0, 1, 2)
+	to::nat[] xs is 0, 1, 2
 
 test
 	xs nat mut[] = 0, 1, 2
@@ -113,7 +113,7 @@ test
 	xs.to::nat[] is (0, 2)
 
 test
-	xs nat mut[] = 1, 2, 3
+	xs nat32 mut[] = 1, 2, 3
 	xs flat-map= of x
 		n-of x, x
-	to::nat[] xs is 1, 2, 2, 3, 3, 3
+	to::nat32[] xs is 1, 2, 2, 3, 3, 3

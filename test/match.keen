@@ -6,9 +6,9 @@ test
 	-1.test-match-int is "neg one"
 	0.test-match-int is "zero"
 	1.test-match-int is "one"
-	i int = 0x100000001
+	i int64 = 0x100000001
 	i.test-match-int is "other"
--test-match-int string(a int)
+-test-match-int string(a int64)
 	match a
 	as -1
 		"neg one"
@@ -23,10 +23,10 @@ test
 	1.test-match-nat is 10
 	2.test-match-nat is 20
 	# Test matching on a nat64 value that would wrap to a nat32 in the match
-	n = 0x100000001
+	n nat64 = 0x100000001
 	n % (1 << 32) is 1
 	n.test-match-nat is n * 10
--test-match-nat nat(a nat)
+-test-match-nat nat64(a nat64)
 	match a
 	as 1
 		10
@@ -65,3 +65,102 @@ test
 		"X Y"
 	else
 		"{a}{a}"
+
+test
+	match-nat 0 is "even"
+	match-nat 1 is "odd"
+	match-nat 2 is "even"
+	match-nat 3 is "big"
+match-nat string(a nat)
+	match a
+	as 0 or 2
+		"even"
+	as 1
+		"odd"
+	else
+		"big"
+
+test
+	match-char8 "a" is "vowel"
+	match-char8 "e" is "vowel"
+	match-char8 "b" is "consonant"
+	match-char8 "*" is "other"
+match-char8 string(a char8)
+	match a
+	as a or e
+		"vowel"
+	as b
+		"consonant"
+	else
+		"other"
+
+test
+	match-string "apple" is "food"
+	match-string "banana" is "food"
+	match-string "fork" is "tool"
+	match-string "hat" is "other"
+match-string string(a string)
+	match a
+	as apple or banana
+		"food"
+	as fork
+		"tool"
+	else
+		"other"
+
+test
+	match-symbol "apple" is "food"
+	match-symbol "banana" is "food"
+	match-symbol "fork" is "tool"
+	match-symbol "hat" is "other"
+match-symbol string(a symbol)
+	match a
+	as apple or banana
+		"food"
+	as fork
+		"tool"
+	else
+		"other"
+
+test
+	match-enum x is true
+	match-enum y is false
+	match-enum z is true
+match-enum bool(a e)
+	match a
+	as x or z
+		true
+	as y
+		false
+e enum(x, y, z)
+
+test
+	match-union true is true
+	match-union 7::nat is false
+	match-union "a" is true
+match-union bool(a u)
+	match a
+	as bool or string
+		true
+	as nat
+		false
+
+u union(bool, nat, string)
+
+| This looks like the above test but has a different implementation,
+| since unions of records use 'instanceof' instead of a switch statement to match.
+main void()
+	match-union r0 is true
+	match-union r1 is false
+	match-union r2 is true
+match-union bool(a ur)
+	match a
+	as r0 or r2
+		true
+	as r1
+		false
+
+ur union(r0, r1, r2)
+r0 record
+r1 record
+r2 record

@@ -18,8 +18,6 @@ get-all-candidates-for-diag called-decl[](fun-name fun-name) check-expr-ctx
 			()
 		as fun-name-list-new
 			each-fun-in-expr-scope list-new-1, {if as-list-new it then out ~= it}
-		as named-new
-			each-fun-in-expr-scope named-new-2, {if as-named-new it then out ~= it}
 
 with-candidates[t] t
 	funs funs-in-scope
@@ -38,13 +36,6 @@ do check-ctx, common-types
 	as fun-name-list-new
 		each-fun-in-scope funs, list-new-1, of called
 			do if element-type = as-list-new called
-			candidate = init-variadic-candidate called, element-type
-			do if initial-filter[candidate]
-			candidates ~= candidate
-	as named-new
-		filter-unordered candidates, {parameter-names-are it.called, fun-name.names}
-		each-fun-in-scope funs, named-new-2, of called
-			do if element-type = as-named-new called
 			candidate = init-variadic-candidate called, element-type
 			do if initial-filter[candidate]
 			candidates ~= candidate
@@ -73,16 +64,6 @@ as-list-new type?(called called-decl)
 	do if names.as-array == symbol
 	as-array values
 
--parameter-names-are bool(a called-decl, names symbol[])
-	a.params-for-names 'arrays-correspond names, of x, y
-		x.name == y
--params-for-names destructure[](a called-decl)
-	match a
-	as fun-decl
-		a.params
-	as called-spec-sig
-		a.non-instantiated-sig.params
-
 each-candidate-with-signature void
 	funs funs-in-scope
 	name-and-arity name-and-arity
@@ -105,7 +86,7 @@ each-candidate void(funs funs-in-scope, name-and-arity name-and-arity, f void mu
 			if element-type = as-list-new called
 				f[init-variadic-candidate called, element-type]
 
-funs-in-scope record mut
+funs-in-scope record
 	fun-specs specs
 	funs-map funs-map
 funs-in-expr-scope funs-in-scope() expr-ctx
@@ -147,6 +128,63 @@ do check-ctx, common-types
 	each-with-name-and-types a.funs-map, name-and-arity, return-type, arg0-type, f[it]
 	for exports in the-imports-and-re-exports
 		each-with-name-and-types exports.funs, name-and-arity, return-type, arg0-type, f[it]
+each-named-new-fun void
+	funs funs-in-scope
+	# This is here just as an optimization to filter the set of functions.
+	# Caller must still check that candidate types match.
+	expected expected
+	names symbol[]
+	f void mut(x candidate, used-params which-params)
+do check-ctx, common-types
+	emit-fun = of fun fun-decl
+		if used-params = names-match fun, names
+			f[fun.init-candidate, used-params]
+
+	if choices = expected-return-types-for-named-new expected
+		for return-type in choices
+			each-new-fun funs.funs-map, return-type, emit-fun
+			for exports in the-imports-and-re-exports
+				each-new-fun exports.funs, return-type, emit-fun
+	else
+		each-new-fun funs.funs-map, emit-fun
+
+	each-fun-in-scope funs, named-new-2, of called
+		if element-type = as-named-new called
+			f[(init-variadic-candidate called, element-type), calls-named-new]
+
+all-new-funs-for-diag fun-decl[](funs funs-in-scope) check-ctx
+	do with out in build
+	each-new-fun funs.funs-map, of fun
+		out ~= fun
+	for exports in the-imports-and-re-exports
+		each-new-fun exports.funs, of fun
+			out ~= fun
+	# Ignore 'named-new', if one existed it would have been called
+
+-names-match which-params?(fun fun-decl, names symbol[])
+	if names.size < fun.params.size and fun.param-defaults
+		which-params nat mut[] = ()
+		name-index mut nat = 0
+		do if every fun.params.size, of param-index
+			if name-index < names.size and fun.params[param-index].name == names[name-index]
+				which-params ~= param-index
+				name-index +:= 1
+				true
+			else
+				fun.param-defaults[param-index]
+		if name-index == names.size
+			res = to::indices move-to::nat[] which-params
+			if is-range res then does-not-skip-params else res
+	elif arrays-correspond fun.params, names, of param, name then param.name == name
+		does-not-skip-params
+
+| {indices} means we are calling a 'new' function and using the corresponding params.
+| The array will be sorted.
+which-params union(indices, does-not-skip-params, calls-named-new)
+| This still permits omitting params on the end
+does-not-skip-params record
+calls-named-new record
+
 each-fun-with-exact-signature void
 	a funs-in-scope
 	name-and-arity name-and-arity
@@ -187,7 +225,7 @@ test-candidate-return-type type-match-kind?(expected expected, candidate candida
 | Also does type inference on the candidate
 test-candidate-param-type type-match-kind?
 	candidate candidate
-	arg-idx nat
+	arg-idx nat32
 	actual-arg-type type-and-context
 	conversions allow-implicit-conversions
 do common-types
@@ -197,7 +235,7 @@ do common-types
 	else
 		exact
 
-get-candidate-expected-parameter-type type-and-context(candidate candidate, arg-index nat)
+get-candidate-expected-parameter-type type-and-context(candidate candidate, arg-index nat32)
 	match candidate
 	as fun-inst
 		non-inferring candidate.param-types[arg-index]

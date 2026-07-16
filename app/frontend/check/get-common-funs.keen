@@ -29,9 +29,14 @@ do instantiate-ctx, common-types
 	t-array-view-array = array[t-array-view]
 	t-buffer = buffer[type-param0]
 	t-buffer-view = buffer-view[type-param0]
+	void-mut-of-tp1 = lambda-mut[void, type-param1]
+	tp1-mut-of-tp3 = lambda-mut[type-param1, type-param3]
 	-
 		deserialize-error: get-type[json, "deserialize-error"]
 		error: get-type[exception, "error"]
+		for-loop-void: get-fun-decl diags, modules[col-util], "for-loop", void, (type-param0, void-mut-of-tp1), 1
+		for-loop-out: get-fun-decl diags, modules[col-util], "for-loop", type-param0, (type-param2, tp1-mut-of-tp3), 3
+		map: get-fun-decl diags, modules[col-util], "map", type-param0, (type-param2, tp1-mut-of-tp3), 3
 		is-impl: get-fun-decl diags, modules[test-util], "is-impl", void, (type-param0, type-param0), 2
 		isnt-impl: get-fun-decl diags, modules[test-util], "isnt-impl", void, (type-param0, type-param0), 2
 		json-array: json-array
@@ -44,13 +49,13 @@ do instantiate-ctx, common-types
 		to-symbol-from-string: get-fun[symbol, "to", symbol, (string,)]
 		to-symbol-or-empty-from-json: get-fun[json, "to-symbol-or-empty", symbol, (json,)]
 		only-key-and-value-from-json: get-fun[json, "only-key-and-value", (tuple symbol, json), (json,)]
-		equal-string-like: for type in make-enum-map
+		equal-string-like: make of type
 			match type
 			as string
 				get-fun[string, "==", bool, (string, string)]
 			as symbol
 				get-fun[symbol, "==", bool, (symbol, symbol)]
-		hash-nat: for nat-type in make-enum-map
+		hash-nat: make of nat-type
 			get-fun[number, "hash", void, (nat-type.to, hash-state)]
 		json-subscript: get-fun[json, "subscript", json, (json, symbol)]
 		show-exception: get-fun[bootstrap, "show", string, (exception,)]
@@ -98,7 +103,7 @@ make-params destructure[](params type array-view)
 	as 3 then "d"
 	else then throw unreachable
 
--test-at-line test-selector(diags-builder uri-and-diagnostic mut[], program program, uri uri, line nat)
+-test-at-line test-selector(diags-builder uri-and-diagnostic mut[], program program, uri uri, line nat32)
 	module = module-at-uri program, uri
 	lcg = program.line-and-character-getters[uri]
 	if test_ = find module.tests, {line == line-of-pos lcg, it.range.range.start}
@@ -110,6 +115,8 @@ make-params destructure[](params type array-view)
 
 -type-param0 type() = 0,
 -type-param1 type() = 1,
+-type-param2 type() = 2,
+-type-param3 type() = 3,
 
 -get-type-or-add-diag type-decl
 	diags-builder uri-and-diagnostic mut[]
@@ -141,7 +148,7 @@ do instantiate-ctx
 	name symbol
 	return-type type
 	param-types type[]
-	n-spec-sigs nat
+	n-spec-sigs nat32
 do instantiate-ctx
 	res mut fun-decl? = ()
 	sig return-and-param-types = make-return-and-param-types return-type ~ param-types
@@ -158,7 +165,7 @@ do instantiate-ctx
 	decl = get-fun-decl diags-builder, main-module, "main", void, (), 0
 	inst = instantiate-non-template-fun decl
 	specs = decl.specs
-	unless is-empty specs.all-contexts and is-empty specs.instantiated-sigs
+	if any specs.all-contexts or any specs.instantiated-sigs
 		diags-builder ~= inst.decl.name-range, diag-main-has-specs
 	inst
 
@@ -169,7 +176,7 @@ do instantiate-ctx
 	expected-sig return-and-param-types
 do instantiate-ctx
 	n-type-params = max-of expected-sig.return-and-param-types, it.max-type-param-count else 0
-	type-params type-params = for i in 0 .. n-type-params then i.to, "t{i}"
+	type-params type-params = for i in n-type-params then i, "t{i}"
 	decl fun-decl =
 		hash: next-hash
 		visibility: public
@@ -180,7 +187,7 @@ do instantiate-ctx
 	diagnostics ~= (module.uri, ()), diag-common-fun-missing decl, expected-sig
 	decl
 
--max-type-param-count nat(a type)
+-max-type-param-count nat32(a type)
 	match a
 	as bogus-type then 0
 	as type-param-index then a.index + 1

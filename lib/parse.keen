@@ -36,7 +36,7 @@ import
 	input string
 	| Position where the parse error happened.
 	| This will be `{input}.end` if the error was end of input.
-	index nat
+	index nat32
 	| Description of what was expected.
 	expected string
 +show string(a parse-error)
@@ -79,7 +79,7 @@ import
 				false
 			else
 				true
-		forbid is-empty res else
+		assert any res else
 			endings = join ", ", for x in possible-endings then "'{x}'"
 			inner-parse-error "expected text ending in one of {endings}"
 		res
@@ -215,16 +215,8 @@ import
 		_ = take-next a
 +is-space bool(a char8)
 	match a
-	as " "
-		true
-	as "\r"
-		true
-	as "\n"
-		true
-	as "\t"
-		true
-	else
-		false
+	as " " or "\r" or "\n" or "\t" then true
+	else then false
 
 | A double-quoted string as in JSON, including escape sequences.
 +quoted-string string grammar()
@@ -286,7 +278,7 @@ import
 -take-unicode-escape bool(out char8 builder, iter string-iterator, sequence-length nat)
 	try
 		full-char mut nat32 = 0
-		for _ in 0::nat .. sequence-length
+		for _ in sequence-length
 			assert x = ?decode-hex-digit peek iter else invalid-unicode-character 0
 			_ = take-next iter
 			full-char := (full-char << 4) | x.to
@@ -307,19 +299,32 @@ import
 +bool bool grammar()
 	(exact "true", true) / (exact "false", false)
 
++nat nat32 grammar()
+	parse: it.take-nat32
+
 | Parses a natural number in decimal format.
 | This allows leading 0s which have no effect.
-+nat nat64 grammar()
-	parse: it.take-nat
++nat64 nat64 grammar()
+	parse: it.take-nat64
+
++int int32 grammar()
+	parse: of iter
+		res = take-int64 iter
+		try
+			res.to
+		catch as arithmetic-error
+			throw inner-parse-error "int32"
 
 | Parses a signed integer in decimal format.
 | This allows e.g. "1", "+23", "-45".
-+int int64 grammar()
-	parse: of iter
-		sign = try-take-sign iter
-		int-of-nat sign, take-nat iter
++int64 int64 grammar()
+	parse: it.take-int64
 
--int-of-nat int(sign sign?, a nat)
+-take-int64 int64(iter string-iterator)
+	sign = try-take-sign iter
+	int-of-nat sign, take-nat64 iter
+
+-int-of-nat int64(sign sign?, a nat64)
 	try
 		if sign
 			match sign
@@ -332,12 +337,12 @@ import
 	catch as arithmetic-error
 		throw inner-parse-error "numeric overflow"
 
--take-base-and-nat (nat, nat)(iter string-iterator)
+-take-base-and-nat (nat, nat64)(iter string-iterator)
 	assert peek-digit iter else inner-parse-error "number"
 	base = try-take-0-base iter else 10
 	assert nat-value mut = next-digit iter, base else inner-parse-error "number"
 	while
-		skip-underscore-if-before-digit iter
+		skip-underscore-if-before-digit iter, base
 		if digit = next-digit iter, base
 			try
 				nat-value := nat-value * base + digit
@@ -346,7 +351,14 @@ import
 			true
 	base, nat-value
 
-~take-nat nat64(iter string-iterator) =b take-base-and-nat iter
+~take-nat32 nat32(iter string-iterator)
+	res = take-nat64 iter
+	try
+		res.to
+	catch as arithmetic-error
+		throw inner-parse-error "nat32"
+
+~take-nat64 nat64(iter string-iterator) = b take-base-and-nat iter
 -next-digit nat64?(a string-iterator, base nat)
 	do if char = peek a
 	do if digit = char-to-nat64 char, base
@@ -355,6 +367,8 @@ import
 
 +is-digit bool(a char8)
 	"0"::char8 <= a and a <= "9"
+-is-digit bool(a char8, base nat)
+	char-to-nat64 a, base
 -char-to-nat64 nat64?(c char8, base nat64)
 	assert base <= 36
 	if "0"::char8 <= c and c <= "9"
@@ -370,19 +384,19 @@ import
 	parse: it.take-number.to
 -to float(a number)
 	match a
-	as nat then a.to
-	as int then a.to
-	as float then a
+	as nat64 then a.to
+	as int64 then a.to
+	as float64 then a
 -sign enum(negative, positive)
 ~take-number number(iter string-iterator)
 	start = copy iter
 	sign = try-take-sign iter
 	base, nat-value = take-base-and-nat iter
-	if base == 10 and iter.peek == "." and peek-digit-next iter
+	if base == 10 and iter.peek == "." and peek-digit-next iter, base
 		# Float parsing is hard, so just get a string and pass it to the Java (or JS) standard library.
 		_ = take-next iter
 		while
-			skip-underscore-if-before-digit iter
+			skip-underscore-if-before-digit iter, base
 			next-digit iter, 10
 		parse-float slice start, iter
 	elif sign
@@ -410,12 +424,12 @@ import
 
 ~peek-digit bool(a string-iterator)
 	(x = peek a) and is-digit x
--peek-digit-next bool(a string-iterator)
-	(x = peek-by a, 1) and is-digit x
+-peek-digit-next bool(a string-iterator, base nat)
+	(x = peek-by a, 1) and is-digit x, base
 
--skip-underscore-if-before-digit void(a string-iterator)
-	if a.peek == "_" and peek-digit-next a
-		_ = a.take-next
+-skip-underscore-if-before-digit void(a string-iterator, base nat)
+	if a.peek == "_" and peek-digit-next a, base
+		_ = take-next a
 
 | WARN: Does not validate {a}
 -parse-float float64(a string-view)
@@ -427,9 +441,7 @@ import
 		throw todo
 -fix-number-for-java String(a string-view) java
 	fixed char8[] = if contains a, "_"
-		for* x in a
-			unless x == "_"
-				- x
+		omit a, it == "_"
 	else
 		a.to
 	fixed.to::string.to
@@ -445,13 +457,6 @@ import
 		res = parse-json iter
 		skip-whitespace iter
 		res
-| Expose an alternate version to avoid 'parse' which is an async fun
-~parse-json json(a string)
-	iter = begin a
-	res = parse-json iter
-	skip-whitespace iter
-	assert is-at-end iter else parse-error a, iter.index, "string continues past end of parse"
-	res
 -parse-json json(a string-iterator)
 	skip-whitespace a
 	if try-take a, "false"
@@ -499,7 +504,7 @@ import
 	key.to, value
 
 ~try-take-number number?(iter string-iterator)
-	if peek-digit iter or iter.peek == "-" and peek-digit-next iter
+	if peek-digit iter or iter.peek == "-" and peek-digit-next iter, 10
 		take-number iter
 
 +kid json grammar()
@@ -514,6 +519,7 @@ import
 		assert is-at-end iter else inner-parse-error "Kid value"
 		res
 	catch error as inner-parse-error
+		:: kid-parse-error
 		pos: iter.pos
 		expected: expected error
 
@@ -530,7 +536,7 @@ import
 	# Treat end of file as being at a lesser indent so the parser will naturally exit
 	-1
 
-| Returns the expression, and optionally the new indent amount (which will be <= {indent})
+| Returns the expression and the new indent amount (which will be <= {indent})
 -parse-kid-line (json, int32)(iter string-iterator, ctx ctx, indent int32)
 	if try-take-list-start iter
 		parse-kid-multi-line-list iter, ctx, indent
@@ -544,6 +550,34 @@ import
 			- take-next-indent iter, ctx, indent
 		as symbol
 			parse-kid-single-or-multi-line-object iter, ctx, first, indent
+		as quote_
+			parse-block-quote iter, ctx, indent
+
+-parse-block-quote (json, int32)(iter string-iterator, ctx ctx, indent int32)
+	assert try-take iter, "\n" else inner-parse-error "Block quoted string"
+	blank-lines, quote-indent = take-1-more-indent-after-newline iter, ctx, indent, stop-at-wrong-indent-char
+	new-indent mut int32 = 0
+	s string = with out in build
+		for _ in blank-lines
+			out ~= "\n"
+		new-indent := until
+			if is-at-end iter
+				eof-indent
+			else
+				ch = take-next iter
+				if ch == "\n"
+					blank-lines2, res = take-next-indent-after-newline iter, ctx, stop-at-wrong-indent-char
+					if res < quote-indent
+						res
+					else
+						res is quote-indent else inner-parse-error "Block quoted string"
+						for _ in blank-lines2 + 1
+							out ~= "\n"
+						()
+				else
+					out ~= ch
+					()
+	s, new-indent
 
 -to (json, int32?)((j json, i int32))
 	j, i
@@ -560,8 +594,7 @@ import
 -parse-kid-inner (json, int32?)(iter string-iterator, ctx ctx, indent int32)
 	skip-spaces iter
 	if try-take iter, "\n"
-		new-indent = take-next-indent-after-newline iter, ctx
-		new-indent is indent + 1 else inner-parse-error "Kid value"
+		_, new-indent = take-1-more-indent-after-newline iter, ctx, indent, diag-on-wrong-indent-char
 		parse-kid-line iter, ctx, new-indent 'to
 	else
 		match first = parse-kid-simple iter
@@ -570,6 +603,8 @@ import
 			- try-take-next-indent iter, ctx, indent
 		as symbol
 			parse-kid-single-line-object iter, ctx, first, indent 'to
+		as quote_
+			parse-block-quote iter, ctx, indent 'to
 
 -parse-kid-single-line-list-after-value-and-comma json(iter string-iterator, first json)
 	skip-spaces iter
@@ -613,11 +648,25 @@ import
 		res json[symbol] = (first-name, first-value),
 		res.to, first-indent
 	else
-		parse-kid-single-line-object-inner iter, ctx, first-name, first-value, indent
+		parse-kid-single-line-object-inner iter, ctx, (first-name,), (first-value,), indent
 
 -parse-kid-single-or-multi-line-object (json, int32)(iter string-iterator, ctx ctx, first-name symbol, indent int32)
 	first-value, first-indent = parse-kid-inner iter, ctx, indent
-	do if first-indent else parse-kid-single-line-object-inner iter, ctx, first-name, first-value, indent
+	if first-indent
+		parse-kid-multi-line-object iter, ctx, first-name, first-value, indent, first-indent
+	else
+		parse-kid-possibly-single-line-object-inner iter, ctx, first-name, first-value, indent
+
+-parse-kid-multi-line-object (json, int32)(iter string-iterator, ctx ctx, name symbol, first-value json, indent int32)
+	parse-kid-multi-line-object iter, ctx, name, first-value, indent, take-next-indent iter, ctx, indent
+-parse-kid-multi-line-object (json, int32)
+	iter string-iterator
+	ctx ctx
+	first-name symbol
+	first-value json
+	indent int32
+	first-indent int32
+do
 	new-indent mut int32 = first-indent
 	res json[symbol] = with out in build
 		out ~= first-name, first-value
@@ -628,30 +677,73 @@ import
 			out ~= next-name, next-value
 	res.to, new-indent
 
+-parse-kid-possibly-single-line-object-inner (json, int32)
+	iter string-iterator
+	ctx ctx
+	name0 symbol
+	value0 json
+	indent int32
+do
+	assert try-take iter, "," else inner-parse-error "Kid value"
+	skip-spaces iter
+	if peek-end-of-line iter
+		# `x: 1,`
+		parse-kid-multi-line-object iter, ctx, name0, (value0,), indent
+	else
+		after-comma = parse-kid-simple iter
+		match after-comma
+		as json
+			# `x: 1, 2`
+			full-first-value = parse-kid-single-line-list-after-value-comma-value iter, value0, after-comma
+			parse-kid-multi-line-object iter, ctx, name0, full-first-value, indent
+		as symbol
+			# `x: 1, y:`
+			value1, next-indent = parse-kid-inner iter, ctx, indent
+			if next-indent
+				- named-new (name0, after-comma), (value0, value1)
+				- next-indent
+			else
+				parse-kid-single-line-object-inner iter, ctx, (name0, after-comma), (value0, value1), indent
+		as quote_
+			throw inner-parse-error "Kid value"
+
 -parse-kid-single-line-object-inner (json, int32)
 	iter string-iterator
 	ctx ctx
-	first-name symbol
-	first-value json
+	initial-names symbol[]
+	initial-values json[]
 	indent int32
 do
 	new-indent mut int32? = ()
-	cur-name mut = first-name
-	cur-value mut = first-value
-	res json[symbol] = with out in build
+
+	keys symbol[], values json[] = with out-keys, out-values in build2
+		initial-names.size is initial-values.size
+		for i in 0 .. initial-names.size - 1
+			out-keys ~= initial-names[i]
+			out-values ~= initial-values[i]
+		cur-name mut = initial-names[end - 1]
+		cur-value mut = initial-values[end - 1]
 		while not new-indent and try-take iter, ","
 			skip-spaces iter
-			match x = parse-kid-simple iter
-			as json
-				cur-value := parse-kid-single-line-list-after-value-comma-value iter, cur-value, x
-			as symbol
-				out ~= cur-name, cur-value
-				next-value, next-indent = parse-kid-inner iter, ctx, indent
-				cur-name := x
-				cur-value := next-value
-				new-indent := next-indent
-		out ~= cur-name, cur-value
-	- res.to
+			if is-at-end iter
+				cur-value := cur-value,
+				new-indent := eof-indent
+			else
+				match x = parse-kid-simple iter
+				as json
+					cur-value := parse-kid-single-line-list-after-value-comma-value iter, cur-value, x
+				as symbol
+					out-keys ~= cur-name
+					out-values ~= cur-value
+					next-value, next-indent = parse-kid-inner iter, ctx, indent
+					cur-name := x
+					cur-value := next-value
+					new-indent := next-indent
+				as quote_
+					throw inner-parse-error "Kid value"
+		out-keys ~= cur-name
+		out-values ~= cur-value
+	- named-new keys, values
 	- new-indent else take-next-indent iter, ctx, indent
 
 -parse-kid-simple-no-colon json(iter string-iterator)
@@ -676,13 +768,16 @@ do
 		value
 
 # 'json' for a simple value; 'symbol' for a name followed by a colon
--kid-simple union(json, symbol)
+-kid-simple union(json, symbol, quote_)
+-quote_ record
 -parse-kid-simple kid-simple(iter string-iterator)
 	if try-take iter, "("
 		after-paren iter
 	elif name = try-take-keen-identifier iter
 		if try-take iter, ":"
 			name
+		elif name == "quote"
+			quote_
 		else
 			kid-value-from-name name
 	elif x = try-take-quoted-string iter
@@ -710,9 +805,8 @@ do
 	else
 		throw inner-parse-error "Kid value"
 
--peek-end-of-line bool(a string-iterator)
++peek-end-of-line bool(a string-iterator)
 	is-at-end a or a.peek == "\n"
-
 -take-name-colon-or-string-colon symbol(iter string-iterator)
 	assert res = (try-take-keen-identifier iter or ?to try-take-quoted-string iter) else
 		inner-parse-error "Identifier or string, then ':'"
@@ -738,16 +832,27 @@ do
 -take-next-indent int32(iter string-iterator, ctx ctx, cur-indent int32)
 	skip-spaces iter
 	assert try-take iter, "\n" or is-at-end iter else inner-parse-error "Newline"
-	res = take-next-indent-after-newline iter, ctx
+	_, res = take-next-indent-after-newline iter, ctx, diag-on-wrong-indent-char
 	assert res <= cur-indent else inner-parse-error "Cannot indent here"
 	res
--take-next-indent-after-newline int32(iter string-iterator, ctx ctx)
+-take-1-more-indent-after-newline (nat, int)
+	iter string-iterator
+	ctx ctx
+	cur-indent int32
+	wrong-indent wrong-indent-char-policy
+do
+	res = take-next-indent-after-newline iter, ctx, wrong-indent
+	res.b is cur-indent + 1 else inner-parse-error "Kid value"
+	res
+-take-next-indent-after-newline (nat, int)(iter string-iterator, ctx ctx, wrong-indent wrong-indent-char-policy)
+	blank-lines mut nat = 0
 	do until
-	new-indent = take-indent-amount-after-newline iter, ctx.indent-kind, of _
+	new-indent = take-indent-amount-after-newline iter, ctx.indent-kind, wrong-indent, of _
 		throw inner-parse-error "Indent by {ctx.indent-kind}"
 	if is-at-end iter
-		eof-indent
+		blank-lines, eof-indent
 	elif try-take iter, "\n"
+		blank-lines +:= 1
 		()
 	else
-		new-indent::nat64.to::int64.to
+		blank-lines, to::int32 new-indent

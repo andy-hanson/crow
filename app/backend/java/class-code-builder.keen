@@ -23,9 +23,9 @@ with-block Code_attribute(a build-code, f void mut(a code-builder))
 	code: code
 	exception-table: builder.exception-table.move-to
 	attributes:
-		-- unless is-empty builder.line-number-table
+		-- if any builder.line-number-table
 			- LineNumberTable_attribute a.constants["LineNumberTable"], builder.line-number-table.move-to
-		-- unless is-empty builder.stack-map
+		-- if any builder.stack-map
 			- StackMapTable_attribute a.constants["StackMapTable"], builder.stack-map.move-to
 code-builder record mut
 	-out bytecode-out
@@ -91,7 +91,7 @@ add-to-exception-table void(a code-builder, start nat16, end nat16, catch-type c
 	res stack_map_frame? = if cur.locals[0 .. min-locals] == prev.locals[0 .. min-locals]
 		match cur.locals.size <=> prev.locals.size
 		as equal
-			if is-empty cur.stack
+			if not any cur.stack
 				if offset-delta <= max-offset-for-same-frame
 					same_frame offset-delta.to
 				else
@@ -102,14 +102,14 @@ add-to-exception-table void(a code-builder, start nat16, end nat16, catch-type c
 				else
 					same_locals_1_stack_item_frame_extended offset-delta, stack-item
 		as less
-			do if is-empty cur.stack
+			do unless any cur.stack
 			chop-n = prev.locals.size - cur.locals.size
-			do if 1 <= chop-n and chop-n <= max-n-to-chop
+			do if chop-n >= 1 and chop-n <= max-n-to-chop
 			chop_frame chop-n.to, offset-delta
 		as greater
-			do if is-empty cur.stack
+			do unless any cur.stack
 			append-n = cur.locals.size - prev.locals.size
-			do if 1 <= append-n and append-n <= max-n-to-append
+			do if append-n >= 1 and append-n <= max-n-to-append
 			append_frame offset-delta, cur.locals[prev.locals.size .. end].to
 	res else full_frame offset-delta, cur.locals, cur.stack
 
@@ -129,20 +129,12 @@ xload void(a code-builder, type java-runtime-type, index nat)
 		()
 	as java-primitive-type
 		match type
-		as T_BOOLEAN
-			iload a, index
-		as T_CHAR
+		as T_BOOLEAN or T_CHAR or T_BYTE or T_SHORT or T_INT
 			iload a, index
 		as T_FLOAT
 			fload a, index
 		as T_DOUBLE
 			dload a, index
-		as T_BYTE
-			iload a, index
-		as T_SHORT
-			iload a, index
-		as T_INT
-			iload a, index
 		as T_LONG
 			lload a, index
 	else
@@ -239,20 +231,12 @@ return void(a code-builder, type java-runtime-type)
 		a.out ~= 0xb1 # return
 	as java-primitive-type
 		match type
-		as T_BOOLEAN
-			a.out ~= 0xac # ireturn
-		as T_CHAR
+		as T_BOOLEAN or T_CHAR or T_BYTE or T_SHORT or T_INT
 			a.out ~= 0xac # ireturn
 		as T_FLOAT
 			a.out ~= 0xae # freturn
 		as T_DOUBLE
 			a.out ~= 0xaf # dreturn
-		as T_BYTE
-			a.out ~= 0xac # ireturn
-		as T_SHORT
-			a.out ~= 0xac # ireturn
-		as T_INT
-			a.out ~= 0xac # ireturn
 		as T_LONG
 			a.out ~= 0xad # lreturn
 	else
@@ -339,7 +323,11 @@ stack-entry-count nat(a java-runtime-type)
 	as void
 		0
 	as java-primitive-type
-		if a == T_DOUBLE or a == T_LONG then 2 else 1
+		match a
+		as T_DOUBLE or T_LONG
+			2
+		else
+			1
 	as reference-type
 		1
 void java-runtime-type()
@@ -395,32 +383,44 @@ lushr void(a code-builder)
 	a.out ~= 0x7d
 iand void(a code-builder)
 	a.out ~= 0x7e
-ior void(a code-builder)
-	a.out ~= 0x80
 ixor void(a code-builder)
 	a.out ~= 0x82
 land void(a code-builder)
 	a.out ~= 0x7f
+ior void(a code-builder)
+	a.out ~= 0x80
 lor void(a code-builder)
 	a.out ~= 0x81
+lxor void(a code-builder)
+	a.out ~= 0x83
+i2l void(a code-builder)
+	a.out ~= 0x85
+i2f void(a code-builder)
+	a.out ~= 0x86
+i2d void(a code-builder)
+	a.out ~= 0x87
+l2i void(a code-builder)
+	a.out ~= 0x88
+l2f void(a code-builder)
+	a.out ~= 0x89
+l2d void(a code-builder)
+	a.out ~= 0x8a
+f2i void(a code-builder)
+	a.out ~= 0x8b
+f2l void(a code-builder)
+	a.out ~= 0x8c
+f2d void(a code-builder)
+	a.out ~= 0x8d
+d2i void(a code-builder)
+	a.out ~= 0x8e
+d2l void(a code-builder)
+	a.out ~= 0x8f
+d2f void(a code-builder)
+	a.out ~= 0x90
 i2b void(a code-builder)
 	a.out ~= 0x91
 i2s void(a code-builder)
 	a.out ~= 0x93
-lxor void(a code-builder)
-	a.out ~= 0x83
-d2f void(a code-builder)
-	a.out ~= 0x90
-f2d void(a code-builder)
-	a.out ~= 0x8d
-l2d void(a code-builder)
-	a.out ~= 0x8a
-i2l void(a code-builder)
-	a.out ~= 0x85
-d2l void(a code-builder)
-	a.out ~= 0x8f
-l2i void(a code-builder)
-	a.out ~= 0x88
 
 fadd void(a code-builder)
 	a.out ~= 0x62
@@ -434,6 +434,12 @@ fdiv void(a code-builder)
 	a.out ~= 0x6e
 ddiv void(a code-builder)
 	a.out ~= 0x6f
+irem void(a code-builder)
+	a.out ~= 0x70
+lrem void(a code-builder)
+	a.out ~= 0x71
+frem void(a code-builder)
+	a.out ~= 0x72
 drem void(a code-builder)
 	a.out ~= 0x73
 fmul void(a code-builder)
@@ -477,20 +483,12 @@ xstore void(a code-builder, type java-runtime-type, index nat)
 		()
 	as java-primitive-type
 		match type
-		as T_BOOLEAN
-			istore a, index
-		as T_CHAR
+		as T_BOOLEAN or T_CHAR or T_BYTE or T_SHORT or T_INT
 			istore a, index
 		as T_FLOAT
 			fstore a, index
 		as T_DOUBLE
 			dstore a, index
-		as T_BYTE
-			istore a, index
-		as T_SHORT
-			istore a, index
-		as T_INT
-			istore a, index
 		as T_LONG
 			lstore a, index
 	else
@@ -528,31 +526,31 @@ istore void(a code-builder, index nat)
 
 lookupswitch (deferred-jump32[], deferred-jump32)(a code-builder, values int32[])
 	assert is-sorted values
-	jump-from nat32 = a.out.next-index.to
+	jump-from nat32 = a.out.next-index
 	a.out ~= 0xab # lookupswitch
 	pad-to-align a, 4
-	location-of-default nat32 = a.out.next-index.to
-	a.out ~~= 0xffffffff::nat32
-	a.out ~~= values.size.to::nat32
+	location-of-default nat32 = a.out.next-index
+	a.out ~~= 0xffff_ffff::nat32
+	a.out ~~= values.size
 	jumps deferred-jump32[] = for value in values
-		a.out ~~= value.wrap-to::nat32
-		location-of-offset nat32 = a.out.next-index.to
-		a.out ~~= 0xffffffff::nat32
+		a.out ~~= wrap-to::nat32 value
+		location-of-offset nat32 = a.out.next-index
+		a.out ~~= 0xffff_ffff::nat32
 		jump-from, location-of-offset
 	jumps, (jump-from, location-of-default)
 
 tableswitch (deferred-jump32[], deferred-jump32)(a code-builder, range nat32 range)
-	forbid is-empty range
-	jump-from nat32 = a.out.next-index.to
+	assert any range
+	jump-from nat32 = a.out.next-index
 	a.out ~= 0xaa # tableswitch
 	pad-to-align a, 4
-	location-of-default nat32 = a.out.next-index.to
-	a.out ~~= 0xffffffff::nat32
+	location-of-default nat32 = a.out.next-index
+	a.out ~~= 0xffff_ffff::nat32
 	a.out ~~= range.low
 	a.out ~~= range.high - 1
 	jumps deferred-jump32[] = for _ in range
-		location-of-offset nat32 = a.out.next-index.to
-		a.out ~~= 0xffffffff::nat32
+		location-of-offset nat32 = a.out.next-index
+		a.out ~~= 0xffff_ffff::nat32
 		jump-from, location-of-offset
 	jumps, (jump-from, location-of-default)
 

@@ -1,11 +1,10 @@
 exit code: 1
 stderr:
 file://TMP.js:1
-	new (e6160713746550163298)()
-	^
+	throw new (e779013352)()
+	      ^
 
-e6160713746550163298 [Error]: boo
-    at e1 (file://TMP.js:1:1)
+e779013352 [Error]: boo
     at bar1 (file://TMP.js:1:1)
     at main1 (file://TMP.js:1:1)
     at file://TMP.js:1:1

@@ -46,16 +46,12 @@ some bool(a referenced-classes, f bool mut(x java-class-reference))
 	some a.generic-param-types, {some-type-reference it, f}
 -some-type-reference bool(a java-type, f bool mut(x java-class-reference))
 	match a
-	as void
-		()
-	as java-primitive-type
+	as void or java-primitive-type or java-type-param
 		()
 	as java-array-type
 		some-type-reference a.element, f
 	as java-class-type
 		some-class-reference a, f
-	as java-type-param
-		()
 -some-class-reference bool(a java-class-type, f bool mut(x java-class-reference))
 	f[a.path, false] or some a.type-args, {some-type-reference it, f}
 
@@ -142,7 +138,7 @@ take-until-terminator char8 array-view(iter string-iterator, char char8)
 	res
 
 -read-array[t] t[](reader nat8 array-iterator, f t mut(reader nat8 array-iterator))
-	for _ in 0 .. reader.take16
+	for _ in take16 reader
 		f[reader]
 
 parsed-field record
@@ -184,7 +180,7 @@ parsed-method record
 	name symbol = to read-utf8-reference reader
 	descriptor-text = read-utf8-reference reader
 	erased-type-params, erased-return-type, erased-param-types = parse-method-descriptor descriptor-text
-	assert is-empty erased-type-params
+	forbid any erased-type-params
 	attributes = read-attributes reader
 	type-params, generic-return-type, generic-param-types = if sig = get-signature attributes
 		parse-method-descriptor sig
@@ -225,7 +221,7 @@ java-type-param record(name symbol)
 	assert is-at-end iter
 	res
 -read-type java-type(iter string-iterator)
-	arrays mut = 0
+	arrays mut nat32 = 0
 	res java-type = until
 		match char = take-next iter
 		as L
@@ -235,11 +231,8 @@ java-type-param record(name symbol)
 		as "["
 			arrays +:= 1
 			()
-		as "-"
-			# This means '? super foo'. Treat this as just 'foo'.
-			()
-		as "+"
-			# This means '? extends foo'. Treat this as just 'foo'.
+		as "-" or "+"
+			# This means '? super foo' or '? extends foo'. Treat this as just 'foo'.
 			()
 		else
 			single-char-type char
@@ -349,57 +342,26 @@ java-type-param record(name symbol)
 			# Java does not really use standard UTF8, but this shouldn't matter for method and type names
 			constant-strings-builder[constant-pool-index] := safe-reinterpret-cast bytes
 			1
-		as 3
-			# CONSTANT_Integer_info
+		as 3 or 4 or 9 or 10 or 11 or 12 or 18
+			# CONSTANT_Integer_info or CONSTANT_Float_info or CONSTANT_Fieldref_info or CONSTANT_Methodref_info
+			# or CONSTANT_InterfaceMethodref_info or CONSTANT_NameAndType_info or CONSTANT_InvokeDynamic_info
 			skip-next-n reader, 4
 			1
-		as 4
-			# CONSTANT_Float_info
-			skip-next-n reader, 4
-			1
-		as 5
-			# CONSTANT_Long_info
-			skip-next-n reader, 8
-			2
-		as 6
-			# CONSTANT_Double_info
+		as 5 or 6
+			# CONSTANT_Long_info or CONSTANT_Double_info
 			skip-next-n reader, 8
 			2
 		as 7
 			# CONSTANT_Class_info
 			constant-classes[constant-pool-index] := take16 reader
 			1
-		as 8
-			# CONSTANT_String_info
+		as 8 or 16
+			# CONSTANT_String_info or CONSTANT_MethodType_info
 			skip-next-n reader, 2
-			1
-		as 9
-			# CONSTANT_Fieldref_info
-			skip-next-n reader, 4
-			1
-		as 10
-			# CONSTANT_Methodref_info
-			skip-next-n reader, 4
-			1
-		as 11
-			# CONSTANT_InterfaceMethodref_info
-			skip-next-n reader, 4
-			1
-		as 12
-			# CONSTANT_NameAndType_info
-			skip-next-n reader, 4
 			1
 		as 15
 			# CONSTANT_MethodHandle_info
 			skip-next-n reader, 3
-			1
-		as 16
-			# CONSTANT_MethodType_info
-			skip-next-n reader, 2
-			1
-		as 18
-			# CONSTANT_InvokeDynamic_info
-			skip-next-n reader, 4
 			1
 		else
 			log-error "Unexpected constant kind {kind}"

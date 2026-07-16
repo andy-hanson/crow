@@ -1,0 +1,13 @@
+# Testing that we can parse multiple indented signatures
+i interface
+	foo nat
+		x nat
+	bar nat
+		x nat
+
+f nat(x i)
+	(foo x, 1) + (bar x, 2)
+
+test
+	i i = foo: {it}, bar: {it}
+	f i is 3

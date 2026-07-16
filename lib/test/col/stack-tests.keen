@@ -3,7 +3,8 @@ import
 
 test
 	a nat64 stack = ()
-	assert is-empty a
+	any a is false
+	size a is 0
 	a.to::nat64[] is ()
 	a.peek is ()
 
@@ -13,7 +14,8 @@ test
 	b-popped = pop! b
 	b.pop!.a.to::nat64[] is ()
 	b-popped.b is 1
-	forbid is-empty b
+	any b is true
+	size b is 1
 
 	c = b ~ 2
 	c.to::nat64[] is (1, 2)

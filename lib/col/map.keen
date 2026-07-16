@@ -71,13 +71,13 @@ import
 -empty-leaf-node[k, v] (k, v) node()
 	()::(k, v)[]
 
--low-bits nat64(a nat64)
-	a & 0b1111
+-low-bits nat32(a nat32)
+	wrap-to a & 0b1111
 
--inner-node-n-bits nat64()
+-inner-node-n-bits nat32()
 	4
 
--leaf-max-size nat64()
+-leaf-max-size nat32()
 	8
 
 | Later pairs overwrite earlier pairs with the same key.
@@ -86,8 +86,9 @@ import
 
 | Maps with symbol keys can be created using the named-new syntax.
 +named-new[v] v[symbol](keys symbol[], values v[])
+	keys.size is values.size
 	for i, key in with-index keys
-		key, values[i]
+		key, trusted unsafe-at values, i
 
 | Converts a list of pairs to a map.
 | Later pairs overwrite earlier pairs with the same key.
@@ -109,9 +110,7 @@ import
 | O(n^2) but it doesn't matter since n <= 4
 -has-duplicate-keys[k, v] bool(a (k, v) array-view) k key
 	match a.size
-	as 0
-		false
-	as 1
+	as 0 or 1
 		false
 	as 2
 		a[0].a == a[1].a
@@ -122,27 +121,27 @@ import
 	else
 		throw unreachable
 
-| {true} if `{a}.{size} == 0`
-+is-empty[k, v] bool(a v[k]) k key
-	node-is-empty a.root
--node-is-empty[k, v] bool(a (k, v) node)
++any[k, v] bool(a v[k]) k key
+	any a.root
+-any[k, v] bool(a (k, v) node)
 	match a
 	as frozen-map
-		is-empty a
+		assert any a
+		true
 	as inner-node
-		false
+		true
 	as array
-		is-empty a
+		any a
 
 | Number of pairs.
-+size[k, v] nat64(a v[k])
++size[k, v] nat32(a v[k])
 	a.root.size
--size[k, v] nat64(a (k, v) node)
+-size[k, v] nat32(a (k, v) node)
 	match a
 	as frozen-map
 		a.size
 	as inner-node
-		acc mut nat64 = 0
+		acc mut nat32 = 0
 		for child in a.nodes
 			acc +:= child.size
 		acc
@@ -161,7 +160,7 @@ import
 		lookup a.root, key
 -subscript-inner[k, v] v?(a (k, v) inner-node, key k) k key
 	cur mut (k, v) node = a
-	remaining-hash mut = trusted seeded-hash key
+	remaining-hash mut nat32 = wrap-to trusted seeded-hash key
 	do until
 	match x = cur
 	as frozen-map
@@ -169,7 +168,7 @@ import
 	as inner-node
 		which = low-bits remaining-hash
 		do if which < x.nodes.size else ()::v?
-		cur := x.nodes[which]
+		cur := trusted unsafe-at x.nodes, which
 		remaining-hash >>:= inner-node-n-bits
 		()
 	as array
@@ -259,7 +258,7 @@ import
 	key k
 	f v get-or-update-action mut(old-value v?)
 do k key
-	hash = trusted seeded-hash key
+	hash nat32 = wrap-to trusted seeded-hash key
 	match root = a.root
 	as frozen-map
 		trusted get-or-update-leaf root.to, key, hash, 0, f
@@ -271,8 +270,8 @@ do k key
 -get-or-update-recur[k, v] (k, v) get-or-update-result
 	a (k, v) node
 	key k
-	remaining-hash nat64
-	hash-shift nat64
+	remaining-hash nat32
+	hash-shift nat32
 	f v get-or-update-action mut(old-value v?)
 do k key
 	match a
@@ -281,8 +280,9 @@ do k key
 	as inner-node
 		which = low-bits remaining-hash
 		if which < a.nodes.size
+			old-node =  trusted unsafe-at a.nodes, which
 			next-hash = remaining-hash >> inner-node-n-bits
-			child-res = get-or-update-recur a.nodes[which], key, next-hash, hash-shift + inner-node-n-bits, f
+			child-res = get-or-update-recur old-node, key, next-hash, hash-shift + inner-node-n-bits, f
 			if node = child-res.new-node
 				new-node: update-child a.nodes, which, node
 				old-value: child-res.old-value
@@ -291,9 +291,7 @@ do k key
 				child-res
 		else
 			match action = f[]
-			as no-change
-				(), (), ()
-			as remove
+			as no-change or remove
 				(), (), ()
 			as insert
 				new-leaf (k, v)[] = (key, action.value),
@@ -304,37 +302,36 @@ do k key
 
 | Unlike for {update-at}, {index} doesn't need to be a valid index.
 | If `{index} > {a}.{size}`, entries between the and of {a} and the new entries will be {default}.
--update-at-with-default[t] t[](a t[], index nat64, new-value t, default t)
+-update-at-with-default[t] t[](a t[], index nat32, new-value t, default t)
 	if index < a.size
 		update-at a, index, new-value
 	else
-		for i in 0::nat64 .. index + 1
+		for i in index + 1
 			if i < a.size
-				a[i]
+				trusted unsafe-at a, i
 			elif i == index
 				new-value
 			else
 				default
 
--update-child[k, v] (k, v) node(a (k, v) node[], which nat64, new-child (k, v) node)
+-update-child[k, v] (k, v) node(a (k, v) node[], which nat32, new-child (k, v) node)
 	if leaf = inner-node-to-leaf a, which, new-child
 		leaf
-	elif node-is-empty new-child
-		if which == a.size - 1
-			new-children (k, v) node array-view = a[0 .. a.size - 1]
-			if new-children.size == 1 then new-children[0] else inner-node new-children.to
-		else
-			new-children = update-at a, which, new-child
-			if child = find-only-non-empty-child new-children
-				child
-			else
-				inner-node new-children
-	else
+	elif any new-child
 		inner-node update-at a, which, new-child
+	elif which == a.size - 1
+		new-children (k, v) node array-view = a[0 .. a.size - 1]
+		if new-children.size == 1 then new-children[0] else inner-node new-children.to
+	else
+		new-children = update-at a, which, new-child
+		if child = find-only-non-empty-child new-children
+			child
+		else
+			inner-node new-children
 
 | Returns a new node if we should change this to a leaf.
--inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node[] , which nat64, new-child (k, v) node)
-	total-size mut nat64 = 0
+-inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node[] , which nat32, new-child (k, v) node)
+	total-size mut nat32 = 0
 	for child-index, child in with-index a
 		total-size := match x = if child-index == which then new-child else child
 		as frozen-map
@@ -348,9 +345,7 @@ do k key
 		pairs (k, v)[] = with out in build total-size
 			for child-index, child in with-index a
 				match x = if child-index == which then new-child else child
-				as frozen-map
-					throw unreachable
-				as inner-node
+				as frozen-map or inner-node
 					throw unreachable
 				as array
 					out ~~= x
@@ -358,19 +353,19 @@ do k key
 		pairs
 
 -find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node[])
-	first-non-empty-index = find-index! children, it.node-is-empty.not
-	if every children[first-non-empty-index + 1 .. children.size], it.node-is-empty
-		children[first-non-empty-index]
+	first-non-empty-index = find-index! children, it.any
+	unless some children[first-non-empty-index + 1 .. children.size], it.any
+		trusted unsafe-at children, first-non-empty-index
 
 -get-or-update-leaf[k, v] (k, v) get-or-update-result
 	a (k, v)[]
 	key k
-	remaining-hash nat64
-	hash-shift nat64
+	remaining-hash nat32
+	hash-shift nat32
 	f v get-or-update-action mut(old-value v?)
 do k key
 	if index = find-index a, it.a == key
-		_, old-value = a[index]
+		_, old-value = trusted unsafe-at a, index
 		match action = f[old-value]
 		as no-change
 			(), old-value, ()
@@ -382,9 +377,7 @@ do k key
 			new-value: action.value
 	else
 		match action = f[]
-		as no-change
-			(), (), ()
-		as remove
+		as no-change or remove
 			(), (), ()
 		as insert
 			new-node (k, v) node = if a.size >= leaf-max-size
@@ -396,18 +389,18 @@ do k key
 				a ~ (key, action.value)
 			new-node, (), action.value
 
--new-inner-node[k, v] (k, v) inner-node(a (k, v)[], key k, value v, hash nat64, hash-shift nat64) k key
+-new-inner-node[k, v] (k, v) inner-node(a (k, v)[], key k, value v, hash nat32, hash-shift nat32) k key
 	do trusted
 	key-hash = low-bits hash
 	max-hash mut = key-hash
 	for k, _ in a
-		max-hash max:= low-bits k.seeded-hash >> hash-shift
+		max-hash max:= low-bits k.seeded-hash.wrap-to::nat32 >> hash-shift
 	res (k, v) node buffer = n-of max-hash + 1, empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
-	res[key-hash] := ((key, value),)::(k, v)[]
+	unsafe-set-at res, key-hash, ((key, value),)::(k, v)[]
 	for k, v in a
-		index = low-bits k.seeded-hash >> hash-shift
-		res[index] := res[index].array! ~ (k, v)
+		index = low-bits k.seeded-hash.wrap-to::nat32 >> hash-shift
+		unsafe-set-at res, index, (array! unsafe-at res, index) ~ (k, v)
 	- cast-immutable res
 
 +some[k, v] bool(a v[k], f bool mut(key k, value v)) k key
@@ -417,7 +410,7 @@ do k key
 	-inner v[k]
 +unsorted[k, v] (k, v) map-unsorted(a v[k]) unsafe
 	a,
-+size[k, v] nat(a (k, v) map-unsorted)
++size[k, v] nat32(a (k, v) map-unsorted)
 	a.inner.size
 +some[k, v] bool(a (k, v) map-unsorted, f bool mut(key k, value v)) unsafe
 	some-recur a.inner.root, f
@@ -437,9 +430,9 @@ dbg[k, v] string(a v[k]) k show, v show
 	as frozen-map
 		"TODO"
 	as inner-node
-		join " ", for* index, child in with-index a.nodes
-			unless node-is-empty child
-				- dbg child, "{path}{index}"
+		join " ", for? index, child in with-index a.nodes
+			if any child
+				dbg child, "{path}{index}"
 	as array
 		parts string[] = for k, v in a
 			"{k} -> {v}"

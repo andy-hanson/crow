@@ -21,11 +21,11 @@ import
 +to[k, v] json(a (k, v) sorted-list) k sorted-key, k to-json, v to-json
 	a.to::(k, v)[].to
 
-+is-empty[k, v] bool(a (k, v) sorted-list) k sorted-key
-	is-empty a.inner
++any[k, v] bool(a (k, v) sorted-list) k sorted-key
+	any a.inner
 
-+size[k, v] nat64(a (k, v) sorted-list) k sorted-key
-	res mut nat64 = 0
++size[k, v] nat32(a (k, v) sorted-list) k sorted-key
+	res mut nat32 = 0
 	for _, vs in a.inner
 		res +:= vs.size
 	res

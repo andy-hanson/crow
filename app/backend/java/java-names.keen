@@ -53,8 +53,6 @@ do show-ctx
 					base
 				else
 					"{base}{fun.hash}"
-		as low-fun-source-interface-or-lens-method-impl
-			"impl{fun.hash}"
 		as low-fun-source-test
 			"$test{fun.hash}"
 		as low-fun-source-test-all
@@ -98,10 +96,8 @@ subscript class-and-member(a java-names, fun low-fun)
 subscript symbol(a java-names, type low-type)
 	a.type-to-name[type]!
 
-lambda-impl-class-name symbol(a java-names, containing-fun low-fun, lambda-index nat)
-	module = module-class-name a, containing-fun.module-uri
-	fun, _ = a.fun-to-name-and-descriptor[containing-fun]!
-	"{module}_{fun}_lambda{lambda-index}"
+lambda-impl-class-name symbol(a java-names, lambda-index nat)
+	"{a.class-prefix}_lambda{lambda-index}"
 
 -gen-type-name symbol(module-to-class-name symbol mut[uri], a low-type, class-prefix string)
 	if path = as-extern a
@@ -113,10 +109,10 @@ lambda-impl-class-name symbol(a java-names, containing-fun low-fun, lambda-index
 		as low-type-source-inst
 			decl = a.source.decl
 			base = "{add-module-name module-to-class-name, decl.module-uri, class-prefix}{do-mangle decl.name}"
-			if is-empty a.source.type-args
-				base.to
-			else
+			if any a.source.type-args
 				"{base}{a.id}"
+			else
+				base.to
 		as low-type-source-new-interface
 			"new_{gen-type-name module-to-class-name, a.source.interface_, class-prefix}"
 		as low-type-source-record-field-lens
@@ -193,7 +189,7 @@ descriptor-for-return-type string(a java-names, type low-type)
 	as void
 		"V"
 	as java-primitive-type
-		rt.primitive-descriptor
+		primitive-descriptor rt
 	as reference-type
 		if elem = as-array-or-buffer type
 			"[{generate-descriptor-for-return-type ctx, elem}"
@@ -235,46 +231,30 @@ boxed-class-name symbol(a java-names, type low-type)
 		as array then array-or-buffer[]
 		as bool then "java/lang/Boolean"
 		as buffer then array-or-buffer[]
-		as char8 then "java/lang/Byte"
+		as char8 or int8 or nat8 then "java/lang/Byte"
 		as char16 then "java/lang/Character"
 		as char32 then "java/lang/Integer"
 		as float32 then "java/lang/Float"
 		as float64 then "java/lang/Double"
-		as int8 then "java/lang/Byte"
-		as int16 then "java/lang/Short"
-		as int32 then "java/lang/Integer"
-		as int64 then "java/lang/Long"
+		as int16 or nat16 then "java/lang/Short"
+		as int32 or nat32 then "java/lang/Integer"
+		as int64 or nat64 then "java/lang/Long"
 		as js-any then "java/lang/Object"
-		as lambda-data then mangled[]
-		as lambda-mut then mangled[]
-		as lambda-shared then mangled[]
-		as nat8 then "java/lang/Byte"
-		as nat16 then "java/lang/Short"
-		as nat32 then "java/lang/Integer"
-		as nat64 then "java/lang/Long"
+		as lambda-data or lambda-shared or lambda-mut or void then mangled[]
 		as option then throw unreachable
-		as void then mangled[]
 		as weak-ref then "java/lang/ref/WeakReference"
-	as low-enum
-		mangled[]
-	as low-flags
-		mangled[]
-	as low-java-class
-		throw unreachable
-	as low-record
+	as low-enum or low-flags or low-record
 		mangled[]
 	as low-union
 		match ctx.union-info.union-to-representation[type]!
 		as exception
 			"java/lang/Throwable"
-		as interface_
-			mangled[]
-		as switch
+		as interface_ or switch
 			mangled[]
 		as nullable
 			_, non-null = only2! body.members
 			generate-boxed-class-name ctx, non-null
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
 lambda-init-descriptor symbol(a java-names, lambda lambda-low-expr)
@@ -301,9 +281,9 @@ primitive-descriptor symbol(a java-primitive-type)
 
 -java-constant-names java-constant-names(program low-program, class-prefix string) show-ctx
 	# Since class files can't get too big, we must break up constants between several classes.
-	cur-class-index mut = 0
+	cur-class-index mut nat32 = 0
 	cur-class-name mut symbol = "{class-prefix}_constants{cur-class-index}"
-	field-index mut = 0
+	field-index mut nat32 = 0
 	cur-class-constants any-allocated-constant mut[] = ()
 	class-to-constants any-allocated-constant[] mut[symbol] = ()
 
@@ -326,7 +306,7 @@ primitive-descriptor symbol(a java-primitive-type)
 		field-index +:= 1
 		cur-class-constants ~= constant
 
-	unless is-empty cur-class-constants
+	if any cur-class-constants
 		class-to-constants[cur-class-name] := cur-class-constants.move-to
 
 	names: finish out

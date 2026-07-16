@@ -10,15 +10,15 @@
 				end: character: 2, line: 1
 				start: character: 1, line: 1
 			uri: "test:/hover/assignment.keen"
-	hover: "Local 'x' of type 'nat64'"
+	hover: "Local 'x' of type 'nat32'"
 	range:
 		end: character: 2, line: 1
 		start: character: 1, line: 1
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
 	hover: "Makes this variable mutable."
@@ -26,10 +26,27 @@
 		end: character: 6, line: 1
 		start: character: 3, line: 1
 -
-	hover: "Literal expression.\nExpression type is: 'nat64'"
+	definition:
+		-
+			range:
+				end: character: 4, line: 17
+				start: character: 1, line: 17
+			uri: "test:///keen/lib/number.keen"
+	hover: "Alias for 'nat32'"
 	range:
 		end: character: 10, line: 1
-		start: character: 9, line: 1
+		start: character: 7, line: 1
+	type-definition:
+		-
+			range:
+				end: character: 6, line: 50
+				start: character: 1, line: 50
+			uri: "test:///keen/lib/private/bootstrap.keen"
+-
+	hover: "Literal expression.\nExpression type is: 'nat32'"
+	range:
+		end: character: 14, line: 1
+		start: character: 13, line: 1
 -
 	definition:
 		-
@@ -37,35 +54,35 @@
 				end: character: 2, line: 1
 				start: character: 1, line: 1
 			uri: "test:/hover/assignment.keen"
-	hover: "Sets local variable 'x'.\nExpression type is: 'nat64'"
+	hover: "Sets local variable 'x'.\nExpression type is: 'nat32'"
 	range:
 		end: character: 2, line: 2
 		start: character: 1, line: 2
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
 	definition:
 		-
 			range:
-				end: character: 3, line: 192
-				start: character: 2, line: 192
+				end: character: 3, line: 129
+				start: character: 2, line: 129
 			uri: "test:///keen/lib/number.keen"
-	hover: "Calls '+ nat64(a nat64, b nat64)' (from keen/number.keen line 193).\nExpression type is: 'nat64'"
+	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 130).\nExpression type is: 'nat32'"
 	range:
 		end: character: 6, line: 2
 		start: character: 3, line: 2
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
-	hover: "Literal expression.\nExpression type is: 'nat64'"
+	hover: "Literal expression.\nExpression type is: 'nat32'"
 	range:
 		end: character: 8, line: 2
 		start: character: 7, line: 2
@@ -81,32 +98,32 @@
 				end: character: 1, line: 9
 				start: character: 0, line: 9
 			uri: "test:/hover/assignment.keen"
-	hover: "Calls 'g nat64()' (from test:/hover/assignment.keen line 10).\nExpression type is: 'nat64'"
+	hover: "Calls 'g nat32()' (from test:/hover/assignment.keen line 10).\nExpression type is: 'nat32'"
 	range:
 		end: character: 2, line: 5
 		start: character: 1, line: 5
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
 	definition:
 		-
 			range:
-				end: character: 3, line: 192
-				start: character: 2, line: 192
+				end: character: 3, line: 129
+				start: character: 2, line: 129
 			uri: "test:///keen/lib/number.keen"
-	hover: "Calls '+ nat64(a nat64, b nat64)' (from keen/number.keen line 193).\nExpression type is: 'void'"
+	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 130).\nExpression type is: 'void'"
 	range:
 		end: character: 4, line: 5
 		start: character: 3, line: 5
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
 	definition:
@@ -115,23 +132,23 @@
 				end: character: 1, line: 9
 				start: character: 0, line: 9
 			uri: "test:/hover/assignment.keen"
-	hover: "Calls 'set-g void(a nat64)' (from test:/hover/assignment.keen line 10).\nExpression type is: 'void'"
+	hover: "Calls 'set-g void(a nat32)' (from test:/hover/assignment.keen line 10).\nExpression type is: 'void'"
 	range:
 		end: character: 6, line: 5
 		start: character: 4, line: 5
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
-	hover: "Literal expression.\nExpression type is: 'nat64'"
+	hover: "Literal expression.\nExpression type is: 'nat32'"
 	range:
 		end: character: 8, line: 5
 		start: character: 7, line: 5
 -
-	hover: "Calls a function named 'bogus'\nExpression type is: 'nat64'"
+	hover: "Calls a function named 'bogus'\nExpression type is: 'nat32'"
 	range:
 		end: character: 3, line: 7
 		start: character: 1, line: 7
@@ -147,18 +164,18 @@
 				end: character: 1, line: 9
 				start: character: 0, line: 9
 			uri: "test:/hover/assignment.keen"
-	hover: "Calls 'set-g void(a nat64)' (from test:/hover/assignment.keen line 10).\nExpression type is: 'void'"
+	hover: "Calls 'set-g void(a nat32)' (from test:/hover/assignment.keen line 10).\nExpression type is: 'void'"
 	range:
 		end: character: 10, line: 7
 		start: character: 8, line: 7
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
-	hover: "Calls a function named 'bogus'\nExpression type is: 'nat64'"
+	hover: "Calls a function named 'bogus'\nExpression type is: 'nat32'"
 	range:
 		end: character: 12, line: 7
 		start: character: 10, line: 7
@@ -169,15 +186,15 @@
 				end: character: 1, line: 9
 				start: character: 0, line: 9
 			uri: "test:/hover/assignment.keen"
-	hover: "Global variable 'g' :: nat64"
+	hover: "Global variable 'g' :: nat32"
 	range:
 		end: character: 1, line: 9
 		start: character: 0, line: 9
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
 -
 	hover: "Declares a mutable global variable (shared between all threads)."
@@ -188,16 +205,23 @@
 	definition:
 		-
 			range:
-				end: character: 4, line: 15
-				start: character: 1, line: 15
+				end: character: 4, line: 17
+				start: character: 1, line: 17
 			uri: "test:///keen/lib/number.keen"
-	hover: "Alias for 'nat64'"
+	hover: "Alias for 'nat32'"
 	range:
 		end: character: 12, line: 9
 		start: character: 9, line: 9
 	type-definition:
 		-
 			range:
-				end: character: 6, line: 53
-				start: character: 1, line: 53
+				end: character: 6, line: 50
+				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
+-
+	hover: quote
+		Literal expression.
+		Expression type is: 'nat32'
+	range:
+		end: character: 17, line: 9
+		start: character: 16, line: 9

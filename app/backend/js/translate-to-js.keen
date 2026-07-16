@@ -1,6 +1,6 @@
 import
 	keen/format/base64
-	../../cli/command
+	keen/unsafe
 	../../frontend/show-model
 	../../model/low-model
 	../../model/model
@@ -15,22 +15,16 @@ import
 	./union-representation
 	./write-js-ast
 
-translate-to-js js-and-map
-	program low-program
-	sanity-checks sanity-checks
-	source-map-name string?
-do show-ctx
+translate-to-js js-and-map(program low-program, source-map-name string?) show-ctx
 	start = perf-now
 	finally end-translate-to-js start
 	the low-common-types = program.common-types
 	the to-js-ctx =
 		program: program
-		sanity-checks: sanity-checks
 		union-info: plan-unions program
 		mangled-names: build-mangled-names program
 		constant-names: gen-constant-names program
-	classes js-class-decl[] = for* type in program.all-non-extern-types
-		from-option translate-type type
+	classes js-class-decl[] = for? type in program.all-non-extern-types then translate-type type
 	functions js-fun-decl[] = with out in build
 		for x in program.all-non-extern-funs
 			out ~~= to-js-functions x
@@ -78,7 +72,7 @@ do show-ctx
 		statements:
 			- to::js-statement gen-call-main program.common-funs.low-common-funs-js!.main
 	module-paths = module-paths program.model-program
-	write-js-ast file-content-getters, module-paths, ast, sanity-checks, source-map-name
+	write-js-ast file-content-getters, module-paths, ast, source-map-name
 
 # Emit vars with simple initializers before symbols (this happens to be the only kind of constants that requires)
 -has-simple-initializer bool(a low-var)
@@ -86,14 +80,14 @@ do show-ctx
 
 -gen-var-no-getter js-var-decl(var low-var) to-js
 	# TODO: actually detect whether it needs to be async
-	the to-expr-ctx = async, var.source::var-decl.name
+	the to-expr-ctx = is-cur-fun-async: async, cur-fun-debug-name: var.source::var-decl.name
 	const: let
 	destructure: js-name var
 	initializer: to-js-expr var.initializer
 
 -gen-constant-names nat constant-names(program low-program) show-ctx
 	out nat constant-names-builder = ()
-	constant-index mut = 0
+	constant-index mut nat = 0
 	each-constant-in-dependency-order program, of x
 		out[x] := constant-index
 		constant-index +:= 1
@@ -116,22 +110,16 @@ do show-ctx
 	extends js-name? = if program.exception-case-types[a]
 		js-name exception
 	match a.body
-	as builtin-type
+	as builtin-type or low-enum or low-flags
 		()
-	as low-enum
-		()
-	as low-flags
-		()
-	as low-java-class
-		throw unreachable
 	as low-record
 		class-for-record a, extends, a.body
 	as low-union
 		class-for-union a, extends
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
--gen-is-type js-expr?(source source, get js-expr, a low-type) to-js-ctx
+-gen-is-type js-expr(source source, get js-expr, a low-type) to-js-ctx
 	match x = a.body
 	as builtin-type
 		gen-is-builtin-type source, get, a, x
@@ -139,69 +127,29 @@ do show-ctx
 		gen-is-nat source, get, x.storage
 	as low-flags
 		gen-is-nat source, get, x.storage
-	as low-java-class
-		throw unreachable
 	as low-record
 		gen-instanceof source, get, to-ref source, a
-	as low-union
-		()
-	as low-type-body-deferred
+	as low-java-class or low-union or low-type-body-deferred
 		throw unreachable
 
--gen-type-assert js-statement?(source source, get js-expr, a low-type) to-js
-	do if the-sanity-checks == all-sanity-checks
-	do if is-type = gen-is-type source, get, a
-	# Allow 'gc-safe-value'
-	is-type-or-null = gen-or source, is-type, gen-eq-eq-eq source, get, source.gen-null
-	gen-call-sync source, (gen-identifier source, "_assert".no-prefix), (is-type-or-null,) 'to
-
--gen-is-builtin-type js-expr?(source source, get js-expr, type low-type, kind builtin-type)
+-gen-is-builtin-type js-expr(source source, get js-expr, type low-type, kind builtin-type)
 	instanceof = of x string
-		gen-instanceof source, get, gen-identifier source, x.no-prefix
-	typeof  = of x string
+		gen-instanceof source, get, gen-identifier source, no-prefix x
+	typeof = of x string
 		gen-typeof-is source, get, x
-	array = {instanceof[type.as-array-or-buffer!.js-array-type-for-element-type.to]}
 	match kind
-	as array
-		array[]
+	as array or buffer
+		instanceof[type.as-array-or-buffer!.js-array-type-for-element-type.to]
 	as bool
 		typeof["boolean"]
-	as buffer
-		array[]
-	as char8
+	as char8 or char16 or char32 or float32 or float64 or int8 or int16 or int32 or nat8 or nat16 or nat32
 		typeof["number"]
-	as char16
-		typeof["number"]
-	as char32
-		typeof["number"]
-	as float32
-		typeof["number"]
-	as float64
-		typeof["number"]
-	as int8
-		typeof["number"]
-	as int16
-		typeof["number"]
-	as int32
-		typeof["number"]
-	as int64
+	as int64 or nat64
 		typeof["bigint"]
 	as js-any
-		()
-	as lambda-data
+		throw unreachable
+	as lambda-data or lambda-mut or lambda-shared
 		typeof["function"]
-	as lambda-mut
-		typeof["function"]
-	as lambda-shared
-		typeof["function"]
-	as nat8
-		typeof["number"]
-	as nat16
-		typeof["number"]
-	as nat32
-		typeof["number"]
-	as nat64
-		typeof["bigint"]
 	as option
 		throw unreachable
 	as void
@@ -211,11 +159,7 @@ do show-ctx
 
 -gen-is-nat js-expr(source source, get js-expr, type nat-type)
 	gen-typeof-is source, get, match type
-	as nat8
-		"number"
-	as nat16
-		"number"
-	as nat32
+	as nat8 or nat16 or nat32
 		"number"
 	as nat64
 		"bigint"
@@ -257,22 +201,23 @@ do show-ctx
 	members:
 		source source = source a
 		do with out in build
-		unless is-empty r.fields
-			out ~= gen-constructor source, extends, names, of index, get
-				gen-type-assert source, get, r.fields[index].type
+		if any r.fields
+			out ~= gen-constructor source, extends, names
 		each-method-impl a, (union-info.type-to-interfaces[a] else ()), program, of method, impl
-			params js-destructure[] = map method.params[1 .. end], it.local-name-no-mangle
-			args js-expr[] =
-				- gen-this source
-				-- map params, of param
-					gen-identifier source, param.js-name!
-			body js-block-statement =
-				ref = to-ref source, impl!, if impl!.async-fun-kind == always-async then async else sync
-				statements:
-					- gen-return source,
-						gen-call-sync source, ref, args
-			out ~= source, mangled-names[method, sync],
-				js-class-method sync, params, body
+			out ~= to-method-body source, method, impl!
+
+-to-method-body js-class-member(source source, method low-fun, impl low-expr) to-js
+	source: source
+	name: mangled-names[method, sync]
+	kind:
+		the to-expr-ctx =
+			is-cur-fun-async: if method.async-fun-kind == always-async then async else sync
+			cur-fun-debug-name: debug-name method
+			this-local: method.params[0]
+		:: js-class-method
+		async: the::to-expr-ctx.is-cur-fun-async
+		params: map method.params[1 .. end], it.local-name
+		body: to-block-statement impl
 
 -class-for-union js-class-decl?(a low-type, extends js-name?) to-js
 	match union-representation a
@@ -308,14 +253,9 @@ do show-ctx
 		name: js-name a
 		extends: extends
 		members:
-			- gen-constructor a.source, extends, ("index", "value"), {}
+			- gen-constructor a.source, extends, ("index", "value")
 
--gen-constructor js-class-member
-	source source
-	call-super bool
-	names string[]
-	check-field js-statement? mut(index nat, value js-expr)
-do
+-gen-constructor js-class-member(source source, call-super bool, names string[])
 	params js-destructure[] = map names, it.no-prefix
 	this = gen-this source
 	identifiers js-expr[] = for name in names
@@ -323,8 +263,6 @@ do
 	statements js-statement[] =
 		-- if call-super
 			- gen-call-sync source, (gen-global source, "super"), () 'to
-		-- for* index, value in with-index identifiers
-			from-option check-field[index, value]
 		-- for name, identifier in zip names, identifiers
 			this_x = gen-property-access source, this, name
 			gen-assign source, this_x, identifier
@@ -348,12 +286,9 @@ do
 -to-js spec show-ctx, low-common-types, to-js-ctx
 -to-js-ctx record
 	program low-program
-	sanity-checks sanity-checks
 	union-info union-info
 	mangled-names js-mangled-names
 	constant-names nat constant-names
--the-sanity-checks sanity-checks() to-js-ctx
-	the::to-js-ctx.sanity-checks
 -program low-program() to-js-ctx
 	the::to-js-ctx.program
 -union-info union-info() to-js-ctx
@@ -364,8 +299,6 @@ do
 	the::to-js-ctx.constant-names
 -common-funs low-common-funs-js() to-js-ctx
 	the::to-js-ctx.program.common-funs.low-common-funs-js!
--is-string-or-symbol bool(a low-type) low-common-types
-	a == string or a == symbol
 -async-info low-async-info() to-js-ctx
 	program.async!
 -async-fun-kind async-kind?(a low-fun) to-js-ctx
@@ -379,28 +312,30 @@ do
 	top-declared-locals js-name mut[]
 	temp-local-indices nat mut[low-local]
 	next-generated-temp-index mut nat
+	this-local low-local?
 -is-cur-fun-async sync-or-async() to-expr-ctx
 	the::to-expr-ctx.is-cur-fun-async
 -cur-fun-debug-name symbol() to-expr-ctx
 	the::to-expr-ctx.cur-fun-debug-name
 -with-declare-locals js-expr-or-block-statement(source source, locals js-name[], expr js-expr-or-block-statement)
-	if is-empty locals
+	do if any locals else expr
+	block js-block-statement = match expr
+	as js-expr
+		gen-return source, expr 'to
+	as js-block-statement
 		expr
-	else
-		block js-block-statement = match expr
-		as js-expr
-			gen-return source, expr 'to
-		as js-block-statement
-			expr
-		decl js-var-decl = let, for x in locals then x, ()
-		(source, decl) ~ block
+	decl js-var-decl = let, for x in locals then x, ()
+	(source, decl) ~ block
 -new to-expr-ctx(is-cur-fun-async sync-or-async, cur-fun-debug-name symbol)
+	is-cur-fun-async, cur-fun-debug-name, ()
+-new to-expr-ctx(is-cur-fun-async sync-or-async, cur-fun-debug-name symbol, this-local low-local?)
 	is-cur-fun-async: is-cur-fun-async
 	cur-fun-debug-name: cur-fun-debug-name
 	cur-loop-label: ()
 	top-declared-locals: ()
 	temp-local-indices: ()
 	next-generated-temp-index: ()
+	this-local: this-local
 -finish-locals js-name[]() to-expr-ctx
 	the::to-expr-ctx.top-declared-locals.move-to
 -take-next-temp-index nat() to-expr-ctx
@@ -428,7 +363,7 @@ do
 -gen-var-getter js-fun-decl(a low-var) to-js
 	async = is-async-initializer a
 	name = var-getter-name a
-	the to-expr-ctx = async, a.source::var-decl.name
+	the to-expr-ctx = is-cur-fun-async: async, cur-fun-debug-name: a.source::var-decl.name
 	initializer = to-js-expr a.initializer
 	###
 	if (x === undefined) x = initializer
@@ -445,6 +380,7 @@ do
 	fun: async, (), body.to
 
 -to-js-functions js-fun-decl[](a low-fun) to-js
+	do unless low-fun-body-method a.body
 	if x = async-fun-kind a
 		match x
 		as always-async
@@ -455,8 +391,8 @@ do
 	else
 		- to-js-function a, sync
 -to-js-function js-fun-decl(a low-fun, async sync-or-async) to-js
-	the to-expr-ctx = async, debug-name a
-	body = to-expr-or-block-statement a
+	the to-expr-ctx = is-cur-fun-async: async, cur-fun-debug-name: a.debug-name
+	body = to-expr-or-block-statement low-expr! a.body
 	locals = finish-locals
 	comment: show-low-fun-name a
 	name: js-name a, async
@@ -464,40 +400,6 @@ do
 		async: async
 		params: map a.params, it.local-name
 		body: with-declare-locals a.source, locals, body
-
--to-expr-or-block-statement js-expr-or-block-statement(a low-fun) to-expr
-	source source = source a
-	get-params = of::js-expr[]
-		map a.params, {get-local source, it}
-	match body = a.body
-	as low-expr
-		res = to-expr-or-block-statement body
-		type-asserts js-statement[] = unless the-sanity-checks == no-sanity-checks
-			for* param in a.params
-				from-option gen-type-assert source, (get-local source, param), param.type
-		if is-empty type-asserts
-			res
-		else
-			(type-asserts,) ~~ (to-block-statement res, a.return-type)
-	as low-fun-body-extern-java
-		throw unreachable
-	as low-fun-body-method
-		gen-call-property-sync source, (get-local source, a.params[0]), mangled-names[a, sync],
-			map a.params[1 .. end], {get-local source, it}
-	as low-fun-body-deferred
-		throw unreachable
-	as low-fun-body-always-inline
-		throw unreachable
-	as low-builtin-unary
-		translate-builtin-unary a.return-type, source, body, a.params.only!.type, only! get-params[]
-	as low-builtin-binary
-		translate-builtin-binary a.return-type, source, body, a.params[0].type, is-cur-fun-async, only2! get-params[]
-	as low-builtin-ternary
-		translate-builtin-ternary source, body, only3! get-params[]
-	as java-fun
-		throw todo
-	as js-fun
-		throw todo
 
 -gen-call-Number js-expr(source source, arg js-expr)
 	gen-call-sync source, (gen-global source, "Number"), (arg,)
@@ -513,16 +415,22 @@ do to-expr
 		gen-unary source, op, arg
 	match a
 	as array-size
-		# BigInt(arg.length)
-		BigInt = gen-global source, "BigInt"
-		length = gen-property-access source, arg, "length"
-		gen-call-sync source, BigInt, (length,)
+		gen-property-access source, arg, "length"
 	as bits-of-float32
 		gen-convert source, 4, "Float32Array", "Uint32Array", arg
 	as bits-of-float64
 		gen-convert source, 8, "Float64Array", "BigInt64Array", arg
 	as bitwise-not
 		gen-as-integral source, type.as-integral-type!, unary[bitwise-not]
+	as count-ones
+		name string = match as-nat-type! arg-type
+		as nat32
+			"_countOnes32"
+		as nat64
+			"_countOnes64"
+		else
+			throw unreachable
+		gen-call-sync source, (gen-identifier source, name.no-prefix), (arg,)
 	as drop
 		gen-unary source, void, arg
 	as float32-from-bits
@@ -531,8 +439,7 @@ do to-expr
 		gen-convert source, 8, "BigInt64Array", "Float64Array", arg
 	as uninitialized-buffer
 		array-type = js-array-type type
-		array = gen-new source, (gen-global source, array-type.to),
-			- gen-call-sync source, (gen-global source, "Number"), (arg,)
+		array = gen-new source, (gen-global source, array-type.to), (arg,)
 		match array-type
 		as Array
 			# In JS, a 'new Array' has *missing* values, which perform worse than null values
@@ -550,13 +457,19 @@ do to-expr
 		gen-as-float32 source, arg
 	as to-float64-from-float32
 		arg
-	as to-float64-from-int64
-		gen-call-sync source, (gen-global source, "Number"), (arg,)
-	as to-float64-from-nat64
-		gen-call-sync source, (gen-global source, "Number"), (arg,)
-	as truncate-to-int64-from-float64
-		trunc = gen-call-math source, "trunc", arg
-		gen-call-sync source, (gen-global source, "BigInt"), (trunc,)
+	as to-float-from-integral
+		as-float source, type.as-float-type!, if is-64-bit as-integral-type! arg-type
+			gen-call-sync source, (gen-global source, "Number"), (arg,)
+		else
+			arg
+	as truncate-to
+		match as-integral-type! type
+		as int32
+			gen-call-global source, "__truncateToInt32", arg
+		as int64
+			gen-call-global source, "__truncateToInt64", arg
+		else
+			throw unreachable
 	as weak-ref-get
 		###
 		const got = arg?.get()
@@ -594,7 +507,7 @@ do to-expr
 	as int16
 		gen-as-intX-from-int64 source, type, arg, 0xffff
 	as int32
-		gen-as-intX-from-int64 source, type, arg, 0xffffffff
+		gen-as-intX-from-int64 source, type, arg, 0xffff_ffff
 	as int64
 		gen-call-sync source, (gen-identifier source, "_int64OfNat64".no-prefix), (arg,)
 	as nat8
@@ -602,7 +515,7 @@ do to-expr
 	as nat16
 		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffff
 	as nat32
-		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffffffff
+		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffff_ffff
 	as nat64
 		gen-bitwise-and source, arg, gen-bigint-unsigned source, max-value
 -gen-as-intX-from-int64 js-expr(source source, type integral-type, arg js-expr, max-value nat64)
@@ -623,9 +536,9 @@ do
 	bitwise = of op js-binary-kind
 		res = binary[op]
 		if is-nat32 type then gen-to-nat32 source, res else res
+	global-binary = of name string
+		gen-call-sync source, (gen-identifier source, no-prefix name), (arg0, arg1)
 	match a
-	as array-get
-		gen-property-access-computed source, arg0, arg1
 	as bitwise-and
 		bitwise[bitwise-and]
 	as bitwise-or
@@ -638,12 +551,66 @@ do
 	as compare
 		name = if as-float-type arg0-type then "_compareFloat" else "_compareIntegral"
 		gen-call-sync source, (gen-identifier source, name.no-prefix), (arg0, arg1)
+	as compare-less
+		if as-float-type arg0-type
+			global-binary["_lessFloat"]
+		else
+			assert as-integral-type-allow-bool-char arg0-type
+			binary[less]
+	as compare-less-or-equal
+		if as-float-type arg0-type
+			global-binary["_lessOrEqualFloat"]
+		else
+			assert as-integral-type-allow-bool-char arg0-type
+			binary[less-or-equal]
+	as compare-greater
+		if as-float-type arg0-type
+			global-binary["_greaterFloat"]
+		else
+			assert as-integral-type-allow-bool-char arg0-type
+			binary[greater]
+	as compare-greater-or-equal
+		if as-float-type arg0-type
+			global-binary["_greaterOrEqualFloat"]
+		else
+			assert as-integral-type-allow-bool-char arg0-type
+			binary[greater-or-equal]
 	as equal-exact
-		gen-call-property-sync source, (gen-global source, "Object"), "is", (arg0, arg1)
+		if as-float-type arg0-type
+			gen-object-is source, arg0, arg1
+		else
+			gen-eq-eq-eq source, arg0, arg1
 	as equal-float-ieee
 		binary[eq-eq-eq]
 	as less-float-ieee
 		binary[less]
+	as not-equal-exact
+		if as-float-type arg0-type
+			gen-not source, gen-object-is source, arg0, arg1
+		else
+			gen-not-eq-eq source, arg0, arg1
+	as rotate-left
+		name string = match as-nat-type! type
+		as nat8
+			"_rotateLeftNat8"
+		as nat16
+			"_rotateLeftNat16"
+		as nat32
+			"_rotateLeftNat32"
+		as nat64
+			"_rotateLeftNat64"
+		global-binary[name]
+	as rotate-right
+		name string = match as-nat-type! type
+		as nat8
+			"_rotateRightNat8"
+		as nat16
+			"_rotateRightNat16"
+		as nat32
+			"_rotateRightNat32"
+		as nat64
+			"_rotateRightNat64"
+		global-binary[name]
 	as unsafe-add-float
 		match as-float-type! type
 		as float32
@@ -651,6 +618,8 @@ do
 			gen-as-float32 source, binary[plus]
 		as float64
 			binary[plus]
+	as unsafe-at
+		gen-property-access-computed source, arg0, arg1
 	as unsafe-bit-shift-left
 		gen-as-integral source, type.as-integral-type!, binary[bit-shift-left]
 	as unsafe-bit-shift-right
@@ -671,9 +640,7 @@ do
 				div
 			else
 				gen-as-integral source, i, div
-	as unsafe-mod-float64
-		binary[modulo]
-	as unsafe-mod-nat64
+	as unsafe-mod
 		binary[modulo]
 	as unsafe-mul-float
 		match as-float-type! type
@@ -690,9 +657,16 @@ do
 	as wrap-add
 		gen-as-integral source, type.as-integral-type!, binary[plus]
 	as wrap-mul
-		gen-as-integral source, type.as-integral-type!, binary[times]
+		integral = as-integral-type! type
+		gen-as-integral source, integral, if is-64-bit integral
+			binary[times]
+		else
+			gen-call-math source, "imul", (arg0, arg1)
 	as wrap-sub
 		gen-as-integral source, type.as-integral-type!, binary[minus]
+
+-gen-object-is js-expr(source source, a js-expr, b js-expr)
+	gen-call-property-sync source, (gen-global source, "Object"), "is", (a, b)
 
 -translate-builtin-ternary js-expr-or-block-statement
 	source source
@@ -700,13 +674,13 @@ do
 	(arg0 js-expr, arg1 js-expr, arg2 js-expr)
 do
 	match a
-	as array-set
+	as unsafe-set-at
 		access = gen-property-access-computed source, arg0, arg1
 		gen-assign source, access, arg2 'to
 
 -translate-js-fun js-expr-or-block-statement(source source, a js-fun, args low-expr[]) to-expr
 	arg0 = {to-js-expr args[0]}
-	args-after = of first nat
+	args-after = of first nat32
 		map::js-expr[] args[first .. end], it.to-js-expr
 	only-arg = {to-js-expr only! args}
 	only2-args = of::(js-expr, js-expr)
@@ -796,9 +770,10 @@ do
 
 -return-unless-void js-block-statement(expr js-expr, is-void bool)
 	if is-void
-		expr.to
+		unless js-undefined-expr expr.kind
+			to expr
 	else
-		gen-return expr.source, expr 'to
+		to gen-return expr.source, expr
 
 -to-expr-or-block-statement js-expr-or-block-statement(a low-expr) to-expr
 	source = source a
@@ -819,8 +794,12 @@ do
 		translate-js-fun source, a.fun, a.args
 	as call-low-expr
 		call-async = is-async a.called
-		called = to-ref source, a.called, call-async
-		gen-call source, call-async, called, map a.args, it.to-js-expr
+		if low-fun-body-method a.called.body
+			gen-call-property-sync source, a.args[0].to-js-expr, mangled-names[a.called, sync],
+				map a.args[1 .. end], it.to-js-expr
+		else
+			called = to-ref source, a.called, call-async
+			gen-call source, call-async, called, map a.args, it.to-js-expr
 	as constant-low-expr
 		translate-constant source, type, a.value
 	as create-array-low-expr
@@ -834,16 +813,37 @@ do
 		gen-try-finally source, a.below.to-block-statement, a.right.to-block-statement 'to
 	as if-low-expr
 		cond = to-js-expr a.cond
-		match then_ = to-expr-or-block-statement a.then_
-		as js-expr
-			match else_ = to-expr-or-block-statement a.else_
+		# As a code size optimization: If one of the branches throws, un-nest the other branch
+		if throw-low-expr a.then_
+			###
+			if cond then throw x else y
+			==>
+			if (cond) throw x;
+			y;
+			###
+			forbid_ = gen-if source, cond, to-block-statement a.then_
+			forbid_ ~ to-block-statement a.else_
+		elif throw-low-expr a.else_
+			###
+			if cond then x else throw y
+			==>
+			if (!cond) throw y;
+			x;
+			###
+			assert_ = gen-if source, (gen-not source, cond), to-block-statement a.else_
+			assert_ ~ to-block-statement a.then_
+		else
+			match then_ = to-expr-or-block-statement a.then_
 			as js-expr
-				gen-ternary source, cond, then_, else_
+				match else_ = to-expr-or-block-statement a.else_
+				as js-expr
+					gen-ternary source, cond, then_, else_
+				as js-block-statement
+					then-statement = return-unless-void then_, is-void type
+					gen-if source, cond, then-statement, (source, else_) 'to
 			as js-block-statement
-				then-statement = return-unless-void then_, type.is-void
-				gen-if source, cond, then-statement, (source, else_) 'to
-		as js-block-statement
-			gen-if source, cond, then_, (source, a.else_.to-block-statement) 'to
+				else_ = to-block-statement a.else_
+				gen-if source, cond, then_, (if any else_ then source, else_) 'to
 	as let-low-expr
 		local = local-name a.local
 		value = to-js-expr a.value
@@ -893,18 +893,18 @@ do
 		gen-continue source 'to
 	as match-scalar-low-expr
 		translate-match-integral source, type, a
-	as match-string-like-low-expr
-		assert is-string-or-symbol a.matched.type
-		with matched in temp-local "matched", a.matched
-			res mut = to-block-statement a.else_
-			equals-async = is-async a.equals
-			equals = to-ref source, a.equals, equals-async
-			for case_ in reverse a.cases
-				value = translate-constant source, a.matched.type, case_.value
-				cond = gen-call source, equals-async, equals, (matched, value)
-				then_ = to-block-statement case_.then_
-				res := gen-if source, cond, then_, (source, res) 'to
-			res
+	as match-symbol-low-expr
+		matched = to-js-expr a.matched
+		cases js-switch-case[] = for case_ in a.cases
+			values:
+				match case_.value-or-values
+				as constant-array
+					for value in program.all-constants[case_.value-or-values]
+						translate-constant source, symbol, value
+				as constant-symbol
+					- translate-constant source, symbol, case_.value-or-values
+			then_: maybe-break-switch-case source, type, to-block-statement case_.then_
+		to gen-switch source, matched, cases, to-block-statement a.else_
 	as match-union-low-expr
 		translate-match-union source, type, a
 	as new-interface-low-expr
@@ -917,16 +917,14 @@ do
 				lambda = to-js-expr a.args[method.body.low-fun-body-method!.method-index]
 				arity = method.params.size - 1
 				match arity
-				as 0
-					lambda
-				as 1
+				as 0 or 1
 					lambda
 				as 2
-					gen-call-sync source, (gen-global source, "__lambdaToMethod2"), (lambda,)
+					gen-call-global source, "__lambdaToMethod2", lambda
 				as 3
-					gen-call-sync source, (gen-global source, "__lambdaToMethod3"), (lambda,)
+					gen-call-global source, "__lambdaToMethod3", lambda
 				as 4
-					gen-call-sync source, (gen-global source, "__lambdaToMethod4"), (lambda,)
+					gen-call-global source, "__lambdaToMethod4", lambda
 				else
 					throw todo
 	as record-field-get-low-expr
@@ -937,8 +935,7 @@ do
 		access = gen-property-access source, record_, a.field.name.to
 		gen-assign source, access, value 'to
 	as seq-low-expr
-		:: js-block-statement
-		- for* part in a.parts
+		for* part in a.parts
 			statements to-block-statement part
 	as throw-low-expr
 		gen-throw source, a.thrown.to-js-expr 'to
@@ -961,6 +958,9 @@ do
 			to-ref source, a.var
 	as var-set-low-expr
 		gen-assign source, (to-ref source, a.var), a.value.to-js-expr 'to
+
+-gen-call-global js-expr(source source, name string, arg js-expr)
+	gen-call-sync source, (gen-global source, name), (arg,)
 
 -array-op js-expr-or-block-statement(a low-expr, x array-op-low-expr) to-expr
 	source = source a
@@ -1003,71 +1003,75 @@ do
 		as void
 			local = local-or-temp x.local, "ignore"
 			(source, (js-for-of-statement local, input-expr, x.body.to-block-statement)) 'to
-	as range
+	as nat
+		nat-range-array-op source, type, x, of const, low-name, high-name
+			- gen-var-decl source, const, low-name, constant-integral source, x.in-element.as-integral-type!, ()
+			- gen-var-decl source, const, high-name, input-expr
+	as nat-range
 		low, high = range-fields x.input.type
-		cur-name = make-temp-local "cur"
-		cur-type = low.type
-		end-name = make-temp-local "end"
-		get-cur = gen-identifier source, cur-name
-		get-end = gen-identifier source, end-name
-		cur-less-end = gen-less source, get-cur, get-end
-		match output-kind x, type
-		as array
-			###
-			const { low: start, high: end } = range
-			const out = new Array(Number(end - start))
-			let cur = start
-			while (cur < end) {
-				out[cur - start] = ...
-				cur = cur + 1n
-			}
-			return out
-			###
-			start-name = make-temp-local "start"
-			get-start = gen-identifier source, start-name
-			out-name = make-temp-local "out"
-			get-out = gen-identifier source, out-name
+		nat-range-array-op source, type, x, of const, low-name, high-name
 			range-destructure js-object-destructure =
 				fields:
-					- low.name.to, start-name
-					- high.name.to, end-name
-			declare-start-end = gen-const source, range-destructure, to-js-expr x.input
-			Array = array-for-array-type source, type
-			Number = gen-global source, "Number"
-			size = gen-call-sync source, Number,
+					- low.name.to, low-name
+					- high.name.to, high-name
+			- gen-var-decl source, const, range-destructure, input-expr
+
+-nat-range-array-op js-block-statement
+	source source
+	type low-type
+	x array-op-low-expr
+	declare-low-and-high js-statement[] mut(const js-var-decl-const, low-name js-name, high-name js-name)
+do to-expr
+	cur-type = in-element x
+	cur-name = make-temp-local "cur"
+	end-name = make-temp-local "end"
+	get-cur = gen-identifier source, cur-name
+	get-end = gen-identifier source, end-name
+	cur-less-end = gen-less source, get-cur, get-end
+	match output-kind x, type
+	as array
+		###
+		const { low: start, high: end } = range
+		const out = new Array(Number(end - start))
+		let cur = start
+		while (cur < end) {
+			out[cur - start] = ...
+			cur = cur + 1n
+		}
+		return out
+		###
+		start-name = make-temp-local "start"
+		get-start = gen-identifier source, start-name
+		out-name = make-temp-local "out"
+		get-out = gen-identifier source, out-name
+		Array = array-for-array-type source, type
+		Number = gen-global source, "Number"
+		-- declare-low-and-high[const, start-name, end-name]
+		- gen-const source, out-name, gen-new source, Array,
+			- gen-call-sync source, Number,
 				- gen-minus source, get-end, get-start
-			new-array = gen-new source, Array, (size,)
-			declare-out = gen-const source, out-name, new-array
-			declare-cur = gen-let source, cur-name, get-start
-			body js-statement[] =
-				out-at-index = gen-property-access-computed source, get-out, (gen-minus source, get-cur, get-start)
-				-- if l = x.local
-					- gen-const source, l.local-name, get-cur
-				- gen-assign source, out-at-index, to-js-expr x.body
-				- gen-increment source, cur-type, cur-name
-			while_ = gen-while source, cur-less-end, body.to
-			return-out = gen-return source, get-out
-			js-block-statement (declare-start-end, declare-out, declare-cur, while_, return-out)
-		as void
-			range-destructure js-object-destructure =
-				fields:
-					- low.name.to, cur-name
-					- high.name.to, end-name
-			declare-cur-end = gen-let source, range-destructure, to-js-expr x.input
-			###
-			let { low: cur, high:end } = range
-			while (cur < end) {
-				<<body>>
-				cur = cur + 1n
-			}
-			###
-			body js-statement[] =
-				-- if l = x.local
-					- gen-const source, l.local-name, get-cur
-				-- statements to-block-statement x.body
-				- gen-increment source, cur-type, cur-name
-			while_ = gen-while source, cur-less-end, body.to
-			js-block-statement (declare-cur-end, while_)
+		- gen-let source, cur-name, get-start
+		- gen-while source, cur-less-end,
+			out-at-index = gen-property-access-computed source, get-out, (gen-minus source, get-cur, get-start)
+			-- if l = x.local
+				- gen-const source, l.local-name, get-cur
+			- gen-assign source, out-at-index, to-js-expr x.body
+			- gen-increment source, cur-type, cur-name
+		- gen-return source, get-out
+	as void
+		###
+		let { low: cur, high:end } = range
+		while (cur < end) {
+			<<body>>
+			cur = cur + 1n
+		}
+		###
+		-- declare-low-and-high[let, cur-name, end-name]
+		- gen-while source, cur-less-end,
+			-- if l = x.local
+				- gen-const source, l.local-name, get-cur
+			-- statements to-block-statement x.body
+			- gen-increment source, cur-type, cur-name
 
 -union-as-case js-expr-or-block-statement(source source, arg low-expr, union-type low-type) to-expr
 	match union-representation union-type
@@ -1104,19 +1108,16 @@ do
 		to-expr-or-block-statement e
 	else
 		unreachable source
-	values js-expr[] = for value in a.case-values
-		constant-integral source, a.matched-integral-type, value
 	with matched in temp-local "matched", a.matched
 		match x = to-exprs-or-block-statements (case-exprs ~ else_), type
 		as array
-			res mut = x[end - 1]
-			for i nat in reverse 0 .. a.case-values.size
-				res := gen-ternary source, (gen-eq-eq-eq source, matched, values[i]), x[i], res
-			res
+			fold::js-expr x[end - 1], (reverse zip a.switch.inputs-per-case, x[0 .. end - 1]), of cur, (values, expr)
+				gen-ternary source, (gen-equals-any source, matched, a.matched-integral-type, values), expr, cur
 		as block-statements
-			cases js-switch-case[] = for i nat in 0 .. a.case-values.size
-				- values[i]
-				- maybe-break-switch-case source, type, x.blocks[i]
+			cases js-switch-case[] = for values, block in zip a.switch.inputs-per-case, x.blocks[0 .. end - 1]
+				values: for value in values
+					constant-integral source, a.matched-integral-type, value
+				then_: maybe-break-switch-case source, type, block
 			gen-switch source, matched, cases, x.blocks[end - 1] 'to
 -translate-match-union js-expr-or-block-statement(source source, type low-type, x match-union-low-expr) to-expr
 	else_ = if e = x.else_
@@ -1125,7 +1126,16 @@ do
 		unreachable source
 	with matched in temp-local "matched", x.matched
 		cases low-local-and-expr[] = map x.cases, {(), it}
-		match-union source, type, matched, else_, x.union-type, x.case-indices, cases
+		match-union source, type, matched, else_, x.union-type, x.switch, cases
+
+-gen-equals-any js-expr
+	source source
+	matched js-expr
+	matched-integral-type char-or-integral-type
+	values scalar-values
+do
+	gen-or source, for value in values
+		gen-eq-eq-eq source, matched, constant-integral source, matched-integral-type, value
 
 -match-union js-expr-or-block-statement
 	source source
@@ -1133,7 +1143,7 @@ do
 	matched js-expr
 	else_ js-expr-or-block-statement
 	union-type low-type
-	case-indices indices
+	switch switch-indices
 	cases low-local-and-expr[]
 do to-expr
 	union_ = low-union! union-type.body
@@ -1152,8 +1162,9 @@ do to-expr
 	###
 	js-cases js-expr-or-block-statement[] = for case_ in cases
 		to-expr-or-block-statement case_.expr
-	get-cond = of i nat
-		gen-union-is-case source, matched, union_, repr, case-indices[i]
+	get-cond = of i nat32
+		gen-or source, for input in switch.inputs-per-case[i]
+			gen-union-is-case source, matched, union_, repr, input.to
 	matched-value = match repr
 	as direct
 		matched
@@ -1163,7 +1174,7 @@ do to-expr
 	as array
 		x.size is cases.size + 1
 		res mut = x[cases.size]
-		for i nat in reverse 0 .. cases.size
+		for i nat32 in reverse cases.size
 			expr = if l = cases[i].local
 				add-local-and-assign (l.local-name, source, matched-value), x[i]
 			else
@@ -1173,7 +1184,7 @@ do to-expr
 	as block-statements
 		x.blocks.size is cases.size + 1
 		res mut = x.blocks[cases.size]
-		for i nat in reverse 0 .. cases.size
+		for i nat32 in reverse cases.size
 			block = x.blocks[i]
 			full-block = if l = cases[i].local
 				(gen-const source, l.local-name, matched-value) ~ block
@@ -1187,11 +1198,11 @@ do to-expr
 	union-value js-expr
 	union_ low-union
 	repr union-representation
-	case-index nat
+	case-index nat32
 do to-expr
 	match repr
 	as direct
-		gen-is-type! source, union-value, union_.members[case-index]
+		gen-is-type source, union-value, union_.members[case-index]
 	as switch
 		index = gen-property-access source, union-value, "index"
 		gen-eq-eq-eq source, index, gen-number64 source, case-index.to
@@ -1227,7 +1238,8 @@ do to-expr
 		to-block-statement e.expr
 	else
 		gen-throw source, get-error 'to
-	catch_ = match-union source, type, get-error, else-block, exception, a.exception-member-indices, a.catch-cases
+	indices = simple-switch-indices a.exception-member-indices
+	catch_ = match-union source, type, get-error, else-block, exception, indices, a.catch-cases
 	# catch_ will always be a block statement since the else-block is
 	gen-try-catch source, tried, error, catch_.js-block-statement! 'to
 
@@ -1268,7 +1280,7 @@ do to-expr
 			- gen-assign source, ok, (gen-bool source, true)
 	error = local-or-temp a.catch_.local, "error"
 	get-error = gen-identifier source, error
-	instanceof-caught-type = gen-is-type! source, get-error, caught-type a, exception
+	instanceof-caught-type = gen-is-type source, get-error, caught-type a, exception
 	catch_ = to-block-statement a.catch_.expr
 	if_ = gen-if source, instanceof-caught-type, catch_, gen-throw source, get-error
 	try_ = gen-try-catch source, tried.to, error, if_.to
@@ -1286,7 +1298,10 @@ do to-expr
 		a
 
 -get-local js-expr(source source, a low-local) to-expr
-	gen-identifier source, local-name a
+	if trusted the::to-expr-ctx.this-local 'reference-equal a
+		gen-this source
+	else
+		gen-identifier source, local-name a
 -local-name js-name(a low-local) to-expr-ctx
 	kind: local
 	keen-name: match source = a.source
@@ -1296,14 +1311,6 @@ do to-expr
 		source.to
 	mangle-index: ensure the::to-expr-ctx.temp-local-indices, a, of
 		the::to-expr-ctx.temp-local-indices.size
--local-name-no-mangle js-name(a low-local)
-	kind: local
-	keen-name: match source = a.source
-	as local
-		source.name.to
-	as low-generated-local-kind
-		source.to
-	mangle-index: ()
 
 -local-or-temp js-name(a low-local?, temp-base-name string) to-expr
 	if a
@@ -1345,8 +1352,6 @@ do to-expr
 		constant-nat source, x.storage, a
 	as low-flags
 		constant-nat source, x.storage, a
-	as low-java-class
-		throw unreachable
 	as low-record
 		match a
 		as constant-record
@@ -1366,7 +1371,7 @@ do to-expr
 			gen-null source
 		else
 			throw unreachable
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
 -translate-constant-builtin js-expr(source source, type low-type, builtin_ builtin-type, a constant) to-js-ctx
@@ -1391,11 +1396,11 @@ do to-expr
 			gen-null source
 		else
 			throw unreachable
-	as char8
+	as char8 or nat8
 		constant-nat source, nat8, a
-	as char16
+	as char16 or nat16
 		constant-nat source, nat16, a
-	as char32
+	as char32 or nat32
 		constant-nat source, nat32, a
 	as float32
 		gen-number32 source, as-float a
@@ -1428,12 +1433,6 @@ do to-expr
 	as lambda-shared
 		assert constant-gc-safe-value a
 		gen-null source
-	as nat8
-		constant-nat source, nat8, a
-	as nat16
-		constant-nat source, nat16, a
-	as nat32
-		constant-nat source, nat32, a
 	as nat64
 		constant-nat source, nat64, a
 	as option
@@ -1512,9 +1511,7 @@ add-local-and-assign js-expr(local temp-local, then_ js-expr) to-expr
 		gen-binary source, bitwise-or, arg, gen-number64 source, 0
 	as int64
 		gen-as-int64 source, arg
-	as nat8
-		gen-bitwise-and source, arg, gen-number64 source, type.max-value.to::float64
-	as nat16
+	as nat8 or nat16
 		gen-bitwise-and source, arg, gen-number64 source, type.max-value.to::float64
 	as nat32
 		gen-to-nat32 source, arg
@@ -1537,6 +1534,12 @@ add-local-and-assign js-expr(local temp-local, then_ js-expr) to-expr
 		- gen-number64 source, 64
 		- arg
 
+-as-float js-expr(source source, arg-type float-type, arg js-expr)
+	match arg-type
+	as float32
+		gen-as-float32 source, arg
+	as float64
+		arg
 -gen-as-float32 js-expr(source source, arg js-expr)
 	gen-call-math source, "fround", arg
 
@@ -1607,38 +1610,23 @@ do to-expr
 		array-for-nat-type body.storage
 	as low-flags
 		array-for-nat-type body.storage
-	as low-java-class
-		throw unreachable
-	as low-record
+	as low-record or low-union
 		Array
-	as low-union
-		Array
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 -array-for-builtin-type js-array-type(a builtin-type)
 	match a
-	as array then Array
-	as bool then Array
-	as buffer then Array
-	as char8 then Uint8Array
-	as char16 then Uint16Array
-	as char32 then Uint32Array
+	as array or bool or buffer or js-any or lambda-data or lambda-mut or lambda-shared or void or weak-ref then Array
+	as char8 or nat8 then Uint8Array
+	as char16 or nat16 then Uint16Array
+	as char32 or nat32 then Uint32Array
 	as float32 then Float32Array
 	as float64 then Float64Array
 	as int8 then Int8Array
 	as int16 then Int16Array
 	as int32 then Int32Array
 	as int64 then BigInt64Array
-	as js-any then Array
-	as lambda-data then Array
-	as lambda-mut then Array
-	as lambda-shared then Array
-	as nat8 then Uint8Array
-	as nat16 then Uint16Array
-	as nat32 then Uint32Array
 	as nat64 then BigUint64Array
 	as option then throw unreachable
-	as void then Array
-	as weak-ref then Array
 -array-for-nat-type js-array-type(a nat-type)
 	array-for-builtin-type a.to

@@ -97,7 +97,7 @@ test
 		k:
 			- "v"
 	parse kid, k-v is k: "v",
-	roundtrip "k: (\"v\",)", k: "v",
+	roundtrip "k: \"v\",", k: "v",
 	a-b-c-d = quote
 		a:
 			b:
@@ -108,9 +108,43 @@ test
 	parse kid, "a: 1, b: 2" is a: 1, b: 2
 	parse kid, "a: 1, 2" is a: 1, 2
 	parse kid, "(1, 2), (3, 4)" is
-		:: json[]
 		- 1, 2
 		- 3, 4
+
+	block-quote = quote
+		quote
+			x
+			y
+	roundtrip block-quote, "x\ny"
+
+	block-quote-after-key = quote
+		key: quote
+			x
+			y
+	parse kid, block-quote-after-key is key: "x\ny"
+
+	array-of-arrays = quote
+		- 1, 2
+		- 3, 4
+	roundtrip array-of-arrays, ((1, 2), (3, 4))
+
+	array-of-objects = quote
+		- x: 1
+		- y: 2
+	roundtrip array-of-objects, ((x: 1)::json, (y: 2)::json)
+
+	array-in-object = quote
+		x: 1,
+		y: 2, 3
+	roundtrip array-in-object,
+		x: 1,
+		y: 2, 3
+
+	quote-with-leading-spaces = "quote\n\t1\n\t 2\n\t3"
+	roundtrip quote-with-leading-spaces, "1\n 2\n3"
+
+	quote-with-leading-blank-lines = "quote\n\t\n\t1"
+	roundtrip quote-with-leading-blank-lines, "\n1"
 
 -roundtrip void(text string, value json)
 	parse kid, text is value

@@ -31,9 +31,7 @@ do check-ctx, types-and-specs-map
 	for type in types
 		type.doc-comment-references := check-refs-for-decl[type]
 		match body = type.body
-		as type-body-bogus
-			()
-		as builtin-type
+		as type-body-bogus or builtin-type or java-class
 			()
 		as enum_
 			for member in body.members
@@ -41,8 +39,6 @@ do check-ctx, types-and-specs-map
 		as flags_
 			for member in body.members
 				member.doc-comment-references := check-refs-for-type[type, member.doc-comment-ast]
-		as java-class
-			()
 		as record_
 			for field in body.fields
 				field.doc-comment-references := check-refs-for-type[type, field.doc-comment-ast]
@@ -105,40 +101,23 @@ do check-ctx, types-and-specs-map
 	as called-spec-sig then called
 
 -doc-comment-reference-for-fun-decl doc-comment-reference(a fun-decl)
-	return-type = {a.return-type.type-inst!.decl}
 	match body = a.body
 	as fun-body-bogus
 		doc-comment-reference-bogus
 	as fun-body-uninitialized
 		throw unreachable
-	as fun-body-extern-java
+	as fun-body-extern-java or auto-fun or fun-body-builtin or fun-body-expr or fun-body-file-import
 		a
-	as auto-fun
-		a
-	as fun-body-builtin
-		a
-	as enum-or-flags-member
-		return-type[]
-	as fun-body-expr
-		a
-	as fun-body-file-import
-		a
-	as fun-body-flags-function
-		return-type[]
+	as enum-or-flags-member or fun-body-flags-function or new-interface or new-record or sum-type-case-get
+		a.return-type.type-inst!.decl
 	as fun-body-method
 		body.method
-	as new-interface
-		return-type[]
-	as new-record
-		return-type[]
 	as record-field-get
 		body.field
 	as record-field-lens
 		body.field
 	as record-field-set
 		body.field
-	as sum-type-case-get
-		return-type[]
 	as var-get
 		body.var
 	as var-set

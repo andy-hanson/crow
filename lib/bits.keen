@@ -10,22 +10,40 @@ import
 	./compare
 	./exception
 	./misc
-	./number
 	./option
+	./private/bootstrap: int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
-+wrap-to int8(a int64)
-+wrap-to int16(a int64)
-+wrap-to int32(a int64)
++wrap-to int8(a nat8)
++wrap-to int8(a nat16)
++wrap-to int8(a nat32)
 +wrap-to int8(a nat64)
++wrap-to int8(a int16)
++wrap-to int8(a int32)
++wrap-to int8(a int64)
++wrap-to int16(a int32)
++wrap-to int16(a int64)
++wrap-to int16(a nat16)
++wrap-to int16(a nat32)
 +wrap-to int16(a nat64)
++wrap-to int32(a int64)
++wrap-to int32(a nat32)
 +wrap-to int32(a nat64)
 +wrap-to int64(a nat64)
-+wrap-to nat8(a nat64)
-+wrap-to nat16(a nat64)
-+wrap-to nat32(a nat64)
++wrap-to nat8(a int8)
++wrap-to nat8(a int16)
++wrap-to nat8(a int32)
 +wrap-to nat8(a int64)
++wrap-to nat8(a nat16)
++wrap-to nat8(a nat32)
++wrap-to nat8(a nat64)
++wrap-to nat16(a int16)
++wrap-to nat16(a int32)
 +wrap-to nat16(a int64)
++wrap-to nat16(a nat32)
++wrap-to nat16(a nat64)
++wrap-to nat32(a int32)
 +wrap-to nat32(a int64)
++wrap-to nat32(a nat64)
 +wrap-to nat64(a int64)
 
 +wrap-add nat8(a nat8, b nat8)
@@ -86,6 +104,20 @@ import
 + ^ nat32(a nat32, b nat32)
 + ^ nat64(a nat64, b nat64)
 
+# Public versions of these functions are defined in number.keen (which imports bits.keen)
+-new nat8() = 0
+-new nat16() = 0
+-new nat32() = 0
+-new nat64() = 0
+- == bool(a nat8, b nat8)
+- == bool(a nat16, b nat16)
+- == bool(a nat32, b nat32)
+- == bool(a nat64, b nat64)
+- <=> comparison(a nat8, b nat8)
+- <=> comparison(a nat16, b nat16)
+- <=> comparison(a nat32, b nat32)
+- <=> comparison(a nat64, b nat64)
+
 | Shifts the bits of 'a' left by 'b' bits.
 | Does not rotate.
 + << nat8(a nat8, b nat8)
@@ -101,13 +133,6 @@ import
 	do if b < 64
 	trusted a 'unsafe-bit-shift-left b
 
-+rotate-left nat64(a nat64, amount nat64)
-	n = amount % 64
-	(a << n) | (a >> (64 'wrap-sub n))
-+rotate-right nat64(a nat64, amount nat64)
-	n = amount % 64
-	(a >> n) | (a << (64 'wrap-sub n))
-
 | Shifts the bits of {a} right by {b} bits.
 | Does not rotate.
 + >> nat8(a nat8, b nat8)
@@ -122,6 +147,15 @@ import
 + >> nat64(a nat64, b nat64)
 	do if b < 64
 	trusted a 'unsafe-bit-shift-right b
+
++rotate-left nat8(a nat8, amount nat8)
++rotate-left nat16(a nat16, amount nat16)
++rotate-left nat32(a nat32, amount nat32)
++rotate-left nat64(a nat64, amount nat64)
++rotate-right nat8(a nat8, amount nat8)
++rotate-right nat16(a nat16, amount nat16)
++rotate-right nat32(a nat32, amount nat32)
++rotate-right nat64(a nat64, amount nat64)
 
 | True iff the numbers have at least one bit in common.
 +bits-intersect bool(a nat8, b nat8)
@@ -144,14 +178,14 @@ import
 	a & b == b
 
 | Unsafe because {b} should be less than the number of bits in the type (else undefined behavior)
--unsafe-bit-shift-left nat8(a nat8, b nat8) unsafe
--unsafe-bit-shift-left nat16(a nat16, b nat16) unsafe
--unsafe-bit-shift-left nat32(a nat32, b nat32) unsafe
--unsafe-bit-shift-left nat64(a nat64, b nat64) unsafe
--unsafe-bit-shift-right nat8(a nat8, b nat8) unsafe
--unsafe-bit-shift-right nat16(a nat16, b nat16) unsafe
--unsafe-bit-shift-right nat32(a nat32, b nat32) unsafe
--unsafe-bit-shift-right nat64(a nat64, b nat64) unsafe
+~unsafe-bit-shift-left nat8(a nat8, b nat8) unsafe
+~unsafe-bit-shift-left nat16(a nat16, b nat16) unsafe
+~unsafe-bit-shift-left nat32(a nat32, b nat32) unsafe
+~unsafe-bit-shift-left nat64(a nat64, b nat64) unsafe
+~unsafe-bit-shift-right nat8(a nat8, b nat8) unsafe
+~unsafe-bit-shift-right nat16(a nat16, b nat16) unsafe
+~unsafe-bit-shift-right nat32(a nat32, b nat32) unsafe
+~unsafe-bit-shift-right nat64(a nat64, b nat64) unsafe
 
 | Number with only the bit at `bit-index` set.
 | Same as `1 << bit-index`.
@@ -161,8 +195,10 @@ import
 	1 << bit-index
 
 | True if the bit at `bit-index` is set.
++has-bit bool(a nat32, bit-index nat32)
+	bits-intersect a, nth-bit bit-index
 +has-bit bool(a nat64, bit-index nat64)
-	bits-intersect a, bit-index.nth-bit
+	bits-intersect a, nth-bit bit-index
 
 | Sets the bit at `bit-index` to 1.
 +add-bit nat32(a nat32, bit-index nat32)
@@ -178,32 +214,13 @@ import
 
 | Returns the number of 1 bits in `a`.
 +count-ones nat32(a nat32)
-	if trusted java
-		trusted a.wrap-to::int32.bitCount.wrap-to
-	else
-		res mut nat32 = 0
-		x mut = a
-		until x == 0
-			res wrap-add:= x & 1
-			x >>:= 1
-		res
-
-+count-ones nat64(a nat64)
-	if trusted java
-		trusted a.wrap-to::int64.bitCount.wrap-to
-	else
-		res mut nat64 = 0
-		x mut = a
-		until x == 0
-			res wrap-add:= x & 1
-			x >>:= 1
-		res
++count-ones nat32(a nat64)
 
 +one-bits one-bits32(bits nat32) = bits,
 +one-bits one-bits64(bits nat64) = bits,
 
 +one-bits32 record(bits nat32)
-+size nat(a one-bits32) = count-ones a.bits
++size nat32(a one-bits32) = count-ones a.bits
 | Calls `f` on the index of each `1` bit.
 +some bool(a one-bits32, f bool mut(bit nat32))
 	cur mut = a.bits
@@ -219,7 +236,7 @@ import
 		()
 
 +one-bits64 record(bits nat64)
-+size nat(a one-bits64) = count-ones a.bits
++size nat32(a one-bits64) = count-ones a.bits
 | Calls `f` on the index of each `1` bit.
 +some bool(a one-bits64, f bool mut(bit nat64))
 	cur mut = a.bits
@@ -241,7 +258,7 @@ import
 	do if n < word.count-ones
 	cur mut = word
 	# Clear the lowest {index} 1 bits
-	i mut = 0
+	i mut nat32 = 0
 	until i == n
 		cur &:= wrap-sub cur, 1
 		i wrap-add:= 1
@@ -250,7 +267,7 @@ import
 	do if n < word.count-ones
 	cur mut = word
 	# Clear the lowest {index} 1 bits
-	i mut = 0
+	i mut nat64 = 0
 	until i == n
 		cur &:= wrap-sub cur, 1
 		i wrap-add:= 1
@@ -266,6 +283,12 @@ import
 	a::nat64 << 32 | b
 
 | Number with the highest `n` bits set.
++high-n-bits nat8(n nat8)
+	assert n <= 8 else arithmetic-error "high-n-bits::nat8", n
+	~(8 'wrap-sub n).low-n-bits
++high-n-bits nat16(n nat16)
+	assert n <= 16 else arithmetic-error "high-n-bits::nat16", n
+	~(16 'wrap-sub n).low-n-bits
 +high-n-bits nat32(n nat32)
 	assert n <= 32 else arithmetic-error "high-n-bits::nat32", n
 	~(32 'wrap-sub n).low-n-bits
@@ -274,40 +297,46 @@ import
 	~(64 'wrap-sub n).low-n-bits
 
 | Number with the lowest `n` bits set.
++low-n-bits nat8(n nat8)
+	assert n <= 8 else arithmetic-error "low-n-bits::nat32", n
+	if n == 8
+		0xff
+	else
+		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
++low-n-bits nat16(n nat16)
+	assert n <= 16 else arithmetic-error "low-n-bits::nat16", n
+	if n == 16
+		0xffff
+	else
+		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
 +low-n-bits nat32(n nat32)
 	assert n <= 32 else arithmetic-error "low-n-bits::nat32", n
 	if n == 32
-		0xffffffff
+		0xffff_ffff
 	else
 		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
 +low-n-bits nat64(n nat64)
 	assert n <= 64 else arithmetic-error "low-n-bits::nat64", n
 	if n == 64
-		0xffffffffffffffff
+		0xffff_ffff_ffff_ffff
 	else
 		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
 
 +log-2-rounded-up nat64(a nat64)
 	do unless a == 0
-	trusted if java
-		floor = 63 'wrap-sub a.wrap-to.numberOfLeadingZeros.wrap-to
-		floor + ((1 << floor) != a).to
-	elif js
-		res = log-2-rounded-down a
-		res + (1 << res != a).to
-	else
-		throw todo
+	floor = log-2-rounded-down a
+	if 1 << floor != a then wrap-add floor, 1 else floor
 
 +log-2-rounded-down nat64(a nat64)
 	do unless a == 0
 	trusted if java
-		63 'wrap-sub a.wrap-to.numberOfLeadingZeros.wrap-to
+		63 'wrap-sub a.wrap-to::int64.numberOfLeadingZeros.wrap-to::nat64
 	elif js
-		log mut = 0
+		log mut nat64 = 0
 		cur mut = a
 		while cur > 1
 			cur >>:= 1
-			log +:= 1
+			log wrap-add:= 1
 		log
 	else
 		throw todo
@@ -321,9 +350,9 @@ import
 	else
 		res mut nat32 = 0
 		cur mut = a
-		while is-even cur
+		while cur & 1 == 0
 			cur := cur >> 1
-			res +:= 1
+			res wrap-add:= 1
 		res
 +trailing-zeroes nat64(a nat64)
 	trusted if java
@@ -331,21 +360,42 @@ import
 	elif a == 0
 		64
 	else
-		res mut = 0
+		res mut nat32 = 0
 		cur mut = a
-		while is-even cur
+		while cur & 1 == 0
 			cur := cur >> 1
-			res +:= 1
+			res wrap-add:= 1
 		res
 
 +is-power-of-two bool(a nat64)
 	a != 0 and (a & (a 'wrap-sub 1)) == 0
 
 +round-up-to-power-of-two nat32(a nat32)
-	to round-up-to-power-of-two a::nat64
+	trusted if java
+		h nat32 = a.wrap-to::int32.highestOneBit.wrap-to
+		if h == a
+			if a == 0 then 1 else a
+		else
+			res = h 'unsafe-bit-shift-left 1
+			res isnt 0 else arithmetic-error "round-up-to-power-of-two", a
+			res
+	else
+		x mut nat32 = a 'wrap-sub 1
+		x |:= x 'unsafe-bit-shift-right 1
+		x |:= x 'unsafe-bit-shift-right 2
+		x |:= x 'unsafe-bit-shift-right 4
+		x |:= x 'unsafe-bit-shift-right 8
+		x |:= x 'unsafe-bit-shift-right 16
+		x wrap-add:= 1
+		if x == 0
+			a is 0 else arithmetic-error "round-up-to-power-of-two", a
+			1
+		else
+			x
+
 +round-up-to-power-of-two nat64(a nat64)
 	trusted if java
-		h nat64 = a.wrap-to.highestOneBit.wrap-to
+		h nat64 = a.wrap-to::int64.highestOneBit.wrap-to
 		if h == a
 			if a == 0 then 1 else a
 		else

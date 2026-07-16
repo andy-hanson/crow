@@ -17,11 +17,15 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		check-error
 	as diag-call-deprecated
 		warning
+	as diag-call-named-new-multiple-matches
+		check-error
 	as diag-call-multiple-matches
 		check-error
 	as diag-call-no-match
 		check-error
 	as diag-call-no-match-for-interpolate-or-list-new
+		check-error
+	as diag-call-no-match-for-named-new
 		check-error
 	as diag-call-option-non-option
 		warning
@@ -75,6 +79,8 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		check-error
 	as diag-empty-enum-or-union
 		check-error
+	as diag-enum-value-not-number
+		check-error
 	as diag-enum-value-not-sorted
 		check-error
 	as diag-expected-type-is-not-a-lambda
@@ -93,8 +99,6 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		name-not-found
 	as diag-it-identity
 		parse-error
-	as diag-lambda-cant-be-function-pointer
-		check-error
 	as diag-lambda-cant-infer-param-type
 		check-error
 	as diag-lambda-closure-mutability
@@ -251,6 +255,8 @@ get-diagnostic-severity diagnostic-severity(a diag)
 	as parse-diag-closing-brace-needs-escape
 		lint
 	as parse-diag-doc-comment-unused
+		lint
+	as parse-diag-elif-preferred
 		lint
 	as parse-diag-equals-left
 		parse-error

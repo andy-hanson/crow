@@ -14,7 +14,7 @@ get-completions completion-list?(program program, params completion-params) show
 	match x = position.kind
 	as expression-position
 		items = completion-at-expression-position position.module, x
-		unless is-empty items then items,
+		if any items then items,
 	else
 		()
 
@@ -57,10 +57,7 @@ do show-type-ctx
 | Don't include completions for very common function names.
 -is-common-name bool(name symbol)
 	match name
-	as "==" then true
-	as "<=>" then true
-	as "hash" then true
-	as "to" then true
+	as "==" or "<=>" or "hash" or "to" then true
 	else then false
 
 -type-container-for type-container(a called-decl)
@@ -80,7 +77,7 @@ do show-type-ctx
 		a.param-types
 	as called-spec-sig
 		a.param-types
-	unless is-empty param-types
+	if any param-types
 		param-types[0]
 
 -each-fun-in-expr-scope void(module keen-module, container expr-container, f void mut(x called-decl)) common-types

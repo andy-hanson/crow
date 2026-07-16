@@ -19,25 +19,23 @@ import
 	map a, {it}
 
 | {true} if `{a}.{size} == 0`.
-+is-empty[t] bool(a t queue)
-	is-empty a.left and is-empty a.right
++any[t] bool(a t queue)
+	any a.left or any a.right
 
 | Number of elements in the queue.
-+size[t] nat64(a t queue)
++size[t] nat32(a t queue)
 	a.left.size + a.right.size
 
 | Adds a new element on the right.
 + ~[t] t queue(a t queue, value t)
 	a.left, a.right ~ value
 
-| Removes and returns an element from the left.
-| Returns an empty option if `{a} {is-empty}`.
+| Removes and returns an element from the left (if any).
 +dequeue[t] (t, t queue)?(a t queue)
-	if is-empty a.left
-		unless is-empty a.right
-			dequeue (a.right.to, ())
-	else
+	if any a.left
 		a.left[0], (a.left[1 .. end].to, a.right)
+	elif any a.right
+		dequeue (a.right.to, ())
 
 region iteration
 

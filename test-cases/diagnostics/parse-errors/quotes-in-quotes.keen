@@ -1,3 +1,9 @@
 s string()
 	quote
 		{1"{1}
+
+s string()
+	"{a.b{c}."
+
+s string()
+	"{{x}{y}."

@@ -84,6 +84,15 @@ parse-single-line-expression expr-and-diags(source string)
 			res
 		doc-comment, start.range-allow-empty, name, value
 
+-parse-record-rest record-ast(params parameter-ast[]?) parser
+	if params
+		record-ast params, (), maybe-parse-indented-expr
+	else
+		fields = parse-record-fields
+		_ = try-take-token newline-same-indent
+		record-ast params, fields, if try-take-token do_
+			must-parse-indented-expr
+
 -parse-record-fields record-field-ast[]() parser
 	parse-indented-lines of
 		doc-comment = try-take-doc-comment
@@ -91,9 +100,9 @@ parse-single-line-expression expr-and-diags(source string)
 		visibility = try-take-visibility
 		name = take-name-and-range
 		mutability = parse-field-mutability
-		type type-ast? = unless peek-end-of-line
-			parse-type
-		doc-comment, start.range-allow-empty, visibility, name, mutability, type
+		type type-ast? = unless peek-end-of-line then parse-type
+		default = try-parse-default
+		doc-comment, start.range-allow-empty, visibility, name, mutability, type, default
 
 -parse-field-mutability field-mutability-ast?() parser
 	pos = next-start
@@ -115,6 +124,7 @@ do parser
 	params, params-kind = parse-params
 	match params-kind
 	as indented
+		_ = try-take-token newline-same-indent
 		_ = take-or-add-diag-expected-token do_, do_
 	as parenthesized
 		()
@@ -194,7 +204,7 @@ do parser
 	as record_
 		advance
 		params = try-parse-params-parenthesized
-		add-type[parse-modifiers, (record-ast params, parse-record-fields)]
+		add-type[parse-modifiers, params.parse-record-rest]
 	as spec_
 		advance
 		modifiers = parse-modifiers
@@ -267,7 +277,7 @@ do parser
 			here = try-take-doc-comment
 			if first
 				first := false
-				if not module-doc-comment.is-empty and here.is-empty and not no-std_ and not imports and not exports
+				if any module-doc-comment and not any here and not no-std_ and not imports and not exports
 					res = module-doc-comment
 					module-doc-comment := ()
 					res
@@ -276,7 +286,7 @@ do parser
 			else
 				here
 		if peek end-of-file
-			unless doc-comment.is-empty
+			if any doc-comment
 				add-diag doc-comment.range!, parse-diag-doc-comment-unused
 		elif peek region_
 			take-next-token is region_
@@ -284,7 +294,7 @@ do parser
 		else
 			parse-any-decl-or-test specs, type-aliases, structs, funs, tests, vars, doc-comment
 
-	max-columns = 120
+	max-columns nat32 = 120
 	for diag in lines-over-n-columns lcg, max-columns
 		add-diag (diag.pos, diag.pos + 1),
 			parse-diag-line-too-long diag.actual-columns, max-columns

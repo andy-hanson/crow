@@ -15,7 +15,7 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 		add-diag ast.name-range.range, fun-missing-body
 		fun-body-bogus ast.module-uri, ast.name.name, ast.type-params, ast
 
--type-at type(params type[], index nat) = at params, index else bogus-type
+-type-at type(params type[], index nat32) = at params, index else bogus-type
 
 -try-get-builtin-fun builtin-fun?(name symbol, rt type, params type[]) common-types
 	arity = params.size
@@ -26,6 +26,12 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 	is-binary-float64 = arity == 2 and is-float64 rt and is-float64 p0 and is-float64 p1
 	is-binary-float32-or-64 = is-binary-float32 or is-binary-float64
 	is-binary-js = arity == 2 and is-js-any rt and is-js-any p0 and is-js-any p1
+	is-unary-nat = arity == 1 and as-nat-type rt and p0 == rt
+	is-binary-integral = arity == 2 and as-integral-type rt and p0 == rt
+	is-binary-nat = arity == 2 and as-nat-type rt and p0 == rt and p1 == rt
+	comparison-predicate = of::builtin-fun? result builtin-fun
+		if arity == 2 and is-bool rt and is-type-param-0 p0 and is-type-param-0 p1
+			result
 	match name
 	as "+"
 		if is-binary-js
@@ -38,27 +44,27 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 		else
 			binary arity, if is-number-like p0 and p1 == p0
 				equal-exact
+	as "!="
+		comparison-predicate[not-equal-exact]
 	as "<=>"
-		binary arity, if rt == comparison and is-number-like p0  and p1 == p0
+		binary arity, if rt == comparison and is-number-like p0 and p1 == p0
 			compare
+	as "<"
+		comparison-predicate[compare-less]
+	as "<="
+		comparison-predicate[compare-less-or-equal]
+	as ">"
+		comparison-predicate[compare-greater]
+	as ">="
+		comparison-predicate[compare-greater-or-equal]
 	as "&"
-		binary arity, if rt.as-integral-type
-			bitwise-and
+		if is-binary-nat then bitwise-and
 	as "~"
-		unary arity, if rt.as-integral-type
-			bitwise-not
+		if is-unary-nat then bitwise-not
 	as "|"
-		binary arity, if rt.as-integral-type
-			bitwise-or
+		if is-binary-nat then bitwise-or
 	as "^"
-		binary arity, if rt.as-integral-type
-			bitwise-xor
-	as array-get
-		if is-type-param-0 rt and is-type-param-0-array-or-buffer p0 and is-nat64 p1
-			binary arity, array-get
-	as array-set
-		if arity == 3 and is-void rt and is-type-param-0-buffer p0 and is-nat64 p1 and is-type-param-0 p2
-			ternary arity, array-set
+		if is-binary-nat then bitwise-xor
 	as bits-of
 		unary arity, if is-nat32 rt and is-float32 p0
 			bits-of-float32
@@ -76,6 +82,9 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 	as call-property-spread
 		if arity == 3  and is-js-any rt and is-js-any p0 and is-js-any p1 and is-js-any-array p2
 			call-property-spread::js-fun
+	as count-ones
+		if arity == 1 and is-nat32 rt and as-nat-type p0
+			count-ones
 	as eval
 		if is-js-any rt and arity == 1 and is-js-any p0
 			eval::js-fun
@@ -100,7 +109,7 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 			unary arity, weak-ref-get
 	as infinity
 		if is-float32-or-64 rt
-			constant arity, infinity
+			constant arity, infinity::float64
 	as instanceof
 		do if is-bool rt
 		if arity == 1
@@ -149,11 +158,17 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 	as reinterpret-cast
 		if is-type-param-0 rt and is-type-param-1 p0
 			unary arity, reinterpret-cast
+	as rotate-left
+		if as-nat-type rt and p0 == rt and p1 == rt
+			binary arity, rotate-left
+	as rotate-right
+		if as-nat-type rt and p0 == rt and p1 == rt
+			binary arity, rotate-right
 	as set-subscript
 		if arity == 3 and is-void rt and is-js-any p0 and is-js-any p1 and is-js-any p2
 			set-subscript::js-fun
 	as size
-		if is-nat64 rt and as-array-or-buffer p0
+		if is-nat32 rt and as-array-or-buffer p0
 			unary arity, array-size
 	as subscript
 		if arity == 2 and is-js-any rt and is-js-any p0 and is-js-any p1
@@ -162,23 +177,23 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 			binary arity, call-lambda
 	as to
 		unary arity, if is-float32 rt
-			if is-float64 p0
+			if as-integral-type p0
+				to-float-from-integral
+			elif is-float64 p0
 				to-float32-from-float64
 		elif is-float64 rt
-			if is-int64 p0
-				to-float64-from-int64
-			elif is-nat64 p0
-				to-float64-from-nat64
+			if as-integral-type p0
+				to-float-from-integral
 			elif is-float32 p0
 				to-float64-from-float32
-		elif is-char-or-integral rt and is-bool-char-or-integral p0
+		elif is-char-or-integral rt and is-char-or-integral p0
 			wrap-convert-integral
 	as true
 		if is-bool rt
 			constant arity, true
 	as truncate-to
-		if is-float64 p0
-			unary arity, truncate-to-int64-from-float64
+		if (is-float64 p0 or is-float32 p0) and (is-int32 rt or is-int64 rt)
+			unary arity, truncate-to
 	as typeof
 		if arity == 1 and is-js-any rt and is-js-any p0
 			typeof::js-fun
@@ -186,11 +201,14 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 		if arity == 0 and is-js-any rt
 			undefined::js-fun
 	as uninitialized-buffer
-		unary arity, if as-buffer rt and is-nat64 p0
+		unary arity, if as-buffer rt and is-nat32 p0
 			uninitialized-buffer
 	as unsafe-add
 		if is-binary-float32-or-64
 			binary arity, unsafe-add-float
+	as unsafe-at
+		if is-type-param-0 rt and is-type-param-0-array-or-buffer p0 and is-nat32 p1
+			binary arity, unsafe-at
 	as unsafe-bit-shift-left
 		if as-integral-type rt and p0 == rt and p1 == rt
 			binary arity, unsafe-bit-shift-left
@@ -201,36 +219,33 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 		binary arity, if is-binary-float32-or-64 or as-integral-type rt
 			unsafe-div
 	as unsafe-mod
-		if is-float64 rt
-			binary arity, unsafe-mod-float64
-		elif is-nat64 rt
-			binary arity, unsafe-mod-nat64
+		if is-integral-or-float rt and p0 == rt and p1 == rt
+			binary arity, unsafe-mod
 	as unsafe-mul
 		if is-binary-float32-or-64
 			binary arity, unsafe-mul-float
+	as unsafe-set-at
+		if arity == 3 and is-void rt and is-type-param-0-buffer p0 and is-nat32 p1 and is-type-param-0 p2
+			ternary arity, unsafe-set-at
 	as unsafe-sub
 		if is-binary-float32-or-64
 			binary arity, unsafe-sub-float
 	as wrap-add
-		binary arity, if as-integral-type rt
-			wrap-add
+		if is-binary-integral then wrap-add
 	as wrap-mul
-		binary arity, if as-integral-type rt
-			wrap-mul
+		if is-binary-integral then wrap-mul
 	as wrap-sub
-		binary arity, if as-integral-type rt
-			wrap-sub
+		if is-binary-integral then wrap-sub
 	as wrap-to
 		if as-integral-type rt and as-integral-type p0
 			unary arity, wrap-convert-integral
 	else
 		()
 
--is-bool-char-or-integral bool(a type)
-	is-bool a or is-char-or-integral a
-
 -is-number-like bool(a type)
 	is-bool a or is-char-or-integral a or is-float32-or-64 a
+-is-integral-or-float bool(a type)
+	as-integral-type a or is-float32-or-64 a
 
 -constant builtin-fun-constant?(arity nat, value builtin-fun-constant)
 	if arity == 0 then value

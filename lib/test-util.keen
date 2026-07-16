@@ -32,3 +32,10 @@ import
 |	x is <<expected value>>
 +should-throw void()
 	throw error "Should have thrown a different exception before getting here"
+
++throws-arithmetic-error[t] void(f t mut())
+	try
+		_ = f[]
+		should-throw
+	catch as arithmetic-error
+		()

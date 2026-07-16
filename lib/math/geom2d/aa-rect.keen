@@ -1,0 +1,200 @@
+import
+	keen/math/geom2d/size2
+	keen/math/math
+	keen/math/vec
+
++aa-rect32 record
+	left float32
+	right float32
+	bottom float32
+	top float32
+do
+	assert left <= right
+	assert bottom <= top
++new aa-rect32() = 0, 0, 0, 0
++new aa-rect32(bottom-left vec2-32, top-right vec2-32)
+	assert bottom-left.x <= top-right.x
+	assert bottom-left.y <= top-right.y
+	left: bottom-left.x
+	right: top-right.x
+	bottom: bottom-left.y
+	top: top-right.y
++new aa-rect32(bottom-left vec2-32, size size2-32)
+	left: bottom-left.x
+	right: bottom-left.x + size.width
+	bottom: bottom-left.y
+	top: bottom-left.y + size.height
++new aa-rect32(top-left vec2-32, size size2-32)
+	left: top-left.x
+	right: top-left.x + size.width
+	bottom: top-left.y - size.height
+	top: top-left.y
++new aa-rect32(bottom-right vec2-32, size size2-32)
+	left: bottom-right.x - size.width
+	right: bottom-right.x
+	bottom: bottom-right.y
+	top: bottom-right.y + size.height
++new aa-rect32(top-right vec2-32, size size2-32)
+	left: top-right.x - size.width
+	right: top-right.x
+	bottom: top-right.y - size.height
+	top: top-right.y
++new aa-rect32(center vec2-32, size size2-32)
+	left: center.x - size.width / 2
+	right: center.x + size.width / 2
+	bottom: center.y - size.height / 2
+	top: center.y + size.height / 2
++new aa-rect32(center-left vec2-32, size size2-32)
+	left: center-left.x
+	right: center-left.x + size.width
+	bottom: center-left.y - size.height / 2
+	top: center-left.y + size.height / 2
++new aa-rect32(center-right vec2-32, size size2-32)
+	left: center-right.x - size.width
+	right: center-right.x
+	bottom: center-right.y - size.height / 2
+	top: center-right.y + size.height / 2
++new aa-rect32(center-bottom vec2-32, size size2-32)
+	left: center-bottom.x - size.width / 2
+	right: center-bottom.x + size.width / 2
+	bottom: center-bottom.y
+	top: center-bottom.y + size.height
++new aa-rect32(center-top vec2-32, size size2-32)
+	left: center-top.x - size.width / 2
+	right: center-top.x + size.width / 2
+	bottom: center-top.y - size.height
+	top: center-top.y
++size size2-32(a aa-rect32) = a.width, a.height
++area float32(a aa-rect32) = area a.size
++shorter-side float32(a aa-rect32) = min a.width, a.height
++longer-side float32(a aa-rect32) = max a.width, a.height
++width float32(a aa-rect32) = a.right - a.left
++height float32(a aa-rect32) = a.top - a.bottom
++top-left vec2-32(a aa-rect32) = a.left, a.top
++bottom-left vec2-32(a aa-rect32) = a.left, a.bottom
++top-right vec2-32(a aa-rect32) = a.right, a.top
++bottom-right vec2-32(a aa-rect32) = a.right, a.bottom
++center-left vec2-32(a aa-rect32) = a.left, a.center.y
++center-right vec2-32(a aa-rect32) = a.right, a.center.y
++center-bottom vec2-32(a aa-rect32) = a.center.x, a.bottom
++center-top vec2-32(a aa-rect32) = a.center.x, a.top
++center vec2-32(a aa-rect32)
+	x: (a.left + a.right) / 2
+	y: (a.bottom + a.top) / 2
++ + aa-rect32(a aa-rect32, displacement vec2-32)
+	left: a.left + displacement.x
+	right: a.right + displacement.x
+	bottom: a.bottom + displacement.y
+	top: a.top + displacement.y
++ - aa-rect32(a aa-rect32, displacement vec2-32)
+	a + -displacement
++contains bool(a aa-rect32, pos vec2-32)
+	pos.x >= a.left and pos.x < a.right and pos.y >= a.bottom and pos.y < a.top
++contains bool(a aa-rect32, b aa-rect32)
+	a.left <= b.left and a.right >= b.right and a.bottom <= b.bottom and a.top >= b.top
+| Multiplies all coordinates by the scale
++scale-by-origin aa-rect32(a aa-rect32, scale size2-32)
+	left: a.left * scale.width
+	right: a.right * scale.width
+	bottom: a.bottom * scale.height
+	top: a.top * scale.height
++scale-by-center aa-rect32(a aa-rect32, scale float32)
+	scale-by-center a, square scale
++scale-by-center aa-rect32(a aa-rect32, scale size2-32)
+	center: a.center
+	size: a.size * scale
+| Left part and right part.
++split-horizontally (aa-rect32, aa-rect32)(a aa-rect32, fraction float32)
+	x = a.left + (clamp fraction, 0 .. 1) * a.width
+	- set a, right, x
+	- set a, left, x
++split-horizontally (aa-rect32, aa-rect32, aa-rect32)(a aa-rect32, fraction0 float32, fraction1 float32)
+	x0 = a.left + (clamp fraction0, 0 .. (min fraction1, 1)) * a.width
+	x1 = a.left + (clamp fraction1, (max fraction0, 0) .. 1) * a.width
+	- set a, right, x0
+	- set a, (left + right), (x0, x1)
+	- set a, left, x1
+
++split-vertically (aa-rect32, aa-rect32)(a aa-rect32, fraction float32)
+	y = a.bottom + (clamp fraction, 0 .. 1) * a.height
+	- set a, top, y
+	- set a, bottom, y
++split-vertically (aa-rect32, aa-rect32, aa-rect32)(a aa-rect32, fraction0 float32, fraction1 float32)
+	y0 = a.bottom + (clamp fraction0, 0 .. (min fraction1, 1)) * a.height
+	y1 = a.bottom + (clamp fraction1, (max fraction0, 0) .. 1) * a.height
+	- set a, top, y0
+	- set a, (bottom + top), (y0, y1)
+	- set a, bottom, y1
+
++lerp aa-rect32(a aa-rect32, b aa-rect32, f float32)
+	left: lerp a.left, b.left, f
+	right: lerp a.right, b.right, f
+	bottom: lerp a.bottom, b.bottom, f
+	top: lerp a.top, b.top, f
+| Moves {inner} to stay within {outer} without changing its size.
+| If {inner} is too big, it will get centered.
++try-move-within aa-rect32(outer aa-rect32, inner aa-rect32)
+	left float32, right float32 = if inner.width > outer.width
+		outer.center.x - inner.width / 2, outer.center.x + inner.width / 2
+	elif inner.left < outer.left
+		outer.left, outer.left + inner.width
+	elif inner.right > outer.right
+		outer.right - inner.width, outer.right
+	else
+		inner.left, inner.right
+	bottom float32, top float32 = if inner.height > outer.height
+		outer.center.y - inner.height / 2, outer.center.y + inner.height / 2
+	elif inner.bottom < outer.bottom
+		outer.bottom, outer.bottom + inner.height
+	elif inner.top > outer.top
+		outer.top - inner.height, outer.top
+	else
+		inner.bottom, inner.top
+	left: left, right: right, bottom: bottom, top: top
+| Largest rect within {a} with the same proportions as {ratio}
++shrink-to-ratio aa-rect32(a aa-rect32, ratio size2-32)
+	forbid a.width == 0 or a.height == 0 else arithmetic-error "shrink-to-ratio", 0, 0
+	forbid (ratio.width == 0 and ratio.height == 0) else arithmetic-error "shrink-to-ratio", 0, 0
+	new-width float32 = if ratio.height == 0 then infinity else a.height * ratio.width / ratio.height
+	if new-width <= a.width
+		left: a.center.x - new-width / 2
+		right: a.center.x + new-width / 2
+		bottom: a.bottom
+		top: a.top
+	else
+		new-height = a.width * ratio.height / ratio.width
+		left: a.left
+		right: a.right
+		bottom: a.center.y - new-height / 2
+		top: a.center.y + new-height / 2
+| Smallest rect that contains {a} and has the same proportions as {ratio}
++expand-to-ratio aa-rect32(a aa-rect32, ratio size2-32)
+	new-width float32 = a.height * ratio.width / ratio.height
+	if new-width >= a.width
+		left: a.center.x - new-width / 2
+		right: a.center.x + new-width / 2
+		bottom: a.bottom
+		top: a.top
+	else
+		new-height = a.width * ratio.height / ratio.width
+		left: a.left
+		right: a.right
+		bottom: a.center.y - new-height / 2
+		top: a.center.y + new-height / 2
+
+| Distance from the {closest-point} in {a} to {pos}
++distance float32(a aa-rect32, pos vec2-32)
+	square-root distance-squared a, pos
+| Distance**2 from the {closest-point} in {a} to {pos}
++distance-squared float32(a aa-rect32, pos vec2-32)
+	length-squared (closest-point a, pos) - pos
+| Returns a point in {a} closest to {pos}
+| (May return a point on the east or north edge even though those aren't considered contained)
++closest-point vec2-32(a aa-rect32, pos vec2-32)
+	x: clamp pos.x, (a.left .. a.right)
+	y: clamp pos.y, (a.bottom .. a.top)
+
++diagonal float32(a aa-rect32)
+	diagonal size a
++diagonal-squared float32(a aa-rect32)
+	diagonal-squared size a

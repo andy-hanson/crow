@@ -14,9 +14,9 @@ import
 	./buffer
 
 +array-like[col, elem] spec col size
-	subscript elem(a col, index nat64)
+	subscript elem(a col, index nat32)
 +buffer-like[col, elem] spec (col, elem) array-like
-	set-subscript void(a col, index nat64, value elem)
+	set-subscript void(a col, index nat32, value elem)
 
 | Calls {f} for each element in the collection and returns nothing.
 +for-loop[col, elem] void(a col, f void mut(elem elem)) (col, elem) some
@@ -34,9 +34,9 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 	do trusted
 	size = a.size
 	res out-elem buffer = uninitialized-buffer size
-	i mut = 0
+	i mut nat32 = 0
 	_ = some a, of x
-		res[i] := f[x]
+		unsafe-set-at res, i, f[x]
 		i +:= 1
 		false
 	# This can fail if the 'some' function iterates a different number of elements than 'size' promised.
@@ -51,6 +51,14 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 		false
 	res
 
+| Returns an empty option if {a} is empty.
++reduce[col, elem] elem?(a col, f elem mut(x elem, y elem)) (col, elem) some
+	res mut elem? = ()
+	_ = some a, of x
+		res := if res then f[res!, x] else x
+		false
+	res
+
 | Calls {f} for each element in the input collection,
 | and returns an output collection of the elements for which {f} returned {true}.
 +filter[out-col, elem, in-col] out-col
@@ -60,10 +68,10 @@ do (out-col, elem) list-new, in-col size, (in-col, elem) some
 	do trusted
 	in-size = a.size
 	res elem buffer = uninitialized-buffer in-size
-	out-size mut = 0
+	out-size mut nat32 = 0
 	_ = some a, of x
 		if f[x]
-			res[out-size] := x
+			unsafe-set-at res, out-size, x
 			out-size +:= 1
 		false
 	list-new res.cast-immutable[0 .. out-size].to
@@ -84,15 +92,15 @@ do (out-col-false, elem) list-new, (out-col-true, elem) list-new, in-col size, (
 	do trusted
 	in-size = a.size
 	falses elem buffer = uninitialized-buffer in-size
-	count-falses mut = 0
+	count-falses mut nat32 = 0
 	trues elem buffer = uninitialized-buffer in-size
-	count-trues mut = 0
+	count-trues mut nat32 = 0
 	_ = some a, of x
 		if f[x]
-			trues[count-trues] := x
+			unsafe-set-at trues, count-trues, x
 			count-trues +:= 1
 		else
-			falses[count-falses] := x
+			unsafe-set-at falses, count-falses, x
 			count-falses +:= 1
 		false
 	- list-new falses.cast-immutable[0 .. count-falses].to
@@ -112,6 +120,17 @@ do (out-col-false, elem) list-new, (out-col-true, elem) list-new, in-col size, (
 	f out-elem mut(elem in-elem)
 do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 	for-loop a, f
+
+| Same as {for-option}.
+| For good style, use this only with an `it` lambda.
++map-optionally[out-col, out-elem, in-col, in-elem] out-col
+	a in-col
+	f out-elem? mut(x in-elem)
+do (out-col, out-elem) list-new, (in-col, in-elem) some
+	with out in build
+		for x in a
+			if y = f[x]
+				out ~= y
 
 | Only returns a result if {f} returned a non-empty option every time.
 +map-every[out-col, out-elem, in-col, in-elem] out-col?
@@ -135,22 +154,34 @@ do (out-col, (key, out-value)) list-new, (in-col, (key, in-value)) some, in-col 
 	map col, of k, v
 		k, f[v]
 
-+n-of[col, elem] col(n nat64, value elem) (col, elem) list-new
++n-of[col, elem] col(n nat32, value elem) (col, elem) list-new
 	do trusted
 	res elem buffer = uninitialized-buffer n
-	for i in 0 .. n
-		res[i] := value
+	for i in n
+		unsafe-set-at res, i, value
 	list-new cast-immutable res
 
 +concatenate[col] spec
 	~~ col(a col, b col)
-+repeat[col] col(a col, n nat64) col concatenate, col new
++repeat[col] col(a col, n nat32) col concatenate, col new
 	res mut col = ()
-	for _ in 0 .. n
+	for _ in n
 		res ~~:= a
 	res
 
-| Like `for-loop`, but {f} must return an array of outputs which are all added to the result.
+| Like {for-loop}, but {f} returns an option and empty options are not output.
++for-option[out-col, out-elem, in-col, in-elem] out-col
+	a in-col
+	f out-elem? mut(elem in-elem)
+do (out-col, out-elem) list-new, (in-col, in-elem) some
+	out out-elem builder = ()
+	_ = some a, of x
+		if v = f[x]
+			out ~= v
+		false
+	finish out
+
+| Like {for-loop}, but {f} must return an array of outputs which are all added to the result.
 +for-star[out-col, out-elem, in-col, in-elem] out-col
 	a in-col
 	f out-elem[] mut(elem in-elem)
@@ -161,15 +192,66 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some
 		false
 	finish out
 
+| Same as {for-star}.
+| For good style, use this only with an `it` lambda.
++flat-map[out-col, out-elem, in-col, in-elem] out-col
+	a in-col
+	f out-elem[] mut(elem in-elem)
+do (out-col, out-elem) list-new, (in-col, in-elem) some
+	for-star a, f
+
 +with-index[col] record(inner col)
-+size[col] nat(a col with-index) col size
++size[col] nat32(a col with-index) col size
 	a.inner.size
-+some[col, elem] bool(a col with-index, f bool mut(index nat, elem elem)) (col, elem) some
-	i mut nat64 = 0
++some[col, elem] bool(a col with-index, f bool mut(index nat32, elem elem)) (col, elem) some
+	i mut nat32 = 0
 	some a.inner, of x
 		res = f[i, x]
 		i +:= 1
 		res
+
+| Works like {with-index} but with a {nat8} index.
++with-index8[col] record(inner col)
++size[col] nat(a col with-index8) col size
+	size a.inner
++some[col, elem] bool(a col with-index8, f bool mut(index nat8, value elem)) (col, elem) some
+	index mut nat8 = 0
+	some a.inner, of x
+		res = f[index, x]
+		index +:= 1
+		res
+
+| Works like {with-index} but with a {nat16} index.
++with-index16[col] record(inner col)
++size[col] nat(a col with-index16) col size
+	size a.inner
++some[col, elem] bool(a col with-index16, f bool mut(index nat16, value elem)) (col, elem) some
+	index mut nat16 = 0
+	some a.inner, of x
+		res = f[index, x]
+		index +:= 1
+		res
+
++with-is-first[col] record(inner col)
++size[col] nat(a col with-is-first) col size
+	size a.inner
++some[col, elem] bool(a col with-is-first, f bool mut(is-first bool, value elem)) (col, elem) some
+	is-first mut bool = true
+	some a.inner, of x
+		res = f[is-first, x]
+		is-first := false
+		res
+
++with-is-last[col] record(inner col)
++size[col] nat(a col with-is-last) col size
+	size a.inner
++some[col, elem] bool(a col with-is-last, f bool mut(is-last bool, value elem)) (col, elem) some
+	prev mut elem? = ()
+	res = some a.inner, of x
+		res = prev and f[false, prev!]
+		prev := x
+		res
+	res or prev and f[true, prev!]
 
 +split[out-col, in-col, in-iter, elem] out-col[]
 	a in-col
@@ -190,8 +272,25 @@ do (in-col, in-iter, elem) basic-iter, in-iter skip-next-n, (out-col, in-iter) s
 		out ~= slice part-start, iter
 		finish-array out
 
-+count[col, elem] nat(a col, f bool mut(x elem)) (col, elem) some
-	sum a, f[it].to
+| Calls {f} on every element and returns the number of times {f} returned true.
++count[col, elem] nat32(a col, f bool mut(x elem)) (col, elem) some
+	res mut nat = 0
+	_ = some a, of x
+		if f[x]
+			res +:= 1
+		false
+	res
+
+| Like {count} but stops the first time {f} returns false.
++count-while[col, elem] nat(a col, f bool mut(x elem)) (col, elem) some
+	res mut nat = 0
+	_ = some a, of x
+		if f[x]
+			res +:= 1
+			false
+		else
+			true
+	res
 
 +summable[t] spec t new
 	+ t(a t, b t)
@@ -213,7 +312,7 @@ do (in-col, in-iter, elem) basic-iter, in-iter skip-next-n, (out-col, in-iter) s
 	true
 
 +reverse[col] record(inner col)
-+size[col] nat(a col reverse) col size
++size[col] nat32(a col reverse) col size
 	a.inner.size
 +some[col, elem] bool(a col reverse, f bool mut(x elem)) (col, elem) some-reverse
 	some-reverse a.inner, f
@@ -230,7 +329,7 @@ do (out-col, elem) list-new, in-col size, (in-col, elem) some-reverse
 	a col
 	seq col
 do (col, iter, elem) basic-iter, iter skip-next-n, elem equal
-	index mut = 0
+	index mut nat = 0
 	iter = begin a
 	do until
 	if try-take-all iter, seq
@@ -241,13 +340,13 @@ do (col, iter, elem) basic-iter, iter skip-next-n, elem equal
 	else
 		()::nat?
 
-+swap-at[col, elem] void(a col, i nat64, j nat64) (col, elem) buffer-like
++swap-at[col, elem] void(a col, i nat32, j nat32) (col, elem) buffer-like
 	temp = a[i]
 	a[i] := a[j]
 	a[j] := temp
 +swap-at[col, elem] void
 	a col
-	i nat64
+	i nat32
 	j index-relative-to-end
 do (col, elem) buffer-like
 	swap-at a, i, to-index a, j
@@ -260,12 +359,16 @@ do (col, elem) buffer-like
 
 +set-reverse[col, elem] void(a col) (col, elem) buffer-like
 	do if a.size > 1
-	lo mut = 0
+	lo mut nat32 = 0
 	hi mut = a.size - 1
 	while lo < hi
 		swap-at a, lo, hi
 		lo +:= 1
 		hi -:= 1
+
++fill[col, elem] void(a col, value elem) (col, elem) buffer-like
+	for i in a.size
+		a[i] := value
 
 +take-while[out, col, iter, elem] out
 	a col
@@ -436,17 +539,17 @@ do (col, iter, elem) basic-reverse-iter, iter skip-prev-n, elem equal
 | You get a builder by using `with out in build` where `out` is the builder.
 +builder[t] record mut
 	-buffer mut t buffer
-	-cur-size mut nat64
+	-cur-size mut nat32
 ~new[t] t builder()
 	0,
-~new[t] t builder(size-hint nat64)
+~new[t] t builder(size-hint nat32)
 	trusted size-hint.uninitialized-buffer, 0
 + ~=[t] void(a t builder, value t)
 	forbid a.cur-size == max-value
 	capacity = a.buffer.size
 	if a.cur-size == capacity
 		expand-capacity a, if capacity == 0 then 4 else capacity * 2
-	a.buffer[a.cur-size] := value
+	trusted unsafe-set-at a.buffer, a.cur-size, value
 	a.cur-size +:= 1
 + ~~=[t] void(a t builder, values t array-view)
 	forbid a.cur-size == max-value
@@ -456,7 +559,7 @@ do (col, iter, elem) basic-reverse-iter, iter skip-prev-n, elem equal
 		expand-capacity a, round-up-to-power-of-two a.cur-size + values.size
 	a.buffer[a.cur-size .. new-size] := values
 	a.cur-size +:= values.size
--expand-capacity[t] void(a t builder, new-capacity nat64)
+-expand-capacity[t] void(a t builder, new-capacity nat32)
 	do trusted
 	assert new-capacity > a.buffer.size
 	new-buffer t buffer = uninitialized-buffer new-capacity
@@ -476,11 +579,9 @@ do (col, iter, elem) basic-reverse-iter, iter skip-prev-n, elem equal
 ~finish[col, elem] col(a elem builder) (col, elem) list-new
 	list-new finish-array a
 +build-options record
-	size-hint nat64
-+build build-options()
-	0,
-+build build-options(size-hint nat64)
-	size-hint,
+	size-hint nat32
++build build-options() = 0,
++build build-options(size-hint nat32) = size-hint,
 +with-block[col, elem] col
 	a build-options
 	f void mut(out elem builder)
@@ -490,13 +591,14 @@ do (col, elem) list-new
 	finish out
 
 | Like {build}, but builds 2 things at once.
-+build2 record
++build2 record(size-hint0 nat, size-hint1 nat)
++build2 build2() = 0, 0
 +with-block[col0, elem0, col1, elem1] (col0, col1)
-	_ build2
+	a build2
 	f void mut(out0 elem0 builder, out1 elem1 builder)
 do (col0, elem0) list-new, (col1, elem1) list-new
-	out0 elem0 builder = ()
-	out1 elem1 builder = ()
+	out0 elem0 builder = a.size-hint0,
+	out1 elem1 builder = a.size-hint1,
 	f[out0, out1]
 	out0.finish, out1.finish
 
@@ -506,74 +608,158 @@ do (col0, elem0) list-new, (col1, elem1) list-new
 	do if a.size == 1
 	values elem[] = map a, {it}
 	assert values.size == 1
-	values[0]
+	trusted unsafe-at values, 0
 | If the collection has exactly 2 elements, returns them as a tuple.
 | Otherwise this is an empty option.
 +only2[col, elem] (elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 2
 	values elem[] = map a, {it}
 	assert values.size == 2
-	values[0], values[1]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
 | If the collection has exactly 3 elements, returns them as a tuple.
 | Otherwise this is an empty option.
 +only3[col, elem] (elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 3
 	values elem[] = map a, {it}
 	assert values.size == 3
-	values[0], values[1], values[2]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
 | If the collection has exactly 4 elements, returns them as a tuple.
 +only4[col, elem] (elem, elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 4
 	values elem[] = map a, {it}
 	assert values.size == 4
-	values[0], values[1], values[2], values[3]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
+	- trusted unsafe-at values, 3
 | If the collection has exactly 5 elements, returns them as a tuple.
 +only5[col, elem] (elem, elem, elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 5
 	values elem[] = map a, {it}
 	assert values.size == 5
-	values[0], values[1], values[2], values[3], values[4]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
+	- trusted unsafe-at values, 3
+	- trusted unsafe-at values, 4
 | If the collection has exactly 6 elements, returns them as a tuple.
 +only6[col, elem] (elem, elem, elem, elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 6
 	values elem[] = map a, {it}
 	assert values.size == 6
-	values[0], values[1], values[2], values[3], values[4], values[5]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
+	- trusted unsafe-at values, 3
+	- trusted unsafe-at values, 4
+	- trusted unsafe-at values, 5
 | If the collection has exactly 7 elements, returns them as a tuple.
 +only7[col, elem] (elem, elem, elem, elem, elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 7
 	values elem[] = map a, {it}
 	assert values.size == 7
-	values[0], values[1], values[2], values[3], values[4], values[5], values[6]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
+	- trusted unsafe-at values, 3
+	- trusted unsafe-at values, 4
+	- trusted unsafe-at values, 5
+	- trusted unsafe-at values, 6
 | If the collection has exactly 8 elements, returns them as a tuple.
 +only8[col, elem] (elem, elem, elem, elem, elem, elem, elem, elem)?(a col) col size, (col, elem) some
 	do if a.size == 8
 	values elem[] = map a, {it}
 	assert values.size == 8
-	values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7]
+	- trusted unsafe-at values, 0
+	- trusted unsafe-at values, 1
+	- trusted unsafe-at values, 2
+	- trusted unsafe-at values, 3
+	- trusted unsafe-at values, 4
+	- trusted unsafe-at values, 5
+	- trusted unsafe-at values, 6
+	- trusted unsafe-at values, 7
 
-+zip[t, u] record(a t, b u)
-+size[t, u] nat64(a (t, u) zip) t size, u size
++zip[col0, col1] record(a col0, b col1)
++size[col0, col1] nat32(a (col0, col1) zip) col0 size, col1 size
 	assert a.a.size == a.b.size
 	a.a.size
-+some[t, x, u, y] bool(a (t, u) zip, f bool mut(x x, y y)) (t, x) array-like, (u, y) array-like
-	some (0::nat .. a.size), {f[a.a[it], a.b[it]]}
-+some-reverse[t, x, u, y] bool(a (t, u) zip, f bool mut(x x, y y)) (t, x) array-like, (u, y) array-like
-	some-reverse (0::nat .. a.size), {f[a.a[it], a.b[it]]}
++some[col0, elem0, col1, elem1] bool
+	a (col0, col1) zip
+	f bool mut(x elem0, y elem1)
+do (col0, elem0) array-like, (col1, elem1) array-like
+	some (0::nat32 .. a.size), {f[a.a[it], a.b[it]]}
++some-reverse[col0, elem0, col1, elem1] bool
+	a (col0, col1) zip
+	f bool mut(x elem0, y elem1)
+do (col0, elem0) array-like, (col1, elem1) array-like
+	some-reverse (0::nat32 .. a.size), {f[a.a[it], a.b[it]]}
+
+| Like {zip} but allows the collections to be different sizes, discarding extra elements.
++zip-smaller[col0, col1] record(a col0, b col1)
++size[col0, col1] nat(a (col0, col1) zip-smaller) col0 size, col1 size
+	min a.a.size, a.b.size
++some[col0, elem0, col1, elem1] bool
+	a (col0, col1) zip-smaller
+	f bool mut(x elem0, y elem1)
+do (col0, elem0) array-like, (col1, elem1) array-like
+	some (0::nat32 .. a.size), {f[a.a[it], a.b[it]]}
++some-reverse[col0, elem0, col1, elem1] bool
+	a (col0, col1) zip-smaller
+	f bool mut(x elem0, y elem1)
+do (col0, elem0) array-like, (col1, elem1) array-like
+	some-reverse (0::nat32 .. a.size), {f[a.a[it], a.b[it]]}
 
 | All pairs of different two elements of the array.
 | The element with the lower index always comes first.
 +all-pairs[t] record(inner t[])
-+size[t] nat(a t all-pairs)
++size[t] nat32(a t all-pairs)
 	a.inner.size * (saturating-subtract a.inner.size, 1) / 2
 +some[t] bool(a t all-pairs, f bool mut(x t, y t))
 	some 0 .. a.inner.size, of i
 		some i + 1 .. a.inner.size, of j
-			f[a.inner[i], a.inner[j]]
+			f[(trusted unsafe-at a.inner, i), (trusted unsafe-at a.inner, j)]
 
 | `(a[0], a[1])`, `(a[1], a[2])`, etc.
 +adjacent-pairs[t] record(inner t[])
-+size[t] nat(a t adjacent-pairs)
++size[t] nat32(a t adjacent-pairs)
 	saturating-subtract a.inner.size, 1
 +some[t] bool(a t adjacent-pairs, f bool mut(x t, y t))
-	a.inner.size > 1 and some 0 .. a.inner.size - 1, {f[a.inner[it], a.inner[it + 1]]}
+	a.inner.size > 1 and some 0 .. a.inner.size - 1, of i
+		f[(trusted unsafe-at a.inner, i), (trusted unsafe-at a.inner, i + 1)]
+
++all-combinations[col0, col1] record(col0 col0, col1 col1)
++size[col0, col1] nat32(a (col0, col1) all-combinations) col0 size, col1 size
+	a.col0.size * a.col1.size
++some[col0, elem0, col1, elem1] bool
+	a (col0, col1) all-combinations
+	f bool mut(x elem0, y elem1)
+do (col0, elem0) some, (col1, elem1) some
+	some a.col0, of x
+		some a.col1, of y
+			f[x, y]
+
++indices-where[col, elem] nat[](a col, f bool mut(elem elem)) (col, elem) some
+	with out in build
+		i mut nat = 0
+		_ = some a, of x
+			if f[x]
+				out ~= i
+			i wrap-add:= 1
+			false
+
+| The element satisfying {f} if it is the only one.
+| If multiple elements satisfy {f}, this is an empty option, same as if none did.
++only-where[col, elem] elem?(col col, f bool mut(x elem)) col size, (col, elem) some
+	res mut elem? = ()
+	_ = some col, of x
+		do if f[x]
+		if res
+			res := ()
+			true
+		else
+			res := x
+			false
+	res

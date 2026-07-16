@@ -26,7 +26,7 @@ end pos(a token-start-end)
 	a.value & 0xffffff 'to
 to json(a tokens)
 	size = a.tokens-starts-ends.size
-	for::json[] i in 0 .. size
+	for::json[] i in size
 		x = a.tokens-starts-ends[i]
 		match data_ = a.datas[i]
 		as no-token-data
@@ -34,19 +34,19 @@ to json(a tokens)
 		else
 			token: x.token.to, start: x.start.to, end: x.end.to, data_: data_.to
 
-token-data union(no-token-data, float, int, nat, symbol, string)
+token-data union(no-token-data, float64, int64, nat64, symbol, string)
 no-token-data record
 number number?(a token-data)
 	match a
-	as float then a
-	as int then a
-	as nat then a
+	as float64 then a
+	as int64 then a
+	as nat64 then a
 	else then ()
 -to token-data(a number)
 	match a
-	as float then a
-	as int then a
-	as nat then a
+	as float64 then a
+	as int64 then a
+	as nat64 then a
 
 lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 	assert source.size < (1 << 24) # Check that 24 bits is enough for pos
@@ -207,12 +207,12 @@ lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 
 -lexer-state record mut
 	# For performance, we handle growable arrays inline here rather than through an indirection like mut[]
-	n-tokens mut nat
+	n-tokens mut nat32
 	tokens-starts-ends mut token-start-end buffer
 	data_ mut token-data buffer
 	indent-kind indent-kind
 	cur-indent mut nat32
-	n-inside-braces mut nat
+	n-inside-braces mut nat32
 	inside-braces mut braces-kind buffer
 	diagnostics parse-diagnostic mut[]
 -braces-kind enum(bar, double, indented, lambda)
@@ -283,16 +283,22 @@ lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 				skip-until-newline iter
 				emit state, region_, start, iter.pos
 			as for_
-				emit state, (if try-take iter, "*" then for-star else for_), start, iter.pos
+				full-token token = if try-take iter, "?"
+					for-option
+				elif try-take iter, "*"
+					for-star
+				else
+					for_
+				emit state, full-token, start, iter.pos
 			as operator-binary
 				emit state, token, start, iter.pos, symbol
 			as quote-keyword
 				before-newline = iter.pos
 				if try-take iter, "\n"
 					end-all-quotes state, iter
-					delta = get-indent-delta-after-quote state, iter
+					blank-lines, delta = get-indent-delta-after-quote state, iter
 					if delta == 1
-						take-indented-quote-part state, iter
+						take-indented-quote-part state, iter, blank-lines
 					else
 						emit state, quote-keyword, start, iter.pos
 						emit-newline-inner state, iter, before-newline, delta
@@ -327,7 +333,7 @@ lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 	else
 		emit state, newline-same-indent, start, iter.pos
 -emit-dedents void(state lexer-state, start pos, iter string-iterator, amount nat32)
-	for _ in 0::nat32 .. amount
+	for _ in amount
 		emit state, newline-dedent, start, start
 	emit-newline-same-indent state, start, iter
 -end-all-quotes void(state lexer-state, iter string-iterator)
@@ -517,15 +523,17 @@ region strings
 
 -take-string-part void(state lexer-state, iter string-iterator, start pos, kind quote-kind)
 	if kind == indented
-		take-indented-quote-part state, iter
+		take-indented-quote-part state, iter, 0
 	else
 		take-non-indented-string-part state, iter, start, kind
 
--take-indented-quote-part void(state lexer-state, iter string-iterator)
+-take-indented-quote-part void(state lexer-state, iter string-iterator, blank-lines nat)
 	range-start = iter.pos
 	interpolate mut = false
 	dedents mut nat32 = 0
 	text string = with out in build
+		for _ in blank-lines
+			out ~= "\n"
 		do until
 		start = iter.pos
 		match peek iter else "\0"
@@ -543,21 +551,22 @@ region strings
 			take-string-escape out, start, iter, state.diagnostics
 			false
 		as "\n"
-			count-newlines mut nat = 0
+			count-newlines mut nat32 = 0
 			new-indent mut nat32 = 0
 			while try-take iter, "\n"
 				count-newlines +:= 1
-				new-indent := take-indent-amount-after-newline iter, state.indent-kind, of pos
-					state.diagnostics ~= (pos, iter.pos), parse-diag-indent-wrong state.indent-kind
+				new-indent :=
+					take-indent-amount-after-newline iter, state.indent-kind, stop-at-wrong-indent-char, of pos
+						state.diagnostics ~= (pos, iter.pos), parse-diag-indent-wrong state.indent-kind
 			prev-indent = state.cur-indent
 			if new-indent < prev-indent
 				dedents := prev-indent - new-indent - 1
 				state.cur-indent := new-indent
 				true
 			else
-				for _ in 0 .. count-newlines
+				for _ in count-newlines
 					out ~= "\n"
-				for _ in 0::nat32 .. new-indent - prev-indent
+				for _ in new-indent - prev-indent
 					out ~~= chars state.indent-kind
 				false
 		as "\0"
@@ -571,7 +580,7 @@ region strings
 	end-pos = if is-at-end iter then iter.pos else iter.pos - 1
 	token = if interpolate then quote-block-then-interpolated else quote-block-no-interpolated
 	emit state, token, range-start, end-pos, text
-	unless interpolate
+	unless interpolate or iter.peek == "#"
 		emit-dedents state, end-pos, iter, dedents
 
 -chars char8[](a indent-kind)
@@ -686,7 +695,6 @@ skip-spaces-and-comments void(iter string-iterator, cb-comment cb-comment, diagn
 			skip-rest-of-block-comment iter, diagnostics
 			cb-comment[start]
 		else
-			while then try-take iter, " "
 			skip-until-newline iter
 			cb-comment[start]
 		false
@@ -699,19 +707,24 @@ skip-spaces-and-comments void(iter string-iterator, cb-comment cb-comment, diagn
 		new-indent mut nat32 = 0
 		cb-start-of-line = of
 			start := iter.pos
-			new-indent := take-indent-amount-after-newline state, iter
+			new-indent := take-indent-amount-after-newline state, iter, diag-on-wrong-indent-char
 		skip-blank-lines iter, cb-start-of-line, {}, state.diagnostics
 		start, new-indent
 
--get-indent-delta-after-quote int32(state lexer-state, iter string-iterator)
-	repeat-until-indent-delta state, iter, of
+-get-indent-delta-after-quote (nat, int)(state lexer-state, iter string-iterator)
+	blank-lines mut nat = 0
+	delta = repeat-until-indent-delta state, iter, of
 		iter.pos, until
-			amount = take-indent-amount-after-newline state, iter
-			unless try-take iter, "\n"
+			amount = take-indent-amount-after-newline state, iter, stop-at-wrong-indent-char
+			if try-take iter, "\n"
+				blank-lines +:= 1
+				()
+			else
 				amount
+	blank-lines, delta
 
--take-indent-amount-after-newline nat32(state lexer-state, iter string-iterator)
-	take-indent-amount-after-newline iter, state.indent-kind, of pos
+-take-indent-amount-after-newline nat32(state lexer-state, iter string-iterator, wrong-indent wrong-indent-char-policy)
+	take-indent-amount-after-newline iter, state.indent-kind, wrong-indent, of pos
 		state.diagnostics ~= (pos, iter.pos), parse-diag-indent-wrong state.indent-kind
 
 -repeat-until-indent-delta int32(state lexer-state, iter string-iterator, f (pos, nat32) mut())

@@ -4,7 +4,6 @@ import
 	../../model/ast
 	../../model/model
 	../../model/source-range
-	../../model/uri
 	../../util/by-key
 	./check-call/check-call
 	./check-call/check-call-specs
@@ -15,6 +14,32 @@ import
 	./inferring-type
 	./instantiate
 	./type-from-ast
+
+check-record-field-default expr(record_ type-decl, field record-field, ast expr-ast) check-ctx, types-get, funs-map
+	the expr-ctx =
+		types-and-specs-map: the::types-and-specs-map
+		funs-map: the::funs-map
+		container: record_
+		type-params: record_.type-params
+	res expr = check-and-expect ast, field.type
+	forbid any the::expr-ctx.allocated-locals
+	res
+
+check-parameter-default expr
+	fun fun-decl
+	type-params type-params
+	param destructure
+	ast expr-ast
+do check-ctx, types-get, funs-map
+	the expr-ctx =
+		types-and-specs-map: the::types-and-specs-map
+		funs-map: the::funs-map
+		container: fun
+		type-params: type-params
+	res expr = check-and-expect ast, param.type
+	# Since parameter defaults are one-line expressions, they can't declare mutable variables
+	forbid any the::expr-ctx.allocated-locals
+	res
 
 check-fun-or-test-body expr-maybe-allocated-locals
 	container expr-container
@@ -40,10 +65,25 @@ do check-ctx, types-get, funs-map
 			check-and-expect ast, return-type
 	else
 		check-and-expect ast, return-type
-	if is-empty the::expr-ctx.allocated-locals
-		res
-	else
+	if any the::expr-ctx.allocated-locals
 		expr-with-allocated-locals res, the::expr-ctx.allocated-locals.move-to
+	else
+		res
+
+-check-expr-with-known-value expr
+	instantiate-ctx instantiate-ctx
+	check-ctx check-context
+	common-types common-types
+	ctx expr-ctx
+	known known-value
+	ast expr-ast
+	expected expected
+do
+	the instantiate-ctx = instantiate-ctx
+	the check-context = check-ctx
+	the common-types = common-types
+	the expr-ctx = ctx
+	check-with-condition known, {check-expr ast, expected}
 
 | This exists to work around the fact that spec impls currently can't take contexts
 -check-expr expr
@@ -85,7 +125,7 @@ do
 	as call-ast-then
 		check-call ast, expected
 	as call-named-ast
-		check-call-named ast, expected
+		check-call-named-new ast, expected
 	as call-subscript-ast
 		check-call ast, expected
 	as call-question-subscript-ast
@@ -132,6 +172,8 @@ do
 		check-shared ast, expected
 	as the-ast
 		check-the ast, expected
+	as then-if-or-unless-ast
+		check-then-if-or-unless ast, (check-condition ast.condition), expected
 	as throw-ast
 		check-throw ast, expected
 	as trusted-ast
@@ -231,9 +273,6 @@ do
 		bogus-expr range, option[type], from-other-bogus
 
 -check-force expr(ast force-ast, expected expected) check-expr-ctx
-	LOG = cur-uri.base-name == "foo.keen"
-	if LOG
-		log "top of check-force", expected
 	is-option mut = true
 	arg = check-with-modify-expected-option ast.arg, expected, of actual
 		is-option := false
@@ -330,17 +369,17 @@ do check-expr-ctx
 	do if called = find-function-for-interpolate-or-list-new range, interpolate-1, type else
 		bogus expected, source.to::expr-ast
 	arg-expected = expect as-array! only! called.param-types
-	list-expr source, called, for* arg-index in 0 .. template.size + interpolated-exprs.size
+	list-expr source, called, for? arg-index in template.size + interpolated-exprs.size
 		if is-even arg-index
 			part = template[arg-index / 2]
-			do unless is-empty part.value
-			range2 = if is-empty part.range then part.range else part.range[0 .. 1]
-			- check-call-special-cb1 part, range2, interpolate-string-1, arg-expected, of inner2
+			do if any part.value
+			range2 = if any part.range then part.range[0 .. 1] else part.range
+			check-call-special-cb1 part, range2, interpolate-string-1, arg-expected, of inner2
 				check-literal-string-only-string part, inner2
 		else
 			part = interpolated-exprs[arg-index / 2]
-			range2 = if is-empty part.range then part.range else part.range[0 .. 1]
-			- check-call-special source.to, range2, interpolate-value-1, (part,), arg-expected
+			range2 = if any part.range then part.range[0 .. 1] else part.range
+			check-call-special source.to, range2, interpolate-value-1, (part,), arg-expected
 
 -access-local local?(diag-range source-range, name symbol) check-expr-ctx
 	# This traverses from the innermost lambda outwards, checking if it was already added to a closure.
@@ -586,7 +625,7 @@ do
 		type
 
 -check-let-the expr(ast let-the-ast, expected expected) check-expr-ctx
-	do if is-empty lambdas else
+	do unless any lambdas else
 		add-diag ast.keyword-range, diag-context-defined-in-lambda
 		bogus expected, ast
 	do if type = type-for-the ast.type else bogus expected, ast
@@ -756,14 +795,8 @@ check-while-or-until-body expr(ast while-or-until-body-ast, expected expected) c
 
 -can-match-sum-type bool(a sum-type-kind)
 	match a
-	as interface_
-		false
-	as java-interface
-		true
-	as union_
-		true
-	as variant_
-		true
+	as interface_ then false
+	as java-interface or union_ or variant_ then true
 
 -check-match-enum expr
 	ast match-ast
@@ -777,27 +810,29 @@ do check-expr-ctx
 	has-case-diag mut = false
 	cases match-enum-case[] = with out in build ast.cases.size
 		do for case-ast in ast.cases
-		as-name = name-from-case-member-ast case-ast.member
-		name = as-name.?name.?name
-		if member = (if name then body.members-by-key[name])
-			if remove remaining, member
-				out ~= member, check-expr case-ast.then_, expected
-			else
+		members enum-or-flags-member[] = for? member-ast in case-ast.members
+			do if name = name-from-case-member-ast member-ast else
 				has-case-diag := true
-				add-diag case-ast.name-range, name!::diag-match-case-duplicate
-		else
-			has-case-diag := true
-			if name
-				add-diag case-ast.name-range, diag-match-case-name-not-in-enum name, matched-enum
+				()
+			do if member = body.members-by-key[name] else
+				add-diag member-ast.range, diag-match-case-name-not-in-enum name, matched-enum
+				()
+			do if remove remaining, member else
+				has-case-diag := true
+				add-diag member-ast.range, name::diag-match-case-duplicate
+				()
+			member
+		if any members
+			out ~= members, check-expr case-ast.then_, expected
 
 	do unless has-case-diag else bogus expected, ast
 
-	else_ expr? = if is-empty remaining
+	else_ expr? = if any remaining
+		check-match-else-required ast, expected, {diag-match-unhandled-enum-members remaining.to}
+	else
 		if x = ast.else_
 			add-diag x.keyword-range, diag-match-unnecessary-else
 		()
-	else
-		check-match-else-required ast, expected, {diag-match-unhandled-enum-members remaining.to}
 	match-enum-expr ast, matched-local, matched, cases, else_, expected.inferred
 
 -check-match-sum-type match-sum-type-expr
@@ -808,11 +843,14 @@ do check-expr-ctx
 	sum-type type-inst
 do check-expr-ctx
 	matched-refinable refinable? = local or as-refinable matched
-	cases = check-match-sum-type-cases matched-refinable, sum-type, ast.cases, expected
-	body = sum-type.decl.body.sum-type!
+	body = sum-type! sum-type.decl.body
 	is-union = body.kind == union_
+	seen type-inst mut-set = ()
+	hint-size seen, body.listed-members.size
+	cases match-sum-type-case[] = for? case-ast in ast.cases
+		check-match-sum-type-case matched-refinable, sum-type, case-ast, expected, seen
 	else_ expr? = if is-union
-		if cases.size == body.listed-members.size
+		if seen.size == body.listed-members.size
 			if x = ast.else_
 				add-diag x.keyword-range, diag-match-unnecessary-else
 			if cases.size == 0
@@ -821,31 +859,15 @@ do check-expr-ctx
 			()
 		else
 			check-match-else-required ast, expected, of
-				diag-match-unhandled-union-case-types list-missing-union-cases sum-type, body, cases
+				diag-match-unhandled-union-case-types list-missing-union-cases sum-type, body, move-to seen
 	else
 		check-match-else-required ast, expected, {variant_::diag-match-needs-else}
 	match-sum-type-expr ast, local, matched, cases, else_, expected.inferred
--list-missing-union-cases type-inst[](union_ type-inst, body sum-type, cases match-sum-type-case[])
-	for* x in body.listed-members
+-list-missing-union-cases type-inst[](union_ type-inst, body sum-type, seen type-inst set)
+	for? x in body.listed-members
 		member-inst = instantiate-type-inst x.case-type, union_.type-args
-		unless some cases, it.case-type == member-inst
-			- member-inst
-
--check-match-sum-type-cases match-sum-type-case[]
-	matched-local refinable?
-	matched-variant type-inst
-	case-asts case-ast[]
-	expected expected
-do check-expr-ctx
-	seen type-inst mut-set = ()
-	hint-size seen, case-asts.size
-	do with out in build case-asts.size
-	do for case-ast in case-asts
-	do if res = check-match-sum-type-case matched-local, matched-variant, case-ast.member, case-ast.then_, expected
-	if try-add seen, res.case-type
-		out ~= res
-	else
-		add-diag case-ast.name-range, res.case-type.decl.name::diag-match-case-duplicate
+		unless seen[member-inst]
+			member-inst
 
 -check-catches catch_[](asts catch-ast[], expected expected) check-expr-ctx
 	seen type-inst mut-set = ()
@@ -874,40 +896,39 @@ do check-expr-ctx
 -check-match-sum-type-case match-sum-type-case?
 	matched-refinable refinable?
 	matched-variant type-inst
-	member-ast case-member-ast
-	then-ast expr-ast
+	case-ast case-ast
 	expected expected
+	seen type-inst mut-set
 do check-expr-ctx
-	as-name = name-from-case-member-ast member-ast
-	name = as-name.?name.?name
-	do if name
-	do if case-type = get-sum-type-case-from-name matched-variant, name, member-ast.name-range
-	case-type: case-type
-	then_: with in maybe-refinement matched-refinable, case-type
-		check-expr then-ast, expected
+	case-types type-inst[] = for? member-ast in case-ast.members
+		do if name = name-from-case-member-ast member-ast
+		do if type = get-sum-type-case-from-name matched-variant, name, member-ast.range
+		do if try-add seen, type else
+			add-diag member-ast.range, type.decl.name::diag-match-case-duplicate
+			()
+		type
+	do if any case-types
+	case-types: case-types
+	then_: with in maybe-refinement matched-refinable, only case-types
+		check-expr case-ast.then_, expected
 
 -get-sum-type-case-from-name type-inst?
 	sum-type type-inst
 	name symbol
 	name-range source-range
 do check-expr-ctx
-	listed-members = sum-type.decl.body.sum-type!.listed-members
 	the types-and-specs-map = the::expr-ctx.types-and-specs-map
 	do if type = type-or-alias-from-name name, name-range
 	match type
 	as type-alias
 		target = type.target
-		is-listed = some listed-members, it.case-type == target
-		has-case = some target.decl.sum-type-cases, it.sum-type == sum-type
-		if is-listed or has-case
+		if sum-type.listed-members?[target.decl] == target or some target.decl.sum-type-cases, it.sum-type == sum-type
 			target
 		else
 			add-diag name-range, diag-match-sum-type-no-member sum-type.type-with-container, target.decl
 			()
 	as type-decl
-		if x = find listed-members, it.case-type.decl == type
-			instantiate-type-inst x.case-type, sum-type.type-args
-		else
+		sum-type.listed-members?[type] or
 			from-case = first type.sum-type-cases, of x
 				compare-sum-types name-range, type, x.sum-type, sum-type
 			if from-case
@@ -948,14 +969,16 @@ do check-ctx, common-types
 do check-expr-ctx
 	seen scalar-value mut-set = ()
 	hint-size seen, ast.cases.size
-	cases match-scalar-case[] = with out in build ast.cases.size
-		do for case-ast in ast.cases
-		do if string-value = string-from-case-ast case-ast.member
-		value = char-literal-value case-ast.name-range, char-type, string-value
-		if try-add seen, value
-			out ~= value, check-expr case-ast.then_, expected
-		else
-			add-diag case-ast.name-range, string-value::diag-match-case-duplicate
+	cases match-scalar-case[] = for? case-ast in ast.cases
+		values scalar-values = for? member-ast in case-ast.members
+			do if string-value = string-from-case-ast member-ast
+			value = char-literal-value member-ast.range, char-type, string-value
+			do if try-add seen, value else
+				add-diag member-ast.range, string-value::diag-match-case-duplicate
+				()
+			value.bits
+		do if any values
+		values, check-expr case-ast.then_, expected
 	else_ = check-match-else-required ast, expected, {integral::diag-match-needs-else}
 	match-scalar-expr ast, char-type, matched-local, matched, cases, else_, expected.inferred
 
@@ -968,27 +991,26 @@ do check-expr-ctx
 do check-expr-ctx
 	seen scalar-value mut-set = ()
 	hint-size seen, ast.cases.size
-	cases match-scalar-case[] = with out in build
-		do for case-ast in ast.cases
-		value scalar-value? = match x = case-ast.member
-		as as-name-ast
-			add-diag x.name.range, numeric::diag-match-case-for-type
-			()
-		as literal-number
-			check-literal-integral-value integral-type, x
-		as literal-string-ast
-			add-diag x.range, numeric::diag-match-case-for-type
-			()
-		as as-bogus-ast
-			()
-		do if value
-		if try-add seen, value
-			out ~= value, check-expr case-ast.then_, expected
-		else
-			add-diag case-ast.name-range, if is-signed integral-type
-				value.to::int64::diag-match-case-duplicate
-			else
-				value.to::nat64::diag-match-case-duplicate
+	cases match-scalar-case[] = for? case-ast in ast.cases
+		values scalar-values = for? member-ast in case-ast.members
+			do if value scalar-value = match x = member-ast
+			as name-and-range
+				add-diag x.range, numeric::diag-match-case-for-type
+				()
+			as literal-number
+				check-literal-integral-value integral-type, x
+			as literal-string-ast
+				add-diag x.range, numeric::diag-match-case-for-type
+				()
+			do if try-add seen, value else
+				add-diag member-ast.range, if is-signed integral-type
+					value.to::int64::diag-match-case-duplicate
+				else
+					value.to::nat64::diag-match-case-duplicate
+				()
+			value.bits
+		do if any values
+		values, check-expr case-ast.then_, expected
 	else_ = check-match-else-required ast, expected, {integral::diag-match-needs-else}
 	match-scalar-expr ast, integral-type, matched-local, matched, cases, else_, expected.inferred
 
@@ -1006,14 +1028,18 @@ do check-expr-ctx
 	string-type matchable-string-like-type
 do check-expr-ctx
 	the types-and-specs-map = the::expr-ctx.types-and-specs-map
-	seen string mut-set = ()
-	cases match-string-like-case[] = with out in build
-		do for case-ast in ast.cases
-		do if value = string-from-case-ast case-ast.member
-		if try-add seen, value
-			out ~= value, check-expr case-ast.then_, expected
-		else
-			add-diag case-ast.name-range, value::diag-match-case-duplicate
+	seen symbol mut-set = ()
+	hint-size seen, ast.cases.size
+	cases match-string-like-case[] = for? case-ast in ast.cases
+		values symbol[] = for? member-ast in case-ast.members
+			do if value = string-from-case-ast member-ast
+			symbol symbol = to value
+			do if try-add seen, symbol else
+				add-diag member-ast.range, value::diag-match-case-duplicate
+				()
+			symbol
+		do if any values
+		values, check-expr case-ast.then_, expected
 	else_ = check-match-else-required ast, expected, {string-like::diag-match-needs-else}
 	match-string-like-expr ast, string-type, matched-local, matched, cases, else_, expected.inferred
 
@@ -1047,21 +1073,20 @@ do check-expr-ctx
 
 -string-from-case-ast string?(ast case-member-ast) check-ctx
 	match ast
-	as as-name-ast
-		ast.name.name.to
+	as name-and-range
+		ast.name.to
 	as literal-number
 		add-diag ast.range, string-like::diag-match-case-for-type
 		()
 	as literal-string-ast
 		ast.value
-	as as-bogus-ast
-		()
 
--name-from-case-member-ast as-name-ast?(ast case-member-ast) check-ctx
-	res as-name-ast? = ast.as-name-ast
-	unless res
-		add-diag ast.name-range, enum-or-union::diag-match-case-for-type
-	res
+-name-from-case-member-ast symbol?(ast case-member-ast) check-ctx
+	if name-and-range ast
+		ast.name
+	else
+		add-diag ast.range, enum-or-union::diag-match-case-for-type
+		()
 
 -check-seq expr(ast seq-ast, expected expected) check-expr-ctx
 	first = check-and-expect ast.first, void

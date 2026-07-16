@@ -20,9 +20,9 @@ do
 	keys k[]
 	children (k, v) node[]
 
--max-branch-children nat()
+-max-branch-children nat32()
 	8
--max-leaf-size nat()
+-max-leaf-size nat32()
 	16
 
 -min-key[k, v] k(a (k, v) branch)
@@ -33,7 +33,7 @@ do
 +list-new[k, v] (k, v) sorted-map(pairs (k, v)[]) k sorted-key
 	pairs.to
 +named-new[v] (symbol, v) sorted-map(names symbol[], values v[])
-	to for::(symbol, v)[] i in 0 .. names.size
+	to for::(symbol, v)[] i in names.size
 		names[i], values[i]
 
 -get-root-for-update[k, v] (k, v) node(a (k, v) sorted-map) k sorted-key
@@ -49,20 +49,20 @@ do
 			keys: map children, it.min-key
 			children: children
 	nodes[0]
--chunk[t] t[][](a t[], chunk-size nat)
-	for i in 0 .. div-ceil a.size, chunk-size
+-chunk[t] t[][](a t[], chunk-size nat32)
+	for i in divide-and-round-up a.size, chunk-size
 		a[i * chunk-size .. ((i + 1) * min chunk-size, a.size)].to
 
-+is-empty[k, v] bool(a (k, v) sorted-map) k sorted-key
-	match root = a.root
++any[k, v] bool(a (k, v) sorted-map) k sorted-key
+	match a.root
 	as branch
-		false
+		true
 	as array
-		is-empty root
+		any a.root
 
-+size[k, v] nat(a (k, v) sorted-map)
++size[k, v] nat32(a (k, v) sorted-map)
 	size a.root
--size[k, v] nat(a (k, v) node)
+-size[k, v] nat32(a (k, v) node)
 	match a
 	as branch
 		sum a.children, it.size
@@ -176,7 +176,7 @@ do
 	merge a, b, it.b
 -consume-rest[k, v] void(out (k, v) builder, a (k, v) iter)
 	out ~~= a.cur-array[a.cur-index .. end]
-	for index nat, nodes (k, v) node[] in reverse a.stack
+	for index, nodes in reverse a.stack
 		for node in nodes[index .. end]
 			for x in node
 				out ~= x
@@ -234,11 +234,7 @@ do k sorted-key
 		- removed-value r
 		- root: match node = new-node r
 		as branch
-			match size node.children
-			as 1
-				node.children[0]
-			else
-				node
+			only node.children else node
 		as array
 			node
 -removed[k, v] record
@@ -280,13 +276,13 @@ do k sorted-key
 			removed-value: value
 			new-node: remove-at a, index
 
--update-if-necessary[t] t[](a t[], index nat, value t) t equal
+-update-if-necessary[t] t[](a t[], index nat32, value t) t equal
 	if a[index] == value
 		a
 	else
 		update-at a, index, value
 
--binary-search-key[k] nat(keys k[], key k) k sorted-key
+-binary-search-key[k] nat32(keys k[], key k) k sorted-key
 	index = binary-search-insert keys, key
 	if index == 0 or (index != keys.size and keys[index] == key)
 		index
@@ -354,9 +350,9 @@ do k sorted-key
 
 -iter[k, v] record mut
 	cur-array mut (k, v)[]
-	cur-index mut nat
+	cur-index mut nat32
 	# Each entry in the stack is the remaining branches we need to do
-	stack (nat, (k, v) node[]) mut-stack
+	stack (nat32, (k, v) node[]) mut-stack
 -begin[k, v] (k, v) iter(a (k, v) sorted-map)
 	res (k, v) iter = (), (), ()
 	add-node res, a.root
@@ -413,10 +409,10 @@ do k sorted-key
 	some-reverse a.children, {some-reverse it, f}
 
 +min-key[k, v] k?(a (k, v) sorted-map) k sorted-key
-	unless is-empty a
+	if any a
 		min-key a.root
 +max-key[k, v] k?(a (k, v) sorted-map) k sorted-key
-	unless is-empty a
+	if any a
 		max-key a.root
 -max-key[k, v] k(a (k, v) node)
 	match a
@@ -428,7 +424,7 @@ do k sorted-key
 region test
 
 ~validate[k, v] void(a (k, v) sorted-map) k sorted-key, k to-json, v to-json
-	unless is-empty a
+	if any a
 		validate a.root, a.root.min-key
 -validate[k, v] void(a (k, v) node, min k) k sorted-key, k to-json, v to-json
 	match a

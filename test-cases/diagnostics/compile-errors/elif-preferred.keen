@@ -1,0 +1,8 @@
+test
+	_ nat = if false then 1 else if true then 2
+
+test
+	_ nat = if false
+		1
+	else if true
+		2

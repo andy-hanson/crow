@@ -1,0 +1,14 @@
+import
+	keen/math/vec
+
++triangle32 record
+	a vec2-32
+	b vec2-32
+	c vec2-32
+
+| Scale about the origin
++scale triangle32(a triangle32, scale float32)
+	a.a * scale, a.b * scale, a.c * scale
+
++ + triangle32(a triangle32, displacement vec2-32)
+	a.a + displacement, a.b + displacement, a.c + displacement

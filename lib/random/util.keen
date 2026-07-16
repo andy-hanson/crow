@@ -3,12 +3,13 @@ import
 	../col/array
 	../col/buffer
 	../col/collection
-	../col/enum-map
 	../col/mut-array
 	../col/mut-index-set
 	../col/util
+	../bits
 	../bool
 	../compare
+	../enums
 	../misc
 	../number
 	../json
@@ -18,35 +19,55 @@ import
 	./random
 
 +random bool() random
-	2.random == 1
+	next-bit the::random
+
+| Returns {true} with probability {numerator} / {denominator}
++random-chance bool(numerator nat, denominator nat) random
+	(random denominator) < numerator
 
 +random[e] e() random, e enum-like
 	random members::e[]
 
 +random nat8() random
-	to random (max-value::nat8::nat + 1)
+	to random (max-value::nat8::nat32 + 1)
 +random nat8(max-exclusive nat8) random
-	to random max-exclusive::nat64
+	to random max-exclusive::nat32
 +random nat16() random
-	to random (max-value::nat16::nat + 1)
+	to random (max-value::nat16::nat32 + 1)
 +random nat16(max-exclusive nat16) random
-	to random max-exclusive::nat64
+	to random max-exclusive::nat32
 +random nat32() random
-	to random (max-value::nat32::nat + 1)
+	next32 the::random
 +random nat32(max-exclusive nat32) random
-	to random max-exclusive::nat64
-+random nat64() random
-	next64 the::random
-+random nat64(max-exclusive nat) random
 	max-exclusive isnt 0
 	next the::random, max-exclusive
++random nat64() random
+	next64 the::random
++random nat64(max-exclusive nat64) random
+	max-exclusive isnt 0
+	next the::random, max-exclusive
+
++random float32(max-exclusive float32) random
+	random-0-1 * max-exclusive
++random float32(range float32 range) random
+	range.low + random-0-1 * (range.high - range.low)
+-random-0-1 float32() random
+	mantissa nat32 = random 0x800000
+	(from-bits 0x3f800000 | mantissa) - 1
++random float64(max-exclusive float64) random
+	random-0-1 * max-exclusive
++random float64(range float64 range) random
+	range.low + random-0-1 * (range.high - range.low)
+-random-0-1 float64() random
+	mantissa nat64 = random 0x10_0000_0000_0000
+	(from-bits 0x3ff0_0000_0000_0000 | mantissa) - 1
 
 +random[t] t(choices (t, t)) random
 	if random then choices.a else choices.b
 
 +random[col, elem] elem(choices col) random, (col, elem) array-like
 	choices.size isnt 0
-	choices[next the::random, choices.size]
+	choices[random choices.size]
 
 +shuffle[out, col, elem] out(a col) random, col size, (col, elem) some, (out, elem) list-new
 	buf elem buffer = map a, {it}
@@ -63,22 +84,50 @@ import
 	for i in reverse 1 .. a.size
 		swap-at a, i, random i + 1
 
+| Randomly shuffles the array but ensures each element does not end up where it started
++random-derangement[out, col, elem] out(a col) random, (col, elem) array-like, (out, elem) list-new
+	assert a.size > 1
+	map a.size.permutation-for-random-derangement, a[it]
+-permutation-for-random-derangement nat[](size nat) random
+	until
+		res nat[] = shuffle 0 .. size
+		if every res.with-index, of i, j then i != j
+			res
+
+| Randomly shuffles the array but ensures the permutation is a cycle,
+| meaning if you follow the old -> new position of each element, you go all the way through.
++random-cycle[out, col, elem] out(a col) random, col size, (col, elem) some, (out, elem) list-new
+	buf elem buffer = map a, {it}
+	random-cycle buf
+	list-new trusted cast-immutable buf
+
++random-cycle[t] void(a t buffer) random
+	# Sattolo's algorithm
+	i mut = a.size
+	while i > 1
+		i -:= 1
+		swap-at a, i.random, i
+
 +remove-random[t] t?(a t mut[]) random
-	unless is-empty a
+	if any a
 		remove-at a, random a.size
+
++remove-random[t] (t, t[])?(a t[]) random
+	if any a
+		index = random a.size
+		a[index], remove-at a, index
 
 | Chooses a random element from {choices} {n} times.
 | The choices are unrelated and the same element may be chosen multiple times.
-+randoms-with-replacement[col, elem] elem[](choices col, n nat) random, (col, elem) array-like
++randoms-with-replacement[col, elem] elem[](choices col, n nat32) random, (col, elem) array-like
 	map 0 .. n, {random choices}
 
-| Returns an empty option if {f} rejected every choice.
 | This is equivalent to but more efficient than than calling {random-where} in a loop.
-| This minimizes calls to {f} and avoid calling it until we are about to return a choice.
-| It also avoids calling {f} twice on the same element.
+| If {f} rejects every choice, this returns an empty option. Otherwise the result size will be {n}.
+| This avoids calling {f} twice on the same element.
 +randoms-with-replacement-where[col, elem] elem[]?
 	choices col
-	n nat
+	n nat32
 	f bool mut(x elem)
 do random, (col, elem) array-like
 	size = choices.size
@@ -86,7 +135,7 @@ do random, (col, elem) array-like
 	rejected mut-index-set = new-with-capacity min size, n
 	res elem mut[] = new-with-capacity n
 	until res.size == n or rejected.size * 2 > size
-		index = random size
+		index nat = random size
 		do unless rejected[index]
 		if f[choices[index]]
 			res ~= choices[index]
@@ -95,50 +144,93 @@ do random, (col, elem) array-like
 	if res.size == n
 		move-to res
 	else
-		remaining nat mut[] = shuffle filter::nat[] 0 .. choices.size, {not rejected[it]}
-		until res.size == n or is-empty remaining
-			i = random remaining.size
-			elem = choices[remaining[i]]
-			if f[elem]
-				res ~= elem
-			else
-				_ = remove-at remaining, i
-		unless is-empty remaining
+		remaining nat random-bag = filter 0 .. choices.size, {not rejected[it]}
+		until res.size == n or not any remaining
+			_ = take-and-maybe-replace remaining, of i
+				elem = choices[i]
+				if f[elem]
+					res ~= elem
+					true
+		any remaining is any res
+		if any res
 			move-to res
 
+| Bag of elements that can be taken out at random. Supports replacing or not replacing the values.
+| For most use cases, using {randoms-with-replacement} or {randoms-without-replacement} is simpler.
++random-bag[t] record mut
+	is-shuffled mut bool
+	values t mut[]
++list-new[t] t random-bag(values t[])
+	is-shuffled: false
+	values: values.to
++any[t] bool(a t random-bag)
+	any a.values
++size[t] nat(a t random-bag)
+	a.values.size
++ ~=[t] void(a t random-bag, value t) random
+	a.values ~= value
+	if a.is-shuffled
+		swap-last-randomly a
+| Gets a random value and removes it from the bag
++ take-random[t] t?(a t random-bag) random
+	ensure-shuffled a
+	pop a.values
+| This does not remove the value.
++ get-random[t] t?(a t random-bag) random
+	if any a.values
+		random a.values
+| If {replace} returns true, this will act like {get-random}, otherwise it will act like {take-random}.
++ take-and-maybe-replace[t] t?(a t random-bag, replace bool mut(x t)) random
+	ensure-shuffled a
+	do if value = peek a.values
+	if replace[value]
+		swap-last-randomly a
+	else
+		_ = pop! a.values
+	value
+-ensure-shuffled[t] void(a t random-bag) random
+	unless a.is-shuffled
+		shuffle a.values
+		a.is-shuffled := true
+-swap-last-randomly[t] void(a t random-bag) random
+	assert a.is-shuffled
+	index = random a.size
+	swap-at a.values, index, a.size - 1
+
 | This may return less than {n} elements if {choices} is not big enough.
-+randoms-without-replacement[col, elem] elem[](choices col, n nat) random, (col, elem) array-like
++randoms-without-replacement[col, elem] elem[](choices col, n nat32) random, (col, elem) array-like
 	randoms-without-replacement-where choices, n, {true}
 
 | This may return less than {n} elements if there aren't that many that satisfy {f}.
 +randoms-without-replacement-where[col, elem] elem[]
 	choices col
-	n nat
+	n nat32
 	f bool mut(x elem)
 do random, (col, elem) array-like
 	for i in random-indices-without-replacement-where choices, n, f
 		choices[i]
 
-+random-indices-without-replacement nat[](size nat, n nat) random
++random-indices-without-replacement nat32[](size nat32, n nat32) random
 	assert n <= size
 	random-indices-without-replacement-where 0 .. size, n, {true}
 
 | WARN: This may return less than {n} indices if there aren't that many that satisfy {f}.
-+random-indices-without-replacement-where[col, elem] nat[]
++random-indices-without-replacement-where[col, elem] nat32[]
 	choices col
-	n nat
+	n nat32
 	f bool mut(x elem)
 do random, (col, elem) array-like
 	size = choices.size
 	tried-indices mut-index-set = new-with-capacity n
-	res nat mut[] = new-with-capacity n
+	res nat32 mut[] = new-with-capacity n
 	until res.size == n or tried-indices.size * 2 > size
-		index = random size
+		index nat = random size
 		if try-add tried-indices, index and f[choices[index]]
 			res ~= index
 	unless res.size == n
-		remaining nat[] = shuffle filter::nat[] 0 .. choices.size, {not tried-indices[it]}
-		i mut = 0
+		remaining nat32 buffer = filter 0 .. choices.size, {not tried-indices[it]}
+		shuffle remaining
+		i mut nat32 = 0
 		until res.size == n or i == remaining.size
 			if f[choices[remaining[i]]]
 				res ~= remaining[i]
@@ -149,46 +241,55 @@ do random, (col, elem) array-like
 +random-where[col, elem] elem?(choices col, f bool mut(x elem)) random, (col, elem) array-like
 	choices?[random-index-where choices, f]
 
+| Equivalent to `first a.shuffle, f`
++first-random-where[out, col, elem] out?(a col, f out? mut(x elem)) (col, elem) array-like, random
+	res mut out? = ()
+	ok = random-where a, of x
+		if u = f[x]
+			res := u
+			true
+	if ok then res!
+
 | Returns an empty option if {f} rejected every choice.
 | This minimizes calls to {f}.
 | {f} will only be called so long as it rejects choices and will not be asked twice about the same choice.
-+random-index-where[col, elem] nat?(choices col, f bool mut(x elem)) random, (col, elem) array-like
++random-index-where[col, elem] nat32?(choices col, f bool mut(x elem)) random, (col, elem) array-like
 	size = choices.size
 	do unless size == 0
 	tried-indices mut-index-set = new-with-capacity size
-	res mut nat? = ()
+	res mut nat32? = ()
 	until res or tried-indices.size * 2 > size
-		index = random size
+		index nat = random size
 		if try-add tried-indices, index and f[choices[index]]
 			res := index
 	res else
-		remaining nat[] = shuffle filter::nat[] 0 .. choices.size, {not tried-indices[it]}
+		remaining nat32[] = shuffle filter::nat32[] 0 .. choices.size, {not tried-indices[it]}
 		find remaining, f[choices[it]]
 
 +weighted-choice record
-	~sum-weight nat
-	~prob nat[]
+	~sum-weight nat32
+	~prob nat32[]
 	| Same size as {prob}
-	~aliases nat[]
-+size nat(a weighted-choice) = a.prob.size
+	~aliases nat32[]
++size nat32(a weighted-choice) = a.prob.size
 | Preprocesses weights so that we can quickly make weighted random choices.
 | Conceptually, this is like repeating each choice by its weight,
 | then choosing a random element from the resulting array.
 | For the implementation, this uses the Walker alias method.
-+weighted-choice weighted-choice(weights nat[])
++weighted-choice weighted-choice(weights nat32[])
 	# Note: This is our '100%' probability value (to avoid needing floats)
 	sum-weight = sum weights
 	sum-weight isnt 0
-	prob nat buffer = map weights, it * weights.size
-	aliases nat buffer = map 0 .. weights.size, {it}
-	short nat mut[] = ()
-	long nat mut[] = ()
+	prob nat32 buffer = map weights, it * weights.size
+	aliases nat32 buffer = map 0 .. weights.size, {it}
+	short nat32 mut[] = ()
+	long nat32 mut[] = ()
 	for index, p in with-index prob
 		if p < sum-weight
 			short ~= index
 		elif p > sum-weight
 			long ~= index
-	while not is-empty short and not is-empty long
+	while any short and any long
 		j = pop! short
 		k = peek! long
 		aliases[j] := k
@@ -199,7 +300,7 @@ do random, (col, elem) array-like
 	sum-weight: sum-weight
 	prob: trusted cast-immutable prob
 	aliases: trusted cast-immutable aliases
-+random-index nat(a weighted-choice) random
++random-index nat32(a weighted-choice) random
 	i = random a.size
 	if a.aliases[i] == i or (random a.sum-weight) < a.prob[i]
 		i

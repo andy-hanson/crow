@@ -3,15 +3,16 @@ import
 
 test
 	a nat64 queue = ()
-	assert is-empty a
+	any a is false
+	size a is 0
 	a.to is ()
-	forbid _ = dequeue a
+	forbid dequeue a
 
 	b = a ~ 1
 	b.to::nat64[] is (1,)
 	bx, br = dequeue! b
 	bx is 1
-	assert is-empty br
+	any br is false
 
 	c = b ~ 2
 	c.to::nat64[] is (1, 2)
@@ -21,7 +22,7 @@ test
 	cr.to::nat64[] is (2,)
 	crx, crr = dequeue! cr
 	crx is 2
-	assert is-empty crr
+	any crr is false
 
 	d = c ~ 3
 	d.to::nat64[] is (1, 2, 3)

@@ -1,0 +1,42 @@
++enum-like[t] spec t data
+	to nat8(a t)
+	to t?(a nat64)
+	members t[]()
+
+| Asserts that the enum members are represented as 0 .. n .
+| This will always be the case if member values are not specified.
++assert-plain-enum[e] void() e enum-like
+	for index, key in with-index members::e[]
+		to::nat key is index
+
++prev-next enum(prev, next)
+
+| The previous or next enum value in declaration order.
++walk[e] e?(a e, dir prev-next) e enum-like
+	match dir
+	as prev then prev a
+	as next then next a
++prev[e] e?(a e) e enum-like
+	assert-plain-enum@e
+	n = to::nat a
+	unless n == 0
+		(to::e? n - 1)!
++next[e] e?(a e) e enum-like
+	assert-plain-enum@e
+	n = to::nat a
+	to::e? n + 1
+
+| Like {walk}, but the previous of the first value is the last value,
+| and the next of the last value is the first value.
++walk-cycle[e] e(a e, dir prev-next) e enum-like
+	match dir
+	as prev then prev-cycle a
+	as next then next-cycle a
++prev-cycle[e] e(a e) e enum-like
+	assert-plain-enum@e
+	n = to::nat a
+	members[(if n == 0 then members::e[].size else n) - 1]
++next-cycle[e] e(a e) e enum-like
+	assert-plain-enum@e
+	i = a.to::nat + 1
+	members[if i == members::e[].size then 0 else i]

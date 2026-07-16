@@ -12,14 +12,14 @@ region basic types
 +array[t] builtin
 +array-view[t] record
 	~inner t[]
-	~low nat64
-	~high nat64
+	~low nat32
+	~high nat32
 
 +buffer[t] builtin mut
 +buffer-view[t] record mut
 	~inner t buffer
-	~low nat64
-	~high nat64
+	~low nat32
+	~high nat32
 
 | Element in a UTF-8 encoded string.
 +char8 builtin
@@ -95,7 +95,7 @@ region tuple
 +exception variant
 	show string()
 
-+js-any builtin js, mut
++js-any builtin js, shared
 
 +string record
 	~chars char8[]
@@ -128,6 +128,7 @@ region tuple
 
 +hash-state record mut
 	~state mut nat64
+	| Needed so we can define 'new' in a different module
 	~dummy void
 
 +json union(null, bool, nat64, int64, float64, string, json[], json-object)

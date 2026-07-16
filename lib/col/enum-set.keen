@@ -1,0 +1,92 @@
+import
+	../bits
+	../enums
+	./enum-map
+	./mut-enum-set
+
++enum-set[t] record
+	-bits nat[]
+
++to-set[t, v] t enum-set(a (t, v) enum-map, f bool mut(key t, value v)) t enum-like
+	fold (), a, of acc, (key, value)
+		if f[key, value]
+			acc | key
+		else
+			acc
+
++ ==[t] bool(a t enum-set, b t enum-set)
+	trusted a.bits == b.bits
++ <=>[t] comparison(a t enum-set, b t enum-set)
+	trusted a.bits <=> b.bits
++ hash[t] void(a t enum-set, state hash-state)
+	trusted hash a.bits, state
++ to[t] json(a t enum-set) t enum-like, t to-json
+	a.to::t[].to
++ to[t] t enum-set(a json) t enum-like, t from-json
+	a.to::t[].to
++ move-to[t] t enum-set(a t mut-enum-set)
+	res t enum-set = bits: trusted cast-immutable a.bits
+	a.bits := ()
+	res
+
++list-new[t] t enum-set(elements t[]) t enum-like
+	to elements
++all[t] t enum-set() t enum-like
+	to members::t[]
++to[t] t enum-set(a t[]) t enum-like
+	res mut t enum-set = bits: ()
+	for x in a
+		res |:= x
+	res
++to[t] t[](a t enum-set) t enum-like
+	map a, {it}
+
++subscript[t] bool(a t enum-set, value t) t enum-like
+	word = value.to::nat / 32
+	word < a.bits.size and has-bit a.bits[value.to::nat / 32], value.to::nat % 32
++ &[t] t enum-set(a t enum-set, b t enum-set) t enum-like
+	result-size mut nat = 0
+	bits nat[] = for i in min a.bits.size, b.bits.size
+		res = a.bits[i] & b.bits[i]
+		if res != 0
+			result-size := i + 1
+		res
+	bits: bits[0 .. result-size].to
++ |[t] t enum-set(a t enum-set, b t enum-set) t enum-like
+	bits: for i in max a.bits.size, b.bits.size
+		(if i < a.bits.size then a.bits[i]) | (if i < b.bits.size then b.bits[i])
++ |[t] t enum-set(a t enum-set, b t) t enum-like
+	word = b.to::nat / 32
+	bits: for i in max a.bits.size, word + 1
+		(if i < a.bits.size then a.bits[i]) | (if i == word then nth-bit b.to::nat % 32)
++ |[t] t enum-set(a t, b t enum-set) t enum-like
+	b | a
+
+| Set difference; result contains all enum values in {a} but not in {b}
++ -[t] t enum-set(a t enum-set, b t enum-set) t enum-like
+	a & ~b
+
+| Negate the set; result contains all enum values not in {a}
++ ~[t] t enum-set(a t enum-set) t enum-like
+	n-members = size members::t[]
+	n-words = divide-and-round-up n-members, 32
+	bits nat[] = for i in n-words
+		if i < a.bits.size
+			base = ~a.bits[i]
+			if i == n-words - 1
+				base & (low-n-bits n-members % 32)
+			else
+				base
+		else
+			max-value
+	bits: to drop-right-while bits, it == 0
+
++any[t] bool(a t enum-set)
+	any a.bits
++is-full[t] bool(a t enum-set) t enum-like
+	every members::t[], a[it]
++size[t] nat(a t enum-set)
+	sum a.bits, it.count-ones
++some[t] bool(a t enum-set, f bool mut(x t)) t enum-like
+	some members::t[], of x
+		a[x] and f[x]

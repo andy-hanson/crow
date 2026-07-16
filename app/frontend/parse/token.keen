@@ -43,6 +43,8 @@ token enum
 	finally_
 	flags_
 	for_
+	| 'for?'
+	for-option
 	| 'for*'
 	for-star
 	force-data_

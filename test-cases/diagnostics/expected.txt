@@ -4,7 +4,7 @@ after-required.keen 5:5-5:11 'assert' expression must be followed by something (
 after-required.keen 6:1-6:12 'test-forbid' is unused.
 after-required.keen 7:5-7:11 'forbid' expression must be followed by something (unless the type is 'void')
 after-required.keen 8:1-8:9 'test-let' is unused.
-after-required.keen 9:5-9:5 assignment expression must be followed by something (unless the type is 'void')
+after-required.keen 9:5-9:10 assignment expression must be followed by something (unless the type is 'void')
 after-required.keen 10:1-10:11 'test-do-if' is unused.
 after-required.keen 11:15-11:15 A 'do' expression must be followed by lines with the same indent level.
 after-required.keen 12:1-12:13 'test-try-let' is unused.
@@ -27,7 +27,6 @@ compile-errors/builtin-does-not-exist.keen 4:1-4:2 Keen does not implement a bui
 compile-errors/builtin-does-not-exist.keen 6:1-6:2 'x' is unused.
 compile-errors/builtin-does-not-exist.keen 6:1-6:2 Type or spec name 'x' is already used.
 compile-errors/builtin-does-not-exist.keen 6:1-6:2 Keen does not implement a builtin spec named 'x'.
-compile-errors/builtin-does-not-exist.keen 9:1-9:3 '==' is unused.
 compile-errors/builtin-does-not-exist.keen 9:1-9:3 This function needs a body.
 compile-errors/call-flags.keen 1:13-1:17 There is no type or spec in scope named 'bare'.
 compile-errors/call-flags.keen 2:5-2:8 Trying to call an 'unsafe' function.
@@ -56,13 +55,13 @@ compile-errors/call-flags.keen 10:5-10:8 Trying to call a 'global' function, but
 	foo(from compile-errors/call-flags.keen line 30)
 compile-errors/call-flags.keen 11:5-11:8 Trying to call a 'global' function, but this function is not 'global'.
 	Calling:
-	foo@nat64(from compile-errors/call-flags.keen line 20)
+	foo@nat32(from compile-errors/call-flags.keen line 20)
 	foo(from compile-errors/call-flags.keen line 30)
 compile-errors/call-flags.keen 11:18-11:23 Prefer to write 't[]' instead of 't array'.
 compile-errors/call-flags.keen 12:5-12:8 Trying to call a 'global' function, but this function is not 'global'.
 	Calling:
-	foo@(nat64[])(from compile-errors/call-flags.keen line 20)
-	foo@nat64(from compile-errors/call-flags.keen line 20)
+	foo@(nat32[])(from compile-errors/call-flags.keen line 20)
+	foo@nat32(from compile-errors/call-flags.keen line 20)
 	foo(from compile-errors/call-flags.keen line 30)
 compile-errors/call-flags.keen 12:18-12:23 Prefer to write 't[]' instead of 't array'.
 compile-errors/call-flags.keen 12:24-12:29 Prefer to write 't[]' instead of 't array'.
@@ -99,9 +98,9 @@ compile-errors/circular-import-b.keen 2:5-2:24 This is part of a circular import
 	compile-errors/circular-import-b.keen
 compile-errors/circular-import-b.keen 4:1-4:2 'b' is unused.
 compile-errors/context-duplicate.keen 1:1-1:2 'f' is unused.
-compile-errors/context-duplicate.keen 3:5-3:8 There is already a 'nat64' in scope.
+compile-errors/context-duplicate.keen 3:5-3:8 There is already a 'nat32' in scope.
 compile-errors/context-duplicate.keen 6:1-6:2 'g' is unused.
-compile-errors/context-duplicate.keen 7:5-7:8 There is already a 'nat64' in scope.
+compile-errors/context-duplicate.keen 7:5-7:8 There is already a 'nat32' in scope.
 compile-errors/context-in-lambda.keen 7:9-7:15 Can't access 'the' in a shared lambda because it is of 'mut' type 'm'.
 compile-errors/context-in-lambda.keen 9:9-9:15 Can't access 'the' in a data lambda because it is of 'mut' type 'm'.
 compile-errors/context-in-lambda.keen 9:20-9:26 Can't access 'the' in a data lambda because it is of 'shared' type 's'.
@@ -111,11 +110,11 @@ compile-errors/context-missing.keen 1:1-1:4 'foo' is unused.
 compile-errors/context-missing.keen 2:5-2:8 'string' is not in the context types.
 Actual context types: none.
 compile-errors/context-missing.keen 3:1-3:4 'bar' is unused.
-compile-errors/context-not-allowed-in-method-impl.keen 3:10-3:16 Method 'm' would be implemented by 'm void(_ r)' (from compile-errors/context-not-allowed-in-method-impl.keen line 4), but that requires a context 'nat64'.
+compile-errors/context-not-allowed-in-method-impl.keen 3:10-3:16 Method 'm' would be implemented by 'm void(_ r)' (from compile-errors/context-not-allowed-in-method-impl.keen line 4), but that requires a context 'nat32'.
 Contexts are not allowed in methods.
 compile-errors/context-not-allowed-in-method-impl.keen 4:1-4:2 'm' is unused.
 compile-errors/context-not-allowed-in-spec-impl.keen 8:1-8:2 'f' is unused.
-compile-errors/context-not-allowed-in-spec-impl.keen 12:5-12:14 Spec signature  'f' would be implemented by 'f void(_ r)' (from compile-errors/context-not-allowed-in-spec-impl.keen line 8), but that requires a context 'nat64'.
+compile-errors/context-not-allowed-in-spec-impl.keen 12:5-12:14 Spec signature  'f' would be implemented by 'f void(_ r)' (from compile-errors/context-not-allowed-in-spec-impl.keen line 8), but that requires a context 'nat32'.
 Contexts are not allowed in specs.
 compile-errors/context-type-parameter.keen 1:1-1:2 'f' is unused.
 compile-errors/context-type-parameter.keen 1:10-1:11 There is no type or spec in scope named 't'.
@@ -156,40 +155,44 @@ compile-errors/data-spec-with-type-args.keen 56:5-56:15 't mt' is not 'data'.
 compile-errors/destructure-errors.keen 4:5-4:7 Local 'x0' is unused.
 compile-errors/destructure-errors.keen 4:9-4:11 Local 'y0' is unused.
 compile-errors/destructure-errors.keen 5:5-5:7 Local 'x1' is unused.
-compile-errors/destructure-errors.keen 5:5-5:12 Expected type 'bool', but got 'nat64'.
+compile-errors/destructure-errors.keen 5:5-5:12 Expected type 'bool', but got 'nat32'.
 compile-errors/destructure-errors.keen 5:14-5:16 Local 'y1' is unused.
 compile-errors/destructure-errors.keen 6:5-6:7 Local 'x2' is unused.
 compile-errors/destructure-errors.keen 6:14-6:16 Local 'y2' is unused.
 compile-errors/destructure-errors.keen 6:26-6:27 Expected type '(bool, symbol)'.
-Actual: '(nat64, string)'.
+Actual: '(nat32, string)'.
 compile-errors/destructure-errors.keen 8:5-8:7 Local 'x3' is unused.
-compile-errors/destructure-errors.keen 8:5-8:15 Expected a tuple with 3 elements, but got '(nat64, string)'.
+compile-errors/destructure-errors.keen 8:5-8:15 Expected a tuple with 3 elements, but got '(nat32, string)'.
 compile-errors/destructure-errors.keen 8:9-8:11 Local 'y3' is unused.
 compile-errors/destructure-errors.keen 8:13-8:15 Local 'z3' is unused.
 compile-errors/destructure-errors.keen 9:5-9:7 Local 'x4' is unused.
-compile-errors/destructure-errors.keen 9:5-9:11 Expected a tuple with 2 elements, but got 'nat64'.
+compile-errors/destructure-errors.keen 9:5-9:11 Expected a tuple with 2 elements, but got 'nat32'.
 compile-errors/destructure-errors.keen 9:9-9:11 Local 'y4' is unused.
 compile-errors/destructure-non-tuple.keen 2:6-2:7 Local 'x' is unused.
-compile-errors/destructure-non-tuple.keen 2:6-2:10 Expected a tuple with 2 elements, but got 'nat64'.
+compile-errors/destructure-non-tuple.keen 2:6-2:10 Expected a tuple with 2 elements, but got 'nat32'.
 compile-errors/destructure-non-tuple.keen 2:9-2:10 Local 'y' is unused.
 compile-errors/destructure-non-tuple.keen 3:5-3:7 There are functions named 'new' or 'list-new', but they do not match the expected return type.
 Expected return type 'void'.
 Candidates (with 1 arguments):
-	list-new[t] t[](a t[]) (from keen/col/array.keen line 61)
-	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 25)
-	new index-relative-to-end(subtract nat64) (from keen/col/collection.keen line 90)
+	list-new[t] t[](a t[]) (from keen/col/array.keen line 60)
+	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 24)
+	new index-relative-to-end(subtract nat32) (from keen/col/collection.keen line 90)
 	list-new[k, v] v[k](a (k, v)[]) (from keen/col/map.keen line 84)
-	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 86)
+	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 84)
 	list-new[k, v] v mut[k](a (k, v)[]) (from keen/col/mut-map.keen line 37)
-	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 17)
+	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 18)
 	list-new[t] t set(values t[]) (from keen/col/set.keen line 19)
-	new[col] col with-index(inner col) (from keen/col/util.keen line 164)
-	new[t] t infinite(value t) (from keen/col/util.keen line 208)
-	new[col] col reverse(inner col) (from keen/col/util.keen line 215)
-	new build-options(size-hint nat64) (from keen/col/util.keen line 478)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 566)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 575)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 89)
+	new[col] col with-index(inner col) (from keen/col/util.keen line 203)
+	new[col] col with-index8(inner col) (from keen/col/util.keen line 214)
+	new[col] col with-index16(inner col) (from keen/col/util.keen line 225)
+	new[col] col with-is-first(inner col) (from keen/col/util.keen line 235)
+	new[col] col with-is-last(inner col) (from keen/col/util.keen line 245)
+	new[t] t infinite(value t) (from keen/col/util.keen line 307)
+	new[col] col reverse(inner col) (from keen/col/util.keen line 314)
+	new build-options(size-hint nat32) (from keen/col/util.keen line 581)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 717)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 726)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
@@ -205,7 +208,7 @@ compile-errors/duplicate-declaration.keen 12:1-12:4 'foo' is unused.
 compile-errors/duplicate-declaration.keen 12:1-12:4 Type or spec name 'foo' is already used.
 compile-errors/duplicate-declaration.keen 14:5-14:6 Flags member name 'd' is already used.
 compile-errors/duplicate-declaration.keen 16:1-16:2 'u' is unused.
-compile-errors/duplicate-declaration.keen 16:14-16:17 Union case type name 'nat64' is already used.
+compile-errors/duplicate-declaration.keen 16:14-16:17 Union case type name 'nat32' is already used.
 compile-errors/duplicate-declaration.keen 18:1-18:2 'v' is unused.
 compile-errors/duplicate-declaration.keen 19:1-19:2 'r' is unused.
 compile-errors/duplicate-declaration.keen 19:18-19:24 Type 'r' can't be declared a case of 'v' multiple times.
@@ -236,6 +239,8 @@ compile-errors/duplicate-declaration.keen 50:17-50:18 Local 'a' is unused.
 compile-errors/duplicate-declaration.keen 53:1-53:5 'call' is unused.
 compile-errors/duplicate-import.keen 2:21-2:23 'pi' is imported twice from the same module.
 compile-errors/duplicate-import.keen 2:25-2:27 'pi' is imported twice from the same module.
+compile-errors/elif-preferred.keen 2:34-2:36 Prefer 'elif' instead of 'else if'.
+compile-errors/elif-preferred.keen 7:10-7:12 Prefer 'elif' instead of 'else if'.
 compile-errors/empty-enum-or-union.keen 2:7-2:20 There is no function or variable named 'gc-safe-value'.
 compile-errors/empty-enum-or-union.keen 3:7-3:20 There is no function or variable named 'gc-safe-value'.
 compile-errors/empty-enum-or-union.keen 5:1-5:2 An enum or union type must have at least one member.
@@ -246,27 +251,44 @@ compile-errors/empty-enum-or-union.keen 15:5-15:9 The 'match' handles every poss
 compile-errors/enum-too-big.keen 261:5-261:6 Local 'e' is unused.
 compile-errors/enum-too-big.keen 262:5-262:6 Local 'n' is unused.
 compile-errors/enum-too-big.keen 262:17-262:18 Expected one of these types:
-	'bool'
 	'char8'
 	'comparison'
+	'float64'
 	'int64'
 	'int8'
 	'json'
 	'log-level'
+	'nat16'
+	'nat32'
 	'nat64'
 Actual: 'e'.
 compile-errors/enum-value-errors.keen 1:1-1:2 'e' is unused.
 compile-errors/enum-value-errors.keen 4:5-4:10 An enum member value must be greater than the previous value (1).
 compile-errors/enum-value-errors.keen 5:5-5:11 An enum member value must be greater than the previous value (2).
 compile-errors/enum-value-errors.keen 5:9-5:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 7:1-7:3 'e2' is unused.
-compile-errors/enum-value-errors.keen 9:5-9:6 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 11:1-11:2 'f' is unused.
-compile-errors/enum-value-errors.keen 12:5-12:10 A flags member value must be a power of 2.
-compile-errors/enum-value-errors.keen 13:5-13:11 A flags member value must be a power of 2.
-compile-errors/enum-value-errors.keen 13:9-13:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 15:1-15:3 'f2' is unused.
-compile-errors/enum-value-errors.keen 18:5-18:10 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 6:9-6:16 Expected an integer.
+compile-errors/enum-value-errors.keen 6:9-6:16 Expected a newline or dedent.
+compile-errors/enum-value-errors.keen 7:1-7:3 'eb' is unused.
+compile-errors/enum-value-errors.keen 7:15-7:20 An enum member value must be greater than the previous value (1).
+compile-errors/enum-value-errors.keen 7:22-7:28 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 7:26-7:28 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 7:34-7:41 An enum member value must be a number literal.
+compile-errors/enum-value-errors.keen 9:1-9:3 'e2' is unused.
+compile-errors/enum-value-errors.keen 11:5-11:6 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 12:1-12:4 'e2b' is unused.
+compile-errors/enum-value-errors.keen 12:37-12:38 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 14:1-14:2 'f' is unused.
+compile-errors/enum-value-errors.keen 15:5-15:10 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 16:5-16:11 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 16:9-16:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 17:1-17:3 'fb' is unused.
+compile-errors/enum-value-errors.keen 17:10-17:15 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 17:17-17:23 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 17:21-17:23 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 19:1-19:3 'f2' is unused.
+compile-errors/enum-value-errors.keen 22:5-22:10 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 23:1-23:4 'f2b' is unused.
+compile-errors/enum-value-errors.keen 23:17-23:22 An enum member value must be greater than the previous value (2).
 compile-errors/expected-type-param.keen 3:22-3:30 Expected type 'string'.
 Actual: 'nat64'.
 compile-errors/expected-type-param.keen 5:13-5:14 Local 'a' is unused.
@@ -279,8 +301,8 @@ compile-errors/force-bogus.keen 2:12-2:25 There is no function or variable named
 compile-errors/fun-closure-errors.keen 7:5-7:6 Local 'x' is 'mut' but never reassigned.
 compile-errors/fun-closure-errors.keen 9:13-9:20 Can't access 'shared_' in a data lambda because it is of 'shared' type 'void shared[]'.
 compile-errors/fun-closure-errors.keen 11:23-11:24 Can't access 'x' in a shared lambda because it is a 'mut' local.
-compile-errors/fun-closure-errors.keen 14:27-14:28 Can't access 'y' in a data lambda because it is of 'mut' type 'nat64 mut[]'.
-compile-errors/fun-closure-errors.keen 15:29-15:30 Can't access 'y' in a shared lambda because it is of 'mut' type 'nat64 mut[]'.
+compile-errors/fun-closure-errors.keen 14:27-14:28 Can't access 'y' in a data lambda because it is of 'mut' type 'nat32 mut[]'.
+compile-errors/fun-closure-errors.keen 15:29-15:30 Can't access 'y' in a shared lambda because it is of 'mut' type 'nat32 mut[]'.
 compile-errors/fun-closure-errors.keen 17:22-17:25 Can't call a 'global' function from a 'data' lambda.
 	Calling:
 	sum(from compile-errors/fun-closure-errors.keen line 31)
@@ -302,7 +324,7 @@ compile-errors/if-bogus.keen 2:5-2:6 Local 'x' is unused.
 compile-errors/if-bogus.keen 3:9-3:14 There is no function or variable named 'bogus'.
 compile-errors/implicit-option-to-bool.keen 1:1-1:4 'foo' is unused.
 compile-errors/implicit-option-to-bool.keen 3:5-3:6 Expected type 'u'.
-Actual: 'nat64?'.
+Actual: 'nat32?'.
 compile-errors/implicit-option-to-bool.keen 4:1-4:2 'u' is unused.
 compile-errors/import-non-existing.keen 2:5-2:21 Imported file compile-errors/does-not-exist.keen does not exist.
 compile-errors/imported-name-refers-to-nothing.keen 2:17-2:20 Imported name 'foo' does not refer to anything.
@@ -315,9 +337,9 @@ compile-errors/it-invalid.keen 2:11-2:13 'it' may not be appear alone.
 If you want an identity function use '{it}'.
 compile-errors/lambda-errors.keen 2:9-2:11 Lambda expression needs an expected type.
 compile-errors/lambda-errors.keen 3:9-3:11 The lambda doesn't match the expected type at this location.
-Expected type 'void mut(nat64)'.
+Expected type 'void mut(nat32)'.
 compile-errors/lambda-errors.keen 4:9-4:11 Multiple lambda types are possible:
-	'void mut(nat64)'
+	'void mut(nat32)'
 	'void mut(string)'
 Consider explicitly typing the lambda's parameter.
 compile-errors/lambda-errors.keen 8:1-8:4 'bar' is unused.
@@ -326,17 +348,17 @@ compile-errors/lambda-errors.keen 12:1-12:4 'bar' is unused.
 compile-errors/lambda-returning-bogus.keen 2:7-2:12 There is no type or spec in scope named 'bogus'.
 compile-errors/lambda-returning-bogus.keen 2:7-2:12 There is no type or spec in scope named 'bogus'.
 compile-errors/library-not-configured.keen 2:5-2:17 Unrecognized library. Import paths must be configured in "imports" in "config.kid".
-compile-errors/list-expressions.keen 2:5-2:9 Did not find a function named 'list-new' returning a 'nat64' taking a single array parameter.
+compile-errors/list-expressions.keen 2:5-2:9 Did not find a function named 'list-new' returning a 'nat32' taking a single array parameter.
 compile-errors/list-expressions.keen 5:5-5:9 Cannot choose an overload of 'list-new'.
 Multiple functions match:
-	list-new my-type(_ nat64[]) (from compile-errors/list-expressions.keen line 12)
+	list-new my-type(_ nat32[]) (from compile-errors/list-expressions.keen line 12)
 	list-new my-type(_ string[]) (from compile-errors/list-expressions.keen line 14)
 compile-errors/list-expressions.keen 8:5-8:12 Local 'untyped' is unused.
 compile-errors/list-expressions.keen 9:9-9:13 A list expression with '-- ' parts needs an expected type.
 compile-errors/literal-does-not-match-expected-type.keen 2:16-2:17 The literal doesn't match the expected type at this location.
 Expected type 'string'.
 compile-errors/match-case-missing-name.keen 1:1-1:2 'f' is unused.
-compile-errors/match-case-missing-name.keen 2:11-2:19 Can only match on an enum, union, variant, integral, or string-like type, not 'nat64?'.
+compile-errors/match-case-missing-name.keen 2:11-2:19 Can only match on an enum, union, variant, integral, or string-like type, not 'nat32?'.
 compile-errors/match-case-missing-name.keen 3:7-4:9 A branch of a 'match' must be an identifier, number literal, or string literal (without interpolation).
 compile-errors/match-else-unnecessary.keen 13:5-13:9 The 'match' handles every possible case, so the 'else' is unused.
 compile-errors/match-else-unnecessary.keen 26:5-26:9 The 'match' handles every possible case, so the 'else' is unused.
@@ -358,7 +380,7 @@ compile-errors/match-errors.keen 33:1-33:2 'e' is unused.
 compile-errors/match-errors.keen 37:1-37:17 'invalid-variable' is unused.
 compile-errors/match-errors.keen 44:1-44:17 'invalid-variable' is unused.
 compile-errors/match-errors.keen 51:1-51:13 'missing-case' is unused.
-compile-errors/match-errors.keen 52:5-52:10 'match' is missing handler for union case type 'nat64'.
+compile-errors/match-errors.keen 52:5-52:10 'match' is missing handler for union case type 'nat32'.
 compile-errors/match-errors.keen 56:1-56:13 'missing-case' is unused.
 compile-errors/match-errors.keen 57:5-57:10 'match' is missing handler for enum member 'm'.
 compile-errors/match-errors.keen 61:1-61:15 'invalid-symbol' is unused.
@@ -420,10 +442,10 @@ compile-errors/mut-param.keen 2:5-2:6 Local 'x' is 'mut' but never reassigned.
 compile-errors/mut-param.keen 6:10-6:13 A parameter can't be mutable.
 compile-errors/mutability.keen 4:1-4:3 'rd' is unused.
 compile-errors/mutability.keen 5:7-5:10 'x' is 'mut', so 'rd' must also be 'mut'.
-compile-errors/mutability.keen 6:7-6:19 'nat64 shared[]' is 'shared', so 'rd' must also be 'shared'.
+compile-errors/mutability.keen 6:7-6:19 'nat32 shared[]' is 'shared', so 'rd' must also be 'shared'.
 compile-errors/mutability.keen 7:1-7:3 'rs' is unused.
 compile-errors/mutability.keen 8:7-8:10 'x' is 'mut', so 'rs' must also be 'mut'.
-compile-errors/mutability.keen 9:7-9:16 'nat64 mut[]' is 'mut', so 'rs' must also be 'mut'.
+compile-errors/mutability.keen 9:7-9:16 'nat32 mut[]' is 'mut', so 'rs' must also be 'mut'.
 compile-errors/mutability.keen 10:1-10:3 'rm' is unused.
 compile-errors/mutability.keen 14:1-14:3 'ud' is unused.
 compile-errors/mutability.keen 14:14-14:16 'rs' is 'shared', so 'ud' must also be 'shared'.
@@ -460,25 +482,21 @@ compile-errors/named-new-duplicate.keen 1:1-1:2 'j' is unused.
 compile-errors/named-new-duplicate.keen 3:5-3:6 'x' has already appeared.
 compile-errors/nested-it.keen 3:34-3:37 Local name 'it' is already used.
 compile-errors/nested-it.keen 7:35-7:37 Local name 'it' is already used.
-compile-errors/nested-it.keen 7:35-7:37 Expected one of these types:
-	'nat16'
-	'nat32'
-	'nat64'
-	'nat8'
-Actual: 'nat64[]'.
+compile-errors/nested-it.keen 7:35-7:37 Expected type 'nat32'.
+Actual: 'nat32[]'.
 compile-errors/nested-spec-error.keen 6:7-6:9 No implementation was found for '== bool(_ t, _ t)'.
 	Calling:
-	==@(t[])(from keen/col/array.keen line 138)
-	==@t(from keen/col/array.keen line 138)
-compile-errors/new-interface-mutability.keen 3:14-3:15 Expected type 'nat64 data()'.
-Actual: 'nat64 mut()'.
+	==@(t[])(from keen/col/array.keen line 131)
+	==@t(from keen/col/array.keen line 131)
+compile-errors/new-interface-mutability.keen 3:14-3:15 Expected type 'nat32 data()'.
+Actual: 'nat32 mut()'.
 compile-errors/new-interface-mutability.keen 6:5-6:6 Local 'x' is 'mut' but never reassigned.
 compile-errors/new-interface-mutability.keen 7:15-7:16 Can't access 'x' in a data lambda because it is a 'mut' local.
 compile-errors/number-errors.keen 2:5-2:17 Local 'negative-nat' is unused.
 compile-errors/number-errors.keen 2:24-2:26 The literal doesn't match the expected type at this location.
-Expected type 'nat64'.
+Expected type 'nat32'.
 compile-errors/number-errors.keen 3:5-3:18 Local 'missing-value' is unused.
-compile-errors/number-errors.keen 3:23-3:23 Not a valid number literal.
+compile-errors/number-errors.keen 3:27-3:27 Not a valid number literal.
 compile-errors/number-errors.keen 4:5-4:20 Local 'too-big-literal' is unused.
 compile-errors/number-errors.keen 4:46-4:46 The number is too big for any kind of number literal.
 Unsigned numbers can be at most 18446744073709551615.
@@ -489,31 +507,35 @@ compile-errors/number-errors.keen 6:5-6:18 Local 'too-small-int' is unused.
 compile-errors/number-errors.keen 6:26-6:30 A value of type 'int8' must be from -128 to 127.
 compile-errors/number-errors.keen 7:5-7:15 Local 'signed-nat' is unused.
 compile-errors/number-errors.keen 7:22-7:24 The literal doesn't match the expected type at this location.
-Expected type 'nat64'.
+Expected type 'nat32'.
 compile-errors/number-errors.keen 8:5-8:14 Local 'float-nat' is unused.
 compile-errors/number-errors.keen 8:21-8:24 The literal doesn't match the expected type at this location.
-Expected type 'nat64'.
+Expected type 'nat32'.
 compile-errors/number-errors.keen 9:5-9:14 Local 'float-int' is unused.
 compile-errors/number-errors.keen 9:21-9:24 The literal doesn't match the expected type at this location.
-Expected type 'int64'.
+Expected type 'int32'.
 compile-errors/option-call-errors.keen 3:20-3:23 There are functions named 'new' or 'list-new', but they do not match the expected return type.
-Expected return type 'int64?'.
+Expected return type 'int32?'.
 Candidates (with 1 arguments):
-	list-new[t] t[](a t[]) (from keen/col/array.keen line 61)
-	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 25)
-	new index-relative-to-end(subtract nat64) (from keen/col/collection.keen line 90)
+	list-new[t] t[](a t[]) (from keen/col/array.keen line 60)
+	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 24)
+	new index-relative-to-end(subtract nat32) (from keen/col/collection.keen line 90)
 	list-new[k, v] v[k](a (k, v)[]) (from keen/col/map.keen line 84)
-	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 86)
+	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 84)
 	list-new[k, v] v mut[k](a (k, v)[]) (from keen/col/mut-map.keen line 37)
-	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 17)
+	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 18)
 	list-new[t] t set(values t[]) (from keen/col/set.keen line 19)
-	new[col] col with-index(inner col) (from keen/col/util.keen line 164)
-	new[t] t infinite(value t) (from keen/col/util.keen line 208)
-	new[col] col reverse(inner col) (from keen/col/util.keen line 215)
-	new build-options(size-hint nat64) (from keen/col/util.keen line 478)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 566)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 575)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 89)
+	new[col] col with-index(inner col) (from keen/col/util.keen line 203)
+	new[col] col with-index8(inner col) (from keen/col/util.keen line 214)
+	new[col] col with-index16(inner col) (from keen/col/util.keen line 225)
+	new[col] col with-is-first(inner col) (from keen/col/util.keen line 235)
+	new[col] col with-is-last(inner col) (from keen/col/util.keen line 245)
+	new[t] t infinite(value t) (from keen/col/util.keen line 307)
+	new[col] col reverse(inner col) (from keen/col/util.keen line 314)
+	new build-options(size-hint nat32) (from keen/col/util.keen line 581)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 717)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 726)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
@@ -522,18 +544,63 @@ Candidates (with 1 arguments):
 compile-errors/option-call-errors.keen 4:5-4:6 Local 'x' is unused.
 compile-errors/option-call-errors.keen 4:14-4:18 None of the arguments to '?abs' is an option, so it could be written without the '?'.
 compile-errors/option-call-errors.keen 5:5-5:6 Local 'y' is unused.
-compile-errors/option-call-errors.keen 5:13-5:25 Expected type 'nat64'.
-Actual: 'nat64?'.
+compile-errors/option-call-errors.keen 5:13-5:25 Expected type 'nat32'.
+Actual: 'nat32?'.
 compile-errors/option-call-errors.keen 6:5-6:6 Local 'z' is unused.
 compile-errors/option-call-errors.keen 6:9-6:13 None of the arguments to '?abs' is an option, so it could be written without the '?'.
 compile-errors/option-else.keen 1:1-1:2 'f' is unused.
-compile-errors/option-else.keen 2:7-2:11 The left side of 'else' should be an option type (or the 'else' is pointless). Actual: 'nat64'
+compile-errors/option-else.keen 2:7-2:11 The left side of 'else' should be an option type (or the 'else' is pointless). Actual: 'nat32'
 compile-errors/option-or.keen 1:1-1:2 'f' is unused.
-compile-errors/option-or.keen 2:5-2:11 The left side of 'or' should be 'bool' or an option type. Actual: 'nat64'
+compile-errors/option-or.keen 2:5-2:11 The left side of 'or' should be 'bool' or an option type. Actual: 'nat32'
 compile-errors/option-or.keen 4:1-4:2 'g' is unused.
-compile-errors/option-or.keen 5:9-5:15 The left side of 'or' should be 'bool' or an option type. Actual: 'nat64'
+compile-errors/option-or.keen 5:9-5:15 The left side of 'or' should be 'bool' or an option type. Actual: 'nat32'
 compile-errors/option-or.keen 8:1-8:2 'h' is unused.
-compile-errors/option-or.keen 9:5-9:11 The left side of 'or' should be 'bool' or an option type. Actual: 'nat64'
+compile-errors/option-or.keen 9:5-9:11 The left side of 'or' should be 'bool' or an option type. Actual: 'nat32'
+compile-errors/parameter-defaults-errors.keen 2:1-2:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 2:7-2:8 Local 'x' is unused.
+compile-errors/parameter-defaults-errors.keen 2:14-2:15 Local 'y' is unused.
+compile-errors/parameter-defaults-errors.keen 3:1-3:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 3:7-3:8 Local 'y' is unused.
+compile-errors/parameter-defaults-errors.keen 3:14-3:15 Local 'z' is unused.
+compile-errors/parameter-defaults-errors.keen 6:11-6:15 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/parameter-defaults-errors.keen line 2)
+compile-errors/parameter-defaults-errors.keen 7:11-7:21 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/parameter-defaults-errors.keen line 2)
+compile-errors/parameter-defaults-errors.keen 8:11-8:21 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/parameter-defaults-errors.keen line 2)
+compile-errors/parameter-defaults-errors.keen 11:1-11:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 11:7-11:8 Local 'x' is unused.
+compile-errors/parameter-defaults-errors.keen 11:14-11:15 Local 'y' is unused.
+compile-errors/parameter-defaults-errors.keen 12:1-12:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 12:7-12:8 Local 'x' is unused.
+compile-errors/parameter-defaults-errors.keen 12:14-12:15 Local 'z' is unused.
+compile-errors/parameter-defaults-errors.keen 14:11-14:15 Cannot choose an overload of 'new' or 'named-new'.
+Multiple functions match:
+	new s(x nat32, y nat32) (from compile-errors/parameter-defaults-errors.keen line 11)
+	new s(x nat32, z nat32) (from compile-errors/parameter-defaults-errors.keen line 12)
+compile-errors/parameter-defaults-errors.keen 17:1-17:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 17:7-17:8 Local 'x' is unused.
+compile-errors/parameter-defaults-errors.keen 17:14-17:15 Local 'y' is unused.
+compile-errors/parameter-defaults-errors.keen 18:1-18:10 'named-new' is unused.
+compile-errors/parameter-defaults-errors.keen 18:13-18:18 Local 'names' is unused.
+compile-errors/parameter-defaults-errors.keen 18:29-18:35 Local 'values' is unused.
+compile-errors/parameter-defaults-errors.keen 20:11-20:21 Cannot choose an overload of 'new' or 'named-new'.
+Multiple functions match:
+	new t(x nat32, y nat32) (from compile-errors/parameter-defaults-errors.keen line 17)
+	named-new t(names symbol[], values nat32[]) (from compile-errors/parameter-defaults-errors.keen line 18)
+compile-errors/parameter-defaults-errors.keen 22:1-22:2 'u' is unused.
+compile-errors/parameter-defaults-errors.keen 23:1-23:4 'new' is unused.
+compile-errors/parameter-defaults-errors.keen 23:7-23:8 Local 'x' is unused.
+compile-errors/parameter-defaults-errors.keen 23:14-23:15 Local 'y' is unused.
+compile-errors/parameter-defaults-errors.keen 23:22-23:23 There is no function or variable named 'x'.
+compile-errors/preconstructor-errors.keen 1:1-1:2 'r' is unused.
+compile-errors/preconstructor-errors.keen 2:5-2:6 Local variable 'x' was not marked 'mut'.
+compile-errors/preconstructor-errors.keen 3:5-3:21 Trying to call a 'global' function, but this function is not 'global'.
+	Calling:
+	something-global(from compile-errors/preconstructor-errors.keen line 4)
 compile-errors/record-extern.keen 2:11-2:13 Trying to call a 'js' function.
 Either mark the calling function as 'js' too, or check 'if js' around the call.
 	Calling:
@@ -574,29 +641,33 @@ compile-errors/record-privacy-b.keen 7:1-7:4 'foo' is unused.
 compile-errors/record-privacy-b.keen 8:22-8:24 There are functions named 'new' or 'list-new', but they do not match the expected return type.
 Expected return type 'private-ctor'.
 Candidates (with 1 arguments):
-	list-new[t] t[](a t[]) (from keen/col/array.keen line 61)
-	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 25)
-	new index-relative-to-end(subtract nat64) (from keen/col/collection.keen line 90)
+	list-new[t] t[](a t[]) (from keen/col/array.keen line 60)
+	list-new[t] t buffer(a t[]) (from keen/col/buffer.keen line 24)
+	new index-relative-to-end(subtract nat32) (from keen/col/collection.keen line 90)
 	list-new[k, v] v[k](a (k, v)[]) (from keen/col/map.keen line 84)
-	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 86)
+	list-new[t] t mut[](a t[]) (from keen/col/mut-array.keen line 84)
 	list-new[k, v] v mut[k](a (k, v)[]) (from keen/col/mut-map.keen line 37)
-	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 17)
+	list-new[t] t mut-set(a t[]) (from keen/col/mut-set.keen line 18)
 	list-new[t] t set(values t[]) (from keen/col/set.keen line 19)
-	new[col] col with-index(inner col) (from keen/col/util.keen line 164)
-	new[t] t infinite(value t) (from keen/col/util.keen line 208)
-	new[col] col reverse(inner col) (from keen/col/util.keen line 215)
-	new build-options(size-hint nat64) (from keen/col/util.keen line 478)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 566)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 575)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 89)
+	new[col] col with-index(inner col) (from keen/col/util.keen line 203)
+	new[col] col with-index8(inner col) (from keen/col/util.keen line 214)
+	new[col] col with-index16(inner col) (from keen/col/util.keen line 225)
+	new[col] col with-is-first(inner col) (from keen/col/util.keen line 235)
+	new[col] col with-is-last(inner col) (from keen/col/util.keen line 245)
+	new[t] t infinite(value t) (from keen/col/util.keen line 307)
+	new[col] col reverse(inner col) (from keen/col/util.keen line 314)
+	new build-options(size-hint nat32) (from keen/col/util.keen line 581)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 717)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 726)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
 	list-new json(args json[]) (from keen/json.keen line 108)
 	new[t] t reference(value t) (from keen/misc.keen line 38)
-	new internal-ctor(x nat64) (from compile-errors/record-privacy-a.keen line 10)
-	new redundant-internal(x nat64) (from compile-errors/record-privacy-a.keen line 13)
-	new redundant-public(x nat64) (from compile-errors/record-privacy-a.keen line 16)
+	new internal-ctor(x nat32) (from compile-errors/record-privacy-a.keen line 10)
+	new redundant-internal(x nat32) (from compile-errors/record-privacy-a.keen line 13)
+	new redundant-public(x nat32) (from compile-errors/record-privacy-a.keen line 16)
 compile-errors/record-privacy-b.keen 10:21-10:28 There are functions named 'new' or 'list-new', but they do not match the expected return type.
 Expected return type 'private-mut'.
 Candidates (with 3 arguments):
@@ -610,7 +681,7 @@ compile-errors/shared-lambda-errors.keen 3:5-3:15 Local 'not-lambda' is unused.
 compile-errors/shared-lambda-errors.keen 3:22-3:28 Argument to 'shared' must be a lambda expression.
 compile-errors/shared-lambda-errors.keen 4:5-4:15 Local 'not-shared' is unused.
 compile-errors/shared-lambda-errors.keen 4:28-4:34 Expected type is a lambda, but it is not 'shared'.
-Expected type 'nat64 mut()'.
+Expected type 'nat32 mut()'.
 compile-errors/shared-lambda-errors.keen 4:28-4:34 The lambda does not have anything 'mut' in its closure, so it does not need 'shared'.
 compile-errors/spec-decl-recursion.keen 4:1-4:2 'a' is unused.
 compile-errors/spec-decl-recursion.keen 4:1-4:9 Spec's parents tree is too deep.
@@ -634,7 +705,7 @@ compile-errors/spec-multiple-impls.keen 9:16-9:30 Multiple implementations found
 	to json(a string) (from compile-errors/spec-multiple-impls.keen line 2)
 	Calling:
 	to-json-string@(string[])(from compile-errors/spec-multiple-impls.keen line 5)
-	to@string(from keen/json.keen line 160)
+	to@string(from keen/json.keen line 168)
 compile-errors/spec-use-invalid.keen 4:1-4:6 'nat64' is unused.
 compile-errors/spec-use-invalid.keen 4:18-4:25 A builtin type can't have specs.
 compile-errors/spec-use-invalid.keen 4:20-4:25 A builtin type can't have specs.
@@ -683,53 +754,52 @@ Actual: 'u'.
 compile-errors/type-refinement-errors.keen 8:1-8:2 'u' is unused.
 compile-errors/type-refinement-errors.keen 10:1-10:4 'foo' is unused.
 compile-errors/type-refinement-errors.keen 15:11-15:12 There are functions named 'x', but they do not match the expected return type.
-Expected return type 'nat64'.
+Expected return type 'nat32'.
 Candidates (with 1 arguments):
-	x nat64?(a r-mut) (from compile-errors/type-refinement-errors.keen line 16)
-	x nat64?(a r-immut) (from compile-errors/type-refinement-errors.keen line 20)
+	x nat32?(a r-mut) (from compile-errors/type-refinement-errors.keen line 16)
+	x nat32?(a r-immut) (from compile-errors/type-refinement-errors.keen line 20)
 compile-errors/type-refinement-errors.keen 16:1-16:6 'r-mut' is unused.
 compile-errors/type-refinement-errors.keen 20:1-20:8 'r-immut' is unused.
 compile-errors/type-refinement-errors.keen 21:1-21:2 'y' is unused.
 compile-errors/type-refinement-errors.keen 22:1-22:4 'foo' is unused.
 compile-errors/type-refinement-errors.keen 24:19-24:20 There are functions named 'y', but they do not match the expected return type.
-Expected return type 'nat64'.
+Expected return type 'nat32'.
 Candidates (with 1 arguments):
-	y nat64?(a r-immut) (from compile-errors/type-refinement-errors.keen line 21)
+	y nat32?(a r-immut) (from compile-errors/type-refinement-errors.keen line 21)
 compile-errors/type-refinement-errors.keen 27:1-27:2 'z' is unused.
 compile-errors/type-refinement-errors.keen 28:1-28:4 'foo' is unused.
 compile-errors/type-refinement-errors.keen 31:19-31:20 There are functions named 'z', but they do not match the expected return type.
-Expected return type 'nat64'.
+Expected return type 'nat32'.
 Candidates (with 1 arguments):
-	z nat64?(a r-immut) (from compile-errors/type-refinement-errors.keen line 27)
+	z nat32?(a r-immut) (from compile-errors/type-refinement-errors.keen line 27)
 compile-errors/union-cycle.keen 2:11-2:13 There are functions named 'new' or 'list-new', but they do not match the expected return type.
 Expected return type 'u'.
 Candidates (with 0 arguments):
-	new bool() (from keen/bool.keen line 8)
-	new[t] t buffer-view() (from keen/col/buffer.keen line 28)
+	new bool() (from keen/bool.keen line 7)
+	new[t] t buffer-view() (from keen/col/buffer.keen line 27)
 	new was-locked() (from keen/col/collection.keen line 18)
 	new iterator-out-of-bounds() (from keen/col/collection.keen line 23)
 	new slice-right-to-left() (from keen/col/collection.keen line 28)
 	new iterator-not-comparable() (from keen/col/collection.keen line 33)
 	new slice-out-of-order() (from keen/col/collection.keen line 79)
-	new build2() (from keen/col/util.keen line 493)
 	new todo() (from keen/exception.keen line 7)
 	new not-implemented() (from keen/exception.keen line 11)
 	new unreachable() (from keen/exception.keen line 18)
 	new hash-state() (from keen/hash.keen line 27)
 	new void() (from keen/misc.keen line 9)
-	new nat8() (from keen/number.keen line 21)
-	new nat16() (from keen/number.keen line 22)
-	new nat32() (from keen/number.keen line 23)
-	new nat64() (from keen/number.keen line 24)
-	new int8() (from keen/number.keen line 25)
-	new int16() (from keen/number.keen line 26)
-	new int32() (from keen/number.keen line 27)
-	new int64() (from keen/number.keen line 28)
-	new float32() (from keen/number.keen line 29)
-	new float64() (from keen/number.keen line 30)
+	new nat8() (from keen/number.keen line 23)
+	new nat16() (from keen/number.keen line 24)
+	new nat32() (from keen/number.keen line 25)
+	new nat64() (from keen/number.keen line 26)
+	new int8() (from keen/number.keen line 27)
+	new int16() (from keen/number.keen line 28)
+	new int32() (from keen/number.keen line 29)
+	new int64() (from keen/number.keen line 30)
+	new float32() (from keen/number.keen line 31)
+	new float64() (from keen/number.keen line 32)
 	new[t] t?() (from keen/option.keen line 10)
-	new null() (from keen/private/bootstrap.keen line 134)
-	new string() (from keen/string.keen line 56)
+	new null() (from keen/private/bootstrap.keen line 135)
+	new string() (from keen/string.keen line 55)
 compile-errors/union-cycle.keen 3:1-3:2 Union type cyclically includes itself.
 compile-errors/union-cycle.keen 4:1-4:2 'v' is unused.
 compile-errors/union-errors.keen 4:1-4:2 'u' is unused.
@@ -737,7 +807,7 @@ compile-errors/union-errors.keen 4:12-4:13 A union can't include a type paramete
 compile-errors/union-errors.keen 4:15-4:19 A union can't include an option type.
 compile-errors/unpack-option-non-option.keen 5:13-5:15 Local 'xs' is unused.
 compile-errors/unpack-option-non-option.keen 6:12-6:14 Expression to the right of '=' must be an option type. Got 'string[]'.
-compile-errors/until-non-option.keen 2:9-2:14 Body of 'until' should return an option. Actual: 'nat64'
+compile-errors/until-non-option.keen 2:13-2:18 Body of 'until' should return an option. Actual: 'nat32'
 compile-errors/until-non-option.keen 4:16-4:21 Body of 'until' should return an option. Actual: 'string'
 compile-errors/unused.keen 3:23-3:30 Imported name 'seconds' is unused.
 compile-errors/unused.keen 5:19-5:28 Imported name 'unix-time' is unused.
@@ -777,20 +847,20 @@ compile-errors/wrong-number-type-args.keen 8:7-8:12 There are functions named 'm
 	magic[output, input] output?(a input?) (from compile-errors/wrong-number-type-args.keen line 4)
 conditions.keen 1:1-1:2 'f' is unused.
 conditions.keen 2:8-2:9 Expected type 'bool'.
-Actual: 'nat64'.
+Actual: 'nat32'.
 config.kid 1:1-1:1 Unexpected key bumbles. Allowed: imports
 config.kid 1:1-1:1 Invalid config file: Expecting Imports object, got 1.
 import-directory.keen 2:5-2:19 There was an error reading imported file parse-errors.
 match-on-mut.keen 2:5-2:6 Local 'x' is 'mut' but never reassigned.
 match-on-mut.keen 5:15-5:16 No implementation was found for 'show string(_ u)'.
 	Calling:
-	interpolate-value@u(from keen/string.keen line 46)
+	interpolate-value@u(from keen/string.keen line 45)
 match-on-mut.keen 7:9-7:10 Expected type 'string'.
 Actual: 'u'.
 number-ambiguity.keen 2:9-2:12 Cannot choose an overload of 'foo'.
 Multiple functions match:
-	foo int64() (from number-ambiguity.keen line 3)
-	foo nat64() (from number-ambiguity.keen line 5)
+	foo int32() (from number-ambiguity.keen line 3)
+	foo nat32() (from number-ambiguity.keen line 5)
 number-ambiguity.keen 3:1-3:4 'foo' is unused.
 number-ambiguity.keen 5:1-5:4 'foo' is unused.
 parse-errors/closing-brace-needs-escape.keen 2:6-2:7 '}' in a string literal must be escaped.
@@ -798,12 +868,7 @@ parse-errors/colon-colon-colon-colon.keen 1:1-1:2 'f' is unused.
 parse-errors/colon-colon-colon-colon.keen 1:10-1:11 Local 'a' is unused.
 parse-errors/colon-colon-colon-colon.keen 2:11-2:13 Unexpected ''.
 parse-errors/doc-comments.keen 1:6-1:7 Expected '}'.
-parse-errors/doc-comments.keen 2:1-1:9 '' is unused.
 parse-errors/doc-comments.keen 2:1-1:9 Expected '}'.
-parse-errors/doc-comments.keen 2:1-1:9 Unexpected '}'.
-parse-errors/doc-comments.keen 2:1-1:9 Expected a name or operator.
-parse-errors/doc-comments.keen 2:1-1:9 Unexpected '}'.
-parse-errors/doc-comments.keen 2:1-1:9 Expected '('.
 parse-errors/doc-comments.keen 2:1-2:2 'r' is unused.
 parse-errors/enum-member-invalid.keen 1:1-1:2 'e' is unused.
 parse-errors/enum-member-invalid.keen 3:5-3:6 Unexpected character "\\" (U+0x005c).
@@ -857,13 +922,36 @@ parse-errors/params-missing-end.keen 1:10-2:5 Expected a destructure (a name, '_
 parse-errors/params-missing-end.keen 1:10-2:5 Expected ')'.
 parse-errors/params-missing-end.keen 2:5-2:6 There is no function or variable named 'x'.
 parse-errors/params-missing-end.keen 4:1-4:2 'g' is unused.
-parse-errors/quote-without-text.keen 1:1-1:2 'f' is unused.
 parse-errors/quote-without-text.keen 1:1-1:2 This function needs a body.
 parse-errors/quote-without-text.keen 2:5-2:10 Unexpected keyword 'quote'.
 parse-errors/quotes-in-quotes.keen 1:1-1:2 's' is unused.
+parse-errors/quotes-in-quotes.keen 3:10-3:11 Literal expression needs an expected type.
 parse-errors/quotes-in-quotes.keen 3:11-3:12 Expected '}'.
 parse-errors/quotes-in-quotes.keen 3:15-3:15 Expected '"'.
 parse-errors/quotes-in-quotes.keen 4:1-3:15 Expected '}'.
+parse-errors/quotes-in-quotes.keen 5:1-5:2 's' is unused.
+parse-errors/quotes-in-quotes.keen 6:7-6:8 Cannot choose an overload of 'a'.
+Multiple functions match:
+	a[col0, col1] ((col0, col1) zip, col0) lens() (from keen/col/util.keen line 685)
+	a[col0, col1] ((col0, col1) zip-smaller, col0) lens() (from keen/col/util.keen line 701)
+	a[t0, t1] ((t0, t1), t0) lens() (from keen/private/bootstrap.keen line 75)
+	a[t0, t1, t2] ((t0, t1, t2), t0) lens() (from keen/private/bootstrap.keen line 76)
+	a[t0, t1, t2, t3] ((t0, t1, t2, t3), t0) lens() (from keen/private/bootstrap.keen line 77)
+	a[t0, t1, t2, t3, t4] ((t0, t1, t2, t3, t4), t0) lens() (from keen/private/bootstrap.keen line 78)
+	a[t0, t1, t2, t3, t4, t5] ((t0, t1, t2, t3, t4, t5), t0) lens() (from keen/private/bootstrap.keen line 79)
+	a[t0, t1, t2, t3, t4, t5, t6] ((t0, t1, t2, t3, t4, t5, t6), t0) lens() (from keen/private/bootstrap.keen line 80)
+	a[t0, t1, t2, t3, t4, t5, t6, t7] ((t0, t1, t2, t3, t4, t5, t6, t7), t0) lens() (from keen/private/bootstrap.keen line 82)
+	a (expected-equal, json) lens() (from keen/test-util.keen line 10)
+	a (expected-not-equal, json) lens() (from keen/test-util.keen line 15)
+parse-errors/quotes-in-quotes.keen 6:10-6:11 Expected '}'.
+parse-errors/quotes-in-quotes.keen 6:15-6:15 Expected '"'.
+parse-errors/quotes-in-quotes.keen 7:1-6:15 Expected '}'.
+parse-errors/quotes-in-quotes.keen 8:1-8:2 's' is unused.
+parse-errors/quotes-in-quotes.keen 9:7-9:10 The lambda doesn't match the expected type at this location.
+Expected type '<<any>>'.
+parse-errors/quotes-in-quotes.keen 9:10-9:11 Expected '}'.
+parse-errors/quotes-in-quotes.keen 9:15-9:15 Expected '"'.
+parse-errors/quotes-in-quotes.keen 10:1-9:15 Expected '}'.
 parse-errors/spec-signature-unfinished.keen 1:1-1:2 's' is unused.
 parse-errors/spec-signature-unfinished.keen 2:12-2:12 Expected a destructure (a name, '_', or parenthesized destructures).
 parse-errors/spec-signature-unfinished.keen 2:12-2:12 Expected ')'.
@@ -879,30 +967,24 @@ parse-errors/trailing-comma.keen 2:26-2:26 Imported name '' does not refer to an
 parse-errors/trailing-comma.keen 2:26-2:26 Imported name '' is unused.
 parse-errors/try-no-catch.keen 1:1-1:2 'f' is unused.
 parse-errors/try-no-catch.keen 2:5-2:8 A 'try' expression must have at least one 'catch' block.
-parse-errors/type-bracket-unclosed.keen 1:1-1:2 'f' is unused.
 parse-errors/type-bracket-unclosed.keen 1:1-1:2 This function needs a body.
 parse-errors/type-bracket-unclosed.keen 1:7-1:9 '()' is not a type. Did you mean 'void'?
 parse-errors/type-bracket-unclosed.keen 1:9-1:9 Expected ']'.
 parse-errors/type-bracket-unclosed.keen 1:9-1:9 Expected '('.
 parse-errors/type-mut.keen 2:5-2:6 Local 'a' is unused.
 parse-errors/type-mut.keen 2:11-2:14 To make something mutable, put 'mut' after its name, not after its type.
-parse-errors/type-parens.keen 1:1-1:2 'f' is unused.
 parse-errors/type-parens.keen 1:1-1:2 This function needs a body.
 parse-errors/type-parens.keen 1:10-1:12 '()' is not a type. Did you mean 'void'?
-parse-errors/type-parens.keen 2:1-2:2 'f' is unused.
 parse-errors/type-parens.keen 2:1-2:2 This function needs a body.
 parse-errors/type-parens.keen 2:10-2:12 '()' is not a type. Did you mean 'void'?
-parse-errors/type-parens.keen 3:1-3:2 'f' is unused.
 parse-errors/type-parens.keen 3:1-3:2 This function needs a body.
 parse-errors/type-parens.keen 3:10-3:15 Parentheses are unnecessary.
-parse-errors/type-parens.keen 4:1-4:2 'f' is unused.
 parse-errors/type-parens.keen 4:1-4:2 This function needs a body.
 parse-errors/type-parens.keen 4:10-4:15 Parentheses are unnecessary.
 parse-errors/unexpected-backslash.keen 1:1-1:2 'f' is unused.
 parse-errors/unexpected-backslash.keen 2:5-2:6 There is no function named 'x'.
 parse-errors/unexpected-backslash.keen 2:7-2:8 Unexpected ':'.
 parse-errors/unexpected-backslash.keen 2:8-2:9 Unexpected character "\\" (U+0x005c).
-parse-errors/unfinished-string-interpolation-2.keen 1:1-1:2 'f' is unused.
 parse-errors/unfinished-string-interpolation-2.keen 1:1-1:2 This function needs a body.
 parse-errors/unfinished-string-interpolation-2.keen 2:7-2:9 ''if'' expression can't appear in this context, because it requires an indented block to follow.
 parse-errors/unfinished-string-interpolation-2.keen 2:9-2:9 Expected '}'.

@@ -8,7 +8,7 @@ import
 lambda-info record mut
 	mutability mutability
 	# Index into locals on expr-ctx. This is the first local inside the lambda (or an inner lambda).
-	first-local-index nat
+	first-local-index nat32
 	closure-locals local mut[]
 	closure-contexts type-inst mut[]
 
@@ -154,9 +154,7 @@ is-mutability-always-compatible-considering-specs bool(fun-specs specs, type typ
 	is-always-compatible expected, type-mutability or
 	specs-provide-mutability fun-specs, type, expected or
 	match type
-	as bogus-type
-		false
-	as type-param-index
+	as bogus-type or type-param-index
 		false
 	as type-inst
 		type-mutability.best-case <= expected and
@@ -219,16 +217,16 @@ add-locals-for-destructure void(destructure destructure) check-expr-ctx
 	as js
 		js-spec
 
-maybe-refinement record(refinable refinable?, refined-type type-inst)
+maybe-refinement record(refinable refinable?, refined-type type-inst?)
 with-block[t] t(a maybe-refinement, f t mut()) expr-ctx
-	if x = a.refinable
+	if x = a.refinable and t = a.refined-type
 		match x
 		as local
-			add-type-refinement x, a.refined-type
+			add-type-refinement x, t
 		as local-and-called
-			add-call-refinement (x.local, x.called, a.refined-type)
+			add-call-refinement (x.local, x.called, t)
 	res = f[]
-	if x = a.refinable
+	if x = a.refinable and a.refined-type
 		match x
 		as local
 			_ = pop! refined-locals
@@ -294,10 +292,23 @@ local-refinement record(local local, refined-type type)
 		if not is-mutable local and inner = unwrap-option local.type
 			f[local, inner]
 	as logical-expr
-		do if a.expr-value
-		if expr.kind == bool-and-bool
-			some (condition-knowledge expr.left, true), f or
-			some (condition-knowledge expr.right, true), f
+		match expr.kind
+		as bool-and-bool
+			# if `x and y` is true, we know `not x` and `not y`
+			if a.expr-value
+				# The `or` here is for iteration (`some` stops on the first `true` result)
+				some (condition-knowledge expr.left, true), f or
+				some (condition-knowledge expr.right, true), f
+		as bool-or-bool
+			# if `x or y` is false, we know `not x` and `not y`
+			unless a.expr-value
+				# Note the 'or' here is for iteration.
+				some (condition-knowledge expr.left, false), f or
+				some (condition-knowledge expr.right, false), f
+		as option-else
+			()
+		as option-or
+			()
 	as trusted-expr
 		some (condition-knowledge expr.inner, a.expr-value), f
 	as unpack-option

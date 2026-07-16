@@ -13,7 +13,6 @@ import
 	../private/bootstrap: array, array-view, high, inner, low
 	../range
 	../unsafe
-	./private/private-util
 	./collection
 export
 	../private/bootstrap: buffer, buffer-view
@@ -38,29 +37,29 @@ export
 	res 'copy-from a
 	res
 
-+is-empty[t] bool(a t buffer-view)
-	a.low == a.high
++any[t] bool(a t buffer-view)
+	a.low != a.high
 
-+size[t] nat64(a t buffer-view)
++size[t] nat32(a t buffer-view)
 	a.high - a.low
 
-+subscript[t] t(a t buffer-view, index nat64)
++subscript[t] t(a t buffer-view, index nat32)
 	assert index < a.size else index-too-big index, a.size
-	a.inner[a.low + index]
+	trusted unsafe-at a.inner, a.low + index
 +subscript[t] t(a t buffer-view, index index-relative-to-end)
 	a[to-index a, index]
 
-+set-subscript[t] void(a t buffer-view, index nat64, value t)
++set-subscript[t] void(a t buffer-view, index nat32, value t)
 	assert index < a.size else index-too-big index, a.size
 	a.inner[a.low + index] := value
 +set-subscript[t] void(a t buffer-view, index index-relative-to-end, value t)
 	a[to-index a, index] := value
 
-+subscript[t] t buffer-view(a t buffer, indices nat64 range)
++subscript[t] t buffer-view(a t buffer, indices nat32 range)
 	a.to-buffer-view[indices]
 +subscript[t] t buffer-view(a t buffer, indices range-relative-to-end)
 	a.to-buffer-view[indices]
-+subscript[t] t buffer-view(a t buffer-view, indices nat64 range)
++subscript[t] t buffer-view(a t buffer-view, indices nat32 range)
 	assert indices.high <= a.size else index-too-big indices.high, a.size
 	buffer-view a.inner, a.low + indices.low, a.low + indices.high
 +subscript[t] t buffer-view(a t buffer-view, indices range-relative-to-end)
@@ -94,54 +93,54 @@ export
 | This is O({a} {size}).
 |
 | There is no `move-to` function for `buffer`,
-| since its pointer and size are immutable and so it can't be made empty.
+| since its size is immutable and so it can't be made empty.
 +to[t] t[](a t buffer)
 	a::(t buffer-view) 'to
 
 | Number of elements.
-+size[t] nat64(a t buffer)
++size[t] nat32(a t buffer)
 
-| {true} if `{a}.{size} == 0`.
-+is-empty[t] bool(a t buffer)
-	a.size == 0
+| Whether there is at least one element in the buffer.
++any[t] bool(a t buffer)
+	a.size != 0
 
 | Copies the elements to a new `buffer`.
 | This is O({a} {size}).
 +copy[t] t buffer(a t buffer)
 	a::(t buffer-view) 'to
 
-+subscript[t] t(a t buffer, index nat64)
++subscript[t] t(a t buffer, index nat32)
 	trusted if java
 		try
-			array-get a, index
+			unsafe-at a, index
 		catch as IndexOutOfBoundsException
 			throw index-too-big index, a.size
 	else
 		assert index < a.size else index-too-big index, a.size
-		array-get a, index
--array-get[t] t(a t buffer, index nat64) unsafe
--array-get[t] t(a t[], index nat64) unsafe
+		unsafe-at a, index
+~unsafe-at[t] t(a t buffer, index nat32) unsafe
+-unsafe-at[t] t(a t[], index nat32) unsafe
 
-+set-subscript[t] void(a t buffer, index nat64, value t)
++set-subscript[t] void(a t buffer, index nat32, value t)
 	trusted if java
 		try
-			array-set a, index, value
+			unsafe-set-at a, index, value
 		catch as IndexOutOfBoundsException
 			throw index-too-big index, a.size
 	else
 		assert index < a.size else index-too-big index, a.size
-		array-set a, index, value
+		unsafe-set-at a, index, value
 +set-subscript[t] void(a t buffer, index index-relative-to-end, value t)
 	a[to-index a, index] := value
--array-set[t] void(a t buffer, index nat64, value t) unsafe
+~unsafe-set-at[t] void(a t buffer, index nat32, value t) unsafe
 
-+set-subscript[t] void(dest t buffer, range nat64 range, source t[])
++set-subscript[t] void(dest t buffer, range nat32 range, source t[])
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer, range nat64 range, source t array-view)
++set-subscript[t] void(dest t buffer, range nat32 range, source t array-view)
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer, range nat64 range, source t buffer)
++set-subscript[t] void(dest t buffer, range nat32 range, source t buffer)
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer, range nat64 range, source t buffer-view)
++set-subscript[t] void(dest t buffer, range nat32 range, source t buffer-view)
 	dest[range] 'copy-from source
 +set-subscript[t] void(dest t buffer, range range-relative-to-end, source t[])
 	dest[to-range dest, range] 'copy-from source
@@ -152,13 +151,13 @@ export
 +set-subscript[t] void(dest t buffer, range range-relative-to-end, source t buffer-view)
 	dest[to-range dest, range] 'copy-from source
 
-+set-subscript[t] void(dest t buffer-view, range nat64 range, source t[])
++set-subscript[t] void(dest t buffer-view, range nat32 range, source t[])
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer-view, range nat64 range, source t array-view)
++set-subscript[t] void(dest t buffer-view, range nat32 range, source t array-view)
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer-view, range nat64 range, source t buffer)
++set-subscript[t] void(dest t buffer-view, range nat32 range, source t buffer)
 	dest[range] 'copy-from source
-+set-subscript[t] void(dest t buffer-view, range nat64 range, source t buffer-view)
++set-subscript[t] void(dest t buffer-view, range nat32 range, source t buffer-view)
 	dest[range] 'copy-from source
 +set-subscript[t] void(dest t buffer-view, range range-relative-to-end, source t[])
 	dest[to-range dest, range] 'copy-from source
@@ -175,7 +174,7 @@ export
 	dest 'copy-from trusted cast-immutable source
 +copy-from[t] void(dest t buffer-view, source t array-view)
 	dest.inner 'copy-from dest.low .. dest.high, source.inner, source.low .. source.high
--copy-from[t] void(dest t buffer, dest-range nat range, src t[], src-range nat range)
+-copy-from[t] void(dest t buffer, dest-range nat32 range, src t[], src-range nat32 range)
 	do trusted
 	do unless is-empty-type@t
 	size = dest-range.size
@@ -197,15 +196,15 @@ export
 			sub = call-property src.reinterpret-cast, "subarray", src-low, src-high
 			_ = call-property dest.reinterpret-cast, "set", sub, dest-low
 		else
-			i mut = 0
+			i mut nat32 = 0
 			until i == size
-				array-set dest, dl + i, array-get src, sl + i
+				unsafe-set-at dest, dl + i, unsafe-at src, sl + i
 				i +:= 1
--to-js-float js-any(a nat64) js = a.to::float.to
+-to-js-float js-any(a nat32) js = a.to::float.to
 
 | Overwrites each element `x` with `{f}[x]`.
 +map=[t] void(a t buffer-view, f t mut(x t))
-	i mut = 0
+	i mut nat32 = 0
 	until i == a.size
 		a[i] := f[a[i]]
 		i +:= 1
@@ -215,11 +214,11 @@ region unsafe
 | Allocates a buffer full of {gc-safe-value}.
 | To use this safely, you need to be careful to never read an element before writing it.
 | For a safer alternative, consider using a `for` loop to create the buffer.
-+uninitialized-buffer[t] t buffer(size nat64) unsafe
++uninitialized-buffer[t] t buffer(size nat32) unsafe
 
 | Sets every element to {gc-safe-value}.
 +clear-memory[t] void(a t buffer-view) unsafe
-	i mut nat64 = 0
+	i mut nat32 = 0
 	until i == a.size
 		a[i] := gc-safe-value
 		i +:= 1
@@ -241,7 +240,7 @@ region unsafe
 	do until
 	if i == a.high
 		false
-	elif f[a.inner[i]]
+	elif f[trusted unsafe-at a.inner, i]
 		true
 	else
 		i +:= 1
@@ -249,10 +248,10 @@ region unsafe
 
 +some-reverse[t] bool(a t buffer, f bool mut(x t)) = some-reverse a::(t buffer-view), f
 +some-reverse[t] bool(a t buffer-view, f bool mut(x t))
-	do unless is-empty a
+	do if any a
 	i mut = a.high - 1
 	do until
-	if f[a.inner[i]]
+	if f[trusted unsafe-at a.inner, i]
 		true
 	elif i == a.low
 		false
@@ -261,6 +260,6 @@ region unsafe
 		()
 
 # These are defined by 'array.keen', but that imports this, so just copy the definitions here.
--size[t] nat(a t[])
--size[t] nat(a t array-view)
+-size[t] nat32(a t[])
+-size[t] nat32(a t array-view)
 	a.high - a.low

@@ -50,7 +50,7 @@ show string(kind write-type-kind, a shown-signature)
 	quoted = kind == quoted
 	params = "{a.name-and-return-type}({join ", ", a.params})"
 	quoted-params = if quoted then "'{params}'" else params
-	rest = unless is-empty a.rest then " {a.rest}"
+	rest = if any a.rest then " {a.rest}"
 	"{quoted-params}{rest}"
 
 show-called-decl string(kind write-type-kind, type-container type-container, a called-decl) show-type-ctx
@@ -90,7 +90,7 @@ show-called-spec-sig string(kind write-type-kind, type-container type-container,
 	type-args type-args
 do show-type-ctx
 	type-params.size is type-args.size
-	unless is-empty type-params
+	if any type-params
 		shown = join ", ", for param, arg in zip type-params, type-args.slow-to-array
 			"{param.name}={show-type-unquoted (arg, type-args-context)}"
 		" with {shown}"
@@ -150,7 +150,7 @@ show-anonymous-sig string(type-container type-container, name symbol, sig return
 		- ")"
 
 -show-type-params string(type-params type-params) show-type-ctx
-	unless is-empty type-params
+	if any type-params
 		"[{join ", ", map type-params, it.name.to}]"
 
 -show-destructure string(container type-container, a destructure, instantiated type?) show-type-ctx
@@ -231,7 +231,7 @@ show-type-inst string(type-container type-container, a type-inst) show-type-ctx
 	"({parts})"
 
 show-type-args-generic[t] string(type-args t[], is-simple-type bool data(x t), cb-show-type string mut(x t))
-	do unless is-empty type-args
+	do if any type-args
 	if type-arg = only type-args and is-simple-type[type-arg]
 		"@{cb-show-type[type-arg]}"
 	else
@@ -240,7 +240,7 @@ show-type-args-generic[t] string(type-args t[], is-simple-type bool data(x t), c
 -show-type-args string(type-container type-container, types type-args) show-type-ctx
 	show-type-args-generic types.slow-to-array, it.is-simple-type, {show-type-unquoted (it, type-container)}
 -is-simple-type bool(a type)
-	not (type-inst a and not is-empty a.type-args)
+	not (type-inst a and any a.type-args)
 
 show-type-quoted string(a type-with-container) show-type-ctx
 	"'{show-type-unquoted a}'"
@@ -295,6 +295,17 @@ show-sum-type-kind-upper-case string(a sum-type-kind)
 		"Union"
 	as variant_
 		"Variant"
+
+show-sum-type-kind-lower-case string(a sum-type-kind)
+	match a
+	as interface_
+		"interface"
+	as java-interface
+		"Java interface"
+	as union_
+		"union"
+	as variant_
+		"variant"
 
 decl-kind decl-kind(a type-decl)
 	match body = a.body

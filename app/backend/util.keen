@@ -24,7 +24,7 @@ each-method-impl void
 	type low-type
 	interfaces low-type[]
 	program low-program
-	f void mut(method low-fun, impl low-fun?)
+	f void mut(method low-fun, impl low-expr?)
 do
 	for interface_ in interfaces
 		do if info = program.method-impls[interface_]
@@ -86,10 +86,10 @@ each-constant-in-dependency-order void(program low-program, emit void mut(x any-
 	c constant
 do
 	match c
+	as constant-native-string or scalar-value or constant-symbol or constant-gc-safe-value
+		true
 	as constant-array
 		is-empty-type type.as-array! or seen-arrays[type, c.index]
-	as constant-native-string
-		true
 	as constant-record
 		if is-empty-type type
 			true
@@ -98,15 +98,9 @@ do
 				only! get-record program.all-constants, type, c
 		else
 			seen-records[type, c]
-	as scalar-value
-		true
-	as constant-symbol
-		true
 	as constant-union
 		case-type, _, value = get-union program.all-constants, type, c
 		can-reference program, seen-arrays, seen-records, case-type, value
-	as constant-gc-safe-value
-		true
 
 # TODO:PERF this may be simpler (and faster) as a single dictionary class-and-member[nat][low-type]
 constant-names[name] record

@@ -16,6 +16,7 @@ parse-diagnostic record(range source-range, kind parse-diag)
 parse-diag union
 	parse-diag-closing-brace-needs-escape
 	parse-diag-doc-comment-unused
+	parse-diag-elif-preferred
 	parse-diag-equals-left
 	parse-diag-expected
 	parse-diag-file-not-utf8
@@ -45,6 +46,7 @@ parse-diag union
 	read-file-diag
 parse-diag-closing-brace-needs-escape record
 parse-diag-doc-comment-unused record
+parse-diag-elif-preferred record
 parse-diag-equals-left record
 parse-diag-expected enum
 	after-do-keyword
@@ -74,6 +76,7 @@ parse-diag-expected enum
 	open-paren
 	quote-double
 	slash
+	then-after-then-if
 parse-diag-file-not-utf8 record
 parse-diag-import-file-type-not-supported record
 parse-diag-indent-too-much record
@@ -90,6 +93,7 @@ parse-diag-operator-needs-space record(before symbol, after string)
 parse-diag-named-new-key record
 parse-diag-needs-block-ctx enum
 	for_
+	for-option
 	for-star
 	if_
 	match_

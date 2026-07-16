@@ -42,6 +42,7 @@ reference-kind enum
 	declare-local
 	get-local
 	set-local
+	provide-parameter-value
 
 walk-program record(program program)
 for-loop void(a walk-program, f void mut(where uri, source reference-ast, kind reference-kind, x doc-comment-reference))
@@ -105,11 +106,7 @@ for-loop void(a walk-module, f cb-thing) common-types
 	walk-doc-comment a.doc-comment, f
 	walk-type-modifiers ast.modifiers, a, f
 	match ast.body
-	as builtin-type-ast
-		()
-	as enum-ast
-		()
-	as flags-ast
+	as builtin-type-ast or enum-ast or flags-ast
 		()
 	as record-ast
 		walk-record ast.body, a.body.record_!, f
@@ -128,12 +125,18 @@ for-loop void(a walk-module, f cb-thing) common-types
 -walk-record void(ast record-ast, record_ record_, f cb-thing) walk-ctx
 	if params = ast.params
 		do if params.size == record_.fields.size
-		for field-ast, field in zip params, record_.fields
-			type-ast = field-ast.single-destructure-ast.?type
+		for index in params.size
+			field = record_.fields[index]
+			type-ast = params[index].destructure.single-destructure-ast.?type
 			?walk-type type-ast, field.type, field.visibility.explicit-kind-for-visibility, f
+			?walk-expr record_.field-defaults?[index], f
 	else
-		for field-ast, field in zip ast.fields, record_.fields
-			?walk-type field-ast.type, field.type, field.visibility.explicit-kind-for-visibility, f
+		ast.fields.size is record_.fields.size
+		for index in ast.fields.size
+			field = record_.fields[index]
+			?walk-type ast.fields[index].type, field.type, field.visibility.explicit-kind-for-visibility, f
+			?walk-expr record_.field-defaults?[index], f
+	?walk-expr record_.preconstructor.?as-expr, f
 
 -walk-sum-type void(ast sum-type-ast, a sum-type, type-visibilty visibility, f cb-thing) walk-ctx
 	for type-ast, member in zip-if-size-eq ast.types, a.listed-members
@@ -177,14 +180,14 @@ for-loop void(a walk-module, f cb-thing) common-types
 	walk-params ast.params, a.params, kind, ignore-locals, f
 
 -walk-params void
-	asts destructure-ast[]
+	asts parameter-ast[]
 	params destructure[]
 	kind reference-kind
 	include-locals include-locals
 	f cb-thing
 do walk-ctx
 	for x, y in zip asts, params
-		walk-destructure x, y, kind, include-locals, f
+		walk-destructure x.destructure, y, kind, include-locals, f
 
 walk-doc-comment void(a doc-comment, f cb-thing)
 	for name, ref in zip a.ast.references, a.references
@@ -216,7 +219,9 @@ walk-doc-comment void(a doc-comment, f cb-thing)
 type-args-and-asts record(type-args type-args, ast type-ast)
 some bool(a type-args-and-asts, f bool mut(x type, ast type-ast))
 	match ast = a.ast
-	as bogus-type-ast
+	as bogus-type-ast or name-and-range
+		# For a type alias, 'typeArgs' may be non-empty as it comes from the alias' target type.
+		# But ignore them in any case.
 		()
 	as fun-type-ast
 		return-type, param-type = only2! a.type-args
@@ -224,10 +229,6 @@ some bool(a type-args-and-asts, f bool mut(x type, ast type-ast))
 	as map-type-ast
 		key, value = only2! a.type-args
 		f[value, ast.value] or f[key, ast.key]
-	as name-and-range
-		# For a type alias, 'typeArgs' may be non-empty as it comes from the alias' target type.
-		# But ignore them in any case.
-		()
 	as suffix-name-type-ast
 		some (type-args-and-asts-may-unpack-tuple a.type-args, ast.left), f
 	as suffix-special-type-ast
@@ -238,14 +239,12 @@ some bool(a type-args-and-asts, f bool mut(x type, ast type-ast))
 -destructure-types-and-asts record(type type, ast destructure-ast)
 -some bool(a destructure-types-and-asts, f bool mut(x type, ast type-ast))
 	match ast = a.ast
-	as name-and-range
+	as name-and-range or void-destructure-ast
 		()
 	as single-destructure-ast
 		(t = ast.type) and f[a.type, t]
 	as ignore-destructure-ast
 		(t = ast.type) and f[a.type, t]
-	as void-destructure-ast
-		()
 	as array
 		do unless is-bogus a.type
 		some (zip a.type.type-inst!.type-args, ast), of type-arg, param
@@ -301,14 +300,12 @@ do walk-ctx
 			walk-destructure part-ast, part, kind, include-locals, f
 -walk-destructure-type void(ast destructure-ast, type type, kind reference-kind, f cb-thing) walk-ctx
 	match ast
-	as name-and-range
+	as name-and-range or void-destructure-ast
 		()
 	as single-destructure-ast
 		?walk-type ast.type, type, kind, f
 	as ignore-destructure-ast
 		?walk-type ast.type, type, kind, f
-	as void-destructure-ast
-		()
 	as array
 		do unless is-bogus type
 		for part-ast, part-type in zip ast, type.as-tuple!.slow-to-array
@@ -321,14 +318,11 @@ do walk-ctx
 		walk-type ast.return-type, a.return-type, a.visibility.explicit-kind-for-visibility, f
 		walk-params ast.params, a.params, a.visibility.explicit-kind-for-visibility, include-locals, f
 		walk-spec-uses ast.modifiers, a.specs, a.visibility, f
-	match body = a.body
-	as fun-body-expr
-		walk-expr body.expr, f
-	as auto-fun
-		for c in body.members
-			handle-call c, body.source.source.type-decl-ast!.name, (), auto, f
+	if auto-fun a.body
+		for c in a.body.members
+			handle-call c, a.body.source.source.type-decl-ast!.name, (), auto, f
 	else
-		()
+		?walk-expr a.body.body-expr, f
 
 -walk-test void(a test_, f cb-thing) walk-ctx
 	walk-doc-comment a.doc-comment, f
@@ -337,16 +331,14 @@ do walk-ctx
 -walk-expr void(expr expr, f cb-thing) walk-ctx
 	for e in all-exprs-in-tree expr
 		match e
-		as assert-or-forbid-expr
-			()
-		as bogus-call-expr
-			()
-		as bogus-expr
-			()
-		as bogus-wrong-type-expr
+		as assert-or-forbid-expr or bogus-call-expr or bogus-expr or bogus-wrong-type-expr
 			()
 		as call-expr
 			handle-call e.called, e.ast, e.ast.call-ast-prefix-with-type-arg.?type-arg, explicit-private, f
+			handle-call-named e.called, e.ast, f
+		as call-expr-with-which-params
+			handle-call e.called, e.ast, (), explicit-private, f
+			handle-call-named e.called, e.ast, f
 		as call-named-new-expr
 			handle-call e.called, e.ast, (), explicit-private, f
 		as call-option-expr
@@ -393,7 +385,8 @@ do walk-ctx
 		as match-enum-expr
 			walk-opt-local e.ast, e.matched-local, f
 			for case-ast, case_ in zip-if-size-eq e.ast.cases, e.cases
-				f[case-ast.member.as-name-ast!.name, explicit-private, case_.member]
+				for member, member-ast in zip-if-size-eq case_.members, case-ast.members
+					f[member-ast.name-and-range!, explicit-private, member]
 		as match-scalar-expr
 			walk-opt-local e.ast, e.matched-local, f
 		as match-string-like-expr
@@ -405,6 +398,9 @@ do walk-ctx
 			()
 		as the-expr
 			walk-type e.ast.type, e.type, explicit-private, f
+		as then-if-or-unless-expr
+			?walk-type e.ast.fun-type-annotation, e.type, explicit-private, f
+			handle-call e.called, e.ast, (), explicit-private, f
 		as throw-expr
 			()
 		as trusted-expr
@@ -445,6 +441,22 @@ do walk-ctx
 	as called-spec-sig
 		f[source, kind, called]
 
+-handle-call-named void(called called, source call-expr-source, f cb-thing)
+	do if fun-inst called and call-named-ast source
+	name-index mut nat = 0
+	for param in called.decl.params
+		assert local param
+		until
+			if name-index == source.names.size
+				true
+			elif param.name == source.names[name-index].name-and-range!.name
+				f[source.names[name-index].name-and-range!, provide-parameter-value, param]
+				name-index +:= 1
+				true
+			else
+				name-index +:= 1
+				false
+
 -to doc-comment-reference(a called-decl)
 	match a
 	as fun-decl then a
@@ -460,6 +472,7 @@ do walk-ctx
 
 -handle-match-sum-type-cases void(case-asts case-ast[], cases match-sum-type-case[], f cb-thing)
 	for case-ast, case_ in zip-if-size-eq case-asts, cases
-		handle-match-sum-type-case case-ast.member, case_, f
--handle-match-sum-type-case void(ast case-member-ast, case_ match-sum-type-case, f cb-thing)
-	f[ast.as-name-ast!.name, explicit-private, case_.case-type.decl]
+		handle-match-sum-type-case case-ast.members, case_, f
+-handle-match-sum-type-case void(asts case-member-ast[], case_ match-sum-type-case, f cb-thing)
+	for member-ast, case-type in zip-if-size-eq asts, case_.case-types
+		f[member-ast.name-and-range!, explicit-private, case-type.decl]

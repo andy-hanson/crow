@@ -1,7 +1,6 @@
 import
 	keen/string/util
 	../../../lib/parse
-	../../cli/command
 	../../model/model
 	../../model/source-range
 	../../util/util
@@ -13,7 +12,6 @@ write-js-ast js-and-map
 	file-content-getters file-content-getters
 	module-paths module-paths
 	a js-script-ast
-	sanity-checks sanity-checks
 	source-map-name string?
 do
 	map-builder source-map-builder? = if source-map-name then ()::source-map-builder
@@ -38,7 +36,7 @@ do
 			const _compareIntegral = (a, b) =>
 				a < b ? 0 :
 				b < a ? 2 :
-				1;
+				1
 			const _compareFloat = (a, b) =>
 				a < b ? 0 :
 				b < a ? 2 :
@@ -46,17 +44,85 @@ do
 				Number.isNaN(a) ? 0 :
 				Number.isNaN(b) ? 2 :
 				Object.is(a, -0) ? 0 : 2
+			const _lessFloat = (a, b) =>
+				a < b ||
+				Object.is(a, -0) && Object.is(b, +0) ||
+				Number.isNaN(a) && !Number.isNaN(b)
+			const _lessOrEqualFloat = (a, b) =>
+				_lessFloat(a, b) || Object.is(a, b)
+			const _greaterFloat = (a, b) =>
+				_lessFloat(b, a)
+			const _greaterOrEqualFloat = (a, b) =>
+				_greaterFloat(a, b) || Object.is(a, b)
 			const _int64OfNat64 = a =>
 				a >= 0x8000000000000000n ? -0x10000000000000000n + a : a
+			const _rotateLeftNat8 = (a, b) => \{
+				const n = b & 0b111
+				return ((a << n) | (a >>> (8 - n))) & 0xff
+			\}
+			const _rotateLeftNat16 = (a, b) => \{
+				const n = b & 0b1111
+				return ((a << n) | (a >>> (16 - n))) & 0xffff
+			\}
+			const _rotateLeftNat32 = (a, b) => \{
+				const n = b & 0b11111
+				return (a << n | a >>> (32 - n)) >>> 0
+			\}
+			const _rotateLeftNat64 = (a, b) => \{
+				const n = b & 0b111111n
+				return BigInt.asUintN(64, (a << n) | (a >> (64n - n)))
+			\}
+			const _rotateRightNat8 = (a, b) => \{
+				const n = b & 0b111
+				return ((a >>> n) | (a << (8 - n))) & 0xff
+			\}
+			const _rotateRightNat16 = (a, b) => \{
+				const n = b & 0b1111
+				return ((a >>> n) | (a << (16 - n))) & 0xffff
+			\}
+			const _rotateRightNat32 = (a, b) => \{
+				const n = b & 0b11111
+				return ((a >>> n) | (a << (32 - n))) >>> 0
+			\}
+			const _rotateRightNat64 = (a, b) => \{
+				const n = b & 0b111111n
+				return BigInt.asUintN(64, (a >> n) | (a << (64n - n)))
+			\}
 			const __lambdaToMethod2 = lambda =>
 				(a, b) => lambda(\{ a, b \})
 			const __lambdaToMethod3 = lambda =>
 				(a, b, c) => lambda(\{ a, b, c \})
 			const __lambdaToMethod4 = lambda =>
 				(a, b, c, d) => lambda(\{ a, b, c, d \})
+			const __countOnes8 = new Uint8Array(256)
+			for (let i = 0; i < 256; i++) \{
+				__countOnes8[i] = (i & 1) + __countOnes8[i >> 1]
+			\}
+			const _countOnes32 = a =>
+				__countOnes8[a & 0xff] +
+					__countOnes8[(a >> 8) & 0xff] +
+					__countOnes8[(a >> 16) & 0xff] +
+					__countOnes8[(a >> 24) & 0xff]
+			const _countOnes64 = a =>
+				_countOnes32(Number(a & 0xffff_ffffn)) +
+				_countOnes32(Number((a >> 32n) & 0xffff_ffffn))
+			const __truncateToInt32 = a => \{
+				const min = 1 << 31
+				const max = ~min
+				return Number.isFinite(a)
+					? a < min ? min : a > max ? max : Math.trunc(a) | 0
+					: a > 0 ? max : a < 0 ? min : 0
+			\}
+			const __truncateToInt64 = a => \{
+				const max = 2n ** 63n - 1n
+				const min = -(2n ** 63n)
+				if (Number.isFinite(a)) \{
+					const res = BigInt(Math.trunc(a))
+					return res < min ? min : res > max ? max : res
+				\} else
+					return a > 0 ? max : a < 0 ? min : 0n
+			\}
 			{"\n"}
-		if sanity-checks != no-sanity-checks
-			out ~~= "const _assert = cond => \{ if (!cond) throw new Error(\"Assertion failed.\") \}"
 		for x in a.classes
 			write-class out, x
 			out ~= "\n"
@@ -139,53 +205,9 @@ do
 	every a.to::char8[], it.is-ascii-identifier-char
 -is-js-keyword bool(a string)
 	match a
-	as arguments
+	as arguments or await or "case" or const or debugger or default or delete or "enum" or extends or false or function
 		true
-	as await
-		true
-	as "case"
-		true
-	as const
-		true
-	as debugger
-		true
-	as default
-		true
-	as delete
-		true
-	as "enum"
-		true
-	as extends
-		true
-	as false
-		true
-	as function
-		true
-	as "in"
-		true
-	as instanceof
-		true
-	as let
-		true
-	as new
-		true
-	as null
-		true
-	as public
-		true
-	as return
-		true
-	as static
-		true
-	as switch
-		true
-	as this
-		true
-	as true
-		true
-	as typeof
-		true
-	as var
+	as "in" or instanceof or let or new or null or public or return or static or switch or this or true or typeof or var
 		true
 	as void
 		true
@@ -206,7 +228,7 @@ do
 	out ~= "\}"
 
 -write-comment void(out output, comment string)
-	unless is-empty comment
+	if any comment
 		out ~~= "// {comment}\n"
 
 -write-class-member void(out output, member js-class-member)
@@ -242,15 +264,17 @@ do
 			write-destructure out, destructure
 		out ~~= " \}"
 
--write-block-statement void(out output, indent nat, a js-block-statement)
+-write-block-statement void(out output, indent nat32, a js-block-statement)
 	out ~= "\{"
-	for index, x in with-index a.statements
+	# Writing it this way to avoid a stack overflow in this highly recursive function (iterating ranges is specialized)
+	for index in a.statements.size
+		statement = a.statements[index]
 		out ~~= newline indent + 1
-		write-statement out, indent + 1, x, if index == 0 then first else non-first
+		write-statement out, indent + 1, statement, if index == 0 then first else non-first
 	out ~~= newline indent
 	out ~= "\}"
 
--write-expr-or-block-statement-indented void(out output, indent nat, a js-expr-or-block-statement)
+-write-expr-or-block-statement-indented void(out output, indent nat32, a js-expr-or-block-statement)
 	match a
 	as js-expr
 		if js-object-expr a.kind
@@ -265,11 +289,11 @@ do
 		write-block-statement out, indent, a
 
 -statement-pos enum(first, non-first)
--write-statement void(out output, indent nat, a js-statement, pos statement-pos)
+-write-statement void(out output, indent nat32, a js-statement, pos statement-pos)
 	mark-map out, a.source
 	match x = a.kind
 	as js-assign-statement
-		write-assign out, indent, x
+		write-assign out, indent, x, pos
 	as js-block-statement
 		write-block-statement out, indent, x
 	as js-break-statement
@@ -279,11 +303,7 @@ do
 	as js-continue-statement
 		out ~~= "continue"
 	as js-expr
-		write-expr out, indent, x, match pos
-		as first
-			statement-first
-		as non-first
-			statement-non-first
+		write-expr out, indent, x, first-expr-in-statement-pos pos
 	as js-if-statement
 		write-if out, indent, x
 	as js-for-of-statement
@@ -307,12 +327,17 @@ do
 		write-var-decl out, indent, x
 	as js-while-statement
 		write-while out, indent, x
-
--write-assign void(out output, indent nat, a js-assign-statement)
-	write-expr out, indent, a.left
+-first-expr-in-statement-pos expr-pos(a statement-pos)
+	match a
+	as first
+		statement-first
+	as non-first
+		statement-non-first
+-write-assign void(out output, indent nat32, a js-assign-statement, pos statement-pos)
+	write-expr out, indent, a.left, first-expr-in-statement-pos pos
 	out ~~= " = "
 	write-expr out, indent, a.right
--write-if void(out output, indent nat, a js-if-statement)
+-write-if void(out output, indent nat32, a js-if-statement)
 	out ~~= "if ("
 	write-expr out, indent + 2, a.cond
 	out ~~= ") "
@@ -324,30 +349,31 @@ do
 			write-statement out, indent, else_, first
 		else
 			_ = write-statement-indented out, indent, else_, first
--write-switch void(out output, indent nat, a js-switch-statement)
+-write-switch void(out output, indent nat32, a js-switch-statement)
 	out ~~= "switch ("
 	write-expr out, indent + 2, a.arg
 	out ~~= ") \{"
 	for case_ in a.cases
-		out ~~= newline indent + 1
-		out ~~= "case "
-		write-expr out, indent, case_.value
-		out ~= ":"
+		for value in case_.values
+			out ~~= newline indent + 1
+			out ~~= "case "
+			write-expr out, indent, value
+			out ~= ":"
 		write-block-statement out, indent + 1, case_.then_
 	out ~~= "{newline indent + 1}default:"
 	write-block-statement out, indent + 1, a.default
 	out ~~= "{newline indent}\}"
--write-try-catch void(out output, indent nat, a js-try-catch-statement)
+-write-try-catch void(out output, indent nat32, a js-try-catch-statement)
 	out ~~= "try "
 	write-block-statement out, indent, a.tried
 	out ~~= " catch ({a.exception}) "
 	write-block-statement out, indent, a.catch_
--write-try-finally void(out output, indent nat, a js-try-finally-statement)
+-write-try-finally void(out output, indent nat32, a js-try-finally-statement)
 	out ~~= "try "
 	write-block-statement out, indent, a.tried
 	out ~~= " finally "
 	write-block-statement out, indent, a.finally_
--write-var-decl void(out output, indent nat, a js-var-decl)
+-write-var-decl void(out output, indent nat32, a js-var-decl)
 	out ~~= "{a.const} "
 	for index, var in with-index a.vars
 		unless index == 0
@@ -356,7 +382,7 @@ do
 		if initializer = var.initializer
 			out ~~= " = "
 			write-expr out, indent, initializer
--write-while void(out output, indent nat, a js-while-statement)
+-write-while void(out output, indent nat32, a js-while-statement)
 	if label = a.label
 		out ~~= "{label}: "
 	out ~~= "while ("
@@ -365,7 +391,7 @@ do
 	write-block-statement out, indent, a.body
 
 # Returns true if it was a block
--write-statement-indented bool(out output, indent nat, a js-statement, pos statement-pos)
+-write-statement-indented bool(out output, indent nat32, a js-statement, pos statement-pos)
 	match x = a.kind
 	as js-block-statement
 		out ~= " "
@@ -389,9 +415,9 @@ do
 	false, false
 -statement-non-first expr-pos()
 	true, false
--write-expr void(out output, indent nat, a js-expr)
+-write-expr void(out output, indent nat32, a js-expr)
 	write-expr out, indent, a, expr
--write-expr void(out output, indent nat, a js-expr, pos expr-pos)
+-write-expr void(out output, indent nat32, a js-expr, pos expr-pos)
 	mark-map out, a.source
 	write-arg = of arg js-expr
 		write-expr out, indent, arg, expr
@@ -429,16 +455,16 @@ do
 		write-arg-with-pos[x.called, pos.with-called]
 		out ~= "("
 		write-args[x.args]
-		unless is-empty x.args
+		if any x.args
 			out ~~= ", "
 		out ~~= "..."
 		write-arg[x.spread-arg]
 		out ~= ")"
 	as js-literal-bigint
 		out ~~= if x.is-signed
-			"{x.value.to::int}"
+			"{x.value.to::int64}"
 		else
-			"{x.value.to::nat}"
+			"{x.value.to::nat64}"
 		out ~= "n"
 	as js-literal-bool
 		out ~~= "{x.value}"
@@ -497,8 +523,10 @@ do
 		out ~~= operator x.kind
 		write-arg[x.arg]
 		out ~= ")"
+	as js-undefined-expr
+		out ~~= "(void 0)"
 
--write-arrow-function void(out output, indent nat, pos expr-pos, a js-arrow-function)
+-write-arrow-function void(out output, indent nat32, pos expr-pos, a js-arrow-function)
 	if is-non-first-statement pos
 		out ~= ";"
 	if is-called pos
@@ -532,14 +560,20 @@ do
 		"==="
 	as greater
 		">"
+	as greater-or-equal
+		">="
 	as instanceof
 		"instanceof"
 	as less
 		"<"
+	as less-or-equal
+		"<="
 	as minus
 		"-"
 	as modulo
 		"%"
+	as not-eq-eq
+		"!=="
 	as or_
 		"||"
 	as plus

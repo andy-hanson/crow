@@ -1,18 +1,23 @@
 e enum
-	x
-	y
-	z = 1
-	n = -1
+	a
+	b
+	c = 1
+	d = -1
+	e = "hello"
+eb enum(a, b, c = 1, d = -1, e = "hello")
 
 e2 enum
-	x = 0xffffffffffffffff
+	x = 0xffff_ffff_ffff_ffff
 	y
+e2b enum(x = 0xffff_ffff_ffff_ffff, y)
 
 f flags
 	x = 3
 	n = -1
+fb flags(x = 3, n = -1)
 
 f2 flags
 	x
 	y
 	z = 2
+f2b flags(x, y, z = 2)

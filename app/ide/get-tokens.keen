@@ -97,18 +97,18 @@ token record
 decode-semantic-tokens record(inner semantic-tokens)
 to token[](a decode-semantic-tokens)
 	map a, {it}
-size nat(a decode-semantic-tokens)
+size nat32(a decode-semantic-tokens)
 	a.inner.data_.size / 5
 some bool(a decode-semantic-tokens, f bool mut(x token))
 	line mut nat32 = 0
 	character mut nat32 = 0
-	i mut = 0
+	i mut nat32 = 0
 	data_ = a.inner.data_
 	do until
 	do unless i == data_.size else false
-	delta-line nat32 = data_[i].to
-	delta-character nat32 = data_[i + 1].to
-	length nat32 = data_[i + 2].to
+	delta-line = data_[i]
+	delta-character = data_[i + 1]
+	length = data_[i + 2]
 	type token-type = data_[i + 3].to!
 	# data_[i + 4] would be modifiers, but we don't use those
 	if delta-line == 0
@@ -193,7 +193,7 @@ to json(a token-type)
 -emit void(type token-type, range source-range) tokens-builder
 	do unless range.length == 0 # This can happen for missing names
 	advance-to range.start
-	assert range.end <= source.size.to
+	assert range.end <= source.size
 	the::tokens-builder.prev-pos := range.end
 	add-inner range, type
 
@@ -202,7 +202,7 @@ to json(a token-type)
 	the::tokens-builder.prev-pos := pos
 
 -add-last-tokens void() tokens-builder
-	advance-to source.size.to
+	advance-to source.size
 
 -add-inner void(range source-range, type token-type) tokens-builder
 	a = the::tokens-builder
@@ -241,7 +241,7 @@ do
 		add-inner keyword-range, keyword
 
 -add-doc-comment-tokens void(a doc-comment-ast) tokens-builder
-	do unless is-empty a
+	do if any a
 	range = a.range!
 	pos mut = range.start
 	for x in a.references
@@ -275,13 +275,14 @@ do
 	emit function_, a.name-range
 	add-sig-return-type-and-params-tokens a.return-type, a.params
 
--add-sig-return-type-and-params-tokens void(return-type type-ast, params destructure-ast[]) tokens-builder
+-add-sig-return-type-and-params-tokens void(return-type type-ast, params parameter-ast[]) tokens-builder
 	add-type-tokens return-type
 	add-params-tokens params
 
--add-params-tokens void(params destructure-ast[]) tokens-builder
+-add-params-tokens void(params parameter-ast[]) tokens-builder
 	for param in params
-		add-param-destructure-tokens param
+		add-param-destructure-tokens param.destructure
+		?add-expr-tokens param.default
 
 -add-type-tokens void(a type-ast) tokens-builder
 	match a
@@ -327,21 +328,20 @@ do
 	as flags-ast
 		add-enum-or-flags-tokens a, body.params, body.members
 	as record-ast
-		add-record-tokens a, body.params, body.fields
+		?add-params-tokens body.params
+		add-modifier-tokens a.modifiers
+		for x in body.fields
+			add-doc-comment-tokens x.doc-comment
+			emit property, x.name.range
+			?add-type-tokens x.type
+			?add-expr-tokens x.default
+		?add-expr-tokens body.preconstructor
 	as sum-type-ast
 		for type in body.types
 			add-type-tokens type
 		add-modifier-tokens a.modifiers
 		for sig in body.methods
 			add-signature-tokens sig
-
--add-record-tokens void(a type-decl-ast, params destructure-ast[]?, members record-field-ast[]) tokens-builder
-	?add-params-tokens params
-	add-modifier-tokens a.modifiers
-	for x in members
-		add-doc-comment-tokens x.doc-comment
-		emit property, x.name.range
-		?add-type-tokens x.type
 
 -add-modifier-tokens void(a modifier-ast[]) tokens-builder
 	for mod in a
@@ -354,7 +354,7 @@ do
 
 -add-enum-or-flags-tokens void
 	a type-decl-ast
-	params destructure-ast[]?
+	params parameter-ast[]?
 	members enum-or-flags-member-ast[]
 do tokens-builder
 	?add-params-tokens params
@@ -504,6 +504,12 @@ do tokens-builder
 		add-expr-tokens a.inner
 	as the-ast
 		add-type-tokens a.type
+	as then-if-or-unless-ast
+		add-expr-tokens a.first
+		add-expr-tokens a.condition
+		emit function_, a.fun-name-range
+		?add-type-tokens a.fun-type-annotation
+		add-exprs-tokens a.then-args
 	as throw-ast
 		add-expr-tokens a.thrown
 	as trusted-ast
@@ -527,11 +533,18 @@ do tokens-builder
 				# expr :: t
 				add-expr-tokens expr
 				add-type-tokens a.type
-			elif expr.call-ast-prefix
+			elif call-ast-prefix expr
 				# fun-name::t args...
 				emit function_, expr.name-range
 				add-type-tokens a.type
 				add-exprs-tokens expr.args
+			elif call-ast-then expr
+				# arg0
+				# then f::t args...
+				add-expr-tokens expr.args[0]
+				emit function_, expr.name-range
+				add-type-tokens a.type
+				add-exprs-tokens expr.args[1 .. end]
 			else
 				# `for::t ...`
 				add-type-tokens a.type
@@ -556,19 +569,16 @@ do tokens-builder
 	add-expr-tokens a.then_
 
 -add-case-tokens void(a case-ast) tokens-builder
-	add-case-member-tokens a.member
+	for member in a.members
+		add-case-member-tokens member
 	add-expr-tokens a.then_
 
 -add-case-member-tokens void(a case-member-ast) tokens-builder
-	match a
-	as as-name-ast
-		emit enumMember, a.name.range
-	as literal-number
-		emit number, a.range
-	as literal-string-ast
-		emit string, a.range
-	as as-bogus-ast
-		()
+	type token-type = match a
+	as name-and-range then enumMember
+	as literal-number then number
+	as literal-string-ast then string
+	emit type, a.range
 
 -add-param-destructure-tokens void(a destructure-ast) tokens-builder
 	add-destructure-tokens-inner a, parameter

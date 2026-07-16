@@ -1,6 +1,7 @@
 import
 	keen/col/enum-map
 	keen/random/basic-prng
+	keen/string/unicode
 	keen/unsafe
 	../../lib/col/experimental/object-memoizer
 	../frontend/show-model
@@ -18,29 +19,27 @@ type-args-scope alias
 type-args-scope-for-fun type-args-scope(a low-fun)
 	match x = a.source
 	as low-fun-source-regular then x.type-args
-	as low-fun-source-interface-or-lens-method-impl then throw unreachable
 	as low-fun-source-test then ()
 	as low-fun-source-test-all then throw unreachable
 
 specs-scope-for-fun low-fun[](a low-fun)
 	match x = a.source
 	as low-fun-source-regular then x.spec-impls
-	as low-fun-source-interface-or-lens-method-impl then throw unreachable
 	as low-fun-source-test then ()
 	as low-fun-source-test-all then throw unreachable
 
 lower-ctx spec common-types, low-common-types, lower-context
 lower-context record mut
 	show-ctx show-ctx
-	-prng basic-prng64
+	-prng basic-prng32
 	target build-target
 	program-with-main program-with-main
-	late-equal-string-like-functions mut (matchable-string-like-type, low-fun) enum-map?
 	late-hash-nat-functions mut (nat-type, low-fun) enum-map?
 	late-json-subscript-function mut low-fun?
 	late-only-key-and-value-from-json-function mut low-fun?
 	late-to-flags-from-json-function mut low-fun?
 	late-to-symbol-or-empty-from-json-function mut low-fun?
+	late-to-symbol-from-string-function mut low-fun?
 	all-constants all-constants-builder
 	low-types (low-type, low-type-source-inst) object-memoizer
 	all-low-types low-type mut[] # TODO:PERF 'low-types' contains them all, except the bogus type
@@ -52,6 +51,11 @@ lower-context record mut
 	all-unprocessed-low-funs low-fun mut[]
 	| Maps a sum type to its cases
 	sum-types low-sum-type-info mut[low-type]
+	| The value is the case index
+	new-interface-types nat32 mut[low-type]
+	| The key is the lens type and field name
+	| The value is the case index
+	record-field-lens-types nat32 mut[(low-type, symbol)]
 	low-common-types mut low-common-types
 	-char8-array-type mut low-type
 	-deserialize-error-type mut low-type
@@ -59,25 +63,24 @@ lower-context record mut
 	-json-type mut low-type
 	-json-object-type mut low-type
 	-json-array-type mut low-type
-	-symbol-array-type mut low-type
 	-none-type mut low-type
 	-late-bogus-type mut low-type?
 new lower-context
 	show-ctx show-ctx
 	program program-with-main
 	target build-target
-do quick-fill-in-low-fun-body
+do lower-funs
 	res lower-context =
 		show-ctx: show-ctx
 		prng: ()
 		target: target
 		program-with-main: program
-		late-equal-string-like-functions: ()
 		late-hash-nat-functions: ()
 		late-json-subscript-function: ()
 		late-only-key-and-value-from-json-function: ()
 		late-to-flags-from-json-function: ()
 		late-to-symbol-or-empty-from-json-function: ()
+		late-to-symbol-from-string-function: ()
 		all-constants: ()
 		low-types: ()
 		all-low-types: ()
@@ -88,6 +91,8 @@ do quick-fill-in-low-fun-body
 		all-processed-low-funs: ()
 		all-unprocessed-low-funs: ()
 		sum-types: ()
+		new-interface-types: ()
+		record-field-lens-types: ()
 		low-common-types: trusted gc-safe-value
 		char8-array-type: trusted gc-safe-value
 		deserialize-error-type: trusted gc-safe-value
@@ -95,43 +100,42 @@ do quick-fill-in-low-fun-body
 		json-type: trusted gc-safe-value
 		json-object-type: trusted gc-safe-value
 		json-array-type: trusted gc-safe-value
-		symbol-array-type: trusted gc-safe-value
 		none-type: trusted gc-safe-value
 		late-bogus-type: ()
 	the lower-context = res
 	the common-types = res.common-types
+	json-object-type = get-low-type-for-type-inst json-object, ()
+	symbol-array-field, json-array-field = only2! json-object-type.body.low-record!.fields
 	res.low-common-types :=
 		bool: get-low-type-for-type-inst bool, ()
 		exception: get-low-type-for-type-inst exception, ()
 		float32: get-low-type-for-type-inst float32, ()
 		float64: get-low-type-for-type-inst float64, ()
-		int64: get-low-type-for-type-inst int64, ()
 		nat8: get-low-type-for-type-inst nat8, ()
 		nat16: get-low-type-for-type-inst nat16, ()
 		nat32: get-low-type-for-type-inst nat32, ()
 		nat64: get-low-type-for-type-inst nat64, ()
 		string: get-low-type-for-type-inst string, ()
 		symbol: get-low-type-for-type-inst symbol, ()
+		symbol-array: symbol-array-field.type
 		void: get-low-type-for-type-inst void, ()
 	res.char8-array-type := get-low-type-for-type-inst char8-array, ()
 	res.deserialize-error-type := get-low-type-for-type-inst common-funs.deserialize-error, ()
 	res.error-type := get-low-type-for-type-inst common-funs.error, ()
 	res.json-type := get-low-type-for-type-inst json, ()
-	res.json-object-type := get-low-type-for-type-inst json-object, ()
-	symbol-array-field, json-array-field = only2! res.json-object-type.body.low-record!.fields
-	res.symbol-array-type := symbol-array-field.type
+	res.json-object-type := json-object-type
 	res.json-array-type := json-array-field.type
 	res.none-type := get-low-type-for-type-inst the::common-types.none, ()
 	res
 
 -memoizer-key low-fun-source-regular(a low-fun)
 	low-fun-source-regular! a.source
--hash nat(a low-fun-source-regular)
+-hash nat64(a low-fun-source-regular)
 	trusted deterministic-hash a
 
 -memoizer-key low-type-source-inst(a low-type)
 	low-type-source-inst! a.source
--hash nat(a low-type-source-inst)
+-hash nat64(a low-type-source-inst)
 	trusted deterministic-hash a
 
 show-ctx show-ctx() lower-context
@@ -153,10 +157,6 @@ preserve-methods bool(type low-type) lower-context
 		type.source.low-type-source-inst!.decl.body.sum-type!.kind == interface_
 hash-nat-function low-fun(nat-type nat-type) lower-context
 	the::lower-context.late-hash-nat-functions![nat-type]
-equal-string-like-function low-fun(string-type matchable-string-like-type) lower-context
-	the::lower-context.late-equal-string-like-functions![string-type]
-equal-symbol-function low-fun() lower-context
-	equal-string-like-function symbol
 json-subscript-function low-fun() lower-context
 	the::lower-context.late-json-subscript-function!
 only-key-and-value-from-json-function low-fun() lower-context
@@ -165,6 +165,8 @@ to-flags-from-json-function low-fun() lower-context
 	the::lower-context.late-to-flags-from-json-function!
 to-symbol-or-empty-from-json-function low-fun() lower-context
 	the::lower-context.late-to-symbol-or-empty-from-json-function!
+to-symbol-from-string-function low-fun() lower-context
+	the::lower-context.late-to-symbol-from-string-function!
 program program() lower-context
 	the::lower-context.program-with-main.program
 common-funs common-funs() lower-context
@@ -172,8 +174,8 @@ common-funs common-funs() lower-context
 common-types common-types(a lower-context)
 	a.program-with-main.program.common-types
 
-take-next-id nat() lower-context
-	next64 the::lower-context.prng
+take-next-id nat32() lower-context
+	next32 the::lower-context.prng
 
 low-sum-type-info record mut
 	| All actually used methods, in no particular order.
@@ -186,20 +188,20 @@ low-sum-type-case union mut
 	low-sum-type-case-record-field-lens
 do
 	case-type low-type()
-	method-impls low-fun? buffer()
+	method-impls low-expr? buffer()
 low-sum-type-case-regular record mut
 	case-type low-type
 	type-args-scope low-type[]
 	model-method-impls fun-inst?[]
 	| Uses the same order of methods as on the sum-type.
 	| These will be filled in when the method is used.
-	method-impls low-fun? buffer
+	method-impls low-expr? buffer
 low-sum-type-case-new-interface record mut
 	case-type low-type
-	method-impls low-fun? buffer
+	method-impls low-expr? buffer
 low-sum-type-case-record-field-lens record mut
 	case-type low-type
-	method-impls low-fun? buffer
+	method-impls low-expr? buffer
 
 finish-low-vars low-var[]() lower-context
 	res low-var[] = for _, v in the::lower-context.low-var-lookup then v
@@ -226,8 +228,6 @@ json-type low-type() lower-context
 	the::lower-context.json-type
 json-object-type low-type() lower-context
 	the::lower-context.json-object-type
-symbol-array-type low-type() lower-ctx
-	the::lower-context.symbol-array-type
 json-array-type low-type() lower-ctx
 	the::lower-context.json-array-type
 none-type low-type() lower-context
@@ -238,17 +238,18 @@ get-referenced-type low-type(type low-type) lower-ctx
 	inst.decl is reference
 	only! inst.type-args
 
-constant-symbol constant(value symbol) lower-ctx
+constant-symbol constant-symbol(value symbol) lower-ctx
 	get-constant-symbol all-constants, value
 
-quick-fill-in-low-fun-body spec
+lower-funs spec
 	quick-fill-in-low-fun-body void(ctx lower-context, cf low-fun)
+	get-var low-var(context lower-context, decl var-decl)
 
 get-low-fun low-fun
 	decl fun-decl
 	type-args low-type[]
 	spec-impls low-fun[]
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	key low-fun-source-regular = decl, type-args, spec-impls
 	did-add mut = false
 	res = trusted memoize the::lower-context.low-funs, key, of
@@ -263,45 +264,32 @@ do lower-context, quick-fill-in-low-fun-body
 				the_::low-generated-local-kind, get-low-type x, type-args
 		body: low-fun-body-deferred
 	if did-add
-		add-low-fun res
 		quick-fill-in-low-fun-body the::lower-context, res
+		unless low-fun-body-always-inline res.body
+			add-low-fun res
 	res
 
-low-fun-for-new-interface-method-impl low-fun(case-type low-type, method low-fun, method-index nat) lower-context
+low-fun-for-new-interface-method-impl low-expr(case-type low-type, method low-fun, method-index nat32) lower-context
 	field = case-type.body.low-record!.fields[method-index]
 	return-type, lambda-param-type = only2! field.type.source.low-type-source-inst!.type-args
 	lambda-params = method.params[1 .. end]
-	params low-local[] =
-		- method-first-arg, case-type
-		-- lambda-params
-	res low-fun =
-		hash: take-next-id
-		source: low-fun-source-interface-or-lens-method-impl case-type
-		return-type: return-type
-		params: params
-		body:
-			range = case-type.source.range
-			get-record = local-get-low-expr range, params[0]
-			get-lambda = record-field-get-low-expr range, get-record, field
-			lambda-param low-expr = match lambda-params.size
-			as 0
-				lambda-param-type, range, constant-gc-safe-value
-			as 1
-				local-get-low-expr range, only! lambda-params
-			else
-				create-record-low-expr lambda-param-type, range, for p in params[1 .. end]
-					local-get-low-expr range, p
-			builtin-binary-low-expr return-type, range, call-lambda, get-lambda, lambda-param
-	add-low-fun res
-	res
-
-low-fun-for-record-field-lens-method-impl low-fun(case-type low-type, method low-fun, method-index nat) lower-context
-	field = case-type.source.low-type-source-record-field-lens!.field
-	params low-local[] =
-		- method-first-arg, case-type
-		-- method.params[1 .. end]
 	range = case-type.source.range
-	body low-expr = match method-index
+	get-record = union-assume-case-low-expr case-type, range, local-get-low-expr range, method.params[0]
+	get-lambda = record-field-get-low-expr range, get-record, field
+	lambda-param low-expr = match lambda-params.size
+	as 0
+		lambda-param-type, range, constant-gc-safe-value
+	as 1
+		local-get-low-expr range, only! lambda-params
+	else
+		create-record-low-expr lambda-param-type, range, for p in lambda-params
+			local-get-low-expr range, p
+	builtin-binary-low-expr return-type, range, call-lambda, get-lambda, lambda-param
+
+low-fun-for-record-field-lens-method-impl low-expr(case-type low-type, method low-fun, method-index nat) lower-context
+	field = case-type.source.low-type-source-record-field-lens!.field
+	range = case-type.source.range
+	match method-index
 	as 0 # get
 		_, value = only2! method.params
 		record-field-get-low-expr range, (local-get-low-expr range, value), field
@@ -309,30 +297,23 @@ low-fun-for-record-field-lens-method-impl low-fun(case-type low-type, method low
 		_, outer, inner = only3! method.params
 		get-outer = local-get-low-expr range, outer
 		record_ = low-record! outer.type.body
+		the low-common-types = the::lower-context.low-common-types
 		create-record-low-expr outer.type, range, for f in record_.fields
 			if f == field
 				local-get-low-expr range, inner
 			else
-				record-field-get-low-expr range, get-outer, f
+				gen-record-field-get range, get-outer, f
 	else
 		throw unreachable
-	res low-fun =
-		hash: take-next-id
-		source: low-fun-source-interface-or-lens-method-impl case-type
-		return-type: method.return-type
-		params: params
-		body: body
-	add-low-fun res
-	res
 
-get-non-template-low-fun low-fun(inst fun-inst) lower-ctx, quick-fill-in-low-fun-body
+get-non-template-low-fun low-fun(inst fun-inst) lower-ctx, lower-funs
 	forbid is-template inst.decl
 	get-low-fun inst.decl, (), ()
 
 get-low-type-for-type-inst low-type
 	inst type-inst
 	type-args-scope type-args-scope
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	type-args = get-low-types inst.type-args, type-args-scope
 	key low-type-source-inst = inst.decl, type-args
 	did-add mut = false
@@ -348,59 +329,63 @@ do lower-context, quick-fill-in-low-fun-body
 		initialize-low-type inst, res, type-args
 	res
 
-low-type-for-new-interface (nat, low-type)(interface_ low-type, params low-local[]) lower-context
-	fields low-field[] = for param in params
-		name: param.source.local!.name
-		is-mutable: false
-		type: param.type
-	res low-type =
-		id: take-next-id
-		source: low-type-source-new-interface interface_
-		body:
-			:: low-record
-			prevent-constant: false
-			fields: fields
-	the::lower-context.all-low-types ~= res
-	info = the::lower-context.sum-types[interface_]!
-	case-index = info.cases.size
-	info.cases ~=
-		:: low-sum-type-case-new-interface
-		case-type: res
-		method-impls: initial-method-impls interface_, info, of method, method-index
-			low-fun-for-new-interface-method-impl res, method, method-index
-	case-index, res
+low-type-for-new-interface (nat32, low-type)(interface_ low-type, params low-local[]) lower-context
+	case-index = ensure the::lower-context.new-interface-types, interface_, of
+		fields low-field[] = for param in params
+			name: param.source.local!.name
+			is-mutable: false
+			type: param.type
+		case-type low-type =
+			id: take-next-id
+			source: low-type-source-new-interface interface_
+			body:
+				:: low-record
+				prevent-constant: false
+				fields: fields
+		the::lower-context.all-low-types ~= case-type
+		info = the::lower-context.sum-types[interface_]!
+		case-index = info.cases.size
+		info.cases ~=
+			:: low-sum-type-case-new-interface
+			case-type: case-type
+			method-impls: initial-method-impls interface_, info, of method, method-index
+				low-fun-for-new-interface-method-impl case-type, method, method-index
+		case-index
+	case-index, the::lower-context.sum-types[interface_]!.cases[case-index].case-type
 
-low-type-for-record-field-lens (nat, low-type)(lens low-type, field low-field) lower-context
-	res low-type =
-		id: take-next-id
-		source: low-type-source-record-field-lens lens, field
-		body:
-			:: low-record
-			prevent-constant: false
-			fields: ()
-	the::lower-context.all-low-types ~= res
-	info = the::lower-context.sum-types[lens]!
-	case-index = info.cases.size
-	info.cases ~=
-		:: low-sum-type-case-record-field-lens
-		case-type: res
-		method-impls: initial-method-impls lens, info, of method, method-index
-			low-fun-for-record-field-lens-method-impl res, method, method-index
-	case-index, res
+low-type-for-record-field-lens (nat32, low-type)(lens low-type, field low-field) lower-context
+	case-index = ensure the::lower-context.record-field-lens-types, (lens, field.name), of
+		res low-type =
+			id: take-next-id
+			source: low-type-source-record-field-lens lens, field
+			body:
+				:: low-record
+				prevent-constant: false
+				fields: ()
+		the::lower-context.all-low-types ~= res
+		info = the::lower-context.sum-types[lens]!
+		case-index = info.cases.size
+		info.cases ~=
+			:: low-sum-type-case-record-field-lens
+			case-type: res
+			method-impls: initial-method-impls lens, info, of method, method-index
+				low-fun-for-record-field-lens-method-impl res, method, method-index
+		case-index
+	case-index, the::lower-context.sum-types[lens]!.cases[case-index].case-type
 
--initial-method-impls low-fun? buffer
+-initial-method-impls low-expr? buffer
 	interface_ low-type
 	info low-sum-type-info
-	f low-fun mut(method low-fun, method-index nat)
+	f low-expr mut(method low-fun, method-index nat32)
 do lower-context
 	n-methods = interface_.source.low-type-source-inst!.decl.body.sum-type!.methods.size
-	method-impls low-fun? buffer = n-of n-methods, ()
+	method-impls low-expr? buffer = n-of n-methods, ()
 	for method in info.methods-unsorted
 		method-index = method.body.low-fun-body-method!.method-index
 		method-impls[method-index] := f[method, method-index]
 	method-impls
 
-get-low-type low-type(type type, type-args-scope type-args-scope) lower-context, quick-fill-in-low-fun-body
+get-low-type low-type(type type, type-args-scope type-args-scope) lower-context, lower-funs
 	match type
 	as bogus-type
 		bogus-type
@@ -409,7 +394,7 @@ get-low-type low-type(type type, type-args-scope type-args-scope) lower-context,
 	as type-inst
 		get-low-type-for-type-inst type, type-args-scope
 
--get-low-types low-type[](types type-args, type-args-scope type-args-scope) lower-context, quick-fill-in-low-fun-body
+-get-low-types low-type[](types type-args, type-args-scope type-args-scope) lower-context, lower-funs
 	for t in types
 		get-low-type t, type-args-scope
 
@@ -417,7 +402,7 @@ get-low-fun-from-called low-fun?
 	type-scope type-args-scope
 	specs-scope low-fun[]
 	called called
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	match called
 	as called-bogus
 		()
@@ -430,7 +415,7 @@ get-low-fun-from-fun-inst low-fun?
 	type-scope type-args-scope
 	specs-scope low-fun[]
 	fun-inst fun-inst
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	do if spec-impls low-fun[] = map-every fun-inst.spec-impls, {get-low-fun-from-called type-scope, specs-scope, it}
 	type-args = get-low-types fun-inst.type-args, type-scope
 	get-low-fun fun-inst.decl, type-args, spec-impls
@@ -438,7 +423,7 @@ do lower-context, quick-fill-in-low-fun-body
 -lower-param-destructure low-local
 	a destructure
 	type-args-scope type-args-scope
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	source: match a
 	as destructure-ignore
 		ignore::low-generated-local-kind
@@ -455,7 +440,7 @@ add-low-fun void(fun low-fun) lower-context
 	inst type-inst
 	res low-type
 	type-args low-type[]
-do lower-context, quick-fill-in-low-fun-body
+do lower-context, lower-funs
 	match body = inst.decl.body
 	as type-body-bogus
 		throw unreachable
@@ -497,14 +482,12 @@ do lower-context, quick-fill-in-low-fun-body
 			method-impls: n-of body.methods.size, ()
 		the::lower-context.sum-types[res] := (), cases
 		match body.kind
-		as interface_
+		as interface_ or variant_
 			()
 		as java-interface
 			the::lower-context.deferred-java-interfaces ~= res
 		as union_
 			finish-sum-type-cases res, cases
-		as variant_
-			()
 
 	the common-types = the::lower-context.program-with-main.program.common-types
 	for x in inst.decl.sum-type-cases
@@ -512,22 +495,193 @@ do lower-context, quick-fill-in-low-fun-body
 		do unless as-extern res and x.sum-type != exception
 		sum-type = get-low-type x.sum-type, type-args
 		info = the::lower-context.sum-types[sum-type]!
-		method-impls low-fun? buffer = n-of x.method-impls.size, ()
+		method-impls low-expr? buffer = n-of x.method-impls.size, ()
 		for method in info.methods-unsorted
 			method-index = method.body.low-fun-body-method!.method-index
-			if is-empty x.method-impls
+			if any x.method-impls
+				if impl = x.method-impls[method-index]
+					method-impls[method-index] :=
+						call-method-impl method, inst.decl.range, get-low-fun-from-called type-args, (), impl
+			else
 				assert as-extern res
-			elif impl = x.method-impls[method-index]
-				method-impls[method-index] := get-low-fun-from-called type-args, (), impl
 		info.cases ~=
 			case-type: res
 			type-args-scope: type-args
 			model-method-impls: x.method-impls
 			method-impls: method-impls
 
+call-method-impl low-expr(method low-fun, range uri-and-range, method-impl low-fun?) lower-context, lower-funs
+	the common-types = the::lower-context.common-types
+	the low-common-types = the::lower-context.low-common-types
+	do if method-impl else gen-bogus method.return-type, range
+	args low-expr[] =
+		- union-assume-case-low-expr method-impl.params[0].type, range, local-get-low-expr range, method.params[0]
+		-- for param in method.params[1 .. end]
+			local-get-low-expr range, param
+	if low-fun-body-always-inline method-impl.body
+		lower-inline-call-not-array-op method-impl, range, args
+	else
+		call-low-expr range, method-impl, args
+
+call-or-inline low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context, lower-funs
+	if low-fun-body-always-inline fun.body
+		lower-inline-call-not-array-op fun, range, args
+	else
+		call-low-expr range, fun, args
+
+gen-new-record-body-without-preconstructor low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context
+	type = fun.return-type
+	if any args or prevent-constant type.body.low-record!
+		gen-create-record type, range, args
+	else
+		constant-low-expr type, range, get-constant-record all-constants, type, ()
+
+is-array-op bool(a low-fun) lower-context
+	do if low-fun-source-regular a.source
+	do if is-array-op-fun a.source.decl
+	do if is-void a.return-type or as-array-or-buffer a.return-type
+	do if a.params.size == 2
+	input = a.params[0]
+	do if as-nat-type input.type or is-nat-range input.type or as-array-or-buffer input.type
+	do if as-lambda-type a.params[1].type
+	true
+
+-is-array-op-fun bool(fun fun-decl) lower-context
+	fun == common-funs.for-loop-void or fun == common-funs.for-loop-out or fun == common-funs.map
+
+is-nat-range bool(a low-type) lower-context
+	do if low-type-source-inst a.source
+	do if a.source.decl == common-funs.range
+	as-nat-type range-element-type a
+
+lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context, lower-funs
+	type = fun.return-type
+	forbid is-array-op fun
+	assert low-fun-body-always-inline fun.body
+	match body = fun.source.low-fun-source-regular!.decl.body
+	as fun-body-builtin
+		match kind = body.kind
+		as builtin-unary
+			builtin-unary-low-expr type, range, kind.to, only! args
+		as builtin-binary
+			arg0, arg1 = only2! args
+			builtin-binary-low-expr type, range, kind, arg0, arg1
+		as builtin-ternary
+			arg0, arg1, arg2 = only3! args
+			builtin-ternary-low-expr type, range, kind, arg0, arg1, arg2
+		as java-fun
+			match kind
+			as instanceof
+				instanceof-type = only! fun.source.low-fun-source-regular!.type-args
+				builtin-java-instanceof-low-expr range, instanceof-type, only! args
+		as js-fun
+			builtin-js-low-expr type, range, kind, args
+		else
+			throw unreachable
+	as new-interface
+		if is-js
+			type.body.low-union!.has-new-interface-members := true
+			new-interface-low-expr type, range, args
+		else
+			case-index, case-type = low-type-for-new-interface fun.return-type, fun.params
+			create-union-low-expr type, range, case-index, create-record-low-expr case-type, fun.range, args
+	as new-record
+		# When there is a preconstructor, the nominal version delegates to the non-nominal version.
+		# Otherwise they are both inlined.
+		match kind = fun.as-new-record.kind
+		as void
+			gen-new-record-body-without-preconstructor fun, range, args
+		as expr-maybe-allocated-locals
+			# This would not get inlined
+			throw unreachable
+		as fun-decl
+			if has-preconstructor as-new-record kind
+				source = low-fun-source-regular! fun.source
+				low-non-nominal = get-low-fun kind, source.type-args, source.spec-impls
+				call-low-expr range, low-non-nominal, args
+			else
+				gen-new-record-body-without-preconstructor fun, range, args
+	as record-field-get
+		record_ = only! args
+		the low-common-types = the::lower-context.low-common-types
+		gen-record-field-get range, record_, get-low-field record_.type, body.field
+	as record-field-lens
+		forbid any args
+		record-type, _ = only2! type.source.low-type-source-inst!.type-args
+		case-index, case-type = low-type-for-record-field-lens type, get-low-field record-type, body.field
+		constant-low-expr type, range,
+			get-constant-union all-constants, type, case-index,
+				get-constant-record all-constants, case-type, ()
+	as record-field-set
+		record_, value = only2! args
+		:: record-field-set-low-expr
+		range: range
+		record_: record_
+		field: get-low-field fun.params[0].type, body.field
+		value: value
+	as var-get
+		forbid any args
+		var-get-low-expr range, get-var the::lower-context, body.var
+	as var-set
+		var-set-low-expr range, (get-var the::lower-context, body.var), only! args
+	else
+		throw unreachable
+-to low-builtin-unary(a builtin-unary)
+	match a
+	as array-size then array-size
+	as bits-of-float32 then bits-of-float32
+	as bits-of-float64 then bits-of-float64
+	as bitwise-not then bitwise-not
+	as count-ones then count-ones
+	as float32-from-bits then float32-from-bits
+	as float64-from-bits then float64-from-bits
+	as not then not
+	as uninitialized-buffer then uninitialized-buffer
+	as reinterpret-cast then reinterpret-cast
+	as to-float32-from-float64 then to-float32-from-float64
+	as to-float64-from-float32 then to-float64-from-float32
+	as to-float-from-integral then to-float-from-integral
+	as truncate-to then truncate-to
+	as weak-ref-get then weak-ref-get
+	as weak-ref-new then weak-ref-new
+	as wrap-convert-integral then wrap-convert-integral
+
+as-new-record new-record(fun low-fun)
+	as-new-record fun.source.low-fun-source-regular!.decl
+-as-new-record new-record(fun fun-decl)
+	new-record! fun.body
+
+get-low-field low-field(record-type low-type, field record-field)
+	index = index-of! record-type.source.low-type-source-inst!.decl.body.record_!.fields, field
+	record-type.body.low-record!.fields[index]
+
+gen-create-record low-expr(type low-type, range uri-and-range, args low-expr[]) lower-context
+	if not prevent-constant type.body.low-record! and x = as-constants args
+		type, range, get-constant-record all-constants, type, x
+	else
+		create-record-low-expr type, range, args
+
+as-constants constant[]?(exprs low-expr[])
+	map-every exprs, it.constant-low-expr.?value
+
+gen-record-field-get low-expr
+	range uri-and-range
+	arg low-expr
+	field low-field
+do low-common-types
+	if is-empty-type field.type
+		gen-drop-then range, arg, constant-low-expr field.type, range, constant-gc-safe-value
+	else
+		record-field-get-low-expr range, arg, field
+
+gen-drop-then low-expr(range uri-and-range, a low-expr, b low-expr) low-common-types
+	seq-low-expr range,
+		- builtin-unary-low-expr void, range, drop, a
+		- b
+
 -class-path path(a type-inst) = a.decl.source.type-decl-source-java!.class-path
 
-sum-type-case-index nat(sum-type low-type, case-type low-type) lower-context
+sum-type-case-index nat32(sum-type low-type, case-type low-type) lower-context
 	body = sum-type.body.low-union!
 	if body.has-members
 		index-of! body.members, case-type
@@ -542,3 +696,32 @@ sum-type-case-index nat(sum-type low-type, case-type low-type) lower-context
 finish-sum-type-cases void(sum-type low-type, cases low-sum-type-case mut[])
 	sum-type.body.low-union!.members := for x in cases
 		x.case-type
+
+fun-body-decl fun-body(fun low-fun)
+	fun.source.low-fun-source-regular!.decl.body
+
+gen-bogus low-expr(type low-type, range uri-and-range) lower-ctx
+	gen-throw-string type, range, "Reached compile error"
+gen-error low-expr(range uri-and-range, message string) lower-ctx
+	# Avoid using a constant so it will have a stack trace
+	error = gen-create-record error-type, range,
+		- gen-string-literal range, message
+	member-index = sum-type-case-index exception, error-type
+	create-union-low-expr exception, range, member-index, error
+gen-throw-string low-expr(type low-type, range uri-and-range, message string) lower-ctx
+	throw-low-expr type, range, gen-error range, message
+
+gen-symbol-literal constant-low-expr(range uri-and-range, value symbol) lower-ctx
+	symbol, range, constant-symbol value
+gen-string-literal constant-low-expr(range uri-and-range, value string) lower-ctx
+	string, range, constant-string value
+constant-string constant(value string) lower-ctx
+	get-constant-record all-constants, string,
+		- constant-of-bytes char8-array-type, value.to
+constant-char8-array constant(type low-type, value string) lower-ctx
+	constant-of-bytes type, value.to
+constant-of-bytes constant(array-type low-type, bytes nat8 array-view) lower-ctx
+	# TODO:PERF creating a Constant per byte is expensive
+	get-constant-array all-constants, array-type, map bytes, it.to::scalar-value
+constant-char32-array constant(type low-type, value string) lower-ctx
+	get-constant-array all-constants, type, map value.to::char32[], it.to::scalar-value

@@ -185,9 +185,9 @@ make-program program(a frontend, fully-loaded-dirs uri set)
 	unused-diagnostics = detect-unused-internal keen-modules, fully-loaded-dirs
 	kid-diagnostics uri-and-diagnostic[] = for* uri, file in a.kid-files
 		map file.diagnostics, {uri, it}
-	all-configs: for* uri, x in a.config-files
+	all-configs: for? uri, x in a.config-files
 		if config = x.config.config
-			- uri, config
+			uri, config
 	jar-files: all-jar-files a
 	keen-modules: keen-modules
 	java-modules: for* k, v in a.java-class-files
@@ -219,9 +219,9 @@ flush-all-unknown-uris uri[](a frontend)
 
 files-state enum(has-unknown, has-loading, all-loaded)
 files-state files-state(a frontend)
-	if not is-empty a.unknown
+	if any a.unknown
 		has-unknown
-	elif not is-empty a.loading
+	elif any a.loading
 		has-loading
 	else
 		a.count-uncompiled-keen-files is 0
@@ -462,7 +462,7 @@ set-file void(a frontend, uri uri, result read-file-result)
 		for importer in file.referenced-by
 			add-to-workable-if-so a, a.keen-files[importer]!
 		false
-	elif is-empty a.unknown and is-empty a.loading and a.count-uncompiled-keen-files != 0
+	elif not any a.unknown and not any a.loading and a.count-uncompiled-keen-files != 0
 		fix-circular-imports a
 		false
 	else
@@ -702,8 +702,8 @@ set-file void(a frontend, uri uri, result read-file-result)
 		for x in i.paths
 			out ~= try-resolve-import a, config, uri, x
 
--count-imports-and-re-exports nat(a file-ast)
-	a.no-std_.not.to::nat + (a.imports.?paths.?size else 0) + (a.re-exports.?paths.?size else 0)
+-count-imports-and-re-exports nat32(a file-ast)
+	(unless a.no-std_ then 1) + (a.imports.?paths.?size else 0) + (a.re-exports.?paths.?size else 0)
 
 -mark-all-non-bootstrap-modules-dirty void(a frontend, bootstrap uri)
 	clear a.workable-java
@@ -754,7 +754,7 @@ set-file void(a frontend, uri uri, result read-file-result)
 -common-uris common-uris(lib uri)
 	col = lib / "col"
 	private = lib / "private"
-	for k in make-enum-map
+	make of k
 		match k
 		as array
 			col / "array.keen"
@@ -762,6 +762,8 @@ set-file void(a frontend, uri uri, result read-file-result)
 			private / "bootstrap.keen"
 		as buffer
 			col / "buffer.keen"
+		as col-util
+			col / "util.keen"
 		as exception
 			lib / "exception.keen"
 		as number
@@ -838,9 +840,7 @@ do
 
 -no-file-imports mostly-resolved-import(ast import-or-export-ast, file-type file-type, f mostly-resolved-import mut())
 	match ast.kind
-	as import-whole-module-ast
-		f[]
-	as array
+	as import-whole-module-ast or array
 		f[]
 	as import-file-ast
 		cant-import-as-content file-type
@@ -850,12 +850,9 @@ do
 	ast import-or-export-ast
 	uri uri
 do
-	keen-file = {ensure-keen-file a, add-extension uri, ".keen"}
 	match ast.kind
-	as import-whole-module-ast
-		keen-file[]
-	as array
-		keen-file[]
+	as import-whole-module-ast or array
+		ensure-keen-file a, add-extension uri, ".keen"
 	as import-file-ast
 		file-type = file-type uri
 		if file-type == other

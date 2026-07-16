@@ -13,7 +13,8 @@ as-path path(a string-view)
 -parent-and-base-name (path, string)?(a path)
 	if left, right = try-split-once-right a.to::string, "/"
 		(left.to,), right.to
-is-empty bool(a path) = a.to::symbol == ""
+any bool(a path)
+	a.to::symbol != ""
 base-name string(a path)
 	a.parent-and-base-name.?b else a.to
 test
@@ -34,10 +35,10 @@ root-path path(first-component symbol)
 	forbid res.parent
 	res
 / path(a path, b string)
-	if is-empty b
-		a
-	else
+	if any b
 		"{a}/{b}",
+	else
+		a
 test
 	a path = "a",
 	a / "" is a
@@ -100,7 +101,7 @@ file-path record(to symbol) -new
 to path(a file-path)
 	a.to,
 base-name string(a file-path)
-	a.to::path.base-name
+	base-name to::path a
 root-file-path file-path(a symbol)
 	a.root-path.to,
 to string(a file-path)
@@ -129,7 +130,7 @@ as-file-path file-path?(a uri)
 	do if res = try-remove-start a.to::string, file-scheme
 	path char8[] = parse-path-inner res, true 'to
 	# A uri has a "/" before a Windows path, like `file:///c%3a`; a file-path does not.
-	str string = if not is-empty path and path[0] == "/" and path[1 .. end].is-windows-path
+	str string = if any path and path[0] == "/" and path[1 .. end].is-windows-path
 		path[1 .. end].to
 	else
 		path.to
@@ -170,9 +171,9 @@ base-name string(a uri)
 	(a.to,)::path.base-name
 # Return value will start with a "." unless it is the empty string
 get-extension symbol(a path)
-	a.base-name.get-extension
+	get-extension base-name a
 get-extension symbol(a uri)
-	a.base-name.get-extension
+	get-extension base-name a
 test
 	("",)::path.get-extension is ""
 	("a.txt",)::path.get-extension is ".txt"
@@ -191,9 +192,9 @@ without-extension file-path?(a file-path, extension string)
 	else
 		""
 get-extension symbol(a file-path)
-	a.to::path.get-extension
+	get-extension base-name a
 extension symbol(a uri)
-	a.base-name.get-extension
+	get-extension base-name a
 is-extensionless bool(a uri)
 	a.extension == ""
 -alter-extension symbol(a symbol, old-extension string, new-extension string)
@@ -206,9 +207,8 @@ add-to-base-name path(a path, rest string)
 	"{a}{rest}",
 
 / uri(a uri, b string)
-	if is-empty b
-		a
-	elif is-windows-path a
+	do if any b else a
+	if is-windows-path a
 		"{a}/{b.lower-case}",
 	else
 		"{a}/{b}",
@@ -309,17 +309,17 @@ test
 	fp file-path = "/a/b",
 	fp.to::uri is ("file:///a/b",)
 
-rel-path record(n-parents nat, path path)
+rel-path record(n-parents nat32, path path)
 show string(a rel-path)
 	parents = if a.n-parents == 0
 		"./"
 	else
 		repeat "../", a.n-parents
-	if is-empty a.path
-		parents[0 .. end - 1].to
-	else
+	if any a.path
 		"{parents}{a.path}"
-to json(a rel-path) =a.show.to
+	else
+		parents[0 .. end - 1].to
+to json(a rel-path) = a.show.to
 test
 	(0, ("a",))::rel-path.show is "./a"
 	(1, ("a",))::rel-path.show is "../a"
@@ -331,7 +331,7 @@ parse-rel-path rel-path(text string)
 	as ".."
 		1, ("",)
 	else
-		n-parents mut = 0
+		n-parents mut nat32 = 0
 		cur mut string-view = text.to
 		do until
 		if cur.size >= 2 and cur[0] == "." and cur[1].is-slash
@@ -516,7 +516,7 @@ test
 		while p = parent cur
 			out ~= base-name cur
 			cur := p
-		unless cur.to::string.is-empty
+		if any cur
 			out ~= base-name cur
 
 jar-and-class record

@@ -22,9 +22,7 @@ target-for-position target?(pos position)
 		()
 	as position-doc-ref
 		match ref = x.ref
-		as doc-comment-reference-bogus
-			()
-		as doc-comment-reference-context
+		as doc-comment-reference-bogus or doc-comment-reference-context
 			()
 		as called-spec-sig
 			non-instantiated-sig ref
@@ -51,7 +49,7 @@ target-for-position target?(pos position)
 	as enum-or-flags-member
 		x
 	as expression-position
-		x.expr-target
+		expr-target x
 	as fun-decl
 		x
 	as position-imported-name
@@ -111,55 +109,25 @@ target-for-position target?(pos position)
 
 -expr-target target?(a expression-position)
 	match x = a.kind
-	as assert-or-forbid-expr
-		()
 	as bogus-call-expr
 		x.candidates.only.?called-decl-target
-	as bogus-expr
-		()
 	as call-expr
+		called-target x.called
+	as call-expr-with-which-params
 		called-target x.called
 	as call-named-new-expr
 		called-target x.called
 	as call-option-expr
 		called-target x.called
-	as expr-keyword
-		()
-	as if-expr
-		()
-	as is-or-isnt-expr
-		()
-	as expression-position-literal
-		()
-	as lambda-expr
-		()
-	as let-the-expr
-		()
 	as list-expr
 		called-target x.called
 	as local-get-and-call-and-refine-expr
 		called-target x.called
 	as local-ref
-		position-local a.container.to, x.local
-	as logical-expr
-		()
-	as match-enum-expr
-		()
-	as match-scalar-expr
-		()
-	as match-string-like-expr
-		()
-	as match-sum-type-expr
-		()
-	as the-expr
-		()
-	as try-expr
-		()
-	as try-let-expr
-		()
-	as while-or-until-expr
-		()
-	as while-or-until-body-expr
+		record-field x.local.source else position-local a.container.to, x.local
+	as then-if-or-unless-expr
+		called-target x.called
+	else
 		()
 
 -called-decl-target target(a called-decl)

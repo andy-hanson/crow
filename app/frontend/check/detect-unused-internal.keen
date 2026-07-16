@@ -12,7 +12,7 @@ detect-unused-internal uri-and-diagnostic[]
 	all-modules keen-module[uri]
 	fully-loaded-dirs uri set
 do common-types, common-uris
-	do unless is-empty fully-loaded-dirs
+	do if any fully-loaded-dirs
 
 	start = perf-now
 	finally end-detect-unused-internal start
@@ -49,7 +49,7 @@ do common-types, common-uris
 				internal
 			add-it[decl, usage]
 
-	for* decl, state in states
+	for? decl, state in states
 		do unless decl.type-alias
 		diag diag? = if u = state.usage
 			if u < decl.visibility
@@ -60,7 +60,7 @@ do common-types, common-uris
 		do if diag
 		do if config-uri = all-modules[decl.module-uri]!.config.config-uri
 		do if fully-loaded-dirs[config-uri.parent!]
-		- decl.name-range, diag
+		decl.name-range, diag
 
 -each-decl void(modules keen-module[uri], f void mut(x any-decl))
 	for _, module in modules
@@ -68,18 +68,11 @@ do common-types, common-uris
 
 -as-any-decl any-decl?(a doc-comment-reference)
 	match a
-	as doc-comment-reference-bogus then ()
-	as doc-comment-reference-context then ()
-	as called-spec-sig then ()
-	as enum-or-flags-member then ()
+	as doc-comment-reference-bogus or doc-comment-reference-context or called-spec-sig or enum-or-flags-member then ()
+	as local or record-field or signature or type-alias or type-param-index then ()
 	as fun-decl then a
-	as local then ()
-	as record-field then ()
-	as signature then ()
 	as spec-decl then a
-	as type-alias then ()
 	as type-decl then a
-	as type-param-index then ()
 	as var-decl then a
 
 -is-public-or-main-or-test bool(a any-decl)

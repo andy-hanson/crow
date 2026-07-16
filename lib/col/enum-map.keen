@@ -1,32 +1,49 @@
+import
+	../enums
+	./mut-enum-map
+
 | Efficient "map" with an enum key.
 | This does actually not have the same interface as a {map}, since there must be a value for every key.
 | The enum values must be 0 .. n. This is the default unless you explicitly write values.
 +enum-map[k, v] record -new
 	| One for each enum member
 	values v[]
-+enum-like[t] spec t data
-	to nat8(a t)
-	members t[]()
++to[k, v] json(a (k, v) enum-map) k enum-like, (symbol, k) to, v to-json
+	for::json-object key in members::k[]
+		key.to::symbol, a[key].to
++to[k, v] (k, v) enum-map(a json) k key, k enum-like, (symbol, k) to, v from-json
+	assert json-object a else deserialize-error "enum-map", a
+	names symbol[] = map members::k[], it.to
+	values v? buffer = n-of names.size, ()
+	for key, value in a
+		assert i = index-of names, key else deserialize-error "enum-map bad key", key.to
+		values[i] := value.to
+	values: for v in values
+		v else ().to::v
 
 +list-new[k, v] (k, v) enum-map(elements (k, v)[]) k enum-like, v new
-	check-valid-enum@k
+	assert-plain-enum@k
 	values v buffer = map members::k[], {}
 	for k, v in elements
 		values[k.to] := v
 	values: trusted cast-immutable values
 
--check-valid-enum[k] void() k enum-like
-	for index, key in with-index members::k[]
-		to::nat8 key is index.to
++from-values[k, v] (k, v) enum-map(values v[]) k enum-like
+	values.size is members::k[].size
+	values: values
+
++to[k, v] (k, v) enum-map(a (k, v) mut-enum-map) k enum-like
+	values: a.values.to
++to[k, v] (k, v) mut-enum-map(a (k, v) enum-map) k enum-like
+	values: a.values.to
 
 | Make an enum map by providing a value for each key in a loop.
-+make-enum-map record
-+for-loop[k, v] (k, v) enum-map(_ make-enum-map, cb v mut(key k)) k enum-like
-	check-valid-enum@k
-	values: map members::k[], cb
++make[k, v] (k, v) enum-map(f v mut(key k)) k enum-like
+	assert-plain-enum@k
+	values: map members::k[], f
 
 | Always the number of members in the enum.
-+size[k, v] nat(a (k, v) enum-map)
++size[k, v] nat32(a (k, v) enum-map)
 	a.values.size
 +subscript[k, v] v(a (k, v) enum-map, key k) k enum-like
 	a.values[key.to]
@@ -34,7 +51,7 @@
 +some[k, v] bool(a (k, v) enum-map, f bool mut(key k, value v)) k enum-like
 	some members::k[], {f[it, a[it]]}
 
-+update[k, v] (k, v) enum-map(a (k, v) enum-map, key k, value v) k enum-like
++ ~[k, v] (k, v) enum-map(a (k, v) enum-map, (key k, value v)) k enum-like
 	values: update-at a.values, key.to, value
 
 | Map an enum-map to another with the same key type.
@@ -43,4 +60,4 @@
 
 +lens-for-key[k, v] ((k, v) enum-map, v) lens(key k) k enum-like
 	get: of map then map[key]
-	set: of map, value then update map, key, value
+	set: of map, value then map ~ (key, value)

@@ -56,16 +56,15 @@ export-visibility enum(internal, public)
 
 -names-and-arities global((name-and-arity, (symbol, nat32)) object-memoizer) = ()
 name-and-arity record(name symbol, arity nat32) -new
-hash nat((name symbol, arity nat32)) = trusted name.hash-value ^ arity
-hash-value nat(a name-and-arity) = a.name.hash-value ^ a.arity
+hash nat64((name symbol, arity nat32)) = trusted name.hash-value ^ arity
 -memoizer-key (symbol, nat32)(a name-and-arity) = a.name, a.arity
 get-name-and-arity name-and-arity(name symbol, arity nat)
-	trusted memoize names-and-arities, (name, arity.to), {name, arity.to}
+	trusted memoize names-and-arities, (name, arity), {name, arity}
 == bool(a name-and-arity, b name-and-arity) = trusted reference-equal a, b
 
 name-and-range record(start pos, name symbol)
 end pos(a name-and-range)
-	a.start + a.name.to::char8[].size.to
+	a.start + a.name.to::char8[].size
 range source-range(a name-and-range)
 	range-of-start-and-length a.start, a.name.to::char8[]
 
@@ -89,6 +88,45 @@ end pos(a the-ast)
 keyword-range source-range(a the-ast)
 	range-of-start-and-length a.start, "the"
 
+then-if-or-unless-ast record
+	first expr-ast
+	then-if-keyword-pos pos
+	is-unless bool
+	condition expr-ast
+	then-keyword-pos pos
+	fun-pos pos
+	fun-name name-and-arity
+	fun-type-annotation type-ast?
+	then-args expr-ast[]
+then-if-ast then-if-or-unless-ast
+	first expr-ast
+	then-if-keyword-pos pos
+	is-unless bool
+	condition expr-ast
+	then-keyword-pos pos
+	fun-name name-and-range
+	fun-type-annotation type-ast?
+	args expr-ast[]
+do
+	name = get-name-and-arity fun-name.name, 1 + args.size
+	first, then-if-keyword-pos, is-unless, condition, then-keyword-pos, fun-name.start, name, fun-type-annotation, args
+range source-range(a then-if-or-unless-ast) = a.start, a.end
+then-if-range source-range(a then-if-or-unless-ast)
+	range-of-start-and-length a.then-if-keyword-pos, "then if"
+then-range source-range(a then-if-or-unless-ast)
+	range-of-start-and-length a.then-keyword-pos, "then"
+fun-name-range source-range(a then-if-or-unless-ast)
+	range name-and-range a.fun-pos, a.fun-name.name
+start pos(a then-if-or-unless-ast)
+	a.first.start
+end pos(a then-if-or-unless-ast)
+	if any a.then-args
+		a.then-args[end - 1].end
+	elif a.fun-type-annotation
+		a.fun-type-annotation.end
+	else
+		a.fun-name-range.end
+
 type-ast union
 	bogus-type-ast
 	fun-type-ast
@@ -103,20 +141,14 @@ start pos(a type-ast) = a.range.start
 end pos(a type-ast) = a.range.end
 name-range-or-range source-range(a type-ast)
 	match a
-	as bogus-type-ast
+	as bogus-type-ast or map-type-ast or name-and-range or tuple-type-ast
 		range a
 	as fun-type-ast
 		kind-range a
-	as map-type-ast
-		range a
-	as name-and-range
-		range a
 	as suffix-name-type-ast
 		suffix-range a
 	as suffix-special-type-ast
 		suffix-range a
-	as tuple-type-ast
-		range a
 
 bogus-type-ast record(range source-range)
 fun-type-ast record
@@ -131,7 +163,7 @@ kind-range source-range(a fun-type-ast)
 
 map-type-ast record(kind mutability, value type-ast, key type-ast)
 range source-range(a map-type-ast)
-	a.value.range.start, a.key.range.end + "]"::char8[].size.to
+	a.value.range.start, a.key.range.end + "]"::char8[].size
 
 suffix-name-type-ast record(left type-ast, name name-and-range)
 range source-range(a suffix-name-type-ast)
@@ -146,7 +178,7 @@ range source-range(a suffix-special-type-ast)
 suffix-range source-range(a suffix-special-type-ast)
 	a.suffix-pos, a.suffix-end
 -suffix-end pos(a suffix-special-type-ast)
-	a.suffix-pos + a.kind.suffix.to::char8[].size.to
+	a.suffix-pos + a.kind.suffix.to::char8[].size
 
 -suffix string(a suffix-special-type-ast-kind)
 	match a
@@ -197,6 +229,7 @@ expr-ast union
 	seq-ast
 	shared-ast
 	the-ast
+	then-if-or-unless-ast
 	throw-ast
 	trusted-ast
 	try-ast
@@ -326,10 +359,10 @@ name-range-including-question source-range(a call-ast-prefix-question) = a.quest
 question-pos pos(a call-ast-prefix-question) = a.start
 range source-range(a call-ast-prefix-question) = a.start, a.end
 end pos(a call-ast-prefix-question)
-	if is-empty a.args
-		a.name-range.end
-	else
+	if any a.args
 		a.args[end - 1].end
+	else
+		a.name-range.end
 
 | Unlike {call-ast-prefix}, this can have empty args.
 call-ast-prefix-with-type-arg record
@@ -342,10 +375,10 @@ call-ast-prefix-with-type-arg call-ast-prefix-with-type-arg(start pos, name symb
 range source-range(a call-ast-prefix-with-type-arg) = a.start, a.end
 name-range source-range(a call-ast-prefix-with-type-arg) = range name-and-range a.start, a.fun-name.name
 end pos(a call-ast-prefix-with-type-arg)
-	if is-empty a.args
-		a.type-arg.end
-	else
+	if any a.args
 		a.args[end - 1].end
+	else
+		a.type-arg.end
 
 call-ast-then record
 	keyword-pos pos
@@ -357,7 +390,11 @@ call-ast-then call-ast-then(keyword-pos pos, fun-name name-and-range, args expr-
 	keyword-pos, fun-name.start, (get-name-and-arity fun-name.name, args.size), args
 range source-range(a call-ast-then) = a.start, a.end
 start pos(a call-ast-then) = a.args[0].start
-end pos(a call-ast-then) = a.args[end - 1].end
+end pos(a call-ast-then)
+	if a.args.size == 1
+		a.name-range.end
+	else
+		a.args[end - 1].end
 name-range source-range(a call-ast-then) = range name-and-range a.fun-pos, a.fun-name.name
 
 name-or-string-ast union(name-and-range, literal-string-ast, interpolated-ast, it-scope-ast)
@@ -425,15 +462,11 @@ for-or-with-ast record
 	then-pos pos
 	arg expr-ast
 	body expr-ast
-for-or-with-ast-keyword enum(for_, for-star, with_)
+for-or-with-ast-keyword enum(for_, for-option, for-star, with_)
 -size nat32(a for-or-with-ast-keyword)
 	match a
-	as for_
-		3
-	as for-star
-		4
-	as with_
-		4
+	as for_ then 3
+	as for-option or for-star or with_ then 4
 end pos(a for-or-with-ast)
 	a.body.end
 range source-range(a for-or-with-ast)
@@ -469,6 +502,7 @@ if-ast-kind enum
 	| Has 'if' and 'else' keywords, no 'elif' (though this may begin as an 'elif')
 	if-else
 	if-then
+	if-then-elif
 	if-then-else
 end pos(a if-ast)
 	if x = a.second-branch
@@ -480,60 +514,33 @@ end pos(a if-ast)
 range source-range(a if-ast)
 	a.start, a.end
 is-condition-negated bool(a if-ast)
-	a.is-unless != match a.kind
-	as do-if
-		true
-	as do-if-else
-		true
-	as if-elif
-		false
-	as if-else
-		false
-	as if-without-else
-		false
-	as if-then
-		false
-	as if-then-else
-		false
+	match a.kind
+	as do-if or do-if-else
+		not a.is-unless
+	as if-elif or if-else or if-without-else or if-then or if-then-elif or if-then-else
+		a.is-unless
 first-keyword-range source-range(a if-ast)
-	do-if-unless char8[] = if a.is-unless then "do unless" else "do if"
-	if-unless char8[] = if a.is-unless then "unless" else "if"
 	range-of-start-and-length a.start, match a.kind
-	as do-if
-		do-if-unless
-	as do-if-else
-		do-if-unless
-	as if-elif
-		if-unless
-	as if-else
-		if-unless
-	as if-then
-		if-unless
-	as if-then-else
-		if-unless
-	as if-without-else
-		if-unless
+	as do-if or do-if-else
+		if a.is-unless then "do unless" else "do if"
+	as if-elif or if-else or if-then or if-then-elif or if-then-else or if-without-else
+		if a.is-unless then "unless" else "if"
 second-keyword-range source-range?(a if-ast)
 	keyword char8[]? = match a.kind
-	as do-if
+	as do-if or if-without-else
 		()
-	as do-if-else
+	as do-if-else or if-elif or if-else
 		"else"
-	as if-elif
-		"else"
-	as if-else
-		"else"
-	as if-then
+	as if-then or if-then-elif or if-then-else
 		"then"
-	as if-then-else
-		"then"
-	as if-without-else
-		()
 	if keyword
 		range-of-start-and-length a.second-keyword-pos, keyword
 third-keyword-range source-range?(a if-ast)
-	if a.kind == if-then-else
+	match a.kind
+	as if-then-elif or if-then-else
 		range-of-start-and-length a.third-keyword-pos, "else"
+	else
+		()
 
 interpolated-ast record
 	quote-kind quote-kind
@@ -686,13 +693,13 @@ start pos(a list-ast) = a.range.start
 end pos(a list-ast) = a.range.end
 | Range of the initial '-' or '--'
 first-keyword-range source-range(a list-ast)
-	if is-empty a.parts
-		a.range
-	else
-		size = match a.parts[0]
+	if any a.parts
+		size nat32 = match a.parts[0]
 		as expr-ast then 1
 		as list-ast-part-multi then 2
 		a.range[0 .. size]
+	else
+		a.range
 
 # Represent singles directly, since they are the most common
 list-ast-part union(expr-ast, list-ast-part-multi)
@@ -741,7 +748,7 @@ match-ast record
 end pos(a match-ast)
 	if x = a.else_
 		x.end
-	elif not is-empty a.cases
+	elif any a.cases
 		a.cases[end - 1].end
 	else
 		a.matched.end
@@ -753,28 +760,18 @@ parenthesized-ast record(range source-range, inner expr-ast)
 start pos(a parenthesized-ast) = a.range.start
 end pos(a parenthesized-ast) = a.range.end
 
-case-ast record(keyword-pos pos, member case-member-ast, then_ expr-ast)
+case-ast record
+	keyword-pos pos
+	| Members separated by 'or'
+	members case-member-ast[]
+	then_ expr-ast
 end pos(a case-ast)
 	a.then_.end
-name-range source-range(a case-ast)
-	a.member.name-range
-keyword-and-member-name-range source-range(a case-ast)
-	a.keyword-pos, a.name-range.end
+keyword-range source-range(a case-ast)
+	range-of-start-and-length a.keyword-pos, "as"
 
-case-member-ast union(as-name-ast, literal-number, literal-string-ast, as-bogus-ast)
-name-range source-range(a case-member-ast)
-	match a
-	as as-name-ast
-		a.name.range
-	as literal-number
-		a.range
-	as literal-string-ast
-		a.range
-	as as-bogus-ast
-		a.range
-
-as-bogus-ast record(range source-range)
-as-name-ast record(name name-and-range)
+case-member-ast union(name-and-range, literal-number, literal-string-ast)
+	range source-range()
 
 match-else-ast record(keyword-pos pos, expr expr-ast)
 end pos(a match-else-ast) = a.expr.end
@@ -803,10 +800,10 @@ try-ast record
 	tried expr-ast
 	catches catch-ast[]
 end pos(a try-ast)
-	if is-empty a.catches
-		a.tried.end
-	else
+	if any a.catches
 		a.catches[end - 1].end
+	else
+		a.tried.end
 range source-range(a try-ast)
 	a.start, a.end
 try-keyword-range source-range(a try-ast)
@@ -896,7 +893,7 @@ signature-ast record
 	range source-range
 	name symbol
 	return-type type-ast
-	params destructure-ast[]
+	params parameter-ast[]
 name-and-range name-and-range(a signature-ast) = a.range.start, a.name
 name-range source-range(a signature-ast) = a.name-and-range.range
 
@@ -915,7 +912,6 @@ visibility visibility-and-range?(a type-alias-ast)
 	get-visibility-and-range a.range.start, a.visibility_
 
 type-params-range source-range(type-params name-and-range[])
-	forbid is-empty type-params
 	type-params[0].start, type-params[end - 1].end
 
 modifier-ast union(modifier-keyword-ast, spec-use-ast)
@@ -984,19 +980,22 @@ to json(a modifier-keyword) = a.to::string.to
 type-body-ast union(builtin-type-ast, enum-ast, flags-ast, record-ast, sum-type-ast)
 
 builtin-type-ast record
-enum-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
-flags-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
-record-ast record(params destructure-ast[]?, fields record-field-ast[])
+enum-ast record(params parameter-ast[]?, members enum-or-flags-member-ast[])
+flags-ast record(params parameter-ast[]?, members enum-or-flags-member-ast[])
+record-ast record
+	params parameter-ast[]?
+	fields record-field-ast[]
+	preconstructor expr-ast?
 sum-type-ast record(kind sum-type-kind, types type-ast[], methods signature-ast[])
 types-range source-range?(a sum-type-ast)
-	unless is-empty a.types
+	if any a.types
 		a.types[0].start, a.types[end - 1].end
 
 enum-or-flags-member-ast record
 	doc-comment doc-comment-ast
 	range source-range
 	name symbol
-	value literal-number?
+	value expr-ast?
 name-and-range name-and-range(a enum-or-flags-member-ast)
 	a.range.start, a.name
 name-range source-range(a enum-or-flags-member-ast)
@@ -1009,6 +1008,7 @@ record-field-ast record
 	name name-and-range
 	mutability field-mutability-ast?
 	type type-ast?
+	default expr-ast?
 visibility visibility-and-range?(a record-field-ast)
 	get-visibility-and-range a.range.start, a.visibility_
 name-range source-range(a record-field-ast)
@@ -1068,7 +1068,7 @@ fun-decl-ast record
 	name name-and-arity
 	type-params name-and-range[]
 	return-type type-ast
-	params destructure-ast[]
+	params parameter-ast[]
 	modifiers modifier-ast[]
 	| If the body is missing this will be {bogus-ast}
 	body expr-ast
@@ -1081,6 +1081,15 @@ name-range uri-and-range(a fun-decl-ast)
 	a.module-uri, a.name-range
 name-range source-range(a fun-decl-ast)
 	range name-and-range a.name-pos, a.name.name
+
+parameter-ast record
+	destructure destructure-ast
+	default expr-ast?
+range source-range(a parameter-ast)
+	if a.default
+		a.destructure.start, a.default.end
+	else
+		range a.destructure
 
 test-ast record
 	doc-comment doc-comment-ast
@@ -1115,7 +1124,7 @@ import-or-export-ast record
 	path path-or-rel-path
 	kind import-or-export-ast-kind
 path-range source-range(a import-or-export-ast)
-	range-of-start-and-length a.range.start, a.path.show.size.to
+	range-of-start-and-length a.range.start, a.path.show.size
 import-min-visibility export-visibility(a import-or-export-ast)
 	match a.path
 	as path
@@ -1141,7 +1150,7 @@ doc-comment-ast record(content doc-comment-content?)
 to json(a doc-comment-ast) = a.content.?to else ()
 new doc-comment-ast() = content: ()
 new doc-comment-ast(range source-range) = content: range, ()
-is-empty bool(a doc-comment-ast) = not a.content
+any bool(a doc-comment-ast) = a.content
 range source-range?(a doc-comment-ast) = a.content.?range
 references name-and-range[](a doc-comment-ast) = a.content.?references else ()
 
@@ -1289,6 +1298,8 @@ some bool(a children, f bool mut(x expr-ast))
 		f[x.inner]
 	as the-ast
 		()
+	as then-if-or-unless-ast
+		f[x.first] or f[x.condition] or some x.then-args, f
 	as throw-ast
 		f[x.thrown]
 	as trusted-ast

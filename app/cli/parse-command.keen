@@ -13,7 +13,7 @@ parse-command command(cwd file-path, args string[]) global
 	parse-command-inner cwd, args
 
 parse-command-inner command(cwd file-path, args string[])
-	arg0 = unless is-empty args then args[0]
+	arg0 = if any args then args[0]
 	if ends-with arg0, ".keen"
 		kind:
 			main:
@@ -35,13 +35,13 @@ parse-command-inner command(cwd file-path, args string[])
 	else
 		diags diags = ()
 		res = parse-command-kind cwd, name, args, diags
-		if is-empty diags
-			res, options
-		else
+		if any diags
 			show-diags = join "\n", map diags, it.show
 			help-str = "Command syntax error:\n{show-diags}\n{help-for-command name}"
 			kind: help-command help-str, error
 			options: options
+		else
+			res, options
 
 -extract-options (parsed-command, bool, command-options)(a parsed-command)
 	args2, help = extract a, "help"
@@ -199,7 +199,7 @@ do
 		options = parse-check-options diags, args.named
 		expect-empty-after-dash-dash diags, args.after
 		paths = parse-keen-or-dir-uris cwd, diags, args.nameless
-		::check-command
+		:: check-command
 		root-uris: paths
 		times: times options
 		show-color: not no-color options
@@ -232,16 +232,16 @@ do
 	expect-empty-parts diags, args.named
 	expect-empty-after-dash-dash diags, args.after
 -expect-empty-before void(diags diags, before string[])
-	unless is-empty before
+	if any before
 		diags ~= unexpected-before before[0]
 -expect-empty-parts void(diags diags, parts string[][symbol])
 	for tag, _ in parts
 		diags ~= unexpected-part tag
 -expect-empty-after-dash-dash void(diags diags, after string[])
-	unless is-empty after
+	if any after
 		diags ~= unexpected-part "--"
 
--parse-main-kind-for-test main-kind(cwd file-path, diags diags, args string[], all bool, line nat?)
+-parse-main-kind-for-test main-kind(cwd file-path, diags diags, args string[], all bool, line nat32?)
 	uris = parse-keen-or-dir-uris cwd, diags, args
 	if line and (all or uris.size != 1)
 		diags ~= test-line-number-invalid
@@ -268,9 +268,7 @@ do
 -parse-keen-or-kid-uri uri(cwd file-path, diags diags, arg string)
 	uri = parse-uri-with-cwd cwd, arg
 	match file-type uri
-	as keen
-		()
-	as kid
+	as keen or kid
 		()
 	else
 		diags ~= expected-keen-uri arg
@@ -297,7 +295,7 @@ do
 		()
 
 -parse-keen-or-dir-uris uri set(cwd file-path, diags diags, args string array-view)
-	if is-empty args
+	unless any args
 		diags ~= expected-paths ()
 	for arg in args
 		parse-keen-or-dir-uri cwd, diags, arg
@@ -307,11 +305,11 @@ do
 	subcommand = args.nameless[0]
 	res command-kind? = match subcommand
 	as parse
-		times mut = 1
+		times mut nat32 = 1
 		for part in args.named
 			match tag = part.a
 			as times
-				times := expect-nat diags, part
+				times := expect-nat32 diags, part
 			else
 				diags ~= unexpected-part tag
 		:: perf-test-parse-command
@@ -328,27 +326,27 @@ do
 	subcommand = args.nameless[0]
 	res command-kind? = match subcommand
 	as ast
-		do if is-empty args.named
+		do unless any args.named
 		print-ast-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	as tokens
-		do if is-empty args.named
+		do unless any args.named
 		print-tokens-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	as dependencies
 		uris = parse-keen-or-dir-uris cwd, diags, args.nameless[1 .. end]
 		do if format print-dependencies-format =
-			if is-empty args.named
+			if not any args.named
 				dot
 			elif args.named.size == 1
 				args.named["format"].?only.?to
 		print-dependencies-command uris, format
 	as model
-		do if is-empty args.named
+		do unless any args.named
 		print-model-command parse-keen-or-dir-uris cwd, diags, args.nameless[1 .. end]
 	as low-model
-		do if is-empty args.named
+		do unless any args.named
 		print-low-model-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	else
-		do if is-empty args.named
+		do unless any args.named
 		if kind = subcommand.to::print-ide-at-pos-kind?
 			do if args.nameless.size == 3
 			do if lc = parse-line-and-column args.nameless[2]
@@ -373,9 +371,8 @@ do
 	out mut single-build-output[] = ()
 	test_ mut = false
 	all mut = false
-	line mut nat? = ()
-	sanity-checks mut = no-sanity-checks
-	times mut = 1
+	line mut nat32? = ()
+	times mut nat32 = 1
 	watch mut = false
 	for part in args.named
 		tag, values = part
@@ -390,11 +387,8 @@ do
 			all := true
 		as line
 			line := expect-line diags, part
-		as sanity-checks
-			expect-flag diags, part
-			sanity-checks := all-sanity-checks
 		as times
-			times := expect-nat diags, part
+			times := expect-nat32 diags, part
 		as watch
 			expect-flag diags, part
 			watch := true
@@ -412,25 +406,21 @@ do
 		:: main-kind-main-function
 		uri: parse-main-uri cwd, diags, args.nameless
 		program-args: ()
-	res-out single-build-output[] = if is-empty out
-		if default = default-executable-path-for-main main
-			-
-				path: default
-				kind: java
-		else
-			diags ~= needs-out
-			()
-	else
+	res-out single-build-output[] = if any out
 		out
+	elif default = default-executable-path-for-main main
+		- path: default, kind: java
+	else
+		diags ~= needs-out
+		()
 	main: main
 	out: res-out
-	options: sanity-checks: sanity-checks
 	times: times
 	watch: watch
 
--check-options record(times nat, no-color bool, show-all-diags bool)
+-check-options record(times nat32, no-color bool, show-all-diags bool)
 -parse-check-options check-options(diags diags, args string[][symbol])
-	times mut = 1
+	times mut nat32 = 1
 	no-color mut = false
 	all-errors mut = false
 	for part in args
@@ -441,17 +431,17 @@ do
 		as no-color
 			no-color := true
 		as times
-			times := expect-nat diags, part
+			times := expect-nat32 diags, part
 		else
 			diags ~= unexpected-part tag
 	times, no-color, all-errors
 
--run-options-and-all record(run-options run-options, all bool, line nat?)
+-run-options-and-all record(run-options run-options, all bool, line nat32?)
 -parse-run-options run-options-and-all(diags diags, args string[][symbol], include-test-options bool)
 	node-js mut = false
 	watch mut = false
 	all mut = false
-	line mut nat? = ()
+	line mut nat32? = ()
 	for part in args
 		tag, _ = part
 		match tag
@@ -477,26 +467,26 @@ do
 	all: all
 	line: line
 
--expect-nat nat(diags diags, (tag symbol, values string[]))
+-expect-nat32 nat32(diags diags, (tag symbol, values string[]))
 	value = only values else "multiple values"
 	try
 		parse nat, value
 	catch as parse-error
 		diags ~= expected-nat tag, value
 		()
--expect-line nat(diags diags, (tag symbol, values string[]))
-	res = expect-nat diags, (tag, values)
+-expect-line nat32(diags diags, (tag symbol, values string[]))
+	res = expect-nat32 diags, (tag, values)
 	if res == 0 then 0 else res - 1
 
 -expect-flag void(diags diags, (tag symbol, args string[]))
-	unless is-empty args
+	if any args
 		diags ~= unexpected-part-args tag, args
 
 -parse-build-out single-build-output[](cwd file-path, diags diags, args string[])
-	if is-empty args
+	unless any args
 		diags ~= expected-paths "out"
-	for* arg in args
-		from-option parse-single-build-out cwd, diags, arg
+	for? arg in args
+		parse-single-build-out cwd, diags, arg
 -parse-single-build-out single-build-output?(cwd file-path, diags diags, arg string)
 	path = parse-file-path-with-cwd-or-diag diags, cwd, arg
 	if kind = build-kind-from-extension get-extension path
@@ -507,9 +497,7 @@ do
 
 -build-kind-from-extension build-target?(extension symbol)
 	match extension
-	as ""
-		java
-	as ".jar"
+	as "" or ".jar"
 		java
 	as ".js"
 		js
@@ -538,15 +526,13 @@ do
 	filter members::command-name[], {not is-internal-command it}
 -is-internal-command bool(a command-name)
 	match a
-	as lsp then true
-	as perf-test then true
-	as print then true
+	as lsp or perf-test or print then true
 	else then false
 -help-for-command string(name command-name)
 	"Command: {show-command name}\n\n{command-description name}"
 -show-command string(name command-name)
 	options = describe-command-options name
-	"keen {name}{unless is-empty options then " {options}"}"
+	"keen {name}{if any options then " {options}"}"
 -describe-command-options string(name command-name)
 	match name
 	as build

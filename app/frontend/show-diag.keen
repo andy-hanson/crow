@@ -36,9 +36,9 @@ do show-type-ctx
 	severity = max-of program.diagnostics, it.kind.get-diagnostic-severity else lint
 	join "\n", for* x in sorted-diagnostics program
 		do if filter-uri x.uri, options.only-for-uris
-		do for* diagnostic in x.diagnostics
-		do if options.show-all-diagnostics or diagnostic.kind.get-diagnostic-severity == severity
-		- show-diagnostic (x.uri, diagnostic)
+		for? diagnostic in x.diagnostics
+			if options.show-all-diagnostics or diagnostic.kind.get-diagnostic-severity == severity
+				show-diagnostic (x.uri, diagnostic)
 
 -filter-uri bool(a uri, filter uri set?)
 	if filter
@@ -66,6 +66,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		"'\}' in a string literal must be escaped."
 	as parse-diag-doc-comment-unused
 		"Doc comment must appear at top of module or before a declaration."
+	as parse-diag-elif-preferred
+		"Prefer 'elif' instead of 'else if'."
 	as parse-diag-equals-left
 		"Expected a destructure to left of '='."
 	as parse-diag-expected
@@ -134,6 +136,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 	match a
 	as for_
 		"'for'"
+	as for-option
+		"'for?'"
 	as for-star
 		"'for*'"
 	as if_
@@ -209,6 +213,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		"Expected '\"'."
 	as slash
 		"Expected '/'."
+	as then-after-then-if
+		"Expected 'then' after condition."
 
 -show-read-file-diag string(a read-file-diag, uri uri?) show-ctx
 	file = if uri then "imported file {show-uri uri}" else "this file"
@@ -238,7 +244,7 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 	some-candidate-has-correct-arity = some a.all-candidates, of x
 		(a.actual-n-type-args == 0 or x.n-type-params == a.actual-n-type-args.to) and x.arity == a.actual-arity
 
-	if is-empty a.all-candidates
+	if not any a.all-candidates
 		show-call-no-candidates a
 	elif not some-candidate-has-correct-arity
 		some-candidate-has-correct-n-type-args = a.actual-n-type-args == 0 or some a.all-candidates, of x
@@ -260,8 +266,6 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		show-name a.name
 	as fun-name-list-new
 		"'new' or 'list-new'"
-	as named-new
-		"'new' or 'named-new'"
 
 -show-call-no-correct-arity string(a diag-call-no-match, some-candidate-has-correct-n-type-args bool) show-type-ctx
 	name = show-name a.fun-name
@@ -275,7 +279,7 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 -show-call-close-match string(a diag-call-no-match) show-type-ctx
 	join
 		has-ret = expected-for-diag-choices a.expected-return-type
-		has-args = not is-empty a.actual-arg-types
+		has-args = any a.actual-arg-types
 		- "There are functions named {show-name a.fun-name}, but they do not match the "
 		- if has-ret
 			if has-args
@@ -310,11 +314,25 @@ show-diag string(a diag) show-type-ctx
 		quote
 			Cannot choose an overload of {show-name a.fun-name}.
 			Multiple functions match:{show-called-decls a.type-container, a.matches}
+	as diag-call-named-new-multiple-matches
+		quote
+			Cannot choose an overload of 'new' or 'named-new'.
+			Multiple functions match:{show-called-decls a.type-container, a.matches}
 	as diag-call-no-match
 		show-call-no-match a
 	as diag-call-no-match-for-interpolate-or-list-new
 		return = show-type-quoted a.expected-return-type
 		"Did not find a function named '{a.name}' returning a {return} taking a single array parameter."
+	as diag-call-no-match-for-named-new
+		base = quote
+			Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+			{show-expected a.expected, generic}
+		if a.most-likely-match
+			quote
+				{base}
+				Most likely you were trying to call: {show-fun-decl quoted, a.most-likely-match}
+		else
+			base
 	as diag-call-option-non-option
 		"None of the arguments to '?{a.fun-name}' is an option, so it could be written without the '?'."
 	as diag-call-should-use-syntax
@@ -391,11 +409,11 @@ show-diag string(a diag) show-type-ctx
 			{kind} '{a.called.name}' would be implemented by {called}, but that requires a context {context-name}.
 			Contexts are not allowed in {kind2}.
 	as diag-context-type-missing
-		choices = if is-empty a.actual
-			"none"
-		else
+		choices = if any a.actual
 			join ", ", for x in a.actual
 				show-type-quoted (x, a.container)
+		else
+			"none"
 		quote
 			{show-type-quoted (a.expected, a.container)} is not in the context types.
 			Actual context types: {choices}.
@@ -440,6 +458,8 @@ show-diag string(a diag) show-type-ctx
 		"The symbol {show-name a.name} appears in multiple modules."
 	as diag-empty-enum-or-union
 		"An enum or union type must have at least one member."
+	as diag-enum-value-not-number
+		"An enum member value must be a number literal."
 	as diag-enum-value-not-sorted
 		"An enum member value must be greater than the previous value ({a.prev-value})."
 	as diag-expected-type-is-not-a-lambda
@@ -475,8 +495,6 @@ show-diag string(a diag) show-type-ctx
 			'it' may not be appear alone.
 			(Hint: Only tightly bound expressions are in the 'it' scope.)
 			If you want an identity function use '\{it\}'.
-	as diag-lambda-cant-be-function-pointer
-		"A function pointer can't be implemented by a lambda. Write a function and use '&f' instead."
 	as diag-lambda-cant-infer-param-type
 		"Can't infer the lambda parameter's type."
 	as diag-lambda-closure-mutability
@@ -529,9 +547,9 @@ show-diag string(a diag) show-type-ctx
 			show-name a
 		as string
 			quoted a
-		as nat
+		as nat64
 			"{a}"
-		as int
+		as int64
 			"{a}"
 		"Duplicate branch {desc}."
 	as diag-match-case-for-type
@@ -697,10 +715,10 @@ show-diag string(a diag) show-type-ctx
 			"No implementation was found for '{show-anonymous-sig a.type-container, r.name, r.type}'."
 		as spec-too-deep
 			"Spec instantiation is too deep."
-		if is-empty a.trace
-			desc
-		else
+		if any a.trace
 			"{desc}\n\tCalling:{show-spec-trace a.type-container, a.trace}"
+		else
+			desc
 	as diag-spec-recursion
 		trace = join ", ", for spec_ in a.trace
 			show-name spec_.name
@@ -848,24 +866,19 @@ show-diagnostic string(a uri-and-diagnostic) show-type-ctx
 
 -decl-kind-of-type decl-kind(a type-decl)
 	match a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
 	as enum_ then enum_
 	as flags_ then flags_
-	as java-class then throw unreachable
 	as record_ then record_
 	as sum-type then variant_
+	as type-body-bogus or builtin-type or java-class then throw unreachable
 
 -member-kind enum(enum-member, flags-member, record-field)
 -member-kind-of-type member-kind(a type-decl)
 	match a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
 	as enum_ then enum-member
 	as flags_ then flags-member
-	as java-class then throw unreachable
 	as record_ then record-field
-	as sum-type then throw unreachable
+	as type-body-bogus or builtin-type or java-class or sum-type then throw unreachable
 
 -a-or-an-member-kind string(a member-kind)
 	match a
@@ -964,6 +977,8 @@ show-diagnostic string(a uri-and-diagnostic) show-type-ctx
 		"Unexpected keyword 'flags'."
 	as for_
 		"Unexpected keyword 'for'."
+	as for-option
+		"Unexpected keyword 'for?'."
 	as for-star
 		"Unexpected keyword 'for*'."
 	as force-data_

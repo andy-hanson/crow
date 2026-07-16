@@ -43,7 +43,7 @@ do
 	res low-fun mut[] = start-funs.to::low-fun[].to
 	set low-fun mut-set = start-funs.to
 	to-propagate low-fun mut[] = start-funs.to::low-fun[].to
-	until is-empty to-propagate
+	while any to-propagate
 		fun = pop! to-propagate
 		for x in called-by.calls[fun] else ()
 			if try-add set, x.called
@@ -70,8 +70,7 @@ do low-common-types
 			temp-kinds[fun] := kind!
 			to-propagate ~= fun
 
-	until is-empty to-propagate
-		fun = pop! to-propagate
+	while fun = pop to-propagate
 		its-kind = temp-kinds[fun]!
 		for x in called-by.called-by[fun] else ()
 			caller = x.caller
@@ -83,7 +82,7 @@ do low-common-types
 
 	used-depends-on-caller = calc-used-depends-on-caller all-used-funs, called-by, temp-kinds
 
-	async-funs async-kind[low-fun] = for* fun, kind in temp-kinds
+	async-funs async-kind[low-fun] = for? fun, kind in temp-kinds
 		out-kind async-kind? = match kind
 		as depends-on-caller
 			uses = used-depends-on-caller[fun]!
@@ -98,7 +97,7 @@ do low-common-types
 		as always-async
 			always-async
 		if out-kind
-			- fun, out-kind
+			fun, out-kind
 	funs: async-funs
 	# TODO: this is not right.
 	# The correct way to do this is basically consider each low-var as if it is a fun,
@@ -133,8 +132,7 @@ do
 			if async-kinds[called] == depends-on-caller and try-add res, called, use
 				to-propagate ~= called
 
-	until is-empty to-propagate
-		fun = pop! to-propagate
+	while fun = pop to-propagate
 		do if calls = called-by.calls[fun]
 		uses = res[fun]!
 		for x in calls
@@ -167,37 +165,17 @@ do
 	match a
 	as calls-lambda-parameter
 		depends-on-caller
-	as calls-other-lambda
-		always-async
-	as js-await
+	as calls-other-lambda or js-await
 		always-async
 
 -find-direct-async directly-async-reason?(a low-fun)
 	match body = a.body
 	as low-expr
 		intrinsic-async-kind body, a.params.to, ()
-	as low-fun-body-extern-java
-		throw unreachable
 	as low-fun-body-method
 		()
-	as low-fun-body-deferred
+	as low-fun-body-extern-java or low-fun-body-deferred or low-fun-body-always-inline
 		throw unreachable
-	as low-fun-body-always-inline
-		throw unreachable
-	as low-builtin-unary
-		()
-	as low-builtin-binary
-		match body
-		as call-lambda
-			calls-lambda-parameter
-		else
-			()
-	as low-builtin-ternary
-		()
-	as java-fun
-		throw unreachable
-	as js-fun
-		intrinsic-async-kind body
 
 -intrinsic-async-kind directly-async-reason?(a low-expr, params low-local set, local-lambda-locals low-local set)
 	from-children = of
@@ -226,22 +204,19 @@ do
 	params low-local set
 	local-lambda-locals low-local set
 do
-	match a
-	as call-lambda
-		match arg0
-		as local-get-low-expr
-			if params[arg0.local]
-				calls-lambda-parameter
-			elif local-lambda-locals[arg0.local]
-				# Function is calling a lambda it defined, and we trace its body anyway
-				()
-			else
-				# Unhandled case, pessimistically assume this is async
-				calls-other-lambda
+	do if a == call-lambda
+	match arg0
+	as local-get-low-expr
+		if params[arg0.local]
+			calls-lambda-parameter
+		elif local-lambda-locals[arg0.local]
+			# Function is calling a lambda it defined, and we trace its body anyway
+			()
 		else
+			# Unhandled case, pessimistically assume this is async
 			calls-other-lambda
 	else
-		()
+		calls-other-lambda
 -intrinsic-async-kind directly-async-reason?(a js-fun)
 	if a == await or a == import_
 		js-await
@@ -269,25 +244,11 @@ do show-ctx
 				new-method-index = index-of! method-info.methods, fun
 				assert new-method-index <= x.method-index # some methods may be omitted
 				for impls in method-info.cases
-					if impl = impls[new-method-index]
-						(ensure calls, fun) ~= call-kind-method-impl impl
-						(ensure called-by, impl) ~= fun, call-kind-method-impl impl
+					build-called-by-recur calls, called-by, fun, impls[new-method-index]
 			else
 				assert fun.params[0].type.body.low-union!.has-new-interface-members
-		as low-fun-body-deferred
+		as low-fun-body-deferred or low-fun-body-always-inline
 			throw unreachable
-		as low-fun-body-always-inline
-			()
-		as low-builtin-unary
-			()
-		as low-builtin-binary
-			()
-		as low-builtin-ternary
-			()
-		as java-fun
-			()
-		as js-fun
-			()
 	var-calls call-kind mut[] mut[low-var] = ()
 	for var in all-vars
 		for called in all-calls var.initializer
@@ -307,14 +268,7 @@ do
 
 -all-calls record(expr low-expr)
 -some bool(a all-calls, f bool mut(x call-kind))
-	here = match x = a.expr
-	as call-low-expr
-		f[x]
-	as match-string-like-low-expr
-		f[x]
-	else
-		()
-	here or some a.expr.direct-child-exprs, {some it.all-calls, f}
+	call-low-expr a.expr and f[a.expr] or some a.expr.direct-child-exprs, {some it.all-calls, f}
 
 -caller record
 	caller low-fun
@@ -322,15 +276,12 @@ do
 
 -call-kind union
 	call-low-expr
-	match-string-like-low-expr
 	call-kind-method-impl
 -call-kind-method-impl record(impl low-fun)
 -called low-fun(a call-kind)
 	match a
 	as call-low-expr
 		a.called
-	as match-string-like-low-expr
-		a.equals
 	as call-kind-method-impl
 		a.impl
 
@@ -359,8 +310,6 @@ do
 			res
 		as always-async
 			always-async
-	as match-string-like-low-expr
-		called-kind
 	as call-kind-method-impl
 		called-kind
 

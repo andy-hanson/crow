@@ -1,7 +1,6 @@
 no-std
 import
 	./compare: comparison
-	./private/bootstrap: nat8
 export
 	./private/bootstrap: bool, false, true
 
@@ -13,5 +12,3 @@ export
 + == bool(a bool, b bool)
 | Compares {false} less than {true}.
 + <=> comparison(a bool, b bool)
-
-+to nat8(a bool)

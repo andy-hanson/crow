@@ -23,32 +23,42 @@ new source-range() = 0, 0
 length nat(a source-range)
 	size to::(pos range) a
 
-is-empty bool(a source-range)
-	is-empty to::(pos range) a
+any bool(a source-range)
+	any to::(pos range) a
 
 subscript source-range(a source-range, b nat range)
-	end = a.start + b.high.to
+	end = a.start + b.high
 	assert end <= a.end
-	a.start + b.low.to .. end,
+	a.start + b.low .. end,
 
 range-contains bool(a source-range, b source-range)
 	a.start <= b.start and b.end <= a.end
 
 range-of-start-and-length source-range(start pos, length char8[])
-	range-of-start-and-length start, length.size.to::nat32
+	range-of-start-and-length start, length.size
 range-of-start-and-length source-range(start pos, length nat32)
 	start, start + length
 
 uri-and-pos record(uri uri, pos pos)
 
 uri-and-range record(uri uri, range source-range)
-to json(a uri-and-range) = uri: a.uri.to, start: a.range.to, end: a.range.to
-to uri-and-range(a json) = uri: a["uri"].to, range: a.to
-start uri-and-pos(a uri-and-range) = a.uri, a.range.start
-end uri-and-pos(a uri-and-range) = a.uri, a.range.end
-new uri-and-range() = top-of-file ()
-top-of-file uri-and-range(uri uri) = uri, top-of-file
-to uri-and-pos(a uri-and-range) = a.uri, a.range.start
+to json(a uri-and-range)
+	uri: a.uri.to
+	start: a.range.start.to
+	end: a.range.end.to
+to uri-and-range(a json)
+	uri: a["uri"].to
+	range: a.to
+start uri-and-pos(a uri-and-range)
+	a.uri, a.range.start
+end uri-and-pos(a uri-and-range)
+	a.uri, a.range.end
+new uri-and-range()
+	top-of-file ()
+top-of-file uri-and-range(uri uri)
+	uri, top-of-file
+to uri-and-pos(a uri-and-range)
+	a.uri, a.range.start
 
 line-and-character record(line nat32, character nat32)
 top-of-file line-and-character() = 0, 0
@@ -83,20 +93,18 @@ to json(a line-and-column)
 | Parses a string like "1:2" (meaning line 1 column 2)
 parse-line-and-column line-and-column?(a string)
 	iter = begin a
-	do if line = convert-from-1-indexed try-take-nat iter
+	do if line = convert-from-1-indexed try-take-nat32 iter
 	do if try-take iter, ":"
-	do if column = convert-from-1-indexed try-take-nat iter
+	do if column = convert-from-1-indexed try-take-nat32 iter
 	do if is-at-end iter
 	line, column
--convert-from-1-indexed nat32?(a nat?)
-	do if a and a != 0
-	n = a - 1
-	do if n <= max-value::nat32
-	n.to
--try-take-nat nat?(a string-iterator)
+-convert-from-1-indexed nat32?(a nat32?)
+	if a and a != 0
+		a - 1
+-try-take-nat32 nat32?(a string-iterator)
 	do if peek-digit a
 	try
-		take-nat a
+		take-nat32 a
 	catch as inner-parse-error
 		()
 
@@ -121,7 +129,7 @@ file-content-getters file-content-getters(a line-and-column-getters)
 subscript string-view(a file-content-getters, uri uri)
 	a.inner[uri]!.source-text
 subscript string-view(a file-content-getters, where uri-and-range)
-	unless where.range.is-empty
+	if any where.range
 		a[where.uri][where.start.pos .. where.end.pos]
 
 line-and-character-getters record(lookup line-and-column-getters) mut
@@ -150,14 +158,14 @@ line-and-character-getter record
 new line-and-character-getter()
 	""::char8[], (0,)
 subscript pos(a line-and-character-getter, lc line-and-character)
-	if lc.line >= a.line-to-pos.size.to
+	if lc.line >= a.line-to-pos.size
 		a.end-of-file
 	else
 		line-text = get-line-text a, lc.line
-		a.line-to-pos[lc.line] + (byte-index-of-character-index line-text, lc.character).to
+		a.line-to-pos[lc.line] + byte-index-of-character-index line-text, lc.character
 subscript source-range(a line-and-character-getter, lc line-and-character-range)
 	a[lc.start], a[lc.end]
-get-start-line nat(a line-and-character-getter, pos nat32)
+get-start-line nat32(a line-and-character-getter, pos nat32)
 	line-at-pos a.line-to-pos, pos
 
 subscript line-and-character(a line-and-character-getter, pos pos)
@@ -171,33 +179,33 @@ subscript line-and-character(a line-and-character-getter, pos pos)
 		pos -:= 1
 	line-start = a.line-to-pos[line]
 	assert pos >= line-start and line == a.line-to-pos.size - 1 or pos <= a.line-to-pos[line + 1]
-	line: line.to
-	character: character-index-of-byte-index (get-line-text a, line), (pos - line-start) 'to
+	line: line
+	character: character-index-of-byte-index (get-line-text a, line), pos - line-start
 
-get-line-text string(a line-and-character-getter, line nat)
+get-line-text string(a line-and-character-getter, line nat32)
 	a.source-text[a.line-to-pos[line] .. (next-line-pos a, line)].to
 
 last-line nat(a line-and-character-getter)
-	unless a.line-to-pos.is-empty
+	if any a.line-to-pos
 		a.line-to-pos.size - 1
 
 subscript line-and-character-range(a line-and-character-getter, range source-range)
 	a[range.start], a[range.end, end-of-range]
 
 end-of-file pos(a line-and-character-getter)
-	a.source-text.size.to
-start-of-line-pos pos(a line-and-character-getter, line nat)
+	a.source-text.size
+start-of-line-pos pos(a line-and-character-getter, line nat32)
 	if line >= a.line-to-pos.size - 1
 		a.end-of-file
 	else
 		a.line-to-pos[line]
-next-line-pos pos(a line-and-character-getter, line nat)
+next-line-pos pos(a line-and-character-getter, line nat32)
 	if line >= a.line-to-pos.size - 1
 		a.end-of-file
 	else
 		a.line-to-pos[line + 1] - 1
 
-range-of-line source-range(a line-and-character-getter, line nat)
+range-of-line source-range(a line-and-character-getter, line nat32)
 	start: start-of-line-pos a, line
 	end: next-line-pos a, line
 end-of-line line-and-character(a line-and-character-getter, start pos)
@@ -220,19 +228,19 @@ subscript pos(a line-and-column-getter, pos line-and-column)
 	a.line-and-character-getter[to-line-and-character a, pos]
 
 line-too-long record(pos pos, actual-columns nat)
-lines-over-n-columns line-too-long[](a line-and-column-getter, max-columns nat)
+lines-over-n-columns line-too-long[](a line-and-column-getter, max-columns nat32)
 	l2p = a.line-and-character-getter.line-to-pos
 	source = a.line-and-character-getter.source-text
-	do for* line in 0 .. l2p.size
-	pos = l2p[line]
-	next-pos = if line == l2p.size - 1 then source.size + 1 else l2p[line + 1]
-	n-tabs = a.line-to-n-tabs[line]
-	tabs-columns = tab-size::nat * n-tabs
-	# For perf: If there aren't at least max-columns char8s, there can't be that many columns
-	do if next-pos - 1 - pos + tabs-columns - n-tabs > max-columns
-	actual = tabs-columns + count-char32s source[pos + n-tabs .. next-pos - 1]
-	do if actual > max-columns
-	- pos.to, actual
+	for? line in l2p.size
+		pos = l2p[line]
+		next-pos = if line == l2p.size - 1 then source.size + 1 else l2p[line + 1]
+		n-tabs = a.line-to-n-tabs[line]
+		tabs-columns = tab-size * n-tabs
+		# For perf: If there aren't at least max-columns char8s, there can't be that many columns
+		do if next-pos - 1 - pos + tabs-columns - n-tabs > max-columns
+		actual = tabs-columns + count-char32s source[pos + n-tabs .. next-pos - 1]
+		do if actual > max-columns
+		pos, actual
 
 subscript line-and-column(a line-and-column-getter, where pos)
 	a[where, start-of-range]
@@ -278,7 +286,7 @@ advance-and-get-n-tabs nat8(a string-iterator)
 		()
 	a.pos - begin 'clamp-to
 
-line-length-in-characters nat(a line-and-character-getter, line nat)
+line-length-in-characters nat(a line-and-character-getter, line nat32)
 	if line < a.line-to-pos.size - 1
 		next = a.line-to-pos[line + 1]
 		here = a.line-to-pos[line]
@@ -292,8 +300,8 @@ column-to-character pos(column nat32, n-tabs nat32)
 	else
 		column - (n-tabs * (tab-size - 1))
 
-line-at-pos nat(line-to-pos nat32[], pos pos)
-	low-line mut = 0
+line-at-pos nat32(line-to-pos nat32[], pos pos)
+	low-line mut nat32 = 0
 	high-line mut = line-to-pos.size
 	while low-line < high-line - 1
 		middle-line = (low-line + high-line) / 2
@@ -317,21 +325,21 @@ tab-size nat32()
 
 -byte-index-of-character-index nat(a string, character-index nat)
 	iter = begin a
-	cur mut = 0
+	cur mut nat32 = 0
 	until is-at-end iter or cur >= character-index
 		_ = must-take-one-unicode-char iter
 		cur +:= 1
 	iter.index
--character-index-of-byte-index nat(a string, byte-index nat)
+-character-index-of-byte-index nat(a string, byte-index nat32)
 	iter = begin a
-	res mut = 0
+	res mut nat = 0
 	until is-at-end iter or iter.index >= byte-index
 		_ = must-take-one-unicode-char iter
 		res +:= 1
 	res
--count-char32s nat(a string-view)
+-count-char32s nat32(a string-view)
 	iter = begin a
-	res mut = 0
+	res mut nat32 = 0
 	until is-at-end iter
 		_ = must-take-one-unicode-char iter
 		res +:= 1
@@ -421,4 +429,4 @@ do
 
 -pos-of pos(text char8[], substring char8[])
 	assert before, _ = iters-of-seq text, substring
-	before.index.to
+	before.index
