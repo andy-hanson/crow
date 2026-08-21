@@ -5,7 +5,7 @@ e enum
 	n = -1
 
 e2 enum
-	x = 0xffffffffffffffff
+	x = 0xffff_ffff_ffff_ffff
 	y
 
 f flags

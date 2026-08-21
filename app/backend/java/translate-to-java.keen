@@ -2174,7 +2174,7 @@ do java-expr-ctx
 			from-int32[]
 		as nat32
 			i2l out
-			lconst out, 0xffffffff
+			lconst out, 0xffff_ffff
 			land out
 			from-int64[]
 		as nat64
@@ -2241,7 +2241,7 @@ do java-expr-ctx
 			iand out
 	as nat32
 		return-type is nat64
-		lconst out, 0xffffffff
+		lconst out, 0xffff_ffff
 		land out
 	as nat64
 		throw unreachable

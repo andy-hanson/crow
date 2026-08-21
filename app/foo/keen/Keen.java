@@ -273,14 +273,14 @@ public class Keen {
 	}
 
 	public static int nat32FromNat64(long a) {
-		if (0 <= a && a <= 0xffffffffL)
+		if (0 <= a && a <= 0xffff_ffffL)
 			return (int) a;
 		else
 			throw new java.lang.OutOfMemoryError();
 	}
 
 	public static boolean fitsInNat32(long l) {
-		return 0 <= l && l <= 0xffffffffL;
+		return 0 <= l && l <= 0xffff_ffffL;
 	}
 	public static boolean fitsInInt32(long l) {
 		return ((long) Integer.MIN_VALUE) <= l && l <= ((long) Integer.MAX_VALUE);

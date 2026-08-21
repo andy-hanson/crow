@@ -10,7 +10,7 @@ test
 
 test
 	a xoshiro256 = xoshiro256 0
-	next64 a is 0x53175d61490b23df
-	next64 a is 0x61da6f3dc380d507
-	next64 a is 0x5c0fdf91ec9a7bfc
-	next64 a is 0x2eebf8c3bbe5e1a
+	next64 a is 0x5317_5d61_490b_23df
+	next64 a is 0x61da_6f3d_c380_d507
+	next64 a is 0x5c0f_df91_ec9a_7bfc
+	next64 a is 0x02ee_bf8c_3bbe_5e1a

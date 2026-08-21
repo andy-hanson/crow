@@ -83,11 +83,11 @@ test
 
 test
 	map::nat32[] 0 .. 8, it.metro-hash is
-		- 0xd219fc1e
-		- 0xe7db3781
-		- 0x837f87e7
-		- 0x247486ff
-		- 0x2d1d3e49
-		- 0x4c7b21da
-		- 0x1bf2fe69
-		- 0x1f28ab9c
+		- 0xd219_fc1e
+		- 0xe7db_3781
+		- 0x837f_87e7
+		- 0x2474_86ff
+		- 0x2d1d_3e49
+		- 0x4c7b_21da
+		- 0x1bf2_fe69
+		- 0x1f28_ab9c

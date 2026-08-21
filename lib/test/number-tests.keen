@@ -188,10 +188,10 @@ test
 	saturating-add 100::nat8, 200 is 255
 	saturating-add 0xff00::nat16, 0x88 is 0xff88
 	saturating-add 0xffff::nat16, 1 is 0xffff
-	saturating-add 0xffff0000::nat32, 0x8888 is 0xffff8888
-	saturating-add 0xffffffff::nat32, 1 is 0xffffffff
-	saturating-add 0xffffffff00000000::nat64, 0x88888888 is 0xffffffff88888888
-	saturating-add 0xffffffffffffffff::nat64, 1 is 0xffffffffffffffff
+	saturating-add 0xffff_0000::nat32, 0x8888 is 0xffff_8888
+	saturating-add 0xffff_ffff::nat32, 1 is 0xffff_ffff
+	saturating-add 0xffff_ffff_0000_0000::nat64, 0x8888_8888 is 0xffff_ffff_8888_8888
+	saturating-add 0xffff_ffff_ffff_ffff::nat64, 1 is 0xffff_ffff_ffff_ffff
 
 test
 	saturating-subtract 100::nat8, 99 is 1
@@ -208,10 +208,10 @@ test
 	saturating-multiply 150::nat8, 2 is 255
 	saturating-multiply 0x7070::nat16, 2 is 0xe0e0
 	saturating-multiply 0x8080::nat16, 2 is 0xffff
-	saturating-multiply 0x70707070::nat32, 2 is 0xe0e0e0e0
-	saturating-multiply 0x80808080::nat32, 2 is 0xffffffff
-	saturating-multiply 0x7070707070707070::nat64, 2 is 0xe0e0e0e0e0e0e0e0
-	saturating-multiply 0x8080808080808080::nat64, 2 is 0xffffffffffffffff
+	saturating-multiply 0x7070_7070::nat32, 2 is 0xe0e0_e0e0
+	saturating-multiply 0x8080_8080::nat32, 2 is 0xffff_ffff
+	saturating-multiply 0x7070_7070_7070_7070::nat64, 2 is 0xe0e0_e0e0_e0e0_e0e0
+	saturating-multiply 0x8080_8080_8080_8080::nat64, 2 is 0xffff_ffff_ffff_ffff
 
 test
 	clamp-to::int8 7::int32 is 7
@@ -227,10 +227,10 @@ test
 	clamp-to::int8 0x81::nat8 is 0x7f
 	clamp-to::int16 0x7ffe::nat16 is 0x7ffe
 	clamp-to::int16 0x8123::nat16 is 0x7fff
-	clamp-to::int32 0x7ffffffe::nat32 is 0x7ffffffe
-	clamp-to::int32 0x81234567::nat32 is 0x7fffffff
-	clamp-to::int64 0x7ffffffffffffffe::nat64 is 0x7ffffffffffffffe
-	clamp-to::int64 0x8000000000000001::nat64 is 0x7fffffffffffffff
+	clamp-to::int32 0x7fff_fffe::nat32 is 0x7ffffffe
+	clamp-to::int32 0x8123_4567::nat32 is 0x7fffffff
+	clamp-to::int64 0x7fff_ffff_ffff_fffe::nat64 is 0x7fff_ffff_ffff_fffe
+	clamp-to::int64 0x8000_0000_0000_0001::nat64 is 0x7fff_ffff_ffff_ffff
 
 test
 	truncate-to::int32 1.2::float32 is 1

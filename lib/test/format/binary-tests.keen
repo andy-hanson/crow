@@ -6,14 +6,14 @@ import
 
 test
 	take16 begin one-through-eight is 0x0102
-	take32 begin one-through-eight is 0x01020304
-	take64 begin one-through-eight is 0x0102030405060708
-	from-big-endian::nat64 one-through-eight is 0x0102030405060708
-	big-endian 0x0102030405060708 is one-through-eight
+	take32 begin one-through-eight is 0x0102_0304
+	take64 begin one-through-eight is 0x0102_0304_0506_0708
+	from-big-endian::nat64 one-through-eight is 0x0102_0304_0506_0708
+	big-endian 0x0102_0304_0506_0708 is one-through-eight
 
 test
 	buf nat8 buffer = trusted uninitialized-buffer 8
-	write-big-endian buf, 0x0102030405060708
+	write-big-endian buf, 0x0102_0304_0506_0708
 	to::nat8[] buf is one-through-eight
 
 test

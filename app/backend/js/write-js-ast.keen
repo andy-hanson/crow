@@ -104,8 +104,8 @@ do
 					__countOnes8[(a >> 16) & 0xff] +
 					__countOnes8[(a >> 24) & 0xff]
 			const _countOnes64 = a =>
-				_countOnes32(Number(a & 0xffffffffn)) +
-				_countOnes32(Number((a >> 32n) & 0xffffffffn))
+				_countOnes32(Number(a & 0xffff_ffffn)) +
+				_countOnes32(Number((a >> 32n) & 0xffff_ffffn))
 			const __truncateToInt32 = a => \{
 				const min = 1 << 31
 				const max = ~min

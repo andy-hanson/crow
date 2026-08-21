@@ -1,5 +1,5 @@
 test
-	x nat32 = 0xffffffff
+	x nat32 = 0xffff_ffff
 	y nat32 = 2
 	z nat64 = x + y
 	z is 0x100000001

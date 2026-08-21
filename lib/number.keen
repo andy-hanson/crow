@@ -101,17 +101,17 @@ region constants
 +max-value int16()
 	0x7fff
 +max-value int32()
-	0x7fffffff
+	0x7fff_ffff
 +max-value int64()
-	0x7fffffffffffffff
+	0x7fff_ffff_ffff_ffff
 +max-value nat8()
 	0xff
 +max-value nat16()
 	0xffff
 +max-value nat32()
-	0xffffffff
+	0xffff_ffff
 +max-value nat64()
-	0xffffffffffffffff
+	0xffff_ffff_ffff_ffff
 
 region arithmetic
 
@@ -809,7 +809,7 @@ region Spec impls for range
 +hash void(a nat64, state hash-state)
 	do trusted
 	state.state ^:= a
-	state.state := 0x5851f42d4c957f2d 'wrap-mul state.state 'wrap-add 1
+	state.state := 0x5851_f42d_4c95_7f2d 'wrap-mul state.state 'wrap-add 1
 +hash void(a int8, state hash-state)
 	trusted hash a.wrap-to::nat8, state
 +hash void(a int16, state hash-state)

@@ -304,7 +304,7 @@ subscript[k, t] t array-view(a (k, t) multi-by-key, key k) (k, t) get-key
 		do until
 		start-and-next = impl.starts-and-nexts[cur]
 		start nat32 = to start-and-next >> 32
-		next nat32 = to start-and-next & 0xffffffff
+		next nat32 = to start-and-next & 0xffff_ffff
 		if impl.values[start].key == key
 			end = if cur + 1 == impl.starts-and-nexts.size
 				impl.values.size

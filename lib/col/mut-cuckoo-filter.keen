@@ -157,10 +157,10 @@ import
 	(index0 ^ metro-hash fingerprint) & bucket-index-mask
 
 ~metro-hash nat32(a nat32)
-	k0 nat32 = 0xd6d018f5
-	k1 nat32 = 0xa2aa033b
-	k2 nat32 = 0x62992fc1
-	k3 nat32 = 0x30bc5b29
+	k0 nat32 = 0xd6d0_18f5
+	k1 nat32 = 0xa2aa_033b
+	k2 nat32 = 0x6299_2fc1
+	k3 nat32 = 0x30bc_5b29
 	seed nat32 = 1337
 	h mut nat32 = seed 'wrap-add k2 'wrap-mul k0
 	h wrap-add:= wrap-mul a, k3

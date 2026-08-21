@@ -350,7 +350,7 @@ import
 	base = try-take-0-base iter else 10
 	assert nat-value mut = next-digit iter, base else inner-parse-error "number"
 	while
-		skip-underscore-if-before-digit iter
+		skip-underscore-if-before-digit iter, base
 		if digit = next-digit iter, base
 			try
 				nat-value := nat-value * base + digit
@@ -375,6 +375,8 @@ import
 
 +is-digit bool(a char8)
 	"0"::char8 <= a and a <= "9"
+-is-digit bool(a char8, base nat)
+	char-to-nat64 a, base
 -char-to-nat64 nat64?(c char8, base nat64)
 	assert base <= 36
 	if "0"::char8 <= c and c <= "9"
@@ -398,11 +400,11 @@ import
 	start = copy iter
 	sign = try-take-sign iter
 	base, nat-value = take-base-and-nat iter
-	if base == 10 and iter.peek == "." and peek-digit-next iter
+	if base == 10 and iter.peek == "." and peek-digit-next iter, base
 		# Float parsing is hard, so just get a string and pass it to the Java (or JS) standard library.
 		_ = take-next iter
 		while
-			skip-underscore-if-before-digit iter
+			skip-underscore-if-before-digit iter, base
 			next-digit iter, 10
 		parse-float slice start, iter
 	elif sign
@@ -430,12 +432,12 @@ import
 
 ~peek-digit bool(a string-iterator)
 	(x = peek a) and is-digit x
--peek-digit-next bool(a string-iterator)
-	(x = peek-by a, 1) and is-digit x
+-peek-digit-next bool(a string-iterator, base nat)
+	(x = peek-by a, 1) and is-digit x, base
 
--skip-underscore-if-before-digit void(a string-iterator)
-	if a.peek == "_" and peek-digit-next a
-		_ = a.take-next
+-skip-underscore-if-before-digit void(a string-iterator, base nat)
+	if a.peek == "_" and peek-digit-next a, base
+		_ = take-next a
 
 | WARN: Does not validate {a}
 -parse-float float64(a string-view)
@@ -512,7 +514,7 @@ import
 	key.to, value
 
 ~try-take-number number?(iter string-iterator)
-	if peek-digit iter or iter.peek == "-" and peek-digit-next iter
+	if peek-digit iter or iter.peek == "-" and peek-digit-next iter, 10
 		take-number iter
 
 +kid json grammar()

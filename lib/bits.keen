@@ -312,13 +312,13 @@ import
 +low-n-bits nat32(n nat32)
 	assert n <= 32 else arithmetic-error "low-n-bits::nat32", n
 	if n == 32
-		0xffffffff
+		0xffff_ffff
 	else
 		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
 +low-n-bits nat64(n nat64)
 	assert n <= 64 else arithmetic-error "low-n-bits::nat64", n
 	if n == 64
-		0xffffffffffffffff
+		0xffff_ffff_ffff_ffff
 	else
 		trusted 1 'unsafe-bit-shift-left n 'wrap-sub 1
 

@@ -569,7 +569,7 @@ do to-expr
 	as int16
 		gen-as-intX-from-int64 source, type, arg, 0xffff
 	as int32
-		gen-as-intX-from-int64 source, type, arg, 0xffffffff
+		gen-as-intX-from-int64 source, type, arg, 0xffff_ffff
 	as int64
 		gen-call-sync source, (gen-identifier source, "_int64OfNat64".no-prefix), (arg,)
 	as nat8
@@ -577,7 +577,7 @@ do to-expr
 	as nat16
 		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffff
 	as nat32
-		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffffffff
+		gen-call-Number source, gen-bitwise-and source, arg, gen-bigint-unsigned source, 0xffff_ffff
 	as nat64
 		gen-bitwise-and source, arg, gen-bigint-unsigned source, max-value
 -gen-as-intX-from-int64 js-expr(source source, type integral-type, arg js-expr, max-value nat64)

@@ -59,8 +59,8 @@ import
 +random float64(range float64 range) random
 	range.low + random-0-1 * (range.high - range.low)
 -random-0-1 float64() random
-	mantissa nat64 = random 0x10000000000000
-	(from-bits 0x3ff0000000000000 | mantissa) - 1
+	mantissa nat64 = random 0x10_0000_0000_0000
+	(from-bits 0x3ff0_0000_0000_0000 | mantissa) - 1
 
 +random[t] t(choices (t, t)) random
 	if random then choices.a else choices.b

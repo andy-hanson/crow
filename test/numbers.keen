@@ -3,8 +3,8 @@
 test
 	optional-nat8 is 0xff
 	optional-nat16 is 0xffff
-	optional-nat32 is 0xffffffff
-	optional-nat64 is 0xffffffffffffffff
+	optional-nat32 is 0xffff_ffff
+	optional-nat64 is 0xffff_ffff_ffff_ffff
 optional-nat8 nat8?() = max-value::nat8
 optional-nat16 nat16?() = max-value::nat16
 optional-nat32 nat32?() = max-value::nat32

@@ -21,7 +21,7 @@ import
 	-size-and-locked mut nat32
 	-entries mut (k, v)? buffer
 
--locked-flag nat32() = 0x80000000
+-locked-flag nat32() = 0x8000_0000
 
 -write-locked[k, v] bool(a v mut[k])
 	bits-intersect a.size-and-locked, locked-flag
