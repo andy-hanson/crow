@@ -16,5 +16,22 @@ import
 	width, width
 + * size2-32(a size2-32, scale float32)
 	a.width * scale, a.height * scale
++ * size2-32(a size2-32, b size2-32)
+	width: a.width * b.width
+	height: a.height * b.height
 + / size2-32(a size2-32, b size2-32)
 	a.width / b.width, a.height / b.height
+| Scale to shrink or expand {original} to fit within {fit-within}
++scale-factor float32(original size2-32, fit-within size2-32)
+	x float32? = unless original.width == 0
+		fit-within.width / original.width
+	y float32? = unless original.height == 0
+		fit-within.height / original.height
+	if x and y
+		min x, y
+	elif x
+		x
+	elif y
+		y
+	else
+		1

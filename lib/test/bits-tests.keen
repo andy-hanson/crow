@@ -199,10 +199,3 @@ test
 test
 	rotate-left 0xdeadbeefcafebabe::nat64, 4 is 0xeadbeefcafebabed
 	rotate-right 0xdeadbeefcafebabe::nat64, 4 is 0xedeadbeefcafebab
-
--throws-arithmetic-error[t] void(f t data())
-	try
-		_ = f[]
-		should-throw
-	catch as arithmetic-error
-		()

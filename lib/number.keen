@@ -742,7 +742,97 @@ region conversion
 +from-bits float32(bits nat32)
 +from-bits float64(bits nat64)
 
+-sign int8(a int8) = if a < 0 then -1 else 1
+-sign int16(a int16) = if a < 0 then -1 else 1
+-sign int32(a int32) = if a < 0 then -1 else 1
+-sign int64(a int64) = if a < 0 then -1 else 1
+
++divide-and-round int8(a int8, b int8)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int16(a int16, b int16)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int32(a int32, b int32)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round int64(a int64, b int64)
+	remainder = a.abs % b.abs
+	(a / b) + (if remainder * 2 >= b.abs then a.sign * b.sign)
++divide-and-round nat8(a nat8, b nat8)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat16(a nat16, b nat16)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat32(a nat32, b nat32)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
++divide-and-round nat64(a nat64, b nat64)
+	remainder = a % b
+	(a / b) + (if remainder * 2 >= b then 1)
+
+| Rounds towards -infinity
++divide-and-round-down int8(a int8, b int8)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int16(a int16, b int16)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int32(a int32, b int32)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
++divide-and-round-down int64(a int64, b int64)
+	res = a / b
+	if (a.sign * b.sign) < 0 and res * b != a
+		res - 1
+	else
+		res
+
+| Rounds towards +infinity
++divide-and-round-up int8(a int8, b int8)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int16(a int16, b int16)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int32(a int32, b int32)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up int64(a int64, b int64)
+	res = a / b
+	if (a.sign * b.sign) > 0 and res * b != a
+		res + 1
+	else
+		res
++divide-and-round-up nat8(a nat8, b nat8)
+	unless a == 0
+		(a - 1) / b + 1
++divide-and-round-up nat16(a nat16, b nat16)
+	unless a == 0
+		(a - 1) / b + 1
 +divide-and-round-up nat32(a nat32, b nat32)
+	unless a == 0
+		(a - 1) / b + 1
++divide-and-round-up nat64(a nat64, b nat64)
 	unless a == 0
 		(a - 1) / b + 1
 

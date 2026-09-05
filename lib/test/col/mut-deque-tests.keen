@@ -2,11 +2,11 @@ import
 	../../col/mut-deque
 
 test
-	a nat64 mut-deque = ()
+	a nat mut-deque = ()
 	a.pop-left is ()
 	a.pop-right is ()
 	verify a, (), ""
-	push 1::nat64, a
+	push 1::nat, a
 	verify a, (1,), "<-R _ L-> 1"
 	push a, 2
 	verify a, (1, 2), "2 <-R L-> 1"
@@ -23,15 +23,16 @@ test
 	push a, 1
 	verify a, (1,), "L-> 1 <-R _"
 
-	push 2::nat64, a
+	push 2::nat, a
 	verify a, (2, 1), "1 <-R L-> 2"
 
-	push 3::nat64, a
+	push 3::nat, a
 	verify a, (3, 2, 1), "2 1 <-R _ L-> 3"
 
--verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
+-verify void(a nat mut-deque, expected nat[], expected-dbg string)
 	a.peek-left is unless is-empty expected then expected[0]
 	a.peek-right is unless is-empty expected then expected[end - 1]
 	a.size is expected.size
-	a.to::nat64[] is expected
+	a.to::nat[] is expected
+	map::nat[] a, {it} is expected
 	a.dbg is expected-dbg

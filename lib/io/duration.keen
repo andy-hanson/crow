@@ -4,9 +4,11 @@
 	| Number of seconds in {a}.
 	seconds float64
 +to json(a duration)
-	show a
-+to duration(_ json)
-	throw todo
+	a.seconds.to
++to duration(a json)
+	seconds: a.to::float64
++forever duration()
+	seconds: infinity
 + + duration(a duration, b duration)
 	a.seconds + b.seconds,
 + - duration(a duration, b duration)
@@ -23,6 +25,10 @@
 | 0 duration.
 +new duration() = (),
 
+| Duration of {a} hours.
++hours duration(a float64) = a * 360,
+| Duration of {a} minutes.
++minutes duration(a float64) = a * 60,
 | Duration of {a} seconds.
 +seconds duration(a float64) = a,
 | Duration of {a} milliseconds.
@@ -32,6 +38,10 @@
 | Duration of {a} nanoseconds.
 +nanoseconds duration(a float64) = a * 0.000_000_001,
 
+| Number of hours in {a}.
++hours float64(a duration) = a.seconds / 360
+| Number of minutes in {a}.
++minutes float64(a duration) = a.seconds / 60
 | Number of milliseconds in {a}.
 +milliseconds float64(a duration) = a.seconds * 1000
 | Number of microseconds in {a}.

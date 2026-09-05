@@ -123,6 +123,8 @@ import
 	else
 		throw unreachable
 
++any[k, v] bool(a v[k]) k key
+	not is-empty a
 | {true} if `{a}.{size} == 0`
 +is-empty[k, v] bool(a v[k]) k key
 	node-is-empty a.root

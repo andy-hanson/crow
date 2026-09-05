@@ -5,10 +5,14 @@ import
 	-inner t mut-deque
 +list-new[t] t mut-queue(values t[])
 	values.to
-+to[t] t mut-queue(a t[]) = inner: to::(t mut-deque) a
-+to[t] t[](a t mut-queue) = map a, {it}
-+is-empty[t] bool(a t mut-queue) = is-empty a.inner
-+size[t] nat32(a t mut-queue) = size a.inner
++to[t] t mut-queue(a t[])
+	inner: to::(t mut-deque) a
++to[t] t[](a t mut-queue)
+	a.inner.to
++is-empty[t] bool(a t mut-queue)
+	is-empty a.inner
++size[t] nat32(a t mut-queue)
+	size a.inner
 +clear[t] void(a t mut-queue)
 	clear a.inner
 + ~=[t] void(a t mut-queue, value t)
@@ -16,6 +20,9 @@ import
 + ~~=[t, col] void(a t mut-queue, values col) (col, t) some
 	for x in values
 		a ~= x
-+dequeue[t] t?(a t mut-queue) = pop-left a.inner
-+peek[t] t?(a t mut-queue) = peek-left a.inner
-+some[t] bool(a t mut-queue, f bool mut(elem t)) = some a.inner, f
++dequeue[t] t?(a t mut-queue)
+	pop-left a.inner
++peek[t] t?(a t mut-queue)
+	peek-left a.inner
++some[t] bool(a t mut-queue, f bool mut(elem t))
+	some a.inner, f

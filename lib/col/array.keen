@@ -78,6 +78,10 @@ export
 	else
 		trusted cast-immutable a.to::(t buffer)
 
++any[t] bool(a t[])
+	a.size != 0
++any[t] bool(a t array-view)
+	a.size != 0
 | {true} if `a.size == 0`.
 +is-empty[t] bool(a t[])
 	a.size == 0

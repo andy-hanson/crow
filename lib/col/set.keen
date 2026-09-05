@@ -36,6 +36,8 @@ import
 +to[t] t[](a t set) t key
 	map a, {it}
 
++any[t] bool(a t set) t key
+	any a.inner
 +is-empty[t] bool(a t set) t key
 	is-empty a.inner
 

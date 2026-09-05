@@ -7,9 +7,16 @@ import
 	# This is one more than the highest number that would currently fit in the tree.
 	-capacity nat32
 	-root node
-
 + == bool(a index-set, b index-set)
 	trusted a.root == b.root
++ <=> comparison(a index-set, b index-set)
+	trusted a.to::nat[] <=> b.to::nat[]
++hash void(a index-set, state hash-state)
+	trusted hash a.to::nat[], state
++to index-set(a json)
+	a.to::nat[].to
++to json(a index-set)
+	a.to::nat[].to
 
 # Arrays are always exactly {leaf-elements} elements
 -node union(inner-node, nat32[], empty)

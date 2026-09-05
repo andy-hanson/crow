@@ -41,12 +41,7 @@ get-java-module java-class-module(path path, uri uri, type type-decl, class_ par
 initial-type-decl-for-java-class type-decl(a parsed-java-class, uri uri) instantiate-ctx
 	source type-decl-source-java =
 		module-uri: uri
-		name:
-			base = base-name a.this-class
-			if _, rest = try-split-once-right base, "$"
-				rest.to
-			else
-				base.to
+		name: just-class-name a.this-class
 		type-params: for x in a.type-params then 0, x
 	source.class-path is a.this-class
 	hash: next-hash
@@ -58,6 +53,13 @@ initial-type-decl-for-java-class type-decl(a parsed-java-class, uri uri) instant
 	sum-type-cases: ()
 	# For an interface, This will be overwritten by {fill-java-class-supertypes}
 	body: java-class ()
+
+-just-class-name symbol(path path)
+	base = base-name path
+	if _, rest = try-split-once-right base, "$"
+		rest.to
+	else
+		base.to
 
 -fill-supertypes void(class_ parsed-java-class, type type-decl) java-ctx
 	type.specs := global-java-unsafe-specs
@@ -191,7 +193,7 @@ initial-type-decl-for-java-class type-decl(a parsed-java-class, uri uri) instant
 		out ~= next-hash, public, real-return-type, params, global-java-unsafe-specs, body
 		if is-constructor
 			out ~= next-hash, public, real-return-type, params, global-java-unsafe-specs,
-				with-name body, path.base-name.to
+				with-name body, just-class-name path
 
 	if sum = type.body.sum-type
 		sum.kind is java-interface

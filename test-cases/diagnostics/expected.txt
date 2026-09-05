@@ -467,8 +467,8 @@ compile-errors/nested-it.keen 7:35-7:37 Expected type 'nat32'.
 Actual: 'nat32[]'.
 compile-errors/nested-spec-error.keen 6:7-6:9 No implementation was found for '== bool(_ t, _ t)'.
 	Calling:
-	==@(t[])(from keen/col/array.keen line 137)
-	==@t(from keen/col/array.keen line 137)
+	==@(t[])(from keen/col/array.keen line 141)
+	==@t(from keen/col/array.keen line 141)
 compile-errors/new-interface-mutability.keen 3:14-3:15 Expected type 'nat32 data()'.
 Actual: 'nat32 mut()'.
 compile-errors/new-interface-mutability.keen 6:5-6:6 Local 'x' is 'mut' but never reassigned.

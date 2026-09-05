@@ -96,7 +96,7 @@ region iteration
 +in[t] bool(a t, b t range) t compare
 	b.low <= a and a < b.high
 
-+clamp[t] t(a t, range t range) t rangeable
++clamp[t] t(a t, range t range) t compare
 	if a < range.low
 		range.low
 	elif a > range.high

@@ -117,8 +117,8 @@ import
 
 +some[t] bool(a t mut-deque, f bool mut(elem t))
 	do unless is-empty a
-	cur mut = a.left
-	res mut = false
+	res mut = f[a.inner[a.left]]
+	cur mut = a.left + 1
 	until res or cur == a.right or cur == a.inner.size
 		res := f[a.inner[cur]]
 		cur +:= 1
@@ -159,7 +159,7 @@ import
 		dest[0 .. left-to-end-size] := a.inner[a.left .. end]
 		dest[left-to-end-size .. end] := a.inner[0 .. a.right]
 
-~dbg string(a nat64 mut-deque)
+~dbg string(a nat mut-deque)
 	join " ", for i, x in with-index a.inner
 		is-nil = trusted x == gc-safe-value
 		is-right = if i == a.right then "<-R "

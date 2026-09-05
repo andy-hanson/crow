@@ -1,16 +1,24 @@
 import
 	keen/bits
+	./enum-map
 	./mut-enum-map
 
 +enum-set[t] record
-	-value nat
+	-bits nat[]
+
++to-set[t, v] t enum-set(a (t, v) enum-map, f bool mut(key t, value v)) t enum-like
+	fold (), a, of acc, (key, value)
+		if f[key, value]
+			acc | key
+		else
+			acc
 
 + ==[t] bool(a t enum-set, b t enum-set)
-	trusted a.value == b.value
+	trusted a.bits == b.bits
 + <=>[t] comparison(a t enum-set, b t enum-set)
-	trusted a.value <=> b.value
+	trusted a.bits <=> b.bits
 + hash[t] void(a t enum-set, state hash-state)
-	trusted hash a.value, state
+	trusted hash a.bits, state
 + to[t] json(a t enum-set) t enum-like, t to-json
 	a.to::t[].to
 + to[t] t enum-set(a json) t enum-like, t from-json
@@ -19,9 +27,9 @@ import
 +list-new[t] t enum-set(elements t[]) t enum-like
 	to elements
 +all[t] t enum-set() t enum-like
-	value: low-n-bits members::t[].size
+	to members::t[]
 +to[t] t enum-set(a t[]) t enum-like
-	res mut t enum-set = value: 0
+	res mut t enum-set = bits: ()
 	for x in a
 		res |:= x
 	res
@@ -29,20 +37,32 @@ import
 	map a, {it}
 
 +subscript[t] bool(a t enum-set, value t) t enum-like
-	has-bit a.value, value.to::nat
+	word = value.to::nat / 32
+	word < a.bits.size and has-bit a.bits[value.to::nat / 32], value.to::nat % 32
 + &[t] t enum-set(a t enum-set, b t enum-set) t enum-like
-	value: a.value & b.value
+	result-size mut nat = 0
+	bits nat[] = for i in 0 .. min a.bits.size, b.bits.size
+		res = a.bits[i] & b.bits[i]
+		if res != 0
+			result-size := i + 1
+		res
+	bits: bits[0 .. result-size].to
 + |[t] t enum-set(a t enum-set, b t enum-set) t enum-like
-	value: a.value | b.value
-+ |[t] t enum-set(a t enum-set, value t) t enum-like
-	value: a.value | value.to::nat.nth-bit
+	bits: for i in 0 .. max a.bits.size, b.bits.size
+		(if i < a.bits.size then a.bits[i]) | (if i < b.bits.size then b.bits[i])
++ |[t] t enum-set(a t enum-set, b t) t enum-like
+	word = b.to::nat / 32
+	bits: for i in 0 .. max a.bits.size, word + 1
+		(if i < a.bits.size then a.bits[i]) | (if i == word then nth-bit b.to::nat % 32)
++ |[t] t enum-set(a t, b t enum-set) t enum-like
+	b | a
 
 +is-empty[t] bool(a t enum-set)
-	a.value == 0
+	is-empty a.bits
 +is-full[t] bool(a t enum-set) t enum-like
-	a == all
+	every members::t[], a[it]
 +size[t] nat(a t enum-set)
-	count-ones a.value
+	sum a.bits, it.count-ones
 +some[t] bool(a t enum-set, f bool mut(x t)) t enum-like
 	some members::t[], of x
 		a[x] and f[x]

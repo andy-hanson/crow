@@ -39,7 +39,7 @@ plan-unions union-info(program low-program)
 	else
 		switch
 -all-unique-primitives bool(a low-union)
-	is-unique for*::js-primitive-kind[] x in a.members
+	are-unique for*::js-primitive-kind[] x in a.members
 		from-option as-js-primitive x
 
 -can-use-in-direct-union bool(a low-type)
@@ -47,9 +47,6 @@ plan-unions union-info(program low-program)
 	as builtin-type then a.body != js-any
 	as low-union then false
 	else then true
-
--is-unique[t] bool(a t[]) t key
-	a.to::(t set).size == a.size
 
 # Don't bother with boolean since there is only one type represented that way/
 -js-primitive-kind enum(array, bigint, function, number)

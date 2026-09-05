@@ -1,0 +1,19 @@
+import
+	keen/math/geom2d/size2
+
+test
+	area (2, 3) is 6
+
+test
+	shorter-side (2, 3) is 2
+
+test
+	(2, 3) * (4, 5) is 8, 15
+
+test
+	scale-factor (1, 1), (2, 3) is 2
+	scale-factor (0, 0), (2, 3) is 1
+	scale-factor (1, 0), (2, 3) is 2
+	scale-factor (0, 1), (2, 3) is 3
+	scale-factor (1, 0), (2, 0) is 2
+	scale-factor (0, 0), (0, 0) is 1

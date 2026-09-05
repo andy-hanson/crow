@@ -7,6 +7,13 @@ import
 +enum-map[k, v] record -new
 	| One for each enum member
 	values v[]
++to[k, v] (k, v) enum-map(a json) k enum-like, (symbol, k) to, v from-json
+	assert json-object a else deserialize-error "enum-map", a
+	sort a.keys is sort map members::k[], it.to else deserialize-error "enum-map", a
+	values: map a.values, it.to
++to[k, v] json(a (k, v) enum-map) k enum-like, (symbol, k) to, v to-json
+	for::json-object key in members::k[]
+		key.to::symbol, a[key].to
 
 +list-new[k, v] (k, v) enum-map(elements (k, v)[]) k enum-like, v new
 	check-valid-enum@k
@@ -35,7 +42,7 @@ import
 +some[k, v] bool(a (k, v) enum-map, f bool mut(key k, value v)) k enum-like
 	some members::k[], {f[it, a[it]]}
 
-+update[k, v] (k, v) enum-map(a (k, v) enum-map, key k, value v) k enum-like
++ ~[k, v] (k, v) enum-map(a (k, v) enum-map, (key k, value v)) k enum-like
 	values: update-at a.values, key.to, value
 
 | Map an enum-map to another with the same key type.
@@ -44,4 +51,4 @@ import
 
 +lens-for-key[k, v] ((k, v) enum-map, v) lens(key k) k enum-like
 	get: of map then map[key]
-	set: of map, value then update map, key, value
+	set: of map, value then map ~ (key, value)

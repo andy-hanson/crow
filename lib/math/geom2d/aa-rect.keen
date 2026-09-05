@@ -73,25 +73,20 @@ import
 	bottom: a.bottom * scale.height
 	top: a.top * scale.height
 +scale-by-center aa-rect32(a aa-rect32, scale float32)
+	scale-by-center a, square scale
++scale-by-center aa-rect32(a aa-rect32, scale size2-32)
 	center: a.center
 	size: a.size * scale
-| {y} is relative to the rect bottom
-+split-horizontally (aa-rect32, aa-rect32)(a aa-rect32, y float32)
-	assert 0::float32 <= y
-	assert y::float32 <= a.height
-	y-abs = a.bottom + y
-	- set a, top, y-abs
-	- set a, bottom, y-abs
-| {y1} and {y2} are relative to the rect bottom
-+split-horizontally (aa-rect32, aa-rect32, aa-rect32)(a aa-rect32, y1 float32, y2 float32)
-	assert 0::float32 <= y1
-	assert y1 <= y2
-	assert y2 <= a.height
-	y1-abs = a.bottom + y1
-	y2-abs = a.bottom + y2
-	- set a, top, y1-abs
-	- set a, bottom + top, (y1-abs, y2-abs)
-	- set a, bottom, y2-abs
+| Left part and right part.
++split-horizontally (aa-rect32, aa-rect32)(a aa-rect32, fraction float32)
+	x = a.left + (clamp fraction, 0 .. 1) * a.width
+	- set a, right, x
+	- set a, left, x
+
++split-vertically (aa-rect32, aa-rect32)(a aa-rect32, fraction float32)
+	y = a.bottom + (clamp fraction, 0 .. 1) * a.height
+	- set a, top, y
+	- set a, bottom, y
 +bottom-half aa-rect32(a aa-rect32) = set a, top, a.center.y
 +lerp aa-rect32(a aa-rect32, b aa-rect32, f float32)
 	left: lerp a.left, b.left, f
@@ -118,17 +113,33 @@ import
 	else
 		inner.bottom, inner.top
 	left: left, right: right, bottom: bottom, top: top
-| Smallest rect that contains {a} and has the ratio of width to height.
-+expand-to-ratio aa-rect32(a aa-rect32, ratio size2-32)
-	area a isnt 0
-	w = a.width
-	h = a.height
-	a-ratio = w / h
-	desired-ratio = ratio.width / ratio.height
-	center = center a
-	if a-ratio < desired-ratio
-		center: center
-		size: h * desired-ratio, h
+| Largest rect within {a} with the same proportions as {ratio}
++shrink-to-ratio aa-rect32(a aa-rect32, ratio size2-32)
+	forbid a.width == 0 or a.height == 0 else arithmetic-error "shrink-to-ratio", 0, 0
+	forbid (ratio.width == 0 and ratio.height == 0) else arithmetic-error "shrink-to-ratio", 0, 0
+	new-width float32 = if ratio.height == 0 then infinity else a.height * ratio.width / ratio.height
+	if new-width <= a.width
+		left: a.center.x - new-width / 2
+		right: a.center.x + new-width / 2
+		bottom: a.bottom
+		top: a.top
 	else
-		center: center
-		size: w, w * (ratio.height / ratio.width)
+		new-height = a.width * ratio.height / ratio.width
+		left: a.left
+		right: a.right
+		bottom: a.center.y - new-height / 2
+		top: a.center.y + new-height / 2
+| Smallest rect that contains {a} and has the same proportions as {ratio}
++expand-to-ratio aa-rect32(a aa-rect32, ratio size2-32)
+	new-width float32 = a.height * ratio.width / ratio.height
+	if new-width >= a.width
+		left: a.center.x - new-width / 2
+		right: a.center.x + new-width / 2
+		bottom: a.bottom
+		top: a.top
+	else
+		new-height = a.width * ratio.height / ratio.width
+		left: a.left
+		right: a.right
+		bottom: a.center.y - new-height / 2
+		top: a.center.y + new-height / 2

@@ -71,6 +71,10 @@ import
 		a.mins ~~= bucket
 	res
 
++pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f bool mut(key k, value v)) k sorted-key
+	if p = peek a and f[p]
+		pop a
+
 | Copy pairs to a new priority queue.
 | This is O(n).
 +copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k sorted-key

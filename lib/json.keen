@@ -426,6 +426,9 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 		as single
 			if keys
 				size +:= key-size + 1
+			# Objects are complex enough to deserve their own lines
+			if json-object x
+				multi-line := true
 			size +:= part.text.size
 		part
 	size +:= ", ".size * values.size - 1
