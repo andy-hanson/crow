@@ -9,8 +9,8 @@ import
 	inner: to::(t mut-deque) a
 +to[t] t[](a t mut-queue)
 	a.inner.to
-+is-empty[t] bool(a t mut-queue)
-	is-empty a.inner
++any[t] bool(a t mut-queue)
+	any a.inner
 +size[t] nat32(a t mut-queue)
 	size a.inner
 +clear[t] void(a t mut-queue)

@@ -9,6 +9,10 @@ import
 	| Index of the element after the last. 'nil' for an empty queue.
 	| This should never be inner.size; it wraps around to 0.
 	-right mut nat32
+	-is-locked mut bool
+
+-assert-can-write[t] void(a t mut-deque)
+	forbid a.is-locked else was-locked
 
 -nil nat32()
 	max-value
@@ -22,10 +26,10 @@ import
 +list-new[t] t mut-deque(values t[]) = values.to
 +to[t] t mut-deque(values t[])
 	if is-empty values
-		(), nil, nil
+		(), nil, nil, false
 	else
 		# It wraps around, so both 'left' and 'right' are 0
-		values.to, 0, 0
+		values.to, 0, 0, false
 
 | Copy elements to a list.
 | This is O(n).
@@ -33,7 +37,7 @@ import
 	trusted cast-immutable a.to
 
 -to[t] t buffer(a t mut-deque)
-	do unless is-empty a
+	do if any a
 	res t buffer = trusted uninitialized-buffer a.size
 	copy-from-deque res, a
 	res
@@ -41,11 +45,10 @@ import
 | Copy elements to a new deque.
 | This is O(n).
 +copy[t] t mut-deque(a t mut-deque)
-	a.to, 0, 0
+	a.to, 0, 0, false
 
-| {true} iff `{a}.{size} == 0`.
-+is-empty[t] bool(a t mut-deque)
-	a.left == nil
++any[t] bool(a t mut-deque)
+	a.left != nil
 
 | Number of elements in the deque.
 +size[t] nat32(a t mut-deque)
@@ -92,6 +95,7 @@ import
 | Removes and returns the leftmost element.
 | Returns an empty option if `{a} {is-empty}`.
 +pop-left[t] t?(a t mut-deque)
+	assert-can-write a
 	do unless a.left == nil
 	res = a.inner[a.left]
 	a.inner[a.left] := trusted gc-safe-value
@@ -105,6 +109,7 @@ import
 | Removes and returns the rightmost element.
 | Returns an empty option if `{a} {is-empty}`.
 +pop-right[t] t?(a t mut-deque)
+	assert-can-write a
 	do unless a.right == nil
 	a.right := prev-index a, a.right
 	res = a.inner[a.right]
@@ -112,11 +117,14 @@ import
 	if a.right == a.left
 		a.left := nil
 		a.right := nil
-		# Still hold on to `a inner`
+		# Still hold on to `a.inner`
 	res
 
 +some[t] bool(a t mut-deque, f bool mut(elem t))
-	do unless is-empty a
+	do if any a
+	was-locked = a.is-locked
+	a.is-locked := true
+	finally a.is-locked := was-locked
 	res mut = f[a.inner[a.left]]
 	cur mut = a.left + 1
 	until res or cur == a.right or cur == a.inner.size
@@ -130,6 +138,7 @@ import
 	res
 
 -ensure-capacity[t] void(a t mut-deque) unsafe
+	assert-can-write a
 	if a.left == nil
 		a.right is nil
 		if is-empty a.inner

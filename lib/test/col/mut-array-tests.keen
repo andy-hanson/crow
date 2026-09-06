@@ -86,7 +86,7 @@ test
 		should-throw
 	catch as was-locked
 		()
-	xs.to::nat[] is (0, 1, 2)
+	to::nat[] xs is 0, 1, 2
 
 test
 	xs nat mut[] = 0, 1, 2

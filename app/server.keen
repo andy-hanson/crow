@@ -56,7 +56,7 @@ do global
 			output[out-message]
 	if exit = action.exit-code
 		exit
-	elif is-empty buffered-messages
+	elif not any buffered-messages
 		()::exit-code?
 
 handle-lsp-message lsp-out-action(server server, message lsp-in-message) global

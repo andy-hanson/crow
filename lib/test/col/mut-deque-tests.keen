@@ -36,3 +36,29 @@ test
 	a.to::nat[] is expected
 	map::nat[] a, {it} is expected
 	a.dbg is expected-dbg
+
+test
+	a nat mut-deque = 1, 2, 3
+	results nat[] = for x in a
+		any a is true
+		size a is 3
+		to::nat[] a is 1, 2, 3
+		to::nat[] copy a is 1, 2, 3
+		map::nat[] a, {it} is 1, 2, 3
+		x
+	results is 1, 2, 3
+	test-cant-do-while-iterating {push 0::nat, it}
+	test-cant-do-while-iterating {push it, 4}
+	test-cant-do-while-iterating {pop-left it}
+	test-cant-do-while-iterating {pop-right it}
+	test-cant-do-while-iterating {clear it}
+
+-test-cant-do-while-iterating[t] void(f t mut(a nat mut-deque))
+	xs nat mut-deque = 0, 1, 2
+	try
+		for _ in xs
+			_ = f[xs]
+		should-throw
+	catch as was-locked
+		()
+	to::nat[] xs is 0, 1, 2

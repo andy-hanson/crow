@@ -3,19 +3,19 @@ import
 
 test
 	a nat mut-queue = ()
-	assert is-empty a
+	forbid any a
 	a.size is 0
 	a.to::nat[] is ()
 
 	a ~= 1
 	a.to::nat[] is (1,)
-	forbid is-empty a
+	assert any a
 	a.size is 1
 	dequeue a is 1
-	assert is-empty a
+	forbid any a
 	a.size is 0
 	dequeue a is ()
-	assert is-empty a
+	forbid any a
 
 	a ~~= (2, 3, 4)::nat[]
 	a.size is 3
