@@ -100,6 +100,8 @@ export
 | Number of elements.
 +size[t] nat32(a t buffer)
 
++any[t] bool(a t buffer)
+	a.size != 0
 | {true} if `{a}.{size} == 0`.
 +is-empty[t] bool(a t buffer)
 	a.size == 0

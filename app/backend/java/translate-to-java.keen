@@ -584,7 +584,7 @@ do java-expr-ctx
 	class_ ClassFile? = match body = body type
 	as builtin-type
 		lambda = of
-			assert is-empty method-impls else todo
+			forbid any method-impls else todo
 			lambda-class type, this-class, super-class, interfaces
 		match body
 		as array

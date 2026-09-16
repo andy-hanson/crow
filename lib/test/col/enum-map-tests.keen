@@ -1,0 +1,15 @@
+import
+	keen/col/enum-map
+
+test
+	a (e, string) enum-map =
+		- x, "X"
+	j = a.to::json
+	j is
+		x: "X"
+		y: ""
+		z: ""
+	to::((e, string) enum-map) j is
+		- x, "X"
+
+-e enum(z, y, x)

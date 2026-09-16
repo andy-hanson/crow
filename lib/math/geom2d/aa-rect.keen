@@ -82,12 +82,24 @@ import
 	x = a.left + (clamp fraction, 0 .. 1) * a.width
 	- set a, right, x
 	- set a, left, x
++split-horizontally (aa-rect32, aa-rect32, aa-rect32)(a aa-rect32, fraction0 float32, fraction1 float32)
+	x0 = a.left + (clamp fraction0, 0 .. (min fraction1, 1)) * a.width
+	x1 = a.left + (clamp fraction1, (max fraction0, 0) .. 1) * a.width
+	- set a, right, x0
+	- set a, (left + right), (x0, x1)
+	- set a, left, x1
 
 +split-vertically (aa-rect32, aa-rect32)(a aa-rect32, fraction float32)
 	y = a.bottom + (clamp fraction, 0 .. 1) * a.height
 	- set a, top, y
 	- set a, bottom, y
-+bottom-half aa-rect32(a aa-rect32) = set a, top, a.center.y
++split-vertically (aa-rect32, aa-rect32, aa-rect32)(a aa-rect32, fraction0 float32, fraction1 float32)
+	y0 = a.bottom + (clamp fraction0, 0 .. (min fraction1, 1)) * a.height
+	y1 = a.bottom + (clamp fraction1, (max fraction0, 0) .. 1) * a.height
+	- set a, top, y0
+	- set a, (bottom + top), (y0, y1)
+	- set a, bottom, y1
+
 +lerp aa-rect32(a aa-rect32, b aa-rect32, f float32)
 	left: lerp a.left, b.left, f
 	right: lerp a.right, b.right, f

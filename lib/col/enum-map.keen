@@ -7,13 +7,18 @@ import
 +enum-map[k, v] record -new
 	| One for each enum member
 	values v[]
-+to[k, v] (k, v) enum-map(a json) k enum-like, (symbol, k) to, v from-json
-	assert json-object a else deserialize-error "enum-map", a
-	sort a.keys is sort map members::k[], it.to else deserialize-error "enum-map", a
-	values: map a.values, it.to
 +to[k, v] json(a (k, v) enum-map) k enum-like, (symbol, k) to, v to-json
 	for::json-object key in members::k[]
 		key.to::symbol, a[key].to
++to[k, v] (k, v) enum-map(a json) k key, k enum-like, (symbol, k) to, v from-json
+	assert json-object a else deserialize-error "enum-map", a
+	names symbol[] = map members::k[], it.to
+	values v? buffer = n-of names.size, ()
+	for key, value in a
+		assert i = index-of names, key else deserialize-error "enum-map bad key", key.to
+		values[i] := value.to
+	values: for v in values
+		v else ().to::v
 
 +list-new[k, v] (k, v) enum-map(elements (k, v)[]) k enum-like, v new
 	check-valid-enum@k
@@ -22,16 +27,19 @@ import
 		values[k.to] := v
 	values: trusted cast-immutable values
 
++from-values[k, v] (k, v) enum-map(values v[]) k enum-like
+	values.size is members::k[].size
+	values: values
+
 +to[k, v] (k, v) enum-map(a (k, v) mut-enum-map) k enum-like
 	values: a.values.to
 +to[k, v] (k, v) mut-enum-map(a (k, v) enum-map) k enum-like
 	values: a.values.to
 
 | Make an enum map by providing a value for each key in a loop.
-+make-enum-map record
-+for-loop[k, v] (k, v) enum-map(_ make-enum-map, cb v mut(key k)) k enum-like
++make[k, v] (k, v) enum-map(f v mut(key k)) k enum-like
 	check-valid-enum@k
-	values: map members::k[], cb
+	values: map members::k[], f
 
 | Always the number of members in the enum.
 +size[k, v] nat32(a (k, v) enum-map)

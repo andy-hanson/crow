@@ -97,7 +97,7 @@ test
 		k:
 			- "v"
 	parse kid, k-v is k: "v",
-	roundtrip "k: (\"v\",)", k: "v",
+	roundtrip "k: \"v\",", k: "v",
 	a-b-c-d = quote
 		a:
 			b:
@@ -112,10 +112,22 @@ test
 		- 1, 2
 		- 3, 4
 
-	to-kid "x\ny" is quote
+	block-quote = quote
 		quote
 			x
 			y
+	roundtrip block-quote, "x\ny"
+
+	block-quote-after-key = quote
+		key: quote
+			x
+			y
+	parse kid, block-quote-after-key is key: "x\ny"
+
+	array-of-arrays = quote
+		- 1, 2
+		- 3, 4
+	roundtrip array-of-arrays, ((1, 2), (3, 4))
 
 	array-of-objects = quote
 		- x: 1

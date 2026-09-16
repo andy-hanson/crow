@@ -20,6 +20,10 @@
 		res[k] := v
 	res
 
++make[k, v] (k, v) mut-enum-map(f v mut(key k)) k enum-like
+	check-valid-enum@k
+	values: map members::k[], f
+
 | Always the number of members in the enum.
 +size[k, v] nat32(a (k, v) mut-enum-map)
 	a.values.size

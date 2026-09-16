@@ -113,6 +113,15 @@ do (out-col-false, elem) list-new, (out-col-true, elem) list-new, in-col size, (
 do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 	for-loop a, f
 
++map-optionally[out-col, out-elem, in-col, in-elem] out-col
+	a in-col
+	f out-elem? mut(x in-elem)
+do (out-col, out-elem) list-new, (in-col, in-elem) some
+	with out in build
+		for x in a
+			if y = f[x]
+				out ~= y
+
 | Only returns a result if {f} returned a non-empty option every time.
 +map-every[out-col, out-elem, in-col, in-elem] out-col?
 	a in-col
@@ -666,3 +675,12 @@ do (col0, elem0) some, (col1, elem1) some
 	some a.col0, of x
 		some a.col1, of y
 			f[x, y]
+
++indices-where[col, elem] nat[](a col, f bool mut(elem elem)) (col, elem) some
+	with out in build
+		i mut nat = 0
+		_ = some a, of x
+			if f[x]
+				out ~= i
+			i wrap-add:= 1
+			false

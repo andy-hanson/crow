@@ -183,7 +183,7 @@ load-all-files void(root-uris uri set) main-ctx
 				show-options: color: command.show-color
 				show-all-diagnostics: command.show-all-diagnostics
 			program = check-and-print-diags command.root-uris, options
-			assert is-empty program.diagnostics else exit
+			forbid any program.diagnostics else exit
 			server := trusted server.settings,
 	as help-command
 		print command.help-text
@@ -211,7 +211,7 @@ load-all-files void(root-uris uri set) main-ctx
 	as print-ast-command
 		load-single-file server, reader, command.uri
 		diagnostics, json = print-ast server, command.uri
-		unless is-empty diagnostics
+		if any diagnostics
 			print-error diagnostics
 		print "{json}"
 	as print-tokens-command
@@ -220,7 +220,7 @@ load-all-files void(root-uris uri set) main-ctx
 			source string-view = safe-reinterpret-cast content
 			diagnostics parse-diagnostic mut[] = ()
 			tokens = lex-tokens source, diagnostics
-			unless is-empty diagnostics
+			if any diagnostics
 				the show-ctx = show-ctx-for-single-file command.uri, source, server.uris-info, server.show-options
 				print-error show-parse-diagnostics command.uri, diagnostics.move-to
 			print to-kid tokens
@@ -319,7 +319,7 @@ do global
 
 -check-main-and-print-diags program-with-main(main main-kind, targets build-target set) main-ctx
 	program = get-program-for-main server, main, targets
-	unless is-empty program.diagnostics
+	if any program.diagnostics
 		output-error show-diagnostics server, program
 	program
 

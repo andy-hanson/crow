@@ -1,0 +1,34 @@
+import
+	keen/col/mut-enum-set
+
+test
+	a e mut-enum-set = ()
+	any a is false
+	is-full a is false
+	size a is 0
+
+	a |= x
+	any a is true
+	is-full a is false
+	size a is 1
+	a[x] is true
+	a[y] is false
+	a[z] is false
+
+	a |= z
+	any a is true
+	is-full a is false
+	size a is 2
+	a[x] is true
+	a[y] is false
+	a[z] is true
+
+	a |= y
+	any a is true
+	is-full a is true
+	size a is 3
+	a[x] is true
+	a[y] is true
+	a[z] is true
+
+-e enum(x, y, z)

@@ -754,7 +754,7 @@ set-file void(a frontend, uri uri, result read-file-result)
 -common-uris common-uris(lib uri)
 	col = lib / "col"
 	private = lib / "private"
-	for k in make-enum-map
+	make of k
 		match k
 		as array
 			col / "array.keen"

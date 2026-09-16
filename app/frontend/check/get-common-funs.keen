@@ -44,13 +44,13 @@ do instantiate-ctx, common-types
 		to-symbol-from-string: get-fun[symbol, "to", symbol, (string,)]
 		to-symbol-or-empty-from-json: get-fun[json, "to-symbol-or-empty", symbol, (json,)]
 		only-key-and-value-from-json: get-fun[json, "only-key-and-value", (tuple symbol, json), (json,)]
-		equal-string-like: for type in make-enum-map
+		equal-string-like: make of type
 			match type
 			as string
 				get-fun[string, "==", bool, (string, string)]
 			as symbol
 				get-fun[symbol, "==", bool, (symbol, symbol)]
-		hash-nat: for nat-type in make-enum-map
+		hash-nat: make of nat-type
 			get-fun[number, "hash", void, (nat-type.to, hash-state)]
 		json-subscript: get-fun[json, "subscript", json, (json, symbol)]
 		show-exception: get-fun[bootstrap, "show", string, (exception,)]

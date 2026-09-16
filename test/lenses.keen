@@ -31,3 +31,11 @@ r record
 
 r2 record
 	n nat
+
+# Test that it can handle lenses for records with empty-type fields
+test
+	r r3 = 1, ()
+	set r, x, 2 is 2, ()
+-r3 record
+	x nat
+	v void

@@ -55,6 +55,9 @@ export
 +new string()
 	""
 
+| True for all strings but "".
++any bool(a string)
+	any to::char8[] a
 | Same as `{a} == ""`.
 +is-empty bool(a string)
 	is-empty a.to::char8[]

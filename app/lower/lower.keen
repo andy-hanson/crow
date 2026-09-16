@@ -28,9 +28,9 @@ lower low-program(target build-target, program program-with-main) show-ctx
 	ctx.late-only-key-and-value-from-json-function := get-non-template-low-fun common-funs.only-key-and-value-from-json
 	ctx.late-to-flags-from-json-function := get-non-template-low-fun common-funs.to-flags-from-json
 	ctx.late-to-symbol-or-empty-from-json-function := get-non-template-low-fun common-funs.to-symbol-or-empty-from-json
-	ctx.late-equal-string-like-functions := for string-type in make-enum-map
+	ctx.late-equal-string-like-functions := make of string-type
 		get-non-template-low-fun common-funs.equal-string-like[string-type]
-	ctx.late-hash-nat-functions := for nat-type in make-enum-map
+	ctx.late-hash-nat-functions := make of nat-type
 		get-non-template-low-fun common-funs.hash-nat[nat-type]
 	show-exception = get-non-template-low-fun common-funs.show-exception
 	to-symbol-from-string = get-non-template-low-fun common-funs.to-symbol-from-string
@@ -113,8 +113,6 @@ lower low-program(target build-target, program program-with-main) show-ctx
 
 -choose-indices[t] t[](a t[], indices nat32[])
 	map indices, a[it]
--indices-where[t] nat32[](a t[], f bool mut(x t))
-	filter 0 .. a.size, f[a[it]]
 
 -lower-main-fun low-fun(main main-fun) lower-ctx
 	match main

@@ -59,6 +59,8 @@ import
 -top-two-bits nat32()
 	3 << 30
 
++any[t] bool(a t mut[])
+	a.size != 0
 | {true} if `{a}.{size} == 0`.
 +is-empty[t] bool(a t mut[])
 	a.size == 0

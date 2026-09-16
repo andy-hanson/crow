@@ -39,7 +39,7 @@
 +nanoseconds duration(a float64) = a * 0.000_000_001,
 
 | Number of hours in {a}.
-+hours float64(a duration) = a.seconds / 360
++hours float64(a duration) = a.seconds / 3600
 | Number of minutes in {a}.
 +minutes float64(a duration) = a.seconds / 60
 | Number of milliseconds in {a}.

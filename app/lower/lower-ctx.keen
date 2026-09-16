@@ -302,11 +302,12 @@ low-fun-for-record-field-lens-method-impl low-expr(case-type low-type, method lo
 		_, outer, inner = only3! method.params
 		get-outer = local-get-low-expr range, outer
 		record_ = low-record! outer.type.body
+		the low-common-types = the::lower-context.low-common-types
 		create-record-low-expr outer.type, range, for f in record_.fields
 			if f == field
 				local-get-low-expr range, inner
 			else
-				record-field-get-low-expr range, get-outer, f
+				gen-record-field-get range, get-outer, f
 	else
 		throw unreachable
 

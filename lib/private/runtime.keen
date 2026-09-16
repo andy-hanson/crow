@@ -1,5 +1,6 @@
 import
 	keen/unsafe
+	java/lang/Runtime
 	java/lang/ThreadLocal
 	java/util/concurrent/Executors
 	java/util/concurrent/ExecutorService
@@ -56,7 +57,7 @@ test global, java
 	if executor
 		executor!
 	else
-		res = newFixedThreadPool 4
+		res = newFixedThreadPool availableProcessors getRuntime
 		executor := res
 		res
 

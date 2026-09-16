@@ -44,3 +44,7 @@ test
 	xs nat[] = 2, 4, 6, 9, 10
 	count xs, it.is-even is 4
 	count-while xs, it.is-even is 3
+
+test
+	xs nat[] = 10, 2, 3, 14, 5
+	indices-where xs, it >= 10 is 0, 3

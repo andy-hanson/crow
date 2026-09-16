@@ -2,6 +2,7 @@ import
 	keen/bits
 	./enum-map
 	./mut-enum-map
+	./mut-enum-set
 
 +enum-set[t] record
 	-bits nat[]
@@ -23,6 +24,10 @@ import
 	a.to::t[].to
 + to[t] t enum-set(a json) t enum-like, t from-json
 	a.to::t[].to
++ move-to[t] t enum-set(a t mut-enum-set)
+	res t enum-set = bits: trusted cast-immutable a.bits
+	a.bits := ()
+	res
 
 +list-new[t] t enum-set(elements t[]) t enum-like
 	to elements
@@ -57,8 +62,27 @@ import
 + |[t] t enum-set(a t, b t enum-set) t enum-like
 	b | a
 
-+is-empty[t] bool(a t enum-set)
-	is-empty a.bits
+| Set difference; result contains all enum values in {a} but not in {b}
++ -[t] t enum-set(a t enum-set, b t enum-set) t enum-like
+	a & ~b
+
+| Negate the set; result contains all enum values not in {a}
++ ~[t] t enum-set(a t enum-set) t enum-like
+	n-members = size members::t[]
+	n-words = divide-and-round-up n-members, 32
+	bits nat[] = for i in 0 .. n-words
+		if i < a.bits.size
+			base = ~a.bits[i]
+			if i == n-words - 1
+				base & (low-n-bits n-members % 32)
+			else
+				base
+		else
+			max-value
+	bits: to drop-right-while bits, it == 0
+
++any[t] bool(a t enum-set)
+	any a.bits
 +is-full[t] bool(a t enum-set) t enum-like
 	every members::t[], a[it]
 +size[t] nat(a t enum-set)

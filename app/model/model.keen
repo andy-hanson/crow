@@ -2955,16 +2955,16 @@ diagnostics program-with-opt-main-diagnostics(a program-with-main)
 	a.as-program-with-opt-main,
 diagnostics program-with-opt-main-diagnostics(a program-with-opt-main)
 	a,
-is-empty bool(a program-with-opt-main-diagnostics)
-	not some a, {true}
+any bool(a program-with-opt-main-diagnostics)
+	some a, {true}
 some bool(a program-with-opt-main-diagnostics, f bool mut(x uri-and-diagnostic))
 	some a.program.main-fun-diagnostics, f or some a.program.program.diagnostics, f
 
 program-diagnostics record(program program)
 diagnostics program-diagnostics(a program)
 	a,
-is-empty bool(a program-diagnostics)
-	not some a, {true}
+any bool(a program-diagnostics)
+	some a, {true}
 some bool(a program-diagnostics, f bool mut(x uri-and-diagnostic))
 	some a.program.additional-diagnostics, f or
 	some-diagnostic-in-configs a.program, f or

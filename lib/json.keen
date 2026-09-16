@@ -136,7 +136,8 @@ export
 +to json(a nat32) = a
 +to nat32(a json) = a.to::nat64.to
 +to json(a nat64) = a
-+to nat64(a json) = a.to::float64.to
++to nat64(a json)
+	nat64 a else throw deserialize-error "nat", a
 +to json(a int8) = a
 +to int8(a json) = a.to::int64.to
 +to json(a int16) = a
@@ -144,7 +145,14 @@ export
 +to json(a int32) = a
 +to int32(a json) = a.to::int64.to
 +to json(a int64) = a
-+to int64(a json) = a.to::float64.to
++to int64(a json)
+	match a
+	as nat64
+		a.to
+	as int64
+		a
+	else
+		throw deserialize-error "int", a
 +to json(a float32) = a
 +to float32(a json) = a.to::float64.to
 +to json(a float64) = a
@@ -412,27 +420,28 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 -tab-size nat32()
 	4
 -to-kid-array-or-object to-kid-result(keys symbol[]?, values json[], max-columns nat32)
+	max-columns isnt max-value
 	forbid is-empty values
 	if keys
 		assert keys.size == values.size
 	size mut nat32 = 0
-	multi-line mut = false
 	parts to-kid-result[] = for index, x in with-index values
 		key-size = if keys then keys[index].quote-if-necessary.size + ": ".size
 		part = to-kid-inner x, saturating-subtract max-columns, tab-size + key-size
 		match part
 		as lines
-			multi-line := true
+			size := max-value
 		as single
 			if keys
-				size +:= key-size + 1
+				size saturating-add:= key-size
+				size saturating-add:= 1
 			# Objects are complex enough to deserve their own lines
-			if json-object x
-				multi-line := true
-			size +:= part.text.size
+			if array x or json-object x
+				size := max-value
+			size saturating-add:= part.text.size
 		part
-	size +:= ", ".size * values.size - 1
-	if multi-line or size > max-columns
+	size saturating-add:= ", ".size * values.size - 1
+	if size > max-columns
 		lines: with out in build
 			do for index, part in with-index parts
 			key = if keys then "{quote-if-necessary keys[index]}:" else "-"

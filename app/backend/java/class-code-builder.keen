@@ -23,9 +23,9 @@ with-block Code_attribute(a build-code, f void mut(a code-builder))
 	code: code
 	exception-table: builder.exception-table.move-to
 	attributes:
-		-- unless is-empty builder.line-number-table
+		-- if any builder.line-number-table
 			- LineNumberTable_attribute a.constants["LineNumberTable"], builder.line-number-table.move-to
-		-- unless is-empty builder.stack-map
+		-- if any builder.stack-map
 			- StackMapTable_attribute a.constants["StackMapTable"], builder.stack-map.move-to
 code-builder record mut
 	-out bytecode-out
