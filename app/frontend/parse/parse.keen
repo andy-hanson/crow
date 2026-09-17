@@ -267,7 +267,7 @@ do parser
 			here = try-take-doc-comment
 			if first
 				first := false
-				if not module-doc-comment.is-empty and here.is-empty and not no-std_ and not imports and not exports
+				if any module-doc-comment and not any here and not no-std_ and not imports and not exports
 					res = module-doc-comment
 					module-doc-comment := ()
 					res
@@ -276,7 +276,7 @@ do parser
 			else
 				here
 		if peek end-of-file
-			unless doc-comment.is-empty
+			if any doc-comment
 				add-diag doc-comment.range!, parse-diag-doc-comment-unused
 		elif peek region_
 			take-next-token is region_

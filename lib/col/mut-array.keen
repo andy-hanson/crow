@@ -61,9 +61,6 @@ import
 
 +any[t] bool(a t mut[])
 	a.size != 0
-| {true} if `{a}.{size} == 0`.
-+is-empty[t] bool(a t mut[])
-	a.size == 0
 
 +size[t] nat32(a t mut[])
 	assert-can-read a
@@ -101,7 +98,7 @@ import
 | Removes all elements. This is O(1).
 +clear[t] void(a t mut[])
 	reduce-size-to a, 0
-	assert is-empty a
+	forbid any a
 
 | Removes all elements with index >= {new-size}.
 | This is O(1).
@@ -162,26 +159,24 @@ import
 	assert index <= a.size else index-too-big index, a.size
 
 +peek[t] t?(a t mut[])
-	unless is-empty a
+	if any a
 		a[end - 1]
 
-| Removes the last element and returns it.
+| Removes the last element (if any) and returns it.
 | This is O(1).
-| Returns an empty option if `{is-empty} {a}`.
 +pop[t] t?(a t mut[])
 	assert-can-write a
-	do unless is-empty a
+	do if any a
 	new-size = a.size - 1
 	res = a[new-size]
 	a[new-size] := trusted gc-safe-value # TODO:PERF This is unnecessary for a non-reference type
 	a.size := new-size
 	res
 
-| Removes the first element and returns it.
-| Returns an empty option if `{is-empty} {a}`.
+| Removes the first element (if any) and returns it.
 | This is O(n).
 +pop-left[t] t?(a t mut[])
-	unless is-empty a
+	if any a
 		(pop-n-left a, 1)[0]
 
 | Removes the last {n} elements and returns them as an array.
@@ -363,7 +358,7 @@ region mutating iteration
 	do trusted
 	was-locked = lock-for-reading a
 	finally unlock-for-reading a, was-locked
-	do unless is-empty a
+	do if any a
 	i mut = a.size - 1
 	do until
 	if f[unsafe-at a.backing, i]

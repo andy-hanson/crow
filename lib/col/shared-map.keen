@@ -10,7 +10,7 @@ import
 	./map
 	./mut-map
 
-| Shared equivalent to 'mut-map'.
+| Shared equivalent to {mut-map}.
 |
 | Iteration is not supported; since operations on this take a lock, they need to be short.
 +shared-map[k, v] record force-shared
@@ -26,12 +26,12 @@ import
 +move-to[k, v] v shared[k](a v mut[k]) k key
 	(), a.move-to
 
++any[k, v] bool(a v shared[k]) k key
+	trusted with in read-lock a.lock
+		any a.inner
 +size[k, v] nat32(a v shared[k]) k key
 	trusted with in read-lock a.lock
 		a.inner.size
-+is-empty[k, v] bool(a v shared[k]) k key
-	trusted with in read-lock a.lock
-		a.inner.is-empty
 
 +subscript[k, v] v?(a v shared[k], key k) k key
 	trusted with in read-lock a.lock

@@ -22,8 +22,8 @@ import
 	res
 
 | {true} if `{a}.{size} == 0`.
-+is-empty[k, v] bool(a (k, v) mut-sorted-map)
-	is-empty a.pairs
++any[k, v] bool(a (k, v) mut-sorted-map)
+	any a.pairs
 
 | Removes every pair.
 +clear[k, v] void(a (k, v) mut-sorted-map)
@@ -33,7 +33,7 @@ import
 
 +min-key[k, v] k?(a (k, v) mut-sorted-map) k sorted-key
 	compact a
-	unless is-empty a
+	if any a
 		assert a.pairs[0].b
 		a.pairs[0].a
 
@@ -43,7 +43,7 @@ import
 
 +max-key[k, v] k?(a (k, v) mut-sorted-map) k sorted-key
 	compact a
-	unless is-empty a
+	if any a
 		assert a.pairs[end - 1].b
 		a.pairs[end - 1].a
 
@@ -125,12 +125,12 @@ import
 | Returns the new physical size of this node and all nodes to the right
 -add-pair[k, v] void(a (k, v) mut-sorted-map, key k, value v) k sorted-key
 	if a.node-size < 4
-		if is-empty a.pairs
-			a.pairs ~= key, value
-		else
+		if any a.pairs
 			# List has a small absolute size, so even if we can't insert near the end,
 			# there's an empty slot somewhere so we don't have to do much moving.
 			insert-linear a.pairs, 0, key, value
+		else
+			a.pairs ~= key, value
 		a.node-size +:= 1
 	elif key > a.pairs[end - 4].a
 		# We can insert it near the end

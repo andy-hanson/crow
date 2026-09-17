@@ -18,8 +18,8 @@ import
 +list-new[t] t mut-set(a t[]) t key
 	a.to
 
-+is-empty[t] bool(a t mut-set) t key
-	is-empty a.inner
++any[t] bool(a t mut-set) t key
+	any a.inner
 
 +size[t] nat32(a t mut-set) t key
 	size a.inner

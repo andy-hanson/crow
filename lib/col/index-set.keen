@@ -40,16 +40,16 @@ import
 	a.words := ()
 	res
 
-+is-empty bool(a index-set)
-	a.capacity == 0
--is-empty bool(a node)
++any bool(a index-set)
+	a.capacity != 0
+-any bool(a node)
 	match a
 	as inner-node
-		false
-	as array
-		false
-	as empty
 		true
+	as array
+		true
+	as empty
+		false
 
 | This is O(n) where 'n' is the result.
 +size nat32(a index-set)
@@ -209,11 +209,11 @@ import
 -simplify-after-remove-or-filter index-set(node node, capacity nat32)
 	match node
 	as inner-node
-		if is-empty node.n1 and is-empty node.n2 and is-empty node.n3
-			forbid is-empty node.n0
-			simplify-after-remove-or-filter node.n0, capacity / 4
-		else
+		if any node.n1 or any node.n2 or any node.n3
 			capacity, node
+		else
+			assert any node.n0
+			simplify-after-remove-or-filter node.n0, capacity / 4
 	as array
 		capacity is bits-in-leaf-node
 		node isnt empty-leaf-node
@@ -222,7 +222,7 @@ import
 		0, empty
 
 -is-all-empty bool(a inner-node)
-	is-empty a.n0 and is-empty a.n1 and is-empty a.n2 and is-empty a.n3
+	not any a.n0 and not any a.n1 and not any a.n2 and not any a.n3
 
 ###
 # TODO: ~ index-set(a index-set, b index-set)

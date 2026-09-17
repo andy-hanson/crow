@@ -82,7 +82,7 @@ do show-ctx
 			throw unreachable
 
 -add-inlay-hints-for-ref void(out inlay-hint builder, lcg line-and-character-getter, decl any-decl, uses uri set)
-	do unless is-empty uses
+	do if any uses
 	parts inlay-hint-label-part[] = uris-or-count-label-parts "Used by ", uses, 3
 	out ~=
 		position: end-of-line-for-decl lcg, decl
@@ -232,7 +232,7 @@ do show-type-ctx
 			arguments: run-test where
 
 -tooltip-for-run-result string?(result run-test-result)
-	do if is-ok result.exit or not is-empty result.writes
+	do if is-ok result.exit or any result.writes
 	lines string[] = if every result.writes, it.pipe == out
 		map result.writes, it.text
 	else

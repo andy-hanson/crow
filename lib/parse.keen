@@ -79,7 +79,7 @@ import
 				false
 			else
 				true
-		forbid is-empty res else
+		assert any res else
 			endings = join ", ", for x in possible-endings then "'{x}'"
 			inner-parse-error "expected text ending in one of {endings}"
 		res

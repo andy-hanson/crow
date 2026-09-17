@@ -161,10 +161,10 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	else
 		if callable = as-callable-expr lhs
 			args = parse-args arg-ctx
-			if is-empty args
-				lhs
-			else
+			if any args
 				parse-calls (to-expr callable, args), arg-ctx
+			else
+				lhs
 		else
 			lhs
 
@@ -206,13 +206,13 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	as name-and-range
 		plain, a.start, a.name, (), ()
 	as call-ast-prefix
-		if is-empty a.args
+		unless any a.args
 			plain, a.start, a.fun-name.name, (), ()
 	as call-ast-prefix-with-type-arg
-		if is-empty a.args
+		unless any a.args
 			plain, a.start, a.fun-name.name, a.type-arg, ()
 	as call-ast-prefix-question
-		if is-empty a.args
+		unless any a.args
 			question, a.name-start, a.fun-name.name, (), ()
 	as force-ast
 		if arg = as-callable-expr a.arg and arg.kind == plain
@@ -224,13 +224,12 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 		()
 -to-expr expr-ast(a callable-expr, args expr-ast[]) parser
 	plain = of::expr-ast
-		if is-empty args and not a.type-arg
-			name-and-range a.fun-pos, a.fun-name
+		if t = a.type-arg
+			call-ast-prefix-with-type-arg a.fun-pos, a.fun-name, t, args
+		elif any args
+			call-ast-prefix a.fun-pos, a.fun-name, args
 		else
-			if t = a.type-arg
-				call-ast-prefix-with-type-arg a.fun-pos, a.fun-name, t, args
-			else
-				call-ast-prefix a.fun-pos, a.fun-name, args
+			name-and-range a.fun-pos, a.fun-name
 	res = match a.kind
 	as plain
 		plain[]
@@ -771,10 +770,10 @@ do parser
 -to-destructure destructure-ast?(a expr-ast)
 	match a
 	as list-ast
-		if is-empty a.parts
-			void-destructure-ast a.range
-		else
+		if any a.parts
 			map-every a.parts, it.expr-ast.?to-destructure
+		else
+			void-destructure-ast a.range
 	as name-and-range
 		a
 	as parenthesized-ast
@@ -1021,11 +1020,11 @@ do parser
 	catches catch-ast[] = with out in build
 		while catch-pos = try-take-newline-then-catch
 			out ~= parse-catch-after-keyword catch-pos
-	if is-empty catches
+	if any catches
+		try-ast start, tried, catches
+	else
 		add-diag (range-of-start-and-length start, "try"), parse-diag-try-no-catch
 		tried
-	else
-		try-ast start, tried, catches
 
 -parse-catch-after-keyword catch-ast(start pos) parser
 	start: start

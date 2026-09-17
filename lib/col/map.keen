@@ -124,18 +124,16 @@ import
 		throw unreachable
 
 +any[k, v] bool(a v[k]) k key
-	not is-empty a
-| {true} if `{a}.{size} == 0`
-+is-empty[k, v] bool(a v[k]) k key
-	node-is-empty a.root
--node-is-empty[k, v] bool(a (k, v) node)
+	any a.root
+-any[k, v] bool(a (k, v) node)
 	match a
 	as frozen-map
-		is-empty a
+		assert any a
+		true
 	as inner-node
-		false
+		true
 	as array
-		is-empty a
+		any a
 
 | Number of pairs.
 +size[k, v] nat32(a v[k])
@@ -323,18 +321,17 @@ do k key
 -update-child[k, v] (k, v) node(a (k, v) node[], which nat32, new-child (k, v) node)
 	if leaf = inner-node-to-leaf a, which, new-child
 		leaf
-	elif node-is-empty new-child
-		if which == a.size - 1
-			new-children (k, v) node array-view = a[0 .. a.size - 1]
-			if new-children.size == 1 then new-children[0] else inner-node new-children.to
-		else
-			new-children = update-at a, which, new-child
-			if child = find-only-non-empty-child new-children
-				child
-			else
-				inner-node new-children
-	else
+	elif any new-child
 		inner-node update-at a, which, new-child
+	elif which == a.size - 1
+		new-children (k, v) node array-view = a[0 .. a.size - 1]
+		if new-children.size == 1 then new-children[0] else inner-node new-children.to
+	else
+		new-children = update-at a, which, new-child
+		if child = find-only-non-empty-child new-children
+			child
+		else
+			inner-node new-children
 
 | Returns a new node if we should change this to a leaf.
 -inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node[] , which nat32, new-child (k, v) node)
@@ -362,8 +359,8 @@ do k key
 		pairs
 
 -find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node[])
-	first-non-empty-index = find-index! children, it.node-is-empty.not
-	if every children[first-non-empty-index + 1 .. children.size], it.node-is-empty
+	first-non-empty-index = find-index! children, it.any
+	unless some children[first-non-empty-index + 1 .. children.size], it.any
 		trusted unsafe-at children, first-non-empty-index
 
 -get-or-update-leaf[k, v] (k, v) get-or-update-result
@@ -442,7 +439,7 @@ dbg[k, v] string(a v[k]) k show, v show
 		"TODO"
 	as inner-node
 		join " ", for* index, child in with-index a.nodes
-			unless node-is-empty child
+			if any child
 				- dbg child, "{path}{index}"
 	as array
 		parts string[] = for k, v in a

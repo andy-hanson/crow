@@ -63,7 +63,7 @@ to auto-fun-kind(a auto-fun-with-members-kind)
 
 fill-auto-fun-bodies void(auto-funs auto-funs) check-ctx, common-types, funs-map
 	for kind, map in auto-funs
-		unless is-empty map
+		if any map
 			fill-auto-fun-bodies-for-kind kind, map
 
 -fill-auto-fun-bodies-for-kind void
@@ -114,11 +114,11 @@ do check-ctx, common-types, funs-map
 				if push-unique needed-specs, spec-inst-for-member
 					initial-specs-to-propagate ~= type
 				bogus-impl fun, spec-inst-for-member # Won't be used
-		if is-empty needed-specs
+		if any needed-specs
+			specs-per-type[type] := move-to needed-specs
+		else
 			# Optimistically write the body. This may be overwritten if specs are propagated.
 			fun.body := with-members fun.body, members
-		else
-			specs-per-type[type] := move-to needed-specs
 
 	for type in initial-specs-to-propagate
 		propagate-needs-specs spec_, referenced-by, specs-per-type, type
@@ -139,9 +139,9 @@ do check-ctx, common-types, funs-map
 do instantiate-ctx
 	for referencing-type, reference-inst in referenced-by[type] else ()
 		specs = ensure specs-per-type, referencing-type
-		was-empty = is-empty specs
+		was-any = any specs
 		_ = push-unique specs, spec_[reference-inst]
-		if was-empty
+		unless was-any
 			propagate-needs-specs spec_, referenced-by, specs-per-type, referencing-type
 
 -add-spec void
@@ -197,7 +197,7 @@ do check-ctx, common-types, funs-map
 
 -with-members auto-fun(body fun-body, members called[])
 	assert auto-fun body
-	assert is-empty body.members
+	forbid any body.members
 	auto-fun body.source, body.kind, members
 
 -get-spec spec-decl(a auto-fun-with-members-kind) check-ctx, common-types
@@ -468,7 +468,7 @@ do check-ctx, common-types
 	sum-type sum-type
 	auto-fun-overrides auto-fun-overrides
 do check-ctx, common-types
-	if can-convert-back type and not is-empty sum-type.listed-members
+	if can-convert-back type and any sum-type.listed-members
 		for x in sum-type.listed-members
 			add-funs-for-sum-type-case out, type, inst, x.case-type
 	for index, method in with-index sum-type.methods

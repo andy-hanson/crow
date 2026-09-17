@@ -145,8 +145,8 @@ to-type-args type-args(a type[])
 		to-type-array a
 == bool(a type-args, b type-args)
 	trusted a 'reference-equal b
-is-empty bool(a type-args)
-	a.no-type-args
+any bool(a type-args)
+	not no-type-args a
 subscript type(a type-args, index nat32)
 	match a
 	as no-type-args
@@ -256,8 +256,8 @@ to json(a specs)
 	a.inner.to
 new specs()
 	(), 0, (), (), ()
-is-empty bool(a specs)
-	trusted a 'reference-equal ()
+any bool(a specs)
+	not trusted reference-equal a, ()
 -specs-key record
 	inner spec-or-type-inst[]
 	hash nat32
@@ -266,7 +266,7 @@ is-empty bool(a specs)
 -memoizer-key specs-key(a specs)
 	a.inner, a.hash
 get-or-add-specs specs(specs spec-or-type-inst[])
-	do unless is-empty specs
+	do if any specs
 	hash nat32 = wrap-to deterministic-hash specs
 	trusted memoize spec-arrays, (specs, hash), of
 		inner: specs
@@ -1152,7 +1152,7 @@ instantiate-type type(type type, type-args type-args)
 	as type-inst
 		instantiate-type-inst type, type-args
 instantiate-type-inst type-inst(type-inst type-inst, type-args type-args)
-	do unless is-empty type-args else type-inst
+	do if any type-args else type-inst
 	type-inst.decl[instantiate-type-args type-inst.type-args, type-args]
 instantiate-type-args type-args(a type-args, type-args type-args)
 	make-type-args a, {instantiate-type it, type-args}
@@ -1170,11 +1170,11 @@ memoizer-key type-args(a type-inst)
 		res
 hash void(a type-inst, state hash-state) = trusted hash a.hash, state
 to json(a type-inst)
-	if is-empty a.type-args
-		a.decl.name.to
-	else
+	if any a.type-args
 		decl: a.decl.name.to
 		type-args: a.type-args.to
+	else
+		a.decl.name.to
 mutability-range mutability-range(a type-inst)
 	res mut mutability-range = a.decl.mutability, a.decl.mutability
 	for x in a.type-args
@@ -1763,7 +1763,7 @@ doc-comment-ast doc-comment-ast(a fun-decl)
 doc-comment doc-comment(a fun-decl)
 	a.doc-comment-ast, a.doc-comment-references
 is-template bool(a fun-decl)
-	a.n-type-params != 0 or not is-empty a.specs.instantiated-sigs
+	a.n-type-params != 0 or any a.specs.instantiated-sigs
 arity nat32(a fun-decl)
 	a.params.size
 only-inst fun-inst(a fun-decl)
@@ -1829,12 +1829,12 @@ get-or-add-fun-inst fun-inst
 	spec-impls spec-impls
 	cb-return-and-param-types (return-and-param-types, specs) mut()
 do
-	if type-args.is-empty and spec-impls.is-empty
-		decl.insts.fun-inst!
-	else
+	if any type-args or any spec-impls
 		trusted memoize decl.insts.object-memoizer!, (type-args, spec-impls), of
 			rp, specs = cb-return-and-param-types[]
 			decl, type-args, specs, spec-impls, rp
+	else
+		fun-inst! decl.insts
 -fun-inst-key record
 	type-args type-args
 	spec-impls spec-impls
@@ -2086,11 +2086,11 @@ exports record
 	types-and-specs types-and-specs-map
 new exports()
 	(), ()
-is-empty bool(a exports)
-	is-empty a.funs and is-empty a.types-and-specs
+any bool(a exports)
+	any a.funs or any a.types-and-specs
 test
 	# Hack to make it appear used. This is used by the site.
-	assert is-empty ()::exports
+	any ()::exports is false
 
 types-and-specs-map alias
 	(symbol, spec-or-type) by-key
@@ -2133,7 +2133,7 @@ new funs-map() = (), ()
 make-funs-map funs-map(funs fun-decl[])
 	by-name: to funs
 	by-name-and-arity: to-by-key-combine-duplicates funs, it.to-funs-set
-is-empty bool(a funs-map) = is-empty a.by-name
+any bool(a funs-map) = any a.by-name
 size nat32(a funs-map) = size a.by-name
 test
 	# Hack to make it appear used. This is used by the site.
@@ -2144,7 +2144,7 @@ filter-by-names funs-map(a funs-map, names symbol set)
 	by-name: choose-keys a.by-name, names
 	by-name-and-arity: filter-keys a.by-name-and-arity, names[it.name]
 any-for-name bool(a funs-map, name symbol)
-	not is-empty a.by-name[name]
+	any a.by-name[name]
 all-with-name fun-decl array-view(a funs-map, name symbol) = a.by-name[name]
 all-with-name-and-arity record(map funs-map, key name-and-arity)
 some bool(a all-with-name-and-arity, f bool mut(x fun-decl))
@@ -2206,7 +2206,7 @@ is-highly-overloaded bool(name symbol)
 	as array then a[0].name-and-arity
 	as large-funs-set then a.all[0].name-and-arity
 -to-funs-set funs-set(funs fun-decl[])
-	forbid is-empty funs
+	assert any funs
 	if f = only funs
 		f
 	elif funs.size <= 4
@@ -3165,10 +3165,8 @@ some bool(a locals, f bool mut(x local))
 doc-comment record
 	ast doc-comment-ast
 	references doc-comment-reference[]
-is-empty bool(a doc-comment)
-	a.ast.is-empty
 doc-comment-string string(uri uri, a doc-comment) file-content-getters
-	unless is-empty a
+	if any a.ast
 		strip-doc-comment (the::file-content-getters)[uri, a.ast.range!]
 -strip-doc-comment string(a string-view)
 	# This filters out '| ' at the beginning of lines

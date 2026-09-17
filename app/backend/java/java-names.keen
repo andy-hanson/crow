@@ -109,10 +109,10 @@ lambda-impl-class-name symbol(a java-names, lambda-index nat)
 		as low-type-source-inst
 			decl = a.source.decl
 			base = "{add-module-name module-to-class-name, decl.module-uri, class-prefix}{do-mangle decl.name}"
-			if is-empty a.source.type-args
-				base.to
-			else
+			if any a.source.type-args
 				"{base}{a.id}"
+			else
+				base.to
 		as low-type-source-new-interface
 			"new_{gen-type-name module-to-class-name, a.source.interface_, class-prefix}"
 		as low-type-source-record-field-lens
@@ -322,7 +322,7 @@ primitive-descriptor symbol(a java-primitive-type)
 		field-index +:= 1
 		cur-class-constants ~= constant
 
-	unless is-empty cur-class-constants
+	if any cur-class-constants
 		class-to-constants[cur-class-name] := cur-class-constants.move-to
 
 	names: finish out

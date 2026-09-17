@@ -104,10 +104,10 @@ type type(a type-and-context)
 	as full-type-and-context then a.type
 
 type-and-maybe-context type-and-context(type type, context type-context)
-	if is-empty context
-		non-inferring type
-	else
+	if any context
 		full-type-and-context type, context
+	else
+		non-inferring type
 type-and-new-context type-and-context(a type-with-container)
 	context-size = a.container.n-type-params
 	if context-size == 0
@@ -120,7 +120,7 @@ full-type-and-context record mut
 	type type
 	context type-context
 full-type-and-context full-type-and-context(type type, context type-context)
-	forbid is-empty context
+	assert any context
 	(), type, context
 to json(a full-type-and-context)
 	type: a.type.to
@@ -159,8 +159,6 @@ non-inferring type-context()
 is-fully-inferred bool(a type-context)
 	every a, {it}
 
-| This is used for stack-array arrays.
-| Since only one stack-array array is active at a time, we store them all together concatenated.
 stack-array[t] record mut
 	| Remember to access this between {cur-array-start} and {cur-array-end}
 	-all-entries t buffer
@@ -185,8 +183,8 @@ clear[t] void(a t stack-array)
 some[t] bool(a t stack-array, f bool mut(x t))
 	some a.cur-array-start .. a.cur-array-end, f[a.all-entries[it]]
 
-is-empty[t] bool(a t stack-array)
-	a.cur-array-start == a.cur-array-end
+any[t] bool(a t stack-array)
+	a.cur-array-start != a.cur-array-end
 
 size[t] nat32(a t stack-array)
 	a.cur-array-end - a.cur-array-start

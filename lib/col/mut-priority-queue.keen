@@ -28,8 +28,8 @@ import
 	clear a.buckets
 
 | {true} if `{a}.{size} == 0`.
-+is-empty[k, v] bool(a (k, v) mut-priority-queue) k sorted-key
-	is-empty a.mins
++any[k, v] bool(a (k, v) mut-priority-queue) k sorted-key
+	any a.mins
 
 | Number of pairs in the queue.
 | This is O({a} {size}).
@@ -107,7 +107,7 @@ import
 	join ", ", for i, min in with-index a.mins
 		show-bucket = if i < a.buckets.size
 			bucket = a.buckets[i]
-			unless is-empty bucket
+			if any bucket
 				parts = join ", ", map bucket, it.dbg
 				" [{parts}]"
 		"{dbg min}{show-bucket}"

@@ -109,11 +109,11 @@ import
 		swap-at a, i.random, i
 
 +remove-random[t] t?(a t mut[]) random
-	unless is-empty a
+	if any a
 		remove-at a, random a.size
 
 +remove-random[t] (t, t[])?(a t[]) random
-	unless is-empty a
+	if any a
 		index = random a.size
 		a[index], remove-at a, index
 
@@ -145,14 +145,14 @@ do random, (col, elem) array-like
 		move-to res
 	else
 		remaining nat random-bag = filter 0 .. choices.size, {not rejected[it]}
-		until res.size == n or is-empty remaining
+		until res.size == n or not any remaining
 			_ = take-and-maybe-replace remaining, of i
 				elem = choices[i]
 				if f[elem]
 					res ~= elem
 					true
-		is-empty remaining is is-empty res
-		unless is-empty res
+		any remaining is any res
+		if any res
 			move-to res
 
 | Bag of elements that can be taken out at random. Supports replacing or not replacing the values.
@@ -163,8 +163,8 @@ do random, (col, elem) array-like
 +list-new[t] t random-bag(values t[])
 	is-shuffled: false
 	values: values.to
-+is-empty[t] bool(a t random-bag)
-	is-empty a.values
++any[t] bool(a t random-bag)
+	any a.values
 +size[t] nat(a t random-bag)
 	a.values.size
 + ~=[t] void(a t random-bag, value t) random
@@ -177,7 +177,7 @@ do random, (col, elem) array-like
 	pop a.values
 | This does not remove the value.
 + get-random[t] t?(a t random-bag) random
-	unless is-empty a.values
+	if any a.values
 		random a.values
 | If {replace} returns true, this will act like {get-random}, otherwise it will act like {take-random}.
 + take-and-maybe-replace[t] t?(a t random-bag, replace bool mut(x t)) random
@@ -289,7 +289,7 @@ do random, (col, elem) array-like
 			short ~= index
 		elif p > sum-weight
 			long ~= index
-	while not is-empty short and not is-empty long
+	while any short and any long
 		j = pop! short
 		k = peek! long
 		aliases[j] := k

@@ -25,8 +25,8 @@ import
 export
 	./private/bootstrap: from-json, json, json-object, keys, null, to-json, values
 
-+is-empty bool(a json-object)
-	is-empty a.keys
++any bool(a json-object)
+	any a.keys
 +size nat32(a json-object)
 	size zip a.keys, a.values
 +some bool(a json-object, f bool mut(key symbol, value json))
@@ -106,10 +106,10 @@ export
 | If no arguments are passed this is {null}. Otherwise it is a JSON array.
 | For an empty array, use {empty-array} or `()::json[]`
 +list-new json(args json[])
-	if is-empty args
-		null
-	else
+	if any args
 		args
+	else
+		null
 +named-new json(keys symbol[], values json[])
 	assert keys.size == values.size
 	new-json-object keys, values
@@ -372,9 +372,9 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 	as null
 		true
 	as array
-		is-empty a
+		not any a
 	as json-object
-		is-empty a
+		not any a
 	else
 		false
 
@@ -408,20 +408,20 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 		else
 			single (quoted a, true), false
 	as array
-		if is-empty a
-			single "empty-array", false
-		else
+		if any a
 			to-kid-array-or-object (), a, max-columns
-	as json-object
-		if is-empty a
-			single "empty-object", false
 		else
+			single "empty-array", false
+	as json-object
+		if any a
 			to-kid-array-or-object a.keys, a.values, max-columns
+		else
+			single "empty-object", false
 -tab-size nat32()
 	4
 -to-kid-array-or-object to-kid-result(keys symbol[]?, values json[], max-columns nat32)
 	max-columns isnt max-value
-	forbid is-empty values
+	assert any values
 	if keys
 		assert keys.size == values.size
 	size mut nat32 = 0

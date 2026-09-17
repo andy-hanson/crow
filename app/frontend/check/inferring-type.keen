@@ -22,7 +22,7 @@ expect expected(type type)
 expect-with-context expected(type type-and-context)
 	choices: type,
 -is-purely-inferring bool(a expected)
-	is-empty a.choices
+	not any a.choices
 | Purely inferring, or expecting 't' where 't' can be any type
 -is-practically-inferring bool(expected expected)
 	is-purely-inferring expected or
@@ -59,10 +59,7 @@ choose-string-type (type, char-or-string-type?)?(range source-range, expected ex
 		each-narrowed-type choice, of type
 			if kind = as-char-or-string-type type and not some choices, it.b == kind
 				choices ~= type, kind
-	if is-empty choices
-		if x = try-get-inexact-non-inferring-type expected
-			x, ()
-	else
+	if any choices
 		choice = only choices else
 			# Prefer string over char8[]
 			if every choices, of _, kind then kind == string or kind == char8-array
@@ -72,6 +69,8 @@ choose-string-type (type, char-or-string-type?)?(range source-range, expected ex
 				choices[0]
 		must-check expected, choice.a
 		choice.a, choice.b
+	elif x = try-get-inexact-non-inferring-type expected
+		x, ()
 
 -as-char-or-string-type char-or-string-type?(a type) check-ctx, common-types
 	if is-char8 a
@@ -166,7 +165,7 @@ choose-number-type number-type?(range source-range, expected expected, value num
 		else
 			# Only happens for array-view (or buffer-view)
 			narrow = type.narrow-types!
-			f[if is-empty narrow then type else only! narrow]
+			f[if any narrow then only! narrow else type]
 -can-widen-to type-match-kind?(narrow type-inst, wide type-inst)
 	# 'narrow' can widen to 'wide' if 'wide' is 'narrow?', or 'wide' is a sum-type containing 'narrow', or transitive
 	match body = wide.decl.body
@@ -256,12 +255,12 @@ get-expected-lambda expected-lambda?(source lambda-source, expected expected) ch
 			prev = res
 			res := type.decl, (with-type choice, return-type), actual-param
 			if prev
-				if is-empty multiple
+				unless any multiple
 					multiple ~= get-inferred-or-bogus prev
 				multiple ~= get-inferred-or-bogus res!
 				any-diag set= true
 	if any-diag.get
-		unless is-empty multiple
+		if any multiple
 			add-diag diag-range, diag-lambda-multiple-match ((map multiple, {it}), type-container)
 		()
 	else
@@ -426,12 +425,12 @@ try-get-inexact-non-inferring-type type?(a type-and-context)
 			do if inferred.kind == exact or not require-exact
 			inferred.type
 		as type-inst
-			if is-empty type.type-args
-				type
-			else
+			if any type.type-args
 				do if new-type-args = map-every-type-args type.type-args, of x
 					try-get-exact-or-inexact-non-inferring-type (full-type-and-context x, a.context), require-exact
 				type.decl[new-type-args]
+			else
+				type
 
 -replace-uninferred-with-bogus type(a type-and-context)
 	match a
@@ -462,10 +461,11 @@ try-get-inexact-non-inferring-type type?(a type-and-context)
 		as type-param-index
 			a.context[type.index]
 		as type-inst
-			if is-empty type.type-args
+			if any type.type-args
+				if new-type-args = map-every-type-args type.type-args, {get-exact-non-inferring-type (with-type a, it)}
+					exact, type.decl[new-type-args]
+			else
 				exact, a.type
-			elif new-type-args = map-every-type-args type.type-args, {get-exact-non-inferring-type (with-type a, it)}
-				exact, type.decl[new-type-args]
 
 | For diagnostics. Applies inferred types as much as possible, using {bogus-type} where types have not been inferred.
 | This is like {try-get-inexact-non-inferring-type}, but always succeeds.

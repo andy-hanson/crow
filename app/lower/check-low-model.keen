@@ -112,7 +112,7 @@ check-low-program void(a low-program) low-common-types
 		check-expr type, a.else_
 	as match-union-low-expr
 		assert is-sorted a.case-indices
-		forbid is-empty a.cases
+		assert any a.cases
 		check-expr-any-type a.matched
 		case-types = a.union_.members
 		assert a.case-indices.size <= case-types.size
@@ -403,7 +403,7 @@ do ctx
 		all-js[]
 	as null
 		type is js-any
-		assert is-empty args
+		forbid any args
 	as plus
 		all-js[]
 	as set-subscript
@@ -413,4 +413,4 @@ do ctx
 		all-js[]
 	as undefined
 		type is js-any
-		assert is-empty args
+		forbid any args

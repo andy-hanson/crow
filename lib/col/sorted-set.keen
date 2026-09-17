@@ -4,8 +4,8 @@ import
 +sorted-set[t] record
 	-inner (t, void) sorted-map
 
-+is-empty[t] bool(a t sorted-set) t sorted-key
-	is-empty a.inner
++any[t] bool(a t sorted-set) t sorted-key
+	any a.inner
 
 +size[t] nat32(a t sorted-set) t sorted-key
 	size a.inner

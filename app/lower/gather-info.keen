@@ -43,7 +43,7 @@ do
 	res low-fun mut[] = start-funs.to::low-fun[].to
 	set low-fun mut-set = start-funs.to
 	to-propagate low-fun mut[] = start-funs.to::low-fun[].to
-	until is-empty to-propagate
+	while any to-propagate
 		fun = pop! to-propagate
 		for x in called-by.calls[fun] else ()
 			if try-add set, x.called
@@ -70,8 +70,7 @@ do low-common-types
 			temp-kinds[fun] := kind!
 			to-propagate ~= fun
 
-	until is-empty to-propagate
-		fun = pop! to-propagate
+	while fun = pop to-propagate
 		its-kind = temp-kinds[fun]!
 		for x in called-by.called-by[fun] else ()
 			caller = x.caller
@@ -133,8 +132,7 @@ do
 			if async-kinds[called] == depends-on-caller and try-add res, called, use
 				to-propagate ~= called
 
-	until is-empty to-propagate
-		fun = pop! to-propagate
+	while fun = pop to-propagate
 		do if calls = called-by.calls[fun]
 		uses = res[fun]!
 		for x in calls

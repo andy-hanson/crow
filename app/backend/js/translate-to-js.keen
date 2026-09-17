@@ -245,7 +245,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	members:
 		source source = source a
 		do with out in build
-		unless is-empty r.fields
+		if any r.fields
 			out ~= gen-constructor source, extends, names
 		each-method-impl a, (union-info.type-to-interfaces[a] else ()), program, of method, impl
 			out ~= to-method-body source, method, impl!
@@ -364,16 +364,14 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 -cur-fun-debug-name symbol() to-expr-ctx
 	the::to-expr-ctx.cur-fun-debug-name
 -with-declare-locals js-expr-or-block-statement(source source, locals js-name[], expr js-expr-or-block-statement)
-	if is-empty locals
+	do if any locals else expr
+	block js-block-statement = match expr
+	as js-expr
+		gen-return source, expr 'to
+	as js-block-statement
 		expr
-	else
-		block js-block-statement = match expr
-		as js-expr
-			gen-return source, expr 'to
-		as js-block-statement
-			expr
-		decl js-var-decl = let, for x in locals then x, ()
-		(source, decl) ~ block
+	decl js-var-decl = let, for x in locals then x, ()
+	(source, decl) ~ block
 -new to-expr-ctx(is-cur-fun-async sync-or-async, cur-fun-debug-name symbol)
 	is-cur-fun-async, cur-fun-debug-name, ()
 -new to-expr-ctx(is-cur-fun-async sync-or-async, cur-fun-debug-name symbol, this-local low-local?)

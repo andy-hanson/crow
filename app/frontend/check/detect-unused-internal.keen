@@ -12,7 +12,7 @@ detect-unused-internal uri-and-diagnostic[]
 	all-modules keen-module[uri]
 	fully-loaded-dirs uri set
 do common-types, common-uris
-	do unless is-empty fully-loaded-dirs
+	do if any fully-loaded-dirs
 
 	start = perf-now
 	finally end-detect-unused-internal start

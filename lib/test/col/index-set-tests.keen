@@ -2,7 +2,7 @@ import
 	../../../lib/col/index-set
 
 -verify void(a index-set, expected string, expected-list nat32[])
-	a.dbg is expected
+	dbg a is expected
 	actual-list nat32[] = a.to
 	actual-list is expected-list
 	prev mut nat32 = 0

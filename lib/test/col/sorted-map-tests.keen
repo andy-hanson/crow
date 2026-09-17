@@ -21,7 +21,7 @@ test global
 		removed is value
 		a := rest
 		validate a
-	assert is-empty a
+	any a is false
 
 -unique[t] t[](a t[]) t key
 	set t mut-set = ()

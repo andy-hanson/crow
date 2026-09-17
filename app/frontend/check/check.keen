@@ -85,7 +85,7 @@ do check-ctx, types-get
 		add-diag-assert-same-uri decl.range, trace.move-to.diag-spec-recursion
 		overwrite-parents-to-empty decl
 -recur-detect-spec-recursion bool(cur spec-decl, trace spec-decl mut[])
-	not is-empty cur.parents and trace.size >= max-spec-depth or
+	any cur.parents and trace.size >= max-spec-depth or
 	some cur.parents.inner, of parent
 		do if parent.spec-inst
 		trace ~= parent.decl
@@ -326,7 +326,7 @@ do
 	resolved-imports-left resolved-import array-view reference = resolved-imports,
 	imports = check-imports-or-re-exports diags-builder, ast.imports, resolved-imports-left, not ast.no-std_
 	re-exports = check-imports-or-re-exports diags-builder, ast.re-exports, resolved-imports-left, false
-	assert is-empty resolved-imports-left.get
+	forbid any get resolved-imports-left
 	imports.modules, re-exports.modules, imports.files, re-exports.files
 
 -imports-or-re-exports record(modules import-or-export[], files import-or-export-file[])

@@ -326,10 +326,10 @@ name-range-including-question source-range(a call-ast-prefix-question) = a.quest
 question-pos pos(a call-ast-prefix-question) = a.start
 range source-range(a call-ast-prefix-question) = a.start, a.end
 end pos(a call-ast-prefix-question)
-	if is-empty a.args
-		a.name-range.end
-	else
+	if any a.args
 		a.args[end - 1].end
+	else
+		a.name-range.end
 
 | Unlike {call-ast-prefix}, this can have empty args.
 call-ast-prefix-with-type-arg record
@@ -342,10 +342,10 @@ call-ast-prefix-with-type-arg call-ast-prefix-with-type-arg(start pos, name symb
 range source-range(a call-ast-prefix-with-type-arg) = a.start, a.end
 name-range source-range(a call-ast-prefix-with-type-arg) = range name-and-range a.start, a.fun-name.name
 end pos(a call-ast-prefix-with-type-arg)
-	if is-empty a.args
-		a.type-arg.end
-	else
+	if any a.args
 		a.args[end - 1].end
+	else
+		a.type-arg.end
 
 call-ast-then record
 	keyword-pos pos
@@ -686,13 +686,13 @@ start pos(a list-ast) = a.range.start
 end pos(a list-ast) = a.range.end
 | Range of the initial '-' or '--'
 first-keyword-range source-range(a list-ast)
-	if is-empty a.parts
-		a.range
-	else
+	if any a.parts
 		size nat32 = match a.parts[0]
 		as expr-ast then 1
 		as list-ast-part-multi then 2
 		a.range[0 .. size]
+	else
+		a.range
 
 # Represent singles directly, since they are the most common
 list-ast-part union(expr-ast, list-ast-part-multi)
@@ -741,7 +741,7 @@ match-ast record
 end pos(a match-ast)
 	if x = a.else_
 		x.end
-	elif not is-empty a.cases
+	elif any a.cases
 		a.cases[end - 1].end
 	else
 		a.matched.end
@@ -803,10 +803,10 @@ try-ast record
 	tried expr-ast
 	catches catch-ast[]
 end pos(a try-ast)
-	if is-empty a.catches
-		a.tried.end
-	else
+	if any a.catches
 		a.catches[end - 1].end
+	else
+		a.tried.end
 range source-range(a try-ast)
 	a.start, a.end
 try-keyword-range source-range(a try-ast)
@@ -915,7 +915,6 @@ visibility visibility-and-range?(a type-alias-ast)
 	get-visibility-and-range a.range.start, a.visibility_
 
 type-params-range source-range(type-params name-and-range[])
-	forbid is-empty type-params
 	type-params[0].start, type-params[end - 1].end
 
 modifier-ast union(modifier-keyword-ast, spec-use-ast)
@@ -989,7 +988,7 @@ flags-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
 record-ast record(params destructure-ast[]?, fields record-field-ast[])
 sum-type-ast record(kind sum-type-kind, types type-ast[], methods signature-ast[])
 types-range source-range?(a sum-type-ast)
-	unless is-empty a.types
+	if any a.types
 		a.types[0].start, a.types[end - 1].end
 
 enum-or-flags-member-ast record
@@ -1141,7 +1140,7 @@ doc-comment-ast record(content doc-comment-content?)
 to json(a doc-comment-ast) = a.content.?to else ()
 new doc-comment-ast() = content: ()
 new doc-comment-ast(range source-range) = content: range, ()
-is-empty bool(a doc-comment-ast) = not a.content
+any bool(a doc-comment-ast) = a.content
 range source-range?(a doc-comment-ast) = a.content.?range
 references name-and-range[](a doc-comment-ast) = a.content.?references else ()
 

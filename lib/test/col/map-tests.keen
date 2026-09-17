@@ -6,13 +6,13 @@ import
 
 test
 	l0 string[nat64] = ()
-	l0.is-empty is true
+	any l0 is false
 	l0.size is 0
 	verify l0, "[]"
 	l0[0] is ()
 
 	l1 = l0 ~ (5, "5")
-	l1.is-empty is false
+	any l1 is true
 	l1.size is 1
 	verify l1, "[5 -> 5]"
 

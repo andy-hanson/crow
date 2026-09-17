@@ -28,8 +28,8 @@ to[k, t] (k, t) by-key(_ json) = throw not-implemented
 new[k, t] (k, t) by-key()
 	()::t[],
 
-is-empty[k, t] bool(a (k, t) by-key)
-	is-empty a.to::t[]
+any[k, t] bool(a (k, t) by-key)
+	any to::t[] a
 size[k, t] nat32(a (k, t) by-key)
 	size a.to::t[]
 | This does not allocate
@@ -124,7 +124,7 @@ filter-keys[k, t] (k, t) by-key(a (k, t) by-key, filter bool mut(key k)) (k, t) 
 
 	# Try to minimize the maximum cost. Cost = the length of the chain that we would create.
 	max-cost mut nat = 2
-	until is-empty delay
+	while any delay
 		filter-unordered delay, {not place-delayed res, next, it, unused-spots, max-cost}
 		max-cost +:= 1
 
@@ -229,7 +229,7 @@ to[k, t] (k, t) multi-by-key(_ json) = throw not-implemented
 	| All values stored contiguously
 	values t[]
 
-is-empty[k, v] bool(a (k, v) multi-by-key) = is-empty a.all
+any[k, v] bool(a (k, v) multi-by-key) = any a.all
 size[k, v] nat32(a (k, v) multi-by-key) = size a.all
 all[k, t] t[](a (k, t) multi-by-key)
 	match impl = a.impl

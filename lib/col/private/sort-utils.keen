@@ -67,7 +67,7 @@ assert-comparison-not-equal unique-comparison(a comparison)
 
 | {a} and {b} must be sorted. Moves contents of {b} into {a} and preserves sorting.
 merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data(x t, y t))
-	do unless is-empty b
+	do if any b
 	a-old-size = a.size
 	trusted push-gc-safe-values a, b.size
 	a-read mut = a-old-size - 1

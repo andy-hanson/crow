@@ -30,8 +30,8 @@ test
 	verify a, (3, 2, 1), "2 1 <-R _ L-> 3"
 
 -verify void(a nat mut-deque, expected nat[], expected-dbg string)
-	a.peek-left is unless is-empty expected then expected[0]
-	a.peek-right is unless is-empty expected then expected[end - 1]
+	a.peek-left is if any expected then expected[0]
+	a.peek-right is if any expected then expected[end - 1]
 	a.size is expected.size
 	a.to::nat[] is expected
 	map::nat[] a, {it} is expected

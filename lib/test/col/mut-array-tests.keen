@@ -33,7 +33,7 @@ test
 test
 	xs nat mut[] = 0, 1, 2
 	for _ in xs
-		is-empty xs is false
+		any xs is true
 		xs.size is 3
 		xs[1] is 1
 		xs.copy.to::nat[] is (0, 1, 2)

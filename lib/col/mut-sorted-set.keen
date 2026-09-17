@@ -10,8 +10,8 @@ import
 +to[t] t mut-sorted-set(a t[]) t sorted-key
 	inner: to for::(t, void)[] x in a then (x, ())
 
-+is-empty[t] bool(a t mut-sorted-set)
-	is-empty a.inner
++any[t] bool(a t mut-sorted-set)
+	any a.inner
 
 +clear[t] void(a t mut-sorted-set)
 	clear a.inner

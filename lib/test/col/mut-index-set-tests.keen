@@ -3,7 +3,7 @@ import
 
 test
 	a mut-index-set = 10, 100, 1000
-	is-empty a is false
+	any a is true
 	size a is 3
 	assert a[10]
 	assert a[100]

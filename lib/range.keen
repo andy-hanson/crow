@@ -35,8 +35,8 @@ import
 +size[t] nat32(a t range) t difference
 	difference a.high, a.low
 
-+is-empty[t] bool(a t range) t equal
-	a.low == a.high
++any[t] bool(a t range) t equal
+	a.low != a.high
 
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
 +some[t] bool(a t range, f bool mut(elem t)) t forward-rangeable

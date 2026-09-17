@@ -25,11 +25,11 @@ setup-test-server void(server server, files uri-and-content[]) global
 		extension file.uri is ".keen"
 		set-file server, file.uri, file.keen
 	do with reader in file-reader this-executable.must-parse-file-path, false
-	do until
+	do while
 	unknowns = flush-all-unknown-uris server
 	for unknown in unknowns
 		set-file server, unknown, load-file reader, unknown
-	is-empty unknowns
+	any unknowns
 
 -load-file read-file-result(reader file-reader, uri uri) global
 	if uri.base-name == config-base-name

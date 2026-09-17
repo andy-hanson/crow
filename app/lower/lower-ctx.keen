@@ -505,11 +505,12 @@ do lower-context, lower-funs
 		method-impls low-expr? buffer = n-of x.method-impls.size, ()
 		for method in info.methods-unsorted
 			method-index = method.body.low-fun-body-method!.method-index
-			if is-empty x.method-impls
+			if any x.method-impls
+				if impl = x.method-impls[method-index]
+					method-impls[method-index] :=
+						call-method-impl method, inst.decl.range, get-low-fun-from-called type-args, (), impl
+			else
 				assert as-extern res
-			elif impl = x.method-impls[method-index]
-				method-impls[method-index] :=
-					call-method-impl method, inst.decl.range, get-low-fun-from-called type-args, (), impl
 		info.cases ~=
 			case-type: res
 			type-args-scope: type-args
@@ -566,16 +567,16 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 			case-index, case-type = low-type-for-new-interface fun.return-type, fun.params
 			create-union-low-expr type, range, case-index, create-record-low-expr case-type, fun.range, args
 	as new-record
-		if is-empty args and not prevent-constant type.body.low-record!
-			constant-low-expr type, range, get-constant-record all-constants, type, ()
-		else
+		if any args or prevent-constant type.body.low-record!
 			gen-create-record type, range, args
+		else
+			constant-low-expr type, range, get-constant-record all-constants, type, ()
 	as record-field-get
 		record_ = only! args
 		the low-common-types = the::lower-context.low-common-types
 		gen-record-field-get range, record_, get-low-field record_.type, body.field
 	as record-field-lens
-		assert is-empty args
+		forbid any args
 		record-type, _ = only2! type.source.low-type-source-inst!.type-args
 		case-index, case-type = low-type-for-record-field-lens type, get-low-field record-type, body.field
 		constant-low-expr type, range,
@@ -589,7 +590,7 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 		field: get-low-field fun.params[0].type, body.field
 		value: value
 	as var-get
-		assert is-empty args
+		forbid any args
 		var-get-low-expr range, get-var the::lower-context, body.var
 	as var-set
 		var-set-low-expr range, (get-var the::lower-context, body.var), only! args

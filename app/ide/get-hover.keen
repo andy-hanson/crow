@@ -514,10 +514,10 @@ get-hover hover?(program program, params hover-params) show-ctx
 	as called-spec-sig
 		""
 	basic = "Calls {show-called quoted, type-container, a}."
-	if is-empty doc
-		basic
-	else
+	if any doc
 		"{basic}\n{doc}"
+	else
+		basic
 
 -match-hover string
 	type-container type-container

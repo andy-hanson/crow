@@ -28,8 +28,8 @@ import
 +new-with-capacity mut-index-set(capacity nat32)
 	words: n-of (divide-and-round-up capacity, 32), 0
 
-+is-empty bool(a mut-index-set)
-	a.size == 0
++any bool(a mut-index-set)
+	a.size != 0
 
 | This is O(n) (but pretty fast) where n is the largest value in {a}.
 +size nat32(a mut-index-set)

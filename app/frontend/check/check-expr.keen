@@ -39,10 +39,10 @@ do check-ctx, types-get, funs-map
 			check-and-expect ast, return-type
 	else
 		check-and-expect ast, return-type
-	if is-empty the::expr-ctx.allocated-locals
-		res
-	else
+	if any the::expr-ctx.allocated-locals
 		expr-with-allocated-locals res, the::expr-ctx.allocated-locals.move-to
+	else
+		res
 
 | This exists to work around the fact that spec impls currently can't take contexts
 -check-expr expr
@@ -329,13 +329,13 @@ do check-expr-ctx
 	list-expr source, called, for* arg-index in 0 .. template.size + interpolated-exprs.size
 		if is-even arg-index
 			part = template[arg-index / 2]
-			do unless is-empty part.value
-			range2 = if is-empty part.range then part.range else part.range[0 .. 1]
+			do if any part.value
+			range2 = if any part.range then part.range[0 .. 1] else part.range
 			- check-call-special-cb1 part, range2, interpolate-string-1, arg-expected, of inner2
 				check-literal-string-only-string part, inner2
 		else
 			part = interpolated-exprs[arg-index / 2]
-			range2 = if is-empty part.range then part.range else part.range[0 .. 1]
+			range2 = if any part.range then part.range[0 .. 1] else part.range
 			- check-call-special source.to, range2, interpolate-value-1, (part,), arg-expected
 
 -access-local local?(diag-range source-range, name symbol) check-expr-ctx
@@ -582,7 +582,7 @@ do
 		type
 
 -check-let-the expr(ast let-the-ast, expected expected) check-expr-ctx
-	do if is-empty lambdas else
+	do unless any lambdas else
 		add-diag ast.keyword-range, diag-context-defined-in-lambda
 		bogus expected, ast
 	do if type = type-for-the ast.type else bogus expected, ast
@@ -788,12 +788,12 @@ do check-expr-ctx
 
 	do unless has-case-diag else bogus expected, ast
 
-	else_ expr? = if is-empty remaining
+	else_ expr? = if any remaining
+		check-match-else-required ast, expected, {diag-match-unhandled-enum-members remaining.to}
+	else
 		if x = ast.else_
 			add-diag x.keyword-range, diag-match-unnecessary-else
 		()
-	else
-		check-match-else-required ast, expected, {diag-match-unhandled-enum-members remaining.to}
 	match-enum-expr ast, matched-local, matched, cases, else_, expected.inferred
 
 -check-match-sum-type match-sum-type-expr

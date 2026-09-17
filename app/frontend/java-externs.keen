@@ -245,12 +245,12 @@ do java-ctx
 			Object
 -to-type type-inst(a java-class-type, type-params symbol[], unsupported-type-params symbol[]) java-ctx
 	decl = get-java-class a.path
-	if is-empty a.type-args
-		# Sometimes signatures omit type arguments
-		instantiated-with-Object decl
-	else
+	if any a.type-args
 		a.type-args.size is decl.n-type-params
 		decl[make-type-args a.type-args, {to-type it, type-params, unsupported-type-params}]
+	else
+		# Sometimes signatures omit type arguments
+		instantiated-with-Object decl
 
 -instantiated-with-Object type-inst(decl type-decl) java-ctx
 	decl[make-type-args decl.type-params, {Object}]

@@ -238,7 +238,7 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 	some-candidate-has-correct-arity = some a.all-candidates, of x
 		(a.actual-n-type-args == 0 or x.n-type-params == a.actual-n-type-args.to) and x.arity == a.actual-arity
 
-	if is-empty a.all-candidates
+	if not any a.all-candidates
 		show-call-no-candidates a
 	elif not some-candidate-has-correct-arity
 		some-candidate-has-correct-n-type-args = a.actual-n-type-args == 0 or some a.all-candidates, of x
@@ -275,7 +275,7 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 -show-call-close-match string(a diag-call-no-match) show-type-ctx
 	join
 		has-ret = expected-for-diag-choices a.expected-return-type
-		has-args = not is-empty a.actual-arg-types
+		has-args = any a.actual-arg-types
 		- "There are functions named {show-name a.fun-name}, but they do not match the "
 		- if has-ret
 			if has-args
@@ -391,11 +391,11 @@ show-diag string(a diag) show-type-ctx
 			{kind} '{a.called.name}' would be implemented by {called}, but that requires a context {context-name}.
 			Contexts are not allowed in {kind2}.
 	as diag-context-type-missing
-		choices = if is-empty a.actual
-			"none"
-		else
+		choices = if any a.actual
 			join ", ", for x in a.actual
 				show-type-quoted (x, a.container)
+		else
+			"none"
 		quote
 			{show-type-quoted (a.expected, a.container)} is not in the context types.
 			Actual context types: {choices}.
@@ -697,10 +697,10 @@ show-diag string(a diag) show-type-ctx
 			"No implementation was found for '{show-anonymous-sig a.type-container, r.name, r.type}'."
 		as spec-too-deep
 			"Spec instantiation is too deep."
-		if is-empty a.trace
-			desc
-		else
+		if any a.trace
 			"{desc}\n\tCalling:{show-spec-trace a.type-container, a.trace}"
+		else
+			desc
 	as diag-spec-recursion
 		trace = join ", ", for spec_ in a.trace
 			show-name spec_.name

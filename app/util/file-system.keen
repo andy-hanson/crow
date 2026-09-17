@@ -250,7 +250,7 @@ with-block[t] t(a with-file-reader, f t mut(a file-reader)) global
 	do until
 	key = take service
 	files mut = take-events a, key
-	do unless is-empty files
+	do if any files
 	while extra = poll-and-take-events a
 		files |:= extra
 	files

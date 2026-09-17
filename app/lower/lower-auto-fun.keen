@@ -183,7 +183,7 @@ do lower-ctx
 	f constant mut(x enum-or-flags-member)
 do lower-ctx, lower-funs
 	members = param.type.must-be-flags.members
-	do unless is-empty members else
+	do if any members else
 		constant-low-expr array-type, range, get-constant-array all-constants, array-type, ()
 	###
 	Generates code like:
@@ -394,11 +394,11 @@ do lower-ctx
 	fields low-field[]
 	field-compares called[]
 do lower-and-expr-ctx, lower-funs
-	if is-empty fields
-		gen-comparison-equal comparison, range
-	else
+	if any fields
 		equal-or-compare-record range, params, fields, field-compares, of x, y
 			gen-compare-or range, x, y
+	else
+		gen-comparison-equal comparison, range
 
 -equal-or-compare-record low-expr
 	range uri-and-range
@@ -407,7 +407,7 @@ do lower-and-expr-ctx, lower-funs
 	field-called called[]
 	f-fold low-expr mut(x low-expr, y low-expr)
 do lower-and-expr-ctx, lower-funs
-	forbid is-empty fields
+	assert any fields
 	fields.size is field-called.size
 	p0 = local-get-low-expr range, param0
 	p1 = local-get-low-expr range, param1
@@ -427,7 +427,7 @@ do lower-and-expr-ctx, lower-funs
 	members low-type[]
 	member-compares called[]
 do lower-and-expr-ctx, lower-funs
-	do unless is-empty members else gen-comparison-equal comparison, range
+	do if any members else gen-comparison-equal comparison, range
 	p0 = local-get-low-expr range, param0
 	p1 = local-get-low-expr range, param1
 	less = gen-comparison-less comparison, range
@@ -503,11 +503,9 @@ do lower-and-expr-ctx, lower-funs
 	fields low-field[]
 	field-equals called[]
 do lower-and-expr-ctx, lower-funs
-	if is-empty fields
-		gen-true range
-	else
-		equal-or-compare-record range, params, fields, field-equals, of x, y
-			gen-and range, x, y
+	do if any fields else gen-true range
+	equal-or-compare-record range, params, fields, field-equals, of x, y
+		gen-and range, x, y
 
 -lower-equal-union low-expr
 	range uri-and-range
@@ -516,7 +514,7 @@ do lower-and-expr-ctx, lower-funs
 	members low-type[]
 	member-equals called[]
 do lower-and-expr-ctx, lower-funs
-	do unless is-empty members else gen-true range
+	do if any members else gen-true range
 	p0 = local-get-low-expr range, param0
 	p1 = local-get-low-expr range, param1
 	gen-match-union bool-type, range, members, p0, of member-index, get-member
@@ -607,7 +605,7 @@ do lower-and-expr-ctx
 	field-hash called[]
 do lower-and-expr-ctx, lower-funs
 	fields.size is field-hash.size
-	do unless is-empty fields else gen-void range
+	do if any fields else gen-void range
 	get-value = local-get-low-expr range, value
 	get-hash-state = local-get-low-expr range, hash-state
 	seq-low-expr range, for field, hash in zip fields, field-hash
@@ -622,7 +620,7 @@ do lower-and-expr-ctx, lower-funs
 	member-hash called[]
 do lower-and-expr-ctx, lower-funs
 	members.size is member-hash.size
-	do unless is-empty members else gen-void range
+	do if any members else gen-void range
 	get-value = local-get-low-expr range, value
 	get-hash-state = local-get-low-expr range, hash-state
 	gen-match-union void, range, members, get-value, of member-index, get-member

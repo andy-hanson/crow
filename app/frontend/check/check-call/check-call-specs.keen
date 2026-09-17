@@ -22,11 +22,11 @@ do check-ctx
 	as called-bogus
 		true
 	as fun-inst
-		if is-empty called.specs.all-contexts
-			true
-		else
+		if any called.specs.all-contexts
 			add-diag diag-range, diag-contexts-not-allowed container, kind, called
 			false
+		else
+			true
 	as called-spec-sig
 		true
 
@@ -250,7 +250,7 @@ do check-specs
 				else
 					deepest-no-match := checked
 	doit[allow-conversions]
-	unless is-empty multiple-matches
+	if any multiple-matches
 		# TODO:PERF can I do this in a single pass? Would need to track the quality of each result
 		res := ()
 		deepest-no-match := ()
@@ -258,18 +258,18 @@ do check-specs
 		doit[no-conversions]
 		unless res
 			# The multiple matches error is more useful
-			assert is-empty multiple-matches
+			forbid any multiple-matches
 			deepest-no-match := ()
 			doit[allow-conversions]
 
 	if res
-		unless is-empty multiple-matches
+		if any multiple-matches
 			the::check-specs-ctx.has-errors := true
 		match trace
 		as dummy-trace
 			()
 		as real-trace
-			unless is-empty multiple-matches
+			if any multiple-matches
 				multiple-matches ~= res!
 				add-diag trace.range,
 					diag-spec-match-multiple trace.container, name.name, multiple-matches.move-to, trace.trace.to

@@ -13,7 +13,7 @@ parse-command command(cwd file-path, args string[]) global
 	parse-command-inner cwd, args
 
 parse-command-inner command(cwd file-path, args string[])
-	arg0 = unless is-empty args then args[0]
+	arg0 = if any args then args[0]
 	if ends-with arg0, ".keen"
 		kind:
 			main:
@@ -35,13 +35,13 @@ parse-command-inner command(cwd file-path, args string[])
 	else
 		diags diags = ()
 		res = parse-command-kind cwd, name, args, diags
-		if is-empty diags
-			res, options
-		else
+		if any diags
 			show-diags = join "\n", map diags, it.show
 			help-str = "Command syntax error:\n{show-diags}\n{help-for-command name}"
 			kind: help-command help-str, error
 			options: options
+		else
+			res, options
 
 -extract-options (parsed-command, bool, command-options)(a parsed-command)
 	args2, help = extract a, "help"
@@ -232,13 +232,13 @@ do
 	expect-empty-parts diags, args.named
 	expect-empty-after-dash-dash diags, args.after
 -expect-empty-before void(diags diags, before string[])
-	unless is-empty before
+	if any before
 		diags ~= unexpected-before before[0]
 -expect-empty-parts void(diags diags, parts string[][symbol])
 	for tag, _ in parts
 		diags ~= unexpected-part tag
 -expect-empty-after-dash-dash void(diags diags, after string[])
-	unless is-empty after
+	if any after
 		diags ~= unexpected-part "--"
 
 -parse-main-kind-for-test main-kind(cwd file-path, diags diags, args string[], all bool, line nat32?)
@@ -297,7 +297,7 @@ do
 		()
 
 -parse-keen-or-dir-uris uri set(cwd file-path, diags diags, args string array-view)
-	if is-empty args
+	unless any args
 		diags ~= expected-paths ()
 	for arg in args
 		parse-keen-or-dir-uri cwd, diags, arg
@@ -328,27 +328,27 @@ do
 	subcommand = args.nameless[0]
 	res command-kind? = match subcommand
 	as ast
-		do if is-empty args.named
+		do unless any args.named
 		print-ast-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	as tokens
-		do if is-empty args.named
+		do unless any args.named
 		print-tokens-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	as dependencies
 		uris = parse-keen-or-dir-uris cwd, diags, args.nameless[1 .. end]
 		do if format print-dependencies-format =
-			if is-empty args.named
+			if not any args.named
 				dot
 			elif args.named.size == 1
 				args.named["format"].?only.?to
 		print-dependencies-command uris, format
 	as model
-		do if is-empty args.named
+		do unless any args.named
 		print-model-command parse-keen-or-dir-uris cwd, diags, args.nameless[1 .. end]
 	as low-model
-		do if is-empty args.named
+		do unless any args.named
 		print-low-model-command parse-keen-uri-or-diag cwd, diags, args.nameless[1 .. end]
 	else
-		do if is-empty args.named
+		do unless any args.named
 		if kind = subcommand.to::print-ide-at-pos-kind?
 			do if args.nameless.size == 3
 			do if lc = parse-line-and-column args.nameless[2]
@@ -408,16 +408,13 @@ do
 		:: main-kind-main-function
 		uri: parse-main-uri cwd, diags, args.nameless
 		program-args: ()
-	res-out single-build-output[] = if is-empty out
-		if default = default-executable-path-for-main main
-			-
-				path: default
-				kind: java
-		else
-			diags ~= needs-out
-			()
-	else
+	res-out single-build-output[] = if any out
 		out
+	elif default = default-executable-path-for-main main
+		- path: default, kind: java
+	else
+		diags ~= needs-out
+		()
 	main: main
 	out: res-out
 	times: times
@@ -484,11 +481,11 @@ do
 	if res == 0 then 0 else res - 1
 
 -expect-flag void(diags diags, (tag symbol, args string[]))
-	unless is-empty args
+	if any args
 		diags ~= unexpected-part-args tag, args
 
 -parse-build-out single-build-output[](cwd file-path, diags diags, args string[])
-	if is-empty args
+	unless any args
 		diags ~= expected-paths "out"
 	for* arg in args
 		from-option parse-single-build-out cwd, diags, arg
@@ -541,7 +538,7 @@ do
 	"Command: {show-command name}\n\n{command-description name}"
 -show-command string(name command-name)
 	options = describe-command-options name
-	"keen {name}{unless is-empty options then " {options}"}"
+	"keen {name}{if any options then " {options}"}"
 -describe-command-options string(name command-name)
 	match name
 	as build

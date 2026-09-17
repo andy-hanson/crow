@@ -219,9 +219,9 @@ flush-all-unknown-uris uri[](a frontend)
 
 files-state enum(has-unknown, has-loading, all-loaded)
 files-state files-state(a frontend)
-	if not is-empty a.unknown
+	if any a.unknown
 		has-unknown
-	elif not is-empty a.loading
+	elif any a.loading
 		has-loading
 	else
 		a.count-uncompiled-keen-files is 0
@@ -462,7 +462,7 @@ set-file void(a frontend, uri uri, result read-file-result)
 		for importer in file.referenced-by
 			add-to-workable-if-so a, a.keen-files[importer]!
 		false
-	elif is-empty a.unknown and is-empty a.loading and a.count-uncompiled-keen-files != 0
+	elif not any a.unknown and not any a.loading and a.count-uncompiled-keen-files != 0
 		fix-circular-imports a
 		false
 	else

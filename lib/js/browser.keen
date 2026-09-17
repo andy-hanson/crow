@@ -12,7 +12,7 @@ import
 	()
 +subscript string?(_ document-cookies, cookie-name string) global, js
 	cookie-string string = trusted document["cookie"].to
-	do unless is-empty cookie-string
+	do if any cookie-string
 	first (split cookie-string, ";"), of part
 		name, value = try-split-once! part, "="
 		if name == cookie-name.to then value.to

@@ -23,8 +23,8 @@ new source-range() = 0, 0
 length nat(a source-range)
 	size to::(pos range) a
 
-is-empty bool(a source-range)
-	is-empty to::(pos range) a
+any bool(a source-range)
+	any to::(pos range) a
 
 subscript source-range(a source-range, b nat range)
 	end = a.start + b.high
@@ -119,7 +119,7 @@ file-content-getters file-content-getters(a line-and-column-getters)
 subscript string-view(a file-content-getters, uri uri)
 	a.inner[uri]!.source-text
 subscript string-view(a file-content-getters, where uri-and-range)
-	unless where.range.is-empty
+	if any where.range
 		a[where.uri][where.start.pos .. where.end.pos]
 
 line-and-character-getters record(lookup line-and-column-getters) mut
@@ -176,7 +176,7 @@ get-line-text string(a line-and-character-getter, line nat32)
 	a.source-text[a.line-to-pos[line] .. (next-line-pos a, line)].to
 
 last-line nat(a line-and-character-getter)
-	unless a.line-to-pos.is-empty
+	if any a.line-to-pos
 		a.line-to-pos.size - 1
 
 subscript line-and-character-range(a line-and-character-getter, range source-range)

@@ -184,7 +184,7 @@ parsed-method record
 	name symbol = to read-utf8-reference reader
 	descriptor-text = read-utf8-reference reader
 	erased-type-params, erased-return-type, erased-param-types = parse-method-descriptor descriptor-text
-	assert is-empty erased-type-params
+	forbid any erased-type-params
 	attributes = read-attributes reader
 	type-params, generic-return-type, generic-param-types = if sig = get-signature attributes
 		parse-method-descriptor sig

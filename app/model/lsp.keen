@@ -431,7 +431,7 @@ to json(a parameter-information)
 		label:
 			- a.label.low.to
 			- a.label.high.to
-		documentation: unless is-empty a.documentation
+		documentation: if any a.documentation
 			a.documentation.to
 to parameter-information(_ json) = throw not-implemented
 

@@ -4,26 +4,26 @@ import
 test
 	a (nat64, string) sorted-list = ()
 	a is ()
-	assert is-empty a
-	a.size is 0
+	any a is false
+	size a is 0
 
 	b = a ~ (1, "one")
 	b is ((1, "one"),)
-	b.size is 1
+	size b is 1
 	b[1] is ("one",)
 
 	c = b ~ (2, "two")
 	c is ((1, "one"), (2, "two"))
-	c.size is 2
+	size c is 2
 	c[1] is ("one",)
 
 	d = c ~ (1, "uno")
 	d isnt c
 	d is (1, "one"), (1, "uno"), (2, "two")
-	d.size is 3
+	size d is 3
 	d[1] is ("one", "uno")
 	d[3] is ()
-	d.first is (1, "one")
-	d.last is (2, "two")
+	first d is (1, "one")
+	last d is (2, "two")
 
-	d.keys is (1, 1, 2)
+	keys d is (1, 1, 2)

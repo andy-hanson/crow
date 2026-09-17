@@ -131,7 +131,7 @@ test
 	for _ in 0 .. 5
 		took ~= take-random! a
 	move-to::nat[] took is 1, 3, 0, 4, 2
-	is-empty a is true
+	any a is false
 
 	for x in 0 .. 5
 		a ~= x

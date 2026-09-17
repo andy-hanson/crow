@@ -98,18 +98,17 @@ do lower-ctx
 	range = fun.range
 	union_ = sum-type.body.low-union!
 	members = union_.members
-	if is-empty members
-		if union_.has-new-interface-members
-			assert is-js
-			low-fun-body-method method-index, ()
-		else
-			gen-throw-string fun.return-type, range, "Called method of empty interface"
-	else
+	if any members
 		forbid union_.has-new-interface-members else todo
 		members.size is cases.size
 		gen-match-union fun.return-type, range, members, (local-get-low-expr range, fun.params[0]), of i, _
 			cases[i].method-impls[method-index] else
 				gen-bogus fun.return-type, range
+	elif union_.has-new-interface-members
+		assert is-js
+		low-fun-body-method method-index, ()
+	else
+		gen-throw-string fun.return-type, range, "Called method of empty interface"
 
 gen-match-enum low-expr
 	range uri-and-range
@@ -141,10 +140,10 @@ do lower-ctx
 	type, range, get-constant-array-view all-constants, type, array-type, args
 
 gen-create-array low-expr(array-type low-type, range uri-and-range, args low-expr[]) lower-ctx
-	if is-empty args
-		constant-low-expr array-type, range, get-constant-array all-constants, array-type, ()
-	else
+	if any args
 		create-array-low-expr array-type, range, args
+	else
+		constant-low-expr array-type, range, get-constant-array all-constants, array-type, ()
 
 gen-to-array-view low-expr(array low-expr) lower-ctx, lower-funs
 	to-array-view = get-low-fun common-funs.to-array-view, (array.type.as-array!,), ()

@@ -881,7 +881,7 @@ do lower-and-expr-ctx
 			- lower-expr-or-void type, range, expr.after
 
 -lower-match-enum low-expr(type low-type, range uri-and-range, a match-enum-expr) lower-and-expr-ctx
-	do unless is-empty a.cases else lower-bogus type, range
+	do if any a.cases else lower-bogus type, range
 	lower-with-opt-local type, range, a.matched-local, a.matched, of matched
 		values-unsorted nat64[] = map a.cases, it.member.value
 		cases-unsorted low-expr[] = for value in values-unsorted
@@ -929,15 +929,15 @@ do lower-and-expr-ctx
 	lower-with-opt-local type, range, a.matched-local, a.matched, of matched
 		else_ low-expr? = if x = a.else_
 			lower-expr type, x
-		if is-empty a.cases
-			else_ else lower-bogus type, range
-		else
+		if any a.cases
 			case-indices nat32[] = for x in a.cases
 				member-index-for-match-sum-type-case matched.type, x.case-type
 			cases low-expr[] = for case_ in a.cases
 				lower-expr type, case_.then_
 			sorted-indices, sorted-cases = sort-by-first case-indices, cases
 			match-union-low-expr range, matched, sorted-indices.to, sorted-cases, else_
+		else
+			else_ else lower-bogus type, range
 
 -lower-catches (nat32[], low-local-and-expr[], low-local-and-expr?)
 	type low-type

@@ -210,14 +210,14 @@ has-count bool(a perf-part)
 to json(a perf-part)
 	count json = a.count.to
 	total = show-duration a.time
-	count-total json[symbol] = count: count, total: total
-	to if is-empty a.subparts
-		count-total
-	else
-		count-total ~~ (sum-of-parts: show-duration sum a.subparts, it.b.time) ~~
-			for* k, v in a.subparts
-				if has-count v
-					- k, v.to
+	:: json-object
+	- "count", count
+	- "total", total
+	-- if any a.subparts
+		- "sum-of-parts", show-duration sum a.subparts, it.b.time
+		-- for* k, v in a.subparts
+			if has-count v
+				- k, v.to
 
 perf-report perf-part(total nat64)
 	1, total,

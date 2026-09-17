@@ -186,10 +186,10 @@ do t sorted-key
 +median[t] t(a t array-view) t sorted-key
 	median-by a, {it}
 +median-of[t, k] k(a t array-view, get-key k mut(x t)) k sorted-key
-	forbid is-empty a
+	assert any a
 	median map::k[] a, get-key
 +median-by[t, k] t(a t array-view, get-key k mut(x t)) k sorted-key
-	forbid is-empty a
+	assert any a
 	nth-sorted-by a, a.size / 2, get-key
 
 | Equivalent to `a.sort[n]` but faster
@@ -222,7 +222,7 @@ do t sorted-key
 | and elements `a[index + 1 .. end]` will be > the pivot.
 | If there are multiple copies of the pivot, this returns the index of the last one.
 -pivot-around[t, k] nat32(a t buffer-view, pivot t, get-key k mut(x t)) k sorted-key
-	forbid is-empty a
+	assert any a
 	# Invariant: Everything at an index < l is <= pivot ; everything at an index > r is > pivot
 	l mut nat32 = 0
 	r mut = a.size - 1

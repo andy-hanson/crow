@@ -78,7 +78,7 @@ as-java-primitive-type java-primitive-type?(type low-type)
 erased-signature (low-type, low-type array-view)?(fun low-fun)
 	match body = fun.body
 	as low-fun-body-method
-		unless is-empty body.erased-signature
+		if any body.erased-signature
 			body.erased-signature[0], body.erased-signature[1 .. end]
 	as low-fun-body-extern-java
 		body.erased-return-type, body.erased-param-types

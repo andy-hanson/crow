@@ -85,9 +85,8 @@ import
 	size-and-locked: a.size-and-locked & ~locked-flag
 	entries: a.entries.copy
 
-| {true} if `{a}.{size} == 0`.
-+is-empty[k, v] bool(a v mut[k]) k key
-	a.size == 0
++any[k, v] bool(a v mut[k]) k key
+	a.size != 0
 
 | Number of pairs in the map.
 +size[k, v] nat32(a v mut[k])
@@ -209,7 +208,7 @@ import
 		a ~= pair
 
 -get-index[k, v] nat32?(entries (k, v)? buffer, key k) k key
-	do unless is-empty entries
+	do if any entries
 	start-i = ideal-index key, entries.size
 	i mut = start-i
 	do until

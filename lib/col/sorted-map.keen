@@ -53,12 +53,12 @@ do
 	for i in 0 .. divide-and-round-up a.size, chunk-size
 		a[i * chunk-size .. ((i + 1) * min chunk-size, a.size)].to
 
-+is-empty[k, v] bool(a (k, v) sorted-map) k sorted-key
-	match root = a.root
++any[k, v] bool(a (k, v) sorted-map) k sorted-key
+	match a.root
 	as branch
-		false
+		true
 	as array
-		is-empty root
+		any a.root
 
 +size[k, v] nat32(a (k, v) sorted-map)
 	size a.root
@@ -413,10 +413,10 @@ do k sorted-key
 	some-reverse a.children, {some-reverse it, f}
 
 +min-key[k, v] k?(a (k, v) sorted-map) k sorted-key
-	unless is-empty a
+	if any a
 		min-key a.root
 +max-key[k, v] k?(a (k, v) sorted-map) k sorted-key
-	unless is-empty a
+	if any a
 		max-key a.root
 -max-key[k, v] k(a (k, v) node)
 	match a
@@ -428,7 +428,7 @@ do k sorted-key
 region test
 
 ~validate[k, v] void(a (k, v) sorted-map) k sorted-key, k to-json, v to-json
-	unless is-empty a
+	if any a
 		validate a.root, a.root.min-key
 -validate[k, v] void(a (k, v) node, min k) k sorted-key, k to-json, v to-json
 	match a

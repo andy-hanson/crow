@@ -5,19 +5,19 @@ import
 +line-segment32 record
 	a vec2-32
 	b vec2-32
-+is-empty bool(a line-segment32)
-	a.a == a.b
++any bool(a line-segment32)
+	a.a != a.b
 +displacement vec2-32(a line-segment32)
 	a.b - a.a
 +unit-displacement vec2-32(a line-segment32)
-	forbid is-empty a
+	assert any a
 	normalize displacement a
 +unit-perpendicular vec2-32(a line-segment32)
-	forbid is-empty a
+	assert any a
 	rotate-left unit-displacement a
 
 +line line32(a line-segment32)
-	forbid is-empty a
+	assert any a
 	normal = rotate-left displacement a
 	angle: angle normal
 	distance: dot normal.normalize, a.a

@@ -78,7 +78,7 @@ do check-ctx, types-get
 	ast sum-type-ast
 do check-ctx, types-get
 	if ast.kind == union_
-		if is-empty ast.types
+		unless any ast.types
 			add-diag sum-type.keyword-range.range, diag-empty-enum-or-union
 		res sum-type-case-and-method-impls mut[] = ()
 		for type-ast in ast.types
@@ -97,7 +97,7 @@ do check-ctx, types-get
 					res ~= type, ()
 		res.move-to
 	else
-		unless is-empty ast.types
+		if any ast.types
 			add-diag ast.types-range!, diag-sum-type-listed-members-non-union
 		()
 
@@ -166,14 +166,14 @@ check-method-impls void(types type-decl[]) check-ctx, common-types, funs-map
 	do for type in types
 	if sum = type.body.sum-type
 		members = sum.listed-members
-		do unless is-empty members
+		do if any members
 		inst = type.instantiated-with-own-type-params
 		member-asts = type.source.type-decl-ast!.body.sum-type-ast!.types
 		for i, x in with-index members
 			range = if members.size == member-asts.size then member-asts[i].range else type.name-range.range
 			x.method-impls := check-method-impls-for-case type, x.case-type, range, inst, type.body.sum-type!.methods
 
-	unless is-empty type.sum-type-cases
+	if any type.sum-type-cases
 		case-type = type.instantiated-with-own-type-params
 		for x in type.sum-type-cases
 			x.method-impls :=
@@ -298,7 +298,7 @@ do check-ctx, common-types, funs-map
 				declared
 		else
 			next-enum-value diag-range, last
-	if is-empty members.members
+	unless any members.members
 		add-diag type.name-range.range, diag-empty-enum-or-union
 	members.storage, members.members, members.members-by-key
 -next-enum-value nat64(diag-range source-range, last-value nat64?) check-ctx
@@ -347,7 +347,7 @@ do check-ctx, common-types, funs-map
 	member-kind diag-duplicate-declaration-kind
 	cb-get-next-value nat64 mut(diag-range source-range, last-value nat64?, declared-value nat64?)
 do check-ctx
-	if params and not is-empty member-asts
+	if params and any member-asts
 		add-diag type.name-range.range,
 			diag-type-decl-params-syntax-error type, has-params-and-fields
 
@@ -389,10 +389,10 @@ do check-ctx
 		add-diag param.range, diag-type-decl-params-syntax-error enum-or-flags, destructure
 
 -enum-storage-type nat-type(members enum-or-flags-member[])
-	if is-empty members
-		nat8
-	else
+	if any members
 		min-nat-type-for-value members[end - 1].value
+	else
+		nat8
 
 -check-record record_
 	type type-decl
@@ -405,7 +405,7 @@ do check-ctx, types-get
 	fields: fields
 
 -check-record-fields record-field[](type type-decl, ast record-ast) check-ctx, types-get
-	if ast.params and not is-empty ast.fields
+	if ast.params and any ast.fields
 		add-diag type.name-range.range, diag-type-decl-params-syntax-error type, has-params-and-fields
 	res record-field[] = if ast.params
 		for* param in ast.params

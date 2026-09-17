@@ -272,7 +272,7 @@ do
 	out ~= "\}"
 
 -write-comment void(out output, comment string)
-	unless is-empty comment
+	if any comment
 		out ~~= "// {comment}\n"
 
 -write-class-member void(out output, member js-class-member)
@@ -498,7 +498,7 @@ do
 		write-arg-with-pos[x.called, pos.with-called]
 		out ~= "("
 		write-args[x.args]
-		unless is-empty x.args
+		if any x.args
 			out ~~= ", "
 		out ~~= "..."
 		write-arg[x.spread-arg]

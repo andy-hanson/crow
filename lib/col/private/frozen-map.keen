@@ -32,8 +32,8 @@ import
 ~to[k, v] (k, v)[](a (k, v) frozen-map) unsafe
 	a.pairs
 
-~is-empty[k, v] bool(a (k, v) frozen-map)
-	is-empty a.pairs
+~any[k, v] bool(a (k, v) frozen-map)
+	any a.pairs
 
 ~size[k, v] nat32(a (k, v) frozen-map)
 	size a.pairs
@@ -43,10 +43,10 @@ import
 		(trusted unsafe-at a.pairs, index).b
 
 -bucket-indices[k, v] nat32 range(a (k, v) frozen-map, key k) k key
-	if is-empty a.bucket-starts
-		0 .. a.pairs.size
-	else
+	if any a.bucket-starts
 		trusted bucket-indices-at-index a, (wrap-to::nat32 seeded-hash key) % a.bucket-starts.size
+	else
+		0 .. a.pairs.size
 
 # Returns a slice of 'a.pairs'
 -bucket-indices-at-index[k, v] nat32 range(a (k, v) frozen-map, bucket-index nat32) unsafe
@@ -97,11 +97,11 @@ do unsafe, k key
 		a
 
 -write-without-duplicates[k, v] void(out (k, v) builder, a (k, v) frozen-map) k key
-	if is-empty a.bucket-starts
-		write-bucket-without-duplicates out, a.pairs
-	else
+	if any a.bucket-starts
 		for i in 0 .. a.bucket-starts.size
 			write-bucket-without-duplicates out, bucket-at-index a, i
+	else
+		write-bucket-without-duplicates out, a.pairs
 
 -write-bucket-without-duplicates[k, v] void(out (k, v) builder, pairs (k, v) array-view) k key
 	for i, pair in with-index pairs
@@ -109,10 +109,10 @@ do unsafe, k key
 			out ~= pair
 
 -has-duplicates[k, v] bool(a (k, v) frozen-map) k key
-	if is-empty a.bucket-starts
-		bucket-has-duplicates a.pairs
-	else
+	if any a.bucket-starts
 		some 0 .. a.bucket-starts.size, {bucket-has-duplicates bucket-at-index a, it}
+	else
+		bucket-has-duplicates a.pairs
 
 -bucket-has-duplicates[k, v] bool(pairs (k, v) array-view) k key
 	some pairs.with-index, of i, (k, _)

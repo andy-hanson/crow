@@ -3,7 +3,8 @@ import
 
 test
 	a nat32 deque = ()
-	assert is-empty a
+	any a is false
+	size a is 0
 	a.dbg is "[]"
 	a.to::nat32[] is ()
 	a.pop-left is ()

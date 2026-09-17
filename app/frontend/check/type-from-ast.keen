@@ -34,7 +34,7 @@ do check-ctx, types-get
 	do if type-args = get-type-args-if-number-matches range, name, s-or-a.n-type-params, type-arg
 	match s-or-a
 	as type-alias
-		assert is-empty type-args
+		forbid any type-args
 		ok = match alias-allowed
 		as different-module
 			s-or-a.module-uri != cur-uri

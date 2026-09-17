@@ -78,15 +78,11 @@ export
 	else
 		trusted cast-immutable a.to::(t buffer)
 
+| Whether there is at least one element in the array.
 +any[t] bool(a t[])
 	a.size != 0
 +any[t] bool(a t array-view)
 	a.size != 0
-| {true} if `a.size == 0`.
-+is-empty[t] bool(a t[])
-	a.size == 0
-+is-empty[t] bool(a t array-view)
-	a.low == a.high
 
 | Prepend an element to an array.
 | This is O(n).
@@ -121,22 +117,16 @@ export
 | Concatenates two arrays.
 | This is O(n).
 + ~~[t] t[](a t[], b t[])
-	if is-empty a
-		b
-	elif is-empty b
-		a
-	else
-		a.to-array-view ~~ b.to-array-view
+	do if any a else b
+	do if any b else a
+	a.to-array-view ~~ b.to-array-view
 + ~~[t] t[](a t array-view, b t array-view)
-	if is-empty a
-		b.to
-	elif is-empty b
-		a.to
-	else
-		res t buffer = trusted uninitialized-buffer a.size + b.size
-		res[0 .. a.size] := a
-		res[a.size .. res.size] := b
-		trusted cast-immutable res
+	do if any a else b.to
+	do if any b else a.to
+	res t buffer = trusted uninitialized-buffer a.size + b.size
+	res[0 .. a.size] := a
+	res[a.size .. res.size] := b
+	trusted cast-immutable res
 
 + ==[t] bool(a t[], b t[]) t equal
 	trusted a.to-array-view == b.to-array-view
@@ -244,7 +234,7 @@ region basic array operations
 +some-reverse[t] bool(a t[], f bool mut(x t))
 	some-reverse a.to-array-view, f
 +some-reverse[t] bool(a t array-view, f bool mut(x t))
-	do unless is-empty a
+	do if any a
 	i mut = a.high - 1
 	do until
 	if f[trusted unsafe-at a.inner, i]

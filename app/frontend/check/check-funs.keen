@@ -101,7 +101,7 @@ do check-ctx, types-get
 -check-tests test_[](test-asts test-ast[]) check-ctx, types-get, funs-map
 	for ast in test-asts
 		specs = check-fun-modifiers (), ast.modifiers
-		if  not is-empty specs.instantiated-sigs
+		if any specs.instantiated-sigs
 			add-diag ast.keyword-range, test_.diag-spec-use-invalid
 		test_ test_ = next-hash, ast, cur-uri, specs, (bogus-expr (), void, temporary), ()
 		test_.body := check-fun-or-test-body test_, test_.name-range, (), void, (), ast.body, false

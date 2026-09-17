@@ -158,7 +158,7 @@ do instantiate-ctx
 	decl = get-fun-decl diags-builder, main-module, "main", void, (), 0
 	inst = instantiate-non-template-fun decl
 	specs = decl.specs
-	unless is-empty specs.all-contexts and is-empty specs.instantiated-sigs
+	if any specs.all-contexts or any specs.instantiated-sigs
 		diags-builder ~= inst.decl.name-range, diag-main-has-specs
 	inst
 

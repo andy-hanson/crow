@@ -25,11 +25,11 @@ import
 
 +list-new[t] t mut-deque(values t[]) = values.to
 +to[t] t mut-deque(values t[])
-	if is-empty values
-		(), nil, nil, false
-	else
+	if any values
 		# It wraps around, so both 'left' and 'right' are 0
 		values.to, 0, 0, false
+	else
+		(), nil, nil, false
 
 | Copy elements to a list.
 | This is O(n).
@@ -80,20 +80,17 @@ import
 	a.inner[a.right] := value
 	a.right := next-index a, a.right
 
-| Returns the leftmost element without removing it.
-| Returns an empty option if `{a} {is-empty}`.
+| Returns the leftmost element (if any) without removing it.
 +peek-left[t] t?(a t mut-deque)
 	unless a.left == nil
 		a.inner[a.left]
 
-| Returns the rightmost element without removing it.
-| Returns an empty option if `{a} {is-empty}`.
+| Returns the rightmost element (if any) without removing it.
 +peek-right[t] t?(a t mut-deque)
 	unless a.right == nil
 		a.inner[prev-index a, a.right]
 
-| Removes and returns the leftmost element.
-| Returns an empty option if `{a} {is-empty}`.
+| Removes and returns the leftmost element (if any).
 +pop-left[t] t?(a t mut-deque)
 	assert-can-write a
 	do unless a.left == nil
@@ -106,8 +103,7 @@ import
 		# Still hold on to `a inner`
 	res
 
-| Removes and returns the rightmost element.
-| Returns an empty option if `{a} {is-empty}`.
+| Removes and returns the rightmost element (if any).
 +pop-right[t] t?(a t mut-deque)
 	assert-can-write a
 	do unless a.right == nil
@@ -141,13 +137,13 @@ import
 	assert-can-write a
 	if a.left == nil
 		a.right is nil
-		if is-empty a.inner
+		unless any a.inner
 			a.inner := uninitialized-buffer 2
 		a.left := 0
 		a.right := 0
 	else
 		a.right isnt nil
-		forbid is-empty a.inner
+		assert any a.inner
 		if a.left == a.right
 			old-inner = a.inner
 			old-capacity = old-inner.size

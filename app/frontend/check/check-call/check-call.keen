@@ -151,10 +151,10 @@ do check-expr-ctx
 		if x = only candidates
 			check-call-after-choosing-overload x, diag-range
 		else
-			add-diag diag-range, if is-empty candidates
-				diag-call-no-match-for-interpolate-or-list-new fun-name.regular-name, type-with-container return-type
-			else
+			add-diag diag-range, if any candidates
 				diag-call-multiple-matches fun-name, type-container, candidates-for-diag candidates
+			else
+				diag-call-no-match-for-interpolate-or-list-new fun-name.regular-name, type-with-container return-type
 			()
 
 -prefer-exact-candidates void(candidates candidates, expected expected) common-types
@@ -341,7 +341,7 @@ do check-expr-ctx
 
 	handle-arg?[arg0-type]
 
-	until arg-index == n-args or is-empty candidates
+	until arg-index == n-args or not any candidates
 		filter-unordered-but-dont-remove-all candidates, of candidate
 			# The point of this function is to infer one type arg from another,
 			# e.g. given type params `[col, elem]` and spec `(col, elem) some` infer `elem` from `col`.
@@ -359,7 +359,9 @@ do check-expr-ctx
 	if x = only candidates
 		check-call-after-choosing-overload x, diag-range
 	else
-		add-diag diag-range, if is-empty candidates
+		add-diag diag-range, if any candidates
+			diag-call-multiple-matches fun-name, type-container, candidates-for-diag candidates
+		else
 			:: diag-call-no-match
 			type-container: type-container
 			fun-name: fun-name
@@ -368,8 +370,6 @@ do check-expr-ctx
 			actual-arity: n-args
 			actual-arg-types: arg-types[0 .. arg-index].to
 			all-candidates: get-all-candidates-for-diag fun-name
-		else
-			diag-call-multiple-matches fun-name, type-container, candidates.candidates-for-diag
 		()
 
 -filter-candidates-for-arg-type void(candidates candidates, arg-index nat32, arg-type type) common-types

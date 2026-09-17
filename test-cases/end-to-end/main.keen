@@ -14,10 +14,10 @@ main void() global
 	print-tests, overwrite-output, match-test = only3! values
 	options test-options =
 		print-tests: if print-tests
-			assert is-empty print-tests
+			forbid any print-tests
 			true
 		overwrite-output: if overwrite-output
-			assert is-empty overwrite-output
+			forbid any overwrite-output
 			true
 		match-test: if match-test
 			only! match-test
@@ -27,11 +27,11 @@ main void() global
 	failures failure[] = for* x in tests
 		for* kind in members::run-kind[]
 			run-single paths, x, kind, options
-	if is-empty failures
-		print "Ran {size tests} keen tests"
-	else
+	if any failures
 		print-error failures.show-failures
 		exit-process failures.size.to
+	else
+		print "Ran {size tests} keen tests"
 
 -print-help void() global
 	print quote

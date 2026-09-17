@@ -74,7 +74,7 @@ instantiate-spec-body void(a spec-inst, delay-spec-insts may-delay-spec-insts) i
 			out ~= instantiate-return-and-param-types sig.return-type, sig.params, a.type-args
 
 instantiate-specs specs(specs specs, type-args type-args) instantiate-ctx
-	do unless is-empty type-args else specs
+	do if any type-args else specs
 	get-or-add-specs for x in specs.inner
 		instantiate-spec-or-type-inst x, type-args, no-delay-spec-insts
 
@@ -94,7 +94,7 @@ instantiate-spec-inst spec-inst
 	type-args type-args
 	delay-spec-insts may-delay-spec-insts
 do instantiate-ctx
-	do unless is-empty type-args else spec-inst
+	do if any type-args else spec-inst
 	instantiated-type-args = instantiate-type-args spec-inst.type-args, type-args
 	instantiate-spec spec-inst.decl, instantiated-type-args, delay-spec-insts
 

@@ -38,8 +38,6 @@ import
 
 +any[t] bool(a t set) t key
 	any a.inner
-+is-empty[t] bool(a t set) t key
-	is-empty a.inner
 
 +size[t] nat32(a t set) t key
 	size a.inner

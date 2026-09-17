@@ -27,5 +27,5 @@ test
 	b-mut nat64 mut[] = b.to
 	merge-no-duplicates a-mut, b-mut, of x, y
 		assert-comparison-not-equal x <=> y
-	assert is-empty b-mut
+	forbid any b-mut
 	move-to a-mut

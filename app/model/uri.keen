@@ -13,7 +13,8 @@ as-path path(a string-view)
 -parent-and-base-name (path, string)?(a path)
 	if left, right = try-split-once-right a.to::string, "/"
 		(left.to,), right.to
-is-empty bool(a path) = a.to::symbol == ""
+any bool(a path)
+	a.to::symbol != ""
 base-name string(a path)
 	a.parent-and-base-name.?b else a.to
 test
@@ -34,10 +35,10 @@ root-path path(first-component symbol)
 	forbid res.parent
 	res
 / path(a path, b string)
-	if is-empty b
-		a
-	else
+	if any b
 		"{a}/{b}",
+	else
+		a
 test
 	a path = "a",
 	a / "" is a
@@ -129,7 +130,7 @@ as-file-path file-path?(a uri)
 	do if res = try-remove-start a.to::string, file-scheme
 	path char8[] = parse-path-inner res, true 'to
 	# A uri has a "/" before a Windows path, like `file:///c%3a`; a file-path does not.
-	str string = if not is-empty path and path[0] == "/" and path[1 .. end].is-windows-path
+	str string = if any path and path[0] == "/" and path[1 .. end].is-windows-path
 		path[1 .. end].to
 	else
 		path.to
@@ -206,9 +207,8 @@ add-to-base-name path(a path, rest string)
 	"{a}{rest}",
 
 / uri(a uri, b string)
-	if is-empty b
-		a
-	elif is-windows-path a
+	do if any b else a
+	if is-windows-path a
 		"{a}/{b.lower-case}",
 	else
 		"{a}/{b}",
@@ -315,10 +315,10 @@ show string(a rel-path)
 		"./"
 	else
 		repeat "../", a.n-parents
-	if is-empty a.path
-		parents[0 .. end - 1].to
-	else
+	if any a.path
 		"{parents}{a.path}"
+	else
+		parents[0 .. end - 1].to
 to json(a rel-path) = a.show.to
 test
 	(0, ("a",))::rel-path.show is "./a"
@@ -516,7 +516,7 @@ test
 		while p = parent cur
 			out ~= base-name cur
 			cur := p
-		unless cur.to::string.is-empty
+		if any cur
 			out ~= base-name cur
 
 jar-and-class record

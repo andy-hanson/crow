@@ -2,7 +2,7 @@
 
 This readme describes how to build Keen from source.
 
-For information about the language itself, visit the [website](https://keen.codes/).
+For information about the language itself, visit the [website](https://keen.foo/).
 
 
 # Setup

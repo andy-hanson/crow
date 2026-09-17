@@ -284,7 +284,7 @@ do java-ctx, java-refs
 	return out, void
 
 -init-constant void(out code-builder, constant any-allocated-constant) java-expr-ctx
-	assert is-empty the-stack
+	forbid any the-stack
 	type = constant.type
 	match constant
 	as single-constant-array
@@ -304,7 +304,7 @@ do java-ctx, java-refs
 			push-constant out, constant.args[i], field.type
 	putstatic out, constant-field constant
 	must-pop constant.type
-	assert is-empty the-stack
+	forbid any the-stack
 
 -emit-unreachable void(out code-builder) java-refs
 	makenew out, java-Error
@@ -631,7 +631,7 @@ do java-expr-ctx
 		as interface_
 			union-sealed-interface this-class, super-class, interfaces, all-methods
 		as switch
-			assert is-empty all-methods else todo
+			forbid any all-methods else todo
 			union-switchable this-class, super-class, interfaces
 		as nullable
 			()
@@ -1020,7 +1020,7 @@ do java-refs
 				emit-and-continue out, var.initializer
 				putstatic out, var-field var
 				must-pop var.type
-			assert is-empty the-stack
+			forbid any the-stack
 		return out, void
 	access-flags: static | final
 	name: clinit
@@ -1029,7 +1029,7 @@ do java-refs
 
 -verify-expr-ctx-finished void(return-type low-type, params low-local[]) java-expr-ctx
 	must-pop return-type
-	assert is-empty the-stack
+	forbid any the-stack
 	the-locals.size is count params, it.type.is-empty-type.not
 
 -emit-fun-body void(out code-builder, fun low-fun) java-expr-ctx
@@ -1281,14 +1281,14 @@ do java-refs
 		class-name = create-lambda-implementation-class a.uri, type, a
 		class_ = class_ out.constants, class-name
 		# All we do here is call 'new' or 'instance'
-		if is-empty a.closure
-			getstatic out, instance-field class_, class-name
-		else
+		if any a.closure
 			makenew out, class_
 			dup32 out
 			for local in a.closure
 				get-local out, local
 			invokespecial out, lambda-init-reference class_, a
+		else
+			getstatic out, instance-field class_, class-name
 		pushed type
 		handle-pos out, pos, type
 	as local-get-low-expr
@@ -1806,7 +1806,7 @@ do java-expr-ctx
 		unless is-last-case
 			pushed matched-type
 		jumps-to-here jump, out, cur-stack-frame
-	if is-empty checked-cases
+	unless any checked-cases
 		pop out, as-runtime-type matched-type
 		must-pop matched-type
 	emit-expr out, inner-pos, final-branch
@@ -1934,20 +1934,20 @@ do java-expr-ctx
 		- x
 		- lambda-impl-field this-class, x
 	super-class = class_ lambda-type
-	fields field_info[] = if is-empty a.closure
-		- instance-field this-class-name
-	else
+	fields field_info[] = if any a.closure
 		for x in a.closure
 			forbid is-empty-type x.type
 			access-flags: final
 			name: lambda-impl-field-name x
 			descriptor: descriptor-for-field-type x.type
 			attributes: ()
+	else
+		- instance-field this-class-name
 	methods method_info[] = with methods-out in build
 		field-refs (field-reference, java-runtime-type)[] = for local in a.closure
 			closure[local]!, local.type.as-runtime-type
 		methods-out ~= record-initializer super-class, field-refs, lambda-init-descriptor a
-		if is-empty a.closure
+		unless any a.closure
 			methods-out ~= clinit-for-instance-field this-class-name, this-class
 		methods-out ~= lambda-run-method this-class, closure, lambda-type, a
 	add-class this-class-name,

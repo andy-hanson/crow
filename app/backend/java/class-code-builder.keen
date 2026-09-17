@@ -91,7 +91,7 @@ add-to-exception-table void(a code-builder, start nat16, end nat16, catch-type c
 	res stack_map_frame? = if cur.locals[0 .. min-locals] == prev.locals[0 .. min-locals]
 		match cur.locals.size <=> prev.locals.size
 		as equal
-			if is-empty cur.stack
+			if not any cur.stack
 				if offset-delta <= max-offset-for-same-frame
 					same_frame offset-delta.to
 				else
@@ -102,12 +102,12 @@ add-to-exception-table void(a code-builder, start nat16, end nat16, catch-type c
 				else
 					same_locals_1_stack_item_frame_extended offset-delta, stack-item
 		as less
-			do if is-empty cur.stack
+			do unless any cur.stack
 			chop-n = prev.locals.size - cur.locals.size
 			do if chop-n >= 1 and chop-n <= max-n-to-chop
 			chop_frame chop-n.to, offset-delta
 		as greater
-			do if is-empty cur.stack
+			do unless any cur.stack
 			append-n = cur.locals.size - prev.locals.size
 			do if append-n >= 1 and append-n <= max-n-to-append
 			append_frame offset-delta, cur.locals[prev.locals.size .. end].to
@@ -560,7 +560,7 @@ lookupswitch (deferred-jump32[], deferred-jump32)(a code-builder, values int32[]
 	jumps, (jump-from, location-of-default)
 
 tableswitch (deferred-jump32[], deferred-jump32)(a code-builder, range nat32 range)
-	forbid is-empty range
+	assert any range
 	jump-from nat32 = a.out.next-index
 	a.out ~= 0xaa # tableswitch
 	pad-to-align a, 4

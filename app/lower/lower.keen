@@ -69,7 +69,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 			any := true
 		any
 
-	assert is-empty ctx.all-unprocessed-low-funs
+	forbid any ctx.all-unprocessed-low-funs
 
 	replace-constants
 
@@ -123,7 +123,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 
 -make-callers-for-java-interfaces bool() lower-ctx
 	interfaces = the::lower-context.deferred-java-interfaces
-	res = not is-empty interfaces
+	res = any interfaces
 	while type = pop interfaces
 		source = type.source.low-type-source-inst!
 		decl = source.decl
@@ -175,7 +175,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		source: low-fun-source-test-all range
 		return-type: void
 		params: ()
-		body: if is-empty tests then gen-void range else seq-low-expr range, tests
+		body: if any tests then seq-low-expr range, tests else gen-void range
 	add-low-fun res
 	res
 

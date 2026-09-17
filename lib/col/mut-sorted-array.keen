@@ -17,8 +17,8 @@ import
 +has[t] bool(a t mut-sorted-array, value t) t sorted-key
 	binary-search-exact (trusted temp-as-array-view a.inner), value
 
-+is-empty[t] bool(a t mut-sorted-array) t sorted-key
-	is-empty a.inner
++any[t] bool(a t mut-sorted-array) t sorted-key
+	any a.inner
 +size[t] nat(a t mut-sorted-array) t sorted-key
 	size a.inner
 

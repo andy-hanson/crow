@@ -114,14 +114,14 @@ test global
 	cur-info mut info-at-pos = ()
 	lcg = line-and-character-getters[uri]
 	end-range = of end pos
-		do unless is-empty cur-info
+		do if any cur-info
 		fields json[symbol] =
 			# TODO: It would probably be neater to use a record with an auto 'to json' -------------------------------
 			- "range", lcg[(cur-range-start, end)::source-range].to
 			- "hover", cur-info.hover.to
-			-- unless is-empty cur-info.definition
+			-- if any cur-info.definition
 				- "definition", cur-info.definition.to
-			-- unless is-empty cur-info.type-definition
+			-- if any cur-info.type-definition
 				- "type-definition", cur-info.type-definition.to
 		out-results ~= fields.to
 
@@ -144,5 +144,5 @@ test global
 	type-definition uri-and-line-and-character-range[]
 -new info-at-pos()
 	(), (), ()
--is-empty bool(a info-at-pos)
-	is-empty a.hover and is-empty a.definition and is-empty a.type-definition
+-any bool(a info-at-pos)
+	any a.hover or any a.definition or any a.type-definition

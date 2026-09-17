@@ -5,7 +5,7 @@ import
 
 replace-constants void() lower-ctx
 	ctx = the::lower-context
-	assert is-empty ctx.all-unprocessed-low-funs
+	forbid any ctx.all-unprocessed-low-funs
 	constants-map constant mut[low-fun] = for* fun in ctx.all-processed-low-funs
 		body = fun.body
 		if body.low-expr and body.constant-low-expr

@@ -60,8 +60,8 @@ import
 	0, ()
 -new[t] t array2d(a t[])
 	a.size, (a,)
--is-empty[t] bool(a t array2d)
-	is-empty a.arrays
+-any[t] bool(a t array2d)
+	any a.arrays
 - ~~[t] t array2d(a t array2d, b t array2d)
 	a.total-size + b.total-size, a.arrays ~~ b.arrays
 -subscript[t] t[](a t array2d, index nat32)
@@ -80,8 +80,8 @@ import
 	0, ()
 -new[t] t array3d(a t array2d)
 	a.total-size, (a,)
--is-empty[t] bool(a t array3d)
-	is-empty a.arrays
+-any[t] bool(a t array3d)
+	any a.arrays
 - ~~[t] t array3d(a t array3d, b t array3d)
 	a.total-size + b.total-size, a.arrays ~~ b.arrays
 -subscript[t] t array2d(a t array3d, index nat32)
@@ -105,15 +105,15 @@ import
 -new[t] t l3()
 	(),
 
--is-empty[t] bool(a t l2)
+-any[t] bool(a t l2)
 	match x = a.node
 	as leaf-node
-		is-empty x.leaf
+		any x.leaf
 	as branch
-		false
+		true
 
--is-empty[t] bool(a t l3)
-	is-empty a.nodes
+-any[t] bool(a t l3)
+	any a.nodes
 
 -depth[t] nat32(a t list)
 	match x = a.root.node
@@ -226,18 +226,18 @@ do (iter, col) begin, (elem, iter) take-next, elem compare
 
 | {true} if `{a}.{size} == 0`.
 | This is O(1).
-+is-empty[t] bool(a t list)
++any[t] bool(a t list)
 	match x = a.root.node
 	as leaf-node
-		is-empty x.leaf
+		any x.leaf
 	as branch
-		false
+		true
 
 | Concatenate two lists.
 | This is O(log n), where `n` is the size of the smaller list.
 + ~~[t] t list(a t list, b t list)
-	do unless is-empty a else b
-	do unless is-empty b else a
+	do if any a else b
+	do if any b else a
 	# Concatenate the smaller list onto the bigger one.
 	match a.depth <=> b.depth
 	as less
@@ -604,10 +604,10 @@ do leaf concatenate, leaf size-bytes, lower new
 -next-to-l2-left[t] (t, t list-iterator)?(a t list-iterator)
 	match node = a.list.get-l2.node
 	as leaf-node
-		if is-empty node.leaf
-			next-to-l1-right a
-		else
+		if any node.leaf
 			next-set-chunk a, node.leaf[0], node.leaf.begin.l2-leaf
+		else
+			next-to-l1-right a
 	as branch
 		next-set-chunk a, node.left[0], node.left.begin.l2-left
 
@@ -622,26 +622,26 @@ do leaf concatenate, leaf size-bytes, lower new
 -prev-to-l2-right[t] (t list-iterator, t)?(a t list-iterator)
 	match node = a.list.get-l2.node
 	as leaf-node
-		if is-empty node.leaf
-			prev-to-l1-left a
-		else
+		if any node.leaf
 			prev-set-chunk a, node.leaf[end - 1], node.leaf.end.l2-leaf
+		else
+			prev-to-l1-left a
 	as branch
 		prev-set-chunk a, node.right[end - 1], node.right.end.l2-right
 
 -next-to-l3[t] (t, t list-iterator)?(a t list-iterator)
 	nodes = a.list.get-l3.nodes
-	if is-empty nodes
-		next-to-l2-right a
-	else
+	if any nodes
 		next-set-chunk a, nodes[0][0], nodes.begin.l3-leaf
+	else
+		next-to-l2-right a
 
 -prev-to-l3[t] (t list-iterator, t)?(a t list-iterator)
 	nodes = a.list.get-l3.nodes
-	if is-empty nodes
-		prev-to-l2-left a
-	else
+	if any nodes
 		prev-set-chunk a, nodes[end - 1][end - 1], nodes.end.l3-leaf
+	else
+		prev-to-l2-left a
 
 -slice[t] t list(begin t list-iterator, end t list-iterator)
 	end-of-same-list = if trusted begin.list 'list-reference-equal end.list
@@ -770,43 +770,42 @@ do
 		throw slice-right-to-left
 
 -level[l, leaf] spec
-	is-empty bool(level l)
+	any bool(level l)
 	pop-left (leaf, l)(level l)
 	pop-right (l, leaf)(level l)
 
--is-empty[t] spec
-	is-empty bool(a t)
+-any[t] spec
+	any bool(a t)
 
 -make-level-generic[leaf, lower] (leaf, lower) node
 	left leaf
 	down lower
 	right leaf
-do leaf concatenate, leaf is-empty, (lower, leaf) level
-	if is-empty down
+do leaf concatenate, leaf any, (lower, leaf) level
+	if not any down
 		left ~~ right,
-	else
-		if is-empty left
-			if is-empty right
-				pair0 = pop-left down
-				if is-empty pair0.b
-					pair0.a,
-				else
-					pair1 = pop-right pair0.b
-					pair0.a, pair1.a, pair1.b
+	elif not any left
+		if any right
+			down-left, down-down = pop-left down
+			if any down-down
+				down-left, down-down, right
 			else
-				down-left, down-down = pop-left down
-				if is-empty down-down
-					down-left ~~ right,
-				else
-					down-left, down-down, right
-		elif is-empty right
-			down-down, down-right = pop-right down
-			if is-empty down-down
-				left ~~ down-right,
-			else
-				left, down-down, down-right
+				down-left ~~ right,
 		else
-			left, down, right
+			pair0 = pop-left down
+			if any pair0.b
+				pair1 = pop-right pair0.b
+				pair0.a, pair1.a, pair1.b
+			else
+				pair0.a,
+	elif not any right
+		down-down, down-right = pop-right down
+		if any down-down
+			left, down-down, down-right
+		else
+			left ~~ down-right,
+	else
+		left, down, right
 
 -make-l1[t] t list(left t[], down t l2, right t[])
 	root: (make-level-generic left, down, right),
@@ -822,13 +821,13 @@ do leaf concatenate, leaf is-empty, (lower, leaf) level
 	as branch
 		bl t array2d = node.left
 		popped = bl[0]
-		forbid is-empty node.left.arrays
+		assert any node.left.arrays
 		rest t l2 = if node.left.arrays.size == 1
-			node: if is-empty node.down
-				- node.right
-			else
+			node: if any node.down
 				left, cur = pop-left node.down
 				left, cur, node.right
+			else
+				- node.right
 		else
 			node: node.left[1 .. end], node.down, node.right
 		popped, rest
@@ -840,13 +839,13 @@ do leaf concatenate, leaf is-empty, (lower, leaf) level
 		- node.leaf[end - 1]
 	as branch
 		popped t[] = node.right[end - 1]
-		forbid is-empty node.right.arrays
+		assert any node.right.arrays
 		- if node.right.arrays.size == 1
-			node: if is-empty node.down
-				- node.left
-			else
+			node: if any node.down
 				cur, right = pop-right node.down
 				node.left, cur, right
+			else
+				- node.left
 		else
 			node: node.left, node.down, node.right[0 .. end - 1]
 		- popped
@@ -985,8 +984,8 @@ region test
 	as leaf-node
 		size node.leaf
 	as branch
-		forbid is-empty node.left
-		forbid is-empty node.right
+		assert any node.left
+		assert any node.right
 		node.left.size + node.down.check-structure + node.right.size
 
 -check-structure[t] nat32(a t l2)
@@ -999,7 +998,7 @@ region test
 -check-structure[t] nat32(a t array2d)
 	acc mut nat32 = 0
 	for a1d in a.arrays
-		forbid is-empty a1d
+		assert any a1d
 		acc +:= size a1d
 	acc is a.total-size
 	acc
@@ -1008,7 +1007,7 @@ region test
 	# TODO: check total-size is accurate
 	acc mut nat32 = 0
 	for a2d in a.arrays
-		forbid is-empty a2d.arrays
+		assert any a2d.arrays
 		acc +:= check-structure a2d
 	assert acc == a.total-size
 	acc

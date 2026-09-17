@@ -241,7 +241,7 @@ do
 		add-inner keyword-range, keyword
 
 -add-doc-comment-tokens void(a doc-comment-ast) tokens-builder
-	do unless is-empty a
+	do if any a
 	range = a.range!
 	pos mut = range.start
 	for x in a.references
