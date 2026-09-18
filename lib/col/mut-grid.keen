@@ -43,8 +43,8 @@ import
 | Creates a new grid, setting every element to `{f}[x, y]`.
 +make[t] t mut-grid(width nat32, height nat32, f t mut(x nat64, y nat64))
 	elements: with out in build width * height
-		for y in 0::nat32 .. height
-			for x in 0::nat32 .. width
+		for y in height
+			for x in width
 				out ~= f[x, y]
 	width: width
 	height: height

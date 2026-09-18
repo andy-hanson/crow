@@ -125,7 +125,7 @@ test global
 				- "type-definition", cur-info.type-definition.to
 		out-results ~= fields.to
 
-	for pos in 0::pos .. lcg.end-of-file + 1
+	for pos in lcg.end-of-file + 1
 		where uri-line-and-character = uri, lcg[pos]
 		hover hover? = get-hover program, (where.to,)
 		here info-at-pos =

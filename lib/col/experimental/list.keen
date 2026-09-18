@@ -928,13 +928,13 @@ region test
 	a-array t[] = a.to
 	verify-iter-forwards a
 	verify-iter-backwards a
-	for i in 0::nat32 .. a.size
+	for i in a.size
 		for j in i .. a.size
 			a[i .. j] is a-array[i .. j].to.to
 -verify-iter-forwards[t] void(a t list) t equal, t to-json
 	a-array t[] = a.to
 	iter = begin a
-	for index in 0::nat32 .. a.size
+	for index in a.size
 		iter.index is index
 		a.begin 'slice iter is a-array[0 .. index].to.to
 		iter 'slice a.end is a-array[index .. end].to.to

@@ -26,7 +26,7 @@ end pos(a token-start-end)
 	a.value & 0xffffff 'to
 to json(a tokens)
 	size = a.tokens-starts-ends.size
-	for::json[] i in 0 .. size
+	for::json[] i in size
 		x = a.tokens-starts-ends[i]
 		match data_ = a.datas[i]
 		as no-token-data
@@ -327,7 +327,7 @@ lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 	else
 		emit state, newline-same-indent, start, iter.pos
 -emit-dedents void(state lexer-state, start pos, iter string-iterator, amount nat32)
-	for _ in 0::nat32 .. amount
+	for _ in amount
 		emit state, newline-dedent, start, start
 	emit-newline-same-indent state, start, iter
 -end-all-quotes void(state lexer-state, iter string-iterator)
@@ -555,9 +555,9 @@ region strings
 				state.cur-indent := new-indent
 				true
 			else
-				for _ in 0 .. count-newlines
+				for _ in count-newlines
 					out ~= "\n"
-				for _ in 0::nat32 .. new-indent - prev-indent
+				for _ in new-indent - prev-indent
 					out ~~= chars state.indent-kind
 				false
 		as "\0"

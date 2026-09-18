@@ -7,13 +7,13 @@ import
 test
 	a mut-cuckoo-filter = capacity: 4
 	# Deliberately use hashes that will conflict (all multiples of capacity) to test reinsert logic
-	for i in 0::nat32 .. 7
+	for i in 7::nat
 		try-add a, i * 4 is added
-		for j in 0::nat32 .. i + 1
+		for j in i + 1
 			probably-contains a, j * 4 is true
 	try-add a, 28 is failed-to-add
 	probably-contains a, 28 is false
-	for i in 0::nat32 .. 4
+	for i in 4::nat
 		probably-contains a, i * 4 is true
 		probably-contains a, i * 4 + 1 is false
 		probably-contains a, i * 4 + 2 is false
@@ -33,9 +33,9 @@ test
 	# Test rolling over max-version
 	a mut-cuckoo-filter = capacity: 4
 	assert-empty void mut() = of
-		for j in 0::nat32 .. 16
+		for j in 16::nat
 			probably-contains a, j * 4 is false
-	for i in 0::nat32 .. 16
+	for i in 16::nat
 		assert-empty[]
 		try-add a, i * 4 is added
 		clear a
@@ -49,7 +49,7 @@ test
 	# Use an under-capacity filter to test reinserts
 	a mut-cuckoo-filter = capacity: n / 2
 	compare nat32 mut-set = ()
-	values nat32[] = for _ in 0 .. n
+	values nat32[] = for _ in n
 		random n * 2
 	false-positives mut nat32 = 0
 	failed-to-add nat64 mut-set = ()
@@ -72,7 +72,7 @@ test
 		compare[value] is true
 		unless failed-to-add[value]
 			probably-contains a, value is true
-	for _ in 0 .. n
+	for _ in n
 		value = random n * 2
 		actual = probably-contains a, value
 		if compare[value] and not failed-to-add[value]

@@ -310,7 +310,7 @@ do k key
 	if index < a.size
 		update-at a, index, new-value
 	else
-		for i in 0::nat32 .. index + 1
+		for i in index + 1
 			if i < a.size
 				trusted unsafe-at a, i
 			elif i == index

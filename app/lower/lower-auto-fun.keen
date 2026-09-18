@@ -469,7 +469,7 @@ do lower-and-expr-ctx, lower-funs
 		b-case-index low-local = union-kind::low-generated-local-kind, nat64
 		get-b-case-index = local-get-low-expr range, b-case-index
 		init-b-case-index low-expr =
-			cases low-expr[] = for member-index in 0 .. members.size
+			cases low-expr[] = for member-index in members.size
 				constant-low-expr nat64, range, member-index.to
 			match-union-low-expr range, p1, (0 .. members.size).to, cases, ()
 		match_ low-expr = gen-match-union comparison, range, members, p0, of member-index, get-member

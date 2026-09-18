@@ -7,7 +7,6 @@ import
 	../../misc
 	../../number
 	../../option
-	../../range
 	../../tuple
 	../array
 	../buffer
@@ -89,7 +88,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare unique-comparison data
 			a[a-write] := a[a-read]
 			if a-read == 0
 				assert b-read + 1 == a-write
-				for i in 0::nat32 .. a-write
+				for i in a-write
 					a[i] := b[i]
 				true
 			else

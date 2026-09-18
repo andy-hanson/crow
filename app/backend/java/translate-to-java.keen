@@ -219,7 +219,7 @@ do show-ctx
 -constant-symbols-class ClassFile() java-ctx
 	the java-refs = start-new-class names
 	constant-symbols = program.all-constants.symbols
-	fields field_info[] = for index in 0 .. constant-symbols.size
+	fields field_info[] = for index in constant-symbols.size
 		access-flags: static | final
 		name: constant-symbol-name index
 		descriptor: descriptor-for-field-type symbol
@@ -352,7 +352,7 @@ do java-expr-ctx
 	iconst out, size.to
 	new-array-for-type out, element-type
 	pushed array-type
-	for i in 0::nat32 .. size
+	for i in size
 		dup32 out
 		pushed array-type
 		iconst out, i.to
@@ -688,11 +688,11 @@ do java-expr-ctx
 	code = with out in build-code ()
 		makenew out, java-String
 		dup32 out
-		for _ in 0 .. 2
+		for _ in 2::nat
 			pushed method.return-type # Not the right type, but it's not used by the code so any type will do
 		emit-expr out, continue_, expr
 		# At this point, the stack is: The String, the same String again, and the string (byte[])
-		for _ in 0 .. 2
+		for _ in 2::nat
 			must-pop method.return-type # Not the right type, but it's not used by the code so any type will do
 		verify-expr-ctx-finished method.return-type, method.params
 		invokespecial out, java-String-init-from-bytes

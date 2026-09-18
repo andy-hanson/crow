@@ -14,7 +14,7 @@ import
 
 +sfc32 sfc32(seed nat64)
 	res sfc32 = 0, seed.wrap-to, (seed >> 32).wrap-to, 0
-	for _ in 0 .. 12
+	for _ in 12::nat
 		_ = next32 res
 	res
 

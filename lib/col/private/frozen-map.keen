@@ -98,7 +98,7 @@ do unsafe, k key
 
 -write-without-duplicates[k, v] void(out (k, v) builder, a (k, v) frozen-map) k key
 	if any a.bucket-starts
-		for i in 0 .. a.bucket-starts.size
+		for i in a.bucket-starts.size
 			write-bucket-without-duplicates out, bucket-at-index a, i
 	else
 		write-bucket-without-duplicates out, a.pairs

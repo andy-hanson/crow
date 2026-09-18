@@ -256,7 +256,7 @@ list-new[k, t] (k, t) multi-by-key(values t[]) (k, t) get-key
 		out-values[next-value .. values-end] := subarray
 		next-value := values-end
 	starts-and-nexts nat64 buffer = trusted uninitialized-buffer starts.size
-	for i in 0::nat32 .. starts-and-nexts.size
+	for i in starts-and-nexts.size
 		starts-and-nexts[i] := starts[i] 'bits-cat groups-by-key.next[i]
 	impl: trusted large-multi-by-key starts-and-nexts.cast-immutable, out-values.cast-immutable
 -group-by-key[k, t] t[][](values t[]) (k, t) get-key

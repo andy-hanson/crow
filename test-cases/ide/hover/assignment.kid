@@ -29,8 +29,8 @@
 	definition:
 		-
 			range:
-				end: character: 4, line: 16
-				start: character: 1, line: 16
+				end: character: 4, line: 17
+				start: character: 1, line: 17
 			uri: "test:///keen/lib/number.keen"
 	hover: "Alias for 'nat32'"
 	range:
@@ -68,10 +68,10 @@
 	definition:
 		-
 			range:
-				end: character: 3, line: 128
-				start: character: 2, line: 128
+				end: character: 3, line: 129
+				start: character: 2, line: 129
 			uri: "test:///keen/lib/number.keen"
-	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 129).\nExpression type is: 'nat32'"
+	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 130).\nExpression type is: 'nat32'"
 	range:
 		end: character: 6, line: 2
 		start: character: 3, line: 2
@@ -112,10 +112,10 @@
 	definition:
 		-
 			range:
-				end: character: 3, line: 128
-				start: character: 2, line: 128
+				end: character: 3, line: 129
+				start: character: 2, line: 129
 			uri: "test:///keen/lib/number.keen"
-	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 129).\nExpression type is: 'void'"
+	hover: "Calls '+ nat32(a nat32, b nat32)' (from keen/number.keen line 130).\nExpression type is: 'void'"
 	range:
 		end: character: 4, line: 5
 		start: character: 3, line: 5
@@ -205,8 +205,8 @@
 	definition:
 		-
 			range:
-				end: character: 4, line: 16
-				start: character: 1, line: 16
+				end: character: 4, line: 17
+				start: character: 1, line: 17
 			uri: "test:///keen/lib/number.keen"
 	hover: "Alias for 'nat32'"
 	range:

@@ -311,7 +311,7 @@ do
 -write-block-statement void(out output, indent nat32, a js-block-statement)
 	out ~= "\{"
 	# Writing it this way to avoid a stack overflow in this highly recursive function (iterating ranges is specialized)
-	for index in 0 .. a.statements.size
+	for index in a.statements.size
 		statement = a.statements[index]
 		out ~~= newline indent + 1
 		write-statement out, indent + 1, statement, if index == 0 then first else non-first

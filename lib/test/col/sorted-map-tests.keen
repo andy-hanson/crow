@@ -8,7 +8,7 @@ test global
 	random-test it.inner
 -inner void(random random)
 	the random = random
-	values nat[] = unique for _ in 0 .. 1000 then random 1000 .. 2000
+	values nat[] = unique for _ in 1000::nat then random 1000 .. 2000
 	a mut (nat, nat) sorted-map = ()
 	for value in values
 		a ~:= (value, value)

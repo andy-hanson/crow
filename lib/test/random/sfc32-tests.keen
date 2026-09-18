@@ -3,7 +3,7 @@ import
 
 test
 	a sfc32 = sfc32 0xdeadbeefcafebabe
-	(for::nat32[] _ in 0 .. 8 then next32 a) is
+	(for::nat32[] _ in 8::nat then next32 a) is
 		- 0x7f5e6679
 		- 0x0757cd40
 		- 0xf980fc99

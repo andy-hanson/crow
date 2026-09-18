@@ -286,7 +286,7 @@ import
 -take-unicode-escape bool(out char8 builder, iter string-iterator, sequence-length nat)
 	try
 		full-char mut nat32 = 0
-		for _ in 0::nat .. sequence-length
+		for _ in sequence-length
 			assert x = ?decode-hex-digit peek iter else invalid-unicode-character 0
 			_ = take-next iter
 			full-char := (full-char << 4) | x.to

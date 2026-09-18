@@ -7,6 +7,7 @@ import
 	./exception: arithmetic-error, todo
 	./js
 	./misc
+	./option
 	./private/bootstrap: hash-state, set-state, state, string
 	./private/java-math
 export
@@ -944,3 +945,63 @@ region Spec impls for range
 		a * b
 	catch as arithmetic-error
 		max-value
+
++some bool(a nat8, f bool mut(x nat8))
+	i mut nat8 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat8, f bool mut(x nat8))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
++some bool(a nat16, f bool mut(x nat16))
+	i mut nat16 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat16, f bool mut(x nat16))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
++some bool(a nat32, f bool mut(x nat32))
+	i mut nat32 = 0
+	until
+		if i == a
+			false
+		elif f[i]
+			true
+		else
+			i wrap-add:= 1
+			()
++some-reverse bool(a nat32, f bool mut(x nat32))
+	i mut = a
+	until
+		if i == 0
+			false
+		else
+			i wrap-sub:= 1
+			if f[i] then true
+
+| Assists with treating a number as a collection
++size nat(a nat8) = a
++size nat(a nat16) = a
++size nat(a nat32) = a

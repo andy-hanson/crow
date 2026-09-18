@@ -310,7 +310,7 @@ intersect index-set(a index-set, b index-set)
 		if is-all-empty new-node then empty else new-node
 	as array
 		n is bits-in-leaf-node
-		for index in 0 .. leaf-elements
+		for index in leaf-elements
 			filter-less-word a[index], limit, 32 * index
 	as empty
 		empty

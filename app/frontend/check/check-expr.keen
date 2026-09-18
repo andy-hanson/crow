@@ -326,7 +326,7 @@ do check-expr-ctx
 	do if called = find-function-for-interpolate-or-list-new range, interpolate-1, type else
 		bogus expected, source.to::expr-ast
 	arg-expected = expect as-array! only! called.param-types
-	list-expr source, called, for* arg-index in 0 .. template.size + interpolated-exprs.size
+	list-expr source, called, for* arg-index in template.size + interpolated-exprs.size
 		if is-even arg-index
 			part = template[arg-index / 2]
 			do if any part.value

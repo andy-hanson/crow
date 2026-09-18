@@ -142,7 +142,7 @@ take-until-terminator char8 array-view(iter string-iterator, char char8)
 	res
 
 -read-array[t] t[](reader nat8 array-iterator, f t mut(reader nat8 array-iterator))
-	for _ in 0 .. reader.take16
+	for _ in take16 reader
 		f[reader]
 
 parsed-field record

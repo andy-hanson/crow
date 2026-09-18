@@ -304,3 +304,13 @@ test
 test
 	-1 ** 7 is -1
 	-1 ** 8 is 1
+
+test
+	(for::nat[] i in 4::nat then i) is 0, 1, 2, 3
+
+test
+	some 4::nat, it == 2 is true
+	some 4::nat, it == 4 is false
+
+test
+	(for::nat[] i in reverse 4::nat then i) is 3, 2, 1, 0

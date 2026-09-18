@@ -46,18 +46,18 @@ import
 	word < a.bits.size and has-bit a.bits[value.to::nat / 32], value.to::nat % 32
 + &[t] t enum-set(a t enum-set, b t enum-set) t enum-like
 	result-size mut nat = 0
-	bits nat[] = for i in 0 .. min a.bits.size, b.bits.size
+	bits nat[] = for i in min a.bits.size, b.bits.size
 		res = a.bits[i] & b.bits[i]
 		if res != 0
 			result-size := i + 1
 		res
 	bits: bits[0 .. result-size].to
 + |[t] t enum-set(a t enum-set, b t enum-set) t enum-like
-	bits: for i in 0 .. max a.bits.size, b.bits.size
+	bits: for i in max a.bits.size, b.bits.size
 		(if i < a.bits.size then a.bits[i]) | (if i < b.bits.size then b.bits[i])
 + |[t] t enum-set(a t enum-set, b t) t enum-like
 	word = b.to::nat / 32
-	bits: for i in 0 .. max a.bits.size, word + 1
+	bits: for i in max a.bits.size, word + 1
 		(if i < a.bits.size then a.bits[i]) | (if i == word then nth-bit b.to::nat % 32)
 + |[t] t enum-set(a t, b t enum-set) t enum-like
 	b | a
@@ -70,7 +70,7 @@ import
 + ~[t] t enum-set(a t enum-set) t enum-like
 	n-members = size members::t[]
 	n-words = divide-and-round-up n-members, 32
-	bits nat[] = for i in 0 .. n-words
+	bits nat[] = for i in n-words
 		if i < a.bits.size
 			base = ~a.bits[i]
 			if i == n-words - 1

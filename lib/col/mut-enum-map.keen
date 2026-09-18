@@ -10,7 +10,7 @@
 		to::nat8 key is index.to
 
 +clear[k, v] void(a (k, v) mut-enum-map) v new
-	for i in 0 .. a.values.size
+	for i in a.values.size
 		a.values[i] := ()
 
 +list-new[k, v] (k, v) mut-enum-map(elements (k, v)[]) k enum-like, v new

@@ -1151,7 +1151,7 @@ do
 				res := gen-ternary source, (gen-eq-eq-eq source, matched, values[i]), x[i], res
 			res
 		as block-statements
-			cases js-switch-case[] = for i nat32 in 0 .. a.case-values.size
+			cases js-switch-case[] = for i in a.case-values.size
 				- values[i]
 				- maybe-break-switch-case source, type, x.blocks[i]
 			gen-switch source, matched, cases, x.blocks[end - 1] 'to

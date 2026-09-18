@@ -28,7 +28,7 @@ test global
 	random-test it.inner
 -inner void(r random)
 	the random = r
-	values nat8[] = for _ in 0 .. (random 1 .. 50) then random
+	values nat8[] = for _ in random 1 .. 50 then random
 	median values is values.sort[values.size / 2]
 
 test

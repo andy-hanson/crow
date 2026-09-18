@@ -5,7 +5,7 @@ import
 | Takes 2 big-endian bytes
 +take16 nat16(a nat8 array-iterator)
 	res mut nat16 = 0
-	for _ in 0 .. 2
+	for _ in 2::nat
 		res <<:= 8
 		res |:= take-next a
 	res
@@ -13,7 +13,7 @@ import
 | Takes 4 big-endian bytes
 +take32 nat32(a nat8 array-iterator)
 	res mut nat32 = 0
-	for _ in 0 .. 4
+	for _ in 4::nat
 		res <<:= 8
 		res |:= take-next a
 	res
@@ -21,7 +21,7 @@ import
 | Takes 8 big-endian bytes
 +take64 nat64(a nat8 array-iterator)
 	res mut nat64 = 0
-	for _ in 0 .. 8
+	for _ in 8::nat
 		res <<:= 8
 		res |:= take-next a
 	res
@@ -30,10 +30,10 @@ import
 	- wrap-to a >> 8
 	- wrap-to a
 +big-endian nat8[](a nat32)
-	for i in 0::nat32 .. 4
+	for i in 4::nat
 		wrap-to a >> (24 - i * 8)
 +big-endian nat8[](a nat64)
-	for i in 0 .. 8
+	for i in 8::nat
 		wrap-to a >> (56 - i * 8)
 
 +write-big-endian void(buffer nat8 buffer-view, a nat16)
@@ -42,11 +42,11 @@ import
 	buffer[1] := wrap-to a
 +write-big-endian void(buffer nat8 buffer-view, a nat32)
 	buffer.size is 4
-	for i in 0::nat32 .. 4
+	for i in buffer.size
 		buffer[i] := wrap-to a >> (24 - i * 8)
 +write-big-endian void(buffer nat8 buffer-view, a nat64)
 	buffer.size is 8
-	for i in 0 .. 8
+	for i in buffer.size
 		buffer[i] := wrap-to a >> (56 - i * 8)
 
 +from-big-endian nat16(a nat8 array-view)

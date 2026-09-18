@@ -206,7 +206,7 @@ do t sorted-key
 		a[n]
 	else
 		groups = divide-and-round-up a.size, 5
-		medians t[] = for i in 0 .. groups
+		medians t[] = for i in groups
 			group = a[5 * i .. if i == groups - 1 then a.size else 5 * (i + 1)]
 			nth-sorted-and-mess group, group.size / 2, get-key
 		pivot-index = pivot-around a, (median-by medians, get-key), get-key

@@ -22,7 +22,7 @@ allocate-gc-safe-values[t] t buffer(a t buffer-allocator, size nat32) unsafe
 
 free[t] void(a t buffer-allocator, array t buffer) unsafe
 	do if any array
-	for i in 0::nat32 .. array.size
+	for i in array.size
 		array[i] := gc-safe-value
 	a.by-size[array.size - 1] ~= array
 	a.count-allocated -:= 1

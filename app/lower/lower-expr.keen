@@ -347,7 +347,7 @@ do lower-and-expr-ctx
 	###
 	do if called = get-low-fun-from-called a.called else lower-bogus type, range
 	option-args nat32 mut[] = ()
-	args low-expr[] = for i in 0 .. a.args.size
+	args low-expr[] = for i in a.args.size
 		if is-option type a.args[i] and not is-option a.called.param-types[i]
 			option-args ~= i
 			option-type = get-low-type option[a.called.param-types[i]]
@@ -355,7 +355,7 @@ do lower-and-expr-ctx
 		else
 			lower-expr called.params[i].type, a.args[i]
 	first-non-option = option-args[end - 1] + 1
-	arg-locals low-local[] = for i in 0 .. first-non-option
+	arg-locals low-local[] = for i in first-non-option
 		destruct::low-generated-local-kind, called.params[i].type
 	# Generate it backwards, starting form the innermost call and wrapping in optional checks
 	res mut low-expr = gen-call range, called,

@@ -147,7 +147,7 @@ do (out-col, (key, out-value)) list-new, (in-col, (key, in-value)) some, in-col 
 +n-of[col, elem] col(n nat32, value elem) (col, elem) list-new
 	do trusted
 	res elem buffer = uninitialized-buffer n
-	for i in 0 .. n
+	for i in n
 		unsafe-set-at res, i, value
 	list-new cast-immutable res
 
@@ -155,7 +155,7 @@ do (out-col, (key, out-value)) list-new, (in-col, (key, in-value)) some, in-col 
 	~~ col(a col, b col)
 +repeat[col] col(a col, n nat32) col concatenate, col new
 	res mut col = ()
-	for _ in 0 .. n
+	for _ in n
 		res ~~:= a
 	res
 
@@ -301,7 +301,7 @@ do (col, elem) buffer-like
 		hi -:= 1
 
 +fill[col, elem] void(a col, value elem) (col, elem) buffer-like
-	for i in 0 .. a.size
+	for i in a.size
 		a[i] := value
 
 +take-while[out, col, iter, elem] out
