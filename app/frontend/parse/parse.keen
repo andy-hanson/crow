@@ -84,6 +84,15 @@ parse-single-line-expression expr-and-diags(source string)
 			res
 		doc-comment, start.range-allow-empty, name, value
 
+-parse-record-rest record-ast(params destructure-ast[]?) parser
+	if params
+		record-ast params, (), maybe-parse-indented-expr
+	else
+		fields = parse-record-fields
+		_ = try-take-token newline-same-indent
+		record-ast params, fields, if try-take-token do_
+			must-parse-indented-expr
+
 -parse-record-fields record-field-ast[]() parser
 	parse-indented-lines of
 		doc-comment = try-take-doc-comment
@@ -194,7 +203,7 @@ do parser
 	as record_
 		advance
 		params = try-parse-params-parenthesized
-		add-type[parse-modifiers, (record-ast params, parse-record-fields)]
+		add-type[parse-modifiers, params.parse-record-rest]
 	as spec_
 		advance
 		modifiers = parse-modifiers

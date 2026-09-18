@@ -321,14 +321,11 @@ do walk-ctx
 		walk-type ast.return-type, a.return-type, a.visibility.explicit-kind-for-visibility, f
 		walk-params ast.params, a.params, a.visibility.explicit-kind-for-visibility, include-locals, f
 		walk-spec-uses ast.modifiers, a.specs, a.visibility, f
-	match body = a.body
-	as fun-body-expr
-		walk-expr body.expr, f
-	as auto-fun
-		for c in body.members
-			handle-call c, body.source.source.type-decl-ast!.name, (), auto, f
+	if auto-fun a.body
+		for c in a.body.members
+			handle-call c, a.body.source.source.type-decl-ast!.name, (), auto, f
 	else
-		()
+		?walk-expr a.body.body-expr, f
 
 -walk-test void(a test_, f cb-thing) walk-ctx
 	walk-doc-comment a.doc-comment, f

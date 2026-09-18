@@ -17,11 +17,10 @@ quick-fill-in-low-fun-body void(ctx lower-context, fun low-fun)
 	the low-common-types = ctx.low-common-types
 	the common-funs = common-funs
 	assert fun.body.low-fun-body-deferred
-	fun-body = fun-body-decl fun
 	return-type = fun.return-type
 	range = fun.range
 	low-params = fun.params
-	fun.body := match x = fun-body
+	fun.body := match x = fun-body-decl fun
 	as fun-body-bogus
 		lower-bogus fun.return-type, range
 	as fun-body-extern-java
@@ -64,7 +63,10 @@ quick-fill-in-low-fun-body void(ctx lower-context, fun low-fun)
 	as new-interface
 		low-fun-body-always-inline
 	as new-record
-		low-fun-body-always-inline
+		if fun.as-new-record.preconstructor and not is-nominal x
+			low-fun-body-deferred
+		else
+			low-fun-body-always-inline
 	as record-field-get
 		low-fun-body-always-inline
 	as record-field-lens
@@ -195,23 +197,31 @@ get-var low-var(decl var-decl) lower-ctx
 		allocated-locals: decl.initializer.allocated-locals
 	decl, type, lower-expr type, decl.initializer.as-expr
 
-lower-fun-or-test-body low-fun-body(cf low-fun, expr expr, allocated-locals type-inst[local]) lower-ctx
-	params = match x = cf.source
+lower-fun-or-test-body low-fun-body(fun low-fun, expr expr, allocated-locals type-inst[local]) lower-ctx
+	lower-fun-or-test-body fun, fun.return-type, expr, allocated-locals
+lower-fun-or-test-body low-fun-body(fun low-fun, type low-type, expr expr, allocated-locals type-inst[local]) lower-ctx
+	params = match x = fun.source
 	as low-fun-source-regular
-		the common-funs = common-funs
 		x.decl.params
 	as low-fun-source-test
 		()
 	as low-fun-source-test-all
 		throw unreachable
-	the lower-expr-ctx = cf, allocated-locals
-	type = cf.return-type
-	for param, low-param in zip params, cf.params[0 .. params.size] # Ignore context params
+	the lower-expr-ctx = fun, allocated-locals
+	for param, low-param in zip params, fun.params[0 .. params.size] # Ignore context params
 		begin-param-destructure param, low-param
 	res mut = lower-expr type, expr
-	for param, low-param in zip params, cf.params[0 .. params.size]
+	for param, low-param in zip params, fun.params[0 .. params.size]
 		res := end-param-destructure type, param.range.to-uri-and-range, param, low-param, res
 	res
+
+lower-new-record low-expr(fun low-fun) lower-ctx
+	range = fun.range
+	args low-expr[] = for param in fun.params
+		local-get-low-expr range, param
+	preconstructor = fun.as-new-record.preconstructor!
+	precon = low-expr! lower-fun-or-test-body fun, void, preconstructor.as-expr, preconstructor.allocated-locals
+	append-to-seq range, precon, gen-new-record-body-without-preconstructor fun, range, args
 
 -lower-bogus low-expr(type low-type, range uri-and-range) lower-ctx
 	gen-bogus type, range
@@ -1084,10 +1094,7 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 		first = lower-expr void, a.first
 		# See comment on 'as let-expr' for why we use 'outer-type' instead of 'type'
 		then_ = lower-expr outer-type, a.then_
-		if first.constant-low-expr
-			then_
-		else
-			seq-low-expr range, first.as-seq ~~ then_.as-seq
+		concat-seqs range, first, then_
 	as the-expr
 		get-the type, range
 	as throw-expr

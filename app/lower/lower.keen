@@ -61,6 +61,9 @@ lower low-program(target build-target, program program-with-main) show-ctx
 			as fun-body-expr
 				fun.body := lower-fun-or-test-body fun, body.expr, body.allocated-locals
 				any := true
+			as new-record
+				fun.body := lower-new-record fun
+				any := true
 			as fun-body-method
 				()
 			else

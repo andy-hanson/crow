@@ -16,19 +16,29 @@ then-else record(then_ low-expr, else_ low-expr)
 if-low-expr if-low-expr(range uri-and-range, cond low-expr, then-else then-else)
 	if-low-expr range, cond, then-else.then_, then-else.else_
 
-as-seq low-expr[](a low-expr)
-	if a.seq-low-expr then a.parts else a,
-
-gen-do-and-continue low-expr(type low-type, range uri-and-range, a low-expr)
+gen-do-and-continue low-expr(type low-type, range uri-and-range, a low-expr) low-common-types
 	# Make sure we don't have 'throw' followed by an unnecessary 'continue'
 	# or we get unreachable code errors in the Java backend
 	match a
 	as throw-low-expr
 		a
 	else
-		seq-low-expr range,
-			-- as-seq a
-			- loop-continue-low-expr type, range
+		append-to-seq range, a, loop-continue-low-expr type, range
+
+append-to-seq low-expr(range uri-and-range, a low-expr, b low-expr) low-common-types
+	a.type is void
+	if constant-low-expr a
+		b
+	else
+		seq-low-expr range, a.as-seq ~ b
+concat-seqs low-expr(range uri-and-range, a low-expr, b low-expr) low-common-types
+	a.type is void
+	if constant-low-expr a
+		b
+	else
+		seq-low-expr range, a.as-seq ~~ b.as-seq
+-as-seq low-expr[](a low-expr) low-common-types
+	if seq-low-expr a then a.parts else a,
 
 gen-call low-expr(range uri-and-range, fun low-fun, args low-expr[]) lower-ctx, lower-funs
 	match body = fun.body

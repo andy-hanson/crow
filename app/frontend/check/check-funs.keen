@@ -32,7 +32,7 @@ do check-ctx, common-types, types-get
 	assert funs.size >= asts.size
 	the funs-map = make-funs-map funs
 	fill-auto-fun-bodies auto-funs
-	check-method-impls structs
+	check-preconstructors-and-method-impls structs
 	check-funs-with-asts funs[0 .. asts.size], asts
 	funs: funs
 	tests: check-tests test-asts

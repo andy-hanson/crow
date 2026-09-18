@@ -116,12 +116,10 @@ type-and-new-context type-and-context(a type-with-container)
 		full-type-and-context a.type, n-of context-size, ()
 
 full-type-and-context record mut
-	dummy void
 	type type
 	context type-context
-full-type-and-context full-type-and-context(type type, context type-context)
+do
 	assert any context
-	(), type, context
 to json(a full-type-and-context)
 	type: a.type.to
 	context: a.context.to

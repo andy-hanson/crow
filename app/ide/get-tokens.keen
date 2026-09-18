@@ -327,21 +327,19 @@ do
 	as flags-ast
 		add-enum-or-flags-tokens a, body.params, body.members
 	as record-ast
-		add-record-tokens a, body.params, body.fields
+		?add-params-tokens body.params
+		add-modifier-tokens a.modifiers
+		for x in body.fields
+			add-doc-comment-tokens x.doc-comment
+			emit property, x.name.range
+			?add-type-tokens x.type
+		?add-expr-tokens body.preconstructor
 	as sum-type-ast
 		for type in body.types
 			add-type-tokens type
 		add-modifier-tokens a.modifiers
 		for sig in body.methods
 			add-signature-tokens sig
-
--add-record-tokens void(a type-decl-ast, params destructure-ast[]?, members record-field-ast[]) tokens-builder
-	?add-params-tokens params
-	add-modifier-tokens a.modifiers
-	for x in members
-		add-doc-comment-tokens x.doc-comment
-		emit property, x.name.range
-		?add-type-tokens x.type
 
 -add-modifier-tokens void(a modifier-ast[]) tokens-builder
 	for mod in a

@@ -91,7 +91,8 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 -position-in-fun position-kind?(a fun-decl, pos pos, pos-kind get-position-kind) common-types, keen-module
 	the type-container = a
 	the local-container = a
-	do if ast = a.body.ast
+	do if ast = a.body.ast else
+		if e = a.body.body-expr then position-in-expr a, e, pos, pos-kind
 	position-in-decl a, pos, of
 		position-in-visibility a, ast.visibility, pos or
 		(if has-pos ast.name-range, pos then a) or
@@ -99,7 +100,7 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 		position-in-type a.return-type, ast.return-type, pos or
 		position-in-params a.params, ast.params, pos or
 		position-in-modifiers a.specs, ast.modifiers, pos or
-		if fun-body-expr a.body then position-in-expr a, a.body.expr, pos, pos-kind
+		if e = a.body.body-expr then position-in-expr a, e, pos, pos-kind
 
 -position-in-test position-kind?(a test_, pos pos, pos-kind get-position-kind) common-types, keen-module
 	if has-pos a.ast.keyword-range, pos

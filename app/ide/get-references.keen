@@ -91,6 +91,8 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 				ref.body.field == target
 			else
 				()
+		as local
+			ref.source == target
 		as record-field
 			ref == target
 		else
@@ -149,7 +151,7 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 		()
 
 -references-for-local source-range[](a position-local)
-	do if container, body = a.container.container-and-body
+	do if container, body = container-and-body a.container
 	do with out in build
 	walk-doc-comment container.doc-comment, of where, _, ref
 		do if ref.local
@@ -171,7 +173,7 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 	as spec-decl
 		()
 	as type-decl
-		()
+		a, a.body.record_!.non-nominal-constructor.body.new-record!.preconstructor!.as-expr
 	as var-decl
 		a, a.initializer.as-expr
 

@@ -626,9 +626,11 @@ flags_ record
 	storage nat-type
 	| Always sorted by value
 	members enum-or-flags-member[]
-record_ record
+record_ record force-data
 	new-visibility visibility
 	fields record-field[]
+	non-nominal-constructor_ mut fun-decl?
+non-nominal-constructor fun-decl(a record_) = a.non-nominal-constructor_!
 | interface, union, or variant
 sum-type record
 	kind sum-type-kind
@@ -1370,6 +1372,14 @@ fun-body union
 	sum-type-case-get
 	var-get
 	var-set
+body-expr expr?(a fun-body)
+	match a
+	as fun-body-expr
+		a.expr
+	as new-record
+		?as-expr a.preconstructor
+	else
+		()
 -fun-name symbol(body fun-body, return-type type)
 	match body
 	as fun-body-uninitialized then throw unreachable
@@ -1395,7 +1405,7 @@ fun-body union
 	as fun-body-flags-function then body.function.to
 	as fun-body-method then body.method.name
 	as new-interface then "new"
-	as new-record then if body.nominal_ then body.type.name else "new"
+	as new-record then if is-nominal body then body.type.name else "new"
 	as record-field-get then body.field.name
 	as record-field-lens then body.field.name
 	as record-field-set then "set-{body.field.name}"
@@ -1552,7 +1562,14 @@ fun-body-method record
 to json(a fun-body-method)
 	a.method.name.to
 new-interface record(type type-decl)
-new-record record(type type-decl, nominal_ bool)
+new-record record force-data
+	type type-decl
+	| If this is the nominal one, it has a reference to the non-nominal one
+	non-nominal-ref fun-decl?
+	| This will only appear on the non-nominal one
+	preconstructor mut expr-maybe-allocated-locals?
+is-nominal bool(a new-record)
+	a.non-nominal-ref
 record-field-get record(type type-decl, field record-field)
 to json(a record-field-get)
 	a.field.name.to
@@ -1801,21 +1818,20 @@ type-params type-params(_ test_)
 visibility visibility(_ test_)
 	private
 
-expr-container union(fun-decl, test_, var-decl)
+expr-container union(fun-decl, test_, var-decl, type-decl)
 	doc-comment doc-comment()
 to type-container(a expr-container)
 	match a
 	as fun-decl then a
 	as test_ then a
+	as type-decl then a
 	as var-decl then a
 specs specs(a expr-container) common-types
 	match a
-	as fun-decl
-		a.specs
-	as test_
-		a.specs
-	as var-decl
-		global-unsafe-specs
+	as fun-decl then a.specs
+	as test_ then a.specs
+	as type-decl then a.specs
+	as var-decl then global-unsafe-specs
 
 fun-inst record force-data, -new
 	decl fun-decl
@@ -3046,7 +3062,13 @@ subscript (configured-import, path)?(a config-imports, imported path)
 				res := x, path
 	res
 
-local-source union(catch-ast, it-scope-ast, name-and-range, single-destructure-ast, local-source-generated)
+local-source union
+	catch-ast
+	it-scope-ast
+	name-and-range
+	single-destructure-ast
+	local-source-generated
+	record-field
 local-source-generated record(name symbol)
 
 local record force-data
@@ -3068,6 +3090,8 @@ name symbol(a local)
 		"it"
 	as name-and-range
 		source.name
+	as record-field
+		source.name
 	as single-destructure-ast
 		source.name.name
 	as local-source-generated
@@ -3083,6 +3107,8 @@ local-must-have-name-range source-range(a local)
 		it-range source
 	as name-and-range
 		source.range
+	as record-field
+		source.name-range.range
 	as single-destructure-ast
 		source.name-range
 	as local-source-generated

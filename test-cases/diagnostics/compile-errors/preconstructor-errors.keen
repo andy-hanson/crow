@@ -1,0 +1,4 @@
+r record(x mut nat) mut
+	x := 3
+	something-global
+-something-global void() global = ()

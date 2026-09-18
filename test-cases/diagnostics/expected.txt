@@ -533,6 +533,11 @@ compile-errors/option-or.keen 4:1-4:2 'g' is unused.
 compile-errors/option-or.keen 5:9-5:15 The left side of 'or' should be 'bool' or an option type. Actual: 'nat32'
 compile-errors/option-or.keen 8:1-8:2 'h' is unused.
 compile-errors/option-or.keen 9:5-9:11 The left side of 'or' should be 'bool' or an option type. Actual: 'nat32'
+compile-errors/preconstructor-errors.keen 1:1-1:2 'r' is unused.
+compile-errors/preconstructor-errors.keen 2:5-2:6 Local variable 'x' was not marked 'mut'.
+compile-errors/preconstructor-errors.keen 3:5-3:21 Trying to call a 'global' function, but this function is not 'global'.
+	Calling:
+	something-global(from compile-errors/preconstructor-errors.keen line 4)
 compile-errors/record-extern.keen 2:11-2:13 Trying to call a 'js' function.
 Either mark the calling function as 'js' too, or check 'if js' around the call.
 	Calling:
@@ -727,7 +732,7 @@ Candidates (with 0 arguments):
 	new float32() (from keen/number.keen line 30)
 	new float64() (from keen/number.keen line 31)
 	new[t] t?() (from keen/option.keen line 10)
-	new null() (from keen/private/bootstrap.keen line 134)
+	new null() (from keen/private/bootstrap.keen line 135)
 	new string() (from keen/string.keen line 55)
 compile-errors/union-cycle.keen 3:1-3:2 Union type cyclically includes itself.
 compile-errors/union-cycle.keen 4:1-4:2 'v' is unused.

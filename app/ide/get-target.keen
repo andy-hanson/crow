@@ -51,7 +51,7 @@ target-for-position target?(pos position)
 	as enum-or-flags-member
 		x
 	as expression-position
-		x.expr-target
+		expr-target x
 	as fun-decl
 		x
 	as position-imported-name
@@ -140,7 +140,7 @@ target-for-position target?(pos position)
 	as local-get-and-call-and-refine-expr
 		called-target x.called
 	as local-ref
-		position-local a.container.to, x.local
+		record-field x.local.source else position-local a.container.to, x.local
 	as logical-expr
 		()
 	as match-enum-expr

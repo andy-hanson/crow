@@ -8,7 +8,7 @@ position record
 	module keen-module
 	kind position-kind
 uri uri(a position) = a.module.uri
-| A SpecDecl* can contain parameters in its signatures, and a StructDecl* for a variant can too
+| A {spec-decl} can contain parameters in its signatures, and a {type-decl} for a variant can too
 local-container union(fun-decl, test_, spec-decl, type-decl, var-decl)
 to type-container(a local-container)
 	match a
@@ -21,6 +21,7 @@ to local-container(a expr-container)
 	match a
 	as fun-decl then a
 	as test_ then a
+	as type-decl then a
 	as var-decl then a
 module-uri uri(a local-container)
 	a.to::type-container.module-uri

@@ -188,6 +188,8 @@ do
 		()
 	as it-scope-ast
 		()
+	as record-field
+		a.range.range.start
 	as name-and-range
 		a.end
 	as single-destructure-ast

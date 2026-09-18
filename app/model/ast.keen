@@ -985,7 +985,10 @@ type-body-ast union(builtin-type-ast, enum-ast, flags-ast, record-ast, sum-type-
 builtin-type-ast record
 enum-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
 flags-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
-record-ast record(params destructure-ast[]?, fields record-field-ast[])
+record-ast record
+	params destructure-ast[]?
+	fields record-field-ast[]
+	preconstructor expr-ast?
 sum-type-ast record(kind sum-type-kind, types type-ast[], methods signature-ast[])
 types-range source-range?(a sum-type-ast)
 	if any a.types

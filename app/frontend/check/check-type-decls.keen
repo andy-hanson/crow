@@ -6,6 +6,7 @@ import
 	../../util/by-key
 	./check-call/check-call-specs
 	./check-ctx
+	./check-expr
 	./check-util
 	./instantiate
 	./type-from-ast
@@ -162,16 +163,24 @@ do check-ctx, types-get
 	as union_
 		false
 
-check-method-impls void(types type-decl[]) check-ctx, common-types, funs-map
+check-preconstructors-and-method-impls void(types type-decl[]) check-ctx, common-types, funs-map, types-get
 	do for type in types
-	if sum = type.body.sum-type
-		members = sum.listed-members
+	match type.body
+	as record_
+		do if preconstructor = type.source.type-decl-ast!.body.record-ast!.preconstructor
+		constructor = type.body.non-nominal-constructor
+		constructor.body.new-record!.preconstructor :=
+			check-fun-or-test-body type, type.range, type.type-params, void, constructor.params, preconstructor, false
+	as sum-type
+		members = type.body.listed-members
 		do if any members
 		inst = type.instantiated-with-own-type-params
 		member-asts = type.source.type-decl-ast!.body.sum-type-ast!.types
 		for i, x in with-index members
 			range = if members.size == member-asts.size then member-asts[i].range else type.name-range.range
 			x.method-impls := check-method-impls-for-case type, x.case-type, range, inst, type.body.sum-type!.methods
+	else
+		()
 
 	if any type.sum-type-cases
 		case-type = type.instantiated-with-own-type-params
@@ -394,15 +403,12 @@ do check-ctx
 	else
 		nat8
 
--check-record record_
-	type type-decl
-	modifier-asts modifier-ast[]
-	ast record-ast
-do check-ctx, types-get
+-check-record record_(type type-decl, modifier-asts modifier-ast[], ast record-ast) check-ctx, types-get
 	new-visibility = accumulate-record-modifiers modifier-asts
 	fields = check-record-fields type, ast
 	new-visibility: record-new-visibility type, fields, new-visibility
 	fields: fields
+	non-nominal-constructor_: ()
 
 -check-record-fields record-field[](type type-decl, ast record-ast) check-ctx, types-get
 	if ast.params and any ast.fields

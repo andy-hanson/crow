@@ -8,6 +8,14 @@ import
 	./token
 	./token-util
 
+maybe-parse-indented-expr expr-ast?() parser
+	if try-take-token newline-indent
+		parse-statements-and-dedent
+
+must-parse-indented-expr expr-ast?() parser
+	if take-or-add-diag-expected-token newline-indent, indent
+		parse-statements-and-dedent
+
 parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	if try-take-token equal
 		parse-expr-no-block

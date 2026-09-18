@@ -414,19 +414,21 @@ do instantiate-ctx, common-types
 	body: member
 
 -add-funs-for-record void(out funs-out, type type-decl, inst type-inst, record_ record_) check-ctx, common-types
-	out ~= record-constructor type, record_, inst, false
-	out ~= record-constructor type, record_, inst, true
+	non-nominal = record-constructor type, record_, inst, ()
+	record_.non-nominal-constructor_ := non-nominal
+	out ~= non-nominal
+	out ~= record-constructor type, record_, inst, non-nominal
 	for field in record_.fields
 		add-funs-for-record-field out, type, inst, field
 
--record-constructor fun-decl(type type-decl, record_ record_, inst type-inst, nominal_ bool) check-ctx
+-record-constructor fun-decl(type type-decl, record_ record_, inst type-inst, non-nominal fun-decl?) check-ctx
 	hash: next-hash
-	visibility: record_.new-visibility
+	visibility: new-visibility record_
 	return-type: inst
 	params: for x in record_.fields
-		make-param x.name, x.type
+		local x, x.type
 	specs: specs type
-	body: new-record type, nominal_
+	body: new-record type, non-nominal, ()
 
 -add-funs-for-record-field void
 	out funs-out

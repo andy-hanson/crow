@@ -536,6 +536,13 @@ call-or-inline low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower
 	else
 		call-low-expr range, fun, args
 
+gen-new-record-body-without-preconstructor low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context
+	type = fun.return-type
+	if any args or prevent-constant type.body.low-record!
+		gen-create-record type, range, args
+	else
+		constant-low-expr type, range, get-constant-record all-constants, type, ()
+
 lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context, lower-funs
 	type = fun.return-type
 	assert low-fun-body-always-inline fun.body
@@ -567,10 +574,16 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 			case-index, case-type = low-type-for-new-interface fun.return-type, fun.params
 			create-union-low-expr type, range, case-index, create-record-low-expr case-type, fun.range, args
 	as new-record
-		if any args or prevent-constant type.body.low-record!
-			gen-create-record type, range, args
+		# When there is a preconstructor, the nominal version delegates to the non-nominal version.
+		# Otherwise they are both inlined.
+		preconstructor = fun.as-new-record.preconstructor
+		if non-nominal = body.non-nominal-ref and preconstructor
+			source = fun.source.low-fun-source-regular!
+			low-non-nominal = get-low-fun non-nominal, source.type-args, source.spec-impls
+			call-low-expr range, low-non-nominal, args
 		else
-			constant-low-expr type, range, get-constant-record all-constants, type, ()
+			forbid preconstructor
+			gen-new-record-body-without-preconstructor fun, range, args
 	as record-field-get
 		record_ = only! args
 		the low-common-types = the::lower-context.low-common-types
@@ -615,6 +628,9 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 	as weak-ref-get then weak-ref-get
 	as weak-ref-new then weak-ref-new
 	as wrap-convert-integral then wrap-convert-integral
+
+as-new-record new-record(fun low-fun)
+	new-record! fun.source.low-fun-source-regular!.decl.body
 
 get-low-field low-field(record-type low-type, field record-field)
 	index = index-of! record-type.source.low-type-source-inst!.decl.body.record_!.fields, field
