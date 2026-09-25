@@ -380,7 +380,7 @@ do t0 from-json, t1 from-json, t2 from-json, t3 from-json, t4 from-json, t5 from
 
 | Converts a value to {json} and renders it as Kid.
 +to-kid[t] string(a t) t to-json
-	match x = to-kid-inner a.to, 100
+	match x = to-kid-inner a.to, 120
 	as lines
 		join "\n", x.lines
 	as single

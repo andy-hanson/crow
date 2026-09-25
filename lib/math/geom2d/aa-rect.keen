@@ -8,6 +8,9 @@ import
 	right float32
 	bottom float32
 	top float32
+do
+	assert left <= right
+	assert bottom <= top
 +new aa-rect32() = 0, 0, 0, 0
 +new aa-rect32(bottom-left vec2-32, top-right vec2-32)
 	assert bottom-left.x <= top-right.x
@@ -41,6 +44,26 @@ import
 	right: center.x + size.width / 2
 	bottom: center.y - size.height / 2
 	top: center.y + size.height / 2
++new aa-rect32(center-left vec2-32, size size2-32)
+	left: center-left.x
+	right: center-left.x + size.width
+	bottom: center-left.y - size.height / 2
+	top: center-left.y + size.height / 2
++new aa-rect32(center-right vec2-32, size size2-32)
+	left: center-right.x - size.width
+	right: center-right.x
+	bottom: center-right.y - size.height / 2
+	top: center-right.y + size.height / 2
++new aa-rect32(center-bottom vec2-32, size size2-32)
+	left: center-bottom.x - size.width / 2
+	right: center-bottom.x + size.width / 2
+	bottom: center-bottom.y
+	top: center-bottom.y + size.height
++new aa-rect32(center-top vec2-32, size size2-32)
+	left: center-top.x - size.width / 2
+	right: center-top.x + size.width / 2
+	bottom: center-top.y - size.height
+	top: center-top.y
 +size size2-32(a aa-rect32) = a.width, a.height
 +area float32(a aa-rect32) = area a.size
 +shorter-side float32(a aa-rect32) = min a.width, a.height
@@ -52,6 +75,7 @@ import
 +top-right vec2-32(a aa-rect32) = a.right, a.top
 +bottom-right vec2-32(a aa-rect32) = a.right, a.bottom
 +center-left vec2-32(a aa-rect32) = a.left, a.center.y
++center-right vec2-32(a aa-rect32) = a.right, a.center.y
 +center vec2-32(a aa-rect32)
 	x: (a.left + a.right) / 2
 	y: (a.bottom + a.top) / 2

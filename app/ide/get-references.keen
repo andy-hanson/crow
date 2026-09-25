@@ -173,7 +173,8 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 	as spec-decl
 		()
 	as type-decl
-		a, a.body.record_!.non-nominal-constructor.body.new-record!.preconstructor!.as-expr
+		if record_ a.body
+			a, a.body.non-nominal-constructor.body.new-record!.preconstructor!.as-expr
 	as var-decl
 		a, a.initializer.as-expr
 

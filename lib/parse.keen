@@ -654,11 +654,25 @@ import
 		res json[symbol] = (first-name, first-value),
 		res.to, first-indent
 	else
-		parse-kid-single-line-object-inner iter, ctx, first-name, first-value, indent
+		parse-kid-single-line-object-inner iter, ctx, (first-name,), (first-value,), indent
 
 -parse-kid-single-or-multi-line-object (json, int32)(iter string-iterator, ctx ctx, first-name symbol, indent int32)
 	first-value, first-indent = parse-kid-inner iter, ctx, indent
-	do if first-indent else parse-kid-single-line-object-inner iter, ctx, first-name, first-value, indent
+	if first-indent
+		parse-kid-multi-line-object iter, ctx, first-name, first-value, indent, first-indent
+	else
+		parse-kid-possibly-single-line-object-inner iter, ctx, first-name, first-value, indent
+
+-parse-kid-multi-line-object (json, int32)(iter string-iterator, ctx ctx, name symbol, first-value json, indent int32)
+	parse-kid-multi-line-object iter, ctx, name, first-value, indent, take-next-indent iter, ctx, indent
+-parse-kid-multi-line-object (json, int32)
+	iter string-iterator
+	ctx ctx
+	first-name symbol
+	first-value json
+	indent int32
+	first-indent int32
+do
 	new-indent mut int32 = first-indent
 	res json[symbol] = with out in build
 		out ~= first-name, first-value
@@ -669,17 +683,52 @@ import
 			out ~= next-name, next-value
 	res.to, new-indent
 
+-parse-kid-possibly-single-line-object-inner (json, int32)
+	iter string-iterator
+	ctx ctx
+	name0 symbol
+	value0 json
+	indent int32
+do
+	assert try-take iter, "," else inner-parse-error "Kid value"
+	skip-spaces iter
+	if peek-end-of-line iter
+		# `x: 1,`
+		parse-kid-multi-line-object iter, ctx, name0, (value0,), indent
+	else
+		after-comma = parse-kid-simple iter
+		match after-comma
+		as json
+			# `x: 1, 2`
+			full-first-value = parse-kid-single-line-list-after-value-comma-value iter, value0, after-comma
+			parse-kid-multi-line-object iter, ctx, name0, full-first-value, indent
+		as symbol
+			# `x: 1, y:`
+			value1, next-indent = parse-kid-inner iter, ctx, indent
+			if next-indent
+				- named-new (name0, after-comma), (value0, value1)
+				- next-indent
+			else
+				parse-kid-single-line-object-inner iter, ctx, (name0, after-comma), (value0, value1), indent
+		as quote_
+			throw inner-parse-error "Kid value"
+
 -parse-kid-single-line-object-inner (json, int32)
 	iter string-iterator
 	ctx ctx
-	first-name symbol
-	first-value json
+	initial-names symbol[]
+	initial-values json[]
 	indent int32
 do
 	new-indent mut int32? = ()
-	cur-name mut = first-name
-	cur-value mut = first-value
-	res json[symbol] = with out in build
+
+	keys symbol[], values json[] = with out-keys, out-values in build2
+		initial-names.size is initial-values.size
+		for i in 0 .. initial-names.size - 1
+			out-keys ~= initial-names[i]
+			out-values ~= initial-values[i]
+		cur-name mut = initial-names[end - 1]
+		cur-value mut = initial-values[end - 1]
 		while not new-indent and try-take iter, ","
 			skip-spaces iter
 			if is-at-end iter
@@ -690,15 +739,17 @@ do
 				as json
 					cur-value := parse-kid-single-line-list-after-value-comma-value iter, cur-value, x
 				as symbol
-					out ~= cur-name, cur-value
+					out-keys ~= cur-name
+					out-values ~= cur-value
 					next-value, next-indent = parse-kid-inner iter, ctx, indent
 					cur-name := x
 					cur-value := next-value
 					new-indent := next-indent
 				as quote_
 					throw inner-parse-error "Kid value"
-		out ~= cur-name, cur-value
-	- res.to
+		out-keys ~= cur-name
+		out-values ~= cur-value
+	- named-new keys, values
 	- new-indent else take-next-indent iter, ctx, indent
 
 -parse-kid-simple-no-colon json(iter string-iterator)
@@ -761,7 +812,6 @@ do
 		throw inner-parse-error "Kid value"
 
 -peek-end-of-line bool(a string-iterator)
-
 	is-at-end a or a.peek == "\n"
 -take-name-colon-or-string-colon symbol(iter string-iterator)
 	assert res = (try-take-keen-identifier iter or ?to try-take-quoted-string iter) else

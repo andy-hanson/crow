@@ -10,6 +10,22 @@ import
 	./random/util
 	./unsafe
 
+| Do two unrelated things in parallel
++do-in-parallel[t, u] (t, u)((a t shared(), b u shared())) t shared, u shared
+	results (t, u) either[] = for i in parallel 2::nat
+		match i
+		as 0
+			left a[]
+		as 1
+			right b[]
+		else
+			throw unreachable
+	results[0].left!.value, results[1].right!.value
+
+-either[t, u] union(t left, u right)
+-left[t] record(value t)
+-right[t] record(value t)
+
 +parallel-collection[col] record(collection col)
 +parallel[col] col parallel-collection(a col)
 	a,

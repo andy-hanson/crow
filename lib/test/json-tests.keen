@@ -134,6 +134,13 @@ test
 		- y: 2
 	roundtrip array-of-objects, ((x: 1), (y: 2))
 
+	array-in-object = quote
+		x: 1,
+		y: 2, 3
+	roundtrip array-in-object,
+		x: 1,
+		y: 2, 3
+
 -roundtrip void(text string, value json)
 	parse kid, text is value
 	to-kid value is strip text

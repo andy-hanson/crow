@@ -426,6 +426,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	fun: async, (), body.to
 
 -to-js-functions js-fun-decl[](a low-fun) to-js
+	do unless low-fun-body-method a.body
 	if x = async-fun-kind a
 		match x
 		as always-async
@@ -437,7 +438,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 		- to-js-function a, sync
 -to-js-function js-fun-decl(a low-fun, async sync-or-async) to-js
 	the to-expr-ctx = is-cur-fun-async: async, cur-fun-debug-name: a.debug-name
-	body = to-expr-or-block-statement a
+	body = to-expr-or-block-statement low-expr! a.body
 	locals = finish-locals
 	comment: show-low-fun-name a
 	name: js-name a, async
@@ -445,21 +446,6 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 		async: async
 		params: map a.params, it.local-name
 		body: with-declare-locals a.source, locals, body
-
--to-expr-or-block-statement js-expr-or-block-statement(a low-fun) to-expr
-	source source = source a
-	match body = a.body
-	as low-expr
-		to-expr-or-block-statement body
-	as low-fun-body-extern-java
-		throw unreachable
-	as low-fun-body-method
-		gen-call-property-sync source, (get-local source, a.params[0]), mangled-names[a, sync],
-			map a.params[1 .. end], {get-local source, it}
-	as low-fun-body-deferred
-		throw unreachable
-	as low-fun-body-always-inline
-		throw unreachable
 
 -gen-call-Number js-expr(source source, arg js-expr)
 	gen-call-sync source, (gen-global source, "Number"), (arg,)
@@ -830,9 +816,10 @@ do
 
 -return-unless-void js-block-statement(expr js-expr, is-void bool)
 	if is-void
-		expr.to
+		unless js-undefined-expr expr.kind
+			to expr
 	else
-		gen-return expr.source, expr 'to
+		to gen-return expr.source, expr
 
 -to-expr-or-block-statement js-expr-or-block-statement(a low-expr) to-expr
 	source = source a
@@ -853,8 +840,12 @@ do
 		translate-js-fun source, a.fun, a.args
 	as call-low-expr
 		call-async = is-async a.called
-		called = to-ref source, a.called, call-async
-		gen-call source, call-async, called, map a.args, it.to-js-expr
+		if low-fun-body-method a.called.body
+			gen-call-property-sync source, a.args[0].to-js-expr, mangled-names[a.called, sync],
+				map a.args[1 .. end], it.to-js-expr
+		else
+			called = to-ref source, a.called, call-async
+			gen-call source, call-async, called, map a.args, it.to-js-expr
 	as constant-low-expr
 		translate-constant source, type, a.value
 	as create-array-low-expr
@@ -868,16 +859,37 @@ do
 		gen-try-finally source, a.below.to-block-statement, a.right.to-block-statement 'to
 	as if-low-expr
 		cond = to-js-expr a.cond
-		match then_ = to-expr-or-block-statement a.then_
-		as js-expr
-			match else_ = to-expr-or-block-statement a.else_
+		# As a code size optimization: If one of the branches throws, un-nest the other branch
+		if throw-low-expr a.then_
+			###
+			if cond then throw x else y
+			==>
+			if (cond) throw x;
+			y;
+			###
+			forbid_ = gen-if source, cond, to-block-statement a.then_
+			forbid_ ~ to-block-statement a.else_
+		elif throw-low-expr a.else_
+			###
+			if cond then x else throw y
+			==>
+			if (!cond) throw y;
+			x;
+			###
+			assert_ = gen-if source, (gen-not source, cond), to-block-statement a.else_
+			assert_ ~ to-block-statement a.then_
+		else
+			match then_ = to-expr-or-block-statement a.then_
 			as js-expr
-				gen-ternary source, cond, then_, else_
+				match else_ = to-expr-or-block-statement a.else_
+				as js-expr
+					gen-ternary source, cond, then_, else_
+				as js-block-statement
+					then-statement = return-unless-void then_, is-void type
+					gen-if source, cond, then-statement, (source, else_) 'to
 			as js-block-statement
-				then-statement = return-unless-void then_, type.is-void
-				gen-if source, cond, then-statement, (source, else_) 'to
-		as js-block-statement
-			gen-if source, cond, then_, (source, a.else_.to-block-statement) 'to
+				else_ = to-block-statement a.else_
+				gen-if source, cond, then_, (if any else_ then source, else_) 'to
 	as let-low-expr
 		local = local-name a.local
 		value = to-js-expr a.value

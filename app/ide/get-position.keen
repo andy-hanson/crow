@@ -99,7 +99,7 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 		position-in-type-params a, ast.type-params, pos or
 		position-in-type a.return-type, ast.return-type, pos or
 		position-in-params a.params, ast.params, pos or
-		position-in-modifiers a.specs, ast.modifiers, pos or
+		position-in-modifiers a.specs, (), ast.modifiers, pos or
 		if e = a.body.body-expr then position-in-expr a, e, pos, pos-kind
 
 -position-in-test position-kind?(a test_, pos pos, pos-kind get-position-kind) common-types, keen-module
@@ -114,21 +114,27 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 
 -position-in-modifiers position-kind?
 	specs specs?
+	sum-type-cases sum-type-case[]
 	modifiers modifier-ast[]
 	pos pos
 do type-ctx
 	if index = find-index modifiers, {has-pos it.range, pos}
-		position-in-modifier specs, modifiers, index, pos
+		position-in-modifier specs, sum-type-cases, modifiers, index, pos
 
 -position-in-modifier position-kind?
 	specs specs?
+	sum-type-cases sum-type-case[]
 	modifiers modifier-ast[]
 	index nat32
 	pos pos
 do type-ctx
 	match ast = modifiers[index]
 	as modifier-keyword-ast
-		position-modifier the::type-container, ast.keyword
+		if ast.type-arg and has-pos ast.type-arg.range, pos and ast.keyword == case_
+			which = count modifiers[0 .. index], {modifier-keyword-ast it and it.keyword == case_}
+			position-in-type sum-type-cases[which].sum-type, ast.type-arg, pos
+		else
+			position-modifier the::type-container, ast.keyword
 	as spec-use-ast
 		do if specs and specs.inner.size == (count modifiers, it.spec-use-ast)
 		# Find the corresponding spec
@@ -227,7 +233,7 @@ do keen-module, local-container
 		(if has-pos a.name-range.range, pos then a) or
 		(if has-pos ast.keyword-range, pos then keyword-kind-for-type-body ast.body) or
 		position-in-type-params a, ast.type-params, pos or
-		position-in-modifiers (), ast.modifiers, pos or
+		position-in-modifiers (), a.sum-type-cases, ast.modifiers, pos or
 		position-in-type-body a, ast.body, pos
 -keyword-kind-for-type-body position-keyword(a type-body-ast)
 	match a
@@ -268,7 +274,7 @@ do keen-module, local-container
 		(if has-pos a.ast.name.range, pos then a) or
 		position-in-type-params a, a.ast.type-params, pos or
 		(if has-pos a.ast.keyword-range, pos then spec_) or
-		position-in-modifiers a.parents, a.ast.modifiers, pos or
+		position-in-modifiers a.parents, (), a.ast.modifiers, pos or
 		position-in-signatures a.sigs, a.ast.sigs, pos
 
 -position-in-signatures position-kind?(signatures signature[], asts signature-ast[], pos pos) type-ctx, local-container

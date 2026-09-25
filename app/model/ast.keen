@@ -357,7 +357,11 @@ call-ast-then call-ast-then(keyword-pos pos, fun-name name-and-range, args expr-
 	keyword-pos, fun-name.start, (get-name-and-arity fun-name.name, args.size), args
 range source-range(a call-ast-then) = a.start, a.end
 start pos(a call-ast-then) = a.args[0].start
-end pos(a call-ast-then) = a.args[end - 1].end
+end pos(a call-ast-then)
+	if a.args.size == 1
+		a.name-range.end
+	else
+		a.args[end - 1].end
 name-range source-range(a call-ast-then) = range name-and-range a.fun-pos, a.fun-name.name
 
 name-or-string-ast union(name-and-range, literal-string-ast, interpolated-ast, it-scope-ast)

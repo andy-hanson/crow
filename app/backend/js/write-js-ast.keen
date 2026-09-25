@@ -566,6 +566,8 @@ do
 		out ~~= operator x.kind
 		write-arg[x.arg]
 		out ~= ")"
+	as js-undefined-expr
+		out ~~= "(void 0)"
 
 -write-arrow-function void(out output, indent nat32, pos expr-pos, a js-arrow-function)
 	if is-non-first-statement pos

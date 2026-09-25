@@ -1,0 +1,20 @@
+test
+	x nat =
+		1
+		then + 2 * 3
+	x is 7
+
+test
+	x nat =
+		1
+		then * 2 + 3
+	x is 5
+
+test
+	x =
+		0 .. 10
+		then to::nat[]
+		then filter::nat[] it.is-even
+		then map::nat[] it / 2
+		then sum
+	x is 2/2 + 4/2 + 6/2 + 8/2

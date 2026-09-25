@@ -16,6 +16,8 @@ import
 	width, width
 + * size2-32(a size2-32, scale float32)
 	a.width * scale, a.height * scale
++ * size2-32(scale float32, size size2-32)
+	size * scale
 + * size2-32(a size2-32, b size2-32)
 	width: a.width * b.width
 	height: a.height * b.height

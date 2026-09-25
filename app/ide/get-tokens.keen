@@ -525,11 +525,18 @@ do tokens-builder
 				# expr :: t
 				add-expr-tokens expr
 				add-type-tokens a.type
-			elif expr.call-ast-prefix
+			elif call-ast-prefix expr
 				# fun-name::t args...
 				emit function_, expr.name-range
 				add-type-tokens a.type
 				add-exprs-tokens expr.args
+			elif call-ast-then expr
+				# arg0
+				# then f::t args...
+				add-expr-tokens expr.args[0]
+				emit function_, expr.name-range
+				add-type-tokens a.type
+				add-exprs-tokens expr.args[1 .. end]
 			else
 				# `for::t ...`
 				add-type-tokens a.type

@@ -985,9 +985,10 @@ do parser
 	while try-take-token newline-same-indent
 		if try-take-token then_
 			then-pos = prev-start
-			fun-name = take-name-and-range
+			fun-name = take-name-or-operator
+			type = maybe-parse-type-annotation
 			args = res ~ parse-args allow-everything
-			res := call-ast-then then-pos, fun-name, args
+			res := maybe-typed type, call-ast-then then-pos, fun-name, args
 		else
 			res seq-ast:= parse-single-statement-line
 	res

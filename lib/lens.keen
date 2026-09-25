@@ -36,3 +36,8 @@ export
 	set: of x, value
 		set a, x, set b, (get a, x), value
 
++computed-lens[t, u] (t, u) lens(compute (t, u) lens data(value t)) t data, u data
+	get: of a
+		get a, compute[a]
+	set: of a, value
+		set a, compute[a], value

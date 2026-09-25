@@ -95,7 +95,7 @@ region tuple
 +exception variant
 	show string()
 
-+js-any builtin js, mut
++js-any builtin js, shared
 
 +string record
 	~chars char8[]
