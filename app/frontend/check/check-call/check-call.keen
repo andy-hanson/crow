@@ -1,9 +1,9 @@
 import
+	keen/misc/levenshtein-distance
 	keen/unsafe
 	../../../model/ast
 	../../../model/model
 	../../../model/source-range
-	../../../util/util
 	../allocators
 	../check-ctx
 	../expr-ctx
@@ -80,24 +80,72 @@ do check-expr-ctx, check-expr
 		diag-range: range
 		fun-name: fun-name-list-new new-n parts.size
 
-check-call-named expr(ast call-named-ast, expected expected) check-expr-ctx, check-expr
-	use-names, use-args = filter-together ast.names, ast.args, of index, name, _
-		name-symbol = name.name
-		if name-symbol
-			if some ast.names[0 .. index], it.name == name-symbol
+check-call-named-new expr(ast call-named-ast, expected expected) check-expr-ctx, check-expr
+	use-names symbol[], use-args expr-ast[] = with out-names, out-args in build2 ast.names.size, ast.names.size
+		for index, name in with-index ast.names
+			name-symbol = name.name
+			do if name-symbol else
+				add-diag name.range, diag-named-new-interpolated
+			do if every ast.names[0 .. index], it.name != name-symbol else
 				add-diag name.range, diag-named-new-duplicate-name name-symbol
-				false
-			else
-				true
-		else
-			add-diag name.range, diag-named-new-interpolated
-			false
-	check-call-common use-args, expected,
-		source: ast
-		fun-name:
-			:: named-new
-			names: map use-names, it.name!
-			regular: new-n use-args.size
+			out-names ~= name-symbol
+			out-args ~= ast.args[index]
+
+	best mut type-match-kind = bogus-match
+	matches (candidate, which-params) mut[] = ()
+	each-named-new-fun funs-in-expr-scope, expected, use-names, of candidate, used-params
+		do if x = test-candidate-return-type expected, candidate
+		match x <=> best
+		as less
+			()
+		as equal
+			matches ~= candidate, used-params
+		as greater
+			clear matches
+			best := x
+			matches ~= candidate, used-params
+	match matches.size
+	as 0
+		add-diag ast.range,
+			:: diag-call-no-match-for-named-new
+			expected: get-expected-for-diag expected
+			most-likely-match: most-likely-match-for-named-new expected, use-names
+		bogus expected, ast
+	as 1
+		candidate, used-params = only! matches
+		match used-params
+		as indices
+			args expr[] = for param-index, arg-ast in zip used-params, use-args
+				param-type = get-candidate-expected-parameter-type candidate, param-index
+				check-expr arg-ast, as-expected (param-type,)
+			called = check-call-after-choosing-overload candidate, ast.range
+			check expected, called.return-type, call-expr-with-defaults ast, called, args, used-params
+		as uses-all-params
+			args expr[] = for arg-index, arg-ast in with-index use-args
+				param-type = get-candidate-expected-parameter-type candidate, arg-index
+				check-expr arg-ast, as-expected (param-type,)
+			called = check-call-after-choosing-overload candidate, ast.range
+			check expected, called.return-type, call-expr ast, called, args
+		as calls-named-new
+			args expr[] = for arg in use-args
+				param-type = get-candidate-expected-parameter-type candidate, 0
+				check-expr arg, as-expected (param-type,)
+			called = check-call-after-choosing-overload candidate, ast.range
+			check expected, called.return-type, call-named-new-expr ast, called, args
+	else
+		add-diag ast.range,
+			:: diag-call-named-new-multiple-matches
+			type-container: type-container
+			matches: for candidate, _ in matches then candidate.called
+		bogus expected, ast
+
+-most-likely-match-for-named-new fun-decl?(expected expected, names symbol[]) check-expr-ctx
+	funs fun-decl[] = filter funs-in-expr-scope.all-new-funs-for-diag, of fun
+		test-candidate-return-type expected, fun.init-candidate and every fun.params, it.name
+	sorted-names = sort names
+	min-by funs, of fun
+		param-names symbol[] = map fun.params, it.name!
+		levenshtein-distance param-names.sort, sorted-names
 
 check-call-special expr
 	source call-expr-source
@@ -200,8 +248,6 @@ call-info record
 	type-arg type?
 new call-info(source call-expr-source, diag-range source-range, fun-name fun-name)
 	source, diag-range, fun-name, ()
-new call-info(source call-expr-source, fun-name fun-name)
-	source, source.range, fun-name
 n-args nat32(a call-info) = a.fun-name.arity
 
 -check-call-special-cb-n expr
@@ -227,13 +273,7 @@ do check-expr-ctx
 -make-call expr(source call-expr-source, called called, args expr[])
 	match source
 	as call-named-ast
-		match called.name
-		as new
-			call-expr source, called, args
-		as named-new
-			call-named-new-expr source, called, args
-		else
-			throw unreachable
+		throw unreachable
 	as if-ast
 		make-list-call source, called, args
 	as list-ast

@@ -449,9 +449,7 @@ import
 		throw todo
 -fix-number-for-java String(a string-view) java
 	fixed char8[] = if contains a, "_"
-		for* x in a
-			unless x == "_"
-				- x
+		omit a, it == "_"
 	else
 		a.to
 	fixed.to::string.to
@@ -529,6 +527,7 @@ import
 		assert is-at-end iter else inner-parse-error "Kid value"
 		res
 	catch error as inner-parse-error
+		:: kid-parse-error
 		pos: iter.pos
 		expected: expected error
 

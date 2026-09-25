@@ -239,8 +239,7 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 	local, f[local-get-low-expr a.range, local]
 
 -lower-call low-expr(type low-type, range uri-and-range, a call-expr) lower-and-expr-ctx
-	do if low-called = get-low-fun-from-called a.called else
-		lower-bogus type, range
+	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
 	if low-fun-body-always-inline low-called.body
 		if is-array-op low-called
 			lower-array-op type, range, a, low-called
@@ -261,6 +260,30 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 		# because we may be calling a spec-impl that has a narrower type than the spec.
 		# (The call expr's type can't reflect this and uses the spec's declared type.)
 		gen-call range, low-called, args
+
+-lower-call-with-defaults low-expr(type low-type, range uri-and-range, a call-expr-with-defaults) lower-and-expr-ctx
+	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
+	arg-index mut nat = 0
+	indices = a.which-params
+	all-args low-expr[] = for param-index, param in with-index low-called.params
+		if arg-index < a.args.size and indices[arg-index] == param-index
+			res = lower-expr param.type, a.args[arg-index]
+			arg-index +:= 1
+			res
+		else
+			match a.called
+			as called-bogus
+				throw unreachable
+			as fun-inst
+				default = a.called.decl.param-defaults![param-index]!
+				lower-expr param.type, default
+			as called-spec-sig
+				throw todo
+	arg-index is a.args.size
+	if low-fun-body-always-inline low-called.body
+		lower-inline-call-not-array-op low-called, range, all-args
+	else
+		gen-call range, low-called, all-args
 
 -lower-array-op low-expr(type low-type, range uri-and-range, a call-expr, low-called low-fun) lower-and-expr-ctx
 	input-arg, lambda-arg = only2! a.args
@@ -324,19 +347,6 @@ do lower-and-expr-ctx
 	if a.fun-inst
 		a.decl.contexts.size
 
--is-array-op bool(a low-fun) lower-context
-	# TODO: make sure this is the one in collection.keen and all the spec impls are as expected
-	do if a.name == "for-loop"
-	do if is-void a.return-type or as-array-or-buffer a.return-type
-	do if a.params.size == 2
-	input = a.params[0]
-	do if is-range input.type or as-array-or-buffer input.type
-	do if as-lambda-type a.params[1].type
-	true
-
--is-range bool(a low-type) lower-context
-	low-type-source-inst a.source and a.source.decl == common-funs.range
-
 -lower-call-option low-expr(type low-type, range uri-and-range, a call-option-expr) lower-and-expr-ctx
 	###
 	Args are evaluated from left to right, and it stops at the first empty option.
@@ -369,7 +379,7 @@ do lower-and-expr-ctx
 		if option-args.peek == i
 			_ = pop! option-args
 			res := gen-if-option range, args[i],
-				then_: arg-locals[i], res
+				local-and-then: arg-locals[i], res
 				else_: else_
 		else
 			res := let-low-expr range, arg-locals[i], args[i], res
@@ -682,16 +692,16 @@ do lower-and-expr-ctx
 
 -gen-option-else low-expr(type low-type, range uri-and-range, option low-expr, else_ low-expr) lower-ctx
 	gen-if-option range, option,
-		then_: with get in with-local option.type.as-option!, range
+		local-and-then: with get in with-local option.type.as-option!, range
 			may-widen-type type, get
 		else_: else_
 
--branches record(then_ low-local-and-expr, else_ low-expr)
+-branches record(local-and-then low-local-and-expr, else_ low-expr)
 -new branches(then_ low-expr, else_ low-expr)
-	then_: ((), then_)::low-local-and-expr
+	local-and-then: ((), then_)::low-local-and-expr
 	else_: else_
 -gen-if-option low-expr(range uri-and-range, option low-expr, branches branches) low-common-types
-	then_ = branches.then_
+	then_ = branches.local-and-then
 	else_ = branches.else_
 	if x = then_.local
 		option-local low-local = member2::low-generated-local-kind, option.type
@@ -1037,6 +1047,8 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 		lower-bogus type, range
 	as call-expr
 		lower-call type, range, a
+	as call-expr-with-defaults
+		lower-call-with-defaults type, range, a
 	as call-named-new-expr
 		lower-call-named-new type, range, a
 	as call-option-expr
@@ -1148,7 +1160,7 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 			range = actual.range
 			if widen-temp = try-widen expected-unwrapped, (local-get-low-expr range, temp), false
 				gen-if-option range, actual,
-					then_: temp, gen-option expected, range, widen-temp
+					local-and-then: temp, gen-option expected, range, widen-temp
 					else_: gen-empty-option expected, range
 	elif u = low-union expected.body
 		members low-type[] = if u.has-members

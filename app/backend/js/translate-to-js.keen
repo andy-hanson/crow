@@ -24,8 +24,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 		union-info: plan-unions program
 		mangled-names: build-mangled-names program
 		constant-names: gen-constant-names program
-	classes js-class-decl[] = for* type in program.all-non-extern-types
-		from-option translate-type type
+	classes js-class-decl[] = map-optionally program.all-non-extern-types, it.translate-type
 	functions js-fun-decl[] = with out in build
 		for x in program.all-non-extern-funs
 			out ~~= to-js-functions x

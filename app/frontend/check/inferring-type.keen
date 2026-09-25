@@ -72,6 +72,30 @@ choose-string-type (type, char-or-string-type?)?(range source-range, expected ex
 	elif x = try-get-inexact-non-inferring-type expected
 		x, ()
 
+| Does a best effort. If it fails, should check all functions.
+expected-return-types-for-named-new type-decl set?(expected expected)
+	do if types type[] = map-every expected.choices, of choice
+		try-get-inexact-non-inferring-type choice
+	ok mut = false
+	res type-decl set = with out in build
+		ok := every types, of type
+			each-narrow-type type, {out ~= it}
+	if ok then res
+
+-each-narrow-type bool(a type, f void mut(x type-decl))
+	if type-inst a
+		if a.narrow-types and any a.narrow-types
+			for n in a.narrow-types
+				f[n.decl]
+			true
+		elif x = unwrap-option a
+			each-narrow-type x, f
+		else
+			f[a.decl]
+			true
+	else
+		false
+
 -as-char-or-string-type char-or-string-type?(a type) check-ctx, common-types
 	if is-char8 a
 		char8

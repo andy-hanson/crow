@@ -487,8 +487,8 @@ do
 -parse-build-out single-build-output[](cwd file-path, diags diags, args string[])
 	unless any args
 		diags ~= expected-paths "out"
-	for* arg in args
-		from-option parse-single-build-out cwd, diags, arg
+	map-optionally args, of arg
+		parse-single-build-out cwd, diags, arg
 -parse-single-build-out single-build-output?(cwd file-path, diags diags, arg string)
 	path = parse-file-path-with-cwd-or-diag diags, cwd, arg
 	if kind = build-kind-from-extension get-extension path

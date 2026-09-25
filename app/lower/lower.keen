@@ -152,26 +152,25 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		sum-type = fun.params[0].type
 		method-index = fun.source.low-fun-source-regular!.decl.body.fun-body-method!.method-index
 		fun.body := generate-call-method fun, sum-type, ctx.sum-types[sum-type]!.cases, method-index
-	for* sum-type, info in ctx.sum-types
+	map-optionally ctx.sum-types, of sum-type, info
 		do if preserve-methods sum-type
+		- sum-type
 		-
-			- sum-type
-			-
-				methods low-fun[] = sort info.methods-unsorted.to, it.method-index
-				method-indices nat32[] = map methods, it.method-index
-				methods: methods
-				cases: for case_ in info.cases
-					for index in method-indices
-						impl = unless as-extern case_.case-type
-							case_.method-impls[index]
-						impl else gen-bogus methods[index].return-type, case_.case-type.source.range
+			methods low-fun[] = sort info.methods-unsorted.to, it.method-index
+			method-indices nat32[] = map methods, it.method-index
+			methods: methods
+			cases: for case_ in info.cases
+				for index in method-indices
+					impl = unless as-extern case_.case-type
+						case_.method-impls[index]
+					impl else gen-bogus methods[index].return-type, case_.case-type.source.range
 
 -method-index nat32(a low-fun)
 	a.body.low-fun-body-method!.method-index
 
 -low-fun-for-all-tests low-fun(selector test-selector) lower-ctx
 	range uri-and-range = selector.range.uri, ()
-	res =
+	res low-fun =
 		tests low-expr[] = for test_ in all-tests selector
 			call-low-expr range, test_, ()
 		hash: take-next-id

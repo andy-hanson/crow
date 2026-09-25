@@ -84,7 +84,7 @@ parse-single-line-expression expr-and-diags(source string)
 			res
 		doc-comment, start.range-allow-empty, name, value
 
--parse-record-rest record-ast(params destructure-ast[]?) parser
+-parse-record-rest record-ast(params parameter-ast[]?) parser
 	if params
 		record-ast params, (), maybe-parse-indented-expr
 	else
@@ -100,9 +100,9 @@ parse-single-line-expression expr-and-diags(source string)
 		visibility = try-take-visibility
 		name = take-name-and-range
 		mutability = parse-field-mutability
-		type type-ast? = unless peek-end-of-line
-			parse-type
-		doc-comment, start.range-allow-empty, visibility, name, mutability, type
+		type type-ast? = unless peek-end-of-line then parse-type
+		default = try-parse-default
+		doc-comment, start.range-allow-empty, visibility, name, mutability, type, default
 
 -parse-field-mutability field-mutability-ast?() parser
 	pos = next-start

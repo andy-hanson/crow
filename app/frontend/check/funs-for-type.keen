@@ -2,6 +2,7 @@ import
 	keen/col/enum-map
 	../../model/ast
 	../../model/model
+	../../model/source-range
 	./check-call/check-call-specs
 	./check-ctx
 	./instantiate
@@ -421,14 +422,29 @@ do instantiate-ctx, common-types
 	for field in record_.fields
 		add-funs-for-record-field out, type, inst, field
 
--record-constructor fun-decl(type type-decl, record_ record_, inst type-inst, non-nominal fun-decl?) check-ctx
+-record-constructor fun-decl(type type-decl, record_ record_, inst type-inst, non-nominal-ref fun-decl?) check-ctx
 	hash: next-hash
 	visibility: new-visibility record_
 	return-type: inst
 	params: for x in record_.fields
 		local x, x.type
+	param-defaults: unless non-nominal-ref # Meaning, if *this* is 'new'
+		bogus-record-param-defaults type
 	specs: specs type
-	body: new-record type, non-nominal, ()
+	body: new-record type, non-nominal-ref, ()
+
+bogus-record-param-defaults expr?[]?(type type-decl)
+	ast = record-ast! type.source.type-decl-ast!.body
+	assert record_ type.body
+	if ast.params
+		do if ast.params.size == type.body.fields.size
+		for param in ast.params
+			if param.default
+				bogus-expr (), bogus-type, temporary
+	else
+		for field-ast in ast.fields
+			if field-ast.default
+				bogus-expr (), bogus-type, temporary
 
 -add-funs-for-record-field void
 	out funs-out
@@ -483,6 +499,7 @@ do check-ctx, common-types
 -interface-constructor fun-decl?(type type-decl, inst type-inst, sum-type sum-type) check-ctx, common-types
 	do if params destructure[] = map-every sum-type.methods, of method
 		do if param-tuple = lambda-param-type method.params
+		:: local
 		source: local-source-generated method.name
 		type: (lambda type.mutability)[method.return-type, param-tuple]
 	hash: next-hash

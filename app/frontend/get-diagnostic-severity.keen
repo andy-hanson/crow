@@ -17,11 +17,15 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		check-error
 	as diag-call-deprecated
 		warning
+	as diag-call-named-new-multiple-matches
+		check-error
 	as diag-call-multiple-matches
 		check-error
 	as diag-call-no-match
 		check-error
 	as diag-call-no-match-for-interpolate-or-list-new
+		check-error
+	as diag-call-no-match-for-named-new
 		check-error
 	as diag-call-option-non-option
 		warning
@@ -74,6 +78,8 @@ get-diagnostic-severity diagnostic-severity(a diag)
 	as diag-duplicate-imports
 		check-error
 	as diag-empty-enum-or-union
+		check-error
+	as diag-enum-value-not-number
 		check-error
 	as diag-enum-value-not-sorted
 		check-error
@@ -166,6 +172,8 @@ get-diagnostic-severity diagnostic-severity(a diag)
 	as diag-option-or-left-non-option
 		warning
 	as diag-option-or-right-non-option
+		warning
+	as diag-param-default-non-new
 		warning
 	as diag-param-missing-type
 		check-error

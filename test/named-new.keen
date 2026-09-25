@@ -1,0 +1,6 @@
+r record(x nat = 1, y nat = 2)
+
+test
+	(x: 7)::r is 7, 2
+	(y: 7)::r is 1, 7
+	(x: 7, y: 8)::r is 7, 8

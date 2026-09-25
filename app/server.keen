@@ -477,9 +477,9 @@ get-show-ctx show-ctx(server server, force-no-color bool)
 	new-uris uri set = for x in diags then x.uri
 	all uri-and-diagnostics[] =
 		-- diags
-		-- for* uri in state.uris-with-diagnostics
+		-- map-optionally state.uris-with-diagnostics, of uri
 			unless new-uris[uri]
-				- uri, ()
+				uri, ()
 	state.uris-with-diagnostics := new-uris.to
 	the show-ctx = get-show-ctx server
 	the common-types = program.common-types

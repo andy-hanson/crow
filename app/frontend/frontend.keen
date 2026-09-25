@@ -185,9 +185,9 @@ make-program program(a frontend, fully-loaded-dirs uri set)
 	unused-diagnostics = detect-unused-internal keen-modules, fully-loaded-dirs
 	kid-diagnostics uri-and-diagnostic[] = for* uri, file in a.kid-files
 		map file.diagnostics, {uri, it}
-	all-configs: for* uri, x in a.config-files
+	all-configs: map-optionally a.config-files, of uri, x
 		if config = x.config.config
-			- uri, config
+			uri, config
 	jar-files: all-jar-files a
 	keen-modules: keen-modules
 	java-modules: for* k, v in a.java-class-files

@@ -900,7 +900,7 @@ signature-ast record
 	range source-range
 	name symbol
 	return-type type-ast
-	params destructure-ast[]
+	params parameter-ast[]
 name-and-range name-and-range(a signature-ast) = a.range.start, a.name
 name-range source-range(a signature-ast) = a.name-and-range.range
 
@@ -987,10 +987,10 @@ to json(a modifier-keyword) = a.to::string.to
 type-body-ast union(builtin-type-ast, enum-ast, flags-ast, record-ast, sum-type-ast)
 
 builtin-type-ast record
-enum-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
-flags-ast record(params destructure-ast[]?, members enum-or-flags-member-ast[])
+enum-ast record(params parameter-ast[]?, members enum-or-flags-member-ast[])
+flags-ast record(params parameter-ast[]?, members enum-or-flags-member-ast[])
 record-ast record
-	params destructure-ast[]?
+	params parameter-ast[]?
 	fields record-field-ast[]
 	preconstructor expr-ast?
 sum-type-ast record(kind sum-type-kind, types type-ast[], methods signature-ast[])
@@ -1002,7 +1002,7 @@ enum-or-flags-member-ast record
 	doc-comment doc-comment-ast
 	range source-range
 	name symbol
-	value literal-number?
+	value expr-ast?
 name-and-range name-and-range(a enum-or-flags-member-ast)
 	a.range.start, a.name
 name-range source-range(a enum-or-flags-member-ast)
@@ -1015,6 +1015,7 @@ record-field-ast record
 	name name-and-range
 	mutability field-mutability-ast?
 	type type-ast?
+	default expr-ast?
 visibility visibility-and-range?(a record-field-ast)
 	get-visibility-and-range a.range.start, a.visibility_
 name-range source-range(a record-field-ast)
@@ -1074,7 +1075,7 @@ fun-decl-ast record
 	name name-and-arity
 	type-params name-and-range[]
 	return-type type-ast
-	params destructure-ast[]
+	params parameter-ast[]
 	modifiers modifier-ast[]
 	| If the body is missing this will be {bogus-ast}
 	body expr-ast
@@ -1087,6 +1088,15 @@ name-range uri-and-range(a fun-decl-ast)
 	a.module-uri, a.name-range
 name-range source-range(a fun-decl-ast)
 	range name-and-range a.name-pos, a.name.name
+
+parameter-ast record
+	destructure destructure-ast
+	default expr-ast?
+range source-range(a parameter-ast)
+	if a.default
+		a.destructure.start, a.default.end
+	else
+		range a.destructure
 
 test-ast record
 	doc-comment doc-comment-ast

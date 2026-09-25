@@ -39,7 +39,7 @@ parse-config config(config-uri uri, text string-view)
 	as null
 		()
 	as json-object
-		imports: for* key, value in object
+		imports: map-optionally object, of key, value
 			do if uri = to-uri dir-containing-config, diags, value
 			kind configured-import-kind? = match get-extension uri
 			as "" then keen
@@ -48,7 +48,7 @@ parse-config config(config-uri uri, text string-view)
 				diags ~= diag-config-invalid-value "Directory (for Keen files) or a '.jar' file", value
 				()
 			if kind
-				- (parse-path key.to), uri, kind
+				(parse-path key.to), uri, kind
 	else
 		diags ~= diag-config-invalid-value "Imports object", object
 		()

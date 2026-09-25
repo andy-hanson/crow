@@ -108,7 +108,6 @@ test
 	parse kid, "a: 1, b: 2" is a: 1, b: 2
 	parse kid, "a: 1, 2" is a: 1, 2
 	parse kid, "(1, 2), (3, 4)" is
-		:: json[]
 		- 1, 2
 		- 3, 4
 
@@ -132,7 +131,7 @@ test
 	array-of-objects = quote
 		- x: 1
 		- y: 2
-	roundtrip array-of-objects, ((x: 1), (y: 2))
+	roundtrip array-of-objects, ((x: 1)::json, (y: 2)::json)
 
 	array-in-object = quote
 		x: 1,

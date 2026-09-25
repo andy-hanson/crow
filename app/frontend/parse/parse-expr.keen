@@ -765,6 +765,10 @@ do parser
 -parse-expr-and-all-calls expr-ast(allowed allowed) parser
 	parse-expr-and-calls (allowed, min-precedence)
 
+parse-expr-for-param-default expr-ast(parser parser)
+	the parser = parser
+	parse-expr-before-call allowed: none, min-precedence-exclusive: comma
+
 -parse-expr-and-calls expr-ast(arg-ctx arg-ctx) parser
 	parse-calls (parse-expr-before-call arg-ctx), arg-ctx
 

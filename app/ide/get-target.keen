@@ -119,6 +119,8 @@ target-for-position target?(pos position)
 		()
 	as call-expr
 		called-target x.called
+	as call-expr-with-defaults
+		called-target x.called
 	as call-named-new-expr
 		called-target x.called
 	as call-option-expr

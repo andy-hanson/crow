@@ -1,6 +1,28 @@
 import
 	keen/parse
+	../../lib/col/util: finish, new
 	../../lib/private/parse-util
+
+| Only returns a result if {f} returned a non-empty option at least once.
+map-if-any[out-col, out-elem, in-col, in-elem] out-col?
+	a in-col
+	f out-elem? mut(x in-elem)
+do (out-col, out-elem?) list-new, in-col size, (in-col, in-elem) some
+	out mut out-elem? builder? = ()
+	index-of-first mut nat = 0
+	_ = some a, of x
+		if out
+			out! ~= f[x]
+		elif y = f[x]
+			unless out
+				out := a.size,
+				for _ in index-of-first
+					out! ~= ()
+			out! ~= y
+		else
+			index-of-first +:= 1
+		false
+	?finish out
 
 arrays-correspond[t, u] bool(a t[], b u[], f bool mut(x t, y u))
 	a.size == b.size and every 0::nat32 .. a.size, {f[a[it], b[it]]}
@@ -89,15 +111,6 @@ newline string(indent nat32)
 
 is-ascii-identifier-char bool(a char8)
 	is-letter a or is-digit a or a == "_"
-
-filter-together[t, u] (t[], u[])(a t[], b u[], f bool mut(index nat32, x t, y u))
-	a.size is b.size
-	indices nat32[] = filter 0 .. a.size, {f[it, a[it], b[it]]}
-	if indices.size == a.size
-		a, b
-	else
-		- map indices, a[it]
-		- map indices, b[it]
 
 to-hex-with-padding string(a nat32, size nat32)
 	pad-left a.to-hex, size, "0"

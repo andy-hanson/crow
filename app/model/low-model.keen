@@ -620,26 +620,6 @@ type low-type(a match-string-like-low-expr) low-common-types
 	a.cases[0].then_.type
 low-match-string-like-case record(value constant, then_ low-expr)
 
-indices record(values scalar-values)
-list-new indices(values nat32[])
-	values.to
-to json(a indices)
-	a.values.to
-to indices(a nat32)
-	values: (a.to::scalar-value,).to::scalar-values
-to indices(a nat32 range)
-	a.to::nat32[].to
-to indices(a nat32[])
-	values: to::scalar-values for::nat64[] x in a then x
-size nat32(a indices)
-	a.values.size
-some bool(a indices, f bool mut(x nat32))
-	some a.values, f[it.to]
-subscript nat32(a indices, index nat32)
-	a.values[index].to
-to-array nat32[](a indices)
-	map a.values, {it.to}
-
 match-union-low-expr record
 	range uri-and-range
 	matched low-expr

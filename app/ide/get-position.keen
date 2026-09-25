@@ -31,7 +31,7 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 		get-prev-identifier content, pos
 	as after
 		get-prev-identifier content, walk-backwards-for-position content, pos
-	if kind = get-position-kind module, pos-adjusted, pos-kind
+	if kind = get-position-kind module, (pos-adjusted, pos-kind)
 		module, kind
 
 -get-prev-identifier pos(content char8 array-view, pos pos)
@@ -50,18 +50,20 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 -opt-has-pos bool(range source-range?, pos pos)
 	range and has-pos range, pos
 
--get-position-kind position-kind?(module keen-module, pos pos, pos-kind get-position-kind) common-types
+-pos-and-kind record(pos pos, kind get-position-kind)
+
+-get-position-kind position-kind?(module keen-module, pos pos-and-kind) common-types
 	the keen-module = module
-	position-in-doc-comment module, pos or
-	position-in-imports module, pos or
-	first module.aliases, {position-in-alias it, pos} or
+	position-in-doc-comment module, pos.pos or
+	position-in-imports module, pos.pos or
+	first module.aliases, {position-in-alias it, pos.pos} or
 	first module.types, {position-in-type it, pos} or
-	first module.vars, {position-in-var it, pos} or
-	first module.specs, {position-in-spec it, pos} or
-	first module.funs, {position-in-fun it, pos, pos-kind} or
-	first module.tests, {position-in-test it, pos, pos-kind} or
+	first module.vars, {position-in-var it, pos.pos} or
+	first module.specs, {position-in-spec it, pos.pos} or
+	first module.funs, {position-in-fun it, pos} or
+	first module.tests, {position-in-test it, pos} or
 	# We need a definition at position 0, because inlay hints for "Used by" have that as their location.
-	if pos == 0 then position-module
+	if pos.pos == 0 then position-module
 
 -position-in-imports position-kind?(module keen-module, pos pos)
 	first module.walk-explicit-imports, of ast, imported
@@ -88,29 +90,38 @@ get-position position?(program program, where uri-line-and-character, pos-kind g
 	if index = find-index a.doc-comment.ast.references, {has-pos it.range, pos}
 		position-doc-ref a, a.doc-comment.references[index]
 
--position-in-fun position-kind?(a fun-decl, pos pos, pos-kind get-position-kind) common-types, keen-module
+-position-in-fun position-kind?(a fun-decl, pos pos-and-kind) common-types, keen-module
 	the type-container = a
 	the local-container = a
 	do if ast = a.body.ast else
-		if e = a.body.body-expr then position-in-expr a, e, pos, pos-kind
-	position-in-decl a, pos, of
-		position-in-visibility a, ast.visibility, pos or
-		(if has-pos ast.name-range, pos then a) or
-		position-in-type-params a, ast.type-params, pos or
-		position-in-type a.return-type, ast.return-type, pos or
-		position-in-params a.params, ast.params, pos or
-		position-in-modifiers a.specs, (), ast.modifiers, pos or
-		if e = a.body.body-expr then position-in-expr a, e, pos, pos-kind
+		if e = a.body.body-expr then position-in-expr a, e, pos
+	position-in-decl a, pos.pos, of
+		position-in-visibility a, ast.visibility, pos.pos or
+		(if has-pos ast.name-range, pos.pos then a) or
+		position-in-type-params a, ast.type-params, pos.pos or
+		position-in-type a.return-type, ast.return-type, pos.pos or
+		position-in-params a.params, ast.params, pos.pos or
+		position-in-param-defaults a, a.param-defaults, pos or
+		position-in-modifiers a.specs, (), ast.modifiers, pos.pos or
+		if e = a.body.body-expr then position-in-expr a, e, pos
 
--position-in-test position-kind?(a test_, pos pos, pos-kind get-position-kind) common-types, keen-module
-	if has-pos a.ast.keyword-range, pos
+-position-in-test position-kind?(a test_, pos pos-and-kind) common-types, keen-module
+	if has-pos a.ast.keyword-range, pos.pos
 		a
 	else
-		position-in-expr a, a.body.as-expr, pos, pos-kind
+		position-in-expr a, a.body.as-expr, pos
 
--position-in-params position-kind?(params destructure[], asts destructure-ast[], pos pos) keen-module, local-container
+-position-in-params position-kind?(params destructure[], asts parameter-ast[], pos pos) keen-module, local-container
 	first (zip params, asts), of x, y
-		position-in-destructure x, y, pos
+		position-in-destructure x, y.destructure, pos
+
+-position-in-param-defaults position-kind?
+	container expr-container
+	param-defaults expr?[]?
+	pos pos-and-kind
+do common-types, keen-module
+	?first param-defaults, of expr
+		?position-in-expr container, expr, pos
 
 -position-in-modifiers position-kind?
 	specs specs?
@@ -218,7 +229,7 @@ do keen-module, local-container
 		(if has-pos a.ast.keyword-range, pos then alias_) or
 		position-in-type a.target, a.ast.target, pos
 
--position-in-type position-kind?(a type-decl, pos pos) keen-module
+-position-in-type position-kind?(a type-decl, pos pos-and-kind) common-types, keen-module
 	match ast = a.source
 	as type-decl-ast
 		position-in-type a, ast, pos
@@ -226,14 +237,14 @@ do keen-module, local-container
 		()
 	as type-decl-source-java
 		throw unreachable
--position-in-type position-kind?(a type-decl, ast type-decl-ast, pos pos) keen-module
+-position-in-type position-kind?(a type-decl, ast type-decl-ast, pos pos-and-kind) common-types, keen-module
 	the type-container = a
-	position-in-decl a, pos, of
-		position-in-visibility a, ast.visibility, pos or
-		(if has-pos a.name-range.range, pos then a) or
-		(if has-pos ast.keyword-range, pos then keyword-kind-for-type-body ast.body) or
-		position-in-type-params a, ast.type-params, pos or
-		position-in-modifiers (), a.sum-type-cases, ast.modifiers, pos or
+	position-in-decl a, pos.pos, of
+		position-in-visibility a, ast.visibility, pos.pos or
+		(if has-pos a.name-range.range, pos.pos then a) or
+		(if has-pos ast.keyword-range, pos.pos then keyword-kind-for-type-body ast.body) or
+		position-in-type-params a, ast.type-params, pos.pos or
+		position-in-modifiers (), a.sum-type-cases, ast.modifiers, pos.pos or
 		position-in-type-body a, ast.body, pos
 -keyword-kind-for-type-body position-keyword(a type-body-ast)
 	match a
@@ -287,7 +298,7 @@ do keen-module, local-container
 	position-in-type sig.return-type, ast.return-type, pos or
 	position-in-params sig.params, ast.params, pos
 
--position-in-type-body position-kind?(decl type-decl, ast type-body-ast, pos pos) keen-module
+-position-in-type-body position-kind?(decl type-decl, ast type-body-ast, pos pos-and-kind) common-types, keen-module
 	the type-container = decl
 	the local-container = decl
 	match body = decl.body
@@ -296,15 +307,15 @@ do keen-module, local-container
 	as builtin-type
 		()
 	as enum_
-		position-in-enum-or-flags-body body.members, ast.enum-ast!.params, ast.enum-ast!.members, pos
+		position-in-enum-or-flags-body body.members, ast.enum-ast!.params, ast.enum-ast!.members, pos.pos
 	as flags_
-		position-in-enum-or-flags-body body.members, ast.flags-ast!.params, ast.flags-ast!.members, pos
+		position-in-enum-or-flags-body body.members, ast.flags-ast!.params, ast.flags-ast!.members, pos.pos
 	as java-class
 		throw unreachable
 	as record_
-		position-in-record body.fields, ast.record-ast!, pos
+		position-in-record decl, body, ast.record-ast!, pos
 	as sum-type
-		position-in-sum-type body, ast.sum-type-ast!, pos
+		position-in-sum-type body, ast.sum-type-ast!, pos.pos
 
 -position-in-sum-type position-kind?(a sum-type, ast sum-type-ast, pos pos) type-ctx, local-container
 	in-members = first (zip-if-size-eq ast.types, a.listed-members), of type-ast, x
@@ -312,17 +323,18 @@ do keen-module, local-container
 	in-members or position-in-signatures a.methods, ast.methods, pos
 
 -position-in-record position-kind?
-	fields record-field[]
+	type type-decl
+	record_ record_
 	ast record-ast
-	pos pos
-do type-ctx
-	do if any fields
-	if params = ast.params
-		first (zip-if-size-eq fields, params), of field, param
-			position-in-record-field-parameter field, param.single-destructure-ast!, pos
+	pos pos-and-kind
+do common-types, type-ctx
+	base = if params = ast.params
+		first (zip-if-size-eq record_.fields, params), of field, param
+			position-in-record-field-parameter field, param.destructure.single-destructure-ast!, pos.pos
 	else
-		first (zip fields, ast.fields), of field, field-ast
-			position-in-record-field field, field-ast, pos
+		first (zip record_.fields, ast.fields), of field, field-ast
+			position-in-record-field field, field-ast, pos.pos
+	base or position-in-param-defaults type, record_.field-defaults, pos
 
 -position-in-record-field-parameter position-kind?
 	field record-field
@@ -354,7 +366,7 @@ do type-ctx
 
 -position-in-enum-or-flags-body position-kind?
 	members enum-or-flags-member[]
-	param-asts destructure-ast[]?
+	param-asts parameter-ast[]?
 	member-asts enum-or-flags-member-ast[]
 	pos pos
 do
@@ -368,39 +380,34 @@ do
 -position-in-enum-or-flags-member position-kind?(member enum-or-flags-member, ast enum-or-flags-member-ast, pos pos)
 	position-in-doc-comment member, pos or if has-pos ast.name-range, pos then member
 
--position-in-expr position-kind?
-	container expr-container
-	a expr
-	pos pos
-	pos-kind get-position-kind
-do keen-module, common-types
+-position-in-expr position-kind?(container expr-container, a expr, pos pos-and-kind) keen-module, common-types
 	the expr-container = container
 	the local-container = container.to
 	the type-container = container.to
-	position-in-expr-recur a, pos, pos-kind
+	position-in-expr-recur a, pos
 -expr-ctx spec common-types, keen-module, expr-container, local-container, type-container
 -container expr-container() expr-container
 	the::expr-container
--position-in-expr-recur position-kind?(a expr, pos pos, pos-kind get-position-kind) expr-ctx
-	if has-pos a.range, pos
-		position-at-expr a, pos, pos-kind or position-in-expr-child a, pos, pos-kind
--position-in-expr-child position-kind?(a expr, pos pos, pos-kind get-position-kind) expr-ctx
-	first a.direct-child-exprs, {position-in-expr-recur it, pos, pos-kind}
--position-at-expr position-kind?(a expr, pos pos, pos-kind get-position-kind) expr-ctx
+-position-in-expr-recur position-kind?(a expr, pos pos-and-kind) expr-ctx
+	if has-pos a.range, pos.pos
+		position-at-expr a, pos or position-in-expr-child a, pos
+-position-in-expr-child position-kind?(a expr, pos pos-and-kind) expr-ctx
+	first a.direct-child-exprs, {position-in-expr-recur it, pos}
+-position-at-expr position-kind?(a expr, pos pos-and-kind) expr-ctx
 	expression-position = of x expression-position-kind
 		expression-position container, a, x
 	expression-position-at = of::position-kind? range source-range, x expression-position-kind
-		if has-pos range, pos then expression-position[x]
+		if has-pos range, pos.pos then expression-position[x]
 	keyword-at = of::position-kind? range source-range, k expr-keyword
-		if has-pos range, pos then expression-position[k]
+		if has-pos range, pos.pos then expression-position[k]
 	keyword-at-opt = of range source-range?, k expr-keyword
 		if range then keyword-at[range, k]
 	local = of kind local-ref-kind, local local, type type
 		expression-position[local-ref kind, local, type]
 	call = of::position-kind? ast call-expr-source, kind expression-position-kind
-		if pos-kind == after or pos-is-at-call ast, pos
+		if pos.kind == after or pos-is-at-call ast, pos.pos
 			expression-position[kind]
-		elif assignment-call-ast ast and has-pos ast.name-range, pos
+		elif assignment-call-ast ast and has-pos ast.name-range, pos.pos
 			call = call-expr! kind
 			if starts-with call.called.name.to::string, "set-"
 				# `x +:= 1` is `set-x (x + 1)`, so at the '+',
@@ -431,16 +438,18 @@ do keen-module, common-types
 		()
 	as call-expr
 		call[a.ast, a]
+	as call-expr-with-defaults
+		call[a.ast, a]
 	as call-named-new-expr
 		call[a.ast, a]
 	as call-option-expr
-		if pos == a.ast.question-pos
+		if pos.pos == a.ast.question-pos
 			res = match a.ast
 			as call-ast-dot-question then question-after-dot
 			as call-ast-prefix-question then question-before-name
 			as call-question-subscript-ast then question-before-subscript
 			expression-position[res]
-		elif pos-is-at-call a.ast.to, pos
+		elif pos-is-at-call a.ast.to, pos.pos
 			expression-position[a]
 	as finally-expr
 		keyword-at[a.ast.finally-keyword-range, finally_]
@@ -458,18 +467,18 @@ do keen-module, common-types
 		as for-or-with-ast
 			# 'for' keyword is handled in 'as call-expr'
 			unless is-ignore a
-				position-in-destructure a.param, ast.param, pos
+				position-in-destructure a.param, ast.param, pos.pos
 		as it-scope-ast
 			first ast.its, {expression-position-at[it.range, a]}
 		as lambda-ast
 			expression-position-at[ast.keyword-range, a] or
 			keyword-at-opt[ast.then-range, then-after-of] or
-			position-in-destructure a.param, ast.param, pos
+			position-in-destructure a.param, ast.param, pos.pos
 	as let-expr
-		position-in-destructure a.destructure, a.destructure-ast, pos
+		position-in-destructure a.destructure, a.destructure-ast, pos.pos
 	as let-the-expr
 		expression-position-at[a.ast.keyword-range, a] or
-		position-in-type a.the-type, a.ast.type, pos
+		position-in-type a.the-type, a.ast.type, pos.pos
 	as list-expr
 		# TODO: if the position is at a '-' or '--', then return expression-position[x]
 		()
@@ -482,41 +491,41 @@ do keen-module, common-types
 	as local-get-and-refine-expr
 		local[get, a.local, a.type]
 	as local-get-and-call-and-refine-expr
-		if has-pos a.local-range, pos
+		if has-pos a.local-range, pos.pos
 			local[get, a.local, a.local-type]
-		elif has-pos a.name-range, pos
+		elif has-pos a.name-range, pos.pos
 			expression-position[a]
 	as local-set-expr
-		if has-pos a.assignee-ast.range, pos
+		if has-pos a.assignee-ast.range, pos.pos
 			local[set, a.local, a.local.type]
 	as logical-expr
 		expression-position-at[a.keyword-range, a]
 	as match-enum-expr
-		position-at-match-enum a, pos
+		position-at-match-enum a, pos.pos
 	as match-scalar-expr
-		position-at-match-scalar a, pos
+		position-at-match-scalar a, pos.pos
 	as match-string-like-expr
-		position-at-match-string-like a, pos
+		position-at-match-string-like a, pos.pos
 	as match-sum-type-expr
-		position-at-match-sum-type a, pos
+		position-at-match-sum-type a, pos.pos
 	as seq-expr
 		()
 	as the-expr
 		expression-position-at[a.ast.keyword-range, a] or
-		position-in-type a.type, a.ast.type, pos
+		position-in-type a.type, a.ast.type, pos.pos
 	as throw-expr
 		keyword-at[a.ast.keyword-range, throw_]
 	as trusted-expr
 		keyword-at[a.ast.keyword-range, trusted_]
 	as try-expr
-		position-at-try a, pos
+		position-at-try a, pos.pos
 	as try-let-expr
-		position-at-try-let a, pos
+		position-at-try-let a, pos.pos
 	as typed-expr
 		keyword-at[a.ast.keyword-range, colon-colon] or
-		position-in-type a.type, a.ast.type, pos
+		position-in-type a.type, a.ast.type, pos.pos
 	as unpack-option
-		position-at-unpack-option a, pos
+		position-at-unpack-option a, pos.pos
 	as while-or-until-expr
 		expression-position-at[a.ast.keyword-range, a]
 	as while-or-until-body-expr

@@ -90,7 +90,7 @@ filter[k, t] (k, t) by-key(a (k, t) by-key, f bool mut(x t)) (k, t) get-key
 		filter impl.values, f 'to-by-key {throw unreachable}
 
 choose-keys[k, t] (k, t) by-key(a (k, t) by-key, keys k set) (k, t) get-key
-	values t[] = for* k in keys then from-option a[k]
+	values t[] = map-optionally keys, a[it]
 	to-by-key values, {throw unreachable}
 filter-keys[k, t] (k, t) by-key(a (k, t) by-key, filter bool mut(key k)) (k, t) get-key
 	values t[] = filter a, filter[it.key]

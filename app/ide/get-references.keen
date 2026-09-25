@@ -17,9 +17,9 @@ get-references uri-and-line-and-character-range[](program program, params refere
 get-document-highlights document-highlight-result?(program program, params document-highlight-params)
 	do if position = get-position program, params.params, exact-or-end
 	uri = position.module.uri
-	highlights document-highlight[] = for* x in get-references program, position, document-highlights
+	highlights document-highlight[] = map-optionally (get-references program, position, document-highlights), of x
 		if x.uri == uri
-			- x.range, Read
+			x.range, Read
 	highlights: sort highlights, it.range.start
 
 references-kind enum(all-references, rename, document-highlights)
@@ -174,7 +174,7 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 		()
 	as type-decl
 		if record_ a.body
-			a, a.body.non-nominal-constructor.body.new-record!.preconstructor!.as-expr
+			a, a.body.preconstructor!.as-expr
 	as var-decl
 		a, a.initializer.as-expr
 

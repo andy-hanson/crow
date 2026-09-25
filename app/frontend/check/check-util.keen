@@ -31,7 +31,7 @@ check-literal-float-value float(ast literal-number) check-ctx
 check-return-type-and-params (type, destructure[])
 	type-container type-container
 	return-type-ast type-ast
-	params-asts destructure-ast[]
+	params-asts parameter-ast[]
 	type-params type-params
 do check-ctx, types-get
 	ret = type-from-ast return-type-ast, type-params, yes
@@ -40,8 +40,8 @@ do check-ctx, types-get
 
 -check-params destructure[]
 	type-container type-container
-	asts destructure-ast[]
+	asts parameter-ast[]
 	type-params-scope type-params
 do check-ctx, types-get
 	for x in asts
-		check-destructure type-container, type-params-scope, x, (), param
+		check-destructure type-container, type-params-scope, x.destructure, (), param

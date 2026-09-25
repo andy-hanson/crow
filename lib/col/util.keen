@@ -514,10 +514,8 @@ do (col, iter, elem) basic-reverse-iter, iter skip-prev-n, elem equal
 	list-new finish-array a
 +build-options record
 	size-hint nat32
-+build build-options()
-	0,
-+build build-options(size-hint nat32)
-	size-hint,
++build build-options() = 0,
++build build-options(size-hint nat32) = size-hint,
 +with-block[col, elem] col
 	a build-options
 	f void mut(out elem builder)
@@ -527,13 +525,14 @@ do (col, elem) list-new
 	finish out
 
 | Like {build}, but builds 2 things at once.
-+build2 record
++build2 record(size-hint0 nat, size-hint1 nat)
++build2 build2() = 0, 0
 +with-block[col0, elem0, col1, elem1] (col0, col1)
-	_ build2
+	a build2
 	f void mut(out0 elem0 builder, out1 elem1 builder)
 do (col0, elem0) list-new, (col1, elem1) list-new
-	out0 elem0 builder = ()
-	out1 elem1 builder = ()
+	out0 elem0 builder = a.size-hint0,
+	out1 elem1 builder = a.size-hint1,
 	f[out0, out1]
 	out0.finish, out1.finish
 

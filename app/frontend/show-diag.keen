@@ -36,9 +36,9 @@ do show-type-ctx
 	severity = max-of program.diagnostics, it.kind.get-diagnostic-severity else lint
 	join "\n", for* x in sorted-diagnostics program
 		do if filter-uri x.uri, options.only-for-uris
-		do for* diagnostic in x.diagnostics
-		do if options.show-all-diagnostics or diagnostic.kind.get-diagnostic-severity == severity
-		- show-diagnostic (x.uri, diagnostic)
+		map-optionally x.diagnostics, of diagnostic
+			if options.show-all-diagnostics or diagnostic.kind.get-diagnostic-severity == severity
+				show-diagnostic (x.uri, diagnostic)
 
 -filter-uri bool(a uri, filter uri set?)
 	if filter
@@ -260,8 +260,6 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		show-name a.name
 	as fun-name-list-new
 		"'new' or 'list-new'"
-	as named-new
-		"'new' or 'named-new'"
 
 -show-call-no-correct-arity string(a diag-call-no-match, some-candidate-has-correct-n-type-args bool) show-type-ctx
 	name = show-name a.fun-name
@@ -310,11 +308,25 @@ show-diag string(a diag) show-type-ctx
 		quote
 			Cannot choose an overload of {show-name a.fun-name}.
 			Multiple functions match:{show-called-decls a.type-container, a.matches}
+	as diag-call-named-new-multiple-matches
+		quote
+			Cannot choose an overload of 'new' or 'named-new'.
+			Multiple functions match:{show-called-decls a.type-container, a.matches}
 	as diag-call-no-match
 		show-call-no-match a
 	as diag-call-no-match-for-interpolate-or-list-new
 		return = show-type-quoted a.expected-return-type
 		"Did not find a function named '{a.name}' returning a {return} taking a single array parameter."
+	as diag-call-no-match-for-named-new
+		base = quote
+			Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+			{show-expected a.expected, generic}
+		if a.most-likely-match
+			quote
+				{base}
+				Most likely you were trying to call: {show-fun-decl quoted, a.most-likely-match}
+		else
+			base
 	as diag-call-option-non-option
 		"None of the arguments to '?{a.fun-name}' is an option, so it could be written without the '?'."
 	as diag-call-should-use-syntax
@@ -440,6 +452,8 @@ show-diag string(a diag) show-type-ctx
 		"The symbol {show-name a.name} appears in multiple modules."
 	as diag-empty-enum-or-union
 		"An enum or union type must have at least one member."
+	as diag-enum-value-not-number
+		"An enum member value must be a number literal."
 	as diag-enum-value-not-sorted
 		"An enum member value must be greater than the previous value ({a.prev-value})."
 	as diag-expected-type-is-not-a-lambda
@@ -629,6 +643,8 @@ show-diag string(a diag) show-type-ctx
 	as diag-option-or-right-non-option
 		type = show-type-quoted a.actual-type
 		"The right side of 'or' is a non-option type {type}. This could be 'else' instead of 'or'."
+	as diag-param-default-non-new
+		"Only 'new' functions can have default parameter values."
 	as diag-param-missing-type
 		"This parameter needs a type."
 	as diag-param-mutable

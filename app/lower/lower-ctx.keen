@@ -543,8 +543,22 @@ gen-new-record-body-without-preconstructor low-expr(fun low-fun, range uri-and-r
 	else
 		constant-low-expr type, range, get-constant-record all-constants, type, ()
 
+is-array-op bool(a low-fun) lower-context
+	# TODO: make sure this is the one in collection.keen and all the spec impls are as expected
+	do if a.name == "for-loop"
+	do if is-void a.return-type or as-array-or-buffer a.return-type
+	do if a.params.size == 2
+	input = a.params[0]
+	do if is-range input.type or as-array-or-buffer input.type
+	do if as-lambda-type a.params[1].type
+	true
+
+is-range bool(a low-type) lower-context
+	low-type-source-inst a.source and a.source.decl == common-funs.range
+
 lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context, lower-funs
 	type = fun.return-type
+	forbid is-array-op fun
 	assert low-fun-body-always-inline fun.body
 	match body = fun.source.low-fun-source-regular!.decl.body
 	as fun-body-builtin

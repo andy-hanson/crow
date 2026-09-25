@@ -11,7 +11,7 @@ import
 +basic-prng-random-seed random() global
 	basic-prng secure-random-seed
 +basic-prng random(seed nat64)
-	random-from-64 state: seed
+	random-from-64 (state: seed)::basic-prng64
 
 +basic-prng32 record mut, random32 case
 	-state mut nat32

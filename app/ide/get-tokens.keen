@@ -275,13 +275,14 @@ do
 	emit function_, a.name-range
 	add-sig-return-type-and-params-tokens a.return-type, a.params
 
--add-sig-return-type-and-params-tokens void(return-type type-ast, params destructure-ast[]) tokens-builder
+-add-sig-return-type-and-params-tokens void(return-type type-ast, params parameter-ast[]) tokens-builder
 	add-type-tokens return-type
 	add-params-tokens params
 
--add-params-tokens void(params destructure-ast[]) tokens-builder
+-add-params-tokens void(params parameter-ast[]) tokens-builder
 	for param in params
-		add-param-destructure-tokens param
+		add-param-destructure-tokens param.destructure
+		?add-expr-tokens param.default
 
 -add-type-tokens void(a type-ast) tokens-builder
 	match a
@@ -333,6 +334,7 @@ do
 			add-doc-comment-tokens x.doc-comment
 			emit property, x.name.range
 			?add-type-tokens x.type
+			?add-expr-tokens x.default
 		?add-expr-tokens body.preconstructor
 	as sum-type-ast
 		for type in body.types
@@ -352,7 +354,7 @@ do
 
 -add-enum-or-flags-tokens void
 	a type-decl-ast
-	params destructure-ast[]?
+	params parameter-ast[]?
 	members enum-or-flags-member-ast[]
 do tokens-builder
 	?add-params-tokens params

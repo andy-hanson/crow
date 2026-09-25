@@ -6,10 +6,10 @@ import
 replace-constants void() lower-ctx
 	ctx = the::lower-context
 	forbid any ctx.all-unprocessed-low-funs
-	constants-map constant mut[low-fun] = for* fun in ctx.all-processed-low-funs
+	constants-map constant mut[low-fun] = map-optionally ctx.all-processed-low-funs, of fun
 		body = fun.body
 		if body.low-expr and body.constant-low-expr
-			- fun, body.value
+			fun, body.value
 	do while
 	added-any-new-constants mut = false
 	for fun in ctx.all-processed-low-funs
@@ -184,9 +184,9 @@ replace-constants void() lower-ctx
 		record-field-set-low-expr range, record_, a.field, value
 	as seq-low-expr
 		do if new-parts = replace-constants-in-args-exprs a.parts
-		without-constants low-expr[] = for* index, part in with-index new-parts
+		without-constants low-expr[] = map-optionally (with-index new-parts), of index, part
 			if index == new-parts.size - 1 or not constant-low-expr part
-				- part
+				part
 		only without-constants else seq-low-expr range, without-constants
 	as throw-low-expr
 		do if thrown = replace-constants a.thrown

@@ -4,6 +4,7 @@ import
 	../../model/model
 	../../model/source-range
 	../../model/uri
+	../../util/util
 	./check-ctx
 	./check-expr
 	./check-type-decls
@@ -111,6 +112,18 @@ do check-ctx, types-get
 	funs-with-asts fun-decl array-view
 	asts fun-decl-ast[]
 do check-ctx, common-types, types-get, funs-map
+	for i in asts.size
+		fun = funs-with-asts[i]
+		ast = asts[i]
+		do if defaults expr?[] = map-if-any (zip ast.params, fun.params), of param-ast, param
+			if param-ast.default
+				check-parameter-default fun, ast.type-params, param, param-ast.default
+		if fun.name == "new"
+			fun.param-defaults := defaults
+		else
+			first = first! defaults, {it}
+			add-diag first.range, diag-param-default-non-new
+
 	for i in asts.size
 		fun = funs-with-asts[i]
 		ast = asts[i]

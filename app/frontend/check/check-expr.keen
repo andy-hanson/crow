@@ -15,6 +15,32 @@ import
 	./instantiate
 	./type-from-ast
 
+check-record-field-default expr(record_ type-decl, field record-field, ast expr-ast) check-ctx, types-get, funs-map
+	the expr-ctx =
+		types-and-specs-map: the::types-and-specs-map
+		funs-map: the::funs-map
+		container: record_
+		type-params: record_.type-params
+	res expr = check-and-expect ast, field.type
+	forbid any the::expr-ctx.allocated-locals
+	res
+
+check-parameter-default expr
+	fun fun-decl
+	type-params type-params
+	param destructure
+	ast expr-ast
+do check-ctx, types-get, funs-map
+	the expr-ctx =
+		types-and-specs-map: the::types-and-specs-map
+		funs-map: the::funs-map
+		container: fun
+		type-params: type-params
+	res expr = check-and-expect ast, param.type
+	# Since parameter defaults are one-line expressions, they can't declare mutable variables
+	forbid any the::expr-ctx.allocated-locals
+	res
+
 check-fun-or-test-body expr-maybe-allocated-locals
 	container expr-container
 	diag-range uri-and-range
@@ -84,7 +110,7 @@ do
 	as call-ast-then
 		check-call ast, expected
 	as call-named-ast
-		check-call-named ast, expected
+		check-call-named-new ast, expected
 	as call-subscript-ast
 		check-call ast, expected
 	as call-question-subscript-ast
@@ -326,17 +352,17 @@ do check-expr-ctx
 	do if called = find-function-for-interpolate-or-list-new range, interpolate-1, type else
 		bogus expected, source.to::expr-ast
 	arg-expected = expect as-array! only! called.param-types
-	list-expr source, called, for* arg-index in template.size + interpolated-exprs.size
+	list-expr source, called, map-optionally template.size + interpolated-exprs.size, of arg-index
 		if is-even arg-index
 			part = template[arg-index / 2]
 			do if any part.value
 			range2 = if any part.range then part.range[0 .. 1] else part.range
-			- check-call-special-cb1 part, range2, interpolate-string-1, arg-expected, of inner2
+			check-call-special-cb1 part, range2, interpolate-string-1, arg-expected, of inner2
 				check-literal-string-only-string part, inner2
 		else
 			part = interpolated-exprs[arg-index / 2]
 			range2 = if any part.range then part.range[0 .. 1] else part.range
-			- check-call-special source.to, range2, interpolate-value-1, (part,), arg-expected
+			check-call-special source.to, range2, interpolate-value-1, (part,), arg-expected
 
 -access-local local?(diag-range source-range, name symbol) check-expr-ctx
 	# This traverses from the innermost lambda outwards, checking if it was already added to a closure.
@@ -822,10 +848,10 @@ do check-expr-ctx
 		check-match-else-required ast, expected, {variant_::diag-match-needs-else}
 	match-sum-type-expr ast, local, matched, cases, else_, expected.inferred
 -list-missing-union-cases type-inst[](union_ type-inst, body sum-type, cases match-sum-type-case[])
-	for* x in body.listed-members
+	map-optionally body.listed-members, of x
 		member-inst = instantiate-type-inst x.case-type, union_.type-args
 		unless some cases, it.case-type == member-inst
-			- member-inst
+			member-inst
 
 -check-match-sum-type-cases match-sum-type-case[]
 	matched-local refinable?

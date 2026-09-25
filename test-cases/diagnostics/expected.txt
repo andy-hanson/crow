@@ -187,9 +187,9 @@ Candidates (with 1 arguments):
 	new[t] t infinite(value t) (from keen/col/util.keen line 241)
 	new[col] col reverse(inner col) (from keen/col/util.keen line 248)
 	new build-options(size-hint nat32) (from keen/col/util.keen line 515)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 652)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 661)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 70)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 651)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 660)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
@@ -262,14 +262,29 @@ compile-errors/enum-value-errors.keen 1:1-1:2 'e' is unused.
 compile-errors/enum-value-errors.keen 4:5-4:10 An enum member value must be greater than the previous value (1).
 compile-errors/enum-value-errors.keen 5:5-5:11 An enum member value must be greater than the previous value (2).
 compile-errors/enum-value-errors.keen 5:9-5:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 7:1-7:3 'e2' is unused.
-compile-errors/enum-value-errors.keen 9:5-9:6 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 11:1-11:2 'f' is unused.
-compile-errors/enum-value-errors.keen 12:5-12:10 A flags member value must be a power of 2.
-compile-errors/enum-value-errors.keen 13:5-13:11 A flags member value must be a power of 2.
-compile-errors/enum-value-errors.keen 13:9-13:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
-compile-errors/enum-value-errors.keen 15:1-15:3 'f2' is unused.
-compile-errors/enum-value-errors.keen 18:5-18:10 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 6:9-6:16 Expected an integer.
+compile-errors/enum-value-errors.keen 6:9-6:16 Expected a newline or dedent.
+compile-errors/enum-value-errors.keen 7:1-7:3 'eb' is unused.
+compile-errors/enum-value-errors.keen 7:15-7:20 An enum member value must be greater than the previous value (1).
+compile-errors/enum-value-errors.keen 7:22-7:28 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 7:26-7:28 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 7:34-7:41 An enum member value must be a number literal.
+compile-errors/enum-value-errors.keen 9:1-9:3 'e2' is unused.
+compile-errors/enum-value-errors.keen 11:5-11:6 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 12:1-12:4 'e2b' is unused.
+compile-errors/enum-value-errors.keen 12:37-12:38 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 14:1-14:2 'f' is unused.
+compile-errors/enum-value-errors.keen 15:5-15:10 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 16:5-16:11 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 16:9-16:11 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 17:1-17:3 'fb' is unused.
+compile-errors/enum-value-errors.keen 17:10-17:15 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 17:17-17:23 A flags member value must be a power of 2.
+compile-errors/enum-value-errors.keen 17:21-17:23 A value of type 'nat64' must be from 0 to 18446744073709551615.
+compile-errors/enum-value-errors.keen 19:1-19:3 'f2' is unused.
+compile-errors/enum-value-errors.keen 22:5-22:10 An enum member value must be greater than the previous value (2).
+compile-errors/enum-value-errors.keen 23:1-23:4 'f2b' is unused.
+compile-errors/enum-value-errors.keen 23:17-23:22 An enum member value must be greater than the previous value (2).
 compile-errors/expected-type-param.keen 3:22-3:30 Expected type 'string'.
 Actual: 'nat64'.
 compile-errors/expected-type-param.keen 5:13-5:14 Local 'a' is unused.
@@ -461,6 +476,49 @@ compile-errors/name-not-found.keen 10:5-10:6 There is no type or spec in scope n
 compile-errors/name-not-found.keen 10:9-10:10 There is no type or spec in scope named 's'.
 compile-errors/named-new-duplicate.keen 1:1-1:2 'j' is unused.
 compile-errors/named-new-duplicate.keen 3:5-3:6 'x' has already appeared.
+compile-errors/named-new-errors.keen 2:1-2:4 'new' is unused.
+compile-errors/named-new-errors.keen 2:7-2:8 Local 'x' is unused.
+compile-errors/named-new-errors.keen 2:14-2:15 Local 'y' is unused.
+compile-errors/named-new-errors.keen 3:1-3:4 'new' is unused.
+compile-errors/named-new-errors.keen 3:7-3:8 Local 'y' is unused.
+compile-errors/named-new-errors.keen 3:14-3:15 Local 'z' is unused.
+compile-errors/named-new-errors.keen 6:11-6:15 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/named-new-errors.keen line 2)
+compile-errors/named-new-errors.keen 7:11-7:21 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/named-new-errors.keen line 2)
+compile-errors/named-new-errors.keen 8:11-8:21 Did not find a function named 'new' or 'named-new' with the expected type and given argument names.
+Expected type 'r'.
+Most likely you were trying to call: 'new r(x nat32, y nat32)' (from compile-errors/named-new-errors.keen line 2)
+compile-errors/named-new-errors.keen 11:1-11:4 'new' is unused.
+compile-errors/named-new-errors.keen 11:7-11:8 Local 'x' is unused.
+compile-errors/named-new-errors.keen 11:14-11:15 Local 'y' is unused.
+compile-errors/named-new-errors.keen 12:1-12:4 'new' is unused.
+compile-errors/named-new-errors.keen 12:7-12:8 Local 'x' is unused.
+compile-errors/named-new-errors.keen 12:14-12:15 Local 'z' is unused.
+compile-errors/named-new-errors.keen 14:11-14:15 Cannot choose an overload of 'new' or 'named-new'.
+Multiple functions match:
+	new s(x nat32, y nat32) (from compile-errors/named-new-errors.keen line 11)
+	new s(x nat32, z nat32) (from compile-errors/named-new-errors.keen line 12)
+compile-errors/named-new-errors.keen 17:1-17:4 'new' is unused.
+compile-errors/named-new-errors.keen 17:7-17:8 Local 'x' is unused.
+compile-errors/named-new-errors.keen 17:14-17:15 Local 'y' is unused.
+compile-errors/named-new-errors.keen 18:1-18:10 'named-new' is unused.
+compile-errors/named-new-errors.keen 18:13-18:18 Local 'names' is unused.
+compile-errors/named-new-errors.keen 18:29-18:35 Local 'values' is unused.
+compile-errors/named-new-errors.keen 20:11-20:21 Cannot choose an overload of 'new' or 'named-new'.
+Multiple functions match:
+	new t(x nat32, y nat32) (from compile-errors/named-new-errors.keen line 17)
+	named-new t(names symbol[], values nat32[]) (from compile-errors/named-new-errors.keen line 18)
+compile-errors/named-new-errors.keen 22:1-22:2 'u' is unused.
+compile-errors/named-new-errors.keen 23:1-23:4 'new' is unused.
+compile-errors/named-new-errors.keen 23:7-23:8 Local 'x' is unused.
+compile-errors/named-new-errors.keen 23:14-23:15 Local 'y' is unused.
+compile-errors/named-new-errors.keen 23:22-23:23 There is no function or variable named 'x'.
+compile-errors/named-new-errors.keen 25:1-25:2 'f' is unused.
+compile-errors/named-new-errors.keen 25:8-25:9 Local 'x' is unused.
+compile-errors/named-new-errors.keen 25:16-25:17 Only 'new' functions can have default parameter values.
 compile-errors/nested-it.keen 3:34-3:37 Local name 'it' is already used.
 compile-errors/nested-it.keen 7:35-7:37 Local name 'it' is already used.
 compile-errors/nested-it.keen 7:35-7:37 Expected type 'nat32'.
@@ -510,9 +568,9 @@ Candidates (with 1 arguments):
 	new[t] t infinite(value t) (from keen/col/util.keen line 241)
 	new[col] col reverse(inner col) (from keen/col/util.keen line 248)
 	new build-options(size-hint nat32) (from keen/col/util.keen line 515)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 652)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 661)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 70)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 651)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 660)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
@@ -590,9 +648,9 @@ Candidates (with 1 arguments):
 	new[t] t infinite(value t) (from keen/col/util.keen line 241)
 	new[col] col reverse(inner col) (from keen/col/util.keen line 248)
 	new build-options(size-hint nat32) (from keen/col/util.keen line 515)
-	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 652)
-	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 661)
-	new[t] t compare-reverse(inner t) (from keen/compare.keen line 70)
+	new[t] t all-pairs(inner t[]) (from keen/col/util.keen line 651)
+	new[t] t adjacent-pairs(inner t[]) (from keen/col/util.keen line 660)
+	new[t] t compare-reverse(inner t) (from keen/compare.keen line 74)
 	new error(show string) (from keen/exception.keen line 16)
 	new hash-state(seed nat64) (from keen/hash.keen line 28)
 	list-new json-object(pairs (symbol, json)[]) (from keen/json.keen line 34)
@@ -715,7 +773,6 @@ Candidates (with 0 arguments):
 	new slice-right-to-left() (from keen/col/collection.keen line 28)
 	new iterator-not-comparable() (from keen/col/collection.keen line 33)
 	new slice-out-of-order() (from keen/col/collection.keen line 79)
-	new build2() (from keen/col/util.keen line 530)
 	new todo() (from keen/exception.keen line 7)
 	new not-implemented() (from keen/exception.keen line 11)
 	new unreachable() (from keen/exception.keen line 18)

@@ -1,0 +1,12 @@
++levenshtein-distance[t] nat(a t[], b t[]) t equal
+	do if any a else b.size
+	do if any b else a.size
+	row nat buffer = map 0 .. b.size, {it + 1}
+	for ai in 0 .. a.size
+		up-left mut nat = ai
+		for bi in 0 .. b.size
+			left = if bi == 0 then ai + 1 else row[bi - 1]
+			new-value = min row[bi] + 1, left + 1, up-left + unless a[ai] == b[bi] then 1
+			up-left := row[bi]
+			row[bi] := new-value
+	row[b.size - 1]

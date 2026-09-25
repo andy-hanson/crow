@@ -128,12 +128,18 @@ for-loop void(a walk-module, f cb-thing) common-types
 -walk-record void(ast record-ast, record_ record_, f cb-thing) walk-ctx
 	if params = ast.params
 		do if params.size == record_.fields.size
-		for field-ast, field in zip params, record_.fields
-			type-ast = field-ast.single-destructure-ast.?type
+		for index in params.size
+			field = record_.fields[index]
+			type-ast = params[index].destructure.single-destructure-ast.?type
 			?walk-type type-ast, field.type, field.visibility.explicit-kind-for-visibility, f
+			?walk-expr record_.field-defaults?[index], f
 	else
-		for field-ast, field in zip ast.fields, record_.fields
-			?walk-type field-ast.type, field.type, field.visibility.explicit-kind-for-visibility, f
+		ast.fields.size is record_.fields.size
+		for index in ast.fields.size
+			field = record_.fields[index]
+			?walk-type ast.fields[index].type, field.type, field.visibility.explicit-kind-for-visibility, f
+			?walk-expr record_.field-defaults?[index], f
+	?walk-expr record_.preconstructor.?as-expr, f
 
 -walk-sum-type void(ast sum-type-ast, a sum-type, type-visibilty visibility, f cb-thing) walk-ctx
 	for type-ast, member in zip-if-size-eq ast.types, a.listed-members
@@ -177,14 +183,14 @@ for-loop void(a walk-module, f cb-thing) common-types
 	walk-params ast.params, a.params, kind, ignore-locals, f
 
 -walk-params void
-	asts destructure-ast[]
+	asts parameter-ast[]
 	params destructure[]
 	kind reference-kind
 	include-locals include-locals
 	f cb-thing
 do walk-ctx
 	for x, y in zip asts, params
-		walk-destructure x, y, kind, include-locals, f
+		walk-destructure x.destructure, y, kind, include-locals, f
 
 walk-doc-comment void(a doc-comment, f cb-thing)
 	for name, ref in zip a.ast.references, a.references
@@ -344,6 +350,8 @@ do walk-ctx
 			()
 		as call-expr
 			handle-call e.called, e.ast, e.ast.call-ast-prefix-with-type-arg.?type-arg, explicit-private, f
+		as call-expr-with-defaults
+			handle-call e.called, e.ast, (), explicit-private, f
 		as call-named-new-expr
 			handle-call e.called, e.ast, (), explicit-private, f
 		as call-option-expr
