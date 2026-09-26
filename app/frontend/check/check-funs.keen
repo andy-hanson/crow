@@ -68,7 +68,7 @@ do check-ctx, types-get
 	visibility = visibility-from-explicit-top-level fun-ast.visibility
 	specs = check-fun-modifiers fun-ast.type-params, fun-ast.modifiers
 	check-type-params fun-ast.type-params
-	fun = unfinished-fun-decl next-hash, visibility, fun-ast.name, fun-ast.type-params, fun-ast.uri-and-range, specs
+	fun = unfinished-fun-decl next-hash, visibility, fun-ast, specs
 	return-type, params = check-return-type-and-params fun, fun-ast.return-type, fun-ast.params, fun-ast.type-params
 	fill-in-fun-types fun, return-type, params
 	fun
@@ -112,17 +112,11 @@ do check-ctx, types-get
 	funs-with-asts fun-decl array-view
 	asts fun-decl-ast[]
 do check-ctx, common-types, types-get, funs-map
-	for i in asts.size
-		fun = funs-with-asts[i]
-		ast = asts[i]
+	for fun, ast in zip funs-with-asts, asts
 		do if defaults expr?[] = map-if-any (zip ast.params, fun.params), of param-ast, param
 			if param-ast.default
 				check-parameter-default fun, ast.type-params, param, param-ast.default
-		if fun.name == "new"
-			fun.param-defaults := defaults
-		else
-			first = first! defaults, {it}
-			add-diag first.range, diag-param-default-non-new
+		fun.param-defaults := defaults
 
 	for i in asts.size
 		fun = funs-with-asts[i]

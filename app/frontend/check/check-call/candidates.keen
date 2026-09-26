@@ -86,7 +86,7 @@ each-candidate void(funs funs-in-scope, name-and-arity name-and-arity, f void mu
 			if element-type = as-list-new called
 				f[init-variadic-candidate called, element-type]
 
-funs-in-scope record mut
+funs-in-scope record
 	fun-specs specs
 	funs-map funs-map
 funs-in-expr-scope funs-in-scope() expr-ctx
@@ -162,7 +162,7 @@ all-new-funs-for-diag fun-decl[](funs funs-in-scope) check-ctx
 	# Ignore 'named-new', if one existed it would have been called
 
 -names-match which-params?(fun fun-decl, names symbol[])
-	if fun.param-defaults
+	if names.size < fun.params.size and fun.param-defaults
 		which-params nat mut[] = ()
 		name-index mut nat = 0
 		do if every fun.params.size, of param-index
@@ -173,14 +173,16 @@ all-new-funs-for-diag fun-decl[](funs funs-in-scope) check-ctx
 			else
 				fun.param-defaults[param-index]
 		if name-index == names.size
-			to::indices move-to::nat[] which-params
+			res = to::indices move-to::nat[] which-params
+			if is-range res then does-not-skip-params else res
 	elif arrays-correspond fun.params, names, of param, name then param.name == name
-		uses-all-params
+		does-not-skip-params
 
 | {indices} means we are calling a 'new' function and using the corresponding params.
 | The array will be sorted.
-which-params union(indices, uses-all-params, calls-named-new)
-uses-all-params record
+which-params union(indices, does-not-skip-params, calls-named-new)
+| This still permits omitting params on the end
+does-not-skip-params record
 calls-named-new record
 
 each-fun-with-exact-signature void

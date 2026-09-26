@@ -416,9 +416,10 @@ do instantiate-ctx, common-types
 
 -add-funs-for-record void(out funs-out, type type-decl, inst type-inst, record_ record_) check-ctx, common-types
 	non-nominal = record-constructor type, record_, inst, ()
-	record_.non-nominal-constructor_ := non-nominal
 	out ~= non-nominal
-	out ~= record-constructor type, record_, inst, non-nominal
+	nominal = record-constructor type, record_, inst, non-nominal
+	out ~= nominal
+	record_.nominal-constructor_ := nominal
 	for field in record_.fields
 		add-funs-for-record-field out, type, inst, field
 
@@ -431,7 +432,7 @@ do instantiate-ctx, common-types
 	param-defaults: unless non-nominal-ref # Meaning, if *this* is 'new'
 		bogus-record-param-defaults type
 	specs: specs type
-	body: new-record type, non-nominal-ref, ()
+	body: new-record type, if non-nominal-ref then non-nominal-ref
 
 bogus-record-param-defaults expr?[]?(type type-decl)
 	ast = record-ast! type.source.type-decl-ast!.body

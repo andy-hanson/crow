@@ -1,0 +1,20 @@
+r record(x nat = 1, y nat = 2)
+
+test
+	(7,)::r is 7, 2
+	r 7 is 7, 2
+	(x: 7)::r is 7, 2
+	(y: 7)::r is 1, 7
+	(x: 7, y: 8)::r is 7, 8
+
+test
+	foo 5 is 6
+foo nat(x nat, y nat = 1)
+	x + y
+
+test
+	default-uses-spec::nat[] 1 is 0,
+
+# Default for {y} uses a spec, which needs to be resolved in {foo} and not the caller
+default-uses-spec[t] t[](x nat, y t = ()) t new
+	n-of x, y

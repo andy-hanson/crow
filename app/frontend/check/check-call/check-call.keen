@@ -119,8 +119,8 @@ check-call-named-new expr(ast call-named-ast, expected expected) check-expr-ctx,
 				param-type = get-candidate-expected-parameter-type candidate, param-index
 				check-expr arg-ast, as-expected (param-type,)
 			called = check-call-after-choosing-overload candidate, ast.range
-			check expected, called.return-type, call-expr-with-defaults ast, called, args, used-params
-		as uses-all-params
+			check expected, called.return-type, call-expr-with-which-params ast, called, args, used-params
+		as does-not-skip-params
 			args expr[] = for arg-index, arg-ast in with-index use-args
 				param-type = get-candidate-expected-parameter-type candidate, arg-index
 				check-expr arg-ast, as-expected (param-type,)

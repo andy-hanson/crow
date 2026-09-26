@@ -57,7 +57,6 @@ export-visibility enum(internal, public)
 -names-and-arities global((name-and-arity, (symbol, nat32)) object-memoizer) = ()
 name-and-arity record(name symbol, arity nat32) -new
 hash nat64((name symbol, arity nat32)) = trusted name.hash-value ^ arity
-hash-value nat64(a name-and-arity) = a.name.hash-value ^ a.arity
 -memoizer-key (symbol, nat32)(a name-and-arity) = a.name, a.arity
 get-name-and-arity name-and-arity(name symbol, arity nat)
 	trusted memoize names-and-arities, (name, arity), {name, arity}

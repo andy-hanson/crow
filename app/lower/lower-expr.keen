@@ -63,9 +63,12 @@ quick-fill-in-low-fun-body void(ctx lower-context, fun low-fun)
 	as new-interface
 		low-fun-body-always-inline
 	as new-record
-		if fun.as-new-record.preconstructor and not is-nominal x
+		match fun.as-new-record.kind
+		as void
+			low-fun-body-always-inline
+		as expr-maybe-allocated-locals
 			low-fun-body-deferred
-		else
+		as fun-decl
 			low-fun-body-always-inline
 	as record-field-get
 		low-fun-body-always-inline
@@ -215,11 +218,15 @@ lower-fun-or-test-body low-fun-body(fun low-fun, type low-type, expr expr, alloc
 		res := end-param-destructure type, param.range.to-uri-and-range, param, low-param, res
 	res
 
+lower-param-default low-expr(fun low-fun, type low-type, expr expr) lower-ctx
+	the lower-expr-ctx = fun, ()
+	lower-expr type, expr
+
 lower-new-record low-expr(fun low-fun) lower-ctx
 	range = fun.range
 	args low-expr[] = for param in fun.params
 		local-get-low-expr range, param
-	preconstructor = fun.as-new-record.preconstructor!
+	preconstructor = expr-maybe-allocated-locals! fun.as-new-record.kind
 	precon = low-expr! lower-fun-or-test-body fun, void, preconstructor.as-expr, preconstructor.allocated-locals
 	append-to-seq range, precon, gen-new-record-body-without-preconstructor fun, range, args
 
@@ -244,8 +251,7 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 		if is-array-op low-called
 			lower-array-op type, range, a, low-called
 		else
-			lower-inline-call-not-array-op low-called, range, for param, arg in zip low-called.params, a.args
-				lower-expr param.type, arg
+			lower-inline-call-not-array-op low-called, range, args-with-defaults low-called, a
 	else
 		args low-expr[] =
 			# Since 'list-new' is allowed to implement the 'new' spec, we need to support those here
@@ -253,15 +259,22 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 				empty-array = get-constant-array all-constants, array-type, ()
 				- array-type, range, empty-array
 			else
-				for param, arg in zip low-called.params[0 .. a.args.size], a.args
-					lower-expr param.type, arg
+				args-with-defaults low-called, a
 			-- context-args range, a.called, low-called
 		# We need to widen again even though it was done already in 'lower-expr',
 		# because we may be calling a spec-impl that has a narrower type than the spec.
 		# (The call expr's type can't reflect this and uses the spec's declared type.)
 		gen-call range, low-called, args
 
--lower-call-with-defaults low-expr(type low-type, range uri-and-range, a call-expr-with-defaults) lower-and-expr-ctx
+-args-with-defaults low-expr[](low-called low-fun, call call-expr) lower-and-expr-ctx
+	for index in call.called.arity
+		param-type = low-called.params[index].type
+		if index < call.args.size
+			lower-expr param-type, call.args[index]
+		else
+			lower-param-default low-called, param-type, call.called.fun-inst!.decl.param-defaults![index]!
+
+-lower-call-with-defaults low-expr(type low-type, range uri-and-range, a call-expr-with-which-params) lower-and-expr-ctx
 	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
 	arg-index mut nat = 0
 	indices = a.which-params
@@ -271,14 +284,7 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 			arg-index +:= 1
 			res
 		else
-			match a.called
-			as called-bogus
-				throw unreachable
-			as fun-inst
-				default = a.called.decl.param-defaults![param-index]!
-				lower-expr param.type, default
-			as called-spec-sig
-				throw todo
+			lower-expr param.type, a.called.fun-inst!.decl.param-defaults![param-index]!
 	arg-index is a.args.size
 	if low-fun-body-always-inline low-called.body
 		lower-inline-call-not-array-op low-called, range, all-args
@@ -1047,7 +1053,7 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 		lower-bogus type, range
 	as call-expr
 		lower-call type, range, a
-	as call-expr-with-defaults
+	as call-expr-with-which-params
 		lower-call-with-defaults type, range, a
 	as call-named-new-expr
 		lower-call-named-new type, range, a

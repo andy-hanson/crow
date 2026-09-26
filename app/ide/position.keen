@@ -144,7 +144,7 @@ expression-position-kind union
 	bogus-call-expr
 	bogus-expr
 	call-expr
-	call-expr-with-defaults
+	call-expr-with-which-params
 	call-named-new-expr
 	call-option-expr
 	expr-keyword

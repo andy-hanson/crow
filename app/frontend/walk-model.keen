@@ -350,7 +350,7 @@ do walk-ctx
 			()
 		as call-expr
 			handle-call e.called, e.ast, e.ast.call-ast-prefix-with-type-arg.?type-arg, explicit-private, f
-		as call-expr-with-defaults
+		as call-expr-with-which-params
 			handle-call e.called, e.ast, (), explicit-private, f
 		as call-named-new-expr
 			handle-call e.called, e.ast, (), explicit-private, f

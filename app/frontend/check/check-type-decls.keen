@@ -171,15 +171,17 @@ check-preconstructors-and-method-impls void(types type-decl[]) check-ctx, common
 		ctor = type.body.non-nominal-constructor
 		if ctor.param-defaults
 			# Previously it was just bogus-expr placeholders, now give it the real exprs
-			ctor.param-defaults := if ast.params
+			param-defaults expr?[] = if ast.params
 				do if ast.params.size == type.body.fields.size
 				for field, param in zip type.body.fields, ast.params
 					?check-record-field-default type, field, param.default
 			else
 				for field, field-ast in zip type.body.fields, ast.fields
 					?check-record-field-default type, field, field-ast.default
+			ctor.param-defaults := param-defaults
+			type.body.nominal-constructor.param-defaults := param-defaults
 		if preconstructor = ast.preconstructor
-			ctor.body.new-record!.preconstructor :=
+			ctor.body.new-record!.kind :=
 				check-fun-or-test-body type, type.range, type.type-params, void, ctor.params, preconstructor, false
 
 	as sum-type
@@ -420,11 +422,10 @@ do check-ctx
 		nat8
 
 -check-record record_(type type-decl, modifier-asts modifier-ast[], ast record-ast) check-ctx, types-get
-	new-visibility = accumulate-record-modifiers modifier-asts
 	fields = check-record-fields type, ast
-	new-visibility: record-new-visibility type, fields, new-visibility
+	new-visibility: record-new-visibility type, fields, accumulate-record-modifiers modifier-asts
 	fields: fields
-	non-nominal-constructor_: ()
+	nominal-constructor_: ()
 
 -check-record-fields record-field[](type type-decl, ast record-ast) check-ctx, types-get
 	if ast.params and any ast.fields

@@ -645,8 +645,6 @@ show-diag string(a diag) show-type-ctx
 	as diag-option-or-right-non-option
 		type = show-type-quoted a.actual-type
 		"The right side of 'or' is a non-option type {type}. This could be 'else' instead of 'or'."
-	as diag-param-default-non-new
-		"Only 'new' functions can have default parameter values."
 	as diag-param-missing-type
 		"This parameter needs a type."
 	as diag-param-mutable

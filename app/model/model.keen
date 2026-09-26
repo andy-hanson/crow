@@ -630,12 +630,14 @@ flags_ record
 record_ record force-data
 	new-visibility visibility
 	fields record-field[]
-	non-nominal-constructor_ mut fun-decl?
-non-nominal-constructor fun-decl(a record_) = a.non-nominal-constructor_!
+	nominal-constructor_ mut fun-decl?
+nominal-constructor fun-decl(a record_) = a.nominal-constructor_!
+non-nominal-constructor fun-decl(a record_)
+	a.nominal-constructor_!.body.new-record!.kind.fun-decl!
 field-defaults expr?[]?(a record_)
 	a.non-nominal-constructor.param-defaults
 preconstructor expr-maybe-allocated-locals?(a record_)
-	a.non-nominal-constructor.body.new-record!.preconstructor
+	expr-maybe-allocated-locals a.non-nominal-constructor.body.new-record!.kind
 | interface, union, or variant
 sum-type record
 	kind sum-type-kind
@@ -1382,7 +1384,7 @@ body-expr expr?(a fun-body)
 	as fun-body-expr
 		a.expr
 	as new-record
-		?as-expr a.preconstructor
+		?as-expr expr-maybe-allocated-locals a.kind
 	else
 		()
 -fun-name symbol(body fun-body, return-type type)
@@ -1459,12 +1461,12 @@ module-uri uri(a fun-body)
 	as var-set then a.var.module-uri
 range uri-and-range(a fun-body)
 	match a
-	as fun-body-uninitialized then a.module-uri, a.range
+	as fun-body-uninitialized then a.ast.uri-and-range
 	as fun-body-bogus then a.module-uri, (a.ast.?range else ())
-	as fun-body-expr then a.module-uri, a.ast.range
+	as fun-body-expr then a.ast.uri-and-range
 	as fun-body-extern-java then a.module-uri, ()
 	as auto-fun then a.source.range
-	as fun-body-builtin then a.module-uri, a.ast.range
+	as fun-body-builtin then a.ast.uri-and-range
 	as enum-or-flags-member then a.range
 	as fun-body-file-import then a.module-uri, a.ast.range
 	as fun-body-flags-function then a.type.range
@@ -1528,7 +1530,7 @@ expr-with-allocated-locals record
 	allocated-locals type-inst[local]
 
 fun-body-bogus record(module-uri uri, name symbol, type-params type-params, ast fun-decl-ast?)
-fun-body-uninitialized record(module-uri uri, range source-range)
+fun-body-uninitialized record(ast fun-decl-ast)
 fun-body-extern-java record
 	| Never {interface_}
 	kind java-method-kind
@@ -1569,12 +1571,21 @@ to json(a fun-body-method)
 new-interface record(type type-decl)
 new-record record force-data
 	type type-decl
-	| If this is the nominal one, it has a reference to the non-nominal one
-	non-nominal-ref fun-decl?
-	| This will only appear on the non-nominal one
-	preconstructor mut expr-maybe-allocated-locals?
+	kind mut new-record-kind
+| {void}: This is 'new' with no preconstructor
+| {expr-maybe-allocated-locals}: This is 'new' with a preconstructor
+| {fun-decl}: this is the nominal version (named same as the type), and the fun-decl references the non-nominal one
+new-record-kind union(void, expr-maybe-allocated-locals, fun-decl)
+has-preconstructor bool(a new-record)
+	match a.kind
+	as void
+		false
+	as expr-maybe-allocated-locals
+		true
+	as fun-decl
+		has-preconstructor new-record! a.kind.body
 is-nominal bool(a new-record)
-	a.non-nominal-ref
+	fun-decl a.kind
 record-field-get record(type type-decl, field record-field)
 to json(a record-field-get)
 	a.field.name.to
@@ -1713,7 +1724,6 @@ to json(a fun-decl)
 	body: a.body.to
 | Used by {funs-map}
 -key symbol(a fun-decl) = a.name
--key name-and-arity(a fun-decl) = a.name-and-arity
 -key return-and-param-types(a fun-decl) = a.return-and-param-types
 -key type-decl(a fun-decl) = a.return-type.type-inst!.decl
 -hash-value nat32(a type-decl) = a.hash
@@ -1727,21 +1737,19 @@ fun-decl-insts union(fun-inst, (fun-inst, fun-inst-key) object-memoizer) mut
 unfinished-fun-decl fun-decl
 	hash nat32
 	visibility visibility
-	name-and-arity name-and-arity
-	type-params type-params
-	range uri-and-range
+	ast fun-decl-ast
 	specs specs
 do
 	hash: hash
 	visibility: visibility
-	name-and-arity: name-and-arity
-	n-type-params: type-params.size.to
+	name-and-arity: ast.name
+	n-type-params: ast.type-params.size.to
 	return-and-param-types: trusted gc-safe-value
 	params: ()
 	param-defaults: ()
 	specs: specs
 	doc-comment-references: ()
-	body: fun-body-uninitialized range.uri, range.range
+	body: fun-body-uninitialized ast
 	insts: trusted gc-safe-value
 fill-in-fun-types void(fun fun-decl, return-type type, params destructure[])
 	fun.params := params
@@ -1760,9 +1768,19 @@ new fun-decl
 	body fun-body
 do
 	name-and-arity = get-name-and-arity (fun-name body, return-type), params.size
-	fun = unfinished-fun-decl hash, visibility, name-and-arity, body.type-params, body.range, specs
+	fun fun-decl =
+		hash: hash
+		visibility: visibility
+		name-and-arity: name-and-arity
+		n-type-params: body.type-params.size.to
+		return-and-param-types: trusted gc-safe-value
+		params: ()
+		param-defaults: ()
+		specs: specs
+		doc-comment-references: ()
+		body: body
+		insts: trusted gc-safe-value
 	fill-in-fun-types fun, return-type, params
-	fun.body := body
 	fun
 new fun-decl
 	hash nat32
@@ -1803,8 +1821,34 @@ doc-comment doc-comment(a fun-decl)
 	a.doc-comment-ast, a.doc-comment-references
 is-template bool(a fun-decl)
 	a.n-type-params != 0 or any a.specs.instantiated-sigs
-arity nat32(a fun-decl)
+arity nat(a fun-decl)
 	a.params.size
+each-arity void(a fun-decl, f void mut(x name-and-arity))
+	match a.body
+	as fun-body-uninitialized
+		each-arity-from-params a, a.body.ast.params, f
+	as fun-body-expr
+		each-arity-from-params a, a.body.ast.params, f
+	as new-record
+		type = a.body.type
+		ast = type.source.type-decl-ast!.body.record-ast!
+		if ast.params
+			each-arity-from-params a, ast.params, f
+		else
+			each-arity-from-params a, ast.fields, it.default, f
+	else
+		f[a.name-and-arity]
+-each-arity-from-params void(a fun-decl, params parameter-ast[], f void mut(x name-and-arity))
+	each-arity-from-params a, params, it.default, f
+-each-arity-from-params[t] void(a fun-decl, params t[], has-default bool mut(param t), f void mut(x name-and-arity))
+	low-arity mut = params.size
+	while low-arity != 0 and has-default[params[low-arity - 1]]
+		low-arity -:= 1
+	for arity in low-arity .. params.size + 1
+		if arity == params.size
+			f[a.name-and-arity]
+		else
+			f[get-name-and-arity a.name, arity]
 only-inst fun-inst(a fun-decl)
 	forbid is-template a
 	fun-inst! a.insts
@@ -2172,13 +2216,19 @@ with-block-2 name-and-arity() = trusted with-block-2-var
 
 funs-map record
 	by-name (symbol, fun-decl) multi-by-key
-	by-name-and-arity (name-and-arity, funs-set) by-key
+	by-name-and-arity funs-set[name-and-arity]
 	| Functions named 'new' (regardless of arity), keyed by return type
 	new-funs-by-return-type (type-decl, fun-decl) multi-by-key
 new funs-map() = (), (), ()
 make-funs-map funs-map(funs fun-decl[])
 	by-name: to funs
-	by-name-and-arity: to-by-key-combine-duplicates funs, it.to-funs-set
+	by-name-and-arity:
+		out fun-decl mut[] mut[name-and-arity] = ()
+		for fun in funs
+			each-arity fun, of name-and-arity
+				ensure out, name-and-arity ~= fun
+		for key, values in out
+			key, to-funs-set move-to values
 	new-funs-by-return-type: filter funs, {it.name == "new" and it.return-type.type-inst}
 any bool(a funs-map) = any a.by-name
 size nat32(a funs-map) = size a.by-name
@@ -2189,7 +2239,7 @@ some bool(a funs-map, f bool mut(a fun-decl))
 	some a.by-name.all, f
 filter-by-names funs-map(a funs-map, names symbol set)
 	by-name: choose-keys a.by-name, names
-	by-name-and-arity: filter-keys a.by-name-and-arity, names[it.name]
+	by-name-and-arity: filter a.by-name-and-arity, names[it.a.name]
 	new-funs-by-return-type: if names["new"] then a.new-funs-by-return-type
 any-for-name bool(a funs-map, name symbol)
 	any a.by-name[name]
@@ -2252,11 +2302,6 @@ is-highly-overloaded bool(name symbol)
 	by-signature (return-and-param-types, fun-decl) multi-by-key
 -all fun-decl[](a large-funs-set)
 	a.by-signature.all
--key name-and-arity(a funs-set)
-	match a
-	as fun-decl then a.name-and-arity
-	as array then a[0].name-and-arity
-	as large-funs-set then a.all[0].name-and-arity
 -to-funs-set funs-set(funs fun-decl[])
 	assert any funs
 	if f = only funs
@@ -3293,7 +3338,7 @@ expr union
 	bogus-expr
 	bogus-wrong-type-expr
 	call-expr
-	call-expr-with-defaults
+	call-expr-with-which-params
 	call-named-new-expr
 	call-option-expr
 	finally-expr
@@ -3344,7 +3389,7 @@ type type(a expr) common-types
 		type a
 	as call-expr
 		type a
-	as call-expr-with-defaults
+	as call-expr-with-which-params
 		type a
 	as call-named-new-expr
 		type a
@@ -3528,11 +3573,13 @@ bogus-call-expr record
 	type type
 range source-range(a bogus-call-expr) = a.ast.range
 
+| {args} may not have an entry for every parameter if they have defaults
 call-expr record(ast call-expr-source, called called, args expr[])
 range source-range(a call-expr) = a.ast.range
 type type(a call-expr) = a.called.return-type
 
-call-expr-with-defaults record
+| Like {call-expr}, but skips some parameters (assuming they have default values)
+call-expr-with-which-params record
 	ast call-expr-source
 	called called
 	args expr[]
@@ -3540,9 +3587,9 @@ call-expr-with-defaults record
 	which-params indices
 do
 	which-params.size is args.size
-	assert which-params.size < called.arity # Otherwise this should just be a {call-expr}
-range source-range(a call-expr-with-defaults) = a.ast.range
-type type(a call-expr-with-defaults) = a.called.return-type
+	forbid is-range which-params # Otherwise this should be a {call-expr}
+range source-range(a call-expr-with-which-params) = a.ast.range
+type type(a call-expr-with-which-params) = a.called.return-type
 
 indices record(values scalar-values)
 list-new indices(values nat32[])
@@ -3563,9 +3610,11 @@ subscript nat32(a indices, index nat32)
 	a.values[index].to
 to-array nat32[](a indices)
 	map a.values, {it.to}
+is-range bool(a indices)
+	is-range a.values
 
 | This is for a call to 'named-new' where it provides symbols and args.
-| Calls matching parameter names will use {call-expr} or {call-expr-with-defaults}.
+| Calls matching parameter names will use {call-expr} or {call-expr-with-which-params}.
 call-named-new-expr record(ast call-named-ast, called called, args expr[])
 to json(a call-named-new-expr)
 	called: a.called.to
@@ -4053,7 +4102,7 @@ some bool(a direct-child-exprs, f bool mut(x expr))
 		f[x.inner]
 	as call-expr
 		some x.args, f
-	as call-expr-with-defaults
+	as call-expr-with-which-params
 		some x.args, f
 	as call-named-new-expr
 		some x.args, f
@@ -4270,7 +4319,6 @@ diag union
 	diag-option-force-non-option
 	diag-option-or-left-non-option
 	diag-option-or-right-non-option
-	diag-param-default-non-new
 	diag-param-missing-type
 	diag-param-mutable
 	parse-diag
@@ -4470,7 +4518,6 @@ diag-option-else-left-non-option record(actual-type type-with-container)
 diag-option-force-non-option record(actual-type type-with-container)
 diag-option-or-left-non-option record(actual-type type-with-container)
 diag-option-or-right-non-option record(actual-type type-with-container)
-diag-param-default-non-new record
 diag-param-missing-type record
 diag-param-mutable record
 diag-mutability-more-than-parent record(parent type-decl, child-type type)

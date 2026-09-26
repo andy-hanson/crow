@@ -528,6 +528,8 @@ call-low-expr record
 	range uri-and-range
 	called low-fun
 	args low-expr[]
+do
+	args.size is called.params.size
 type low-type(a call-low-expr)
 	a.called.return-type
 

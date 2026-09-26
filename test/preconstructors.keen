@@ -6,6 +6,14 @@ test
 		e.actual is 1
 		e.max-exclusive is 1
 
+test
+	try
+		_ = r 1, ("a",)
+		should-throw
+	catch e as index-too-big
+		e.actual is 1
+		e.max-exclusive is 1
+
 r record
 	index nat
 	array string[]

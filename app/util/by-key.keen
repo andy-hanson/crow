@@ -50,17 +50,6 @@ some[k, t] bool(a (k, t) by-key, f bool mut(x t))
 -unused nat32()
 	max-value - 1
 
-to-by-key-combine-duplicates[k, t-set, t-single] (k, t-set) by-key
-	values t-single[]
-	make-set t-set mut(values t-single[])
-do (k, t-single) get-key, (k, t-set) just-get-key
-	map t-single mut[] mut[k] = mut-map-with-capacity values.size
-	for value in values
-		ensure map, value.key ~= value
-	sets t-set[] = for _, v in map
-		make-set[move-to v]
-	to-by-key sets, {throw unreachable}
-
 | If two have the same name, reports both in 'on-duplicate' and omits an arbitrary one from the result
 to-by-key[k, t] (k, t) by-key(values t[], on-duplicate void mut(x t, y t)) (k, t) get-key
 	if values.size <= 4
@@ -91,9 +80,6 @@ filter[k, t] (k, t) by-key(a (k, t) by-key, f bool mut(x t)) (k, t) get-key
 
 choose-keys[k, t] (k, t) by-key(a (k, t) by-key, keys k set) (k, t) get-key
 	values t[] = map-optionally keys, a[it]
-	to-by-key values, {throw unreachable}
-filter-keys[k, t] (k, t) by-key(a (k, t) by-key, filter bool mut(key k)) (k, t) get-key
-	values t[] = filter a, filter[it.key]
 	to-by-key values, {throw unreachable}
 
 -find-duplicate-small[k, t] (nat32, nat32)?(values t[]) (k, t) get-key

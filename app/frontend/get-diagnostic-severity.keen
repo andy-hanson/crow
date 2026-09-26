@@ -173,8 +173,6 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		warning
 	as diag-option-or-right-non-option
 		warning
-	as diag-param-default-non-new
-		warning
 	as diag-param-missing-type
 		check-error
 	as diag-param-mutable

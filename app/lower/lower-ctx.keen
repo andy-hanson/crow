@@ -590,14 +590,19 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 	as new-record
 		# When there is a preconstructor, the nominal version delegates to the non-nominal version.
 		# Otherwise they are both inlined.
-		preconstructor = fun.as-new-record.preconstructor
-		if non-nominal = body.non-nominal-ref and preconstructor
-			source = fun.source.low-fun-source-regular!
-			low-non-nominal = get-low-fun non-nominal, source.type-args, source.spec-impls
-			call-low-expr range, low-non-nominal, args
-		else
-			forbid preconstructor
+		match kind = fun.as-new-record.kind
+		as void
 			gen-new-record-body-without-preconstructor fun, range, args
+		as expr-maybe-allocated-locals
+			# This would not get inlined
+			throw unreachable
+		as fun-decl
+			if has-preconstructor as-new-record kind
+				source = low-fun-source-regular! fun.source
+				low-non-nominal = get-low-fun kind, source.type-args, source.spec-impls
+				call-low-expr range, low-non-nominal, args
+			else
+				gen-new-record-body-without-preconstructor fun, range, args
 	as record-field-get
 		record_ = only! args
 		the low-common-types = the::lower-context.low-common-types
@@ -644,7 +649,9 @@ lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args l
 	as wrap-convert-integral then wrap-convert-integral
 
 as-new-record new-record(fun low-fun)
-	new-record! fun.source.low-fun-source-regular!.decl.body
+	as-new-record fun.source.low-fun-source-regular!.decl
+-as-new-record new-record(fun fun-decl)
+	new-record! fun.body
 
 get-low-field low-field(record-type low-type, field record-field)
 	index = index-of! record-type.source.low-type-source-inst!.decl.body.record_!.fields, field

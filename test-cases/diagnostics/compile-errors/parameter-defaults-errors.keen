@@ -21,6 +21,3 @@ test
 
 u record
 new u(x nat, y nat = x) = ()
-
-f void(x nat = 1)
-	()
