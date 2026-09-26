@@ -2140,6 +2140,8 @@ types-and-specs-map alias
 equal-2 name-and-arity() = trusted equal-2-var
 -equal-2-var global(name-and-arity) = get-name-and-arity "==", 2
 for-loop-2 name-and-arity() = trusted for-loop-2-var
+-for-option-2-var global(name-and-arity) = get-name-and-arity "for-option", 2
+for-option-2 name-and-arity() = trusted for-option-2-var
 -for-loop-2-var global(name-and-arity) = get-name-and-arity "for-loop", 2
 for-star-2 name-and-arity() = trusted for-star-2-var
 -for-star-2-var global(name-and-arity) = get-name-and-arity "for-star", 2
@@ -3079,7 +3081,7 @@ config-for-diag config(uri uri, diag diag, range source-range, line-and-column-g
 config-imports record
 	imports configured-import[]
 all-jar-files file-path[](a config-imports)
-	map-optionally a.imports, of x
+	for? x in a.imports
 		if x.kind == jar
 			as-file-path! x.uri
 configured-import record

@@ -152,7 +152,7 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		sum-type = fun.params[0].type
 		method-index = fun.source.low-fun-source-regular!.decl.body.fun-body-method!.method-index
 		fun.body := generate-call-method fun, sum-type, ctx.sum-types[sum-type]!.cases, method-index
-	map-optionally ctx.sum-types, of sum-type, info
+	for? sum-type, info in ctx.sum-types
 		do if preserve-methods sum-type
 		- sum-type
 		-

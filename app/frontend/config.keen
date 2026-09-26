@@ -39,7 +39,7 @@ parse-config config(config-uri uri, text string-view)
 	as null
 		()
 	as json-object
-		imports: map-optionally object, of key, value
+		imports: for? key, value in object
 			do if uri = to-uri dir-containing-config, diags, value
 			kind configured-import-kind? = match get-extension uri
 			as "" then keen

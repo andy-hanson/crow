@@ -275,15 +275,11 @@ get-hover hover?(program program, params hover-params) show-ctx
 			The expression to the right of 'finally' runs second, even if there was an exception.
 			The result is from the below expression; the right expression must be 'void'.
 	as in-after-for
-		quote
-			The expression to the right of 'in' is the first argument to 'for-loop'.
-			Typically, this is the collection to be iterated.
-			The destructuring to the left of 'in' is usually a collection element.
+		in-after-for "for-loop"
+	as in-after-for-option
+		in-after-for "for-option"
 	as in-after-for-star
-		quote
-			The expression to the right of 'in' is the first argument to 'for-star'.
-			Typically, this is the collection to be iterated.
-			The destructuring to the left of 'in' is usually a collection element.
+		in-after-for "for-star"
 	as in-after-with
 		"The expression to the right of 'in' is the first argument to 'with-block'."
 	as force
@@ -317,6 +313,12 @@ get-hover hover?(program program, params hover-params) show-ctx
 		"Throws an exception."
 	as trusted_
 		"Allows 'unsafe' code to be used anywhere."
+
+-in-after-for string(fun-name string)
+	quote
+		The expression to the right of 'in' is the first argument to '{fun-name}'.
+		Typically, this is the collection to be iterated.
+		The destructuring to the left of 'in' is usually a collection element.
 
 -expr-hover string(cur-uri uri, a expression-position) show-type-ctx
 	type-container type-container = a.container.to

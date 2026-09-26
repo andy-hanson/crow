@@ -39,7 +39,7 @@ plan-unions union-info(program low-program)
 	else
 		switch
 -all-unique-primitives bool(a low-union)
-	are-unique map-optionally::js-primitive-kind[] a.members, it.as-js-primitive
+	are-unique for?::js-primitive-kind[] member in a.members then as-js-primitive member
 
 -can-use-in-direct-union bool(a low-type)
 	match a.body

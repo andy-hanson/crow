@@ -183,6 +183,7 @@ check-for-or-with expr(ast for-or-with-ast, expected expected) check-expr-ctx, c
 -called-function name-and-arity(a for-or-with-ast)
 	match a.keyword
 	as for_ then for-loop-2
+	as for-option then for-option-2
 	as for-star then for-star-2
 	as with_ then with-block-2
 

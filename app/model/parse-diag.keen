@@ -90,6 +90,7 @@ parse-diag-operator-needs-space record(before symbol, after string)
 parse-diag-named-new-key record
 parse-diag-needs-block-ctx enum
 	for_
+	for-option
 	for-star
 	if_
 	match_

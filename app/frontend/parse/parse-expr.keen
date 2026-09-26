@@ -676,6 +676,8 @@ do parser
 		try-parse-dots-and-subscripts allowed, parse-quote-then-interpolated double, allowed
 	as for_
 		parse-for-or-with start, allowed, for_, for_
+	as for-option
+		parse-for-or-with start, allowed, for-option, for-option
 	as for-star
 		parse-for-or-with start, allowed, for-star, for-star
 	as if_
@@ -812,6 +814,8 @@ parse-single-statement-line expr-ast() parser
 		match peek
 		as for_
 			parse-do-for-or-with start, for_
+		as for-option
+			parse-do-for-or-with start, for-option
 		as for-star
 			parse-do-for-or-with start, for-star
 		as if_

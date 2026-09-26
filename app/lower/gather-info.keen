@@ -82,7 +82,7 @@ do low-common-types
 
 	used-depends-on-caller = calc-used-depends-on-caller all-used-funs, called-by, temp-kinds
 
-	async-funs async-kind[low-fun] = map-optionally temp-kinds, of fun, kind
+	async-funs async-kind[low-fun] = for? fun, kind in temp-kinds
 		out-kind async-kind? = match kind
 		as depends-on-caller
 			uses = used-depends-on-caller[fun]!

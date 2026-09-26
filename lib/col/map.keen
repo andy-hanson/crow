@@ -438,7 +438,7 @@ dbg[k, v] string(a v[k]) k show, v show
 	as frozen-map
 		"TODO"
 	as inner-node
-		join " ", map-optionally (with-index a.nodes), of index, child
+		join " ", for? index, child in with-index a.nodes
 			if any child
 				dbg child, "{path}{index}"
 	as array

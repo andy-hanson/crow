@@ -36,7 +36,7 @@ do show-type-ctx
 	severity = max-of program.diagnostics, it.kind.get-diagnostic-severity else lint
 	join "\n", for* x in sorted-diagnostics program
 		do if filter-uri x.uri, options.only-for-uris
-		map-optionally x.diagnostics, of diagnostic
+		for? diagnostic in x.diagnostics
 			if options.show-all-diagnostics or diagnostic.kind.get-diagnostic-severity == severity
 				show-diagnostic (x.uri, diagnostic)
 
@@ -134,6 +134,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 	match a
 	as for_
 		"'for'"
+	as for-option
+		"'for?'"
 	as for-star
 		"'for*'"
 	as if_
@@ -980,6 +982,8 @@ show-diagnostic string(a uri-and-diagnostic) show-type-ctx
 		"Unexpected keyword 'flags'."
 	as for_
 		"Unexpected keyword 'for'."
+	as for-option
+		"Unexpected keyword 'for?'."
 	as for-star
 		"Unexpected keyword 'for*'."
 	as force-data_

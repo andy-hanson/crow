@@ -185,6 +185,7 @@ expr-keyword enum
 	finally_
 	force
 	in-after-for
+	in-after-for-option
 	in-after-for-star
 	in-after-with
 	question-after-dot

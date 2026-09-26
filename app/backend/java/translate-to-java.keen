@@ -790,16 +790,17 @@ do java-names-and-refs
 	fields field_info[] = if is-empty-type type
 		- instance-field this-class-name
 	else
-		map-optionally low-fields, of field
+		for? field in low-fields
 			do unless is-empty-type field.type
 			access-flags: unless is-mutable field then final
 			name: record-field-name field
 			descriptor: record-field-descriptor field
 	methods method_info[] = with methods-out in build
-		field-refs (field-reference, java-runtime-type)[] = map-optionally low-fields, of x
+		field-refs (field-reference, java-runtime-type)[] = for? field in low-fields
 			# TODO: we should just not lower empty fields
-			do unless is-empty-type x.type
-			(record-field type, x), x.type.as-runtime-type
+			unless is-empty-type field.type
+				- record-field type, field
+				- as-runtime-type field.type
 		methods-out ~= record-initializer super-class, field-refs,
 			record-init-descriptor low-fields
 		if is-empty-type type

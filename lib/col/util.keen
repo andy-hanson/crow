@@ -113,6 +113,8 @@ do (out-col-false, elem) list-new, (out-col-true, elem) list-new, in-col size, (
 do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 	for-loop a, f
 
+| Same as {for-option}.
+| For good style, use this only with an `it` lambda.
 +map-optionally[out-col, out-elem, in-col, in-elem] out-col
 	a in-col
 	f out-elem? mut(x in-elem)
@@ -159,7 +161,19 @@ do (out-col, (key, out-value)) list-new, (in-col, (key, in-value)) some, in-col 
 		res ~~:= a
 	res
 
-| Like `for-loop`, but {f} must return an array of outputs which are all added to the result.
+| Like {for-loop}, but {f} returns an option and empty options are not output.
++for-option[out-col, out-elem, in-col, in-elem] out-col
+	a in-col
+	f out-elem? mut(elem in-elem)
+do (out-col, out-elem) list-new, (in-col, in-elem) some
+	out out-elem builder = ()
+	_ = some a, of x
+		if v = f[x]
+			out ~= v
+		false
+	finish out
+
+| Like {for-loop}, but {f} must return an array of outputs which are all added to the result.
 +for-star[out-col, out-elem, in-col, in-elem] out-col
 	a in-col
 	f out-elem[] mut(elem in-elem)
@@ -170,7 +184,8 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some
 		false
 	finish out
 
-| Same as {for-star}
+| Same as {for-star}.
+| For good style, use this only with an `it` lambda.
 +flat-map[out-col, out-elem, in-col, in-elem] out-col
 	a in-col
 	f out-elem[] mut(elem in-elem)

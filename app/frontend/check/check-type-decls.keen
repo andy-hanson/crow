@@ -103,7 +103,7 @@ do check-ctx, types-get
 		()
 
 -check-type-specs specs(decl type-decl, ast type-decl-ast) check-ctx, common-types
-	get-or-add-specs map-optionally ast.modifiers, of modifier
+	get-or-add-specs for? modifier in ast.modifiers
 		match modifier
 		as modifier-keyword-ast
 			()
@@ -430,7 +430,8 @@ do check-ctx
 	if ast.params and any ast.fields
 		add-diag type.name-range.range, diag-type-decl-params-syntax-error type, has-params-and-fields
 	res record-field[] = if ast.params
-		map-optionally ast.params, {record-field-from-param type, it}
+		for? param in ast.params
+			record-field-from-param type, param
 	else
 		for x in ast.fields
 			check-record-field type, x, x.visibility, x.name, x.mutability, x.type

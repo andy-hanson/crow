@@ -266,7 +266,7 @@ with-block[t] t(a with-file-reader, f t mut(a file-reader)) global
 	dir file-path = key.watchable.reinterpret-cast::Path.to
 	events = key.pollEvents.toArray
 	assert reset key
-	map-optionally events, of o
+	for? o in events
 		event Path WatchEvent = reinterpret-cast o
 		name string = event.context.toString.to
 		file-path = dir / name

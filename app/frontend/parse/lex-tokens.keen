@@ -283,7 +283,13 @@ lex-tokens tokens(source string-view, diagnostics parse-diagnostic mut[])
 				skip-until-newline iter
 				emit state, region_, start, iter.pos
 			as for_
-				emit state, (if try-take iter, "*" then for-star else for_), start, iter.pos
+				full-token token = if try-take iter, "?"
+					for-option
+				elif try-take iter, "*"
+					for-star
+				else
+					for_
+				emit state, full-token, start, iter.pos
 			as operator-binary
 				emit state, token, start, iter.pos, symbol
 			as quote-keyword

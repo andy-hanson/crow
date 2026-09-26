@@ -429,15 +429,13 @@ for-or-with-ast record
 	then-pos pos
 	arg expr-ast
 	body expr-ast
-for-or-with-ast-keyword enum(for_, for-star, with_)
+for-or-with-ast-keyword enum(for_, for-option, for-star, with_)
 -size nat32(a for-or-with-ast-keyword)
 	match a
-	as for_
-		3
-	as for-star
-		4
-	as with_
-		4
+	as for_ then 3
+	as for-option then 4
+	as for-star then 4
+	as with_ then 4
 end pos(a for-or-with-ast)
 	a.body.end
 range source-range(a for-or-with-ast)

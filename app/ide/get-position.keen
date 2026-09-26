@@ -535,6 +535,8 @@ do
 	match a
 	as for_
 		in-after-for
+	as for-option
+		in-after-for-option
 	as for-star
 		in-after-for-star
 	as with_

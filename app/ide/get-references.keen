@@ -17,7 +17,7 @@ get-references uri-and-line-and-character-range[](program program, params refere
 get-document-highlights document-highlight-result?(program program, params document-highlight-params)
 	do if position = get-position program, params.params, exact-or-end
 	uri = position.module.uri
-	highlights document-highlight[] = map-optionally (get-references program, position, document-highlights), of x
+	highlights document-highlight[] = for? x in get-references program, position, document-highlights
 		if x.uri == uri
 			x.range, Read
 	highlights: sort highlights, it.range.start

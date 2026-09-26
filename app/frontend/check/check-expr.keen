@@ -352,7 +352,7 @@ do check-expr-ctx
 	do if called = find-function-for-interpolate-or-list-new range, interpolate-1, type else
 		bogus expected, source.to::expr-ast
 	arg-expected = expect as-array! only! called.param-types
-	list-expr source, called, map-optionally template.size + interpolated-exprs.size, of arg-index
+	list-expr source, called, for? arg-index in template.size + interpolated-exprs.size
 		if is-even arg-index
 			part = template[arg-index / 2]
 			do if any part.value
@@ -848,7 +848,7 @@ do check-expr-ctx
 		check-match-else-required ast, expected, {variant_::diag-match-needs-else}
 	match-sum-type-expr ast, local, matched, cases, else_, expected.inferred
 -list-missing-union-cases type-inst[](union_ type-inst, body sum-type, cases match-sum-type-case[])
-	map-optionally body.listed-members, of x
+	for? x in body.listed-members
 		member-inst = instantiate-type-inst x.case-type, union_.type-args
 		unless some cases, it.case-type == member-inst
 			member-inst

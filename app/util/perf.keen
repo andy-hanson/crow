@@ -215,7 +215,7 @@ to json(a perf-part)
 	- "total", total
 	-- if any a.subparts
 		- "sum-of-parts", show-duration sum a.subparts, it.b.time
-		-- map-optionally a.subparts, of k, v
+		-- for? k, v in a.subparts
 			if has-count v
 				k, v.to
 
