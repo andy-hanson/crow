@@ -162,6 +162,7 @@ expression-position-kind union
 	match-string-like-expr
 	match-sum-type-expr
 	the-expr
+	then-if-expr
 	try-expr
 	try-let-expr
 	while-or-until-expr
@@ -198,5 +199,6 @@ expr-keyword enum
 	then-after-unless-without-else
 	then-after-of
 	then-after-unless
+	then-if
 	throw_
 	trusted_

@@ -309,6 +309,11 @@ get-hover hover?(program program, params hover-params) show-ctx
 		"The expression after 'then' is the body of the lambda starting at 'of'."
 	as then-after-unless
 		"Evaluates the expression to the right of 'then' if the expression between 'unless' and 'then' is false."
+	as then-if
+		quote
+			If the condition is true, calls the function.
+			If the condition is false, returns the first argument unmodified.
+			The first argument is the line before 'then'.
 	as throw_
 		"Throws an exception."
 	as trusted_
@@ -471,6 +476,8 @@ get-hover hover?(program program, params hover-params) show-ctx
 		match-hover type-container, type-desc, x.sum-type
 	as the-expr
 		"Gets the context value of type {show-type-quoted (x.type, type-container)}."
+	as then-if-expr
+		show-called x.called, type-container
 	as try-expr
 		caught = if c = only x.catches
 			"a {show-type-quoted (c.caught-type, type-container)}"

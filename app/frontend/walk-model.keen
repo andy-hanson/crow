@@ -410,6 +410,9 @@ do walk-ctx
 			()
 		as the-expr
 			walk-type e.ast.type, e.type, explicit-private, f
+		as then-if-expr
+			?walk-type e.ast.fun-type-annotation, e.type, explicit-private, f
+			handle-call e.called, e.ast, (), explicit-private, f
 		as throw-expr
 			()
 		as trusted-expr

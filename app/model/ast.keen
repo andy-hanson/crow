@@ -88,6 +88,43 @@ end pos(a the-ast)
 keyword-range source-range(a the-ast)
 	range-of-start-and-length a.start, "the"
 
+then-if-ast record
+	first expr-ast
+	then-if-keyword-pos pos
+	condition expr-ast
+	then-keyword-pos pos
+	fun-pos pos
+	fun-name name-and-arity
+	fun-type-annotation type-ast?
+	then-args expr-ast[]
+then-if-ast then-if-ast
+	first expr-ast
+	then-if-keyword-pos pos
+	condition expr-ast
+	then-keyword-pos pos
+	fun-name name-and-range
+	fun-type-annotation type-ast?
+	args expr-ast[]
+do
+	name = get-name-and-arity fun-name.name, 1 + args.size
+	first, then-if-keyword-pos, condition, then-keyword-pos, fun-name.start, name, fun-type-annotation, args
+range source-range(a then-if-ast) = a.start, a.end
+then-if-range source-range(a then-if-ast)
+	range-of-start-and-length a.then-if-keyword-pos, "then if"
+then-range source-range(a then-if-ast)
+	range-of-start-and-length a.then-keyword-pos, "then"
+fun-name-range source-range(a then-if-ast)
+	range name-and-range a.fun-pos, a.fun-name.name
+start pos(a then-if-ast)
+	a.first.start
+end pos(a then-if-ast)
+	if any a.then-args
+		a.then-args[end - 1].end
+	elif a.fun-type-annotation
+		a.fun-type-annotation.end
+	else
+		a.fun-name-range.end
+
 type-ast union
 	bogus-type-ast
 	fun-type-ast
@@ -196,6 +233,7 @@ expr-ast union
 	seq-ast
 	shared-ast
 	the-ast
+	then-if-ast
 	throw-ast
 	trusted-ast
 	try-ast
@@ -1302,6 +1340,8 @@ some bool(a children, f bool mut(x expr-ast))
 		f[x.inner]
 	as the-ast
 		()
+	as then-if-ast
+		f[x.first] or f[x.condition] or some x.then-args, f
 	as throw-ast
 		f[x.thrown]
 	as trusted-ast

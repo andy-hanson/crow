@@ -18,3 +18,45 @@ test
 		then map::nat[] it / 2
 		then sum
 	x is 2/2 + 4/2 + 6/2 + 8/2
+
+test
+	foo 2 is 4
+	foo 3 is 3
+
+foo nat(x nat)
+	x
+	then if x < 3 then square
+-square nat(a nat) = a * a
+
+test
+	bar 2 is 3
+	bar 3 is 3
+-bar nat(x nat)
+	x
+	then if x < 3 then + 1
+
+test
+	baz 2 is 8
+	baz 3 is 3
+-baz nat(x nat)
+	x
+	then if x < 3 then splush 2, 3
+-splush nat(a nat, b nat, c nat)
+	a + b * c
+
+test
+	buz 1, 2 is 3
+	buz 1, () is 1
+-buz nat(x nat, y nat?)
+	x
+	then if y then + y
+
+test
+	bez 1 is 1
+	bez 2 is 3
+-bez nat(x nat)
+	x
+	then if y = half x then + y
+-half nat?(a nat)
+	if is-even a
+		a / 2

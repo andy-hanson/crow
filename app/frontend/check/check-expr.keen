@@ -70,6 +70,21 @@ do check-ctx, types-get, funs-map
 	else
 		res
 
+-check-expr-with-known-value expr
+	instantiate-ctx instantiate-ctx
+	check-ctx check-context
+	common-types common-types
+	ctx expr-ctx
+	known known-value
+	ast expr-ast
+	expected expected
+do
+	the instantiate-ctx = instantiate-ctx
+	the check-context = check-ctx
+	the common-types = common-types
+	the expr-ctx = ctx
+	check-with-condition known, {check-expr ast, expected}
+
 | This exists to work around the fact that spec impls currently can't take contexts
 -check-expr expr
 	instantiate-ctx instantiate-ctx
@@ -157,6 +172,8 @@ do
 		check-shared ast, expected
 	as the-ast
 		check-the ast, expected
+	as then-if-ast
+		check-then-if ast, (check-condition ast.condition), expected
 	as throw-ast
 		check-throw ast, expected
 	as trusted-ast

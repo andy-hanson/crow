@@ -211,6 +211,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		"Expected '\"'."
 	as slash
 		"Expected '/'."
+	as then-after-then-if
+		"Expected 'then' after condition."
 
 -show-read-file-diag string(a read-file-diag, uri uri?) show-ctx
 	file = if uri then "imported file {show-uri uri}" else "this file"

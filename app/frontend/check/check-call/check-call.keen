@@ -23,6 +23,22 @@ check-expr spec
 		expected expected
 -check-expr expr(ast expr-ast, expected expected) check-expr-ctx, common-types, check-expr
 	check-expr the::instantiate-ctx, the::check-context, the::common-types, the::expr-ctx, ast, expected
+check-expr-with-known-value spec
+	check-expr-with-known-value expr
+		instantiate-ctx instantiate-ctx
+		check-ctx check-context
+		common-types common-types
+		ctx expr-ctx
+		known known-value
+		ast expr-ast
+		expected expected
+-check-expr-with-known-value expr
+	known known-value
+	ast expr-ast
+	expected expected
+do check-expr-ctx, check-expr-with-known-value
+	i = the::instantiate-ctx
+	check-expr-with-known-value i, the::check-context, the::common-types, the::expr-ctx, known, ast, expected
 
 check-lambda spec
 	check-lambda expr
@@ -67,6 +83,35 @@ check-call expr(ast call-subscript-ast, expected expected) check-expr-ctx, check
 		ast, ast.subscript-range, subscript-2
 check-call expr(ast call-question-subscript-ast, expected expected) check-expr-ctx, check-expr
 	check-option-call ast, expected, ast.subscript-range, subscript-2, (ast.left, ast.right)
+
+check-then-if expr
+	ast then-if-ast
+	condition expr
+	expected expected
+do check-expr-ctx, check-expr, check-expr-with-known-value
+	first mut expr? = ()
+	then-args expr buffer = trusted uninitialized-buffer ast.then-args.size
+	known = known-value condition, true
+	cb-arg cb-check-arg-void = of i, arg-expected
+		if i == 0
+			first := check-expr ast.first, arg-expected
+		else
+			then-args[i - 1] := check-expr-with-known-value known, ast.then-args[i - 1], arg-expected
+	info call-info =
+		source: ast
+		diag-range: ast.name-range
+		fun-name: ast.fun-name
+		type-arg: ()
+	if called = check-call-cb info, expected, cb-arg, {true}
+		check expected, called.return-type,
+			then-if-expr ast, first!, condition, called, trusted cast-immutable then-args
+	else
+		:: bogus-call-expr
+		ast: ast
+		name: ast.fun-name.name
+		candidates: get-all-candidates-for-diag ast.fun-name
+		checked-args: if first then first! ~ trusted checked-args then-args
+		type: inferred-or-bogus expected
 
 # Used for a list expression with no '--' parts
 check-call-list-no-multi expr
@@ -268,8 +313,11 @@ do check-expr-ctx
 		ast: info.source
 		name: info.fun-name.regular-name
 		candidates: get-all-candidates-for-diag info.fun-name
-		checked-args: to trusted take-while args.cast-immutable, {not reference-equal it, gc-safe-value}
+		checked-args: trusted checked-args args
 		type: inferred-or-bogus expected
+
+-checked-args expr[](args expr buffer) unsafe
+	to take-while args.cast-immutable, {not reference-equal it, gc-safe-value}
 
 -make-call expr(source call-expr-source, called called, args expr[])
 	match source

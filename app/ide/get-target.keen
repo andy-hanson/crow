@@ -155,6 +155,8 @@ target-for-position target?(pos position)
 		()
 	as the-expr
 		()
+	as then-if-expr
+		()
 	as try-expr
 		()
 	as try-let-expr

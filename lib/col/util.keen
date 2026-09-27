@@ -202,6 +202,28 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some
 		i +:= 1
 		res
 
+| Works like {with-index} but with a {nat8} index.
++with-index8[col] record(inner col)
++size[col] nat(a col with-index8) col size
+	size a.inner
++some[col, elem] bool(a col with-index8, f bool mut(index nat8, value elem)) (col, elem) some
+	index mut nat8 = 0
+	some a.inner, of x
+		res = f[index, x]
+		index +:= 1
+		res
+
+| Works like {with-index} but with a {nat16} index.
++with-index16[col] record(inner col)
++size[col] nat(a col with-index16) col size
+	size a.inner
++some[col, elem] bool(a col with-index16, f bool mut(index nat16, value elem)) (col, elem) some
+	index mut nat16 = 0
+	some a.inner, of x
+		res = f[index, x]
+		index +:= 1
+		res
+
 +split[out-col, in-col, in-iter, elem] out-col[]
 	a in-col
 	split-by in-col

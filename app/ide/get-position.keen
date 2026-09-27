@@ -513,6 +513,10 @@ do
 	as the-expr
 		expression-position-at[a.ast.keyword-range, a] or
 		position-in-type a.type, a.ast.type, pos.pos
+	as then-if-expr
+		keyword-at[a.ast.then-if-range, then-if] or
+		keyword-at[a.ast.then-range, then-if] or
+		call[a.ast, a]
 	as throw-expr
 		keyword-at[a.ast.keyword-range, throw_]
 	as trusted-expr
@@ -617,6 +621,8 @@ do
 		()
 	as name-and-range
 		has-pos a.range, pos
+	as then-if-ast
+		has-pos a.name-range, pos
 	as typed-ast
 		()
 

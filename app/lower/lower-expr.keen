@@ -246,33 +246,45 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 	local, f[local-get-low-expr a.range, local]
 
 -lower-call low-expr(type low-type, range uri-and-range, a call-expr) lower-and-expr-ctx
-	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
-	if low-fun-body-always-inline low-called.body
-		if is-array-op low-called
-			lower-array-op type, range, a, low-called
-		else
-			lower-inline-call-not-array-op low-called, range, args-with-defaults low-called, a
+	lower-call type, range, a.called, a.args
+-lower-call low-expr(type low-type, range uri-and-range, called called, args expr[]) lower-and-expr-ctx
+	do if low-called = get-low-fun-from-called called else lower-bogus type, range
+	if low-fun-body-always-inline low-called.body and is-array-op low-called
+		lower-array-op type, range, args, low-called
 	else
-		args low-expr[] =
+		# Since 'list-new' is allowed to implement the 'new' spec, we need to support those here
+		low-args low-expr[] = if args.size == 0 and array-type = as-list-new low-called
+			empty-array = get-constant-array all-constants, array-type, ()
+			- array-type, range, empty-array
+		else
+			args-with-defaults low-called, called, args
+		lower-call-inner range, called, low-called, low-args
+-lower-call-inner low-expr(range uri-and-range, called called, low-called low-fun, args low-expr[]) lower-and-expr-ctx
+	if low-fun-body-always-inline low-called.body
+		forbid is-array-op low-called
+		lower-inline-call-not-array-op low-called, range, args
+	else
+		low-args low-expr[] =
 			# Since 'list-new' is allowed to implement the 'new' spec, we need to support those here
-			-- if a.args.size == 0 and array-type = as-list-new low-called
+			-- if args.size == 0 and array-type = as-list-new low-called
 				empty-array = get-constant-array all-constants, array-type, ()
 				- array-type, range, empty-array
 			else
-				args-with-defaults low-called, a
-			-- context-args range, a.called, low-called
+				args
+			-- context-args range, called, low-called
 		# We need to widen again even though it was done already in 'lower-expr',
 		# because we may be calling a spec-impl that has a narrower type than the spec.
 		# (The call expr's type can't reflect this and uses the spec's declared type.)
-		gen-call range, low-called, args
+		gen-call range, low-called, low-args
 
--args-with-defaults low-expr[](low-called low-fun, call call-expr) lower-and-expr-ctx
-	for index in call.called.arity
+-args-with-defaults low-expr[](low-called low-fun, called called, args expr[], skip-args nat = 0) lower-and-expr-ctx
+	for index in skip-args .. called.arity
 		param-type = low-called.params[index].type
-		if index < call.args.size
-			lower-expr param-type, call.args[index]
+		arg-index = index - skip-args
+		if arg-index < args.size
+			lower-expr param-type, args[arg-index]
 		else
-			lower-param-default low-called, param-type, call.called.fun-inst!.decl.param-defaults![index]!
+			lower-param-default low-called, param-type, called.fun-inst!.decl.param-defaults![index]!
 
 -lower-call-with-defaults low-expr(type low-type, range uri-and-range, a call-expr-with-which-params) lower-and-expr-ctx
 	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
@@ -291,8 +303,8 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 	else
 		gen-call range, low-called, all-args
 
--lower-array-op low-expr(type low-type, range uri-and-range, a call-expr, low-called low-fun) lower-and-expr-ctx
-	input-arg, lambda-arg = only2! a.args
+-lower-array-op low-expr(type low-type, range uri-and-range, args expr[], low-called low-fun) lower-and-expr-ctx
+	input-arg, lambda-arg = only2! args
 	input-param, lambda-param = only2! low-called.params
 	input = lower-expr input-param.type, input-arg
 	in-element-type = if is-range input.type then range-element-type input.type else as-array-or-buffer! input.type
@@ -1115,6 +1127,8 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 		concat-seqs range, first, then_
 	as the-expr
 		get-the type, range
+	as then-if-expr
+		lower-then-if type, range, a
 	as throw-expr
 		throw-low-expr type, range, lower-expr exception, a.thrown
 	as trusted-expr
@@ -1214,6 +1228,31 @@ do lower-and-expr-ctx
 	range: range
 	right: lower-expr void, a.right
 	below: lower-expr type, a.below
+
+-lower-then-if low-expr(type low-type, range uri-and-range, a then-if-expr) lower-and-expr-ctx
+	###
+	x
+	then if y then foo z
+	==>
+	temp = x
+	if y
+		foo temp, z
+	else
+		temp
+	###
+	do if low-called = get-low-fun-from-called a.called else lower-bogus type, range
+	first = lower-expr low-called.params[0].type, a.first
+	temp low-local = temp, first.type
+	:: let-low-expr
+	range: range
+	local: temp
+	value: first
+	then_: with-lower-condition range, a.condition, of cond
+		args = args-with-defaults low-called, a.called, a.rest-args, 1
+		get-temp local-get-low-expr = range, temp
+		if-low-expr range, cond,
+			then_: lower-call-inner range, a.called, low-called, get-temp ~ args
+			else_: get-temp
 
 -lower-try low-expr
 	type low-type

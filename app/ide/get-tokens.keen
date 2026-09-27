@@ -504,6 +504,12 @@ do tokens-builder
 		add-expr-tokens a.inner
 	as the-ast
 		add-type-tokens a.type
+	as then-if-ast
+		add-expr-tokens a.first
+		add-expr-tokens a.condition
+		emit function_, a.fun-name-range
+		?add-type-tokens a.fun-type-annotation
+		add-exprs-tokens a.then-args
 	as throw-ast
 		add-expr-tokens a.thrown
 	as trusted-ast
