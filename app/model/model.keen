@@ -28,7 +28,7 @@ max-type-params nat32()
 
 -type-arrays global((type-array, type-array-key) object-memoizer) = ()
 -type-params-type-args global(type-args[])
-	for n in 0 .. max-type-params + 1
+	for n in max-type-params + 1
 		to-type-args for i in 0 .. n then (i,)::type-param-index
 -spec-arrays global((specs, specs-key) object-memoizer) = ()
 
@@ -2534,6 +2534,9 @@ to type-container(a any-decl)
 common-funs record
 	deserialize-error type-inst
 	error type-inst
+	for-loop-void fun-decl
+	for-loop-out fun-decl
+	map fun-decl
 	is-impl fun-decl
 	isnt-impl fun-decl
 	json-array type-inst
@@ -3806,6 +3809,7 @@ list-expr-part-multi record(arg expr)
 
 scalar-value record
 	bits nat64
+new scalar-value() = bits: 0
 to scalar-value(a bool) = a.to,
 to bool(a scalar-value)
 	match a.to::nat64

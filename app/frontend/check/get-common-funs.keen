@@ -29,9 +29,14 @@ do instantiate-ctx, common-types
 	t-array-view-array = array[t-array-view]
 	t-buffer = buffer[type-param0]
 	t-buffer-view = buffer-view[type-param0]
+	void-mut-of-tp1 = lambda-mut[void, type-param1]
+	tp1-mut-of-tp3 = lambda-mut[type-param1, type-param3]
 	-
 		deserialize-error: get-type[json, "deserialize-error"]
 		error: get-type[exception, "error"]
+		for-loop-void: get-fun-decl diags, modules[col-util], "for-loop", void, (type-param0, void-mut-of-tp1), 1
+		for-loop-out: get-fun-decl diags, modules[col-util], "for-loop", type-param0, (type-param2, tp1-mut-of-tp3), 3
+		map: get-fun-decl diags, modules[col-util], "map", type-param0, (type-param2, tp1-mut-of-tp3), 3
 		is-impl: get-fun-decl diags, modules[test-util], "is-impl", void, (type-param0, type-param0), 2
 		isnt-impl: get-fun-decl diags, modules[test-util], "isnt-impl", void, (type-param0, type-param0), 2
 		json-array: json-array
@@ -110,6 +115,8 @@ make-params destructure[](params type array-view)
 
 -type-param0 type() = 0,
 -type-param1 type() = 1,
+-type-param2 type() = 2,
+-type-param3 type() = 3,
 
 -get-type-or-add-diag type-decl
 	diags-builder uri-and-diagnostic mut[]

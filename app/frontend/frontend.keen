@@ -762,6 +762,8 @@ set-file void(a frontend, uri uri, result read-file-result)
 			private / "bootstrap.keen"
 		as buffer
 			col / "buffer.keen"
+		as col-util
+			col / "util.keen"
 		as exception
 			lib / "exception.keen"
 		as number

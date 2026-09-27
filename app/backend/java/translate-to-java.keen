@@ -1193,7 +1193,7 @@ do java-refs
 	type = a.type
 	match a
 	as array-op-low-expr
-		emit-for-loop out, pos, a, a
+		emit-array-op out, pos, a, a
 	as builtin-unary-low-expr
 		function-like out, type, (a.arg,), of
 			translate-builtin-unary out, a.fun, type, a.arg.type
@@ -1611,7 +1611,7 @@ do java-refs
 	checked-to-nat32 out, size-type
 	unless is-empty-type elem-type
 		new-array-for-type out, elem-type
--emit-for-loop void(out code-builder, pos expr-pos, a low-expr, x array-op-low-expr) java-expr-ctx
+-emit-array-op void(out code-builder, pos expr-pos, a low-expr, x array-op-low-expr) java-expr-ctx
 	type = a.type
 	emit-and-continue out, x.input
 	input-type = x.input.type
@@ -1620,10 +1620,12 @@ do java-refs
 	in-array local-index? = match input-kind
 	as array
 		begin-synthetic-local out, input-type
-	as range
+	as nat
+		()
+	as nat-range
 		()
 
-	range-fields = if input-kind == range
+	range-fields = if input-kind == nat-range
 		x.input.type.body.low-record!.fields
 
 	empty-out-elem = is-empty-type x.out-element
@@ -1635,26 +1637,36 @@ do java-refs
 	integral-type low-type = match input-kind
 	as array
 		nat32
-	as range
+	as nat
+		x.in-element
+	as nat-range
 		x.in-element
 	java-index-type = java-primitive-type! as-runtime-type integral-type
 
+	# Initialize loop cur local
 	match input-kind
 	as array
 		iconst out, 0
-	as range
+	as nat
+		iconst out, 0
+	as nat-range
 		dup32 out
 		getfield out, record-field input-type, range-fields[0]
 	cur = begin-synthetic-local out, integral-type
 
+	# Initialize loop end local
 	match input-kind
 	as array
 		get-array-size out, x.in-element, in-array!
-	as range
+	as nat
+		# It's already on the stack
+		()
+	as nat-range
 		# Don't dup, this finishes using the range
 		getfield out, record-field input-type, range-fields[1]
 	end = begin-synthetic-local out, integral-type
 
+	# Initialize output array variable
 	match output-kind
 	as void
 		()
@@ -1673,8 +1685,12 @@ do java-refs
 		xload out, java-index-type, end
 		match input-kind
 		as array
+			# size is end
 			()
-		as range
+		as nat
+			# size is end
+			()
+		as nat-range
 			# size is end - cur
 			xload out, java-index-type, cur
 			xsub out, java-index-type
@@ -1684,8 +1700,12 @@ do java-refs
 
 	out-offset local-index? = match input-kind
 	as array
+		# Don't need an offset
 		()
-	as range
+	as nat
+		# Don't need an offset
+		()
+	as nat-range
 		unless is-void
 			xload out, java-index-type, cur
 			begin-synthetic-local out, integral-type
@@ -1708,7 +1728,10 @@ do java-refs
 				unchecked-to-nat32 out, integral-type
 				xaload out, x.in-element.as-runtime-type
 				pushed x.in-element
-		as range
+		as nat
+			xload out, java-index-type, cur
+			pushed integral-type
+		as nat-range
 			xload out, java-index-type, cur
 			pushed integral-type
 		# TODO:PERF in the case of looping over a range,

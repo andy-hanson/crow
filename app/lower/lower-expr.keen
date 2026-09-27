@@ -307,7 +307,12 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 	input-arg, lambda-arg = only2! args
 	input-param, lambda-param = only2! low-called.params
 	input = lower-expr input-param.type, input-arg
-	in-element-type = if is-range input.type then range-element-type input.type else as-array-or-buffer! input.type
+	in-element-type = if as-nat-type input.type
+		input.type
+	elif is-nat-range input.type
+		range-element-type input.type
+	else
+		as-array-or-buffer! input.type
 	out-element-type = if is-void type then type else as-array-or-buffer! type
 	empty-out-array constant-array? = unless is-void type
 		constant-array! get-constant-array all-constants, type, ()

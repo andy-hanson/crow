@@ -37,6 +37,7 @@ common-module enum
 	array
 	bootstrap
 	buffer
+	col-util
 	exception
 	number
 	js

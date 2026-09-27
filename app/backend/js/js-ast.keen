@@ -70,8 +70,8 @@ js-statement-kind union
 	js-while-statement
 js-assign-statement record(left js-expr, right js-expr)
 js-block-statement record(statements js-statement[])
-new js-block-statement()
-	statements: ()
+list-new js-block-statement(statements js-statement[])
+	statements: statements
 any bool(a js-block-statement)
 	any a.statements
 ~~ js-block-statement(a js-block-statement, b js-block-statement)

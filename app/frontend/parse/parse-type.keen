@@ -159,7 +159,6 @@ params-kind enum(indented, parenthesized)
 parse-params (parameter-ast[], params-kind)() parser, parse-expr-for-param-default
 	if try-take-token newline-indent
 		params = parse-indented-lines-after-indent {parse-parameter-no-require-parens}
-		_ = try-take-token newline-same-indent
 		params, indented
 	else
 		parse-params-parenthesized, parenthesized

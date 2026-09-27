@@ -218,3 +218,10 @@
 				end: character: 6, line: 50
 				start: character: 1, line: 50
 			uri: "test:///keen/lib/private/bootstrap.keen"
+-
+	hover: quote
+		Literal expression.
+		Expression type is: 'nat32'
+	range:
+		end: character: 17, line: 9
+		start: character: 16, line: 9

@@ -243,7 +243,7 @@ take-after-interpolated bool() parser
 		elif try-take-token brace-right
 			inside-quotes -:= 1
 			if inside-quotes == 0 then true
-		elif try-take-token quote-double-then-interpolated
+		elif try-take-token quote-double-then-interpolated or try-take-token brace-left
 			inside-quotes +:= 1
 			()
 		else

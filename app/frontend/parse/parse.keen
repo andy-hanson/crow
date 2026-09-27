@@ -124,6 +124,7 @@ do parser
 	params, params-kind = parse-params
 	match params-kind
 	as indented
+		_ = try-take-token newline-same-indent
 		_ = take-or-add-diag-expected-token do_, do_
 	as parenthesized
 		()

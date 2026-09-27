@@ -544,17 +544,22 @@ gen-new-record-body-without-preconstructor low-expr(fun low-fun, range uri-and-r
 		constant-low-expr type, range, get-constant-record all-constants, type, ()
 
 is-array-op bool(a low-fun) lower-context
-	# TODO: make sure this is the one in collection.keen and all the spec impls are as expected
-	do if a.name == "for-loop"
+	do if low-fun-source-regular a.source
+	do if is-array-op-fun a.source.decl
 	do if is-void a.return-type or as-array-or-buffer a.return-type
 	do if a.params.size == 2
 	input = a.params[0]
-	do if is-range input.type or as-array-or-buffer input.type
+	do if as-nat-type input.type or is-nat-range input.type or as-array-or-buffer input.type
 	do if as-lambda-type a.params[1].type
 	true
 
-is-range bool(a low-type) lower-context
-	low-type-source-inst a.source and a.source.decl == common-funs.range
+-is-array-op-fun bool(fun fun-decl) lower-context
+	fun == common-funs.for-loop-void or fun == common-funs.for-loop-out or fun == common-funs.map
+
+is-nat-range bool(a low-type) lower-context
+	do if low-type-source-inst a.source
+	do if a.source.decl == common-funs.range
+	as-nat-type range-element-type a
 
 lower-inline-call-not-array-op low-expr(fun low-fun, range uri-and-range, args low-expr[]) lower-context, lower-funs
 	type = fun.return-type
