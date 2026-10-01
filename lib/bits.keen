@@ -324,14 +324,8 @@ import
 
 +log-2-rounded-up nat64(a nat64)
 	do unless a == 0
-	trusted if java
-		floor nat64 = 63 'wrap-sub a.wrap-to::int64.numberOfLeadingZeros.wrap-to::nat64
-		wrap-add floor, ((1 << floor) != a).to
-	elif js
-		res = log-2-rounded-down a
-		wrap-add res, (1 << res != a).to
-	else
-		throw todo
+	floor = log-2-rounded-down a
+	if 1 << floor != a then wrap-add floor, 1 else floor
 
 +log-2-rounded-down nat64(a nat64)
 	do unless a == 0

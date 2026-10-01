@@ -82,7 +82,7 @@ try-take-name-and-range-or-diag name-and-range?() parser
 try-take-name-like-token name-and-range?(token token) parser
 	do if peek token
 	res name-and-range =
-		start: next-start + (token == name-after-question).to
+		start: next-start + if token == name-after-question then 1 else 0
 		name: next-symbol
 	advance
 	res

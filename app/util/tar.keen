@@ -32,7 +32,7 @@ read-entire-tar nat8 array-view[symbol](a nat8[])
 		skip-next-n a, (512 - offset)
 -take-octal nat32(a nat8 array-iterator, n-bytes nat32, has-trailing-nul bool)
 	res mut nat32 = 0
-	for _ in n-bytes - has-trailing-nul.to
+	for _ in if has-trailing-nul then n-bytes - 1 else n-bytes
 		res *:= 8
 		res +:= a.take-next.to.octal-digit
 	if has-trailing-nul

@@ -268,7 +268,7 @@ do check-expr-ctx
 	do if type = try-get-inexact-non-inferring-type expected
 	do if as-float-type type or as-integral-type type
 	filter-unordered-max-priority candidates, of candidate
-		(candidate.called.return-type == type or type-param-index candidate.called.return-type).to
+		if candidate.called.return-type == type or type-param-index candidate.called.return-type then 1 else 0
 
 check-call-special-cb1 expr
 	source call-expr-source

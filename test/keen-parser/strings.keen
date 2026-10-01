@@ -5,14 +5,17 @@ test
 
 test
 	"a\nb" is quote
-
 		a
 		b
 
 test
 	s is "hello"
-
 s string()
 	quote
 		hello
 	# comment
+
+test
+	s = quote
+		 1
+	s is " 1"

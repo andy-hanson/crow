@@ -74,8 +74,8 @@ new single-source-mapping()
 	a.prev := mapping
 
 write-base-64-vlq void(out char8 mut[], value int32)
-	sign-bit = value < 0
-	value-remaining mut = value.abs << 1 | sign-bit.to
+	sign-bit nat = if value < 0 then 1
+	value-remaining mut = value.abs << 1 | sign-bit
 	if value-remaining == 0
 		out ~= base-64-char 0
 	else

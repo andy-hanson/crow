@@ -261,8 +261,5 @@ region test
 		"[{pairs}]"
 
 -verify-node-size[k, v] void(a (k, v) mut-sorted-map)
-	res mut nat32 = 0
-	for _, v in a.pairs
-		res +:= v.to
-	a.node-size is res
+	a.node-size is count a.pairs, it.b
 	?verify-node-size a.next

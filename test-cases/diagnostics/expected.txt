@@ -248,7 +248,6 @@ compile-errors/empty-enum-or-union.keen 15:5-15:9 The 'match' handles every poss
 compile-errors/enum-too-big.keen 261:5-261:6 Local 'e' is unused.
 compile-errors/enum-too-big.keen 262:5-262:6 Local 'n' is unused.
 compile-errors/enum-too-big.keen 262:17-262:18 Expected one of these types:
-	'bool'
 	'char8'
 	'comparison'
 	'float64'
@@ -769,7 +768,7 @@ Candidates (with 1 arguments):
 compile-errors/union-cycle.keen 2:11-2:13 There are functions named 'new' or 'list-new', but they do not match the expected return type.
 Expected return type 'u'.
 Candidates (with 0 arguments):
-	new bool() (from keen/bool.keen line 8)
+	new bool() (from keen/bool.keen line 7)
 	new[t] t buffer-view() (from keen/col/buffer.keen line 27)
 	new was-locked() (from keen/col/collection.keen line 18)
 	new iterator-out-of-bounds() (from keen/col/collection.keen line 23)

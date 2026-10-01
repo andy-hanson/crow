@@ -563,21 +563,24 @@ import
 
 -parse-block-quote (json, int32)(iter string-iterator, ctx ctx, indent int32)
 	assert try-take iter, "\n" else inner-parse-error "Block quoted string"
-	quote-indent = take-1-more-indent-after-newline iter, ctx, indent
+	blank-lines, quote-indent = take-1-more-indent-after-newline iter, ctx, indent, stop-at-wrong-indent-char
 	new-indent mut int32 = 0
 	s string = with out in build
+		for _ in blank-lines
+			out ~= "\n"
 		new-indent := until
 			if is-at-end iter
 				eof-indent
 			else
 				ch = take-next iter
 				if ch == "\n"
-					res = take-next-indent-after-newline iter, ctx
+					blank-lines2, res = take-next-indent-after-newline iter, ctx, stop-at-wrong-indent-char
 					if res < quote-indent
 						res
 					else
 						res is quote-indent else inner-parse-error "Block quoted string"
-						out ~= "\n"
+						for _ in blank-lines2 + 1
+							out ~= "\n"
 						()
 				else
 					out ~= ch
@@ -599,7 +602,7 @@ import
 -parse-kid-inner (json, int32?)(iter string-iterator, ctx ctx, indent int32)
 	skip-spaces iter
 	if try-take iter, "\n"
-		new-indent = take-1-more-indent-after-newline iter, ctx, indent
+		_, new-indent = take-1-more-indent-after-newline iter, ctx, indent, diag-on-wrong-indent-char
 		parse-kid-line iter, ctx, new-indent 'to
 	else
 		match first = parse-kid-simple iter
@@ -810,7 +813,7 @@ do
 	else
 		throw inner-parse-error "Kid value"
 
--peek-end-of-line bool(a string-iterator)
++peek-end-of-line bool(a string-iterator)
 	is-at-end a or a.peek == "\n"
 -take-name-colon-or-string-colon symbol(iter string-iterator)
 	assert res = (try-take-keen-identifier iter or ?to try-take-quoted-string iter) else
@@ -837,20 +840,27 @@ do
 -take-next-indent int32(iter string-iterator, ctx ctx, cur-indent int32)
 	skip-spaces iter
 	assert try-take iter, "\n" or is-at-end iter else inner-parse-error "Newline"
-	res = take-next-indent-after-newline iter, ctx
+	_, res = take-next-indent-after-newline iter, ctx, diag-on-wrong-indent-char
 	assert res <= cur-indent else inner-parse-error "Cannot indent here"
 	res
--take-1-more-indent-after-newline int32(iter string-iterator, ctx ctx, cur-indent int32)
-	new-indent = take-next-indent-after-newline iter, ctx
-	new-indent is cur-indent + 1 else inner-parse-error "Kid value"
-	new-indent
--take-next-indent-after-newline int32(iter string-iterator, ctx ctx)
+-take-1-more-indent-after-newline (nat, int)
+	iter string-iterator
+	ctx ctx
+	cur-indent int32
+	wrong-indent wrong-indent-char-policy
+do
+	res = take-next-indent-after-newline iter, ctx, wrong-indent
+	res.b is cur-indent + 1 else inner-parse-error "Kid value"
+	res
+-take-next-indent-after-newline (nat, int)(iter string-iterator, ctx ctx, wrong-indent wrong-indent-char-policy)
+	blank-lines mut nat = 0
 	do until
-	new-indent = take-indent-amount-after-newline iter, ctx.indent-kind, of _
+	new-indent = take-indent-amount-after-newline iter, ctx.indent-kind, wrong-indent, of _
 		throw inner-parse-error "Indent by {ctx.indent-kind}"
 	if is-at-end iter
-		eof-indent
+		blank-lines, eof-indent
 	elif try-take iter, "\n"
+		blank-lines +:= 1
 		()
 	else
-		to::int32 new-indent
+		blank-lines, to::int32 new-indent

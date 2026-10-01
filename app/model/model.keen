@@ -2414,11 +2414,11 @@ some bool(a walk-all-imports, f bool mut(kind import-or-export-kind, ast import-
 	module = a.module
 	imports-and-re-exports = module.imports-and-re-exports
 	ast = module.ast
-	ast-total = ast.imports.count-non-file-imports + ast.re-exports.count-non-file-imports + ast.no-std_.not.to
+	ast-total = ast.imports.count-non-file-imports + ast.re-exports.count-non-file-imports + (unless ast.no-std_ then 1)
 	do if ast-total == imports-and-re-exports.size
 	import-asts = ast.imports.?paths else ()
 	do unless not ast.no-std_ and f[standard-import, (), imports-and-re-exports[0]]
-	i mut nat32 = to not ast.no-std_
+	i mut nat32 = unless ast.no-std_ then 1
 	res-imports = some import-asts, of import-ast
 		do unless import-ast.kind.import-file-ast
 		res = f[import_, import-ast, imports-and-re-exports[i]]
@@ -3810,7 +3810,7 @@ list-expr-part-multi record(arg expr)
 scalar-value record
 	bits nat64
 new scalar-value() = bits: 0
-to scalar-value(a bool) = a.to,
+to scalar-value(a bool) = bits: if a then 1
 to bool(a scalar-value)
 	match a.to::nat64
 	as 0 then false

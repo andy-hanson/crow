@@ -76,6 +76,8 @@ do
 +bottom-right vec2-32(a aa-rect32) = a.right, a.bottom
 +center-left vec2-32(a aa-rect32) = a.left, a.center.y
 +center-right vec2-32(a aa-rect32) = a.right, a.center.y
++center-bottom vec2-32(a aa-rect32) = a.center.x, a.bottom
++center-top vec2-32(a aa-rect32) = a.center.x, a.top
 +center vec2-32(a aa-rect32)
 	x: (a.left + a.right) / 2
 	y: (a.bottom + a.top) / 2

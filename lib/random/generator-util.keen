@@ -91,7 +91,8 @@ import
 		else
 			trusted v unsafe-bit-shift-left:= 1
 			trusted c unsafe-bit-shift-left:= 1
-			c |:= next-bit[].to
+			if next-bit[]
+				c |:= 1
 			()
 
 -fast-dice-roller64 nat64(n nat64, next-bit bool mut())
@@ -109,7 +110,8 @@ import
 		else
 			trusted v unsafe-bit-shift-left:= 1
 			trusted c unsafe-bit-shift-left:= 1
-			c |:= next-bit[].to
+			if next-bit[]
+				c |:= 1
 			()
 
 -fetch-next-64 void(a random-from-64)

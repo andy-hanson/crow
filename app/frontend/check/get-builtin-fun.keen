@@ -186,7 +186,7 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 				to-float-from-integral
 			elif is-float32 p0
 				to-float64-from-float32
-		elif is-char-or-integral rt and is-bool-char-or-integral p0
+		elif is-char-or-integral rt and is-char-or-integral p0
 			wrap-convert-integral
 	as true
 		if is-bool rt
@@ -241,9 +241,6 @@ get-builtin-fun fun-body(fun fun-decl, ast fun-decl-ast) check-ctx, common-types
 			unary arity, wrap-convert-integral
 	else
 		()
-
--is-bool-char-or-integral bool(a type)
-	is-bool a or is-char-or-integral a
 
 -is-number-like bool(a type)
 	is-bool a or is-char-or-integral a or is-float32-or-64 a

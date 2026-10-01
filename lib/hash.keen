@@ -55,5 +55,7 @@ export
 	hash a, state
 	finish state
 
-+hash void(_ void, _ hash-state) = trusted ()
-+hash void(a bool, state hash-state) = trusted hash a.to::nat64, state
++hash void(_ void, _ hash-state)
+	trusted ()
++hash void(a bool, state hash-state)
+	trusted hash (if a then 1 else 0), state

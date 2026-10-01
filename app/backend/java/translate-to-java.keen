@@ -167,7 +167,7 @@ do show-ctx
 -local-or-closure union(nat, field-reference)
 -explain-local local-or-closure(local low-local) expr-ctx
 	the::expr-ctx.closure?[local] else
-		res mut nat = has-unused-this-parameter.to
+		res mut nat = if has-unused-this-parameter then 1
 		assert some the-locals, of x
 			found = x == local
 			unless found
@@ -175,10 +175,7 @@ do show-ctx
 			found
 		res
 -next-local-index nat() expr-ctx
-	res mut nat = has-unused-this-parameter.to
-	for x in the-locals
-		res +:= number-of-locals x.type
-	res
+	(if has-unused-this-parameter then 1) + sum the-locals, it.type.number-of-locals
 -cur-stack-frame stack-frame() java-expr-ctx
 	locals: with out in build
 		if has-unused-this-parameter

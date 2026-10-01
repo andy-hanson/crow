@@ -139,21 +139,19 @@ choose-number-type number-type?(range source-range, expected expected, value num
 				res-float := max res-float, x
 			elif type == js-any
 				res-js := type
-	total = res-nat.to + res-int.to + res-float.to + res-js.to
-	if total == 0
+	do if res-nat or res-int or res-float or res-js else
 		add-diag range, diag-literal-not-expected get-expected-for-diag expected
 		()
+	res number-type, type type-inst = if res-nat
+		res-nat!.to::integral-type, res-nat!.to
+	elif res-int
+		res-int!.to::integral-type, res-int!.to
+	elif res-float
+		res-float!.to, res-float!.to
 	else
-		res number-type, type type-inst = if res-nat
-			res-nat!.to::integral-type, res-nat!.to
-		elif res-int
-			res-int!.to::integral-type, res-int!.to
-		elif res-float
-			res-float!.to, res-float!.to
-		else
-			js-any, res-js!
-		assert try-set-no-diagnostic expected, type
-		res
+		js-any, res-js!
+	assert try-set-no-diagnostic expected, type
+	res
 
 -to float-type-or-js(a float-type)
 	match a

@@ -469,19 +469,19 @@ region float
 	res
 
 | Returns nan for infinity + -infinity
--unsafe-add float32(a float32, b float32) unsafe
--unsafe-add float64(a float64, b float64) unsafe
++unsafe-add float32(a float32, b float32) unsafe
++unsafe-add float64(a float64, b float64) unsafe
 
--unsafe-sub float32(a float32, b float32) unsafe
--unsafe-sub float64(a float64, b float64) unsafe
++unsafe-sub float32(a float32, b float32) unsafe
++unsafe-sub float64(a float64, b float64) unsafe
 
 | Returns nan for infinity * 0
--unsafe-mul float32(a float32, b float32) unsafe
--unsafe-mul float64(a float64, b float64) unsafe
++unsafe-mul float32(a float32, b float32) unsafe
++unsafe-mul float64(a float64, b float64) unsafe
 
 | Divide two floats. Undefined behavior if `{b} == 0`.
--unsafe-div float32(a float32, b float32) unsafe
--unsafe-div float64(a float64, b float64) unsafe
++unsafe-div float32(a float32, b float32) unsafe
++unsafe-div float64(a float64, b float64) unsafe
 
 | Throws if `{b} == 0`.
 + / float32(a float32, b float32)

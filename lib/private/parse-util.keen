@@ -300,32 +300,35 @@ skip-until-newline void(a string-iterator)
 	while not is-at-end a and a.peek != "\n"
 		_ = take-next a
 
+wrong-indent-char-policy enum(stop-at-wrong-indent-char, diag-on-wrong-indent-char)
 take-indent-amount-after-newline nat32
 	iter string-iterator
 	indent-kind indent-kind
+	wrong-indent wrong-indent-char-policy
 	add-diag void mut(pos nat32)
 do
+	allow-wrong-indent = wrong-indent == stop-at-wrong-indent-char
 	res = match indent-kind
 	as tabs
-		take-indent-chars iter, "\t", " ", add-diag
+		take-indent-chars iter, "\t", (unless allow-wrong-indent then " "), add-diag
 	as spaces-2
-		take-indent-spaces iter, 2, add-diag
+		take-indent-spaces iter, 2, allow-wrong-indent, add-diag
 	as spaces-4
-		take-indent-spaces iter, 4, add-diag
+		take-indent-spaces iter, 4, allow-wrong-indent, add-diag
 	if is-at-end iter then 0 else res
--take-indent-spaces nat32(iter string-iterator, n nat32, add-diag void mut(pos nat32))
+-take-indent-spaces nat32(iter string-iterator, n nat32, allow-wrong-indent bool, add-diag void mut(pos nat32))
 	start = iter.pos
-	n-spaces = take-indent-chars iter, " ", "\t", add-diag
+	n-spaces = take-indent-chars iter, " ", (unless allow-wrong-indent then "\t"), add-diag
 	res = n-spaces / n
 	if res * n != n-spaces
 		add-diag[start]
 	res
--take-indent-chars nat32(iter string-iterator, right-indent char8, wrong-indent char8, add-diag void mut(pos nat32))
+-take-indent-chars nat32(iter string-iterator, right-indent char8, wrong-indent char8?, add-diag void mut(pos nat32))
 	start = iter.pos
 	while then try-take iter, right-indent
 	res = iter.pos - start
 	mid = iter.pos
-	if try-take iter, wrong-indent
+	if wrong-indent and try-take iter, wrong-indent
 		while then try-take iter, wrong-indent
 		add-diag[mid]
 	res
