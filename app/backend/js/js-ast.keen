@@ -87,7 +87,7 @@ js-if-statement record(cond js-expr, then_ js-block-statement, else_ js-statemen
 js-return-statement record(arg js-expr)
 js-switch-statement record(arg js-expr, cases js-switch-case[], default js-block-statement)
 js-switch-case record
-	values js-expr[] # TODO: I think we only use this for switch on integral types. So might be simpler to just store the nat64[] here....
+	values js-expr[]
 	| Force a block statement here to ensure each branch has its own scope
 	then_ js-block-statement
 js-throw-statement record(arg js-expr)

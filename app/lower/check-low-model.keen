@@ -100,11 +100,8 @@ check-low-program void(a low-program) low-common-types
 			check-expr type, case_
 		if e = a.else_
 			check-expr type, e
-	as match-string-like-low-expr
-		check-expr-any-type a.matched
-		a.equals.return-type is bool
-		a.equals.params.size is 2
-		assert every a.equals.params, it.type == a.matched.type
+	as match-symbol-low-expr
+		check-expr symbol, a.matched
 		for case_ in a.cases
 			check-expr type, case_.then_
 		check-expr type, a.else_

@@ -792,28 +792,24 @@ parenthesized-ast record(range source-range, inner expr-ast)
 start pos(a parenthesized-ast) = a.range.start
 end pos(a parenthesized-ast) = a.range.end
 
-case-ast record(keyword-pos pos, member case-member-ast, then_ expr-ast)
+case-ast record
+	keyword-pos pos
+	| Members separated by 'or'
+	members case-member-ast[]
+	then_ expr-ast
 end pos(a case-ast)
 	a.then_.end
-name-range source-range(a case-ast)
-	a.member.name-range
-keyword-and-member-name-range source-range(a case-ast)
-	a.keyword-pos, a.name-range.end
+keyword-range source-range(a case-ast)
+	range-of-start-and-length a.keyword-pos, "as"
+keyword-and-members-range source-range(a case-ast)
+	if any a.members
+		a.keyword-pos, a.members[end - 1].end
+	else
+		keyword-range a
 
-case-member-ast union(as-name-ast, literal-number, literal-string-ast, as-bogus-ast)
-name-range source-range(a case-member-ast)
-	match a
-	as as-name-ast
-		a.name.range
-	as literal-number
-		a.range
-	as literal-string-ast
-		a.range
-	as as-bogus-ast
-		a.range
-
-as-bogus-ast record(range source-range)
-as-name-ast record(name name-and-range)
+case-member-ast union(name-and-range, literal-number, literal-string-ast)
+	range source-range()
+	end pos()
 
 match-else-ast record(keyword-pos pos, expr expr-ast)
 end pos(a match-else-ast) = a.expr.end

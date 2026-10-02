@@ -144,21 +144,20 @@ replace-constants void() lower-ctx
 		switch: a.switch
 		case-exprs: cases else a.case-exprs
 		else_: else_ or a.else_
-	as match-string-like-low-expr
+	as match-symbol-low-expr
 		matched = replace-constants a.matched
 		# TODO: if 'matched' is a constant, use just that branch
 		updated-case mut = false
-		cases low-match-string-like-case[] = for case_ in a.cases
+		cases match-symbol-low-expr-case[] = for case_ in a.cases
 			then_ = replace-constants case_.then_
 			updated-case := updated-case or then_
-			value: case_.value
+			value-or-values: case_.value-or-values
 			then_: then_ else case_.then_
 		else_ = replace-constants a.else_
 		do if matched or updated-case or else_
-		:: match-string-like-low-expr
+		:: match-symbol-low-expr
 		range: range
 		matched: matched else a.matched
-		equals: a.equals
 		cases: cases
 		else_: else_ else a.else_
 	as match-union-low-expr

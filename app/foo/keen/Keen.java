@@ -24,6 +24,12 @@ public class Keen {
 	public static boolean notReferenceEqual(Object a, Object b) {
 		return a != b;
 	}
+	public static boolean isAnyObject(Object a, Object[] b) {
+		for (var x : b)
+			if (a == x)
+				return true;
+		return false;
+	}
 
 	public static boolean equalInt8(byte a, byte b) {
 		// This seems silly, but in Java a byte parameter actually takes an int at runtime, so we need to be sure to only use the byte parts

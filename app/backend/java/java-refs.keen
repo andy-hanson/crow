@@ -501,6 +501,9 @@ java-Object-toString method-reference() java-refs
 toString utf8-reference() java-refs
 	constants["toString"]
 
+keen-is-any-object method-reference() java-refs
+	keen-method "isAnyObject", "(Ljava/lang/Object;[Ljava/lang/Object;)Z"
+
 SourceFile utf8-reference() java-refs
 	constants["SourceFile"]
 

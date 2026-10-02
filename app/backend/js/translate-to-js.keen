@@ -1,5 +1,4 @@
 import
-	keen/bits
 	keen/format/base64
 	keen/unsafe
 	../../frontend/show-model
@@ -126,7 +125,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	as low-type-body-deferred
 		throw unreachable
 
--gen-is-type js-expr?(source source, get js-expr, a low-type) to-js-ctx
+-gen-is-type js-expr(source source, get js-expr, a low-type) to-js-ctx
 	match x = a.body
 	as builtin-type
 		gen-is-builtin-type source, get, a, x
@@ -139,57 +138,28 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	as low-record
 		gen-instanceof source, get, to-ref source, a
 	as low-union
-		()
+		throw unreachable
 	as low-type-body-deferred
 		throw unreachable
 
--gen-is-builtin-type js-expr?(source source, get js-expr, type low-type, kind builtin-type)
+-gen-is-builtin-type js-expr(source source, get js-expr, type low-type, kind builtin-type)
 	instanceof = of x string
-		gen-instanceof source, get, gen-identifier source, x.no-prefix
+		gen-instanceof source, get, gen-identifier source, no-prefix x
 	typeof  = of x string
 		gen-typeof-is source, get, x
-	array = {instanceof[type.as-array-or-buffer!.js-array-type-for-element-type.to]}
 	match kind
-	as array
-		array[]
+	as array or buffer
+		instanceof[type.as-array-or-buffer!.js-array-type-for-element-type.to]
 	as bool
 		typeof["boolean"]
-	as buffer
-		array[]
-	as char8
+	as char8 or char16 or char32 or float32 or float64 or int8 or int16 or int32 or nat8 or nat16 or nat32
 		typeof["number"]
-	as char16
-		typeof["number"]
-	as char32
-		typeof["number"]
-	as float32
-		typeof["number"]
-	as float64
-		typeof["number"]
-	as int8
-		typeof["number"]
-	as int16
-		typeof["number"]
-	as int32
-		typeof["number"]
-	as int64
+	as int64 or nat64
 		typeof["bigint"]
 	as js-any
-		()
-	as lambda-data
+		throw unreachable
+	as lambda-data or lambda-mut or lambda-shared
 		typeof["function"]
-	as lambda-mut
-		typeof["function"]
-	as lambda-shared
-		typeof["function"]
-	as nat8
-		typeof["number"]
-	as nat16
-		typeof["number"]
-	as nat32
-		typeof["number"]
-	as nat64
-		typeof["bigint"]
 	as option
 		throw unreachable
 	as void
@@ -343,8 +313,6 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	the::to-js-ctx.constant-names
 -common-funs low-common-funs-js() to-js-ctx
 	the::to-js-ctx.program.common-funs.low-common-funs-js!
--is-string-or-symbol bool(a low-type) low-common-types
-	a == string or a == symbol
 -async-info low-async-info() to-js-ctx
 	program.async!
 -async-fun-kind async-kind?(a low-fun) to-js-ctx
@@ -939,18 +907,18 @@ do
 		gen-continue source 'to
 	as match-scalar-low-expr
 		translate-match-integral source, type, a
-	as match-string-like-low-expr
-		assert is-string-or-symbol a.matched.type
-		with matched in temp-local "matched", a.matched
-			res mut = to-block-statement a.else_
-			equals-async = is-async a.equals
-			equals = to-ref source, a.equals, equals-async
-			for case_ in reverse a.cases
-				value = translate-constant source, a.matched.type, case_.value
-				cond = gen-call source, equals-async, equals, (matched, value)
-				then_ = to-block-statement case_.then_
-				res := gen-if source, cond, then_, (source, res) 'to
-			res
+	as match-symbol-low-expr
+		matched = to-js-expr a.matched
+		cases js-switch-case[] = for case_ in a.cases
+			values:
+				match case_.value-or-values
+				as constant-array
+					for value in program.all-constants[case_.value-or-values]
+						translate-constant source, symbol, value
+				as constant-symbol
+					- translate-constant source, symbol, case_.value-or-values
+			then_: maybe-break-switch-case source, type, to-block-statement case_.then_
+		to gen-switch source, matched, cases, to-block-statement a.else_
 	as match-union-low-expr
 		translate-match-union source, type, a
 	as new-interface-low-expr
@@ -1156,21 +1124,16 @@ do to-expr
 		to-expr-or-block-statement e
 	else
 		unreachable source
-	#values js-expr[] = for value in a.case-values -------------------------------------------------------------------------------------------------------
-	#	constant-integral source, a.matched-integral-type, value
 	with matched in temp-local "matched", a.matched
-		asdf = a.switch.input-values-for-each-case # -------------------------------------------------------------------------
 		match x = to-exprs-or-block-statements (case-exprs ~ else_), type
 		as array
-			res mut = x[end - 1]
-			for i nat32 in reverse asdf.size # TODO: use 'zip' .......................................................................
-				res := gen-ternary source, (gen-equals-any source, matched, a.matched-integral-type, asdf[i]), x[i], res
-			res
+			fold::js-expr x[end - 1], (reverse zip a.switch.inputs-per-case, x[0 .. end - 1]), of cur, (values, expr)
+				gen-ternary source, (gen-equals-any source, matched, a.matched-integral-type, values), expr, cur
 		as block-statements
-			cases js-switch-case[] = for i in asdf.size # TODO: use 'zip' .......................................................................
-				values: for value in asdf[i]
+			cases js-switch-case[] = for values, block in zip a.switch.inputs-per-case, x.blocks[0 .. end - 1]
+				values: for value in values
 					constant-integral source, a.matched-integral-type, (value,)
-				then_: maybe-break-switch-case source, type, x.blocks[i]
+				then_: maybe-break-switch-case source, type, block
 			gen-switch source, matched, cases, x.blocks[end - 1] 'to
 -translate-match-union js-expr-or-block-statement(source source, type low-type, x match-union-low-expr) to-expr
 	else_ = if e = x.else_
@@ -1211,7 +1174,7 @@ do to-expr
 	js-cases js-expr-or-block-statement[] = for case_ in cases
 		to-expr-or-block-statement case_.expr
 	get-cond = of i nat32
-		gen-or source, for input in switch.input-values-for-each-case[i]
+		gen-or source, for input in switch.inputs-per-case[i]
 			gen-union-is-case source, matched, union_, repr, input.to
 	matched-value = match repr
 	as direct
@@ -1250,7 +1213,7 @@ do to-expr
 do to-expr
 	match repr
 	as direct
-		gen-is-type! source, union-value, union_.members[case-index]
+		gen-is-type source, union-value, union_.members[case-index]
 	as switch
 		index = gen-property-access source, union-value, "index"
 		gen-eq-eq-eq source, index, gen-number64 source, case-index.to
@@ -1286,7 +1249,7 @@ do to-expr
 		to-block-statement e.expr
 	else
 		gen-throw source, get-error 'to
-	asdf = simple-switch-indices a.exception-member-indices.values.bits # TODO: try-low-expr should support 'or' too! 'catch as foo or bar' ..............
+	asdf = simple-switch-indices a.exception-member-indices.values.bits
 	catch_ = match-union source, type, get-error, else-block, exception, asdf, a.catch-cases
 	# catch_ will always be a block statement since the else-block is
 	gen-try-catch source, tried, error, catch_.js-block-statement! 'to
@@ -1328,7 +1291,7 @@ do to-expr
 			- gen-assign source, ok, (gen-bool source, true)
 	error = local-or-temp a.catch_.local, "error"
 	get-error = gen-identifier source, error
-	instanceof-caught-type = gen-is-type! source, get-error, caught-type a, exception
+	instanceof-caught-type = gen-is-type source, get-error, caught-type a, exception
 	catch_ = to-block-statement a.catch_.expr
 	if_ = gen-if source, instanceof-caught-type, catch_, gen-throw source, get-error
 	try_ = gen-try-catch source, tried.to, error, if_.to

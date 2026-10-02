@@ -101,7 +101,7 @@ file-path record(to symbol) -new
 to path(a file-path)
 	a.to,
 base-name string(a file-path)
-	a.to::path.base-name
+	base-name to::path a
 root-file-path file-path(a symbol)
 	a.root-path.to,
 to string(a file-path)
@@ -171,9 +171,9 @@ base-name string(a uri)
 	(a.to,)::path.base-name
 # Return value will start with a "." unless it is the empty string
 get-extension symbol(a path)
-	a.base-name.get-extension
+	get-extension base-name a
 get-extension symbol(a uri)
-	a.base-name.get-extension
+	get-extension base-name a
 test
 	("",)::path.get-extension is ""
 	("a.txt",)::path.get-extension is ".txt"
@@ -192,9 +192,9 @@ without-extension file-path?(a file-path, extension string)
 	else
 		""
 get-extension symbol(a file-path)
-	a.to::path.get-extension
+	get-extension base-name a
 extension symbol(a uri)
-	a.base-name.get-extension
+	get-extension base-name a
 is-extensionless bool(a uri)
 	a.extension == ""
 -alter-extension symbol(a symbol, old-extension string, new-extension string)

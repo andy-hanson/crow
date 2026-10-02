@@ -569,19 +569,16 @@ do tokens-builder
 	add-expr-tokens a.then_
 
 -add-case-tokens void(a case-ast) tokens-builder
-	add-case-member-tokens a.member
+	for member in a.members
+		add-case-member-tokens member
 	add-expr-tokens a.then_
 
 -add-case-member-tokens void(a case-member-ast) tokens-builder
-	match a
-	as as-name-ast
-		emit enumMember, a.name.range
-	as literal-number
-		emit number, a.range
-	as literal-string-ast
-		emit string, a.range
-	as as-bogus-ast
-		()
+	type token-type = match a
+	as name-and-range then enumMember
+	as literal-number then number
+	as literal-string-ast then string
+	emit type, a.range
 
 -add-param-destructure-tokens void(a destructure-ast) tokens-builder
 	add-destructure-tokens-inner a, parameter

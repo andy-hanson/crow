@@ -84,13 +84,13 @@ test global
 	keen-files file-path mut[] = ()
 	kid-files file-path mut[] = ()
 	for file in files
-		match get-extension file
+		match ext = get-extension file
 		as ".keen"
 			keen-files ~= file
 		as ".kid"
 			kid-files ~= file
 		else
-			throw error "Unexpected file {file}"
+			throw error "Unexpected file {file} with extension {ext}"
 	kid-files.size is keen-files.size
 
 	for keen-file in keen-files

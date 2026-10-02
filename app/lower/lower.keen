@@ -28,12 +28,10 @@ lower low-program(target build-target, program program-with-main) show-ctx
 	ctx.late-only-key-and-value-from-json-function := get-non-template-low-fun common-funs.only-key-and-value-from-json
 	ctx.late-to-flags-from-json-function := get-non-template-low-fun common-funs.to-flags-from-json
 	ctx.late-to-symbol-or-empty-from-json-function := get-non-template-low-fun common-funs.to-symbol-or-empty-from-json
-	ctx.late-equal-string-like-functions := make of string-type
-		get-non-template-low-fun common-funs.equal-string-like[string-type]
+	ctx.late-to-symbol-from-string-function := get-non-template-low-fun common-funs.to-symbol-from-string
 	ctx.late-hash-nat-functions := make of nat-type
 		get-non-template-low-fun common-funs.hash-nat[nat-type]
 	show-exception = get-non-template-low-fun common-funs.show-exception
-	to-symbol-from-string = get-non-template-low-fun common-funs.to-symbol-from-string
 	to-string-from-js-any = get-non-template-low-fun common-funs.to-string-from-js-any
 	low-common-funs low-common-funs = match target
 	as js
@@ -41,14 +39,14 @@ lower low-program(target build-target, program program-with-main) show-ctx
 		js-any: get-low-type-for-type-inst js-any, ()
 		main: lower-main-fun program.main-fun
 		show-exception: show-exception
-		to-symbol-from-string: to-symbol-from-string
+		to-symbol-from-string: to-symbol-from-string-function
 		to-string-from-js-any: to-string-from-js-any
 	as java
 		:: low-common-funs-java
 		show-exception: show-exception
 		start-runtime: get-non-template-low-fun common-funs.start-runtime
 		stop-runtime: get-non-template-low-fun common-funs.stop-runtime
-		to-symbol-from-string: to-symbol-from-string
+		to-symbol-from-string: to-symbol-from-string-function
 		main: lower-main-fun program.main-fun
 
 	while

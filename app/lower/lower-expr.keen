@@ -314,8 +314,7 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 	else
 		as-array-or-buffer! input.type
 	out-element-type = if is-void type then type else as-array-or-buffer! type
-	empty-out-array constant-array? = unless is-void type
-		constant-array! get-constant-array all-constants, type, ()
+	empty-out-array constant-array? = unless is-void type then get-constant-array all-constants, type, ()
 	match lambda-arg
 	as lambda-expr
 		forbid lambda-arg.mut-type-for-explicit-shared # This won't happen because 'for-loop' takes a 'mut' lambda
@@ -734,13 +733,10 @@ do lower-and-expr-ctx
 			cases low-expr[] =
 				- else_
 				- let-low-expr then_.expr.range, x, cast-option, then_.expr
-			match-union-low-expr range, get-option-local, indices-0-1, cases, () # TODO: maybe there should be a simpler expr for matching on only 2 cases
+			match-union-low-expr range, get-option-local, switch-indices-0-1, cases, ()
 	else
 		cases low-expr[] = else_, then_.expr
-		match-union-low-expr range, option, indices-0-1, cases, () # TODO: maybe there should be a simpler expr for matching on only 2 cases
-
--indices-0-1 switch-indices()
-	simple-switch-indices (0, 1)
+		match-union-low-expr range, option, switch-indices-0-1, cases, ()
 
 -lower-literal-string-like constant
 	type low-type
@@ -927,8 +923,9 @@ do lower-and-expr-ctx
 			- lower-expr-or-void type, range, expr.after
 
 -lower-match-enum low-expr(type low-type, range uri-and-range, a match-enum-expr) lower-and-expr-ctx
-	match-scalar type, range, a.matched-local, a.matched, a.cases, it.members-values, it.then_, a.else_, of matched, switch, exprs, else_
-		match-scalar-low-expr range, matched, switch, exprs, else_
+	match-scalar type, range, a.matched-local, a.matched, a.cases, it.members-values, it.then_, a.else_,
+		of matched, switch, exprs, else_
+			match-scalar-low-expr range, matched, switch, exprs, else_
 -members-values nat64[](a match-enum-case)
 	for x in a.members then x.value
 
@@ -937,8 +934,9 @@ do lower-and-expr-ctx
 	range uri-and-range
 	a match-scalar-expr
 do lower-and-expr-ctx
-	match-scalar type, range, a.matched-local, a.matched, a.cases, it.values.bits, it.then_, a.else_, of matched, switch, exprs, else_
-		match-scalar-low-expr range, matched, switch, exprs, else_
+	match-scalar type, range, a.matched-local, a.matched, a.cases, it.values.bits, it.then_, a.else_,
+		of matched, switch, exprs, else_
+			match-scalar-low-expr range, matched, switch, exprs, else_
 
 -match-scalar[t] low-expr
 	type low-type
@@ -959,11 +957,10 @@ do lower-and-expr-ctx
 	lower-with-opt-local type, range, matched-local, matched-expr, of matched
 		exprs low-expr[] = for case_ in cases then lower-expr type, get-expr[case_]
 		values nat64[] = sort flat-map cases, get-values
-		# TODO:PERF optimize if already sorted??????????????????????????????????????????????????????????????????????????????
 		value-to-case nat[nat64] = for* case-index, case_ in with-index cases
 			for value in get-values[case_]
 				value, case-index
-		case-indices indices = to for::nat[] value in values # TODO:PERF better way to do this without multiple loops?????????????????????
+		case-indices indices = to for::nat[] value in values
 			value-to-case[value]!
 		# TODO:PERF we could attempt to sort case-indices and values so that it is more likely to be a simple range.
 		# (though the case indices might be `0, 1, 0` so not generally possible to sort them
@@ -974,13 +971,21 @@ do lower-and-expr-ctx
 	range uri-and-range
 	a match-string-like-expr
 do lower-and-expr-ctx
-	lower-with-opt-local type, range, a.matched-local, a.matched, of::match-string-like-low-expr matched
+	lower-with-opt-local type, range, a.matched-local, a.matched, of::match-symbol-low-expr matched
 		range: range
-		matched: matched
-		equals: equal-string-like-function a.string-type
+		matched:
+			match a.string-type
+			as string
+				gen-call range, to-symbol-from-string-function, (matched,)
+			as symbol
+				matched
 		cases: for case_ in a.cases
-			- lower-literal-string-like matched.type, a.string-type.to, case_.values.only! # -----------------------------------------------
-			- lower-expr type, case_.then_
+			value-or-values:
+				if value = only case_.values
+					constant-symbol value
+				else
+					get-constant-array all-constants, symbol-array, map case_.values, it.constant-symbol
+			then_: lower-expr type, case_.then_
 		else_: lower-expr type, a.else_
 
 -lower-match-sum-type low-expr
@@ -988,12 +993,13 @@ do lower-and-expr-ctx
 	range uri-and-range
 	a match-sum-type-expr
 do lower-and-expr-ctx
-	matched-type = get-low-type a.matched.type # TODO: this does duplicate work since we are about to lower 'matched' anyway......
+	matched-type = get-low-type a.matched.type
 	values-for-case = of::nat64[] x match-sum-type-case
 		for case-type in x.case-types
 			member-index-for-match-sum-type-case matched-type, case-type
-	match-scalar type, range, a.matched-local, a.matched, a.cases, values-for-case, it.then_, a.else_, of matched, switch, exprs, else_
-		match-union-low-expr range, matched, switch, exprs, else_
+	match-scalar type, range, a.matched-local, a.matched, a.cases, values-for-case, it.then_, a.else_,
+		of matched, switch, exprs, else_
+			match-union-low-expr range, matched, switch, exprs, else_
 
 -lower-catches (nat32[], low-local-and-expr[], low-local-and-expr?)
 	type low-type

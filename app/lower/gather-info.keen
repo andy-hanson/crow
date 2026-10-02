@@ -279,14 +279,7 @@ do
 
 -all-calls record(expr low-expr)
 -some bool(a all-calls, f bool mut(x call-kind))
-	here = match x = a.expr
-	as call-low-expr
-		f[x]
-	as match-string-like-low-expr
-		f[x]
-	else
-		()
-	here or some a.expr.direct-child-exprs, {some it.all-calls, f}
+	call-low-expr a.expr and f[a.expr] or some a.expr.direct-child-exprs, {some it.all-calls, f}
 
 -caller record
 	caller low-fun
@@ -294,15 +287,12 @@ do
 
 -call-kind union
 	call-low-expr
-	match-string-like-low-expr
 	call-kind-method-impl
 -call-kind-method-impl record(impl low-fun)
 -called low-fun(a call-kind)
 	match a
 	as call-low-expr
 		a.called
-	as match-string-like-low-expr
-		a.equals
 	as call-kind-method-impl
 		a.impl
 
@@ -331,8 +321,6 @@ do
 			res
 		as always-async
 			always-async
-	as match-string-like-low-expr
-		called-kind
 	as call-kind-method-impl
 		called-kind
 

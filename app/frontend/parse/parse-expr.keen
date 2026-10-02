@@ -366,7 +366,7 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	matched = parse-expr-no-block
 	cases case-ast[] = with out in build
 		while as-pos = try-take-newline-then-as
-			out ~= as-pos, parse-case-member, parse-then-or-block
+			out ~= as-pos, parse-case-members, parse-then-or-block
 	match-ast start, local, matched, cases, if pos = try-take-newline-then-else
 		pos, parse-then-or-block
 -parse-name-equals name-and-range?() parser
@@ -381,14 +381,16 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	else
 		parse-indented-statements
 
--parse-case-member case-member-ast() parser
-	if name = try-take-name-and-range
-		as-name-ast name
-	elif number = try-take-literal-number
-		number
-	else
-		parse-string-literal-forbid-interpolated parse-diag-match-case-interpolated else
-			as-bogus-ast next-range
+-parse-case-members case-member-ast[]() parser
+	member = parse-case-member
+	do if member
+	do with out in build 1
+	out ~= member
+	while try-take-token or_ and m = parse-case-member
+		out ~= m
+-parse-case-member case-member-ast?() parser
+	try-take-name-and-range or try-take-literal-number or
+		parse-string-literal-forbid-interpolated parse-diag-match-case-interpolated
 
 -parse-string-literal-forbid-interpolated literal-string-ast?(diag parse-diag) parser
 	if kind = as-quote-no-interpolated peek

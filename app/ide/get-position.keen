@@ -630,37 +630,36 @@ do
 -position-at-match-enum position-kind?(a match-enum-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, it.members[0].position-match-enum-case # ----------------------------------------------------
+	position-at-match-cases a.cases, a.ast, pos, of case_, index
+		position-match-enum-case case_.members[index]
 
 -position-at-match-scalar position-kind?(a match-scalar-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of x
-		position-match-scalar-case a.integral-type, x.values[0] # ----------------------------------------------------------------------------------------
+	position-at-match-cases a.cases, a.ast, pos, of case_, index
+		position-match-scalar-case a.integral-type, case_.values[index]
 
 -position-at-match-string-like position-kind?(a match-string-like-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of x
-		position-match-string-like-case (a.matched-type, container.to), x.values[0] # -----------------------------------------------------
+	position-at-match-cases a.cases, a.ast, pos, of case_, index
+		position-match-string-like-case (a.matched-type, container.to), case_.values[index]
 
--position-at-match-cases[t] position-kind?(cases t[], ast match-ast,pos pos, get-position position-kind data(case_ t))
+-position-at-match-cases[t] position-kind?
+	cases t[]
+	ast match-ast
+	pos pos
+	get-position position-kind data(case_ t, index nat)
+do
 	first (zip-if-size-eq cases, ast.cases), of case_, case-ast
-		if has-pos case-ast.keyword-and-member-name-range, pos
-			get-position[case_]
+		do if index = find-index case-ast.members, {has-pos it.range, pos}
+		get-position[case_, index]
 
 -position-at-match-sum-type position-kind?(a match-sum-type-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-sum-type-cases a.cases, a.ast.cases, pos
-
--position-at-match-sum-type-cases position-kind?
-	cases match-sum-type-case[]
-	case-asts case-ast[]
-	pos pos
-do expr-ctx
-	first (zip-if-size-eq cases, case-asts), of case_, case-ast
-		position-at-match-sum-type-case case_, case-ast, pos
+	position-at-match-cases a.cases, a.ast, pos, of case_, index
+		position-match-sum-type-case container, case_.case-types[index]
 
 -position-at-catches position-kind?
 	catches catch_[]
@@ -669,10 +668,6 @@ do expr-ctx
 do expr-ctx
 	first (zip-if-size-eq catches, catch-asts), of catch_, catch-ast
 		position-at-catch catch_, catch-ast, pos
-
--position-at-match-sum-type-case position-kind?(case_ match-sum-type-case, ast case-ast, pos pos) expr-ctx
-	if has-pos ast.keyword-and-member-name-range, pos
-		position-match-sum-type-case container, case_.case-types[0] # ---------------------------------------------------------------------
 
 -position-at-catch position-kind?(catch_ catch_, ast catch-ast, pos pos) expr-ctx
 	if has-pos ast.keyword-range, pos

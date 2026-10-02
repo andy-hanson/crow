@@ -219,16 +219,16 @@ add-locals-for-destructure void(destructure destructure) check-expr-ctx
 	as js
 		js-spec
 
-maybe-refinement record(refinable refinable?, refined-type type-inst)
+maybe-refinement record(refinable refinable?, refined-type type-inst?)
 with-block[t] t(a maybe-refinement, f t mut()) expr-ctx
-	if x = a.refinable
+	if x = a.refinable and t = a.refined-type
 		match x
 		as local
-			add-type-refinement x, a.refined-type
+			add-type-refinement x, t
 		as local-and-called
-			add-call-refinement (x.local, x.called, a.refined-type)
+			add-call-refinement (x.local, x.called, t)
 	res = f[]
-	if x = a.refinable
+	if x = a.refinable and a.refined-type
 		match x
 		as local
 			_ = pop! refined-locals

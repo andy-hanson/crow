@@ -212,12 +212,11 @@ do lower-ctx, lower-funs
 		else then throw deserialize-error "e", a
 	###
 	get-param = local-get-low-expr range, param
-	:: match-string-like-low-expr
+	:: match-symbol-low-expr
 	range: range
 	matched: call-low-expr range, to-symbol-or-empty-from-json-function, (get-param,)
-	equals: equal-symbol-function
 	cases: for member in body.members
-		value: constant-symbol member.name
+		value-or-values: constant-symbol member.name
 		then_: constant-low-expr enum_, range, member.value.to
 	else_: gen-throw-deserialize-error enum_, range, get-param
 
@@ -280,14 +279,13 @@ do lower-and-expr-ctx, lower-funs
 	local: only-key-and-value
 	value: call-low-expr range, only-key-and-value-from-json-function, (get-param,)
 	then_:
-		:: match-string-like-low-expr
+		:: match-symbol-low-expr
 		range: range
 		matched: record-field-get-low-expr range, get-kv, key-field
-		equals: equal-symbol-function
 		cases: for case-index, from-json in with-index case-from-json
 			case_ = lower-and-call from-json, range,
 				- record-field-get-low-expr range, get-kv, value-field
-			value: constant-symbol case_.type.simple-name
+			value-or-values: case_.type.simple-name.constant-symbol
 			then_: create-union-low-expr union_, range, case-index, case_
 		else_: gen-throw-deserialize-error union_, range, get-param
 
@@ -326,12 +324,11 @@ do low-common-types
 		builtin-unary-low-expr out-type, arg.range, wrap-convert-integral, arg
 
 -lower-symbol-to-opt-enum-or-flags low-expr(range uri-and-range, option-type low-type, param low-local) lower-ctx
-	:: match-string-like-low-expr
+	:: match-symbol-low-expr
 	range: range
 	matched: local-get-low-expr range, param
-	equals: equal-symbol-function
 	cases: for member in must-be-enum-or-flags as-option! option-type
-		value: constant-symbol member.name
+		value-or-values: member.name.constant-symbol
 		then_: gen-constant-some option-type, range, member.value.to
 	else_: gen-empty-option option-type, range
 
@@ -456,7 +453,10 @@ do lower-and-expr-ctx, lower-funs
 			same-case = gen-compare-same-case range, member-compares[member-index], get-member, p1
 			# To keep the number of cases down, use 'default' for the bigger half
 			more-cases-are-greater = member-index < members.size / 2
-			member-indices nat64 range = if more-cases-are-greater then 0 .. member-index + 1 else member-index .. members.size
+			member-indices nat64 range = if more-cases-are-greater
+				0 .. member-index + 1
+			else
+				member-index .. members.size
 			cases low-expr[] = for i in member-indices
 				if i == member-index
 					same-case
@@ -542,8 +542,7 @@ do lower-and-expr-ctx, lower-funs
 	sorted-names, sorted-values = sort-by-first names, values
 	create-union-low-expr json-type, range, (sum-type-case-index json-type, json-object-type),
 		gen-create-record json-object-type, range,
-			- gen-constant-array all-constants, symbol-array-type, range, for name in sorted-names
-				constant-symbol name
+			- gen-constant-array all-constants, symbol-array, range, map sorted-names, it.constant-symbol
 			- gen-create-array json-array-type, range, sorted-values
 
 -gen-constant-array low-expr

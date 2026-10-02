@@ -402,7 +402,7 @@ do
 			out ~~= newline indent + 1
 			out ~~= "case "
 			write-expr out, indent, value
-		out ~= ":"
+			out ~= ":"
 		write-block-statement out, indent + 1, case_.then_
 	out ~~= "{newline indent + 1}default:"
 	write-block-statement out, indent + 1, a.default

@@ -398,8 +398,8 @@ do walk-ctx
 		as match-enum-expr
 			walk-opt-local e.ast, e.matched-local, f
 			for case-ast, case_ in zip-if-size-eq e.ast.cases, e.cases
-				for member in case_.members
-					f[case-ast.member.as-name-ast!.name, explicit-private, member]
+				for member, member-ast in zip-if-size-eq case_.members, case-ast.members
+					f[member-ast.name-and-range!, explicit-private, member]
 		as match-scalar-expr
 			walk-opt-local e.ast, e.matched-local, f
 		as match-string-like-expr
@@ -469,7 +469,7 @@ do walk-ctx
 
 -handle-match-sum-type-cases void(case-asts case-ast[], cases match-sum-type-case[], f cb-thing)
 	for case-ast, case_ in zip-if-size-eq case-asts, cases
-		handle-match-sum-type-case case-ast.member, case_, f
--handle-match-sum-type-case void(ast case-member-ast, case_ match-sum-type-case, f cb-thing)
-	for case-type in case_.case-types
-		f[ast.as-name-ast!.name, explicit-private, case-type.decl]
+		handle-match-sum-type-case case-ast.members, case_, f
+-handle-match-sum-type-case void(asts case-member-ast[], case_ match-sum-type-case, f cb-thing)
+	for member-ast, case-type in zip-if-size-eq asts, case_.case-types
+		f[member-ast.name-and-range!, explicit-private, case-type.decl]

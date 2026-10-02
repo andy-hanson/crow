@@ -54,7 +54,7 @@ do
 		- 0::nat.to
 		- elements.size.to
 
-get-constant-array constant(all-constants all-constants-builder, array-type low-type, elements constant[])
+get-constant-array constant-array(all-constants all-constants-builder, array-type low-type, elements constant[])
 	assert as-array-or-buffer array-type
 	res = ensure all-constants.arrs, array-type, of
 		array-type, all-constants.arrs.size, ()
@@ -67,7 +67,7 @@ get-constant-string constant(a all-constants-builder, type low-type, value strin
 		# TODO:PERF this probably costs a lot. Support having a constant array that is represented as a char8[].
 		- get-constant-array a, char8-array, map value.to::char8[], it.to
 
-get-constant-symbol constant(a all-constants-builder, value symbol)
+get-constant-symbol constant-symbol(a all-constants-builder, value symbol)
 	ensure a.symbols, value, {a.symbols.size,}
 
 get-constant-record constant(a all-constants-builder, type low-type, args constant[])

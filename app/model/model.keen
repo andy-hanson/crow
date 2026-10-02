@@ -3615,8 +3615,6 @@ any bool(a indices)
 	any a.values
 size nat32(a indices)
 	a.values.size
-some bool(a indices, f bool mut(x nat32))
-	some a.values, f[it.to]
 subscript nat32(a indices, index nat32)
 	a.values[index].to
 to-array nat32[](a indices)
@@ -3830,7 +3828,6 @@ to nat64(a scalar-value) = a.bits
 to scalar-value(a float64) = a.bits-of,
 to float64(a scalar-value) = from-bits a.bits
 
-# TODO: Huh, didn't this used to be memoized?????????????????????????????????????????????????????????????????????????????????
 scalar-values record
 	bits nat64[]
 subscript scalar-value(a scalar-values, index nat32)
@@ -3847,10 +3844,7 @@ to scalar-values(values nat64[])
 	bits: values
 to scalar-values(values scalar-value[])
 	bits: map values, it.to
-scalar-values-range scalar-values(max nat)
-	# TODO:PERF ------------------------------------------------------------------------------------------------------------------------------------
-	to::scalar-values for::nat64[] i in max then i
-is-range bool(a scalar-values) # TODO: find a way to make this fast????????????????????????????????????????????????????????????????????
+is-range bool(a scalar-values)
 	every a.with-index, of i, x
 		x == (i,)
 
@@ -3871,10 +3865,6 @@ type type-inst(a literal-string-like-expr) common-types
 
 string-like-type enum(char8-array, char32-array, java-String, js-any, string, symbol)
 matchable-string-like-type enum(string, symbol)
-to string-like-type(a matchable-string-like-type)
-	match a
-	as string then string
-	as symbol then symbol
 
 local-get-expr record
 	ast local-get-source
@@ -3953,12 +3943,6 @@ match-enum-expr record
 	cases match-enum-case[]
 	else_ expr?
 	type type
-do
-	# TODO: this check is expensive ...............................................................................................
-	seen nat64 mut-set = ()
-	for x in cases
-		for value in x.members
-			assert try-add seen, value.value
 to json(a match-enum-expr)
 	matched: a.matched.to
 	cases: a.cases.to
@@ -3979,12 +3963,6 @@ match-scalar-expr record
 	cases match-scalar-case[]
 	else_ expr
 	type type
-do
-	# TODO: this check is expensive ...............................................................................................
-	seen nat64 mut-set = ()
-	for x in cases
-		for value in x.values
-			assert try-add seen, value.bits
 to json(a match-scalar-expr)
 	integral-type: a.integral-type.to
 	matched: a.matched.to
@@ -4003,17 +3981,11 @@ match-string-like-expr record
 	cases match-string-like-case[]
 	else_ expr
 	type type
-do
-	# TODO: this check is expensive ...............................................................................................
-	seen string mut-set = ()
-	for x in cases
-		for value in x.values
-			assert try-add seen, value
 to json(a match-string-like-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-string-like-case record(values string[], then_ expr)
+match-string-like-case record(values symbol[], then_ expr)
 range source-range(a match-string-like-expr) = a.ast.range
 matched-type type-inst(a match-string-like-expr) common-types
 	type-inst! type a.matched
@@ -4025,12 +3997,6 @@ match-sum-type-expr record
 	cases match-sum-type-case[]
 	else_ expr?
 	type type
-do
-	# TODO: this check is expensive ...............................................................................................
-	seen type-inst mut-set = ()
-	for x in cases
-		for value in x.case-types
-			assert try-add seen, value
 to json(a match-sum-type-expr)
 	matched: a.matched.to
 	cases: a.cases.to

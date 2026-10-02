@@ -458,8 +458,9 @@ do java-expr-ctx
 	type low-type
 	builtin_ builtin-type
 do java-expr-ctx
-	array = of
-		if is-empty-type type.as-array-or-buffer!
+	match builtin_
+	as array or buffer
+		if is-empty-type as-array-or-buffer! type
 			push-constant-nat out, nat32, match constant
 			as constant-array
 				program.all-constants[constant].size.to
@@ -475,13 +476,8 @@ do java-expr-ctx
 				aconst_null out
 			else
 				throw unreachable
-	match builtin_
-	as array
-		array[]
 	as bool
 		push-constant-nat out, nat8, constant
-	as buffer
-		array[] # TODO: I think this is only for constant-gc-safe-value, so I should just handle that?
 	as char8
 		push-constant-nat out, nat8, constant
 	as char16
@@ -1329,7 +1325,7 @@ do java-refs
 		go-back-to out, the::expr-ctx.loop-pos!
 		pushed type # Treat the stack effect as if the loop completed
 	as match-scalar-low-expr
-		# TODO:PERF If <= 3 cases, it's probably better to just use ifeq instructions --------------------------------------------------------------------
+		# TODO:PERF If <= 3 cases, it's probably better to just use ifeq instructions
 		emit-and-continue out, a.matched
 		with inner-pos in inner-pos out, pos
 			matched-type = a.matched-integral-type
@@ -1359,10 +1355,10 @@ do java-refs
 				()
 			switch = prepare-switch out, a.switch, a.case-exprs.size
 			must-pop a.matched.type
-			for expr-index, expr in with-index a.case-exprs
-				for jump in switch.expr-to-jumps[expr-index]
+			for expr, jumps in zip a.case-exprs, switch.expr-to-jumps
+				for jump in jumps
 					jumps-to-here jump, out, cur-stack-frame
-				emit-expr out, inner-pos, a.case-exprs[expr-index]
+				emit-expr out, inner-pos, expr
 				must-pop type
 			if jump-to-pop-then-default
 				# In this case it will still have the long value on the stack
@@ -1376,7 +1372,7 @@ do java-refs
 			else
 				emit-unreachable out
 				pushed type
-	as match-string-like-low-expr
+	as match-symbol-low-expr
 		emit-and-continue out, a.matched
 		matched-type = a.matched.type
 		with inner-pos in inner-pos out, pos
@@ -1388,9 +1384,10 @@ do java-refs
 				unless is-last-case
 					dup32 out
 					pushed matched-type
-				push-constant out, case_.value, matched-type
-				call-low-fun out, a.equals
-				must-pop matched-type
+				case-values-type low-type = if value-is-array case_ then symbol-array else a.matched.type
+				push-constant out, case_.value-or-values.to, case-values-type
+				invokestatic out, if value-is-array case_ then keen-is-any-object else keen-reference-equal
+				must-pop case-values-type
 				must-pop matched-type
 				# Jump to next if the equality test returned 0 (false)
 				jump := ifeq out
@@ -1785,7 +1782,6 @@ do java-refs
 		with inner-pos in inner-pos out, pos
 			assert is-range a.switch.case-indices
 			null-case low-expr, non-null-case low-expr = if e = a.else_
-				# TODO:PERF maybe there should be a match-union-low-expr specialized on matches with only 2 cases.........................
 				if a.switch.input-values.only! == 0 then a.cases.only!, e else e, a.cases.only!
 			else
 				only2! map::low-expr[] a.switch.input-values, a.cases[it.to]
@@ -1808,17 +1804,15 @@ do java-expr-ctx
 	matched-type = x.matched.type
 	do with inner-pos in inner-pos out, pos
 	checked-case-type-indices nat64[] array-view, checked-cases low-expr array-view, final-case low-expr = if x.else_
-		x.switch.input-values-for-each-case, x.cases, x.else_
+		x.switch.inputs-per-case, x.cases, x.else_
 	else
 		# We don't need to check the type for the final value
-		x.switch.input-values-for-each-case[0 .. end - 1], x.cases[0 .. end - 1], x.cases[end - 1]
+		x.switch.inputs-per-case[0 .. end - 1], x.cases[0 .. end - 1], x.cases[end - 1]
 	for is-last-checked-case, (case-type-indices, expr) in with-is-last zip checked-case-type-indices, checked-cases
-		case-type-index = only! case-type-indices # TODO -----------------------------------------------------------------------------------
-		case-type = x.union_.members[case-type-index.to]
 		# The final checked case can consume the value (since we won't check it again)
 		unless is-last-checked-case
 			dup32 out
-		instanceof out, class_ case-type
+		emit-instanceof-any out, for i in case-type-indices then x.union_.members[i.to]
 		jump = ifeq out
 		unless is-last-checked-case
 			pop out, as-runtime-type matched-type
@@ -1833,6 +1827,29 @@ do java-expr-ctx
 		pop out, as-runtime-type matched-type
 		must-pop matched-type
 	emit-expr out, inner-pos, final-case
+
+| Consumes an object on top of the stack and leaves a boolean
+-emit-instanceof-any void(out code-builder, types low-type[]) java-expr-ctx
+	for is-first, (is-last, type) in with-is-first with-is-last types
+		class_ = class_ type
+		if is-first
+			if is-last
+				instanceof out, class_
+			else
+				# Stack in: object
+				dup32 out # object, object
+				instanceof out, class_ # object, bool
+				swap out # bool, object
+		elif is-last
+			# Stack in: bool, object
+			instanceof out, class_ # bool, bool
+			ior out # bool
+		else
+			# Stack in: bool, object
+			dup_x1 out # object, bool, object
+			instanceof out, class_ # object, bool, bool
+			ior out # object, bool
+			swap out # bool, object
 
 -emit-match-union-using-switch void
 	out code-builder
@@ -1867,22 +1884,16 @@ do java-expr-ctx
 	expr-to-jumps deferred-jump32[][]
 	else_ deferred-jump32
 -prepare-switch prepared-switch(out code-builder, indices switch-indices, n-exprs nat)
-	assert every indices.case-indices, it < n-exprs # Probably slow ...............................................................
 	if input-values-is-range indices
 		case-jumps, else_ = tableswitch out, 0 .. indices.size
-		expr-to-jumps:
-			# TODO: could this use indices.input-values-for-each-case???????????????????????????????????????????????????????????????????????//
-			res deferred-jump32 mut[] buffer = for _ in n-exprs then ()
-			for value-index, x in with-index indices.case-indices
-				res[x] ~= case-jumps[value-index]
-			map res, it.move-to
+		expr-to-jumps: for input-values in indices.inputs-per-case
+			for i in input-values then case-jumps[i.to]
 		else_: else_
 	else
 		ints int32[] = map indices.input-values, it.wrap-to::int64.to
 		sorted-ints, sorted-cases = sort-by-first ints, for::nat[] x in indices.case-indices.values.bits then x.to
 		case-jumps, else_ = lookupswitch out, sorted-ints
 		expr-to-jumps:
-			# DUP CODE (see above) ...........................................................................................................
 			res deferred-jump32 mut[] buffer = for _ in n-exprs then ()
 			for value-index, x in with-index sorted-cases
 				res[x] ~= case-jumps[value-index]
