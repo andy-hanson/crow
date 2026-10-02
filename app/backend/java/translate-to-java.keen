@@ -1329,18 +1329,18 @@ do java-refs
 		go-back-to out, the::expr-ctx.loop-pos!
 		pushed type # Treat the stack effect as if the loop completed
 	as match-scalar-low-expr
-		# TODO:PERF If <= 3 cases, it's probably better to just use ifeq instructions
+		# TODO:PERF If <= 3 cases, it's probably better to just use ifeq instructions --------------------------------------------------------------------
 		emit-and-continue out, a.matched
 		with inner-pos in inner-pos out, pos
 			matched-type = a.matched-integral-type
 			is-signed = is-signed matched-type
-			ok = every a.case-values, of value
+			ok = every a.switch.input-values, of value
 				if is-signed
-					fits-in-int32 value.to::int64
+					fits-in-int32 wrap-to::int64 value
 				else
-					fits-in-nat32 value.to::nat64
-			assert ok else todo # If some values don't fit in 32 bits, we can't use a switch. Just use jumps instead.
-			# IF it's a 64-bit type: First check that it's in the range. If not, jump to default.
+					fits-in-nat32 value
+			assert ok else todo # If some values don't fit in 32 bits, we can't use a switch. Just use ifeq instead.
+			# If it's a 64-bit type: First check that it's in the range. If not, jump to default.
 			jump-to-pop-then-default deferred-jump? = match integral-type matched-type else nat8
 			as nat64
 				dup64 out
@@ -1357,11 +1357,12 @@ do java-refs
 				res
 			else
 				()
-			jump-to-case, jump-to-default, sorted-cases = prepare-switch out, a.case-values, a.case-exprs
+			switch = prepare-switch out, a.switch, a.case-exprs.size
 			must-pop a.matched.type
-			for target, expr in zip jump-to-case, sorted-cases
-				jumps-to-here target, out, cur-stack-frame
-				emit-expr out, inner-pos, expr
+			for expr-index, expr in with-index a.case-exprs
+				for jump in switch.expr-to-jumps[expr-index]
+					jumps-to-here jump, out, cur-stack-frame
+				emit-expr out, inner-pos, a.case-exprs[expr-index]
 				must-pop type
 			if jump-to-pop-then-default
 				# In this case it will still have the long value on the stack
@@ -1369,7 +1370,7 @@ do java-refs
 				jumps-to-here jump-to-pop-then-default, out, cur-stack-frame
 				pop out, T_LONG
 				must-pop a.matched.type
-			jumps-to-here jump-to-default, out, cur-stack-frame
+			jumps-to-here switch.else_, out, cur-stack-frame
 			if e = a.else_
 				emit-expr out, inner-pos, e
 			else
@@ -1782,10 +1783,12 @@ do java-refs
 		emit-match-union-using-switch out, pos, type, a
 	as nullable
 		with inner-pos in inner-pos out, pos
+			assert is-range a.switch.case-indices
 			null-case low-expr, non-null-case low-expr = if e = a.else_
-				if a.case-indices.only! == 0 then a.cases.only!, e else e, a.cases.only!
+				# TODO:PERF maybe there should be a match-union-low-expr specialized on matches with only 2 cases.........................
+				if a.switch.input-values.only! == 0 then a.cases.only!, e else e, a.cases.only!
 			else
-				only2! map::low-expr[] a.case-indices, a.cases[it]
+				only2! map::low-expr[] a.switch.input-values, a.cases[it.to]
 
 			jump = ifnonnull out
 			must-pop matched-type
@@ -1804,32 +1807,32 @@ do java-refs
 do java-expr-ctx
 	matched-type = x.matched.type
 	do with inner-pos in inner-pos out, pos
-	# Don't bother checking the type of the last branch in a match with no 'else'.
-	checked-case-indices nat32 array-view, checked-cases low-expr array-view, final-branch low-expr =
-		if else_ = x.else_
-			x.case-indices.to-array, x.cases, else_
-		else
-			x.case-indices.to-array[0 .. end - 1], x.cases[0 .. end - 1], x.cases[end - 1]
-	for case-index, case_ in zip checked-case-indices, checked-cases
-		is-last-case = case-index == checked-case-indices[end - 1]
-		case-type = x.union_.members[case-index]
-		unless is-last-case
+	checked-case-type-indices nat64[] array-view, checked-cases low-expr array-view, final-case low-expr = if x.else_
+		x.switch.input-values-for-each-case, x.cases, x.else_
+	else
+		# We don't need to check the type for the final value
+		x.switch.input-values-for-each-case[0 .. end - 1], x.cases[0 .. end - 1], x.cases[end - 1]
+	for is-last-checked-case, (case-type-indices, expr) in with-is-last zip checked-case-type-indices, checked-cases
+		case-type-index = only! case-type-indices # TODO -----------------------------------------------------------------------------------
+		case-type = x.union_.members[case-type-index.to]
+		# The final checked case can consume the value (since we won't check it again)
+		unless is-last-checked-case
 			dup32 out
 		instanceof out, class_ case-type
 		jump = ifeq out
-		unless is-last-case
+		unless is-last-checked-case
 			pop out, as-runtime-type matched-type
 		must-pop matched-type
-		emit-expr out, inner-pos, case_
+		emit-expr out, inner-pos, expr
 		# Change the stack to have the state from before 'jump'
 		must-pop type
-		unless is-last-case
+		unless is-last-checked-case
 			pushed matched-type
 		jumps-to-here jump, out, cur-stack-frame
 	unless any checked-cases
 		pop out, as-runtime-type matched-type
 		must-pop matched-type
-	emit-expr out, inner-pos, final-branch
+	emit-expr out, inner-pos, final-case
 
 -emit-match-union-using-switch void
 	out code-builder
@@ -1843,14 +1846,14 @@ do java-expr-ctx
 	with inner-pos in inner-pos out, pos
 		# This consumes 'kind'
 		must-pop nat32
-		jump-to-case, jump-to-default, sorted-cases = prepare-switch out, a.case-indices.values, a.cases
-		for target, case_ in zip jump-to-case, sorted-cases
-			jumps-to-here target, out, cur-stack-frame
-			emit-expr out, inner-pos, case_
+		switch = prepare-switch out, a.switch, a.cases.size
+		for expr-index, expr in with-index a.cases
+			for jump in switch.expr-to-jumps[expr-index]
+				jumps-to-here jump, out, cur-stack-frame
+			emit-expr out, inner-pos, expr
 			# Change the stack to have the state from before 'jump'
 			must-pop type
-		# default case
-		jumps-to-here jump-to-default, out, cur-stack-frame
+		jumps-to-here switch.else_, out, cur-stack-frame
 		if e = a.else_
 			emit-expr out, pos, e
 			must-peek type
@@ -1859,15 +1862,32 @@ do java-expr-ctx
 			pushed type
 
 | Returns jumps for each case, jump to 'else', and permuted cases.
--prepare-switch[t] (deferred-jump32[], deferred-jump32, t[])(out code-builder, values scalar-values, cases t[])
-	if is-range values
-		case-jumps, else_ = tableswitch out, 0 .. values.size
-		case-jumps, else_, cases
+-prepared-switch record mut
+	| For each case expression, this has all the jumps for that expression.
+	expr-to-jumps deferred-jump32[][]
+	else_ deferred-jump32
+-prepare-switch prepared-switch(out code-builder, indices switch-indices, n-exprs nat)
+	assert every indices.case-indices, it < n-exprs # Probably slow ...............................................................
+	if input-values-is-range indices
+		case-jumps, else_ = tableswitch out, 0 .. indices.size
+		expr-to-jumps:
+			# TODO: could this use indices.input-values-for-each-case???????????????????????????????????????????????????????????????????????//
+			res deferred-jump32 mut[] buffer = for _ in n-exprs then ()
+			for value-index, x in with-index indices.case-indices
+				res[x] ~= case-jumps[value-index]
+			map res, it.move-to
+		else_: else_
 	else
-		ints int32[] = map values, it.to::int64.to
-		sorted-ints, sorted-cases = sort-by-first ints, cases
+		ints int32[] = map indices.input-values, it.wrap-to::int64.to
+		sorted-ints, sorted-cases = sort-by-first ints, for::nat[] x in indices.case-indices.values.bits then x.to
 		case-jumps, else_ = lookupswitch out, sorted-ints
-		case-jumps, else_, sorted-cases
+		expr-to-jumps:
+			# DUP CODE (see above) ...........................................................................................................
+			res deferred-jump32 mut[] buffer = for _ in n-exprs then ()
+			for value-index, x in with-index sorted-cases
+				res[x] ~= case-jumps[value-index]
+			map res, it.move-to
+		else_: else_
 
 -xsub void(out code-builder, type java-runtime-type)
 	if integral-is-64-bit type

@@ -94,9 +94,7 @@ check-low-program void(a low-program) low-common-types
 	as loop-continue-low-expr
 		()
 	as match-scalar-low-expr
-		assert is-sorted a.case-values
 		_ = matched-integral-type a
-		a.case-values.size is a.case-exprs.size
 		check-expr-any-type a.matched
 		for case_ in a.case-exprs
 			check-expr type, case_
@@ -111,12 +109,11 @@ check-low-program void(a low-program) low-common-types
 			check-expr type, case_.then_
 		check-expr type, a.else_
 	as match-union-low-expr
-		assert is-sorted a.case-indices
 		assert any a.cases
 		check-expr-any-type a.matched
 		case-types = a.union_.members
-		assert a.case-indices.size <= case-types.size
-		a.cases.size is a.case-indices.size
+		for input in a.switch.input-values
+			assert input < case-types.size
 		for case_ in a.cases
 			check-expr type, case_
 		if e = a.else_

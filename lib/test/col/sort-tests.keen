@@ -33,3 +33,13 @@ test global
 
 test
 	median-by (31, 57, 28)::nat32[], it % 10 is 57
+
+test
+	invert-permutation (0, 1, 2) is 0, 1, 2
+	p nat[] = 2, 0, 1
+	p-inverted = invert-permutation p
+	p-inverted is 1, 2, 0
+	xs string[] = "a", "b", "c"
+	applied = apply-permutation xs, p
+	applied is "c", "a", "b"
+	apply-permutation applied, p-inverted is xs

@@ -398,9 +398,10 @@ do
 	write-expr out, indent + 2, a.arg
 	out ~~= ") \{"
 	for case_ in a.cases
-		out ~~= newline indent + 1
-		out ~~= "case "
-		write-expr out, indent, case_.value
+		for value in case_.values
+			out ~~= newline indent + 1
+			out ~~= "case "
+			write-expr out, indent, value
 		out ~= ":"
 		write-block-statement out, indent + 1, case_.then_
 	out ~~= "{newline indent + 1}default:"

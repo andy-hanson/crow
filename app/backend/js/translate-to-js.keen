@@ -1,4 +1,5 @@
 import
+	keen/bits
 	keen/format/base64
 	keen/unsafe
 	../../frontend/show-model
@@ -1155,19 +1156,21 @@ do to-expr
 		to-expr-or-block-statement e
 	else
 		unreachable source
-	values js-expr[] = for value in a.case-values
-		constant-integral source, a.matched-integral-type, value
+	#values js-expr[] = for value in a.case-values -------------------------------------------------------------------------------------------------------
+	#	constant-integral source, a.matched-integral-type, value
 	with matched in temp-local "matched", a.matched
+		asdf = a.switch.input-values-for-each-case # -------------------------------------------------------------------------
 		match x = to-exprs-or-block-statements (case-exprs ~ else_), type
 		as array
 			res mut = x[end - 1]
-			for i nat32 in reverse 0 .. a.case-values.size
-				res := gen-ternary source, (gen-eq-eq-eq source, matched, values[i]), x[i], res
+			for i nat32 in reverse asdf.size # TODO: use 'zip' .......................................................................
+				res := gen-ternary source, (gen-equals-any source, matched, a.matched-integral-type, asdf[i]), x[i], res
 			res
 		as block-statements
-			cases js-switch-case[] = for i in a.case-values.size
-				- values[i]
-				- maybe-break-switch-case source, type, x.blocks[i]
+			cases js-switch-case[] = for i in asdf.size # TODO: use 'zip' .......................................................................
+				values: for value in asdf[i]
+					constant-integral source, a.matched-integral-type, (value,)
+				then_: maybe-break-switch-case source, type, x.blocks[i]
 			gen-switch source, matched, cases, x.blocks[end - 1] 'to
 -translate-match-union js-expr-or-block-statement(source source, type low-type, x match-union-low-expr) to-expr
 	else_ = if e = x.else_
@@ -1176,7 +1179,11 @@ do to-expr
 		unreachable source
 	with matched in temp-local "matched", x.matched
 		cases low-local-and-expr[] = map x.cases, {(), it}
-		match-union source, type, matched, else_, x.union-type, x.case-indices, cases
+		match-union source, type, matched, else_, x.union-type, x.switch, cases
+
+-gen-equals-any js-expr(source source, matched js-expr, matched-integral-type char-or-integral-type, values nat64[])
+	gen-or source, for value in values
+		gen-eq-eq-eq source, matched, constant-integral source, matched-integral-type, (value,)
 
 -match-union js-expr-or-block-statement
 	source source
@@ -1184,7 +1191,7 @@ do to-expr
 	matched js-expr
 	else_ js-expr-or-block-statement
 	union-type low-type
-	case-indices indices
+	switch switch-indices
 	cases low-local-and-expr[]
 do to-expr
 	union_ = low-union! union-type.body
@@ -1204,7 +1211,8 @@ do to-expr
 	js-cases js-expr-or-block-statement[] = for case_ in cases
 		to-expr-or-block-statement case_.expr
 	get-cond = of i nat32
-		gen-union-is-case source, matched, union_, repr, case-indices[i]
+		gen-or source, for input in switch.input-values-for-each-case[i]
+			gen-union-is-case source, matched, union_, repr, input.to
 	matched-value = match repr
 	as direct
 		matched
@@ -1214,7 +1222,7 @@ do to-expr
 	as array
 		x.size is cases.size + 1
 		res mut = x[cases.size]
-		for i nat32 in reverse 0 .. cases.size
+		for i nat32 in reverse cases.size
 			expr = if l = cases[i].local
 				add-local-and-assign (l.local-name, source, matched-value), x[i]
 			else
@@ -1224,7 +1232,7 @@ do to-expr
 	as block-statements
 		x.blocks.size is cases.size + 1
 		res mut = x.blocks[cases.size]
-		for i nat32 in reverse 0 .. cases.size
+		for i nat32 in reverse cases.size
 			block = x.blocks[i]
 			full-block = if l = cases[i].local
 				(gen-const source, l.local-name, matched-value) ~ block
@@ -1278,7 +1286,8 @@ do to-expr
 		to-block-statement e.expr
 	else
 		gen-throw source, get-error 'to
-	catch_ = match-union source, type, get-error, else-block, exception, a.exception-member-indices, a.catch-cases
+	asdf = simple-switch-indices a.exception-member-indices.values.bits # TODO: try-low-expr should support 'or' too! 'catch as foo or bar' ..............
+	catch_ = match-union source, type, get-error, else-block, exception, asdf, a.catch-cases
 	# catch_ will always be a block statement since the else-block is
 	gen-try-catch source, tried, error, catch_.js-block-statement! 'to
 

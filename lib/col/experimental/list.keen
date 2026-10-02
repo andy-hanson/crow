@@ -944,7 +944,7 @@ region test
 -verify-iter-backwards[t] void(a t list) t equal, t to-json
 	a-array t[] = a.to
 	iter = a.end
-	for index nat32 in reverse 0 .. a.size
+	for index in reverse a.size
 		iter.take-prev is a[index]
 		iter.index is index
 		a.begin 'slice iter is a-array[0 .. iter.index].to.to

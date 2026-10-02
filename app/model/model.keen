@@ -3607,10 +3607,12 @@ to json(a indices)
 	a.values.to
 to indices(a nat32)
 	values: (a.to::scalar-value,).to::scalar-values
-to indices(a nat32 range)
-	a.to::nat32[].to
+indices-range indices(a nat)
+	(0 .. a).to::nat[].to
 to indices(a nat32[])
 	values: to::scalar-values for::nat64[] x in a then x
+any bool(a indices)
+	any a.values
 size nat32(a indices)
 	a.values.size
 some bool(a indices, f bool mut(x nat32))
@@ -3828,12 +3830,15 @@ to nat64(a scalar-value) = a.bits
 to scalar-value(a float64) = a.bits-of,
 to float64(a scalar-value) = from-bits a.bits
 
+# TODO: Huh, didn't this used to be memoized?????????????????????????????????????????????????????????????????????????????????
 scalar-values record
 	bits nat64[]
 subscript scalar-value(a scalar-values, index nat32)
 	a.bits[index].to
 to json(a scalar-values)
 	a.bits.to
+any bool(a scalar-values)
+	any a.bits
 size nat32(a scalar-values)
 	a.bits.size
 some bool(a scalar-values, f bool mut(x scalar-value))
@@ -3842,7 +3847,10 @@ to scalar-values(values nat64[])
 	bits: values
 to scalar-values(values scalar-value[])
 	bits: map values, it.to
-is-range bool(a scalar-values)
+scalar-values-range scalar-values(max nat)
+	# TODO:PERF ------------------------------------------------------------------------------------------------------------------------------------
+	to::scalar-values for::nat64[] i in max then i
+is-range bool(a scalar-values) # TODO: find a way to make this fast????????????????????????????????????????????????????????????????????
 	every a.with-index, of i, x
 		x == (i,)
 
@@ -3945,13 +3953,19 @@ match-enum-expr record
 	cases match-enum-case[]
 	else_ expr?
 	type type
+do
+	# TODO: this check is expensive ...............................................................................................
+	seen nat64 mut-set = ()
+	for x in cases
+		for value in x.members
+			assert try-add seen, value.value
 to json(a match-enum-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-enum-case record(member enum-or-flags-member, then_ expr)
+match-enum-case record(members enum-or-flags-member[], then_ expr)
 to json(a match-enum-case)
-	member: a.member.name.to
+	members: map::json[] a.members, it.name.to
 	then: a.then_.to
 range source-range(a match-enum-expr) = a.ast.range
 enum-type type-inst(a match-enum-expr) common-types
@@ -3965,12 +3979,18 @@ match-scalar-expr record
 	cases match-scalar-case[]
 	else_ expr
 	type type
+do
+	# TODO: this check is expensive ...............................................................................................
+	seen nat64 mut-set = ()
+	for x in cases
+		for value in x.values
+			assert try-add seen, value.bits
 to json(a match-scalar-expr)
 	integral-type: a.integral-type.to
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-scalar-case record(value scalar-value, then_ expr)
+match-scalar-case record(values scalar-values, then_ expr)
 range source-range(a match-scalar-expr) = a.ast.range
 matched-type type-inst(a match-scalar-expr) common-types
 	type-inst! type a.matched
@@ -3983,11 +4003,17 @@ match-string-like-expr record
 	cases match-string-like-case[]
 	else_ expr
 	type type
+do
+	# TODO: this check is expensive ...............................................................................................
+	seen string mut-set = ()
+	for x in cases
+		for value in x.values
+			assert try-add seen, value
 to json(a match-string-like-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-string-like-case record(value string, then_ expr)
+match-string-like-case record(values string[], then_ expr)
 range source-range(a match-string-like-expr) = a.ast.range
 matched-type type-inst(a match-string-like-expr) common-types
 	type-inst! type a.matched
@@ -3999,11 +4025,17 @@ match-sum-type-expr record
 	cases match-sum-type-case[]
 	else_ expr?
 	type type
+do
+	# TODO: this check is expensive ...............................................................................................
+	seen type-inst mut-set = ()
+	for x in cases
+		for value in x.case-types
+			assert try-add seen, value
 to json(a match-sum-type-expr)
 	matched: a.matched.to
 	cases: a.cases.to
 	else: a.else_.to
-match-sum-type-case record(case-type type-inst, then_ expr)
+match-sum-type-case record(case-types type-inst[], then_ expr)
 range source-range(a match-sum-type-expr) = a.ast.range
 sum-type type-inst(a match-sum-type-expr) common-types
 	type-inst! type a.matched

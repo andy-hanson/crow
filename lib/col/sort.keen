@@ -139,6 +139,23 @@ do (col, elem) list-new, (col, elem) some, col size, k sorted-key
 		in_ +:= 1
 	a[0 .. out]
 
+| Returns a permutation that would sort {a}.
+| Permutation is an array of indices into {a}.
++sort-permutation[t] nat[](a t[]) t sorted-key
+	_, res = sort-by-first a, to::nat[] 0 .. a.size
+	res
+
++apply-permutation[t] t[](a t[], permutation nat[])
+	map permutation, a[it]
+
+| Input: a[index] = out-index
+| Output: res[out-index] = index
++invert-permutation nat[](a nat[])
+	res nat? buffer = n-of a.size, ()
+	for x, y in with-index a
+		res[y] := x
+	for x in res then x! # If this fails, 'a' is not a permutation
+
 | Sort {a}, and move elements of {b} in the same permutation as {a}.
 | This is useful if {a} and {b} are parallel arrays,
 | meaning `a[i]` and `b[i]` belong together for the same `i`.

@@ -51,6 +51,14 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some, in-col size
 		false
 	res
 
+| Returns an empty option if {a} is empty.
++reduce[col, elem] elem?(a col, f elem mut(x elem, y elem)) (col, elem) some
+	res mut elem? = ()
+	_ = some a, of x
+		res := if res then f[res!, x] else x
+		false
+	res
+
 | Calls {f} for each element in the input collection,
 | and returns an output collection of the elements for which {f} returned {true}.
 +filter[out-col, elem, in-col] out-col
@@ -223,6 +231,27 @@ do (out-col, out-elem) list-new, (in-col, in-elem) some
 		res = f[index, x]
 		index +:= 1
 		res
+
++with-is-first[col] record(inner col)
++size[col] nat(a col with-is-first) col size
+	size a.inner
++some[col, elem] bool(a col with-is-first, f bool mut(is-first bool, value elem)) (col, elem) some
+	is-first mut bool = true
+	some a.inner, of x
+		res = f[is-first, x]
+		is-first := false
+		res
+
++with-is-last[col] record(inner col)
++size[col] nat(a col with-is-last) col size
+	size a.inner
++some[col, elem] bool(a col with-is-last, f bool mut(is-last bool, value elem)) (col, elem) some
+	prev mut elem? = ()
+	res = some a.inner, of x
+		res = prev and f[false, prev!]
+		prev := x
+		res
+	res or prev and f[true, prev!]
 
 +split[out-col, in-col, in-iter, elem] out-col[]
 	a in-col

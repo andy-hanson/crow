@@ -398,7 +398,7 @@ do lower-and-expr-ctx
 	if res.type != type
 		res := gen-option type, range, res
 	else_ = if is-void type then gen-void range else gen-empty-option type, range
-	for i in reverse 0 .. first-non-option
+	for i in reverse first-non-option
 		if option-args.peek == i
 			_ = pop! option-args
 			res := gen-if-option range, args[i],
@@ -734,10 +734,13 @@ do lower-and-expr-ctx
 			cases low-expr[] =
 				- else_
 				- let-low-expr then_.expr.range, x, cast-option, then_.expr
-			match-union-low-expr range, get-option-local, (0, 1), cases, ()
+			match-union-low-expr range, get-option-local, indices-0-1, cases, () # TODO: maybe there should be a simpler expr for matching on only 2 cases
 	else
 		cases low-expr[] = else_, then_.expr
-		match-union-low-expr range, option, (0, 1), cases, ()
+		match-union-low-expr range, option, indices-0-1, cases, () # TODO: maybe there should be a simpler expr for matching on only 2 cases
+
+-indices-0-1 switch-indices()
+	simple-switch-indices (0, 1)
 
 -lower-literal-string-like constant
 	type low-type
@@ -924,31 +927,47 @@ do lower-and-expr-ctx
 			- lower-expr-or-void type, range, expr.after
 
 -lower-match-enum low-expr(type low-type, range uri-and-range, a match-enum-expr) lower-and-expr-ctx
-	do if any a.cases else lower-bogus type, range
-	lower-with-opt-local type, range, a.matched-local, a.matched, of matched
-		values-unsorted nat64[] = map a.cases, it.member.value
-		cases-unsorted low-expr[] = for value in values-unsorted
-			case_ = find! a.cases, it.member.value == value
-			lower-expr type, case_.then_
-		else_ low-expr? = if x = a.else_
-			lower-expr type, x
-		values, cases = sort-by-first values-unsorted, cases-unsorted
-		match-scalar-low-expr range, matched, values.to, cases, else_
+	match-scalar type, range, a.matched-local, a.matched, a.cases, it.members-values, it.then_, a.else_, of matched, switch, exprs, else_
+		match-scalar-low-expr range, matched, switch, exprs, else_
+-members-values nat64[](a match-enum-case)
+	for x in a.members then x.value
 
 -lower-match-integral low-expr
 	type low-type
 	range uri-and-range
 	a match-scalar-expr
 do lower-and-expr-ctx
-	lower-with-opt-local type, range, a.matched-local, a.matched, of matched
-		values-unsorted scalar-value[] = map a.cases, it.value
-		# TODO: If matched is a constant, just compile the relevant case
-		cases-unsorted low-expr[] = for value in values-unsorted
-			case_ = find! a.cases, it.value == value
-			lower-expr type, case_.then_
-		else_ = lower-expr type, a.else_
-		values, cases = sort-by-first values-unsorted, cases-unsorted
-		match-scalar-low-expr range, matched, values.to, cases, else_
+	match-scalar type, range, a.matched-local, a.matched, a.cases, it.values.bits, it.then_, a.else_, of matched, switch, exprs, else_
+		match-scalar-low-expr range, matched, switch, exprs, else_
+
+-match-scalar[t] low-expr
+	type low-type
+	range uri-and-range
+	matched-local local?
+	matched-expr expr
+	cases t[]
+	get-values nat64[] mut(case_ t)
+	get-expr expr mut(case_ t)
+	else_ expr?
+	finish low-expr data(matched low-expr, switch switch-indices, exprs low-expr[], else_ low-expr?)
+do lower-and-expr-ctx
+	do if any cases else
+		if else_
+			lower-expr type, else_
+		else
+			lower-bogus type, range
+	lower-with-opt-local type, range, matched-local, matched-expr, of matched
+		exprs low-expr[] = for case_ in cases then lower-expr type, get-expr[case_]
+		values nat64[] = sort flat-map cases, get-values
+		# TODO:PERF optimize if already sorted??????????????????????????????????????????????????????????????????????????????
+		value-to-case nat[nat64] = for* case-index, case_ in with-index cases
+			for value in get-values[case_]
+				value, case-index
+		case-indices indices = to for::nat[] value in values # TODO:PERF better way to do this without multiple loops?????????????????????
+			value-to-case[value]!
+		# TODO:PERF we could attempt to sort case-indices and values so that it is more likely to be a simple range.
+		# (though the case indices might be `0, 1, 0` so not generally possible to sort them
+		finish[matched, (make values, case-indices), exprs, ?lower-expr type, else_]
 
 -lower-match-string-like low-expr
 	type low-type
@@ -960,7 +979,7 @@ do lower-and-expr-ctx
 		matched: matched
 		equals: equal-string-like-function a.string-type
 		cases: for case_ in a.cases
-			- lower-literal-string-like matched.type, a.string-type.to, case_.value
+			- lower-literal-string-like matched.type, a.string-type.to, case_.values.only! # -----------------------------------------------
 			- lower-expr type, case_.then_
 		else_: lower-expr type, a.else_
 
@@ -969,18 +988,12 @@ do lower-and-expr-ctx
 	range uri-and-range
 	a match-sum-type-expr
 do lower-and-expr-ctx
-	lower-with-opt-local type, range, a.matched-local, a.matched, of matched
-		else_ low-expr? = if x = a.else_
-			lower-expr type, x
-		if any a.cases
-			case-indices nat32[] = for x in a.cases
-				member-index-for-match-sum-type-case matched.type, x.case-type
-			cases low-expr[] = for case_ in a.cases
-				lower-expr type, case_.then_
-			sorted-indices, sorted-cases = sort-by-first case-indices, cases
-			match-union-low-expr range, matched, sorted-indices.to, sorted-cases, else_
-		else
-			else_ else lower-bogus type, range
+	matched-type = get-low-type a.matched.type # TODO: this does duplicate work since we are about to lower 'matched' anyway......
+	values-for-case = of::nat64[] x match-sum-type-case
+		for case-type in x.case-types
+			member-index-for-match-sum-type-case matched-type, case-type
+	match-scalar type, range, a.matched-local, a.matched, a.cases, values-for-case, it.then_, a.else_, of matched, switch, exprs, else_
+		match-union-low-expr range, matched, switch, exprs, else_
 
 -lower-catches (nat32[], low-local-and-expr[], low-local-and-expr?)
 	type low-type

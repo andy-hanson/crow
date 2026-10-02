@@ -141,7 +141,7 @@ replace-constants void() lower-ctx
 		:: match-scalar-low-expr
 		range: range
 		matched: matched else a.matched
-		case-values: a.case-values
+		switch: a.switch
 		case-exprs: cases else a.case-exprs
 		else_: else_ or a.else_
 	as match-string-like-low-expr
@@ -170,7 +170,7 @@ replace-constants void() lower-ctx
 		:: match-union-low-expr
 		range: range
 		matched: matched else a.matched
-		case-indices: a.case-indices
+		switch: a.switch
 		cases: cases else a.cases
 		else_: else_ or a.else_
 	as new-interface-low-expr

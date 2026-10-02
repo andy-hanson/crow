@@ -48,3 +48,24 @@ test
 test
 	xs nat[] = 10, 2, 3, 14, 5
 	indices-where xs, it >= 10 is 0, 3
+
+test
+	a nat[] = ()
+	map::(nat, nat)[] a.with-index, {it} is ()
+	map::(bool, nat)[] a.with-is-first, {it} is ()
+	map::(bool, nat)[] a.with-is-last, {it} is ()
+test
+	a nat[] = 1,
+	map::(nat, nat)[] a.with-index, {it} is (0, 1),
+	map::(bool, nat)[] a.with-is-first, {it} is (true, 1),
+	map::(bool, nat)[] a.with-is-last, {it} is (true, 1),
+test
+	a nat[] = 1, 2
+	map::(nat, nat)[] a.with-index, {it} is (0, 1), (1, 2)
+	map::(bool, nat)[] a.with-is-first, {it} is (true, 1), (false, 2)
+	map::(bool, nat)[] a.with-is-last, {it} is (false, 1), (true, 2)
+test
+	a nat[] = 1, 2, 3
+	map::(nat, nat)[] a.with-index, {it} is (0, 1), (1, 2), (2, 3)
+	map::(bool, nat)[] a.with-is-first, {it} is (true, 1), (false, 2), (false, 3)
+	map::(bool, nat)[] a.with-is-last, {it} is (false, 1), (false, 2), (true, 3)

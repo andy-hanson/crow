@@ -87,7 +87,7 @@ js-if-statement record(cond js-expr, then_ js-block-statement, else_ js-statemen
 js-return-statement record(arg js-expr)
 js-switch-statement record(arg js-expr, cases js-switch-case[], default js-block-statement)
 js-switch-case record
-	value js-expr
+	values js-expr[] # TODO: I think we only use this for switch on integral types. So might be simpler to just store the nat64[] here....
 	| Force a block statement here to ensure each branch has its own scope
 	then_ js-block-statement
 js-throw-statement record(arg js-expr)
@@ -288,6 +288,11 @@ gen-not-eq-eq js-expr(source source, a js-expr, b js-expr)
 	gen-binary source, not-eq-eq, a, b
 gen-less js-expr(source source, a js-expr, b js-expr)
 	gen-binary source, less, a, b
+gen-or js-expr(source source, a js-expr, b js-expr)
+	gen-binary source, or_, a, b
+gen-or js-expr(source source, exprs js-expr[])
+	reduce! exprs, of x, y
+		gen-or source, x, y
 gen-try-catch js-statement
 	source source
 	try-block js-block-statement
@@ -319,7 +324,6 @@ gen-while js-statement(source source, label js-name?, condition js-expr, body js
 	source, js-while-statement label, condition, body
 gen-while-true js-statement(source source, label js-name?, body js-block-statement)
 	gen-while source, label, (gen-bool source, true), body
-
 gen-increment js-statement(source source, name js-name, is-bigint bool)
 	gen-assign source, name,
 		gen-plus source, (gen-identifier source, name),

@@ -630,19 +630,19 @@ do
 -position-at-match-enum position-kind?(a match-enum-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, it.member.position-match-enum-case
+	position-at-match-cases a.cases, a.ast, pos, it.members[0].position-match-enum-case # ----------------------------------------------------
 
 -position-at-match-scalar position-kind?(a match-scalar-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
 	position-at-match-cases a.cases, a.ast, pos, of x
-		position-match-scalar-case a.integral-type, x.value
+		position-match-scalar-case a.integral-type, x.values[0] # ----------------------------------------------------------------------------------------
 
 -position-at-match-string-like position-kind?(a match-string-like-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
 	position-at-match-cases a.cases, a.ast, pos, of x
-		position-match-string-like-case (a.matched-type, container.to), x.value
+		position-match-string-like-case (a.matched-type, container.to), x.values[0] # -----------------------------------------------------
 
 -position-at-match-cases[t] position-kind?(cases t[], ast match-ast,pos pos, get-position position-kind data(case_ t))
 	first (zip-if-size-eq cases, ast.cases), of case_, case-ast
@@ -672,7 +672,7 @@ do expr-ctx
 
 -position-at-match-sum-type-case position-kind?(case_ match-sum-type-case, ast case-ast, pos pos) expr-ctx
 	if has-pos ast.keyword-and-member-name-range, pos
-		position-match-sum-type-case container, case_.case-type
+		position-match-sum-type-case container, case_.case-types[0] # ---------------------------------------------------------------------
 
 -position-at-catch position-kind?(catch_ catch_, ast catch-ast, pos pos) expr-ctx
 	if has-pos ast.keyword-range, pos

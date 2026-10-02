@@ -92,7 +92,7 @@ gen-union-member-get low-fun-body(fun low-fun, case-index nat32) lower-ctx
 	:: match-union-low-expr
 	range: range
 	matched: get-a
-	case-indices: case-index,
+	switch: single-switch-index case-index
 	cases:
 		- gen-option option-type, range,
 			union-assume-case-low-expr case-type, range, get-a
@@ -126,7 +126,7 @@ gen-match-enum low-expr
 	f low-expr mut(x enum-or-flags-member)
 do low-common-types
 	members = must-be-enum matched.type
-	values scalar-values = map::nat64[] members, it.value 'to
+	values = simple-switch-indices map::nat64[] members, it.value
 	match-scalar-low-expr range, matched, values, (map members, f), ()
 | WARN: 'union_' should be a param getter since it will be copied for each case
 gen-match-union low-expr
@@ -139,7 +139,7 @@ do low-common-types
 	cases low-expr[] = for case-index, case-type in with-index member-types
 		f[case-index, union-assume-case-low-expr case-type, range, union_]
 	return-type is cases[0].type
-	range, union_, (0 .. member-types.size).to, cases, ()
+	match-union-low-expr range, union_, member-types.size.simple-switch-indices, cases, ()
 
 gen-constant-array-view constant-low-expr
 	type low-type

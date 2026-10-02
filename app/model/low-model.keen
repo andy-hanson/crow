@@ -599,10 +599,53 @@ type low-type(a loop-break-low-expr) low-common-types
 
 loop-continue-low-expr record(type low-type, range uri-and-range)
 
+| Indicates that the input values will map to the corresponding cases.
+switch-indices record -new
+	input-values nat64[]
+	| Runs parallel to {input-values} and gives the index of the expression corresponding to that value.
+	| Multiple input values can correspond to the same expression (as in `as 3 or 4`)
+	| (The expressions are not stored in {switch-indices}.)
+	case-indices indices
+	input-values-is-range bool
+	input-values-for-each-case nat64[][]
+do
+	assert is-sorted input-values
+	input-values.size is case-indices.size
+to switch-indices(_ json) = throw unreachable # ----------------------------------------------------------------------------------
+size nat(a switch-indices)
+	a.input-values.size
+single-switch-index switch-indices(n nat)
+	simple-switch-indices (n,)
+simple-switch-indices switch-indices(n nat) # TODO: PERF make sure this is fast, don't allocate an array ------------------------------------
+	simple-switch-indices to::nat64[] 0 .. n
+simple-switch-indices switch-indices(input-values nat64[])
+	make input-values, input-values.size.indices-range
+make switch-indices(input-values nat64[], case-indices indices)
+	do if any case-indices else
+		forbid any input-values
+		input-values: ()
+		case-indices: ()
+		input-values-is-range: true
+		input-values-for-each-case: ()
+	# TODO: memoize it .....................................................................................................................
+	max-case nat = to max-of! case-indices.values.bits
+	n-cases = max-case + 1
+	input-values: input-values
+	case-indices: case-indices
+	input-values-is-range: is-range input-values
+	input-values-for-each-case:
+		res nat64 mut[] buffer = for _ in n-cases then ()
+		for value, case-index in zip input-values, case-indices
+			res[case-index] ~= value
+		map res, it.move-to
+-is-range bool(a nat64[])
+	every a.with-index, of i, x
+		x == i
+
 match-scalar-low-expr record
 	range uri-and-range
 	matched low-expr
-	case-values scalar-values
+	switch switch-indices
 	case-exprs low-expr[]
 	else_ low-expr?
 type low-type(a match-scalar-low-expr) low-common-types
@@ -629,9 +672,13 @@ low-match-string-like-case record(value constant, then_ low-expr)
 match-union-low-expr record
 	range uri-and-range
 	matched low-expr
-	case-indices indices
+	| Input value is the case index in the union type
+	switch switch-indices
 	cases low-expr[]
 	else_ low-expr?
+do
+	assert any cases
+	switch.input-values-for-each-case.size is cases.size
 type low-type(a match-union-low-expr) low-common-types
 	a.cases[0].type
 union-type low-type(a match-union-low-expr) low-common-types
@@ -678,6 +725,8 @@ try-low-expr record
 	catch-cases low-local-and-expr[]
 	| For this, the local type is always 'exception'
 	catch-else low-local-and-expr?
+do
+	assert any catch-cases or catch-else
 type low-type(a try-low-expr) low-common-types
 	a.tried.type
 
