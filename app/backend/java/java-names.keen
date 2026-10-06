@@ -189,7 +189,7 @@ descriptor-for-return-type string(a java-names, type low-type)
 	as void
 		"V"
 	as java-primitive-type
-		rt.primitive-descriptor
+		primitive-descriptor rt
 	as reference-type
 		if elem = as-array-or-buffer type
 			"[{generate-descriptor-for-return-type ctx, elem}"
@@ -231,46 +231,30 @@ boxed-class-name symbol(a java-names, type low-type)
 		as array then array-or-buffer[]
 		as bool then "java/lang/Boolean"
 		as buffer then array-or-buffer[]
-		as char8 then "java/lang/Byte"
+		as char8 or int8 or nat8 then "java/lang/Byte"
 		as char16 then "java/lang/Character"
 		as char32 then "java/lang/Integer"
 		as float32 then "java/lang/Float"
 		as float64 then "java/lang/Double"
-		as int8 then "java/lang/Byte"
-		as int16 then "java/lang/Short"
-		as int32 then "java/lang/Integer"
-		as int64 then "java/lang/Long"
+		as int16 or nat16 then "java/lang/Short"
+		as int32 or nat32 then "java/lang/Integer"
+		as int64 or nat64 then "java/lang/Long"
 		as js-any then "java/lang/Object"
-		as lambda-data then mangled[]
-		as lambda-mut then mangled[]
-		as lambda-shared then mangled[]
-		as nat8 then "java/lang/Byte"
-		as nat16 then "java/lang/Short"
-		as nat32 then "java/lang/Integer"
-		as nat64 then "java/lang/Long"
+		as lambda-data or lambda-shared or lambda-mut or void then mangled[]
 		as option then throw unreachable
-		as void then mangled[]
 		as weak-ref then "java/lang/ref/WeakReference"
-	as low-enum
-		mangled[]
-	as low-flags
-		mangled[]
-	as low-java-class
-		throw unreachable
-	as low-record
+	as low-enum or low-flags or low-record
 		mangled[]
 	as low-union
 		match ctx.union-info.union-to-representation[type]!
 		as exception
 			"java/lang/Throwable"
-		as interface_
-			mangled[]
-		as switch
+		as interface_ or switch
 			mangled[]
 		as nullable
 			_, non-null = only2! body.members
 			generate-boxed-class-name ctx, non-null
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
 lambda-init-descriptor symbol(a java-names, lambda lambda-low-expr)

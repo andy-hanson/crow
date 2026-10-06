@@ -493,8 +493,6 @@ show-diag string(a diag) show-type-ctx
 			'it' may not be appear alone.
 			(Hint: Only tightly bound expressions are in the 'it' scope.)
 			If you want an identity function use '\{it\}'.
-	as diag-lambda-cant-be-function-pointer
-		"A function pointer can't be implemented by a lambda. Write a function and use '&f' instead."
 	as diag-lambda-cant-infer-param-type
 		"Can't infer the lambda parameter's type."
 	as diag-lambda-closure-mutability
@@ -866,24 +864,19 @@ show-diagnostic string(a uri-and-diagnostic) show-type-ctx
 
 -decl-kind-of-type decl-kind(a type-decl)
 	match a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
 	as enum_ then enum_
 	as flags_ then flags_
-	as java-class then throw unreachable
 	as record_ then record_
 	as sum-type then variant_
+	as type-body-bogus or builtin-type or java-class then throw unreachable
 
 -member-kind enum(enum-member, flags-member, record-field)
 -member-kind-of-type member-kind(a type-decl)
 	match a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
 	as enum_ then enum-member
 	as flags_ then flags-member
-	as java-class then throw unreachable
 	as record_ then record-field
-	as sum-type then throw unreachable
+	as type-body-bogus or builtin-type or java-class or sum-type then throw unreachable
 
 -a-or-an-member-kind string(a member-kind)
 	match a

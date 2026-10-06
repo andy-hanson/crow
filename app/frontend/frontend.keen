@@ -840,9 +840,7 @@ do
 
 -no-file-imports mostly-resolved-import(ast import-or-export-ast, file-type file-type, f mostly-resolved-import mut())
 	match ast.kind
-	as import-whole-module-ast
-		f[]
-	as array
+	as import-whole-module-ast or array
 		f[]
 	as import-file-ast
 		cant-import-as-content file-type
@@ -852,12 +850,9 @@ do
 	ast import-or-export-ast
 	uri uri
 do
-	keen-file = {ensure-keen-file a, add-extension uri, ".keen"}
 	match ast.kind
-	as import-whole-module-ast
-		keen-file[]
-	as array
-		keen-file[]
+	as import-whole-module-ast or array
+		ensure-keen-file a, add-extension uri, ".keen"
 	as import-file-ast
 		file-type = file-type uri
 		if file-type == other

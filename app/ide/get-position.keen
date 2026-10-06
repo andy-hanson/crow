@@ -174,17 +174,13 @@ do keen-module, local-container
 	match a
 	as destructure-ignore
 		match ast = a.source
-		as catch-ast
-			()
-		as type-decl
+		as catch-ast or type-decl or void-destructure-ast
 			()
 		as ignore-destructure-ast
 			if has-pos ast.underscore-range, pos
 				underscore::position-keyword
 			elif t = ast.type
 				position-in-type a.type, t, pos
-		as void-destructure-ast
-			()
 	as local
 		match destructure-ast
 		as name-and-range
@@ -303,9 +299,7 @@ do keen-module, local-container
 	the type-container = decl
 	the local-container = decl
 	match body = decl.body
-	as type-body-bogus
-		()
-	as builtin-type
+	as type-body-bogus or builtin-type
 		()
 	as enum_
 		position-in-enum-or-flags-body body.members, ast.enum-ast!.params, ast.enum-ast!.members, pos.pos
@@ -630,36 +624,42 @@ do
 -position-at-match-enum position-kind?(a match-enum-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of case_, index
-		position-match-enum-case case_.members[index]
+	position-at-match-cases a, a.cases, a.ast, pos, it.members, it.position-match-enum-case
 
 -position-at-match-scalar position-kind?(a match-scalar-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of case_, index
-		position-match-scalar-case a.integral-type, case_.values[index]
+	position-at-match-cases a, a.cases, a.ast, pos, it.values.bits, of value
+		position-match-scalar-case a.integral-type, (value,)
 
 -position-at-match-string-like position-kind?(a match-string-like-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of case_, index
-		position-match-string-like-case (a.matched-type, container.to), case_.values[index]
-
--position-at-match-cases[t] position-kind?
-	cases t[]
-	ast match-ast
-	pos pos
-	get-position position-kind data(case_ t, index nat)
-do
-	first (zip-if-size-eq cases, ast.cases), of case_, case-ast
-		do if index = find-index case-ast.members, {has-pos it.range, pos}
-		get-position[case_, index]
+	position-at-match-cases a, a.cases, a.ast, pos, it.values, of value
+		position-match-string-like-case (a.matched-type, container.to), value
 
 -position-at-match-sum-type position-kind?(a match-sum-type-expr, pos pos) expr-ctx
 	position-at-match-keyword a, a, a.ast, pos or
 	position-in-opt-local a.matched-local, a.ast, pos or
-	position-at-match-cases a.cases, a.ast, pos, of case_, index
-		position-match-sum-type-case container, case_.case-types[index]
+	position-at-match-cases a, a.cases, a.ast, pos, it.case-types, of type
+		position-match-sum-type-case container, type
+
+-position-at-match-cases[t, u] position-kind?
+	expr expr
+	cases t[]
+	ast match-ast
+	pos pos
+	case-members u[] data(case_ t)
+	get-position position-kind data(member u)
+do expr-container
+	first (zip-if-size-eq cases, ast.cases), of case_, case-ast
+		if has-pos case-ast.keyword-range, pos
+			expression-position container, expr, as_
+		else
+			members = case-members[case_]
+			do if members.size == case-ast.members.size
+			do if index = find-index case-ast.members, {has-pos it.range, pos}
+			get-position[members[index]]
 
 -position-at-catches position-kind?
 	catches catch_[]
@@ -717,13 +717,11 @@ do expr-ctx
 	res or position-in-type-not-args type, ast, pos
 -position-in-type-not-args position-kind?(type type, ast type-ast, pos pos) type-ctx
 	match ast
-	as bogus-type-ast
+	as bogus-type-ast or map-type-ast or tuple-type-ast
 		()
 	as fun-type-ast
 		if has-pos ast.kind-range, pos
 			type-with-container type, the::type-container
-	as map-type-ast
-		()
 	as name-and-range
 		name = ast.name
 		if type.type-inst and name != type.decl.name
@@ -736,14 +734,10 @@ do expr-ctx
 	as suffix-special-type-ast
 		if has-pos ast.suffix-range, pos
 			type-with-container type, the::type-container
-	as tuple-type-ast
-		()
 
 -each-type-component[out] out?(type type, ast type-ast, f out? mut(x type, ast type-ast))
 	match type
-	as bogus-type
-		()
-	as type-param-index
+	as bogus-type or type-param-index
 		()
 	as type-inst
 		first (type-args-and-asts type.type-args, ast), f

@@ -139,20 +139,14 @@ start pos(a type-ast) = a.range.start
 end pos(a type-ast) = a.range.end
 name-range-or-range source-range(a type-ast)
 	match a
-	as bogus-type-ast
+	as bogus-type-ast or map-type-ast or name-and-range or tuple-type-ast
 		range a
 	as fun-type-ast
 		kind-range a
-	as map-type-ast
-		range a
-	as name-and-range
-		range a
 	as suffix-name-type-ast
 		suffix-range a
 	as suffix-special-type-ast
 		suffix-range a
-	as tuple-type-ast
-		range a
 
 bogus-type-ast record(range source-range)
 fun-type-ast record
@@ -470,9 +464,7 @@ for-or-with-ast-keyword enum(for_, for-option, for-star, with_)
 -size nat32(a for-or-with-ast-keyword)
 	match a
 	as for_ then 3
-	as for-option then 4
-	as for-star then 4
-	as with_ then 4
+	as for-option or for-star or with_ then 4
 end pos(a for-or-with-ast)
 	a.body.end
 range source-range(a for-or-with-ast)
@@ -519,55 +511,25 @@ end pos(a if-ast)
 range source-range(a if-ast)
 	a.start, a.end
 is-condition-negated bool(a if-ast)
-	a.is-unless != match a.kind
-	as do-if
-		true
-	as do-if-else
-		true
-	as if-elif
-		false
-	as if-else
-		false
-	as if-without-else
-		false
-	as if-then
-		false
-	as if-then-else
-		false
+	match a.kind
+	as do-if or do-if-else
+		not a.is-unless
+	as if-elif or if-else or if-without-else or if-then or if-then-else
+		a.is-unless
 first-keyword-range source-range(a if-ast)
-	do-if-unless char8[] = if a.is-unless then "do unless" else "do if"
-	if-unless char8[] = if a.is-unless then "unless" else "if"
 	range-of-start-and-length a.start, match a.kind
-	as do-if
-		do-if-unless
-	as do-if-else
-		do-if-unless
-	as if-elif
-		if-unless
-	as if-else
-		if-unless
-	as if-then
-		if-unless
-	as if-then-else
-		if-unless
-	as if-without-else
-		if-unless
+	as do-if or do-if-else
+		if a.is-unless then "do unless" else "do if"
+	as if-elif or if-else or if-then or if-then-else or if-without-else
+		if a.is-unless then "unless" else "if"
 second-keyword-range source-range?(a if-ast)
 	keyword char8[]? = match a.kind
-	as do-if
+	as do-if or if-without-else
 		()
-	as do-if-else
+	as do-if-else or if-elif or if-else
 		"else"
-	as if-elif
-		"else"
-	as if-else
-		"else"
-	as if-then
+	as if-then or if-then-else
 		"then"
-	as if-then-else
-		"then"
-	as if-without-else
-		()
 	if keyword
 		range-of-start-and-length a.second-keyword-pos, keyword
 third-keyword-range source-range?(a if-ast)
@@ -801,15 +763,9 @@ end pos(a case-ast)
 	a.then_.end
 keyword-range source-range(a case-ast)
 	range-of-start-and-length a.keyword-pos, "as"
-keyword-and-members-range source-range(a case-ast)
-	if any a.members
-		a.keyword-pos, a.members[end - 1].end
-	else
-		keyword-range a
 
 case-member-ast union(name-and-range, literal-number, literal-string-ast)
 	range source-range()
-	end pos()
 
 match-else-ast record(keyword-pos pos, expr expr-ast)
 end pos(a match-else-ast) = a.expr.end

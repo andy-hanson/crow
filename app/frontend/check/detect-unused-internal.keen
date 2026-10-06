@@ -68,18 +68,11 @@ do common-types, common-uris
 
 -as-any-decl any-decl?(a doc-comment-reference)
 	match a
-	as doc-comment-reference-bogus then ()
-	as doc-comment-reference-context then ()
-	as called-spec-sig then ()
-	as enum-or-flags-member then ()
+	as doc-comment-reference-bogus or doc-comment-reference-context or called-spec-sig or enum-or-flags-member then ()
+	as local or record-field or signature or type-alias or type-param-index then ()
 	as fun-decl then a
-	as local then ()
-	as record-field then ()
-	as signature then ()
 	as spec-decl then a
-	as type-alias then ()
 	as type-decl then a
-	as type-param-index then ()
 	as var-decl then a
 
 -is-public-or-main-or-test bool(a any-decl)

@@ -103,13 +103,8 @@ lookahead-equals bool() parser
 	match token
 	as equal
 		parens == 0 and brackets == 0
-	as comma then ()
-	as data_ then ()
-	as mut_ then ()
-	as name then ()
-	as question then ()
-	as shared_ then ()
-	as underscore then ()
+	as comma or data_ or mut_ or name or question or shared_ or underscore
+		()
 	as paren-left
 		parens +:= 1
 		()

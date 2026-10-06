@@ -154,9 +154,7 @@ is-mutability-always-compatible-considering-specs bool(fun-specs specs, type typ
 	is-always-compatible expected, type-mutability or
 	specs-provide-mutability fun-specs, type, expected or
 	match type
-	as bogus-type
-		false
-	as type-param-index
+	as bogus-type or type-param-index
 		false
 	as type-inst
 		type-mutability.best-case <= expected and

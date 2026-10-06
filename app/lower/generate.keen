@@ -47,11 +47,7 @@ gen-call low-expr(range uri-and-range, fun low-fun, args low-expr[]) lower-ctx, 
 			body
 		else
 			call-low-expr range, fun, args
-	as low-fun-body-extern-java
-		call-low-expr range, fun, args
-	as low-fun-body-method
-		call-low-expr range, fun, args
-	as low-fun-body-deferred
+	as low-fun-body-extern-java or low-fun-body-method or low-fun-body-deferred
 		call-low-expr range, fun, args
 	as low-fun-body-always-inline
 		lower-inline-call-not-array-op fun, range, args
@@ -126,7 +122,7 @@ gen-match-enum low-expr
 	f low-expr mut(x enum-or-flags-member)
 do low-common-types
 	members = must-be-enum matched.type
-	values = simple-switch-indices map::nat64[] members, it.value
+	values = simple-switch-indices map::scalar-values members, it.value
 	match-scalar-low-expr range, matched, values, (map members, f), ()
 | WARN: 'union_' should be a param getter since it will be copied for each case
 gen-match-union low-expr

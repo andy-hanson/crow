@@ -1,5 +1,5 @@
 +mut-counter[k] record mut
-	-inner mut nat64 mut[k]
+	-inner mut nat mut[k]
 
 +list-new[k] k mut-counter(a k[]) k key
 	a.to
@@ -9,12 +9,12 @@
 	res ~~= values
 	res
 
-+move-to[k] nat64 mut[k](a k mut-counter) k key
++move-to[k] nat mut[k](a k mut-counter) k key
 	res = a.inner
 	a.inner := ()
 	res
 
-+subscript[k] nat64(a k mut-counter, value k) k key
++subscript[k] nat(a k mut-counter, value k) k key
 	a.inner[value] else 0
 
 + ~=[k] void(a k mut-counter, value k) k key
@@ -24,5 +24,10 @@
 	for v in values
 		a ~= v
 
-+some[k] bool(a k mut-counter, f bool mut(key k, count nat64)) k key
++some[k] bool(a k mut-counter, f bool mut(key k, count nat)) k key
 	some a.inner, f
+
++get-and-incr[k] nat(a k mut-counter, key k) k key
+	res = a[key]
+	a ~= key
+	res

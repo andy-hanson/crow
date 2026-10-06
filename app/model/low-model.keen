@@ -1,5 +1,7 @@
 import
+	keen/bits
 	keen/unsafe
+	../../lib/col/experimental/object-memoizer
 	../util/full-index-map
 	../util/util
 	./ast
@@ -117,18 +119,12 @@ hash void(a low-type, state hash-state)
 	hash a.id, state
 as-extern path?(a low-type)
 	match body = a.body
-	as builtin-type
-		()
-	as low-enum
-		()
-	as low-flags
+	as builtin-type or low-enum or low-flags or low-record
 		()
 	as low-java-class
 		body.path
-	as low-record
-		()
 	as low-union
-		body.java-interface
+		java-interface body
 	as low-type-body-deferred
 		throw unreachable
 
@@ -298,9 +294,7 @@ is-extern bool(a low-fun)
 		true
 	as low-fun-body-method
 		a.params[0].type.as-extern
-	as low-fun-body-deferred
-		throw unreachable
-	as low-fun-body-always-inline
+	as low-fun-body-deferred or low-fun-body-always-inline
 		throw unreachable
 name symbol?(a low-fun)
 	a.source.low-fun-source-regular.?decl.?name
@@ -601,7 +595,7 @@ loop-continue-low-expr record(type low-type, range uri-and-range)
 
 | Indicates that the input values will map to the corresponding cases.
 switch-indices record -new
-	input-values nat64[]
+	input-values scalar-values
 	| Runs parallel to {input-values} and gives the index of the expression corresponding to that value.
 	| Multiple input values can correspond to the same expression (as in `as 3 or 4`)
 	| (The expressions are not stored in {switch-indices}.)
@@ -613,40 +607,41 @@ switch-indices record -new
 	| as 1 or 2 then x
 	| ...
 	| Case 0 ('x') would have input values 1 and 2
-	inputs-per-case nat64[][]
+	inputs-per-case scalar-values[]
 do
 	assert is-sorted input-values
 	input-values.size is case-indices.size
+-switch-indices-cache global((switch-indices, switch-indices-key) object-memoizer) = ()
+-switch-indices-key record(input-values scalar-values, case-indices indices)
+-hash nat(a switch-indices-key) = trusted a.input-values.hash ^ a.case-indices.hash
+-memoizer-key switch-indices-key(a switch-indices) = a.input-values, a.case-indices
 size nat(a switch-indices)
 	a.input-values.size
 single-switch-index switch-indices(n nat)
 	simple-switch-indices (n,)
 simple-switch-indices switch-indices(n nat)
-	simple-switch-indices to::nat64[] 0 .. n
-simple-switch-indices switch-indices(input-values nat64[])
+	simple-switch-indices for::scalar-values i in n then i
+simple-switch-indices switch-indices(input-values indices)
+	simple-switch-indices for::scalar-values x in input-values then x
+simple-switch-indices switch-indices(input-values scalar-values)
 	make input-values, input-values.size.indices-range
+simple-switch-indices switch-indices(range nat64 range)
+	simple-switch-indices (for::scalar-values x in range then x)
 switch-indices-0-1 switch-indices()
 	simple-switch-indices (0, 1)
-make switch-indices(input-values nat64[], case-indices indices)
-	do if any case-indices else
-		forbid any input-values
-		input-values: ()
-		case-indices: ()
-		input-values-is-range: true
-		inputs-per-case: ()
-	max-case nat = to max-of! case-indices.values.bits
-	n-cases = max-case + 1
-	input-values: input-values
-	case-indices: case-indices
-	input-values-is-range: is-range input-values
-	inputs-per-case:
-		res nat64 mut[] buffer = for _ in n-cases then ()
-		for value, case-index in zip input-values, case-indices
-			res[case-index] ~= value
-		map res, it.move-to
--is-range bool(a nat64[])
-	every a.with-index, of i, x
-		x == i
+make switch-indices(input-values scalar-values, case-indices indices)
+	trusted memoize switch-indices-cache, (input-values, case-indices), of
+		input-values.size is case-indices.size
+		max-case nat = case-indices.max
+		n-cases = max-case + 1
+		input-values: input-values
+		case-indices: case-indices
+		input-values-is-range: is-range input-values
+		inputs-per-case:
+			res nat64 mut[] buffer = for _ in n-cases then ()
+			for value, case-index in zip input-values, case-indices
+				res[case-index] ~= value.to
+			map res, it.move-to::nat64[].to
 
 match-scalar-low-expr record
 	range uri-and-range

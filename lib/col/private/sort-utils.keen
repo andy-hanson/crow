@@ -29,7 +29,7 @@ binary-search-insert[t] nat32(a t array-view, value t) t sorted-key
 binary-search-insert[k, v] nat32(a (k, v) array-view, key k) k sorted-key
 	binary-search-insert-cb a, key <=> it.a
 
-| Returns the pointer to the least value that is compared equal or greater.
+| Returns the index of the least value that is compared equal or greater.
 | Returns `a.size` if all values compare less.
 binary-search-insert-cb[t] nat32(a t mut[], compare comparison data(elem t))
 	binary-search-insert-cb (trusted temp-as-buffer a), compare

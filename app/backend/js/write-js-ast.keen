@@ -205,53 +205,9 @@ do
 	every a.to::char8[], it.is-ascii-identifier-char
 -is-js-keyword bool(a string)
 	match a
-	as arguments
+	as arguments or await or "case" or const or debugger or default or delete or "enum" or extends or false or function
 		true
-	as await
-		true
-	as "case"
-		true
-	as const
-		true
-	as debugger
-		true
-	as default
-		true
-	as delete
-		true
-	as "enum"
-		true
-	as extends
-		true
-	as false
-		true
-	as function
-		true
-	as "in"
-		true
-	as instanceof
-		true
-	as let
-		true
-	as new
-		true
-	as null
-		true
-	as public
-		true
-	as return
-		true
-	as static
-		true
-	as switch
-		true
-	as this
-		true
-	as true
-		true
-	as typeof
-		true
-	as var
+	as "in" or instanceof or let or new or null or public or return or static or switch or this or true or typeof or var
 		true
 	as void
 		true

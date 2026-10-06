@@ -47,60 +47,32 @@ plan-unions union-info(program low-program)
 	as low-union then false
 	else then true
 
-# Don't bother with boolean since there is only one type represented that way/
+# Don't bother with boolean since there is only one type represented that way
 -js-primitive-kind enum(array, bigint, function, number)
 -as-js-primitive js-primitive-kind?(a low-type)
 	match body = a.body
 	as builtin-type
 		as-js-primitive body
 	as low-enum
-		as-js-primitive body.storage.to::builtin-type
+		as-js-primitive to::builtin-type body.storage
 	as low-flags
-		as-js-primitive body.storage.to::builtin-type
+		as-js-primitive to::builtin-type body.storage
 	else
 		()
 -as-js-primitive js-primitive-kind?(a builtin-type)
 	match a
-	as array
+	as array or buffer
 		array
 	as bool
 		() # Only one type compiles to 'boolean', so ignore
-	as buffer
-		array
-	as char8
-		number
-	as char16
-		number
-	as char32
-		number
-	as float32
-		number
-	as float64
+	as char8 or char16 or char32 or float32 or float64 or int8 or int16 or int32 or nat8 or nat16 or nat32
 		number
 	as js-any
 		() # Already handled by 'can-use-in-direct-union'
-	as int8
-		number
-	as int16
-		number
-	as int32
-		number
-	as int64
+	as int64 or nat64
 		bigint
-	as lambda-data
+	as lambda-data or lambda-mut or lambda-shared
 		function
-	as lambda-mut
-		function
-	as lambda-shared
-		function
-	as nat8
-		number
-	as nat16
-		number
-	as nat32
-		number
-	as nat64
-		bigint
 	as option
 		throw unreachable
 	as void

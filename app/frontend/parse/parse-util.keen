@@ -121,34 +121,14 @@ peek-name-or-operator symbol?() parser
 
 -is-name-like-token bool(a token)
 	match a
-	as name
-		true
-	as name-equals
-		true
-	as operator-binary
-		true
-	as operator-equals
-		true
-	as operator-prefix
-		true
-	else
-		false
+	as name or name-equals or operator-binary or operator-equals or operator-prefix then true
+	else then false
 
 skip-blank-lines void() parser
 	while then try-take-token newline-same-indent
 
 peek-end-of-line bool() parser
-	match peek
-	as newline-dedent
-		true
-	as newline-indent
-		true
-	as newline-same-indent
-		true
-	as end-of-file
-		true
-	else
-		false
+	is-newline-token peek
 
 take-dedent void() parser
 	unless try-take-token newline-dedent
@@ -238,7 +218,7 @@ take-after-interpolated bool() parser
 		inside-quotes mut nat32 = 1
 		do until
 		# parser guarantees a fake 'brace-right' token in interpolated, but we might have skipped to the end of the line
-		if is-newline-token peek
+		if peek-end-of-line
 			false
 		elif try-take-token brace-right
 			inside-quotes -:= 1

@@ -296,6 +296,17 @@ show-sum-type-kind-upper-case string(a sum-type-kind)
 	as variant_
 		"Variant"
 
+show-sum-type-kind-lower-case string(a sum-type-kind)
+	match a
+	as interface_
+		"interface"
+	as java-interface
+		"Java interface"
+	as union_
+		"union"
+	as variant_
+		"variant"
+
 decl-kind decl-kind(a type-decl)
 	match body = a.body
 	as type-body-bogus

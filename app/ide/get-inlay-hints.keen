@@ -184,9 +184,7 @@ do
 
 -inlay-hint-pos pos?(a local-source)
 	match a
-	as catch-ast
-		()
-	as it-scope-ast
+	as catch-ast or it-scope-ast or local-source-generated
 		()
 	as record-field
 		a.range.range.start
@@ -195,8 +193,6 @@ do
 	as single-destructure-ast
 		unless a.type
 			a.mut-range.?end else a.name.end
-	as local-source-generated
-		()
 
 -end-of-line-for-decl line-and-character(lcg line-and-character-getter, decl any-decl)
 	end-of-line lcg, decl.range.range.start

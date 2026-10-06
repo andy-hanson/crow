@@ -154,11 +154,7 @@ do check-ctx, types-get
 	a.type-inst and is-interface-or-variant a.decl.body
 -is-interface-or-variant bool(a type-body)
 	a.sum-type and match a.kind
-	as interface_
-		true
-	as java-interface
-		true
-	as variant_
+	as interface_ or java-interface or variant_
 		true
 	as union_
 		false

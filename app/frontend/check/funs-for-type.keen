@@ -19,9 +19,7 @@ add-funs-for-type void
 do check-ctx, common-types
 	inst = instantiated-with-own-type-params type
 	match body = type.body
-	as type-body-bogus
-		()
-	as builtin-type
+	as type-body-bogus or builtin-type
 		()
 	as enum_
 		add-funs-for-enum out, type, body, auto-fun-overrides
@@ -167,22 +165,24 @@ do check-ctx, common-types, funs-map
 -direct-members record(type type-decl)
 -size nat32(a direct-members)
 	match body = a.type.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
-	as enum_ then 0
-	as flags_ then 0
-	as java-class then throw unreachable
-	as record_ then body.fields.size
-	as sum-type then body.as-union!.size
+	as type-body-bogus or builtin-type or java-class
+		throw unreachable
+	as enum_ or flags_
+		0
+	as record_
+		body.fields.size
+	as sum-type
+		body.as-union!.size
 -some bool(a direct-members, f bool mut(a type))
 	match body = a.type.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then throw unreachable
-	as enum_ then ()
-	as flags_ then ()
-	as java-class then throw unreachable
-	as record_ then some body.fields, f[it.type]
-	as sum-type then some body.as-union!, f[it.case-type]
+	as type-body-bogus or builtin-type or java-class
+		throw unreachable
+	as enum_ or flags_
+		()
+	as record_
+		some body.fields, f[it.type]
+	as sum-type
+		some body.as-union!, f[it.case-type]
 
 -fill-auto-fun-members void(fun fun-decl, type type-decl, spec_ spec-decl) check-ctx, common-types, funs-map
 	fun.body := with-members fun.body, for member-type in members type.body
@@ -211,33 +211,38 @@ do check-ctx, common-types, funs-map
 
 -has-standard-auto-funs bool(type type-decl)
 	match body = type.body
-	as type-body-bogus then false
-	as builtin-type then false
-	as enum_ then true
-	as flags_ then true
-	as java-class then throw unreachable
-	as record_ then is-data type and every body.fields, it.visibility == type.visibility
-	as sum-type then is-data type and as-union body
+	as type-body-bogus or builtin-type
+		false
+	as enum_ or flags_
+		true
+	as java-class
+		throw unreachable
+	as record_
+		is-data type and every body.fields, it.visibility == type.visibility
+	as sum-type
+		is-data type and as-union body
 
 -members record(body type-body)
 -size nat32(a members)
 	match body = a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then 0
-	as enum_ then 0
-	as flags_ then 0
-	as java-class then throw unreachable
-	as record_ then body.fields.size
-	as sum-type then body.listed-members.size
+	as type-body-bogus or java-class
+		throw unreachable
+	as builtin-type or enum_ or flags_
+		0
+	as record_
+		body.fields.size
+	as sum-type
+		body.listed-members.size
 -some bool(a members, f bool mut(a type))
 	match body = a.body
-	as type-body-bogus then throw unreachable
-	as builtin-type then false
-	as enum_ then false
-	as flags_ then false
-	as java-class then throw unreachable
-	as record_ then some body.fields, f[it.type]
-	as sum-type then some body.listed-members, f[it.case-type]
+	as type-body-bogus or java-class
+		throw unreachable
+	as builtin-type or enum_ or flags_
+		false
+	as record_
+		some body.fields, f[it.type]
+	as sum-type
+		some body.listed-members, f[it.case-type]
 
 auto-fun-overrides alias
 	(type-decl, auto-fun-kind) mut-set
@@ -319,13 +324,9 @@ do check-ctx, common-types
 	can-convert-back a.body.sum-type!.kind
 -can-convert-back bool(a sum-type-kind)
 	match a
-	as interface_
+	as interface_ or java-interface
 		false
-	as java-interface
-		false
-	as union_
-		true
-	as variant_
+	as union_ or variant_
 		true
 
 add-funs-for-var void(out funs-out, var var-decl) check-ctx, common-types

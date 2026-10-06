@@ -83,127 +83,21 @@ is-keen-identifier bool(a string)
 
 is-initial-single-byte-identifier-char bool(a char8)
 	match a
-	as "a" then true
-	as "b" then true
-	as "c" then true
-	as "d" then true
-	as "e" then true
-	as "f" then true
-	as "g" then true
-	as "h" then true
-	as "i" then true
-	as "j" then true
-	as "k" then true
-	as "l" then true
-	as "m" then true
-	as "n" then true
-	as "o" then true
-	as "p" then true
-	as "q" then true
-	as "r" then true
-	as "s" then true
-	as "t" then true
-	as "u" then true
-	as "v" then true
-	as "w" then true
-	as "x" then true
-	as "y" then true
-	as "z" then true
-	as "A" then true
-	as "B" then true
-	as "C" then true
-	as "D" then true
-	as "E" then true
-	as "F" then true
-	as "G" then true
-	as "H" then true
-	as "I" then true
-	as "J" then true
-	as "K" then true
-	as "L" then true
-	as "M" then true
-	as "N" then true
-	as "O" then true
-	as "P" then true
-	as "Q" then true
-	as "R" then true
-	as "S" then true
-	as "T" then true
-	as "U" then true
-	as "V" then true
-	as "W" then true
-	as "X" then true
-	as "Y" then true
-	as "Z" then true
+	as a or b or c or d or e or f or g or h or i or j or k or l or m then true
+	as n or o or p or q or r or s or t or u or v or w or x or y or z then true
+	as A or B or C or D or E or F or G or H or I or J or K or L or M then true
+	as N or O or P or Q or R or S or T or U or V or W or X or Y or Z then true
 	as "_" then true
 	else then false
 
 -is-single-byte-identifier-char bool(a char8)
 	match a
-	as "a" then true
-	as "b" then true
-	as "c" then true
-	as "d" then true
-	as "e" then true
-	as "f" then true
-	as "g" then true
-	as "h" then true
-	as "i" then true
-	as "j" then true
-	as "k" then true
-	as "l" then true
-	as "m" then true
-	as "n" then true
-	as "o" then true
-	as "p" then true
-	as "q" then true
-	as "r" then true
-	as "s" then true
-	as "t" then true
-	as "u" then true
-	as "v" then true
-	as "w" then true
-	as "x" then true
-	as "y" then true
-	as "z" then true
-	as "A" then true
-	as "B" then true
-	as "C" then true
-	as "D" then true
-	as "E" then true
-	as "F" then true
-	as "G" then true
-	as "H" then true
-	as "I" then true
-	as "J" then true
-	as "K" then true
-	as "L" then true
-	as "M" then true
-	as "N" then true
-	as "O" then true
-	as "P" then true
-	as "Q" then true
-	as "R" then true
-	as "S" then true
-	as "T" then true
-	as "U" then true
-	as "V" then true
-	as "W" then true
-	as "X" then true
-	as "Y" then true
-	as "Z" then true
-	as "0" then true
-	as "1" then true
-	as "2" then true
-	as "3" then true
-	as "4" then true
-	as "5" then true
-	as "6" then true
-	as "7" then true
-	as "8" then true
-	as "9" then true
-	as "-" then true
-	as "_" then true
+	as a or b or c or d or e or f or g or h or i or j or k or l or m then true
+	as n or o or p or q or r or s or t or u or v or w or x or y or z then true
+	as A or B or C or D or E or F or G or H or I or J or K or L or M then true
+	as N or O or P or Q or R or S or T or U or V or W or X or Y or Z then true
+	as "0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" then true
+	as "-" or "_" then true
 	else then false
 
 is-letter bool(a char8)

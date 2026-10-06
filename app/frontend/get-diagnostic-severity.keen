@@ -99,8 +99,6 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		name-not-found
 	as diag-it-identity
 		parse-error
-	as diag-lambda-cant-be-function-pointer
-		check-error
 	as diag-lambda-cant-infer-param-type
 		check-error
 	as diag-lambda-closure-mutability

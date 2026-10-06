@@ -43,11 +43,7 @@ with-type-context-for[t] t(n-type-params nat32, f t mut(x type-context))
 
 | This optimizes for the common case of a non-generic, non-variadic candidate.
 candidate union(fun-inst, called-spec-sig, full-candidate) mut
-to json(a candidate)
-	match a
-	as fun-inst then a.to
-	as called-spec-sig then a.to
-	as full-candidate then a.to
+	to json()
 | Used for generic or variadic functions.
 | `inferring-type-args` will usually be non-empty,
 | but not for a variadic function or a function with specs but no type params.
@@ -67,8 +63,7 @@ called called-decl(a candidate)
 	as full-candidate then a.called
 inferring-type-args type-context(a candidate)
 	match a
-	as fun-inst then ()
-	as called-spec-sig then ()
+	as fun-inst or called-spec-sig then ()
 	as full-candidate then a.inferring-type-args
 
 init-candidate candidate(called called-decl)
@@ -90,12 +85,7 @@ init-variadic-candidate candidate(called called-decl, element-type type)
 
 | This optimizes for the common case of a type with no context.
 type-and-context union(bogus-type, type-param-index, type-inst, full-type-and-context) mut
-to json(a type-and-context)
-	match a
-	as bogus-type then a.to
-	as type-param-index then a.to
-	as type-inst then a.to
-	as full-type-and-context then a.to
+	to json()
 type type(a type-and-context)
 	match a
 	as bogus-type then a

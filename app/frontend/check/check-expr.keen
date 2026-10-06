@@ -795,14 +795,8 @@ check-while-or-until-body expr(ast while-or-until-body-ast, expected expected) c
 
 -can-match-sum-type bool(a sum-type-kind)
 	match a
-	as interface_
-		false
-	as java-interface
-		true
-	as union_
-		true
-	as variant_
-		true
+	as interface_ then false
+	as java-interface or union_ or variant_ then true
 
 -check-match-enum expr
 	ast match-ast
@@ -849,7 +843,7 @@ do check-expr-ctx
 	sum-type type-inst
 do check-expr-ctx
 	matched-refinable refinable? = local or as-refinable matched
-	body = sum-type.decl.body.sum-type!
+	body = sum-type! sum-type.decl.body
 	is-union = body.kind == union_
 	seen type-inst mut-set = ()
 	hint-size seen, body.listed-members.size
@@ -923,23 +917,18 @@ do check-expr-ctx
 	name symbol
 	name-range source-range
 do check-expr-ctx
-	listed-members = sum-type.decl.body.sum-type!.listed-members
 	the types-and-specs-map = the::expr-ctx.types-and-specs-map
 	do if type = type-or-alias-from-name name, name-range
 	match type
 	as type-alias
 		target = type.target
-		is-listed = some listed-members, it.case-type == target
-		has-case = some target.decl.sum-type-cases, it.sum-type == sum-type
-		if is-listed or has-case
+		if sum-type.listed-members?[target.decl] == target or some target.decl.sum-type-cases, it.sum-type == sum-type
 			target
 		else
 			add-diag name-range, diag-match-sum-type-no-member sum-type.type-with-container, target.decl
 			()
 	as type-decl
-		if x = find listed-members, it.case-type.decl == type
-			instantiate-type-inst x.case-type, sum-type.type-args
-		else
+		sum-type.listed-members?[type] or
 			from-case = first type.sum-type-cases, of x
 				compare-sum-types name-range, type, x.sum-type, sum-type
 			if from-case
@@ -981,15 +970,15 @@ do check-expr-ctx
 	seen scalar-value mut-set = ()
 	hint-size seen, ast.cases.size
 	cases match-scalar-case[] = for? case-ast in ast.cases
-		values scalar-value[] = for? member-ast in case-ast.members
+		values scalar-values = for? member-ast in case-ast.members
 			do if string-value = string-from-case-ast member-ast
 			value = char-literal-value member-ast.range, char-type, string-value
 			do if try-add seen, value else
 				add-diag member-ast.range, string-value::diag-match-case-duplicate
 				()
-			value
+			value.bits
 		do if any values
-		values.to::scalar-values, check-expr case-ast.then_, expected
+		values, check-expr case-ast.then_, expected
 	else_ = check-match-else-required ast, expected, {integral::diag-match-needs-else}
 	match-scalar-expr ast, char-type, matched-local, matched, cases, else_, expected.inferred
 
@@ -1003,7 +992,7 @@ do check-expr-ctx
 	seen scalar-value mut-set = ()
 	hint-size seen, ast.cases.size
 	cases match-scalar-case[] = for? case-ast in ast.cases
-		values scalar-value[] = for? member-ast in case-ast.members
+		values scalar-values = for? member-ast in case-ast.members
 			do if value scalar-value = match x = member-ast
 			as name-and-range
 				add-diag x.range, numeric::diag-match-case-for-type
@@ -1019,9 +1008,9 @@ do check-expr-ctx
 				else
 					value.to::nat64::diag-match-case-duplicate
 				()
-			value
+			value.bits
 		do if any values
-		values.to::scalar-values, check-expr case-ast.then_, expected
+		values, check-expr case-ast.then_, expected
 	else_ = check-match-else-required ast, expected, {integral::diag-match-needs-else}
 	match-scalar-expr ast, integral-type, matched-local, matched, cases, else_, expected.inferred
 

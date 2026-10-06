@@ -192,13 +192,9 @@ do show-ctx
 			throw unreachable
 		as java-primitive-type
 			match rt
-			as T_BOOLEAN then integer
-			as T_CHAR then integer
+			as T_BOOLEAN or T_CHAR or T_BYTE or T_SHORT or T_INT then integer
 			as T_FLOAT then float
 			as T_DOUBLE then double
-			as T_BYTE then integer
-			as T_SHORT then integer
-			as T_INT then integer
 			as T_LONG then long
 		as reference-type
 			if f = as-wrapper a
@@ -576,18 +572,12 @@ do java-expr-ctx
 
 	class_ ClassFile? = match body = body type
 	as builtin-type
-		lambda = of
-			forbid any method-impls else todo
-			lambda-class type, this-class, super-class, interfaces
 		match body
 		as array
 			()
-		as lambda-data
-			lambda[]
-		as lambda-mut
-			lambda[]
-		as lambda-shared
-			lambda[]
+		as lambda-data or lambda-mut or lambda-shared
+			forbid any method-impls else todo
+			lambda-class type, this-class, super-class, interfaces
 		as void
 			# Can't use java.lang.Void since that has no instances
 			record-class type, (false, ()), this-class-name, this-class, super-class, interfaces, method-impls
@@ -611,23 +601,19 @@ do java-expr-ctx
 					out ~= interface-method-decl m
 				as virtual
 					throw todo
-				as static-method-of-class
-					()
-				as static-method-of-interface
+				as static-method-of-class or static-method-of-interface
 					()
 				else
 					throw unreachable
 		all-methods = method-decls ~~ method-impls
 		match union-representation type
-		as exception
+		as exception or nullable
 			()
 		as interface_
 			union-sealed-interface this-class, super-class, interfaces, all-methods
 		as switch
 			forbid any all-methods else todo
 			union-switchable this-class, super-class, interfaces
-		as nullable
-			()
 	as low-type-body-deferred
 		throw unreachable
 	if class_
@@ -922,16 +908,7 @@ do java-refs
 -number-of-locals nat(type low-type)
 	number-of-locals as-runtime-type type
 -number-of-locals nat(type java-runtime-type)
-	match type
-	as void
-		0
-	as java-primitive-type
-		match type
-		as T_DOUBLE then 2
-		as T_LONG then 2
-		else then 1
-	else
-		1
+	stack-entry-count type
 
 -box void(out code-builder, in-type low-type, out-type low-type) java-expr-ctx
 	box-no-refine out, in-type, out-type
@@ -1115,9 +1092,7 @@ do java-refs
 		f[jump]
 		for j in jumps jump
 			jumps-to-here j, a.out, cur-stack-frame
-	as jump
-		f[a.pos]
-	as return
+	as jump or return
 		f[a.pos]
 
 -handle-pos void(out code-builder, pos expr-pos, type low-type)
@@ -1332,9 +1307,9 @@ do java-refs
 			is-signed = is-signed matched-type
 			ok = every a.switch.input-values, of value
 				if is-signed
-					fits-in-int32 wrap-to::int64 value
+					fits-in-int32 wrap-to::int64 value.bits
 				else
-					fits-in-nat32 value
+					fits-in-nat32 value.bits
 			assert ok else todo # If some values don't fit in 32 bits, we can't use a switch. Just use ifeq instead.
 			# If it's a 64-bit type: First check that it's in the range. If not, jump to default.
 			jump-to-pop-then-default deferred-jump? = match integral-type matched-type else nat8
@@ -1440,7 +1415,7 @@ do java-refs
 			start = out.next-index
 			emit-expr out, inner-pos, a.tried
 			end = out.next-index
-			for exception-case-index, case_ in zip a.exception-member-indices.to-array, a.catch-cases
+			for exception-case-index, case_ in zip a.exception-member-indices, a.catch-cases
 				must-pop type
 				catch-type = exception-case-type-from-index exception-case-index
 				frame-before = cur-stack-frame
@@ -1502,10 +1477,8 @@ do java-refs
 			handle-pos out, pos, type
 		else
 			match union-representation a.union-type
-			as exception
+			as exception or interface_
 				# This is only used for options, so it will never be an exception or interface
-				throw unreachable
-			as interface_
 				throw unreachable
 			as switch
 				###
@@ -1565,9 +1538,7 @@ do java-refs
 	as union-is-case-low-expr
 		emit-and-continue out, a.arg
 		match union-representation a.union-type
-		as exception
-			instanceof out, class_ a.case-type
-		as interface_
+		as exception or interface_
 			instanceof out, class_ a.case-type
 		as switch
 			get-switchable-kind out, a.union-type
@@ -1615,9 +1586,7 @@ do java-refs
 	in-array local-index? = match input-kind
 	as array
 		begin-synthetic-local out, input-type
-	as nat
-		()
-	as nat-range
+	as nat or nat-range
 		()
 
 	range-fields = if input-kind == nat-range
@@ -1640,9 +1609,7 @@ do java-refs
 
 	# Initialize loop cur local
 	match input-kind
-	as array
-		iconst out, 0
-	as nat
+	as array or nat
 		iconst out, 0
 	as nat-range
 		dup32 out
@@ -1679,10 +1646,7 @@ do java-refs
 	unless is-void
 		xload out, java-index-type, end
 		match input-kind
-		as array
-			# size is end
-			()
-		as nat
+		as array or nat
 			# size is end
 			()
 		as nat-range
@@ -1694,10 +1658,7 @@ do java-refs
 		must-pop type
 
 	out-offset local-index? = match input-kind
-	as array
-		# Don't need an offset
-		()
-	as nat
+	as array or nat
 		# Don't need an offset
 		()
 	as nat-range
@@ -1762,9 +1723,7 @@ do java-refs
 -integral-is-64-bit bool(a java-runtime-type)
 	match java-primitive-type! a
 	as T_LONG then true
-	as T_INT then false
-	as T_SHORT then false
-	as T_BYTE then false
+	as T_BYTE or T_SHORT or T_INT then false
 	else then throw unreachable
 
 -emit-match-union void(out code-builder, pos expr-pos, type low-type, a match-union-low-expr) java-expr-ctx
@@ -1772,9 +1731,7 @@ do java-refs
 	matched-type = a.matched.type
 	must-peek matched-type
 	match union-representation matched-type
-	as exception
-		emit-match-union-using-instanceof out, pos, type, a
-	as interface_
+	as exception or interface_
 		emit-match-union-using-instanceof out, pos, type, a
 	as switch
 		emit-match-union-using-switch out, pos, type, a
@@ -1782,7 +1739,7 @@ do java-refs
 		with inner-pos in inner-pos out, pos
 			assert is-range a.switch.case-indices
 			null-case low-expr, non-null-case low-expr = if e = a.else_
-				if a.switch.input-values.only! == 0 then a.cases.only!, e else e, a.cases.only!
+				if a.switch.input-values.only!.bits == 0 then a.cases.only!, e else e, a.cases.only!
 			else
 				only2! map::low-expr[] a.switch.input-values, a.cases[it.to]
 
@@ -1803,12 +1760,12 @@ do java-refs
 do java-expr-ctx
 	matched-type = x.matched.type
 	do with inner-pos in inner-pos out, pos
-	checked-case-type-indices nat64[] array-view, checked-cases low-expr array-view, final-case low-expr = if x.else_
+	checked-case-types scalar-values array-view, checked-cases low-expr array-view, final-case low-expr = if x.else_
 		x.switch.inputs-per-case, x.cases, x.else_
 	else
 		# We don't need to check the type for the final value
 		x.switch.inputs-per-case[0 .. end - 1], x.cases[0 .. end - 1], x.cases[end - 1]
-	for is-last-checked-case, (case-type-indices, expr) in with-is-last zip checked-case-type-indices, checked-cases
+	for is-last-checked-case, (case-type-indices, expr) in with-is-last zip checked-case-types, checked-cases
 		# The final checked case can consume the value (since we won't check it again)
 		unless is-last-checked-case
 			dup32 out
@@ -1890,8 +1847,8 @@ do java-expr-ctx
 			for i in input-values then case-jumps[i.to]
 		else_: else_
 	else
-		ints int32[] = map indices.input-values, it.wrap-to::int64.to
-		sorted-ints, sorted-cases = sort-by-first ints, for::nat[] x in indices.case-indices.values.bits then x.to
+		ints int32[] = map indices.input-values, it.to
+		sorted-ints, sorted-cases = sort-by-first ints, indices.case-indices.values
 		case-jumps, else_ = lookupswitch out, sorted-ints
 		expr-to-jumps:
 			res deferred-jump32 mut[] buffer = for _ in n-exprs then ()
@@ -2207,11 +2164,7 @@ do java-expr-ctx
 			as float64
 				l2d out
 		match as-integral-type! arg-type
-		as int8
-			from-int32[]
-		as int16
-			from-int32[]
-		as int32
+		as int8 or int16 or int32
 			from-int32[]
 		as int64
 			from-int64[]
@@ -2302,19 +2255,14 @@ do java-expr-ctx
 		match arg-type
 		as int8
 			()
-		as int16
-			# There's no 's2b' because integers are always stored as int32 at miminum
-			i2b out
-		as int32
+		as int16 or int32
 			i2b out
 		as int64
 			l2i out
 			i2b out
 	as int16
 		match arg-type
-		as int8
-			()
-		as int16
+		as int8 or int16
 			()
 		as int32
 			i2s out

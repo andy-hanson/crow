@@ -123,44 +123,24 @@ handle-lsp-message lsp-out-action(server server, message lsp-in-message) global
 
 -handle-lsp-request lsp-out-action(server server, request lsp-in-request) global
 	res lsp-out-result? = match params = request.params
-	as build-js-script-params
+	as build-js-script-params or code-lens-params or completion-params or definition-params or document-highlight-params
 		()
-	as code-lens-params
+	as execute-command-params or hover-params or implementation-params or inlay-hint-params or reference-params
 		()
-	as completion-params
-		()
-	as definition-params
-		()
-	as document-highlight-params
-		()
-	as execute-command-params
+	as rename-params or signature-help-params or type-definition-params
 		()
 	as folding-range-params
 		folding-ranges server, params.textDocument.uri
-	as hover-params
-		()
-	as implementation-params
-		()
 	as initialize-params
 		if t = params.trace
 			server.lsp-state.trace := t
 		initialize-result initialize-capabilities
-	as inlay-hint-params
-		()
-	as reference-params
-		()
-	as rename-params
-		()
 	as perf-report-params
 		perf-report-result perf-report
 	as semantic-tokens-params
 		encoded-tokens server, params.textDocument.uri
 	as shutdown-params
 		null-lsp-out-result
-	as signature-help-params
-		()
-	as type-definition-params
-		()
 	if res
 		single-response request, res
 	else
@@ -495,15 +475,7 @@ get-show-ctx show-ctx(server server, force-no-color bool)
 		Hint
 	as warning
 		Warning
-	as check-error
-		Error
-	as name-not-found
-		Error
-	as import-error
-		Error
-	as common-missing
-		Error
-	as parse-error
+	as check-error or name-not-found or import-error or common-missing or parse-error
 		Error
 
 -initialized-action lsp-out-action()

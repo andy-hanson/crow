@@ -215,11 +215,7 @@ size nat32(a type-args)
 	match a
 	as no-type-args
 		0
-	as bogus-type
-		1
-	as type-param-index
-		1
-	as type-inst
+	as bogus-type or type-param-index or type-inst
 		1
 	as type-array
 		a.inner.size
@@ -882,7 +878,7 @@ do
 	res.insts := if res.is-template
 		()::((type-inst, type-args) object-memoizer)
 	else
-		(res, (), res.hash, ())::type-inst
+		(res, (), res.hash, (), ())::type-inst
 	res
 == bool(a type-decl, b type-decl)
 	trusted a 'reference-equal b
@@ -908,9 +904,9 @@ is-template bool(a type-decl)
 	a.n-type-params != 0
 | Given a type `foo[t, u], this is the type `(t, u) foo`.
 instantiated-with-own-type-params type-inst(a type-decl)
-	match x = a.insts
+	match a.insts
 	as type-inst
-		x
+		a.insts
 	as object-memoizer
 		a[a.n-type-params.type-params-type-args]
 
@@ -945,48 +941,34 @@ fill-narrow-types-for-type-decl void(depth nat32, type type-decl, on-cycle void 
 
 -builtin-narrow-types type-decl[](body builtin-type) common-types
 	match body
-	as array then ()
 	as bool then option,
-	as buffer then ()
-	as char8 then ()
-	as char16 then ()
-	as char32 then ()
-	as float32 then ()
 	as float64 then float32.decl,
-	as int8 then ()
 	as int16 then int8.decl,
 	as int32 then int8.decl, int16.decl
 	as int64 then int8.decl, int16.decl, int32.decl
-	as js-any then ()
-	as lambda-data then ()
-	as lambda-mut then ()
-	as lambda-shared then ()
-	as nat8 then ()
 	as nat16 then nat8.decl,
 	as nat32 then nat8.decl, nat16.decl
 	as nat64 then nat8.decl, nat16.decl, nat32.decl
-	as option then () # Option narrowed type is the type argument, can't be determined by the decl
-	as void then ()
-	as weak-ref then ()
+	# Note: For 'option', the narrowed type is the type argument, so we can't determine it from the decl
+	else then ()
 
 -fill-narrow-types-for-type-inst void(type type-inst)
 	forbid type.narrow-types
 	match body = type.decl.body
 	as builtin-type
 		match body
-		as bool
+		as bool or option
 			# Every option is a narrow type of bool. We can't list them all, so omit.
-			()
-		as option
 			# We don't bother for options, they will just be handled specially.
 			()
 		else
 			type.narrow-types := map type.decl.narrow-types!, it.only-inst
 	as sum-type
 		do if body.kind == union_
+		type.listed-members := for member in body.listed-members
+			member.case-type.decl, instantiate-type-inst member.case-type, type.type-args
 		type.narrow-types := with out in build
-			for member in body.listed-members
-				case-type = instantiate-type-inst member.case-type, type.type-args
+			for _, case-type in type.listed-members!
 				unless case-type.narrow-types
 					fill-narrow-types-for-type-inst case-type
 				out ~= case-type
@@ -1065,9 +1047,7 @@ range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 name symbol(a type-decl-source)
 	match a
@@ -1081,25 +1061,19 @@ doc-comment doc-comment-ast(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.doc-comment
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 keyword-range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.keyword-range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 name-range source-range(a type-decl-source)
 	match a
 	as type-decl-ast
 		a.name-range
-	as type-decl-source-java
-		()
-	as type-decl-source-bogus
+	as type-decl-source-java or type-decl-source-bogus
 		()
 can-have-type-params bool(a type-decl-source)
 	match a
@@ -1111,16 +1085,10 @@ can-have-type-params bool(a type-decl-source)
 		false
 can-have-type-params bool(a type-decl-ast)
 	match a.body
-	as builtin-type-ast
+	as builtin-type-ast or record-ast or sum-type-ast
 		true
-	as enum-ast
+	as enum-ast or flags-ast
 		false
-	as flags-ast
-		false
-	as record-ast
-		true
-	as sum-type-ast
-		true
 
 type-inst record force-data, -new
 	decl type-decl
@@ -1132,6 +1100,8 @@ type-inst record force-data, -new
 	| We also don't bother to fill this in for {option} instances since that is easier to handle specially.
 	| This will only be non-empty for unions, numeric types, {array-view} and {buffer-view}.
 	narrow-types mut type-inst[]?
+	# For a union type, this gives all case types of the union, keyed by the decl.
+	listed-members mut type-inst[type-decl]?
 subscript type-inst(decl type-decl, type-arg type-inst)
 	decl[type-arg::type-args]
 subscript type-inst(decl type-decl, type-arg type)
@@ -1145,7 +1115,7 @@ subscript type-inst(decl type-decl, type-args type-args)
 	as object-memoizer
 		trusted memoize insts, type-args, of
 			hash = decl.hash ^ type-args.hash
-			res type-inst = decl, type-args, hash, ()
+			res type-inst = decl, type-args, hash, (), ()
 			# If narrow-types aren't available on the decl yet,
 			# they'll be filled in on the insts immediately after filling them in for the decl.
 			if decl.narrow-types
@@ -1437,8 +1407,7 @@ type-params type-params(a fun-body)
 	as record-field-lens then a.type.type-params
 	as record-field-set then a.type.type-params
 	as sum-type-case-get then a.type.type-params
-	as var-get then ()
-	as var-set then ()
+	as var-get or var-set then ()
 module-uri uri(a fun-body)
 	match a
 	as fun-body-uninitialized then a.module-uri
@@ -2275,21 +2244,7 @@ is-highly-overloaded bool(a fun-name)
 	name-and-arity a and is-highly-overloaded a.name
 is-highly-overloaded bool(name symbol)
 	match name
-	as "==" then true
-	as "<=>" then true
-	as "~=" then true
-	as "~~=" then true
-	as a then true
-	as b then true
-	as c then true
-	as d then true
-	as e then true
-	as f then true
-	as g then true
-	as "is-empty" then true
-	as "size" then true
-	as "show" then true
-	as "some" then true
+	as "==" or "<=>" or "~=" or "~~=" or a or b or c or d or e or f or g or is-empty or size or show or some then true
 	else then false
 
 | Set of functions with the same name and arity.
@@ -2495,13 +2450,7 @@ specs specs(a any-decl)
 		a.specs
 	as spec-decl
 		a.parents
-	as test_
-		()
-	as type-alias
-		()
-	as type-decl
-		()
-	as var-decl
+	as test_ or type-alias or type-decl or var-decl
 		()
 
 type-with-container record(type type, container type-container)
@@ -2859,21 +2808,9 @@ show string(a integral-type)
 	a.to::symbol.to
 is-signed bool(a integral-type)
 	match a
-	as int8
+	as int8 or int16 or int32 or int64
 		true
-	as int16
-		true
-	as int32
-		true
-	as int64
-		true
-	as nat8
-		false
-	as nat16
-		false
-	as nat32
-		false
-	as nat64
+	as nat8 or nat16 or nat32 or nat64
 		false
 signed int-type(a integral-type)
 	match x = a.to::nat-or-int
@@ -2916,13 +2853,7 @@ min-value int64(a integral-type)
 		min-value::int32
 	as int64
 		min-value::int64
-	as nat8
-		0
-	as nat16
-		0
-	as nat32
-		0
-	as nat64
+	as nat8 or nat16 or nat32 or nat64
 		0
 
 max-value nat64(a nat-type)
@@ -3098,18 +3029,14 @@ some bool(a tests, f bool mut(x test_))
 -specs-allow-target bool(a specs, target build-target)
 	every a.all-builtin, of b, _
 		match b
-		as data_
+		as data_ or shared_
 			throw todo
-		as global_
+		as global_ or unsafe
 			true
 		as java
 			target == java
 		as js
 			target == js
-		as shared_
-			throw todo
-		as unsafe
-			true
 
 config record
 	| Empty only for {default-config}
@@ -3228,24 +3155,20 @@ to destructure(a simple-destructure)
 
 name symbol?(a destructure)
 	match a
-	as destructure-ignore
+	as destructure-ignore or destructure-split
 		()
 	as local
 		a.name
-	as destructure-split
-		()
 range source-range(a destructure)
 	match a
 	as destructure-ignore
-		match source = a.source
-		as catch-ast
-			()
-		as type-decl
+		match a.source
+		as catch-ast or type-decl
 			()
 		as ignore-destructure-ast
-			source.range
+			a.source.range
 		as void-destructure-ast
-			source.range
+			a.source.range
 	as local
 		a.local-must-have-range
 	as destructure-split
@@ -3600,27 +3523,44 @@ do
 range source-range(a call-expr-with-which-params) = a.ast.range
 type type(a call-expr-with-which-params) = a.called.return-type
 
-indices record(values scalar-values)
-list-new indices(values nat32[])
+indices record -new
+	values nat[]
+	hash nat
+	is-range bool
+	| 0 for empty indices
+	max nat
+-indices-cache global((indices, indices-key) object-memoizer) = ()
+-indices-ranges global(indices[]) = ()
+-indices-key record(values nat[], hash nat)
+-memoizer-key indices-key(a indices) = a.values, a.hash
+list-new indices(values nat[])
 	values.to
 to json(a indices)
 	a.values.to
-to indices(a nat32)
-	values: (a.to::scalar-value,).to::scalar-values
+to indices(a nat)
+	a,
 indices-range indices(a nat)
-	(0 .. a).to::nat[].to
-to indices(a nat32[])
-	values: to::scalar-values for::nat64[] x in a then x
-any bool(a indices)
-	any a.values
+	do trusted
+	if a >= indices-ranges.size
+		indices-ranges := for i in a + 1
+			(0 .. i).to::nat[].to
+	indices-ranges[a]
+to indices(a nat[])
+	hash mut nat = 0
+	for x in a
+		hash wrap-mul:= 31
+		hash wrap-add:= x
+	trusted memoize indices-cache, (a, hash), of
+		values: a
+		hash: hash
+		is-range: every a.size, a[it] == it
+		max: max-of a else 0
 size nat32(a indices)
 	a.values.size
 subscript nat32(a indices, index nat32)
-	a.values[index].to
-to-array nat32[](a indices)
-	map a.values, {it.to}
-is-range bool(a indices)
-	is-range a.values
+	a.values[index]
+some bool(a indices, f bool mut(x nat))
+	some a.values, f
 
 | This is for a call to 'named-new' where it provides symbols and args.
 | Calls matching parameter names will use {call-expr} or {call-expr-with-which-params}.
@@ -3821,6 +3761,7 @@ to scalar-value(a char8) = a.to,
 to scalar-value(a char32) = a.to,
 to char32(a scalar-value) = a.to::nat64.to::nat32.to
 to scalar-value(a int64) = a.wrap-to,
+to int32(a scalar-value) = a.to::int64.to
 to int64(a scalar-value) = a.bits.wrap-to
 to scalar-value(a nat64) = a,
 to nat8(a scalar-value) = a.to::nat64.to
@@ -3828,25 +3769,32 @@ to nat64(a scalar-value) = a.bits
 to scalar-value(a float64) = a.bits-of,
 to float64(a scalar-value) = from-bits a.bits
 
-scalar-values record
+scalar-values record -new
 	bits nat64[]
-subscript scalar-value(a scalar-values, index nat32)
-	a.bits[index].to
+	hash nat32
+	is-range bool
+-scalar-values-cache global((scalar-values, scalar-values-key) object-memoizer) = ()
+-scalar-values-key record(bits nat64[], hash nat)
+-memoizer-key scalar-values-key(a scalar-values) = a.bits, a.hash
+list-new scalar-values(bits nat64[])
+	bits.to
 to json(a scalar-values)
 	a.bits.to
+to scalar-values(bits nat64[])
+	hash nat = wrap-to deterministic-hash bits
+	trusted memoize scalar-values-cache, (bits, hash), of
+		bits: bits
+		hash: hash
+		is-range: every bits.size, bits[it] == it
 any bool(a scalar-values)
 	any a.bits
-size nat32(a scalar-values)
+size nat(a scalar-values)
 	a.bits.size
 some bool(a scalar-values, f bool mut(x scalar-value))
-	some a.bits, f[it.to]
-to scalar-values(values nat64[])
-	bits: values
-to scalar-values(values scalar-value[])
-	bits: map values, it.to
-is-range bool(a scalar-values)
-	every a.with-index, of i, x
-		x == (i,)
+	some a.bits, of value
+		f[value.to]
+subscript scalar-value(a scalar-values, index nat)
+	a.bits[index].to
 
 literal-scalar-expr record
 	range source-range
@@ -4301,7 +4249,6 @@ diag union
 	diag-import-file
 	diag-import-refers-to-nothing
 	diag-it-identity
-	diag-lambda-cant-be-function-pointer
 	diag-lambda-cant-infer-param-type
 	diag-lambda-closure-mutability
 	diag-lambda-multiple-match
@@ -4489,7 +4436,6 @@ read-error record(uri uri, diag read-file-diag)
 relative-import-reaches-past-root record(imported rel-path)
 diag-import-refers-to-nothing record(name symbol)
 diag-it-identity record
-diag-lambda-cant-be-function-pointer record
 diag-lambda-cant-infer-param-type record
 diag-lambda-closure-mutability record
 	| This will only ever be 'data' or 'shared', since a 'mut' lambda allows everything

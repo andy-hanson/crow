@@ -30,11 +30,7 @@ assert-local-container local-container(a doc-comment-container)
 	match a
 	as any-decl
 		assert-local-container a
-	as enum-or-flags-member
-		throw unreachable
-	as keen-module
-		throw unreachable
-	as record-field
+	as enum-or-flags-member or keen-module or record-field
 		throw unreachable
 	as signature
 		a.container.to
@@ -43,9 +39,8 @@ assert-local-container local-container(a any-decl)
 	as fun-decl then a
 	as spec-decl then a
 	as test_ then a
-	as type-alias then throw unreachable
 	as type-decl then a
-	as var-decl then throw unreachable
+	as type-alias or var-decl then throw unreachable
 to local-container(a signature-container)
 	match a
 	as spec-decl then a
@@ -169,10 +164,10 @@ expression-position-kind union
 	while-or-until-body-expr
 expression-position-literal record
 local-ref record(kind local-ref-kind, local local, refined-type type)
-local-ref-kind enum(get, set, closure-get, closure-set, pointer)
+local-ref-kind enum(get, set, closure-get, closure-set)
 
 expr-keyword enum
-	ampersand
+	as_
 	colon-colon
 	elif_
 	else-after-assert

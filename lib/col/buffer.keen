@@ -93,7 +93,7 @@ export
 | This is O({a} {size}).
 |
 | There is no `move-to` function for `buffer`,
-| since its pointer and size are immutable and so it can't be made empty.
+| since its size is immutable and so it can't be made empty.
 +to[t] t[](a t buffer)
 	a::(t buffer-view) 'to
 

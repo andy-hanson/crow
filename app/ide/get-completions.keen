@@ -57,10 +57,7 @@ do show-type-ctx
 | Don't include completions for very common function names.
 -is-common-name bool(name symbol)
 	match name
-	as "==" then true
-	as "<=>" then true
-	as "hash" then true
-	as "to" then true
+	as "==" or "<=>" or "hash" or "to" then true
 	else then false
 
 -type-container-for type-container(a called-decl)

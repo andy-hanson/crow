@@ -110,9 +110,7 @@ import
 | O(n^2) but it doesn't matter since n <= 4
 -has-duplicate-keys[k, v] bool(a (k, v) array-view) k key
 	match a.size
-	as 0
-		false
-	as 1
+	as 0 or 1
 		false
 	as 2
 		a[0].a == a[1].a
@@ -293,9 +291,7 @@ do k key
 				child-res
 		else
 			match action = f[]
-			as no-change
-				(), (), ()
-			as remove
+			as no-change or remove
 				(), (), ()
 			as insert
 				new-leaf (k, v)[] = (key, action.value),
@@ -349,9 +345,7 @@ do k key
 		pairs (k, v)[] = with out in build total-size
 			for child-index, child in with-index a
 				match x = if child-index == which then new-child else child
-				as frozen-map
-					throw unreachable
-				as inner-node
+				as frozen-map or inner-node
 					throw unreachable
 				as array
 					out ~~= x
@@ -383,9 +377,7 @@ do k key
 			new-value: action.value
 	else
 		match action = f[]
-		as no-change
-			(), (), ()
-		as remove
+		as no-change or remove
 			(), (), ()
 		as insert
 			new-node (k, v) node = if a.size >= leaf-max-size

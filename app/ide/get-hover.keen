@@ -162,9 +162,7 @@ get-hover hover?(program program, params hover-params) show-ctx
 
 -hover-for-doc-ref string(a position-doc-ref) show-type-ctx
 	match ref = a.ref
-	as doc-comment-reference-bogus
-		""
-	as doc-comment-reference-context
+	as doc-comment-reference-bogus or doc-comment-reference-context
 		""
 	as called-spec-sig
 		"References {show-called-spec-sig quoted, a.container.type-container-for, ref}"
@@ -238,10 +236,8 @@ get-hover hover?(program program, params hover-params) show-ctx
 
 -expr-keyword-hover string(keyword expr-keyword)
 	match keyword
-	as ampersand
-		quote
-			Gets a pointer to an expression.
-			This does not allocate and so is unsafe. This only works for certain expressions.
+	as as_
+		"Introduces a single branch of the 'match'."
 	as colon-colon
 		"Provides an expected type for the expression to its left."
 	as elif_
@@ -425,26 +421,14 @@ get-hover hover?(program program, params hover-params) show-ctx
 		show-called x.called, type-container
 	as local-ref
 		desc = match x.kind
-		as get
+		as get or closure-get
 			"Gets local variable"
-		as closure-get
-			"Gets local variable"
-		as set
+		as set or closure-set
 			"Sets local variable"
-		as closure-set
-			"Sets local variable"
-		as pointer
-			"Gets pointer to local variable"
 		closure = match x.kind
-		as get
+		as get or set
 			""
-		as set
-			""
-		as pointer
-			""
-		as closure-get
-			" (through closure)"
-		as closure-set
+		as closure-get or closure-set
 			" (through closure)"
 		"{desc} {show-name x.local.name}{closure}."
 	as logical-expr
@@ -458,22 +442,13 @@ get-hover hover?(program program, params hover-params) show-ctx
 		as option-or
 			"The 'or' expression will be the left option if it is non-empty, else the right option."
 	as match-enum-expr
-		match-hover type-container, "enum ", x.enum-type
+		match-hover type-container, "enum", x.enum-type
 	as match-scalar-expr
-		match-hover type-container, "", x.matched-type
+		match-hover type-container, (), x.matched-type
 	as match-string-like-expr
-		match-hover type-container, "", x.matched-type
+		match-hover type-container, (), x.matched-type
 	as match-sum-type-expr
-		type-desc = match x.sum-type-body.kind
-		as interface_
-			"interface "
-		as java-interface
-			"Java interface "
-		as union_
-			"union "
-		as variant_
-			"variant "
-		match-hover type-container, type-desc, x.sum-type
+		match-hover type-container, x.sum-type-body.kind.show-sum-type-kind-lower-case, x.sum-type
 	as the-expr
 		"Gets the context value of type {show-type-quoted (x.type, type-container)}."
 	as then-if-expr
@@ -532,7 +507,7 @@ get-hover hover?(program program, params hover-params) show-ctx
 
 -match-hover string
 	type-container type-container
-	type-desc string
+	type-desc string?
 	matched-type type-inst
 do show-type-ctx
-	"Match on {type-desc}{show-type-quoted (matched-type, type-container)}."
+	"Match on {if type-desc then "{type-desc} "}{show-type-quoted (matched-type, type-container)}."

@@ -110,7 +110,7 @@ check-low-program void(a low-program) low-common-types
 		check-expr-any-type a.matched
 		case-types = a.union_.members
 		for input in a.switch.input-values
-			assert input < case-types.size
+			assert input.to::nat < case-types.size
 		for case_ in a.cases
 			check-expr type, case_
 		if e = a.else_
@@ -259,34 +259,21 @@ do ctx
 	a low-expr
 	b low-expr
 do ctx
-	check = of return-type low-type, a-type low-type, b-type low-type
-		type is return-type
-		check-expr a-type, a
-		check-expr b-type, b
-	binary-integral = of
-		assert as-integral-type type
+	binary = of
 		check-expr type, a
 		check-expr type, b
-	binary-float = of
-		assert as-float-type type
-		check-expr type, a
-		check-expr type, b
-	binary-float-or-integral = of
-		assert as-float-type type or as-integral-type type
-		check-expr type, a
-		check-expr type, b
-	compare-primitive = of
-		assert is-bool type
-		assert is-bool a.type or is-char8-or-32 a.type or as-integral-type a.type or as-float-type a.type
+	compare-same-type = of
+		type is bool
+		a.type is b.type
 		check-expr a.type, a
-		check-expr a.type, b
+		check-expr b.type, b
 	match fun
-	as bitwise-and
-		binary-integral[]
-	as bitwise-or
-		binary-integral[]
-	as bitwise-xor
-		binary-integral[]
+	as bitwise-and or bitwise-or or bitwise-xor or rotate-left or rotate-right
+		assert as-integral-type type
+		binary[]
+	as unsafe-bit-shift-left or unsafe-bit-shift-right or wrap-add or wrap-mul or wrap-sub
+		assert as-integral-type type
+		binary[]
 	as call-lambda
 		assert _, return-type, param-type = as-lambda a.type
 		type is return-type
@@ -297,50 +284,24 @@ do ctx
 		a.type is b.type
 		check-expr a.type, a
 		check-expr b.type, b
-	as compare-less
-		compare-primitive[]
-	as compare-less-or-equal
-		compare-primitive[]
-	as compare-greater
-		compare-primitive[]
-	as compare-greater-or-equal
-		compare-primitive[]
-	as equal-exact
-		check[bool, a.type, a.type]
-	as equal-float-ieee
-		compare-primitive[]
-	as less-float-ieee
-		compare-primitive[]
-	as not-equal-exact
-		check[bool, a.type, b.type]
-	as rotate-left
-		binary-integral[]
-	as rotate-right
-		binary-integral[]
-	as unsafe-add-float
-		binary-float[]
+	as compare-less or compare-less-or-equal or compare-greater or compare-greater-or-equal
+		assert is-bool a.type or is-char8-or-32 a.type or as-integral-type a.type or as-float-type a.type
+		compare-same-type[]
+	as equal-exact or not-equal-exact
+		compare-same-type[]
+	as equal-float-ieee or less-float-ieee
+		assert as-float-type a.type
+		compare-same-type[]
+	as unsafe-add-float or unsafe-mul-float or unsafe-sub-float
+		assert as-float-type type
+		binary[]
 	as unsafe-at
 		type is as-array-or-buffer! a.type
 		check-expr a.type, a
 		check-expr nat32, b
-	as unsafe-bit-shift-left
-		binary-integral[]
-	as unsafe-bit-shift-right
-		binary-integral[]
-	as unsafe-div
-		binary-float-or-integral[]
-	as unsafe-mod
-		binary-float-or-integral[]
-	as unsafe-mul-float
-		binary-float[]
-	as unsafe-sub-float
-		binary-float[]
-	as wrap-add
-		binary-integral[]
-	as wrap-mul
-		binary-integral[]
-	as wrap-sub
-		binary-integral[]
+	as unsafe-div or unsafe-mod
+		assert as-float-type type or as-integral-type type
+		binary[]
 
 -check-builtin-ternary void
 	type low-type

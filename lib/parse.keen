@@ -215,16 +215,8 @@ import
 		_ = take-next a
 +is-space bool(a char8)
 	match a
-	as " "
-		true
-	as "\r"
-		true
-	as "\n"
-		true
-	as "\t"
-		true
-	else
-		false
+	as " " or "\r" or "\n" or "\t" then true
+	else then false
 
 | A double-quoted string as in JSON, including escape sequences.
 +quoted-string string grammar()

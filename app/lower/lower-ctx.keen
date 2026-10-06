@@ -482,14 +482,12 @@ do lower-context, lower-funs
 			method-impls: n-of body.methods.size, ()
 		the::lower-context.sum-types[res] := (), cases
 		match body.kind
-		as interface_
+		as interface_ or variant_
 			()
 		as java-interface
 			the::lower-context.deferred-java-interfaces ~= res
 		as union_
 			finish-sum-type-cases res, cases
-		as variant_
-			()
 
 	the common-types = the::lower-context.program-with-main.program.common-types
 	for x in inst.decl.sum-type-cases

@@ -79,36 +79,12 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 
 -peek-token-expression bool(allowed-block bool) parser
 	match peek
-	as and_
+	as and_ or brace-right or bracket-right or catch_ or comma or else_ or end-of-file or paren-right or name-after-tick
 		false
-	as brace-right
-		false
-	as bracket-right
-		false
-	as catch_
-		false
-	as comma
-		false
-	as else_
-		false
-	as end-of-file
-		false
-	as paren-right
-		false
-	as name-after-tick
+	as newline-dedent or newline-same-indent or operator-binary or or_ or then_
 		false
 	as newline-indent
 		allowed-block
-	as newline-dedent
-		false
-	as newline-same-indent
-		false
-	as operator-binary
-		false
-	as or_
-		false
-	as then_
-		false
 	else
 		true
 
@@ -268,23 +244,9 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	match a
 	as ".."
 		op-range
-	as "~"
+	as "~" or "~~"
 		op-tilde
-	as "~~"
-		op-tilde
-	as "=="
-		op-comparison
-	as "!="
-		op-comparison
-	as "<"
-		op-comparison
-	as "<="
-		op-comparison
-	as ">"
-		op-comparison
-	as ">="
-		op-comparison
-	as "<=>"
+	as "==" or "!=" or "<" or "<=" or ">" or ">=" or "<=>"
 		op-comparison
 	as "|"
 		op-bar
@@ -292,19 +254,11 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 		op-caret
 	as "&"
 		op-and
-	as "<<"
+	as "<<" or ">>"
 		op-shift
-	as ">>"
-		op-shift
-	as "+"
+	as "+" or "-"
 		op-add-subtract
-	as "-"
-		op-add-subtract
-	as "*"
-		op-times-divide
-	as "/"
-		op-times-divide
-	as "%"
+	as "*" or "/" or "%"
 		op-times-divide
 	as "**"
 		op-pow
@@ -641,7 +595,7 @@ do parser
 	allowed = arg-ctx.allowed
 	if-allow-block = of kind parse-diag-needs-block-ctx, cb expr-ast mut()
 		if-allow-block start, allowed, kind, cb
-	do if not is-newline-token peek or peek == newline-indent and allowed >= block else
+	do if not peek-end-of-line or peek == newline-indent and allowed >= block else
 		bad-next-token
 	match take-next-token
 	as paren-left

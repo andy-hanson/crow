@@ -44,12 +44,8 @@ import
 	a.capacity != 0
 -any bool(a node)
 	match a
-	as inner-node
-		true
-	as array
-		true
-	as empty
-		false
+	as inner-node or array then true
+	as empty then false
 
 | This is O(n) where 'n' is the result.
 +size nat32(a index-set)

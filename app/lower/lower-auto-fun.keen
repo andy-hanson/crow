@@ -353,7 +353,7 @@ do lower-ctx
 		:: match-scalar-low-expr
 		range: range
 		matched: param-get
-		switch: simple-switch-indices map::nat64[] members, it.value
+		switch: simple-switch-indices map::scalar-values members, it.value
 		case-exprs: for member in members
 			gen-constant-some option-type, range, member.value.to
 		else_: gen-empty-option option-type, range
@@ -464,7 +464,7 @@ do lower-and-expr-ctx, lower-funs
 					if more-cases-are-greater then greater else less
 			default low-expr? = unless cases.size == members.size
 				if more-cases-are-greater then less else greater
-			match-union-low-expr range, p1, member-indices.to.simple-switch-indices, cases, default
+			match-union-low-expr range, p1, member-indices.simple-switch-indices, cases, default
 	else
 		b-case-index low-local = union-kind::low-generated-local-kind, nat64
 		get-b-case-index = local-get-low-expr range, b-case-index

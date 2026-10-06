@@ -137,7 +137,5 @@ do check-ctx, common-types, types-get, funs-map
 
 -must-be-auto bool(a symbol)
 	match a
-	as "==" then true
-	as "<=>" then true
-	as "hash" then true
+	as "==" or "<=>" or "hash" then true
 	else then false

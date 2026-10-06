@@ -234,11 +234,7 @@ do k sorted-key
 		- removed-value r
 		- root: match node = new-node r
 		as branch
-			match size node.children
-			as 1
-				node.children[0]
-			else
-				node
+			only node.children else node
 		as array
 			node
 -removed[k, v] record

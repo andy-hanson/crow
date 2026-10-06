@@ -48,9 +48,7 @@ java-method-kind java-method-kind(a union-info, fun low-fun)
 			static-method-of-class
 		as interface_
 			interface_
-		as switch
-			static-method-of-class
-		as nullable
+		as nullable or switch
 			static-method-of-class
 	else
 		static-method-of-class
@@ -68,12 +66,11 @@ java-method-kind java-method-kind(a union-info, fun low-fun)
 -can-implement-interface bool(a low-type)
 	match a.body
 	# TODO: builtin types could implement interfaces if we generate a class for them instead of using Java's
-	as builtin-type then false
-	as low-enum then true
-	as low-flags then true
-	as low-java-class then false
-	as low-record then true
-	# TODO: This could be allowed in some cases.
-	# Just not out for 'union(u1, u2)' where u1 and u2 are unions that have some members in common.
-	as low-union then false
-	as low-type-body-deferred then throw unreachable
+	# TODO: We could usually allow a union to implement an interface,
+	# but we can't union two unions that have some case types in common.
+	as builtin-type or low-java-class or low-union
+		false
+	as low-enum or low-flags or low-record
+		true
+	as low-type-body-deferred
+		throw unreachable

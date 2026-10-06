@@ -19,9 +19,7 @@ try-take-visibility visibility?() parser
 	match peek
 	as list-dash
 		private
-	as operator-binary
-		as-visibility next-symbol
-	as operator-prefix
+	as operator-binary or operator-prefix
 		as-visibility next-symbol
 	else
 		()

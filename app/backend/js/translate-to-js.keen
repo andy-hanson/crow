@@ -110,19 +110,13 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 	extends js-name? = if program.exception-case-types[a]
 		js-name exception
 	match a.body
-	as builtin-type
+	as builtin-type or low-enum or low-flags
 		()
-	as low-enum
-		()
-	as low-flags
-		()
-	as low-java-class
-		throw unreachable
 	as low-record
 		class-for-record a, extends, a.body
 	as low-union
 		class-for-union a, extends
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
 -gen-is-type js-expr(source source, get js-expr, a low-type) to-js-ctx
@@ -133,19 +127,15 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 		gen-is-nat source, get, x.storage
 	as low-flags
 		gen-is-nat source, get, x.storage
-	as low-java-class
-		throw unreachable
 	as low-record
 		gen-instanceof source, get, to-ref source, a
-	as low-union
-		throw unreachable
-	as low-type-body-deferred
+	as low-java-class or low-union or low-type-body-deferred
 		throw unreachable
 
 -gen-is-builtin-type js-expr(source source, get js-expr, type low-type, kind builtin-type)
 	instanceof = of x string
 		gen-instanceof source, get, gen-identifier source, no-prefix x
-	typeof  = of x string
+	typeof = of x string
 		gen-typeof-is source, get, x
 	match kind
 	as array or buffer
@@ -169,11 +159,7 @@ translate-to-js js-and-map(program low-program, source-map-name string?) show-ct
 
 -gen-is-nat js-expr(source source, get js-expr, type nat-type)
 	gen-typeof-is source, get, match type
-	as nat8
-		"number"
-	as nat16
-		"number"
-	as nat32
+	as nat8 or nat16 or nat32
 		"number"
 	as nat64
 		"bigint"
@@ -931,9 +917,7 @@ do
 				lambda = to-js-expr a.args[method.body.low-fun-body-method!.method-index]
 				arity = method.params.size - 1
 				match arity
-				as 0
-					lambda
-				as 1
+				as 0 or 1
 					lambda
 				as 2
 					gen-call-global source, "__lambdaToMethod2", lambda
@@ -1132,7 +1116,7 @@ do to-expr
 		as block-statements
 			cases js-switch-case[] = for values, block in zip a.switch.inputs-per-case, x.blocks[0 .. end - 1]
 				values: for value in values
-					constant-integral source, a.matched-integral-type, (value,)
+					constant-integral source, a.matched-integral-type, value
 				then_: maybe-break-switch-case source, type, block
 			gen-switch source, matched, cases, x.blocks[end - 1] 'to
 -translate-match-union js-expr-or-block-statement(source source, type low-type, x match-union-low-expr) to-expr
@@ -1144,9 +1128,14 @@ do to-expr
 		cases low-local-and-expr[] = map x.cases, {(), it}
 		match-union source, type, matched, else_, x.union-type, x.switch, cases
 
--gen-equals-any js-expr(source source, matched js-expr, matched-integral-type char-or-integral-type, values nat64[])
+-gen-equals-any js-expr
+	source source
+	matched js-expr
+	matched-integral-type char-or-integral-type
+	values scalar-values
+do
 	gen-or source, for value in values
-		gen-eq-eq-eq source, matched, constant-integral source, matched-integral-type, (value,)
+		gen-eq-eq-eq source, matched, constant-integral source, matched-integral-type, value
 
 -match-union js-expr-or-block-statement
 	source source
@@ -1249,8 +1238,8 @@ do to-expr
 		to-block-statement e.expr
 	else
 		gen-throw source, get-error 'to
-	asdf = simple-switch-indices a.exception-member-indices.values.bits
-	catch_ = match-union source, type, get-error, else-block, exception, asdf, a.catch-cases
+	indices = simple-switch-indices a.exception-member-indices
+	catch_ = match-union source, type, get-error, else-block, exception, indices, a.catch-cases
 	# catch_ will always be a block statement since the else-block is
 	gen-try-catch source, tried, error, catch_.js-block-statement! 'to
 
@@ -1363,8 +1352,6 @@ do to-expr
 		constant-nat source, x.storage, a
 	as low-flags
 		constant-nat source, x.storage, a
-	as low-java-class
-		throw unreachable
 	as low-record
 		match a
 		as constant-record
@@ -1384,7 +1371,7 @@ do to-expr
 			gen-null source
 		else
 			throw unreachable
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 
 -translate-constant-builtin js-expr(source source, type low-type, builtin_ builtin-type, a constant) to-js-ctx
@@ -1409,11 +1396,11 @@ do to-expr
 			gen-null source
 		else
 			throw unreachable
-	as char8
+	as char8 or nat8
 		constant-nat source, nat8, a
-	as char16
+	as char16 or nat16
 		constant-nat source, nat16, a
-	as char32
+	as char32 or nat32
 		constant-nat source, nat32, a
 	as float32
 		gen-number32 source, as-float a
@@ -1446,12 +1433,6 @@ do to-expr
 	as lambda-shared
 		assert constant-gc-safe-value a
 		gen-null source
-	as nat8
-		constant-nat source, nat8, a
-	as nat16
-		constant-nat source, nat16, a
-	as nat32
-		constant-nat source, nat32, a
 	as nat64
 		constant-nat source, nat64, a
 	as option
@@ -1530,9 +1511,7 @@ add-local-and-assign js-expr(local temp-local, then_ js-expr) to-expr
 		gen-binary source, bitwise-or, arg, gen-number64 source, 0
 	as int64
 		gen-as-int64 source, arg
-	as nat8
-		gen-bitwise-and source, arg, gen-number64 source, type.max-value.to::float64
-	as nat16
+	as nat8 or nat16
 		gen-bitwise-and source, arg, gen-number64 source, type.max-value.to::float64
 	as nat32
 		gen-to-nat32 source, arg
@@ -1631,38 +1610,23 @@ do to-expr
 		array-for-nat-type body.storage
 	as low-flags
 		array-for-nat-type body.storage
-	as low-java-class
-		throw unreachable
-	as low-record
+	as low-record or low-union
 		Array
-	as low-union
-		Array
-	as low-type-body-deferred
+	as low-java-class or low-type-body-deferred
 		throw unreachable
 -array-for-builtin-type js-array-type(a builtin-type)
 	match a
-	as array then Array
-	as bool then Array
-	as buffer then Array
-	as char8 then Uint8Array
-	as char16 then Uint16Array
-	as char32 then Uint32Array
+	as array or bool or buffer or js-any or lambda-data or lambda-mut or lambda-shared or void or weak-ref then Array
+	as char8 or nat8 then Uint8Array
+	as char16 or nat16 then Uint16Array
+	as char32 or nat32 then Uint32Array
 	as float32 then Float32Array
 	as float64 then Float64Array
 	as int8 then Int8Array
 	as int16 then Int16Array
 	as int32 then Int32Array
 	as int64 then BigInt64Array
-	as js-any then Array
-	as lambda-data then Array
-	as lambda-mut then Array
-	as lambda-shared then Array
-	as nat8 then Uint8Array
-	as nat16 then Uint16Array
-	as nat32 then Uint32Array
 	as nat64 then BigUint64Array
 	as option then throw unreachable
-	as void then Array
-	as weak-ref then Array
 -array-for-nat-type js-array-type(a nat-type)
 	array-for-builtin-type a.to
