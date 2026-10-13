@@ -125,7 +125,7 @@ target-for-position target?(pos position)
 		called-target x.called
 	as local-ref
 		record-field x.local.source else position-local a.container.to, x.local
-	as then-if-expr
+	as then-if-or-unless-expr
 		called-target x.called
 	else
 		()

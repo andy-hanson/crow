@@ -1,0 +1,21 @@
+import
+	keen/enums
+
+test
+	prev x::e is ()
+	prev y::e is x
+	prev z::e is y
+test
+	next x::e is y
+	next y::e is z
+	next z::e is ()
+test
+	prev-cycle x::e is z
+	prev-cycle y::e is x
+	prev-cycle z::e is y
+test
+	next-cycle x::e is y
+	next-cycle y::e is z
+	next-cycle z::e is x
+
+-e enum(x, y, z)

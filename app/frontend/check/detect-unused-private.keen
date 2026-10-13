@@ -113,6 +113,8 @@ gather-used used(module keen-module) common-types
 				_ = remove unused-mut-locals, ref
 			as comment
 				()
+			as provide-parameter-value
+				()
 			else
 				throw unreachable
 		as spec-decl

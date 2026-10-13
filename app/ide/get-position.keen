@@ -141,9 +141,9 @@ do type-ctx
 do type-ctx
 	match ast = modifiers[index]
 	as modifier-keyword-ast
-		if ast.type-arg and has-pos ast.type-arg.range, pos and ast.keyword == case_
-			which = count modifiers[0 .. index], {modifier-keyword-ast it and it.keyword == case_}
-			position-in-type sum-type-cases[which].sum-type, ast.type-arg, pos
+		if ast.keyword == case_ and ast.type-arg and name-and-range ast.type-arg and has-pos ast.type-arg.range, pos
+			do if case_ = find sum-type-cases, it.ast!.keyword-pos == ast.keyword-pos
+			position-in-type case_.sum-type, ast.type-arg, pos
 		else
 			position-modifier the::type-container, ast.keyword
 	as spec-use-ast
@@ -508,7 +508,7 @@ do
 	as the-expr
 		expression-position-at[a.ast.keyword-range, a] or
 		position-in-type a.type, a.ast.type, pos.pos
-	as then-if-expr
+	as then-if-or-unless-expr
 		keyword-at[a.ast.then-if-range, then-if] or
 		keyword-at[a.ast.then-range, then-if] or
 		call[a.ast, a]
@@ -562,7 +562,7 @@ do
 			then-after-unless-without-else
 		else
 			then-after-if-without-else
-	as if-then-else
+	as if-then-elif or if-then-else
 		if is-unless
 			then-after-unless-with-else
 		else
@@ -616,7 +616,7 @@ do
 		()
 	as name-and-range
 		has-pos a.range, pos
-	as then-if-ast
+	as then-if-or-unless-ast
 		has-pos a.name-range, pos
 	as typed-ast
 		()

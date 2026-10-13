@@ -172,8 +172,8 @@ do
 		check-shared ast, expected
 	as the-ast
 		check-the ast, expected
-	as then-if-ast
-		check-then-if ast, (check-condition ast.condition), expected
+	as then-if-or-unless-ast
+		check-then-if-or-unless ast, (check-condition ast.condition), expected
 	as throw-ast
 		check-throw ast, expected
 	as trusted-ast

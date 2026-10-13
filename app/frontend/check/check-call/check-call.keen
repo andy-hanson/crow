@@ -84,14 +84,14 @@ check-call expr(ast call-subscript-ast, expected expected) check-expr-ctx, check
 check-call expr(ast call-question-subscript-ast, expected expected) check-expr-ctx, check-expr
 	check-option-call ast, expected, ast.subscript-range, subscript-2, (ast.left, ast.right)
 
-check-then-if expr
-	ast then-if-ast
+check-then-if-or-unless expr
+	ast then-if-or-unless-ast
 	condition expr
 	expected expected
 do check-expr-ctx, check-expr, check-expr-with-known-value
 	first mut expr? = ()
 	then-args expr buffer = trusted uninitialized-buffer ast.then-args.size
-	known = known-value condition, true
+	known = known-value condition, not ast.is-unless
 	cb-arg cb-check-arg-void = of i, arg-expected
 		if i == 0
 			first := check-expr ast.first, arg-expected
@@ -104,7 +104,7 @@ do check-expr-ctx, check-expr, check-expr-with-known-value
 		type-arg: ()
 	if called = check-call-cb info, expected, cb-arg, {true}
 		check expected, called.return-type,
-			then-if-expr ast, first!, condition, called, trusted cast-immutable then-args
+			then-if-or-unless-expr ast, first!, condition, called, trusted cast-immutable then-args
 	else
 		:: bogus-call-expr
 		ast: ast
@@ -376,7 +376,6 @@ do check-expr-ctx, check-expr
 		args expr buffer = trusted uninitialized-buffer arg-asts.size
 		check-arg void mut(index nat32, arg-expected expected) = of index, arg-expected
 			arg-ast = arg-asts[index]
-			# The call is expecting a non-option, but change that to be expecting an option.
 			_ = check-with-modify-expected arg-expected, it.to-option, of optional-arg-expected
 				expr = check-expr arg-ast, optional-arg-expected
 				option = inferred optional-arg-expected

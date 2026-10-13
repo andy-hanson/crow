@@ -1,4 +1,5 @@
 import
+	../enums
 	./mut-enum-map
 
 | Efficient "map" with an enum key.
@@ -21,7 +22,7 @@ import
 		v else ().to::v
 
 +list-new[k, v] (k, v) enum-map(elements (k, v)[]) k enum-like, v new
-	check-valid-enum@k
+	assert-plain-enum@k
 	values v buffer = map members::k[], {}
 	for k, v in elements
 		values[k.to] := v
@@ -38,7 +39,7 @@ import
 
 | Make an enum map by providing a value for each key in a loop.
 +make[k, v] (k, v) enum-map(f v mut(key k)) k enum-like
-	check-valid-enum@k
+	assert-plain-enum@k
 	values: map members::k[], f
 
 | Always the number of members in the enum.

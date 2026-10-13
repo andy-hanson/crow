@@ -292,10 +292,23 @@ local-refinement record(local local, refined-type type)
 		if not is-mutable local and inner = unwrap-option local.type
 			f[local, inner]
 	as logical-expr
-		do if a.expr-value
-		if expr.kind == bool-and-bool
-			some (condition-knowledge expr.left, true), f or
-			some (condition-knowledge expr.right, true), f
+		match expr.kind
+		as bool-and-bool
+			# if `x and y` is true, we know `not x` and `not y`
+			if a.expr-value
+				# The `or` here is for iteration (`some` stops on the first `true` result)
+				some (condition-knowledge expr.left, true), f or
+				some (condition-knowledge expr.right, true), f
+		as bool-or-bool
+			# if `x or y` is false, we know `not x` and `not y`
+			unless a.expr-value
+				# Note the 'or' here is for iteration.
+				some (condition-knowledge expr.left, false), f or
+				some (condition-knowledge expr.right, false), f
+		as option-else
+			()
+		as option-or
+			()
 	as trusted-expr
 		some (condition-knowledge expr.inner, a.expr-value), f
 	as unpack-option

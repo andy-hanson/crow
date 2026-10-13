@@ -256,6 +256,8 @@ get-diagnostic-severity diagnostic-severity(a diag)
 		lint
 	as parse-diag-doc-comment-unused
 		lint
+	as parse-diag-elif-preferred
+		lint
 	as parse-diag-equals-left
 		parse-error
 	as parse-diag-expected

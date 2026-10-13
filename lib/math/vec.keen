@@ -171,6 +171,15 @@ region named directions
 +length float64(a vec3-64)
 	square-root a.length-squared
 
++distance-squared float32(a vec2-32, b vec2-32)
+	length-squared a - b
++distance-squared float64(a vec2-64, b vec2-64)
+	length-squared a - b
++distance float32(a vec2-32, b vec2-32)
+	length a - b
++distance float64(a vec2-64, b vec2-64)
+	length a - b
+
 | Scale vector length to 1.
 | Throws if length is 0.
 +normalize vec2-32(a vec2-32)
@@ -241,3 +250,14 @@ region named directions
 +rotate-right vec2-64(a vec2-64)
 	a.y, -a.x
 
+| Rotate counter-clockwise around the origin
++rotate vec2-32(a vec2-32, radians float32)
+	cos = cos radians
+	sin = sin radians
+	x: cos * a.x - sin * a.y
+	y: sin * a.x + cos * a.y
++rotate vec2-64(a vec2-64, radians float64)
+	cos = cos radians
+	sin = sin radians
+	x: cos * a.x - sin * a.y
+	y: sin * a.x + cos * a.y

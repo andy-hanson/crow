@@ -376,15 +376,11 @@ get-hover hover?(program program, params hover-params) show-ctx
 			"{do-if}\nOtherwise, the 'do if' evaluates to '()'."
 		as do-if-else
 			"{do-if}\nOtherwise, evaluates the expression after 'else'."
-		as if-elif
+		as if-elif or if-then-elif
 			"{if_}\nOtherwise, evaluates the 'elif' branch."
-		as if-else
+		as if-else or if-then-else
 			"{if_}\nOtherwise, evaluates the 'else' branch."
-		as if-then
-			"{if_}\nOtherwise, the 'if' evaluates to '()'."
-		as if-then-else
-			"{if_}\nOtherwise, evaluates the 'else' branch."
-		as if-without-else
+		as if-then or if-without-else
 			"{if_}\nOtherwise, the 'if' evaluates to '()'."
 	as is-or-isnt-expr
 		if x.is-isnt
@@ -451,7 +447,7 @@ get-hover hover?(program program, params hover-params) show-ctx
 		match-hover type-container, x.sum-type-body.kind.show-sum-type-kind-lower-case, x.sum-type
 	as the-expr
 		"Gets the context value of type {show-type-quoted (x.type, type-container)}."
-	as then-if-expr
+	as then-if-or-unless-expr
 		show-called x.called, type-container
 	as try-expr
 		caught = if c = only x.catches

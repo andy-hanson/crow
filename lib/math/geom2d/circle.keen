@@ -10,3 +10,7 @@ import
 	right: a.center.x + a.radius
 	bottom: a.center.y - a.radius
 	top: a.center.y + a.radius
+| Circle sharing {a}'s center that is as large as possible without exceeding it
++circle-inside circle32(a aa-rect32)
+	center: a.center
+	radius: a.shorter-side / 2

@@ -1,6 +1,6 @@
 import
-	keen/bits
-	./mut-enum-map
+	../bits
+	../enums
 
 +mut-enum-set[t] record mut
 	~bits mut nat buffer

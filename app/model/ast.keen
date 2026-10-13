@@ -88,18 +88,20 @@ end pos(a the-ast)
 keyword-range source-range(a the-ast)
 	range-of-start-and-length a.start, "the"
 
-then-if-ast record
+then-if-or-unless-ast record
 	first expr-ast
 	then-if-keyword-pos pos
+	is-unless bool
 	condition expr-ast
 	then-keyword-pos pos
 	fun-pos pos
 	fun-name name-and-arity
 	fun-type-annotation type-ast?
 	then-args expr-ast[]
-then-if-ast then-if-ast
+then-if-ast then-if-or-unless-ast
 	first expr-ast
 	then-if-keyword-pos pos
+	is-unless bool
 	condition expr-ast
 	then-keyword-pos pos
 	fun-name name-and-range
@@ -107,17 +109,17 @@ then-if-ast then-if-ast
 	args expr-ast[]
 do
 	name = get-name-and-arity fun-name.name, 1 + args.size
-	first, then-if-keyword-pos, condition, then-keyword-pos, fun-name.start, name, fun-type-annotation, args
-range source-range(a then-if-ast) = a.start, a.end
-then-if-range source-range(a then-if-ast)
+	first, then-if-keyword-pos, is-unless, condition, then-keyword-pos, fun-name.start, name, fun-type-annotation, args
+range source-range(a then-if-or-unless-ast) = a.start, a.end
+then-if-range source-range(a then-if-or-unless-ast)
 	range-of-start-and-length a.then-if-keyword-pos, "then if"
-then-range source-range(a then-if-ast)
+then-range source-range(a then-if-or-unless-ast)
 	range-of-start-and-length a.then-keyword-pos, "then"
-fun-name-range source-range(a then-if-ast)
+fun-name-range source-range(a then-if-or-unless-ast)
 	range name-and-range a.fun-pos, a.fun-name.name
-start pos(a then-if-ast)
+start pos(a then-if-or-unless-ast)
 	a.first.start
-end pos(a then-if-ast)
+end pos(a then-if-or-unless-ast)
 	if any a.then-args
 		a.then-args[end - 1].end
 	elif a.fun-type-annotation
@@ -227,7 +229,7 @@ expr-ast union
 	seq-ast
 	shared-ast
 	the-ast
-	then-if-ast
+	then-if-or-unless-ast
 	throw-ast
 	trusted-ast
 	try-ast
@@ -500,6 +502,7 @@ if-ast-kind enum
 	| Has 'if' and 'else' keywords, no 'elif' (though this may begin as an 'elif')
 	if-else
 	if-then
+	if-then-elif
 	if-then-else
 end pos(a if-ast)
 	if x = a.second-branch
@@ -514,13 +517,13 @@ is-condition-negated bool(a if-ast)
 	match a.kind
 	as do-if or do-if-else
 		not a.is-unless
-	as if-elif or if-else or if-without-else or if-then or if-then-else
+	as if-elif or if-else or if-without-else or if-then or if-then-elif or if-then-else
 		a.is-unless
 first-keyword-range source-range(a if-ast)
 	range-of-start-and-length a.start, match a.kind
 	as do-if or do-if-else
 		if a.is-unless then "do unless" else "do if"
-	as if-elif or if-else or if-then or if-then-else or if-without-else
+	as if-elif or if-else or if-then or if-then-elif or if-then-else or if-without-else
 		if a.is-unless then "unless" else "if"
 second-keyword-range source-range?(a if-ast)
 	keyword char8[]? = match a.kind
@@ -528,13 +531,16 @@ second-keyword-range source-range?(a if-ast)
 		()
 	as do-if-else or if-elif or if-else
 		"else"
-	as if-then or if-then-else
+	as if-then or if-then-elif or if-then-else
 		"then"
 	if keyword
 		range-of-start-and-length a.second-keyword-pos, keyword
 third-keyword-range source-range?(a if-ast)
-	if a.kind == if-then-else
+	match a.kind
+	as if-then-elif or if-then-else
 		range-of-start-and-length a.third-keyword-pos, "else"
+	else
+		()
 
 interpolated-ast record
 	quote-kind quote-kind
@@ -1292,7 +1298,7 @@ some bool(a children, f bool mut(x expr-ast))
 		f[x.inner]
 	as the-ast
 		()
-	as then-if-ast
+	as then-if-or-unless-ast
 		f[x.first] or f[x.condition] or some x.then-args, f
 	as throw-ast
 		f[x.thrown]

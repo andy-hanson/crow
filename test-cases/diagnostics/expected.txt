@@ -239,6 +239,8 @@ compile-errors/duplicate-declaration.keen 50:17-50:18 Local 'a' is unused.
 compile-errors/duplicate-declaration.keen 53:1-53:5 'call' is unused.
 compile-errors/duplicate-import.keen 2:21-2:23 'pi' is imported twice from the same module.
 compile-errors/duplicate-import.keen 2:25-2:27 'pi' is imported twice from the same module.
+compile-errors/elif-preferred.keen 2:34-2:36 Prefer 'elif' instead of 'else if'.
+compile-errors/elif-preferred.keen 7:10-7:12 Prefer 'elif' instead of 'else if'.
 compile-errors/empty-enum-or-union.keen 2:7-2:20 There is no function or variable named 'gc-safe-value'.
 compile-errors/empty-enum-or-union.keen 3:7-3:20 There is no function or variable named 'gc-safe-value'.
 compile-errors/empty-enum-or-union.keen 5:1-5:2 An enum or union type must have at least one member.

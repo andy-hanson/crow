@@ -22,11 +22,17 @@ test
 test
 	foo 2 is 4
 	foo 3 is 3
-
-foo nat(x nat)
+-foo nat(x nat)
 	x
 	then if x < 3 then square
 -square nat(a nat) = a * a
+
+test
+	foo2 2 is 4
+	foo2 3 is 3
+-foo2 nat(x nat)
+	x
+	then unless x >= 3 then square
 
 test
 	bar 2 is 3
@@ -34,6 +40,13 @@ test
 -bar nat(x nat)
 	x
 	then if x < 3 then + 1
+
+test
+	bar2 2 is 3
+	bar2 3 is 3
+-bar2 nat(x nat)
+	x
+	then unless x >= 3 then + 1
 
 test
 	baz 2 is 8
@@ -45,11 +58,25 @@ test
 	a + b * c
 
 test
+	baz2 2 is 8
+	baz2 3 is 3
+-baz2 nat(x nat)
+	x
+	then unless x >= 3 then splush 2, 3
+
+test
 	buz 1, 2 is 3
 	buz 1, () is 1
 -buz nat(x nat, y nat?)
 	x
 	then if y then + y
+
+test
+	buz2 1, 2 is 3
+	buz2 1, () is 1
+-buz2 nat(x nat, y nat?)
+	x
+	then unless not y then + y
 
 test
 	bez 1 is 1
@@ -60,3 +87,25 @@ test
 -half nat?(a nat)
 	if is-even a
 		a / 2
+
+test
+	bez2 1 is 1
+	bez2 2 is 3
+-bez2 nat(x nat)
+	x
+	then unless not (y = half x) then + y
+
+# Test that the function called by 'then if' can implicitly convert
+test
+	convert-called "foo", false is "foo"
+	convert-called "foo", true is 3
+	convert-called 2::nat, false is 2
+	convert-called 2::nat, true is 20
+-u union(nat, string)
+-convert-called u(a u, b bool)
+	a
+	then if b then returns-nat
+-returns-nat nat(a u)
+	match a
+	as nat then a * 10
+	as string then a.size

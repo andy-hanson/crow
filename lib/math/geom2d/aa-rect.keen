@@ -181,3 +181,20 @@ do
 		right: a.right
 		bottom: a.center.y - new-height / 2
 		top: a.center.y + new-height / 2
+
+| Distance from the {closest-point} in {a} to {pos}
++distance float32(a aa-rect32, pos vec2-32)
+	square-root distance-squared a, pos
+| Distance**2 from the {closest-point} in {a} to {pos}
++distance-squared float32(a aa-rect32, pos vec2-32)
+	length-squared (closest-point a, pos) - pos
+| Returns a point in {a} closest to {pos}
+| (May return a point on the east or north edge even though those aren't considered contained)
++closest-point vec2-32(a aa-rect32, pos vec2-32)
+	x: clamp pos.x, (a.left .. a.right)
+	y: clamp pos.y, (a.bottom .. a.top)
+
++diagonal float32(a aa-rect32)
+	diagonal size a
++diagonal-squared float32(a aa-rect32)
+	diagonal-squared size a

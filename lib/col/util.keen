@@ -749,3 +749,17 @@ do (col0, elem0) some, (col1, elem1) some
 				out ~= i
 			i wrap-add:= 1
 			false
+
+| The element satisfying {f} if it is the only one.
+| If multiple elements satisfy {f}, this is an empty option, same as if none did.
++only-where[col, elem] elem?(col col, f bool mut(x elem)) col size, (col, elem) some
+	res mut elem? = ()
+	_ = some col, of x
+		do if f[x]
+		if res
+			res := ()
+			true
+		else
+			res := x
+			false
+	res

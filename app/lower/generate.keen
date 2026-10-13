@@ -13,6 +13,7 @@ gen-true constant-low-expr(range uri-and-range) lower-ctx
 	bool, range, value.to
 
 then-else record(then_ low-expr, else_ low-expr)
+swap then-else(a then-else) = a.else_, a.then_
 if-low-expr if-low-expr(range uri-and-range, cond low-expr, then-else then-else)
 	if-low-expr range, cond, then-else.then_, then-else.else_
 

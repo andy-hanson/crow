@@ -40,6 +40,11 @@ get-references uri-and-line-and-character-range[](program program, pos position,
 			add-definition[]
 			for ref in references-for-local target
 				out ~= lcgs[pos.uri, ref]
+			if fun-decl target.container and target.container.name == "new"
+				do if contains target.container.params, target.local
+				for uri, where, reference-kind, thing in walk-program program
+					if reference-kind == provide-parameter-value and thing == target.local
+						out ~= lcgs[uri, where.reference-range]
 		as keen-module
 			for ref in references-for-module program, target
 				out ~= lcgs[ref]

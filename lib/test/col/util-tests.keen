@@ -69,3 +69,16 @@ test
 	map::(nat, nat)[] a.with-index, {it} is (0, 1), (1, 2), (2, 3)
 	map::(bool, nat)[] a.with-is-first, {it} is (true, 1), (false, 2), (false, 3)
 	map::(bool, nat)[] a.with-is-last, {it} is (false, 1), (false, 2), (true, 3)
+
+test
+	only-where (1, 2, 3)::nat[], it.is-even is 2
+	only-where (1, 2, 3, 4)::nat[], it.is-even is ()
+
+test
+	# Ensure early exit
+	calls nat mut[] = ()
+	res = only-where (1, 2, 3, 4, 5, 6)::nat[], of x
+		calls ~= x
+		is-even x
+	res is ()
+	calls.move-to::nat[] is 1, 2, 3, 4

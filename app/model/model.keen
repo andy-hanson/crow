@@ -3288,7 +3288,7 @@ expr union
 	match-sum-type-expr
 	seq-expr
 	the-expr
-	then-if-expr
+	then-if-or-unless-expr
 	throw-expr
 	trusted-expr
 	try-expr
@@ -3364,7 +3364,7 @@ type type(a expr) common-types
 		type a
 	as the-expr
 		type a
-	as then-if-expr
+	as then-if-or-unless-expr
 		type a
 	as throw-expr
 		type a
@@ -3447,7 +3447,7 @@ call-expr-source union
 	list-ast
 	literal-string-ast
 	name-and-range
-	then-if-ast
+	then-if-or-unless-ast
 	typed-ast # Used when this has an empty value
 do
 	range source-range()
@@ -3491,7 +3491,7 @@ name-range source-range(a call-expr-source)
 		a.range
 	as name-and-range
 		a.range
-	as then-if-ast
+	as then-if-or-unless-ast
 		a.fun-name-range
 	as typed-ast
 		a.keyword-range
@@ -3963,15 +3963,16 @@ type type(a seq-expr) common-types = type a.then_
 the-expr record(ast the-ast, type type-inst)
 range source-range(a the-expr) = a.ast.range
 
-then-if-expr record
-	ast then-if-ast
+then-if-or-unless-expr record
+	ast then-if-or-unless-ast
 	first expr
 	condition expr
 	called called
 	rest-args expr[]
-range source-range(a then-if-expr) = a.ast.range
-type type(a then-if-expr)
-	a.called.return-type
+range source-range(a then-if-or-unless-expr) = a.ast.range
+type type(a then-if-or-unless-expr) common-types = type a.first
+is-unless bool(a then-if-or-unless-expr)
+	a.ast.is-unless
 
 throw-expr record(ast throw-ast, thrown expr, type type)
 to json(a throw-expr)
@@ -4123,7 +4124,7 @@ some bool(a direct-child-exprs, f bool mut(x expr))
 		f[x.first] or f[x.then_]
 	as the-expr
 		()
-	as then-if-expr
+	as then-if-or-unless-expr
 		f[x.first] or f[x.condition] or some x.rest-args, f
 	as throw-expr
 		f[x.thrown]

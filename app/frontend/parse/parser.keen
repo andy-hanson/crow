@@ -43,6 +43,8 @@ add-diag void(range source-range, diag parse-diag) parser
 finish-diagnostics parse-diagnostic[]() parser
 	the::parser.diagnostics-builder.move-to
 
+add-diag-at-prev-token void(diag parse-diag) parser
+	add-diag prev-range, diag
 add-diag-at-next-token void(diag parse-diag) parser
 	add-diag next-range, diag
 

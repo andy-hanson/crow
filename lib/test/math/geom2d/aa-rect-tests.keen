@@ -39,3 +39,12 @@ test
 	bounds aa-rect32 = bottom-left: (-3, -3), top-right: (3, 3)
 	try-move-within bounds, bottom-left: (1, 1), top-right: (4, 4) is bottom-left: (0, 0), top-right: (3, 3)
 	try-move-within bounds, bottom-left: (-3, 1), top-right: (5, 4) is bottom-left: (-4, 0), top-right: (4, 3)
+
+test
+	a aa-rect32 = bottom-left: (1, 2), top-right: (3, 4)
+	closest-point a, (0, 0) is 1, 2
+	closest-point a, (0, 10) is 1, 4
+	closest-point a, (2, 3) is 2, 3
+	closest-point a, (10, 1) is 3, 2
+	closest-point a, (10, 10) is 3, 4
+	closest-point (), (1, 2) is 0, 0

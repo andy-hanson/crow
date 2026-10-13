@@ -66,6 +66,8 @@ sorted-diagnostics uri-and-diagnostics[](program program-with-opt-main)
 		"'\}' in a string literal must be escaped."
 	as parse-diag-doc-comment-unused
 		"Doc comment must appear at top of module or before a declaration."
+	as parse-diag-elif-preferred
+		"Prefer 'elif' instead of 'else if'."
 	as parse-diag-equals-left
 		"Expected a destructure to left of '='."
 	as parse-diag-expected

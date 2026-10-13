@@ -209,6 +209,15 @@ do t sorted-key
 	assert any a
 	nth-sorted-by a, a.size / 2, get-key
 
+| Returns the first {n} elements of the sorted array.
+| May return less than {n} elements if {a} is too small
++first-n-sorted[t] t[](a t[], n nat32) t sorted-key
+	first-n-sorted a, n, {it}
++first-n-sorted[t, k] t[](a t[], n nat32, get-key k mut(x t)) k sorted-key
+	# TODO:PERF
+	res t[] = sort a, get-key
+	res[0 .. n].to
+
 | Equivalent to `a.sort[n]` but faster
 +nth-sorted[t] t(a t array-view, n nat32) t sorted-key
 	nth-sorted-by a, n, {it}

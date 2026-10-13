@@ -157,7 +157,7 @@ expression-position-kind union
 	match-string-like-expr
 	match-sum-type-expr
 	the-expr
-	then-if-expr
+	then-if-or-unless-expr
 	try-expr
 	try-let-expr
 	while-or-until-expr

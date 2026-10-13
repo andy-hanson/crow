@@ -1,0 +1,18 @@
+test
+	x nat = if false then one elif true then two else one
+	x is 2
+
+# Using words instead of numbers to test that 'elif' stops expression parsing
+-one nat() = 1
+-two nat() = 2
+
+test
+	foo () is 3
+	foo 6 is 3
+	foo 7 is 8
+-foo nat(x nat?)
+	# The `else` branch of an `or` condition gets knowledge that its parts are false
+	if not x or x < 7
+		3
+	else
+		x + 1

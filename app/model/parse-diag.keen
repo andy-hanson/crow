@@ -16,6 +16,7 @@ parse-diagnostic record(range source-range, kind parse-diag)
 parse-diag union
 	parse-diag-closing-brace-needs-escape
 	parse-diag-doc-comment-unused
+	parse-diag-elif-preferred
 	parse-diag-equals-left
 	parse-diag-expected
 	parse-diag-file-not-utf8
@@ -45,6 +46,7 @@ parse-diag union
 	read-file-diag
 parse-diag-closing-brace-needs-escape record
 parse-diag-doc-comment-unused record
+parse-diag-elif-preferred record
 parse-diag-equals-left record
 parse-diag-expected enum
 	after-do-keyword

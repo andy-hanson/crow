@@ -3,13 +3,13 @@ import
 	../col/array
 	../col/buffer
 	../col/collection
-	../col/mut-enum-map
 	../col/mut-array
 	../col/mut-index-set
 	../col/util
 	../bits
 	../bool
 	../compare
+	../enums
 	../misc
 	../number
 	../json

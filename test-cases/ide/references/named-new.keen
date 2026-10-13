@@ -1,0 +1,8 @@
+r record
+	f nat
+
+new r(x nat)
+	f: 1
+
+test
+	_ r = x: 1

@@ -42,6 +42,7 @@ reference-kind enum
 	declare-local
 	get-local
 	set-local
+	provide-parameter-value
 
 walk-program record(program program)
 for-loop void(a walk-program, f void mut(where uri, source reference-ast, kind reference-kind, x doc-comment-reference))
@@ -334,8 +335,10 @@ do walk-ctx
 			()
 		as call-expr
 			handle-call e.called, e.ast, e.ast.call-ast-prefix-with-type-arg.?type-arg, explicit-private, f
+			handle-call-named e.called, e.ast, f
 		as call-expr-with-which-params
 			handle-call e.called, e.ast, (), explicit-private, f
+			handle-call-named e.called, e.ast, f
 		as call-named-new-expr
 			handle-call e.called, e.ast, (), explicit-private, f
 		as call-option-expr
@@ -395,7 +398,7 @@ do walk-ctx
 			()
 		as the-expr
 			walk-type e.ast.type, e.type, explicit-private, f
-		as then-if-expr
+		as then-if-or-unless-expr
 			?walk-type e.ast.fun-type-annotation, e.type, explicit-private, f
 			handle-call e.called, e.ast, (), explicit-private, f
 		as throw-expr
@@ -437,6 +440,22 @@ do walk-ctx
 			handle-call impl, source, (), spec-impl, f
 	as called-spec-sig
 		f[source, kind, called]
+
+-handle-call-named void(called called, source call-expr-source, f cb-thing)
+	do if fun-inst called and call-named-ast source
+	name-index mut nat = 0
+	for param in called.decl.params
+		assert local param
+		until
+			if name-index == source.names.size
+				true
+			elif param.name == source.names[name-index].name-and-range!.name
+				f[source.names[name-index].name-and-range!, provide-parameter-value, param]
+				name-index +:= 1
+				true
+			else
+				name-index +:= 1
+				false
 
 -to doc-comment-reference(a called-decl)
 	match a

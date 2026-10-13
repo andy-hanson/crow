@@ -230,7 +230,7 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 		forbid is-array-op low-called
 		lower-inline-call-not-array-op low-called, range, args
 	else
-		low-args low-expr[] =
+		gen-call range, low-called,
 			# Since 'list-new' is allowed to implement the 'new' spec, we need to support those here
 			-- if args.size == 0 and array-type = as-list-new low-called
 				empty-array = get-constant-array all-constants, array-type, ()
@@ -238,10 +238,6 @@ lower-new-record low-expr(fun low-fun) lower-ctx
 			else
 				args
 			-- context-args range, called, low-called
-		# We need to widen again even though it was done already in 'lower-expr',
-		# because we may be calling a spec-impl that has a narrower type than the spec.
-		# (The call expr's type can't reflect this and uses the spec's declared type.)
-		gen-call range, low-called, low-args
 
 -args-with-defaults low-expr[](low-called low-fun, called called, args expr[], skip-args nat = 0) lower-and-expr-ctx
 	for index in skip-args .. called.arity
@@ -626,10 +622,21 @@ do lower-and-expr-ctx
 	expr expr
 	prev lower-condition-result?
 do lower-and-expr-ctx
-	if logical-expr expr and expr.kind == bool-and-bool
-		lower-condition range, expr.right,
-			lower-condition range, expr.left, prev
-	elif unpack-option expr
+	match expr
+	as call-expr
+		if not prev and (as-builtin-fun expr.called) == not
+			inner = lower-condition range, expr.args.only!, prev
+			condition: builtin-unary-low-expr bool, range, not, inner.condition
+			locals: inner.locals
+		else
+			lower-condition-default range, expr, prev
+	as logical-expr
+		if expr.kind == bool-and-bool
+			lower-condition range, expr.right,
+				lower-condition range, expr.left, prev
+		else
+			lower-condition-default range, expr, prev
+	as unpack-option
 		option = lower-expr expr.option
 		temp low-local = temp::low-generated-local-kind, option.type
 		option-with-prev low-expr = if prev
@@ -643,12 +650,18 @@ do lower-and-expr-ctx
 			- temp, option-with-prev
 			-- locals-for-option expr.destructure, get-temp
 	else
-		cond = lower-expr bool, expr
-		if prev
-			condition: gen-and range, prev.condition, cond
-			locals: prev.locals
-		else
-			cond, ()
+		lower-condition-default range, expr, prev
+-lower-condition-default lower-condition-result
+	range uri-and-range
+	expr expr
+	prev lower-condition-result?
+do lower-and-expr-ctx
+	cond = lower-expr bool, expr
+	if prev
+		condition: gen-and range, prev.condition, cond
+		locals: prev.locals
+	else
+		cond, ()
 
 -locals-for-option (low-local, low-expr)[](a destructure, option-expr low-expr) lower-and-expr-ctx
 	match a
@@ -1107,8 +1120,8 @@ lower-expr low-expr(outer-type low-type, a expr) lower-and-expr-ctx
 		concat-seqs range, first, then_
 	as the-expr
 		get-the type, range
-	as then-if-expr
-		lower-then-if type, range, a
+	as then-if-or-unless-expr
+		lower-then-if-or-unless type, range, a
 	as throw-expr
 		throw-low-expr type, range, lower-expr exception, a.thrown
 	as trusted-expr
@@ -1207,7 +1220,7 @@ do lower-and-expr-ctx
 	right: lower-expr void, a.right
 	below: lower-expr type, a.below
 
--lower-then-if low-expr(type low-type, range uri-and-range, a then-if-expr) lower-and-expr-ctx
+-lower-then-if-or-unless low-expr(type low-type, range uri-and-range, a then-if-or-unless-expr) lower-and-expr-ctx
 	###
 	x
 	then if y then foo z
@@ -1228,9 +1241,12 @@ do lower-and-expr-ctx
 	then_: with-lower-condition range, a.condition, of cond
 		args = args-with-defaults low-called, a.called, a.rest-args, 1
 		get-temp local-get-low-expr = range, temp
-		if-low-expr range, cond,
-			then_: lower-call-inner range, a.called, low-called, get-temp ~ args
+		branches then-else =
+			then_: may-widen-type type, lower-call-inner range, a.called, low-called, get-temp ~ args
 			else_: get-temp
+		if-low-expr range, cond,
+			branches
+			then if a.is-unless then swap
 
 -lower-try low-expr
 	type low-type

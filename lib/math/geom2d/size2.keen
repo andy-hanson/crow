@@ -1,4 +1,5 @@
 import
+	keen/math/math
 	keen/math/vec
 
 +size2-32 record
@@ -37,3 +38,8 @@ import
 		y
 	else
 		1
+
++diagonal float32(a size2-32)
+	square-root diagonal-squared a
++diagonal-squared float32(a size2-32)
+	length-squared to::vec2-32 a

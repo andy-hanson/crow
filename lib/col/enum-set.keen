@@ -1,7 +1,7 @@
 import
-	keen/bits
+	../bits
+	../enums
 	./enum-map
-	./mut-enum-map
 	./mut-enum-set
 
 +enum-set[t] record

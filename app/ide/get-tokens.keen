@@ -504,7 +504,7 @@ do tokens-builder
 		add-expr-tokens a.inner
 	as the-ast
 		add-type-tokens a.type
-	as then-if-ast
+	as then-if-or-unless-ast
 		add-expr-tokens a.first
 		add-expr-tokens a.condition
 		emit function_, a.fun-name-range

@@ -79,9 +79,9 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 
 -peek-token-expression bool(allowed-block bool) parser
 	match peek
-	as and_ or brace-right or bracket-right or catch_ or comma or else_ or end-of-file or paren-right or name-after-tick
+	as and_ or brace-right or bracket-right or catch_ or comma or elif_ or else_ or end-of-file or paren-right
 		false
-	as newline-dedent or newline-same-indent or operator-binary or or_ or then_
+	as name-after-tick or newline-dedent or newline-same-indent or operator-binary or or_ or then_
 		false
 	as newline-indent
 		allowed-block
@@ -398,16 +398,33 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 	as interpolated-ast then a
 	else then ()
 
--parse-if expr-ast(start pos, is-else-of-parent bool, allowed allowed, is-unless bool) parser
+-parse-if-kind enum
+	initial-if
+	initial-unless
+	elif-after-then
+	elif-on-own-line
+-parse-if if-ast(start pos, allowed allowed, kind parse-if-kind) parser
 	condition = parse-condition min allowed, it-scope
 	then-pos = next-start
-	if not is-else-of-parent and try-take-token then_
+	if kind != elif-on-own-line and try-take-token then_
 		then_ = parse-expr-and-calls ((min allowed, it-scope), else_.precedence)
 		else-pos = next-start
-		else_ expr-ast? = if try-take-token else_ then parse-expr-no-block allowed
+		elif-or-else-pos = next-start
+		elif-or-else = unless kind == initial-unless then try-take-elif-or-else
+		else_ expr-ast? = if elif-or-else
+			match elif-or-else
+			as elif_
+				parse-if elif-or-else-pos, (min allowed, it-scope), elif-after-then
+			as else_
+				parse-expr-no-block allowed
 		start: start
-		is-unless: is-unless
-		kind: if else_ then if-then-else else if-then
+		is-unless: kind == initial-unless
+		kind: if elif-or-else
+			match elif-or-else
+			as elif_ then if-then-else
+			as else_ then if-then-elif
+		else
+			if-then
 		is-else-of-parent: false
 		second-keyword-pos: then-pos
 		third-keyword-pos: if else_ then else-pos else max-value
@@ -420,11 +437,11 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 		else_ expr-ast? = if elif-or-else
 			match kind elif-or-else
 			as elif_
-				parse-if elif-or-else.pos, true, allowed, false
+				parse-if elif-or-else.pos, allowed, elif-on-own-line
 			as else_
 				parse-indented-statements
 		start: start
-		is-unless: is-unless
+		is-unless: kind == initial-unless
 		kind: if elif-or-else
 			match kind elif-or-else
 			as elif_
@@ -433,7 +450,7 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 				if-else
 		else
 			if-without-else
-		is-else-of-parent: is-else-of-parent
+		is-else-of-parent: kind == elif-after-then or kind == elif-on-own-line
 		second-keyword-pos: elif-or-else.?pos else 0
 		third-keyword-pos: max-value
 		condition: condition
@@ -442,16 +459,20 @@ parse-fun-expr-body expr-ast(diag parse-diag-missing-body?) parser
 
 -elif-or-else-keyword record(kind elif-or-else, pos pos)
 -elif-or-else enum(elif_, else_)
--to elif-or-else?(a token)
-	match a
-	as elif_ then elif_
-	as else_ then else_
-	else then ()
 -try-take-newline-then-elif-or-else elif-or-else-keyword?() parser
-	if peek newline-same-indent and kind = peek2.to::elif-or-else?
-		advance
-		advance
-		kind, prev-start
+	do if peek newline-same-indent and (peek2 == elif_ or peek2 == else_)
+	advance
+	keyword-pos = next-start
+	try-take-elif-or-else!, keyword-pos
+-try-take-elif-or-else elif-or-else?() parser
+	if try-take-token elif_
+		elif_
+	elif try-take-token else_
+		if try-take-token if_
+			add-diag-at-prev-token parse-diag-elif-preferred
+			elif_
+		else
+			else_
 
 -parse-condition expr-ast(allowed allowed) parser
 	if lookahead-equals
@@ -637,7 +658,7 @@ do parser
 	as for-star
 		parse-for-or-with start, allowed, for-star, for-star
 	as if_
-		parse-if start, false, allowed, false
+		parse-if start, allowed, initial-if
 	as it_
 		try-parse-dots-and-subscripts allowed, it-scope-if-allowed arg-ctx, start
 	as in_
@@ -687,7 +708,7 @@ do parser
 	as underscore
 		underscore-ast start
 	as unless_
-		parse-if start, false, allowed, true
+		parse-if start, allowed, initial-unless
 	as until_
 		parse-while-or-until start, allowed, true
 	as with_
@@ -949,14 +970,14 @@ do parser
 	while try-take-token newline-same-indent
 		if try-take-token then_
 			then-pos = prev-start
-			if try-take-token if_
+			if is-unless = try-take-if-or-unless
 				condition = parse-condition none
 				then2-pos = next-start
 				_ = take-or-add-diag-expected-token then_, then-after-then-if
 				fun-name = take-name-or-operator
 				type = maybe-parse-type-annotation
 				args = parse-args allow-everything
-				res := then-if-ast res, then-pos, condition, then2-pos, fun-name, type.?b, args
+				res := then-if-ast res, then-pos, is-unless, condition, then2-pos, fun-name, type.?b, args
 			else
 				fun-name = take-name-or-operator
 				type = maybe-parse-type-annotation
@@ -965,6 +986,11 @@ do parser
 		else
 			res seq-ast:= parse-single-statement-line
 	res
+-try-take-if-or-unless bool?() parser
+	if try-take-token if_
+		false
+	elif try-take-token unless_
+		true
 
 -parse-indented-statements expr-ast() parser
 	take-indent-or-fail-expr {parse-statements-and-dedent}
